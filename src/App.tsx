@@ -1,5 +1,4 @@
 
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,9 @@ import EmployerDirectory from "./pages/EmployerDirectory";
 import ContributionEntry from "./pages/ContributionEntry";
 import ComplianceMonitoring from "./pages/ComplianceMonitoring";
 import ContributionTracking from "./pages/ContributionTracking";
+import PersonRegistration from "./pages/PersonRegistration";
+import PersonApproval from "./pages/PersonApproval";
+import PersonDirectory from "./pages/PersonDirectory";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +65,21 @@ const App = () => (
                 <ContributionTracking />
               </ProtectedRoute>
             } />
+            <Route path="/person/register" element={
+              <ProtectedRoute>
+                <PersonRegistration />
+              </ProtectedRoute>
+            } />
+            <Route path="/person/approval" element={
+              <ProtectedRoute requiredPermission="manage_persons">
+                <PersonApproval />
+              </ProtectedRoute>
+            } />
+            <Route path="/person/directory" element={
+              <ProtectedRoute>
+                <PersonDirectory />
+              </ProtectedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -73,4 +90,3 @@ const App = () => (
 );
 
 export default App;
-

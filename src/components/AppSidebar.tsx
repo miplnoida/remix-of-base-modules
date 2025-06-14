@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -64,6 +65,7 @@ const menuItems = [
     icon: Users,
     subItems: [
       { title: "Person Registration", url: "/person/register", icon: UserPlus },
+      { title: "Person Approval", url: "/person/approval", icon: CheckCircle, requiresPermission: "manage_persons" },
       { title: "Person Directory", url: "/person/directory", icon: Users },
       { title: "ID Card Generation", url: "/person/id-cards", icon: CreditCard },
       { title: "Biometric Data", url: "/person/biometrics", icon: ShieldCheck },
