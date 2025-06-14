@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import EmployerRegistration from "./pages/EmployerRegistration";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,11 @@ const App = () => (
             <Route path="/" element={
               <ProtectedRoute>
                 <Index />
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/register" element={
+              <ProtectedRoute>
+                <EmployerRegistration />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
