@@ -120,12 +120,14 @@ export const LoginScreen = () => {
               <p className="text-sm text-gray-600 mb-3">Demo Credentials (password: password123):</p>
               <div className="space-y-2">
                 {demoCredentials.map((cred, index) => (
-                  <div key={index} className="text-xs bg-gray-50 p-2 rounded">
+                  <div key={index} className="text-xs bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100" 
+                       onClick={() => setEmail(cred.email)}>
                     <div className="font-medium">{cred.role}</div>
                     <div className="text-gray-600">{cred.email}</div>
                   </div>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-2">Click on any credential above to auto-fill the email field</p>
             </div>
           </CardContent>
         </Card>

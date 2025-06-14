@@ -59,16 +59,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('Login attempt:', { email, password });
+    console.log('Available users:', mockUsers.map(u => u.email));
+    
     // Mock authentication
     const foundUser = mockUsers.find(u => u.email === email);
+    console.log('Found user:', foundUser);
+    
     if (foundUser && password === 'password123') {
+      console.log('Login successful for:', foundUser.name);
       setUser(foundUser);
       return true;
     }
+    
+    console.log('Login failed - invalid credentials');
     return false;
   };
 
   const logout = () => {
+    console.log('User logged out');
     setUser(null);
   };
 
