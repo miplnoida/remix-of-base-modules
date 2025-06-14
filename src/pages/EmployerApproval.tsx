@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,9 @@ import {
   Calendar,
   MapPin,
   Phone,
-  Mail
+  Mail,
+  ArrowLeft,
+  Home
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -80,6 +82,7 @@ const pendingEmployers = [
 ];
 
 const EmployerApproval = () => {
+  const navigate = useNavigate();
   const [selectedEmployer, setSelectedEmployer] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState('');
@@ -122,12 +125,44 @@ const EmployerApproval = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <CheckCircle className="h-8 w-8 text-green-600" />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Employer Approval</h1>
-          <p className="text-gray-600">Review and approve pending employer registrations</p>
+      {/* Navigation Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+          <div className="h-6 w-px bg-gray-300" />
+          <CheckCircle className="h-8 w-8 text-green-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Employer Approval</h1>
+            <p className="text-gray-600">Review and approve pending employer registrations</p>
+          </div>
         </div>
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2"
+        >
+          <Home className="h-4 w-4" />
+          Main Menu
+        </Button>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <button 
+          onClick={() => navigate('/')}
+          className="hover:text-gray-700 transition-colors"
+        >
+          Dashboard
+        </button>
+        <span>/</span>
+        <span className="text-gray-900">Employer Approval</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
