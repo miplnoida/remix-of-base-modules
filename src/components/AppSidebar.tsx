@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   Upload,
+  CheckCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -51,6 +52,7 @@ const menuItems = [
     icon: Building2,
     subItems: [
       { title: "Employer Registration", url: "/employer/register", icon: UserPlus },
+      { title: "Employer Approval", url: "/employer/approval", icon: CheckCircle, requiresPermission: "manage_employers" },
       { title: "Employer Directory", url: "/employer/directory", icon: Users },
       { title: "Contribution Entry", url: "/employer/contribution-entry", icon: Upload },
       { title: "Compliance Monitoring", url: "/employer/compliance", icon: AlertTriangle },
@@ -191,7 +193,9 @@ export function AppSidebar() {
                     {!collapsed && (
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.subItems.map((subItem) => (
+                          {item.subItems
+                            .filter(subItem => !subItem.requiresPermission || hasPermission(subItem.requiresPermission))
+                            .map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton 
                                 asChild

@@ -1,4 +1,5 @@
 
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,7 @@ import { LoginScreen } from "@/components/auth/LoginScreen";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import EmployerRegistration from "./pages/EmployerRegistration";
+import EmployerApproval from "./pages/EmployerApproval";
 import EmployerDirectory from "./pages/EmployerDirectory";
 import ContributionEntry from "./pages/ContributionEntry";
 import ComplianceMonitoring from "./pages/ComplianceMonitoring";
@@ -34,6 +36,11 @@ const App = () => (
             <Route path="/employer/register" element={
               <ProtectedRoute>
                 <EmployerRegistration />
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/approval" element={
+              <ProtectedRoute requiredPermission="manage_employers">
+                <EmployerApproval />
               </ProtectedRoute>
             } />
             <Route path="/employer/directory" element={
@@ -66,3 +73,4 @@ const App = () => (
 );
 
 export default App;
+
