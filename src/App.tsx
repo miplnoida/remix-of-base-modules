@@ -18,6 +18,11 @@ import ContributionTracking from "./pages/ContributionTracking";
 import PersonRegistration from "./pages/PersonRegistration";
 import PersonApproval from "./pages/PersonApproval";
 import PersonDirectory from "./pages/PersonDirectory";
+import MaternityBenefits from "./pages/MaternityBenefits";
+import UnemploymentBenefits from "./pages/UnemploymentBenefits";
+import WorkInjuryBenefits from "./pages/WorkInjuryBenefits";
+import DeathBenefits from "./pages/DeathBenefits";
+import EducationalBenefits from "./pages/EducationalBenefits";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +83,31 @@ const App = () => (
             <Route path="/person/directory" element={
               <ProtectedRoute>
                 <PersonDirectory />
+              </ProtectedRoute>
+            } />
+            <Route path="/benefits/maternity" element={
+              <ProtectedRoute>
+                <MaternityBenefits />
+              </ProtectedRoute>
+            } />
+            <Route path="/benefits/unemployment" element={
+              <ProtectedRoute>
+                <UnemploymentBenefits />
+              </ProtectedRoute>
+            } />
+            <Route path="/benefits/work-injury" element={
+              <ProtectedRoute>
+                <WorkInjuryBenefits />
+              </ProtectedRoute>
+            } />
+            <Route path="/benefits/death" element={
+              <ProtectedRoute>
+                <DeathBenefits />
+              </ProtectedRoute>
+            } />
+            <Route path="/benefits/educational" element={
+              <ProtectedRoute>
+                <EducationalBenefits />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

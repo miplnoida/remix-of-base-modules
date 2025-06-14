@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -22,6 +21,11 @@ import {
   ChevronRight,
   Upload,
   CheckCircle,
+  Baby,
+  BriefcaseIcon,
+  Wrench,
+  Skull,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -79,6 +83,11 @@ const menuItems = [
       { title: "Pension Management", url: "/benefits/pension", icon: Calendar },
       { title: "Medical Benefits", url: "/benefits/medical", icon: Heart },
       { title: "Disability Benefits", url: "/benefits/disability", icon: ShieldCheck },
+      { title: "Maternity Benefits", url: "/benefits/maternity", icon: Baby },
+      { title: "Unemployment Benefits", url: "/benefits/unemployment", icon: BriefcaseIcon },
+      { title: "Work Injury Benefits", url: "/benefits/work-injury", icon: Wrench },
+      { title: "Death Benefits", url: "/benefits/death", icon: Skull },
+      { title: "Educational Benefits", url: "/benefits/educational", icon: GraduationCap },
     ],
   },
   {
