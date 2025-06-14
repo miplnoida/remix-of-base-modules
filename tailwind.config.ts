@@ -20,18 +20,18 @@ export default {
 		},
 		extend: {
 			colors: {
-				// SecureServe color scheme - Green theme based on logo
+				// SecureServe color scheme - Much lighter green theme
 				government: {
-					50: '#f0fdf4',
-					100: '#dcfce7',
-					200: '#bbf7d0',
-					300: '#86efac',
-					400: '#4ade80',
-					500: '#22c55e',
-					600: '#16a34a',
-					700: '#15803d',
-					800: '#166534',
-					900: '#14532d',
+					50: '#f7fdf9',
+					100: '#e3f9f1',
+					200: '#c7f3e3',
+					300: '#9be8ce',
+					400: '#66d9b4',
+					500: '#3fc79a',
+					600: '#2ba87f',
+					700: '#248a68',
+					800: '#1f6e54',
+					900: '#1a5a47',
 				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

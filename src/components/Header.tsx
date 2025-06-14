@@ -24,7 +24,7 @@ export const Header = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-green-100 text-green-800';
+      case 'admin': return 'bg-government-100 text-government-800';
       case 'hr_manager': return 'bg-blue-100 text-blue-800';
       case 'compliance_officer': return 'bg-red-100 text-red-800';
       case 'benefits_manager': return 'bg-purple-100 text-purple-800';
@@ -60,7 +60,7 @@ export const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-green-600 text-white">
+                <AvatarFallback className="bg-government-500 text-white">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>

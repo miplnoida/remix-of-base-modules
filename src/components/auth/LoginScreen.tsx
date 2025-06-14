@@ -41,10 +41,10 @@ export const LoginScreen = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
-          <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2">
+          <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
             <img 
               src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
               alt="SecureServe Logo" 
@@ -52,8 +52,8 @@ export const LoginScreen = () => {
             />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">SecureServe</h1>
-            <p className="text-green-200">Social Security Management System</p>
+            <h1 className="text-3xl font-bold text-government-800">SecureServe</h1>
+            <p className="text-government-600">Social Security Management System</p>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ export const LoginScreen = () => {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-government-500 hover:bg-government-600" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
