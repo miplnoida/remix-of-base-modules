@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { Header } from "@/components/Header";
+import { toast } from 'sonner';
+
 import { BasicInformation } from '@/components/employer/BasicInformation';
 import { BusinessDetails } from '@/components/employer/BusinessDetails';
 import { LegalStatus } from '@/components/employer/LegalStatus';
@@ -15,8 +19,6 @@ import { BusinessHistory } from '@/components/employer/BusinessHistory';
 import { Locations } from '@/components/employer/Locations';
 import { TechnicalInfo } from '@/components/employer/TechnicalInfo';
 import { Signatures } from '@/components/employer/Signatures';
-import { Building2, FileText, Users, MapPin, Computer, PenTool, CheckCircle, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
 
 const employerRegistrationSchema = z.object({
   // Basic Information
@@ -77,10 +79,10 @@ const employerRegistrationSchema = z.object({
 
 type EmployerRegistrationData = z.infer<typeof employerRegistrationSchema>;
 
-export default function EmployerRegistration() {
-  const [currentTab, setCurrentTab] = useState('basic');
+const EmployerRegistration = () => {
+  const [activeTab, setActiveTab] = useState('basic');
   
-  const form = useForm<EmployerRegistrationData>({
+  const form = useForm<z.infer<typeof employerRegistrationSchema>>({
     resolver: zodResolver(employerRegistrationSchema),
     defaultValues: {
       employedPersonsMale: 0,
@@ -96,120 +98,109 @@ export default function EmployerRegistration() {
     },
   });
 
-  const onSubmit = (data: EmployerRegistrationData) => {
-    console.log('Employer registration data:', data);
+  const onSubmit = (values: z.infer<typeof employerRegistrationSchema>) => {
+    console.log('Form submitted:', values);
     toast.success('Employer registration submitted successfully!');
-    // Here you would typically submit to your backend
   };
 
   const tabs = [
-    { id: 'basic', label: 'Basic Info', icon: Building2 },
-    { id: 'business', label: 'Business Details', icon: FileText },
-    { id: 'legal', label: 'Legal Status', icon: CheckCircle },
-    { id: 'personnel', label: 'Key Personnel', icon: Users },
-    { id: 'history', label: 'Business History', icon: Calendar },
-    { id: 'locations', label: 'Locations', icon: MapPin },
-    { id: 'technical', label: 'Technical Info', icon: Computer },
-    { id: 'signatures', label: 'Signatures', icon: PenTool },
+    { id: 'basic', label: 'Basic Info', component: BasicInformation },
+    { id: 'business', label: 'Business Details', component: BusinessDetails },
+    { id: 'legal', label: 'Legal Status', component: LegalStatus },
+    { id: 'personnel', label: 'Key Personnel', component: KeyPersonnel },
+    { id: 'history', label: 'Business History', component: BusinessHistory },
+    { id: 'locations', label: 'Locations', component: Locations },
+    { id: 'technical', label: 'Technical Info', component: TechnicalInfo },
+    { id: 'signatures', label: 'Signatures', component: Signatures },
   ];
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Employer Registration</h1>
-        <p className="text-gray-600 mt-2">Complete all sections to register as an employer with the Social Security Board</p>
-      </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card>
-            <CardHeader className="bg-green-900 text-white">
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                ST. CHRISTOPHER AND NEVIS SOCIAL SECURITY BOARD - EMPLOYER REGISTRATION
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-6">
-                  {tabs.map((tab) => (
-                    <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-1">
-                      <tab.icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-
-                <TabsContent value="basic">
-                  <BasicInformation />
-                </TabsContent>
-
-                <TabsContent value="business">
-                  <BusinessDetails />
-                </TabsContent>
-
-                <TabsContent value="legal">
-                  <LegalStatus />
-                </TabsContent>
-
-                <TabsContent value="personnel">
-                  <KeyPersonnel />
-                </TabsContent>
-
-                <TabsContent value="history">
-                  <BusinessHistory />
-                </TabsContent>
-
-                <TabsContent value="locations">
-                  <Locations />
-                </TabsContent>
-
-                <TabsContent value="technical">
-                  <TechnicalInfo />
-                </TabsContent>
-
-                <TabsContent value="signatures">
-                  <Signatures />
-                </TabsContent>
-              </Tabs>
-
-              <div className="flex justify-between mt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    const currentIndex = tabs.findIndex(tab => tab.id === currentTab);
-                    if (currentIndex > 0) {
-                      setCurrentTab(tabs[currentIndex - 1].id);
-                    }
-                  }}
-                  disabled={currentTab === 'basic'}
-                >
-                  Previous
-                </Button>
-                
-                {currentTab === 'signatures' ? (
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                    Submit Registration
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const currentIndex = tabs.findIndex(tab => tab.id === currentTab);
-                      if (currentIndex < tabs.length - 1) {
-                        setCurrentTab(tabs[currentIndex + 1].id);
-                      }
-                    }}
-                  >
-                    Next
-                  </Button>
-                )}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <main className="flex-1 p-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-900">Employer Registration</h1>
+                <p className="text-gray-600 mt-2">Complete all sections to register a new employer</p>
               </div>
-            </CardContent>
-          </Card>
-        </form>
-      </Form>
-    </div>
+
+              <FormProvider {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Registration Form</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-6">
+                          {tabs.map((tab) => (
+                            <TabsTrigger 
+                              key={tab.id} 
+                              value={tab.id}
+                              className="text-xs px-2 py-1"
+                            >
+                              {tab.label}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+
+                        {tabs.map((tab) => {
+                          const Component = tab.component;
+                          return (
+                            <TabsContent key={tab.id} value={tab.id} className="mt-6">
+                              <Component />
+                            </TabsContent>
+                          );
+                        })}
+                      </Tabs>
+
+                      <div className="flex justify-between mt-8 pt-6 border-t">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+                            if (currentIndex > 0) {
+                              setActiveTab(tabs[currentIndex - 1].id);
+                            }
+                          }}
+                          disabled={activeTab === tabs[0].id}
+                        >
+                          Previous
+                        </Button>
+
+                        {activeTab === tabs[tabs.length - 1].id ? (
+                          <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                            Submit Registration
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+                              if (currentIndex < tabs.length - 1) {
+                                setActiveTab(tabs[currentIndex + 1].id);
+                              }
+                            }}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            Next
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </form>
+              </FormProvider>
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
-}
+};
+
+export default EmployerRegistration;
