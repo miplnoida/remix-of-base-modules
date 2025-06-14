@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -20,6 +19,7 @@ import {
   Download,
   ChevronDown,
   ChevronRight,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -52,6 +52,7 @@ const menuItems = [
     subItems: [
       { title: "Employer Registration", url: "/employer/register", icon: UserPlus },
       { title: "Employer Directory", url: "/employer/directory", icon: Users },
+      { title: "Contribution Entry", url: "/employer/contribution-entry", icon: Upload },
       { title: "Compliance Monitoring", url: "/employer/compliance", icon: AlertTriangle },
       { title: "Contribution Tracking", url: "/employer/contributions", icon: BarChart3 },
     ],

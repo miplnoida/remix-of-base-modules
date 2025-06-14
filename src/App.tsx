@@ -11,6 +11,9 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import EmployerRegistration from "./pages/EmployerRegistration";
 import EmployerDirectory from "./pages/EmployerDirectory";
+import ContributionEntry from "./pages/ContributionEntry";
+import ComplianceMonitoring from "./pages/ComplianceMonitoring";
+import ContributionTracking from "./pages/ContributionTracking";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +39,21 @@ const App = () => (
             <Route path="/employer/directory" element={
               <ProtectedRoute>
                 <EmployerDirectory />
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/contribution-entry" element={
+              <ProtectedRoute>
+                <ContributionEntry />
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/compliance" element={
+              <ProtectedRoute>
+                <ComplianceMonitoring />
+              </ProtectedRoute>
+            } />
+            <Route path="/employer/contributions" element={
+              <ProtectedRoute>
+                <ContributionTracking />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
