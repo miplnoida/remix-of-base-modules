@@ -90,41 +90,47 @@ const EmployerDirectory = () => {
     contributionFrequency: '',
   });
 
+  const [appliedFilters, setAppliedFilters] = useState<EmployerFilters>(filters);
+
   const filteredEmployers = useMemo(() => {
     return employerData.filter(employer => {
-      // Apply all filters
-      if (filters.employerId && !employer.employerId.toLowerCase().includes(filters.employerId.toLowerCase())) return false;
-      if (filters.employerName && !employer.employerName.toLowerCase().includes(filters.employerName.toLowerCase())) return false;
-      if (filters.businessType && employer.businessType !== filters.businessType) return false;
-      if (filters.employerStatus && employer.employerStatus !== filters.employerStatus) return false;
-      if (filters.taxId && !employer.taxId.toLowerCase().includes(filters.taxId.toLowerCase())) return false;
-      if (filters.contributionStatus && employer.contributionStatus !== filters.contributionStatus) return false;
-      if (filters.complianceStatus && employer.complianceStatus !== filters.complianceStatus) return false;
-      if (filters.industryCode && !employer.industryCode.toLowerCase().includes(filters.industryCode.toLowerCase())) return false;
-      if (filters.country && employer.address.country !== filters.country) return false;
-      if (filters.state && employer.address.state !== filters.state) return false;
-      if (filters.contributionFrequency && employer.contributionFrequency !== filters.contributionFrequency) return false;
+      // Apply all filters using appliedFilters instead of filters
+      if (appliedFilters.employerId && !employer.employerId.toLowerCase().includes(appliedFilters.employerId.toLowerCase())) return false;
+      if (appliedFilters.employerName && !employer.employerName.toLowerCase().includes(appliedFilters.employerName.toLowerCase())) return false;
+      if (appliedFilters.businessType && employer.businessType !== appliedFilters.businessType) return false;
+      if (appliedFilters.employerStatus && employer.employerStatus !== appliedFilters.employerStatus) return false;
+      if (appliedFilters.taxId && !employer.taxId.toLowerCase().includes(appliedFilters.taxId.toLowerCase())) return false;
+      if (appliedFilters.contributionStatus && employer.contributionStatus !== appliedFilters.contributionStatus) return false;
+      if (appliedFilters.complianceStatus && employer.complianceStatus !== appliedFilters.complianceStatus) return false;
+      if (appliedFilters.industryCode && !employer.industryCode.toLowerCase().includes(appliedFilters.industryCode.toLowerCase())) return false;
+      if (appliedFilters.country && employer.address.country !== appliedFilters.country) return false;
+      if (appliedFilters.state && employer.address.state !== appliedFilters.state) return false;
+      if (appliedFilters.contributionFrequency && employer.contributionFrequency !== appliedFilters.contributionFrequency) return false;
       
       // Numeric filters
-      if (filters.numberOfEmployeesMin && employer.numberOfEmployees < parseInt(filters.numberOfEmployeesMin)) return false;
-      if (filters.numberOfEmployeesMax && employer.numberOfEmployees > parseInt(filters.numberOfEmployeesMax)) return false;
-      if (filters.totalContributionsMin && employer.totalContributions < parseFloat(filters.totalContributionsMin)) return false;
-      if (filters.totalContributionsMax && employer.totalContributions > parseFloat(filters.totalContributionsMax)) return false;
+      if (appliedFilters.numberOfEmployeesMin && employer.numberOfEmployees < parseInt(appliedFilters.numberOfEmployeesMin)) return false;
+      if (appliedFilters.numberOfEmployeesMax && employer.numberOfEmployees > parseInt(appliedFilters.numberOfEmployeesMax)) return false;
+      if (appliedFilters.totalContributionsMin && employer.totalContributions < parseFloat(appliedFilters.totalContributionsMin)) return false;
+      if (appliedFilters.totalContributionsMax && employer.totalContributions > parseFloat(appliedFilters.totalContributionsMax)) return false;
       
       // Date filters
-      if (filters.registrationDateFrom && new Date(employer.registrationDate) < new Date(filters.registrationDateFrom)) return false;
-      if (filters.registrationDateTo && new Date(employer.registrationDate) > new Date(filters.registrationDateTo)) return false;
-      if (filters.lastContributionDateFrom && new Date(employer.lastContributionDate) < new Date(filters.lastContributionDateFrom)) return false;
-      if (filters.lastContributionDateTo && new Date(employer.lastContributionDate) > new Date(filters.lastContributionDateTo)) return false;
-      if (filters.lastAuditDateFrom && new Date(employer.lastAuditDate) < new Date(filters.lastAuditDateFrom)) return false;
-      if (filters.lastAuditDateTo && new Date(employer.lastAuditDate) > new Date(filters.lastAuditDateTo)) return false;
+      if (appliedFilters.registrationDateFrom && new Date(employer.registrationDate) < new Date(appliedFilters.registrationDateFrom)) return false;
+      if (appliedFilters.registrationDateTo && new Date(employer.registrationDate) > new Date(appliedFilters.registrationDateTo)) return false;
+      if (appliedFilters.lastContributionDateFrom && new Date(employer.lastContributionDate) < new Date(appliedFilters.lastContributionDateFrom)) return false;
+      if (appliedFilters.lastContributionDateTo && new Date(employer.lastContributionDate) > new Date(appliedFilters.lastContributionDateTo)) return false;
+      if (appliedFilters.lastAuditDateFrom && new Date(employer.lastAuditDate) < new Date(appliedFilters.lastAuditDateFrom)) return false;
+      if (appliedFilters.lastAuditDateTo && new Date(employer.lastAuditDate) > new Date(appliedFilters.lastAuditDateTo)) return false;
       
       return true;
     });
-  }, [filters]);
+  }, [appliedFilters]);
+
+  const applyFilters = () => {
+    setAppliedFilters({ ...filters });
+  };
 
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       employerId: '',
       employerName: '',
       businessType: '',
@@ -146,7 +152,9 @@ const EmployerDirectory = () => {
       lastAuditDateFrom: '',
       lastAuditDateTo: '',
       contributionFrequency: '',
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
   };
 
   return (
@@ -167,6 +175,7 @@ const EmployerDirectory = () => {
                   filters={filters} 
                   setFilters={setFilters}
                   onClear={clearFilters}
+                  onApply={applyFilters}
                 />
                 
                 <Card>

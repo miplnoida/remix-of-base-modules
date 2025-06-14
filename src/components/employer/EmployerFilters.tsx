@@ -11,9 +11,10 @@ interface EmployerFiltersProps {
   filters: EmployerFiltersType;
   setFilters: React.Dispatch<React.SetStateAction<EmployerFiltersType>>;
   onClear: () => void;
+  onApply: () => void;
 }
 
-export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFilters, onClear }) => {
+export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFilters, onClear, onApply }) => {
   const updateFilter = (key: keyof EmployerFiltersType, value: string) => {
     // Convert "all" back to empty string for filtering logic
     const filterValue = value === "all" ? "" : value;
@@ -25,9 +26,14 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Search & Filter</CardTitle>
-          <Button variant="outline" onClick={onClear}>
-            Clear Filters
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="default" onClick={onApply}>
+              Apply Filters
+            </Button>
+            <Button variant="outline" onClick={onClear}>
+              Clear Filters
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
