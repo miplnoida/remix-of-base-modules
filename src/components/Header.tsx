@@ -1,7 +1,10 @@
 
-import { Bell, Search, User, Settings, LogOut } from "lucide-react";
+import React from "react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Bell, Settings, LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,35 +13,55 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export function Header() {
+export const Header = () => {
+  const { user, logout } = useAuth();
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-purple-100 text-purple-800';
+      case 'hr_manager': return 'bg-blue-100 text-blue-800';
+      case 'compliance_officer': return 'bg-red-100 text-red-800';
+      case 'benefits_manager': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <header className="h-16 border-b bg-white shadow-sm flex items-center justify-between px-6">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="relative max-w-md w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            type="search"
-            placeholder="Search employers, insured persons, claims..."
-            className="pl-10 w-full"
-          />
+    <header className="h-16 border-b bg-white px-6 flex items-center justify-between">
+      <div className="flex items-center space-x-4">
+        <SidebarTrigger />
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Social Security Management System
+          </h2>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="relative">
+      <div className="flex items-center space-x-4">
+        <Button variant="ghost" size="icon">
           <Bell className="h-5 w-5" />
-          <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs">
-            3
-          </Badge>
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              <span className="hidden md:inline">Admin User</span>
+            <Button variant="ghost" className="flex items-center space-x-2">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-blue-600 text-white">
+                  {user ? getInitials(user.name) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-left">
+                <div className="text-sm font-medium">{user?.name}</div>
+                <Badge className={`text-xs ${getRoleColor(user?.role || '')}`}>
+                  {user?.role?.replace('_', ' ').toUpperCase()}
+                </Badge>
+              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -53,7 +76,7 @@ export function Header() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </DropdownMenuItem>
@@ -62,4 +85,4 @@ export function Header() {
       </div>
     </header>
   );
-}
+};

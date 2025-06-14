@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -21,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 import {
   Sidebar,
@@ -123,6 +123,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const [openGroups, setOpenGroups] = useState<string[]>(['Dashboard']);
+  const { user, hasPermission } = useAuth();
 
   const toggleGroup = (title: string) => {
     setOpenGroups(prev => 
