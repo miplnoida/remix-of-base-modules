@@ -15,7 +15,9 @@ interface EmployerFiltersProps {
 
 export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFilters, onClear }) => {
   const updateFilter = (key: keyof EmployerFiltersType, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    // Convert "all" back to empty string for filtering logic
+    const filterValue = value === "all" ? "" : value;
+    setFilters(prev => ({ ...prev, [key]: filterValue }));
   };
 
   return (
@@ -53,12 +55,12 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
 
           <div className="space-y-2">
             <Label htmlFor="businessType">Business Type</Label>
-            <Select value={filters.businessType} onValueChange={(value) => updateFilter('businessType', value)}>
+            <Select value={filters.businessType || "all"} onValueChange={(value) => updateFilter('businessType', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Public">Public</SelectItem>
                 <SelectItem value="Private">Private</SelectItem>
                 <SelectItem value="Non-profit">Non-profit</SelectItem>
@@ -70,12 +72,12 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
 
           <div className="space-y-2">
             <Label htmlFor="employerStatus">Status</Label>
-            <Select value={filters.employerStatus} onValueChange={(value) => updateFilter('employerStatus', value)}>
+            <Select value={filters.employerStatus || "all"} onValueChange={(value) => updateFilter('employerStatus', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Inactive">Inactive</SelectItem>
                 <SelectItem value="Suspended">Suspended</SelectItem>
@@ -95,12 +97,12 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
 
           <div className="space-y-2">
             <Label htmlFor="contributionStatus">Contribution Status</Label>
-            <Select value={filters.contributionStatus} onValueChange={(value) => updateFilter('contributionStatus', value)}>
+            <Select value={filters.contributionStatus || "all"} onValueChange={(value) => updateFilter('contributionStatus', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="Paid">Paid</SelectItem>
                 <SelectItem value="Overdue">Overdue</SelectItem>
                 <SelectItem value="Pending">Pending</SelectItem>
@@ -110,12 +112,12 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
 
           <div className="space-y-2">
             <Label htmlFor="complianceStatus">Compliance Status</Label>
-            <Select value={filters.complianceStatus} onValueChange={(value) => updateFilter('complianceStatus', value)}>
+            <Select value={filters.complianceStatus || "all"} onValueChange={(value) => updateFilter('complianceStatus', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="Compliant">Compliant</SelectItem>
                 <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
                 <SelectItem value="Under Audit">Under Audit</SelectItem>
@@ -136,12 +138,12 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
           {/* Location Filters */}
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
-            <Select value={filters.country} onValueChange={(value) => updateFilter('country', value)}>
+            <Select value={filters.country || "all"} onValueChange={(value) => updateFilter('country', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select country" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Countries</SelectItem>
+                <SelectItem value="all">All Countries</SelectItem>
                 <SelectItem value="USA">USA</SelectItem>
                 <SelectItem value="Canada">Canada</SelectItem>
                 <SelectItem value="UK">UK</SelectItem>
@@ -161,12 +163,12 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
 
           <div className="space-y-2">
             <Label htmlFor="contributionFrequency">Contribution Frequency</Label>
-            <Select value={filters.contributionFrequency} onValueChange={(value) => updateFilter('contributionFrequency', value)}>
+            <Select value={filters.contributionFrequency || "all"} onValueChange={(value) => updateFilter('contributionFrequency', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select frequency" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Frequencies</SelectItem>
+                <SelectItem value="all">All Frequencies</SelectItem>
                 <SelectItem value="Monthly">Monthly</SelectItem>
                 <SelectItem value="Quarterly">Quarterly</SelectItem>
                 <SelectItem value="Annually">Annually</SelectItem>
