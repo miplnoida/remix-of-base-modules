@@ -24,10 +24,10 @@ export const Header = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-purple-100 text-purple-800';
+      case 'admin': return 'bg-green-100 text-green-800';
       case 'hr_manager': return 'bg-blue-100 text-blue-800';
       case 'compliance_officer': return 'bg-red-100 text-red-800';
-      case 'benefits_manager': return 'bg-green-100 text-green-800';
+      case 'benefits_manager': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -36,10 +36,18 @@ export const Header = () => {
     <header className="h-16 border-b bg-white px-6 flex items-center justify-between">
       <div className="flex items-center space-x-4">
         <SidebarTrigger />
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Social Security Management System
-          </h2>
+        <div className="flex items-center space-x-3">
+          <img 
+            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
+            alt="SecureServe Logo" 
+            className="h-8 w-8"
+          />
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              SecureServe
+            </h2>
+            <p className="text-xs text-gray-600">Social Security Management System</p>
+          </div>
         </div>
       </div>
 
@@ -52,7 +60,7 @@ export const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-blue-600 text-white">
+                <AvatarFallback className="bg-green-600 text-white">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>

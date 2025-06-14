@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -34,22 +34,26 @@ export const LoginScreen = () => {
   };
 
   const demoCredentials = [
-    { email: 'admin@socialsecurity.gov', role: 'System Administrator' },
-    { email: 'hr@socialsecurity.gov', role: 'HR Manager' },
-    { email: 'compliance@socialsecurity.gov', role: 'Compliance Officer' },
-    { email: 'benefits@socialsecurity.gov', role: 'Benefits Manager' }
+    { email: 'admin@secureserve.gov', role: 'System Administrator' },
+    { email: 'hr@secureserve.gov', role: 'HR Manager' },
+    { email: 'compliance@secureserve.gov', role: 'Compliance Officer' },
+    { email: 'benefits@secureserve.gov', role: 'Benefits Manager' }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center">
-            <ShieldCheck className="h-12 w-12 text-blue-900" />
+          <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2">
+            <img 
+              src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
+              alt="SecureServe Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Social Security System</h1>
-            <p className="text-blue-200">Secure Access Portal</p>
+            <h1 className="text-3xl font-bold text-white">SecureServe</h1>
+            <p className="text-green-200">Social Security Management System</p>
           </div>
         </div>
 
@@ -107,7 +111,7 @@ export const LoginScreen = () => {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>

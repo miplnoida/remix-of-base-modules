@@ -34,8 +34,8 @@ export const Dashboard = () => {
 // Additional dashboard components for other roles
 const HRDashboard = () => {
   const stats = [
-    { label: 'Total Employees', value: '1.2M', icon: Users, color: 'bg-blue-500' },
-    { label: 'New Registrations', value: '156', icon: Building2, color: 'bg-green-500' },
+    { label: 'Total Employees', value: '1.2M', icon: Users, color: 'bg-green-500' },
+    { label: 'New Registrations', value: '156', icon: Building2, color: 'bg-blue-500' },
     { label: 'Pending Applications', value: '45', icon: FileText, color: 'bg-yellow-500' },
     { label: 'ID Cards Generated', value: '89', icon: Shield, color: 'bg-purple-500' },
   ];
@@ -103,7 +103,7 @@ const DefaultDashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome to Social Security System</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome to SecureServe</h1>
         <p className="text-gray-600">Your personalized dashboard based on your role and permissions</p>
       </div>
       
@@ -113,7 +113,7 @@ const DefaultDashboard = () => {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600">
-            Welcome to the Social Security Management System. Use the sidebar to navigate to different sections based on your role and permissions.
+            Welcome to SecureServe - Social Security Management System. Use the sidebar to navigate to different sections based on your role and permissions.
           </p>
         </CardContent>
       </Card>

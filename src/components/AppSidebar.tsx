@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -139,13 +140,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar className={`${collapsed ? "w-16" : "w-72"} transition-all duration-300 border-r bg-white shadow-lg`}>
-      <div className="p-4 border-b bg-blue-900 text-white">
+      <div className="p-4 border-b bg-green-900 text-white">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-8 w-8 text-blue-200" />
+          <img 
+            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
+            alt="SecureServe Logo" 
+            className="h-8 w-8 bg-white rounded p-1"
+          />
           {!collapsed && (
             <div>
-              <h2 className="font-bold text-lg">Social Security</h2>
-              <p className="text-blue-200 text-sm">Management System</p>
+              <h2 className="font-bold text-lg">SecureServe</h2>
+              <p className="text-green-200 text-sm">Management System</p>
             </div>
           )}
         </div>
@@ -167,8 +172,8 @@ export function AppSidebar() {
                   >
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton 
-                        className={`w-full justify-between hover:bg-blue-50 hover:text-blue-700 transition-colors ${
-                          isGroupActive(item.subItems) ? 'bg-blue-100 text-blue-700 font-medium' : ''
+                        className={`w-full justify-between hover:bg-green-50 hover:text-green-700 transition-colors ${
+                          isGroupActive(item.subItems) ? 'bg-green-100 text-green-700 font-medium' : ''
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -189,8 +194,8 @@ export function AppSidebar() {
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton 
                                 asChild
-                                className={`hover:bg-blue-50 hover:text-blue-700 transition-colors ${
-                                  isActive(subItem.url) ? 'bg-blue-100 text-blue-700 font-medium border-r-2 border-blue-500' : ''
+                                className={`hover:bg-green-50 hover:text-green-700 transition-colors ${
+                                  isActive(subItem.url) ? 'bg-green-100 text-green-700 font-medium border-r-2 border-green-500' : ''
                                 }`}
                               >
                                 <NavLink to={subItem.url} className="flex items-center gap-3 pl-8">
@@ -207,8 +212,8 @@ export function AppSidebar() {
                 ) : (
                   <SidebarMenuButton 
                     asChild
-                    className={`hover:bg-blue-50 hover:text-blue-700 transition-colors ${
-                      isActive(item.url) ? 'bg-blue-100 text-blue-700 font-medium border-r-2 border-blue-500' : ''
+                    className={`hover:bg-green-50 hover:text-green-700 transition-colors ${
+                      isActive(item.url) ? 'bg-green-100 text-green-700 font-medium border-r-2 border-green-500' : ''
                     }`}
                   >
                     <NavLink to={item.url} className="flex items-center gap-3">
