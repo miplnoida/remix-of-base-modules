@@ -23,7 +23,7 @@ export const useAuth = () => {
 const mockUsers: User[] = [
   {
     id: '1',
-    email: 'admin@socialsecurity.gov',
+    email: 'admin@secureserve.gov',
     name: 'System Administrator',
     role: 'admin',
     department: 'administration',
@@ -31,7 +31,7 @@ const mockUsers: User[] = [
   },
   {
     id: '2',
-    email: 'hr@socialsecurity.gov',
+    email: 'hr@secureserve.gov',
     name: 'HR Manager',
     role: 'hr_manager',
     department: 'human_resources',
@@ -39,7 +39,7 @@ const mockUsers: User[] = [
   },
   {
     id: '3',
-    email: 'compliance@socialsecurity.gov',
+    email: 'compliance@secureserve.gov',
     name: 'Compliance Officer',
     role: 'compliance_officer',
     department: 'compliance',
@@ -47,7 +47,7 @@ const mockUsers: User[] = [
   },
   {
     id: '4',
-    email: 'benefits@socialsecurity.gov',
+    email: 'benefits@secureserve.gov',
     name: 'Benefits Manager',
     role: 'benefits_manager',
     department: 'benefits',
