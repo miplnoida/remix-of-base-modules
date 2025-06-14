@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -153,18 +154,18 @@ export function AppSidebar() {
     subItems?.some(item => isActive(item.url));
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-72"} transition-all duration-300 border-r bg-white shadow-lg`}>
+    <Sidebar className="border-r bg-white shadow-sm" collapsible="icon">
       <div className="p-4 border-b bg-green-900 text-white">
         <div className="flex items-center gap-3">
           <img 
             src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
             alt="SecureServe Logo" 
-            className="h-8 w-8 bg-white rounded p-1"
+            className="h-8 w-8 bg-white rounded p-1 flex-shrink-0"
           />
           {!collapsed && (
-            <div>
-              <h2 className="font-bold text-lg">SecureServe</h2>
-              <p className="text-green-200 text-sm">Management System</p>
+            <div className="min-w-0">
+              <h2 className="font-bold text-lg truncate">SecureServe</h2>
+              <p className="text-green-200 text-sm truncate">Management System</p>
             </div>
           )}
         </div>
@@ -189,15 +190,16 @@ export function AppSidebar() {
                         className={`w-full justify-between hover:bg-green-50 hover:text-green-700 transition-colors ${
                           isGroupActive(item.subItems) ? 'bg-green-100 text-green-700 font-medium' : ''
                         }`}
+                        tooltip={collapsed ? item.title : undefined}
                       >
-                        <div className="flex items-center gap-3">
-                          <item.icon className="h-5 w-5" />
-                          {!collapsed && <span>{item.title}</span>}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <item.icon className="h-5 w-5 flex-shrink-0" />
+                          {!collapsed && <span className="truncate">{item.title}</span>}
                         </div>
                         {!collapsed && (
                           openGroups.includes(item.title) ? 
-                            <ChevronDown className="h-4 w-4" /> : 
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4 flex-shrink-0" /> : 
+                            <ChevronRight className="h-4 w-4 flex-shrink-0" />
                         )}
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
@@ -214,9 +216,9 @@ export function AppSidebar() {
                                   isActive(subItem.url) ? 'bg-green-100 text-green-700 font-medium border-r-2 border-green-500' : ''
                                 }`}
                               >
-                                <NavLink to={subItem.url} className="flex items-center gap-3 pl-8">
-                                  <subItem.icon className="h-4 w-4" />
-                                  <span>{subItem.title}</span>
+                                <NavLink to={subItem.url} className="flex items-center gap-3 pl-8 min-w-0">
+                                  <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                                  <span className="truncate">{subItem.title}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -231,10 +233,11 @@ export function AppSidebar() {
                     className={`hover:bg-green-50 hover:text-green-700 transition-colors ${
                       isActive(item.url) ? 'bg-green-100 text-green-700 font-medium border-r-2 border-green-500' : ''
                     }`}
+                    tooltip={collapsed ? item.title : undefined}
                   >
-                    <NavLink to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
+                    <NavLink to={item.url} className="flex items-center gap-3 min-w-0">
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!collapsed && <span className="truncate">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 )}
