@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,19 +15,37 @@ export const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to dashboard if user is already logged in
+  useEffect(() => {
+    console.log('LoginScreen useEffect - user:', user);
+    if (user) {
+      console.log('User is logged in, redirecting to dashboard');
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    
+    console.log('Form submitted, attempting login...');
 
     try {
       const success = await login(email, password);
-      if (!success) {
+      console.log('Login result:', success);
+      
+      if (success) {
+        console.log('Login successful, should redirect automatically via useEffect');
+        // The useEffect will handle the redirect when user state updates
+      } else {
         setError('Invalid credentials. Please try again.');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('An error occurred during login.');
     } finally {
       setIsLoading(false);
@@ -39,6 +58,17 @@ export const LoginScreen = () => {
     { email: 'compliance@secureserve.gov', role: 'Compliance Officer' },
     { email: 'benefits@secureserve.gov', role: 'Benefits Manager' }
   ];
+
+  // Don't render login form if user is already authenticated
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <p>Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center p-4">
