@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,7 @@ import UnemploymentBenefits from "./pages/UnemploymentBenefits";
 import WorkInjuryBenefits from "./pages/WorkInjuryBenefits";
 import DeathBenefits from "./pages/DeathBenefits";
 import EducationalBenefits from "./pages/EducationalBenefits";
+import AllBenefitsTabs from "./pages/AllBenefitsTabs";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +108,11 @@ const App = () => (
             <Route path="/benefits/educational" element={
               <ProtectedRoute>
                 <EducationalBenefits />
+              </ProtectedRoute>
+            } />
+            <Route path="/benefits/all" element={
+              <ProtectedRoute>
+                <AllBenefitsTabs />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

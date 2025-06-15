@@ -1,4 +1,3 @@
-
 import {
   Building2,
   Users,
@@ -69,6 +68,7 @@ export const menuItems = [
       { title: "Work Injury Benefits", url: "/benefits/work-injury", icon: Wrench },
       { title: "Death Benefits", url: "/benefits/death", icon: Skull },
       { title: "Educational Benefits", url: "/benefits/educational", icon: GraduationCap },
+      { title: "All Benefits", url: "/benefits/all", icon: Heart },
     ],
   },
   {
