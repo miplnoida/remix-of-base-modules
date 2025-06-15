@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -38,6 +37,8 @@ import ComplianceDashboard from '@/pages/ComplianceDashboard';
 import EmployerComplianceManagement from '@/pages/EmployerComplianceManagement';
 import ComplianceReports from '@/pages/ComplianceReports';
 import LegalProceedings from '@/pages/LegalProceedings';
+import AuditManagement from '@/pages/AuditManagement';
+import PenaltyManagement from '@/pages/PenaltyManagement';
 
 import './App.css';
 
@@ -409,6 +410,42 @@ function App() {
                         <Header />
                         <main className="flex-1">
                           <LegalProceedings />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/compliance/audits" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <AuditManagement />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/compliance/penalties" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <PenaltyManagement />
                         </main>
                       </div>
                     </div>
