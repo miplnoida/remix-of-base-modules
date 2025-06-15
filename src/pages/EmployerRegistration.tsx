@@ -115,91 +115,83 @@ const EmployerRegistration = () => {
   ];
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Employer Registration</h1>
-                <p className="text-gray-600 mt-2">Complete all sections to register a new employer</p>
-              </div>
-
-              <FormProvider {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Registration Form</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-6">
-                          {tabs.map((tab) => (
-                            <TabsTrigger 
-                              key={tab.id} 
-                              value={tab.id}
-                              className="text-xs px-2 py-1"
-                            >
-                              {tab.label}
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
-
-                        {tabs.map((tab) => {
-                          const Component = tab.component;
-                          return (
-                            <TabsContent key={tab.id} value={tab.id} className="mt-6">
-                              <Component />
-                            </TabsContent>
-                          );
-                        })}
-                      </Tabs>
-
-                      <div className="flex justify-between mt-8 pt-6 border-t">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-                            if (currentIndex > 0) {
-                              setActiveTab(tabs[currentIndex - 1].id);
-                            }
-                          }}
-                          disabled={activeTab === tabs[0].id}
-                        >
-                          Previous
-                        </Button>
-
-                        {activeTab === tabs[tabs.length - 1].id ? (
-                          <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                            Submit Registration
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-                              if (currentIndex < tabs.length - 1) {
-                                setActiveTab(tabs[currentIndex + 1].id);
-                              }
-                            }}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            Next
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </form>
-              </FormProvider>
-            </div>
-          </main>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Employer Registration</h1>
+          <p className="text-gray-600 mt-1">Complete all sections to register a new employer</p>
         </div>
       </div>
-    </SidebarProvider>
+
+      <FormProvider {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Registration Form</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-6">
+                  {tabs.map((tab) => (
+                    <TabsTrigger 
+                      key={tab.id} 
+                      value={tab.id}
+                      className="text-xs px-2 py-1"
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {tabs.map((tab) => {
+                  const Component = tab.component;
+                  return (
+                    <TabsContent key={tab.id} value={tab.id} className="mt-6">
+                      <Component />
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+
+              <div className="flex justify-between mt-8 pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+                    if (currentIndex > 0) {
+                      setActiveTab(tabs[currentIndex - 1].id);
+                    }
+                  }}
+                  disabled={activeTab === tabs[0].id}
+                >
+                  Previous
+                </Button>
+
+                {activeTab === tabs[tabs.length - 1].id ? (
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    Submit Registration
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+                      if (currentIndex < tabs.length - 1) {
+                        setActiveTab(tabs[currentIndex + 1].id);
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </FormProvider>
+    </div>
   );
 };
 

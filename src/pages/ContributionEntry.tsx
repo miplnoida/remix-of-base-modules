@@ -1,221 +1,286 @@
 
 import React, { useState } from 'react';
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Search, Filter } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Search, Upload, Download, Plus, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface ContributionEntry {
+  id: string;
+  employerName: string;
+  employerCode: string;
+  month: string;
+  year: string;
+  totalEmployees: number;
+  totalWages: number;
+  contributionAmount: number;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  submittedDate?: string;
+}
 
 const ContributionEntry = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filters, setFilters] = useState({
-    employerId: '',
-    period: '',
-    status: '',
-    uploadDate: ''
-  });
-  const { toast } = useToast();
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.name.toLowerCase().includes('c3') || file.type === 'text/csv') {
-        setSelectedFile(file);
-        toast({
-          title: "File Selected",
-          description: `${file.name} is ready for upload`,
-        });
-      } else {
-        toast({
-          title: "Invalid File Type",
-          description: "Please select a valid C3 file (CSV format)",
-          variant: "destructive"
-        });
-      }
+  const [entries, setEntries] = useState<ContributionEntry[]>([
+    {
+      id: '1',
+      employerName: 'ABC Corporation Ltd',
+      employerCode: 'EMP001',
+      month: 'November',
+      year: '2024',
+      totalEmployees: 150,
+      totalWages: 450000,
+      contributionAmount: 45000,
+      status: 'approved',
+      submittedDate: '2024-11-15'
+    },
+    {
+      id: '2',
+      employerName: 'XYZ Manufacturing',
+      employerCode: 'EMP002',
+      month: 'November',
+      year: '2024',
+      totalEmployees: 75,
+      totalWages: 225000,
+      contributionAmount: 22500,
+      status: 'submitted',
+      submittedDate: '2024-11-20'
     }
+  ]);
+
+  const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      draft: 'bg-gray-100 text-gray-800',
+      submitted: 'bg-blue-100 text-blue-800',
+      approved: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800'
+    };
+    return variants[status as keyof typeof variants] || variants.draft;
   };
+
+  const filteredEntries = entries.filter(entry => {
+    const matchesSearch = entry.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         entry.employerCode.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleSubmit = () => {
-    if (selectedFile) {
-      toast({
-        title: "File Uploaded Successfully",
-        description: `${selectedFile.name} has been processed`,
-      });
-      setSelectedFile(null);
-    }
+    toast.success('Contribution entry saved successfully!');
+    setShowForm(false);
   };
 
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Contribution Entry</h1>
-                <p className="text-gray-600 mt-2">Upload and manage employee contribution files (C3 format)</p>
+  if (showForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">New Contribution Entry</h1>
+            <p className="text-gray-600 mt-1">Enter monthly contribution details</p>
+          </div>
+          <Button variant="outline" onClick={() => setShowForm(false)}>
+            Back to List
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Contribution Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="employerCode">Employer Code</Label>
+                <Input id="employerCode" placeholder="Enter employer code" />
               </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Upload Section */}
-                <div className="lg:col-span-1">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Upload className="h-5 w-5" />
-                        C3 File Upload
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label htmlFor="file-upload">Select C3 File</Label>
-                        <Input
-                          id="file-upload"
-                          type="file"
-                          accept=".csv,.txt"
-                          onChange={handleFileUpload}
-                          className="mt-1"
-                        />
-                      </div>
-                      
-                      {selectedFile && (
-                        <div className="bg-green-50 p-3 rounded-md">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">
-                              {selectedFile.name}
-                            </span>
-                          </div>
-                          <p className="text-xs text-green-600 mt-1">
-                            Size: {(selectedFile.size / 1024).toFixed(2)} KB
-                          </p>
-                        </div>
-                      )}
-
-                      <Button 
-                        onClick={handleSubmit} 
-                        disabled={!selectedFile}
-                        className="w-full"
-                      >
-                        Upload & Process
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Filters Section */}
-                <div className="lg:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Filter className="h-5 w-5" />
-                        Search & Filter Contributions
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                          <Label htmlFor="employer-id">Employer ID</Label>
-                          <Input
-                            id="employer-id"
-                            placeholder="Enter Employer ID"
-                            value={filters.employerId}
-                            onChange={(e) => setFilters(prev => ({ ...prev, employerId: e.target.value }))}
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="period">Contribution Period</Label>
-                          <Select value={filters.period} onValueChange={(value) => setFilters(prev => ({ ...prev, period: value }))}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Period" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Periods</SelectItem>
-                              <SelectItem value="2024-01">January 2024</SelectItem>
-                              <SelectItem value="2024-02">February 2024</SelectItem>
-                              <SelectItem value="2024-03">March 2024</SelectItem>
-                              <SelectItem value="2024-04">April 2024</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="status">Status</Label>
-                          <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Status</SelectItem>
-                              <SelectItem value="processed">Processed</SelectItem>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="error">Error</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="upload-date">Upload Date</Label>
-                          <Input
-                            id="upload-date"
-                            type="date"
-                            value={filters.uploadDate}
-                            onChange={(e) => setFilters(prev => ({ ...prev, uploadDate: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 mt-4">
-                        <Button variant="outline" className="flex items-center gap-2">
-                          <Search className="h-4 w-4" />
-                          Search
-                        </Button>
-                        <Button variant="outline" onClick={() => setFilters({ employerId: '', period: '', status: '', uploadDate: '' })}>
-                          Clear Filters
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Recent Uploads */}
-                  <Card className="mt-6">
-                    <CardHeader>
-                      <CardTitle>Recent Uploads</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                          <div>
-                            <p className="font-medium">C3_202404_EMP001.csv</p>
-                            <p className="text-sm text-gray-600">Uploaded on 2024-04-15</p>
-                          </div>
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Processed</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                          <div>
-                            <p className="font-medium">C3_202404_EMP002.csv</p>
-                            <p className="text-sm text-gray-600">Uploaded on 2024-04-14</p>
-                          </div>
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pending</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="employerName">Employer Name</Label>
+                <Input id="employerName" placeholder="Enter employer name" />
               </div>
             </div>
-          </main>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="month">Contribution Month</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="january">January</SelectItem>
+                    <SelectItem value="february">February</SelectItem>
+                    <SelectItem value="march">March</SelectItem>
+                    <SelectItem value="april">April</SelectItem>
+                    <SelectItem value="may">May</SelectItem>
+                    <SelectItem value="june">June</SelectItem>
+                    <SelectItem value="july">July</SelectItem>
+                    <SelectItem value="august">August</SelectItem>
+                    <SelectItem value="september">September</SelectItem>
+                    <SelectItem value="october">October</SelectItem>
+                    <SelectItem value="november">November</SelectItem>
+                    <SelectItem value="december">December</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="year">Year</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2024">2024</SelectItem>
+                    <SelectItem value="2023">2023</SelectItem>
+                    <SelectItem value="2022">2022</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="totalEmployees">Total Employees</Label>
+                <Input id="totalEmployees" type="number" placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalWages">Total Wages ($)</Label>
+                <Input id="totalWages" type="number" placeholder="0.00" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contributionAmount">Contribution Amount ($)</Label>
+                <Input id="contributionAmount" type="number" placeholder="0.00" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea id="notes" placeholder="Enter any additional notes..." rows={3} />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button onClick={handleSubmit} className="bg-government-600 hover:bg-government-700">
+                Save Entry
+              </Button>
+              <Button variant="outline" onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Contribution Entry</h1>
+          <p className="text-gray-600 mt-1">Manage employer contribution entries</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+          <Button onClick={() => setShowForm(true)} className="bg-government-600 hover:bg-government-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Entry
+          </Button>
         </div>
       </div>
-    </SidebarProvider>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <CardTitle>Contribution Entries</CardTitle>
+            <div className="flex gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by employer..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Employer</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Period</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Employees</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total Wages</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Contribution</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEntries.map((entry) => (
+                  <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <div>
+                        <div className="font-medium text-gray-900">{entry.employerName}</div>
+                        <div className="text-sm text-gray-500">{entry.employerCode}</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700">
+                      {entry.month} {entry.year}
+                    </td>
+                    <td className="py-3 px-4 text-gray-700">{entry.totalEmployees}</td>
+                    <td className="py-3 px-4 text-gray-700">${entry.totalWages.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-gray-700">${entry.contributionAmount.toLocaleString()}</td>
+                    <td className="py-3 px-4">
+                      <Badge className={getStatusBadge(entry.status)}>
+                        {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
