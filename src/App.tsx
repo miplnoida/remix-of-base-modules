@@ -1,12 +1,11 @@
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Header } from '@/components/Header';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import LoginScreen from '@/components/auth/LoginScreen';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { LoginScreen } from '@/components/auth/LoginScreen';
 
 // Page imports
 import Index from '@/pages/Index';
