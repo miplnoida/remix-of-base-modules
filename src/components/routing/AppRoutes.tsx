@@ -38,6 +38,7 @@ import PenaltyManagement from '@/pages/PenaltyManagement';
 
 // Reports
 import ReportsHub from '@/pages/ReportsHub';
+import EmployerStatement from '@/pages/EmployerStatement';
 
 export const AppRoutes = () => {
   return (
@@ -80,6 +81,7 @@ export const AppRoutes = () => {
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/cashier" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/employer" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/employer-statement" element={<ProtectedLayout><EmployerStatement /></ProtectedLayout>} />
       <Route path="/reports/persons" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />

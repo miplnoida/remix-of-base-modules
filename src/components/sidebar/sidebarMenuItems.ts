@@ -120,6 +120,7 @@ export const menuItems = [
       { title: "Claims Reports", url: "/reports/claims", icon: FileText, description: "Claims administration reports" },
       { title: "Cashier Reports", url: "/reports/cashier", icon: Receipt, description: "Financial transaction reports" },
       { title: "Employer Reports", url: "/reports/employer", icon: Building2, description: "Employer administration reports" },
+      { title: "Employer Statement", url: "/reports/employer-statement", icon: Calculator, description: "Generate employer account statements" },
       { title: "Person Reports", url: "/reports/persons", icon: Users, description: "Insured persons reports" },
       { title: "Statistics", url: "/reports/statistics", icon: PieChart, description: "System statistics and metrics" },
       { title: "Financial Reports", url: "/reports/financial", icon: DollarSign, description: "Financial analysis reports" },
