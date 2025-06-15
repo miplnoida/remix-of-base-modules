@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
+import LegalCaseForm from '@/components/legal/LegalCaseForm';
+import LegalCaseView from '@/components/legal/LegalCaseView';
 import { 
   ArrowLeft, 
   Gavel, 
@@ -20,11 +19,7 @@ import {
   Download,
   Eye,
   Plus,
-  Upload,
-  Clock,
-  AlertTriangle,
   CheckCircle,
-  Building2,
   Scale
 } from 'lucide-react';
 
@@ -33,6 +28,8 @@ const LegalProceedings = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCase, setSelectedCase] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCaseView, setShowCaseView] = useState(false);
 
   const legalCases = [
     {
@@ -47,7 +44,9 @@ const LegalProceedings = () => {
       assignedOfficer: 'Sarah Johnson',
       penaltyAmount: '$15,000',
       nextHearing: '2024-02-10',
-      paymentStatus: 'Unpaid'
+      paymentStatus: 'Unpaid',
+      violationDescription: 'Non-payment of employee contributions for period Oct-Dec 2023.',
+      evidenceSummary: 'Supporting documents include payroll records and bank statements.'
     },
     {
       id: 'LC-2024-002',
@@ -61,7 +60,9 @@ const LegalProceedings = () => {
       assignedOfficer: 'Michael Chen',
       penaltyAmount: '$8,500',
       nextHearing: 'N/A',
-      paymentStatus: 'Partial'
+      paymentStatus: 'Partial',
+      violationDescription: 'Systematic under-reporting of employee wages.',
+      evidenceSummary: 'Audit findings and wage comparison analysis.'
     },
     {
       id: 'LC-2024-003',
@@ -75,7 +76,9 @@ const LegalProceedings = () => {
       assignedOfficer: 'Lisa Wang',
       penaltyAmount: '$25,000',
       nextHearing: 'N/A',
-      paymentStatus: 'Paid'
+      paymentStatus: 'Paid',
+      violationDescription: 'Fraudulent reporting of employee data.',
+      evidenceSummary: 'Digital forensics and document analysis.'
     }
   ];
 
@@ -107,6 +110,45 @@ const LegalProceedings = () => {
     { label: 'Recovery Rate', value: '78%', status: 'info', icon: DollarSign },
   ];
 
+  const handleCreateCase = (formData: any) => {
+    console.log('Creating new legal case:', formData);
+    // Here you would typically make an API call to create the case
+    setShowCreateForm(false);
+    // Optionally refresh the cases list
+  };
+
+  const handleViewCase = (caseData: any) => {
+    setSelectedCase(caseData);
+    setShowCaseView(true);
+  };
+
+  const handleEditCase = () => {
+    setShowCaseView(false);
+    setShowCreateForm(true);
+  };
+
+  // Show Create Form
+  if (showCreateForm) {
+    return (
+      <LegalCaseForm
+        onSubmit={handleCreateCase}
+        onCancel={() => setShowCreateForm(false)}
+        initialData={selectedCase}
+      />
+    );
+  }
+
+  // Show Case View
+  if (showCaseView && selectedCase) {
+    return (
+      <LegalCaseView
+        caseData={selectedCase}
+        onBack={() => setShowCaseView(false)}
+        onEdit={handleEditCase}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b">
@@ -129,7 +171,7 @@ const LegalProceedings = () => {
                 <span className="text-gray-900 font-medium">Legal Proceedings</span>
               </nav>
             </div>
-            <Button size="sm">
+            <Button size="sm" onClick={() => setShowCreateForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Legal Case
             </Button>
@@ -288,7 +330,7 @@ const LegalProceedings = () => {
                         <TableCell>{legalCase.penaltyAmount}</TableCell>
                         <TableCell>{legalCase.assignedOfficer}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedCase(legalCase)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewCase(legalCase)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -298,141 +340,6 @@ const LegalProceedings = () => {
                 </Table>
               </CardContent>
             </Card>
-
-            {selectedCase && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Case Details: {selectedCase.id}</CardTitle>
-                  <CardDescription>Comprehensive case information and management</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="basic" className="w-full">
-                    <TabsList className="grid w-full grid-cols-5 mb-4">
-                      <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                      <TabsTrigger value="violations">Violations</TabsTrigger>
-                      <TabsTrigger value="documents">Documents</TabsTrigger>
-                      <TabsTrigger value="hearings">Hearings</TabsTrigger>
-                      <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="basic" className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>Case ID</Label>
-                          <Input value={selectedCase.id} readOnly />
-                        </div>
-                        <div>
-                          <Label>Employer Name</Label>
-                          <Input value={selectedCase.employerName} readOnly />
-                        </div>
-                        <div>
-                          <Label>Case Type</Label>
-                          <Input value={selectedCase.caseType} readOnly />
-                        </div>
-                        <div>
-                          <Label>Filing Date</Label>
-                          <Input value={selectedCase.filingDate} readOnly />
-                        </div>
-                        <div>
-                          <Label>Jurisdiction</Label>
-                          <Input value={selectedCase.jurisdiction} readOnly />
-                        </div>
-                        <div>
-                          <Label>Assigned Officer</Label>
-                          <Input value={selectedCase.assignedOfficer} readOnly />
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="violations">
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Violation Type</Label>
-                          <Input value={selectedCase.violationType} readOnly />
-                        </div>
-                        <div>
-                          <Label>Penalty Amount</Label>
-                          <Input value={selectedCase.penaltyAmount} readOnly />
-                        </div>
-                        <div>
-                          <Label>Evidence Summary</Label>
-                          <Textarea value="Non-payment of employee contributions for period Oct-Dec 2023. Supporting documents include payroll records and bank statements." readOnly />
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="documents">
-                      <div className="space-y-4">
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                          <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                          <p className="mt-2 text-sm text-gray-600">Upload court documents, evidence, and legal filings</p>
-                          <Button variant="outline" className="mt-2">
-                            Choose Files
-                          </Button>
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Existing Documents</h4>
-                          <div className="border rounded p-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">Complaint_Petition.pdf</span>
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="border rounded p-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">Evidence_Package.zip</span>
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="hearings">
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Next Hearing Date</Label>
-                            <Input value={selectedCase.nextHearing} readOnly />
-                          </div>
-                          <div>
-                            <Label>Hearing Type</Label>
-                            <Input value="Main Hearing" readOnly />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Hearing Notes</Label>
-                          <Textarea placeholder="Add notes about hearing outcomes, judge comments, next steps..." />
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="enforcement">
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Payment Status</Label>
-                            <Input value={selectedCase.paymentStatus} readOnly />
-                          </div>
-                          <div>
-                            <Label>Enforcement Method</Label>
-                            <Input placeholder="Garnishment, Asset Seizure, etc." />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Enforcement Notes</Label>
-                          <Textarea placeholder="Details about enforcement actions taken..." />
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
 
           <TabsContent value="hearings" className="space-y-6">
@@ -578,14 +485,14 @@ const LegalProceedings = () => {
                   <div className="space-y-4">
                     <h3 className="font-medium">Custom Report Generator</h3>
                     <div className="space-y-2">
-                      <Label>Date Range</Label>
+                      <label className="text-sm font-medium">Date Range</label>
                       <div className="grid grid-cols-2 gap-2">
                         <Input type="date" placeholder="From" />
                         <Input type="date" placeholder="To" />
                       </div>
-                      <Label>Case Type</Label>
+                      <label className="text-sm font-medium">Case Type</label>
                       <Input placeholder="Civil, Criminal, Administrative" />
-                      <Label>Status Filter</Label>
+                      <label className="text-sm font-medium">Status Filter</label>
                       <Input placeholder="Under Trial, Judgment Passed, etc." />
                       <Button className="w-full">Generate Report</Button>
                     </div>
