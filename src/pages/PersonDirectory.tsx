@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
@@ -26,162 +25,146 @@ import {
 import {
   Users,
   Search,
-  Filter,
-  Eye,
-  Download,
+  Camera,
+  PenTool,
+  Printer,
+  Plus,
   ArrowLeft,
   Home,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Building2,
-  Calendar,
-  CreditCard
+  Edit,
+  Eye
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { IDCardPreview } from '@/components/person/IDCardPreview';
+import { CameraCapture } from '@/components/person/CameraCapture';
+import { SignatureCapture } from '@/components/person/SignatureCapture';
 
-// Mock data for insured persons
-const insuredPersons = [
+// Mock data for registered persons
+const registeredPersons = [
   {
     id: 1,
-    socialSecurityNo: 'SS001234567',
+    registrationNo: 'REG001234',
     firstName: 'John',
     lastName: 'Doe',
     dateOfBirth: '1985-03-15',
     gender: 'Male',
-    nationality: 'St. Kitts & Nevis',
-    email: 'john.doe@email.com',
-    phone: '(869) 465-1234',
-    address: '123 Main Street, Basseterre',
-    occupation: 'Software Developer',
-    employer: 'Tech Solutions Ltd.',
-    maritalStatus: 'Married',
+    nationalId: 'ID123456789',
+    mobileNumber: '(869) 465-1234',
     status: 'Active',
-    registrationDate: '2023-01-15',
-    idCardIssued: true,
-    contributionsPaid: 156,
-    lastContribution: '2024-01-01'
+    photo: null,
+    signature: null,
+    address: '123 Main Street, Basseterre',
+    email: 'john.doe@email.com'
   },
   {
     id: 2,
-    socialSecurityNo: 'SS001234568',
+    registrationNo: 'REG001235',
     firstName: 'Maria',
     lastName: 'Rodriguez',
     dateOfBirth: '1990-07-22',
     gender: 'Female',
-    nationality: 'Dominican Republic',
-    email: 'maria.rodriguez@email.com',
-    phone: '(869) 465-5678',
-    address: '456 Church Street, Charlestown',
-    occupation: 'Nurse',
-    employer: 'General Hospital',
-    maritalStatus: 'Single',
+    nationalId: 'ID123456790',
+    mobileNumber: '(869) 465-5678',
     status: 'Active',
-    registrationDate: '2023-03-20',
-    idCardIssued: true,
-    contributionsPaid: 98,
-    lastContribution: '2024-01-01'
+    photo: null,
+    signature: null,
+    address: '456 Church Street, Charlestown',
+    email: 'maria.rodriguez@email.com'
   },
   {
     id: 3,
-    socialSecurityNo: 'SS001234569',
+    registrationNo: 'REG001236',
     firstName: 'David',
     lastName: 'Williams',
     dateOfBirth: '1988-11-10',
     gender: 'Male',
-    nationality: 'St. Kitts & Nevis',
-    email: 'david.williams@email.com',
-    phone: '(869) 465-9012',
+    nationalId: 'ID123456791',
+    mobileNumber: '(869) 465-9012',
+    status: 'Pending',
+    photo: null,
+    signature: null,
     address: '789 Victoria Road, Sandy Point',
-    occupation: 'Teacher',
-    employer: 'Sandy Point High School',
-    maritalStatus: 'Divorced',
-    status: 'Active',
-    registrationDate: '2023-05-10',
-    idCardIssued: false,
-    contributionsPaid: 67,
-    lastContribution: '2023-12-01'
-  },
-  {
-    id: 4,
-    socialSecurityNo: 'SS001234570',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    dateOfBirth: '1992-09-05',
-    gender: 'Female',
-    nationality: 'St. Kitts & Nevis',
-    email: 'sarah.johnson@email.com',
-    phone: '(869) 465-3456',
-    address: '321 Independence Square, Basseterre',
-    occupation: 'Accountant',
-    employer: 'Financial Services Ltd.',
-    maritalStatus: 'Single',
-    status: 'Suspended',
-    registrationDate: '2022-11-30',
-    idCardIssued: true,
-    contributionsPaid: 45,
-    lastContribution: '2023-10-01'
+    email: 'david.williams@email.com'
   }
 ];
 
 const PersonDirectory = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [genderFilter, setGenderFilter] = useState('all');
+  const [searchBy, setSearchBy] = useState('name');
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
+  const [persons, setPersons] = useState(registeredPersons);
+  const [showCamera, setShowCamera] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
+  const [showIDCard, setShowIDCard] = useState(false);
 
-  const filteredPersons = insuredPersons.filter(person => {
-    const matchesSearch = 
-      person.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.socialSecurityNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || person.status.toLowerCase() === statusFilter;
-    const matchesGender = genderFilter === 'all' || person.gender.toLowerCase() === genderFilter;
-    
-    return matchesSearch && matchesStatus && matchesGender;
+  const filteredPersons = persons.filter(person => {
+    const searchValue = searchTerm.toLowerCase();
+    switch (searchBy) {
+      case 'name':
+        return `${person.firstName} ${person.lastName}`.toLowerCase().includes(searchValue);
+      case 'nationalId':
+        return person.nationalId.toLowerCase().includes(searchValue);
+      case 'registrationNo':
+        return person.registrationNo.toLowerCase().includes(searchValue);
+      case 'mobile':
+        return person.mobileNumber.toLowerCase().includes(searchValue);
+      default:
+        return true;
+    }
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'suspended':
-        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+  const handlePhotoCapture = (photoData: string) => {
+    if (selectedPerson) {
+      setPersons(prev => prev.map(p => 
+        p.id === selectedPerson.id ? { ...p, photo: photoData } : p
+      ));
+      toast({
+        title: "Photo Captured",
+        description: "Photo has been successfully saved to the person's profile.",
+      });
+      setShowCamera(false);
     }
   };
 
-  const exportToCSV = () => {
-    const headers = ['Social Security No.', 'First Name', 'Last Name', 'Date of Birth', 'Gender', 'Email', 'Phone', 'Occupation', 'Employer', 'Status'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredPersons.map(person => [
-        person.socialSecurityNo,
-        person.firstName,
-        person.lastName,
-        person.dateOfBirth,
-        person.gender,
-        person.email,
-        person.phone,
-        person.occupation,
-        person.employer,
-        person.status
-      ].join(','))
-    ].join('\n');
+  const handleSignatureCapture = (signatureData: string) => {
+    if (selectedPerson) {
+      setPersons(prev => prev.map(p => 
+        p.id === selectedPerson.id ? { ...p, signature: signatureData } : p
+      ));
+      toast({
+        title: "Signature Captured",
+        description: "Signature has been successfully saved to the person's profile.",
+      });
+      setShowSignature(false);
+    }
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'insured-persons.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const handlePrintCard = (person: any) => {
+    if (!person.photo || !person.signature) {
+      toast({
+        title: "Missing Requirements",
+        description: "Photo and signature must be captured before printing ID card.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setSelectedPerson(person);
+    setShowIDCard(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">Active</Badge>;
+      case 'Pending':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'Inactive':
+        return <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
   return (
@@ -200,140 +183,60 @@ const PersonDirectory = () => {
           <div className="h-6 w-px bg-gray-300" />
           <Users className="h-8 w-8 text-blue-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Person Directory</h1>
-            <p className="text-gray-600">Manage and view all insured persons</p>
+            <h1 className="text-3xl font-bold text-gray-900">Insured Person Directory</h1>
+            <p className="text-gray-600">Manage registered insured persons and ID cards</p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2"
-        >
-          <Home className="h-4 w-4" />
-          Main Menu
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => navigate('/person-registration')}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Register New Person
+          </Button>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <Home className="h-4 w-4" />
+            Main Menu
+          </Button>
+        </div>
       </div>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <button 
-          onClick={() => navigate('/')}
-          className="hover:text-gray-700 transition-colors"
-        >
-          Dashboard
-        </button>
-        <span>/</span>
-        <span className="text-gray-900">Person Directory</span>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Persons</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{insuredPersons.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Registered insured persons
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{insuredPersons.filter(p => p.status === 'Active').length}</div>
-            <p className="text-xs text-muted-foreground">
-              Active contributors
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ID Cards Issued</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{insuredPersons.filter(p => p.idCardIssued).length}</div>
-            <p className="text-xs text-muted-foreground">
-              Cards distributed
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              New registrations
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
+      {/* Search and Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Search and Filter
-          </CardTitle>
+          <CardTitle>Search Insured Persons</CardTitle>
+          <CardDescription>Find registered persons by various criteria</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="search">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="search"
-                  placeholder="Search by name, SSN, or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Enter search term..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
             </div>
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="gender">Gender</Label>
-              <Select value={genderFilter} onValueChange={setGenderFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All genders" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Genders</SelectItem>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={exportToCSV} className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            </div>
+            <Select value={searchBy} onValueChange={setSearchBy}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="nationalId">National ID</SelectItem>
+                <SelectItem value="registrationNo">Registration No.</SelectItem>
+                <SelectItem value="mobile">Mobile Number</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Search
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -341,179 +244,81 @@ const PersonDirectory = () => {
       {/* Persons Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Insured Persons ({filteredPersons.length})</CardTitle>
-          <CardDescription>
-            Complete directory of all registered insured persons
-          </CardDescription>
+          <CardTitle>Registered Persons ({filteredPersons.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Social Security No.</TableHead>
+                <TableHead>Photo</TableHead>
+                <TableHead>Registration No.</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Date of Birth</TableHead>
                 <TableHead>Gender</TableHead>
-                <TableHead>Occupation</TableHead>
-                <TableHead>Employer</TableHead>
+                <TableHead>Mobile</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>ID Card</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPersons.map((person) => (
                 <TableRow key={person.id}>
-                  <TableCell className="font-medium">{person.socialSecurityNo}</TableCell>
+                  <TableCell>
+                    <div className="w-12 h-12 bg-gray-100 rounded border flex items-center justify-center">
+                      {person.photo ? (
+                        <img src={person.photo} alt="Photo" className="w-full h-full object-cover rounded" />
+                      ) : (
+                        <Users className="h-6 w-6 text-gray-400" />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{person.registrationNo}</TableCell>
                   <TableCell>{person.firstName} {person.lastName}</TableCell>
                   <TableCell>{new Date(person.dateOfBirth).toLocaleDateString()}</TableCell>
                   <TableCell>{person.gender}</TableCell>
-                  <TableCell>{person.occupation}</TableCell>
-                  <TableCell>{person.employer}</TableCell>
+                  <TableCell>{person.mobileNumber}</TableCell>
                   <TableCell>{getStatusBadge(person.status)}</TableCell>
                   <TableCell>
-                    {person.idCardIssued ? (
-                      <Badge className="bg-green-100 text-green-800">Issued</Badge>
-                    ) : (
-                      <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setSelectedPerson(person)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Person Details</DialogTitle>
-                          <DialogDescription>
-                            Complete information for {selectedPerson?.firstName} {selectedPerson?.lastName}
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        {selectedPerson && (
-                          <div className="space-y-6">
-                            {/* Personal Information */}
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <User className="h-5 w-5" />
-                                  Personal Information
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Social Security No.</Label>
-                                  <p className="text-sm">{selectedPerson.socialSecurityNo}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Full Name</Label>
-                                  <p className="text-sm">{selectedPerson.firstName} {selectedPerson.lastName}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Date of Birth</Label>
-                                  <p className="text-sm">{new Date(selectedPerson.dateOfBirth).toLocaleDateString()}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Gender</Label>
-                                  <p className="text-sm">{selectedPerson.gender}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Nationality</Label>
-                                  <p className="text-sm">{selectedPerson.nationality}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Marital Status</Label>
-                                  <p className="text-sm">{selectedPerson.maritalStatus}</p>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            {/* Contact Information */}
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Phone className="h-5 w-5" />
-                                  Contact Information
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Email</Label>
-                                  <p className="text-sm">{selectedPerson.email}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                                  <p className="text-sm">{selectedPerson.phone}</p>
-                                </div>
-                                <div className="col-span-2">
-                                  <Label className="text-sm font-medium text-gray-500">Address</Label>
-                                  <p className="text-sm">{selectedPerson.address}</p>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            {/* Employment Information */}
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Building2 className="h-5 w-5" />
-                                  Employment Information
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Occupation</Label>
-                                  <p className="text-sm">{selectedPerson.occupation}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Employer</Label>
-                                  <p className="text-sm">{selectedPerson.employer}</p>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            {/* System Information */}
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Calendar className="h-5 w-5" />
-                                  System Information
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Registration Date</Label>
-                                  <p className="text-sm">{new Date(selectedPerson.registrationDate).toLocaleDateString()}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                                  <p className="text-sm">{selectedPerson.status}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Contributions Paid</Label>
-                                  <p className="text-sm">{selectedPerson.contributionsPaid}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">Last Contribution</Label>
-                                  <p className="text-sm">{new Date(selectedPerson.lastContribution).toLocaleDateString()}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-500">ID Card Status</Label>
-                                  <p className="text-sm">{selectedPerson.idCardIssued ? 'Issued' : 'Pending'}</p>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPerson(person);
+                          setShowCamera(true);
+                        }}
+                        title="Capture Photo"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPerson(person);
+                          setShowSignature(true);
+                        }}
+                        title="Capture Signature"
+                      >
+                        <PenTool className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handlePrintCard(person)}
+                        title="Print ID Card"
+                        disabled={!person.photo || !person.signature}
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -521,6 +326,56 @@ const PersonDirectory = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Camera Dialog */}
+      <Dialog open={showCamera} onOpenChange={setShowCamera}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Capture Photo</DialogTitle>
+            <DialogDescription>
+              Capture a photo for {selectedPerson?.firstName} {selectedPerson?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <CameraCapture onCapture={handlePhotoCapture} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Signature Dialog */}
+      <Dialog open={showSignature} onOpenChange={setShowSignature}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Capture Signature</DialogTitle>
+            <DialogDescription>
+              Capture digital signature for {selectedPerson?.firstName} {selectedPerson?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <SignatureCapture onCapture={handleSignatureCapture} />
+        </DialogContent>
+      </Dialog>
+
+      {/* ID Card Preview Dialog */}
+      <Dialog open={showIDCard} onOpenChange={setShowIDCard}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>ID Card Preview</DialogTitle>
+            <DialogDescription>
+              Preview and print ID card for {selectedPerson?.firstName} {selectedPerson?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPerson && (
+            <IDCardPreview 
+              person={selectedPerson}
+              onPrint={() => {
+                toast({
+                  title: "Print Initiated",
+                  description: "ID card has been sent to printer.",
+                });
+                setShowIDCard(false);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
