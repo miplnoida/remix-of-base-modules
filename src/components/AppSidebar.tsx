@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
   SidebarContent,
@@ -48,6 +49,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [openGroups, setOpenGroups] = useState<string[]>(['Dashboard']);
   const { hasPermission } = useAuth();
+  const { currentTheme } = useTheme();
 
   const toggleGroup = (title: string) => {
     setOpenGroups(prev => 
@@ -64,7 +66,12 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-gray-200 bg-white shadow-lg" collapsible="icon">
       {/* Header Section */}
-      <div className="border-b border-gray-200 bg-gradient-to-r from-government-800 to-government-900">
+      <div 
+        className="border-b border-gray-200"
+        style={{ 
+          background: `linear-gradient(135deg, ${currentTheme.colors.primary} 0%, ${currentTheme.colors.secondary} 100%)` 
+        }}
+      >
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex-shrink-0">
@@ -79,13 +86,15 @@ export function AppSidebar() {
                 <h2 className="font-bold text-lg text-white tracking-tight truncate">
                   SecureServe
                 </h2>
-                <p className="text-government-200 text-xs font-medium truncate">
+                <p className="text-white/80 text-xs font-medium truncate">
                   Social Security System
                 </p>
               </div>
             )}
           </div>
-          <SidebarTrigger className="text-white hover:bg-government-700 h-8 w-8" />
+          <SidebarTrigger 
+            className="text-white hover:bg-white/20 h-8 w-8" 
+          />
         </div>
       </div>
 

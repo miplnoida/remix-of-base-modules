@@ -8,34 +8,24 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
-
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-
     --radius: 0.5rem;
-
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -46,16 +36,16 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     /* Default Government Theme Colors */
-    --color-government-50: 239 246 255;
-    --color-government-100: 219 234 254;
-    --color-government-200: 191 219 254;
-    --color-government-300: 147 197 253;
-    --color-government-400: 96 165 250;
-    --color-government-500: 59 130 246;
-    --color-government-600: 37 99 235;
-    --color-government-700: 29 78 216;
-    --color-government-800: 30 64 175;
-    --color-government-900: 30 58 138;
+    --color-government-50: 248 250 255;
+    --color-government-100: 237 242 254;
+    --color-government-200: 219 229 252;
+    --color-government-300: 191 210 248;
+    --color-government-400: 147 175 240;
+    --color-government-500: 91 123 197;
+    --color-government-600: 32 60 135;
+    --color-government-700: 29 54 122;
+    --color-government-800: 26 48 108;
+    --color-government-900: 23 42 95;
   }
 
   .dark {
@@ -101,6 +91,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Theme-specific body backgrounds */
+  body.theme-government { background-color: #f8fafc; }
+  body.theme-emerald { background-color: #f0fdfc; }
+  body.theme-purple { background-color: #faf5ff; }
+  body.theme-slate { background-color: #f8fafc; }
+  body.theme-rose { background-color: #fff1f2; }
 
   /* Professional styling improvements */
   .government-header {
@@ -161,28 +158,55 @@
 
 @layer components {
   .btn-government {
-    @apply bg-government-600 hover:bg-government-700 text-white font-medium py-2.5 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-government-500 focus:ring-offset-2 shadow-sm;
+    background-color: rgb(var(--color-government-600));
+    color: white;
+    font-weight: 500;
+    padding: 0.625rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  .btn-government:hover {
+    background-color: rgb(var(--color-government-700));
+  }
+
+  .btn-government:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgb(var(--color-government-500) / 0.5);
   }
 
   .input-government {
-    @apply border-gray-300 focus:border-government-500 focus:ring-government-500 rounded-lg transition-colors duration-200;
+    border-color: rgb(var(--color-government-300));
+    border-radius: 0.5rem;
+    transition: border-color 0.2s;
+  }
+
+  .input-government:focus {
+    border-color: rgb(var(--color-government-500));
+    box-shadow: 0 0 0 1px rgb(var(--color-government-500));
   }
 
   .table-government {
-    @apply min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-sm;
+    @apply min-w-full divide-y rounded-lg overflow-hidden shadow-sm;
+    border-color: rgb(var(--color-government-200));
   }
 
   .table-government th {
-    @apply px-6 py-4 bg-gray-50 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider;
+    @apply px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider;
+    background-color: rgb(var(--color-government-50));
+    color: rgb(var(--color-government-700));
   }
 
   .table-government td {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100;
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+    border-bottom: 1px solid rgb(var(--color-government-100));
   }
 
   /* Professional card styling */
   .card-professional {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 ease-in-out;
+    @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ease-in-out;
+    border: 1px solid rgb(var(--color-government-200));
   }
 
   /* Enhanced sidebar styling */
@@ -191,11 +215,14 @@
   }
 
   .sidebar-item-active {
-    @apply bg-government-100 text-government-800 border-l-4 border-government-600;
+    background-color: rgb(var(--color-government-100));
+    color: rgb(var(--color-government-800));
+    border-left: 4px solid rgb(var(--color-government-600));
   }
 
-  .sidebar-item-hover {
-    @apply hover:bg-gray-50 hover:text-government-700;
+  .sidebar-item-hover:hover {
+    background-color: rgb(var(--color-government-50));
+    color: rgb(var(--color-government-700));
   }
 
   /* Government theme color classes */
@@ -253,6 +280,22 @@
   .hover\:text-government-700:hover { color: rgb(var(--color-government-700)); }
   .hover\:text-government-800:hover { color: rgb(var(--color-government-800)); }
   .hover\:text-government-900:hover { color: rgb(var(--color-government-900)); }
+
+  /* Theme-specific button styles */
+  .theme-government .btn-primary { background-color: #203C87; }
+  .theme-government .btn-primary:hover { background-color: #1a3275; }
+  
+  .theme-emerald .btn-primary { background-color: #01796F; }
+  .theme-emerald .btn-primary:hover { background-color: #016660; }
+  
+  .theme-purple .btn-primary { background-color: #8646EC; }
+  .theme-purple .btn-primary:hover { background-color: #7639d9; }
+  
+  .theme-slate .btn-primary { background-color: #3B4755; }
+  .theme-slate .btn-primary:hover { background-color: #323c47; }
+  
+  .theme-rose .btn-primary { background-color: #D32F55; }
+  .theme-rose .btn-primary:hover { background-color: #c02849; }
 }
 
 @keyframes fade-in {

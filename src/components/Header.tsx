@@ -28,9 +28,15 @@ export const Header = () => {
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="text-gray-600 hover:text-government-700" />
+        <SidebarTrigger 
+          className="text-gray-600 hover:text-government-700" 
+          style={{ color: currentTheme.colors.primary }}
+        />
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
+          <h1 
+            className="text-xl font-semibold tracking-tight"
+            style={{ color: currentTheme.colors.text }}
+          >
             SecureServe Portal
           </h1>
           <span className="text-sm text-gray-500 font-medium">
@@ -41,9 +47,17 @@ export const Header = () => {
 
       <div className="flex items-center gap-3">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative text-gray-600 hover:text-government-700">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative text-gray-600"
+          style={{ color: currentTheme.colors.primary }}
+        >
           <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
+          <span 
+            className="absolute -top-1 -right-1 h-3 w-3 rounded-full text-xs flex items-center justify-center text-white"
+            style={{ backgroundColor: currentTheme.colors.accent }}
+          >
             3
           </span>
         </Button>
@@ -54,7 +68,13 @@ export const Header = () => {
             <Button variant="ghost" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder-avatar.jpg" alt={user?.name || 'User'} />
-                <AvatarFallback className="bg-government-100 text-government-700 text-sm font-medium">
+                <AvatarFallback 
+                  className="text-sm font-medium"
+                  style={{ 
+                    backgroundColor: `${currentTheme.colors.primary}20`,
+                    color: currentTheme.colors.primary
+                  }}
+                >
                   {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -90,7 +110,19 @@ export const Header = () => {
                   <DropdownMenuItem
                     key={theme.name}
                     onClick={() => setTheme(theme.name)}
-                    className={`cursor-pointer ${currentTheme.name === theme.name ? 'bg-government-50 text-government-700' : ''}`}
+                    className={`cursor-pointer ${
+                      currentTheme.name === theme.name 
+                        ? 'bg-government-50 text-government-700' 
+                        : ''
+                    }`}
+                    style={{
+                      backgroundColor: currentTheme.name === theme.name 
+                        ? `${theme.colors.primary}15` 
+                        : 'transparent',
+                      color: currentTheme.name === theme.name 
+                        ? theme.colors.primary 
+                        : 'inherit'
+                    }}
                   >
                     <div className="flex items-center gap-2">
                       <div 
