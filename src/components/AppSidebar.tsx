@@ -24,24 +24,24 @@ export function AppSidebar() {
   const { hasPermission } = useAuth();
 
   const toggleGroup = (title: string) => {
-    setOpenGroups(prev => 
-      prev.includes(title) 
+    setOpenGroups(prev =>
+      prev.includes(title)
         ? prev.filter(group => group !== title)
         : [...prev, title]
     );
   };
 
   const isActive = (path: string) => currentPath === path;
-  const isGroupActive = (subItems: any[]) => 
+  const isGroupActive = (subItems: any[]) =>
     subItems?.some(item => isActive(item.url));
 
   return (
     <Sidebar className="border-r bg-white shadow-sm" collapsible="icon">
       <div className="p-4 border-b bg-green-900 text-white">
         <div className="flex items-center gap-3">
-          <img 
-            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
-            alt="SecureServe Logo" 
+          <img
+            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png"
+            alt="SecureServe Logo"
             className="h-8 w-8 bg-white rounded p-1 flex-shrink-0"
           />
           {!collapsed && (
@@ -62,9 +62,9 @@ export function AppSidebar() {
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                {item.subItems ? (
-                  <SidebarGroupMenu 
-                    item={item} 
+                {Array.isArray(item.subItems) ? (
+                  <SidebarGroupMenu
+                    item={item}
                     collapsed={collapsed}
                     open={openGroups.includes(item.title)}
                     toggle={() => toggleGroup(item.title)}
@@ -73,10 +73,10 @@ export function AppSidebar() {
                     currentPath={currentPath}
                   />
                 ) : (
-                  <SidebarMenuLink 
+                  <SidebarMenuLink
                     item={item}
                     collapsed={collapsed}
-                    isActive={isActive(item.url)} 
+                    isActive={isActive(item.url)}
                   />
                 )}
               </SidebarMenuItem>
