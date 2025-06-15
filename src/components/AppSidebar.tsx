@@ -15,6 +15,25 @@ import { menuItems } from "./sidebar/sidebarMenuItems";
 import SidebarGroupMenu from "./sidebar/SidebarGroupMenu";
 import SidebarMenuLink from "./sidebar/SidebarMenuLink";
 
+// ----- type guards -----
+type LinkItem = {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+  subItems?: undefined;
+};
+type GroupItem = {
+  title: string;
+  icon: React.ElementType;
+  subItems: LinkItem[];
+};
+function isGroup(item: LinkItem | GroupItem): item is GroupItem {
+  return Array.isArray((item as GroupItem).subItems);
+}
+function isLink(item: LinkItem | GroupItem): item is LinkItem {
+  return typeof (item as LinkItem).url === "string";
+}
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -32,7 +51,7 @@ export function AppSidebar() {
   };
 
   const isActive = (path: string) => currentPath === path;
-  const isGroupActive = (subItems: any[]) =>
+  const isGroupActive = (subItems: LinkItem[]) =>
     subItems?.some(item => isActive(item.url));
 
   return (
@@ -62,7 +81,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                {Array.isArray(item.subItems) ? (
+                {isGroup(item) ? (
                   <SidebarGroupMenu
                     item={item}
                     collapsed={collapsed}
@@ -72,13 +91,13 @@ export function AppSidebar() {
                     hasPermission={hasPermission}
                     currentPath={currentPath}
                   />
-                ) : (
+                ) : isLink(item) ? (
                   <SidebarMenuLink
                     item={item}
                     collapsed={collapsed}
                     isActive={isActive(item.url)}
                   />
-                )}
+                ) : null}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
