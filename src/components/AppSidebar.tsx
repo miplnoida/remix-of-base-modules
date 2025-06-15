@@ -15,25 +15,6 @@ import { menuItems } from "./sidebar/sidebarMenuItems";
 import SidebarGroupMenu from "./sidebar/SidebarGroupMenu";
 import SidebarMenuLink from "./sidebar/SidebarMenuLink";
 
-// ----- type guards -----
-type LinkItem = {
-  title: string;
-  url: string;
-  icon: React.ElementType;
-  subItems?: undefined;
-};
-type GroupItem = {
-  title: string;
-  icon: React.ElementType;
-  subItems: LinkItem[];
-};
-function isGroup(item: LinkItem | GroupItem): item is GroupItem {
-  return Array.isArray((item as GroupItem).subItems);
-}
-function isLink(item: LinkItem | GroupItem): item is LinkItem {
-  return typeof (item as LinkItem).url === "string";
-}
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -43,24 +24,24 @@ export function AppSidebar() {
   const { hasPermission } = useAuth();
 
   const toggleGroup = (title: string) => {
-    setOpenGroups(prev =>
-      prev.includes(title)
+    setOpenGroups(prev => 
+      prev.includes(title) 
         ? prev.filter(group => group !== title)
         : [...prev, title]
     );
   };
 
   const isActive = (path: string) => currentPath === path;
-  const isGroupActive = (subItems: LinkItem[]) =>
+  const isGroupActive = (subItems: any[]) => 
     subItems?.some(item => isActive(item.url));
 
   return (
     <Sidebar className="border-r bg-white shadow-sm" collapsible="icon">
       <div className="p-4 border-b bg-green-900 text-white">
         <div className="flex items-center gap-3">
-          <img
-            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png"
-            alt="SecureServe Logo"
+          <img 
+            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
+            alt="SecureServe Logo" 
             className="h-8 w-8 bg-white rounded p-1 flex-shrink-0"
           />
           {!collapsed && (
@@ -81,9 +62,9 @@ export function AppSidebar() {
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                {isGroup(item) ? (
-                  <SidebarGroupMenu
-                    item={item}
+                {item.subItems ? (
+                  <SidebarGroupMenu 
+                    item={item} 
                     collapsed={collapsed}
                     open={openGroups.includes(item.title)}
                     toggle={() => toggleGroup(item.title)}
@@ -91,13 +72,13 @@ export function AppSidebar() {
                     hasPermission={hasPermission}
                     currentPath={currentPath}
                   />
-                ) : isLink(item) ? (
-                  <SidebarMenuLink
+                ) : (
+                  <SidebarMenuLink 
                     item={item}
                     collapsed={collapsed}
-                    isActive={isActive(item.url)}
+                    isActive={isActive(item.url)} 
                   />
-                ) : null}
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
