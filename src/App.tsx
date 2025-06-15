@@ -1,145 +1,108 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { LoginScreen } from "@/components/auth/LoginScreen";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import EmployerRegistration from "./pages/EmployerRegistration";
-import EmployerApproval from "./pages/EmployerApproval";
-import EmployerDirectory from "./pages/EmployerDirectory";
-import ContributionEntry from "./pages/ContributionEntry";
-import ComplianceMonitoring from "./pages/ComplianceMonitoring";
-import ContributionTracking from "./pages/ContributionTracking";
-import PersonRegistration from "./pages/PersonRegistration";
-import PersonApproval from "./pages/PersonApproval";
-import PersonDirectory from "./pages/PersonDirectory";
-import MaternityBenefits from "./pages/MaternityBenefits";
-import UnemploymentBenefits from "./pages/UnemploymentBenefits";
-import WorkInjuryBenefits from "./pages/WorkInjuryBenefits";
-import DeathBenefits from "./pages/DeathBenefits";
-import EducationalBenefits from "./pages/EducationalBenefits";
-import AllBenefitsTabs from "./pages/AllBenefitsTabs";
-import ComplianceDashboard from "./pages/ComplianceDashboard";
-import EmployerComplianceManagement from "./pages/EmployerComplianceManagement";
-import ComplianceReports from "./pages/ComplianceReports";
 
-const queryClient = new QueryClient();
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
+import { Header } from '@/components/Header';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import LoginScreen from '@/components/auth/LoginScreen';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+// Page imports
+import Index from '@/pages/Index';
+import NotFound from '@/pages/NotFound';
+
+// Employer Management
+import EmployerRegistration from '@/pages/EmployerRegistration';
+import EmployerApproval from '@/pages/EmployerApproval';
+import EmployerDirectory from '@/pages/EmployerDirectory';
+import ContributionEntry from '@/pages/ContributionEntry';
+import ComplianceMonitoring from '@/pages/ComplianceMonitoring';
+import ContributionTracking from '@/pages/ContributionTracking';
+
+// Insured Persons
+import PersonRegistration from '@/pages/PersonRegistration';
+import PersonApproval from '@/pages/PersonApproval';
+import PersonDirectory from '@/pages/PersonDirectory';
+
+// Benefits
+import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
+import MaternityBenefits from '@/pages/MaternityBenefits';
+import UnemploymentBenefits from '@/pages/UnemploymentBenefits';
+import WorkInjuryBenefits from '@/pages/WorkInjuryBenefits';
+import DeathBenefits from '@/pages/DeathBenefits';
+import EducationalBenefits from '@/pages/EducationalBenefits';
+
+// Compliance & Audit
+import ComplianceDashboard from '@/pages/ComplianceDashboard';
+import EmployerComplianceManagement from '@/pages/EmployerComplianceManagement';
+import ComplianceReports from '@/pages/ComplianceReports';
+import LegalProceedings from '@/pages/LegalProceedings';
+
+import './App.css';
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-background">
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/register" element={
-              <ProtectedRoute>
-                <EmployerRegistration />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/approval" element={
-              <ProtectedRoute requiredPermission="manage_employers">
-                <EmployerApproval />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/directory" element={
-              <ProtectedRoute>
-                <EmployerDirectory />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/contribution-entry" element={
-              <ProtectedRoute>
-                <ContributionEntry />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/compliance" element={
-              <ProtectedRoute>
-                <ComplianceMonitoring />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/contributions" element={
-              <ProtectedRoute>
-                <ContributionTracking />
-              </ProtectedRoute>
-            } />
-            <Route path="/person/register" element={
-              <ProtectedRoute>
-                <PersonRegistration />
-              </ProtectedRoute>
-            } />
-            <Route path="/person/approval" element={
-              <ProtectedRoute requiredPermission="manage_persons">
-                <PersonApproval />
-              </ProtectedRoute>
-            } />
-            <Route path="/person/directory" element={
-              <ProtectedRoute>
-                <PersonDirectory />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/maternity" element={
-              <ProtectedRoute>
-                <MaternityBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/unemployment" element={
-              <ProtectedRoute>
-                <UnemploymentBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/work-injury" element={
-              <ProtectedRoute>
-                <WorkInjuryBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/death" element={
-              <ProtectedRoute>
-                <DeathBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/educational" element={
-              <ProtectedRoute>
-                <EducationalBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/all" element={
-              <ProtectedRoute>
-                <AllBenefitsTabs />
-              </ProtectedRoute>
-            } />
-            <Route path="/compliance/dashboard" element={
-              <ProtectedRoute>
-                <ComplianceDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/compliance/employer" element={
-              <ProtectedRoute>
-                <EmployerComplianceManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/compliance/reports" element={
-              <ProtectedRoute>
-                <ComplianceReports />
-              </ProtectedRoute>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            
+                            {/* Employer Management Routes */}
+                            <Route path="/employer/register" element={<EmployerRegistration />} />
+                            <Route path="/employer/approval" element={<EmployerApproval />} />
+                            <Route path="/employer/directory" element={<EmployerDirectory />} />
+                            <Route path="/employer/contribution-entry" element={<ContributionEntry />} />
+                            <Route path="/employer/compliance" element={<ComplianceMonitoring />} />
+                            <Route path="/employer/contributions" element={<ContributionTracking />} />
+
+                            {/* Insured Persons Routes */}
+                            <Route path="/person/register" element={<PersonRegistration />} />
+                            <Route path="/person/approval" element={<PersonApproval />} />
+                            <Route path="/person/directory" element={<PersonDirectory />} />
+
+                            {/* Benefits Routes */}
+                            <Route path="/benefits/all" element={<AllBenefitsTabs />} />
+                            <Route path="/benefits/maternity" element={<MaternityBenefits />} />
+                            <Route path="/benefits/unemployment" element={<UnemploymentBenefits />} />
+                            <Route path="/benefits/work-injury" element={<WorkInjuryBenefits />} />
+                            <Route path="/benefits/death" element={<DeathBenefits />} />
+                            <Route path="/benefits/educational" element={<EducationalBenefits />} />
+
+                            {/* Compliance & Audit Routes */}
+                            <Route path="/compliance/dashboard" element={<ComplianceDashboard />} />
+                            <Route path="/compliance/employer" element={<EmployerComplianceManagement />} />
+                            <Route path="/compliance/reports" element={<ComplianceReports />} />
+                            <Route path="/compliance/legal" element={<LegalProceedings />} />
+
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              }
+            />
           </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+          <Toaster />
+        </div>
+      </Router>
+    </AuthProvider>
+  );
+}
 
 export default App;
