@@ -15,6 +15,32 @@ import { menuItems } from "./sidebar/sidebarMenuItems";
 import SidebarGroupMenu from "./sidebar/SidebarGroupMenu";
 import SidebarMenuLink from "./sidebar/SidebarMenuLink";
 
+// Type guards to help TypeScript understand the item types
+type MenuItemWithSubItems = {
+  title: string;
+  icon: React.ElementType;
+  subItems: Array<{
+    title: string;
+    url: string;
+    icon: React.ElementType;
+    requiresPermission?: string;
+  }>;
+};
+
+type MenuItemWithUrl = {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+};
+
+const hasSubItems = (item: any): item is MenuItemWithSubItems => {
+  return item.subItems && Array.isArray(item.subItems);
+};
+
+const hasUrl = (item: any): item is MenuItemWithUrl => {
+  return typeof item.url === 'string';
+};
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -62,7 +88,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                {item.subItems ? (
+                {hasSubItems(item) ? (
                   <SidebarGroupMenu 
                     item={item} 
                     collapsed={collapsed}
@@ -72,13 +98,13 @@ export function AppSidebar() {
                     hasPermission={hasPermission}
                     currentPath={currentPath}
                   />
-                ) : (
+                ) : hasUrl(item) ? (
                   <SidebarMenuLink 
                     item={item}
                     collapsed={collapsed}
                     isActive={isActive(item.url)} 
                   />
-                )}
+                ) : null}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

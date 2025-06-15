@@ -4,43 +4,68 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AgeBenefitForm } from "@/components/benefits/AgeBenefitForm";
+import { NonContribPensionForm } from "@/components/benefits/NonContribPensionForm";
+import { InjuryBenefitForm } from "@/components/benefits/InjuryBenefitForm";
+
+// Placeholder components for the remaining forms
+const FuneralGrantForm = () => (
+  <div className="p-6 text-center">
+    <h3 className="text-lg font-semibold mb-2">Funeral Grant Form</h3>
+    <p className="text-gray-600">Funeral grant claim form will be implemented here</p>
+  </div>
+);
+
+const MaternityBenefitForm = () => (
+  <div className="p-6 text-center">
+    <h3 className="text-lg font-semibold mb-2">Maternity Benefit Form</h3>
+    <p className="text-gray-600">Maternity benefit claim form will be implemented here</p>
+  </div>
+);
+
+const SicknessBenefitForm = () => (
+  <div className="p-6 text-center">
+    <h3 className="text-lg font-semibold mb-2">Sickness Benefit Form</h3>
+    <p className="text-gray-600">Sickness/injury benefit claim form will be implemented here</p>
+  </div>
+);
 
 const benefitForms = [
   {
     label: "Age Benefit",
     key: "age-benefit",
     description: "Claim for Age Benefit",
-    img: "/lovable-uploads/530f1ad9-168b-40ea-9d60-ca9d589c80cc.png"
+    component: AgeBenefitForm
   },
   {
     label: "Non-Contributory Pension",
     key: "noncontrib-pension",
     description: "Claim for Assistance Non-Contributory Pension",
-    img: "/lovable-uploads/0c2a2198-5621-44ee-ad39-d617feed4f21.png"
+    component: NonContribPensionForm
   },
   {
     label: "Injury Benefit",
     key: "injury-benefit",
     description: "Claim for Injury Benefit",
-    img: "/lovable-uploads/b9900617-0f66-45e0-8614-677b09cf8ba2.png"
+    component: InjuryBenefitForm
   },
   {
     label: "Funeral Grant",
     key: "funeral-grant",
     description: "Claim for Funeral Grant",
-    img: "/lovable-uploads/c1da20b5-c370-4da3-8354-24f334cefebc.png"
+    component: FuneralGrantForm
   },
   {
     label: "Maternity Benefit",
     key: "maternity-benefit",
     description: "Claim for Maternity Benefit",
-    img: "/lovable-uploads/a96380cd-3336-4888-9dd4-89f9a1dc343b.png"
+    component: MaternityBenefitForm
   },
   {
     label: "Sickness Benefit",
     key: "sickness-benefit",
     description: "Claim for Sickness/Injury Benefit",
-    img: "/lovable-uploads/2c228eb4-15d0-4f29-b4cb-4f4f1d857b2e.png"
+    component: SicknessBenefitForm
   }
 ];
 
@@ -90,16 +115,14 @@ const AllBenefitsTabs = () => {
                 ))}
               </TabsList>
 
-              {benefitForms.map(benefit => (
-                <TabsContent key={benefit.key} value={benefit.key} className="min-h-[400px]">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="mb-2 text-lg font-semibold">{benefit.description}</div>
-                    <img src={benefit.img} alt={benefit.label} className="max-w-full rounded bg-white border shadow-md" />
-                    {/* In a real implementation, replace the image with the actual form component */}
-                    {/* Example: <AgeBenefitForm /> */}
-                  </div>
-                </TabsContent>
-              ))}
+              {benefitForms.map(benefit => {
+                const FormComponent = benefit.component;
+                return (
+                  <TabsContent key={benefit.key} value={benefit.key} className="min-h-[400px]">
+                    <FormComponent />
+                  </TabsContent>
+                );
+              })}
             </Tabs>
           </CardContent>
         </Card>
@@ -109,4 +132,3 @@ const AllBenefitsTabs = () => {
 }
 
 export default AllBenefitsTabs;
-
