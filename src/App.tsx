@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -48,7 +49,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
             <Route
-              path="/*"
+              path="/"
               element={
                 <ProtectedRoute>
                   <SidebarProvider>
@@ -57,38 +58,7 @@ function App() {
                       <div className="flex-1 flex flex-col">
                         <Header />
                         <main className="flex-1">
-                          <Routes>
-                            <Route path="/" element={<Index />} />
-                            
-                            {/* Employer Management Routes */}
-                            <Route path="/employer/register" element={<EmployerRegistration />} />
-                            <Route path="/employer/approval" element={<EmployerApproval />} />
-                            <Route path="/employer/directory" element={<EmployerDirectory />} />
-                            <Route path="/employer/contribution-entry" element={<ContributionEntry />} />
-                            <Route path="/employer/compliance" element={<ComplianceMonitoring />} />
-                            <Route path="/employer/contributions" element={<ContributionTracking />} />
-
-                            {/* Insured Persons Routes */}
-                            <Route path="/person/register" element={<PersonRegistration />} />
-                            <Route path="/person/approval" element={<PersonApproval />} />
-                            <Route path="/person/directory" element={<PersonDirectory />} />
-
-                            {/* Benefits Routes */}
-                            <Route path="/benefits/all" element={<AllBenefitsTabs />} />
-                            <Route path="/benefits/maternity" element={<MaternityBenefits />} />
-                            <Route path="/benefits/unemployment" element={<UnemploymentBenefits />} />
-                            <Route path="/benefits/work-injury" element={<WorkInjuryBenefits />} />
-                            <Route path="/benefits/death" element={<DeathBenefits />} />
-                            <Route path="/benefits/educational" element={<EducationalBenefits />} />
-
-                            {/* Compliance & Audit Routes */}
-                            <Route path="/compliance/dashboard" element={<ComplianceDashboard />} />
-                            <Route path="/compliance/employer" element={<EmployerComplianceManagement />} />
-                            <Route path="/compliance/reports" element={<ComplianceReports />} />
-                            <Route path="/compliance/legal" element={<LegalProceedings />} />
-
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
+                          <Index />
                         </main>
                       </div>
                     </div>
@@ -96,6 +66,358 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            
+            {/* Employer Management Routes */}
+            <Route 
+              path="/employer/register" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <EmployerRegistration />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employer/approval" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <EmployerApproval />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employer/directory" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <EmployerDirectory />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employer/contribution-entry" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <ContributionEntry />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employer/compliance" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <ComplianceMonitoring />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/employer/contributions" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <ContributionTracking />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Insured Persons Routes */}
+            <Route 
+              path="/person/register" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <PersonRegistration />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/person/approval" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <PersonApproval />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/person/directory" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <PersonDirectory />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Benefits Routes */}
+            <Route 
+              path="/benefits/all" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <AllBenefitsTabs />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/benefits/maternity" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <MaternityBenefits />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/benefits/unemployment" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <UnemploymentBenefits />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/benefits/work-injury" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <WorkInjuryBenefits />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/benefits/death" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <DeathBenefits />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/benefits/educational" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <EducationalBenefits />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Compliance & Audit Routes */}
+            <Route 
+              path="/compliance/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <ComplianceDashboard />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/compliance/employer" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <EmployerComplianceManagement />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/compliance/reports" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <ComplianceReports />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/compliance/legal" 
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col">
+                        <Header />
+                        <main className="flex-1">
+                          <LegalProceedings />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
         </div>
