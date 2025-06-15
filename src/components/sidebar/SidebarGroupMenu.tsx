@@ -38,14 +38,14 @@ const SidebarGroupMenu = ({
     <CollapsibleTrigger asChild>
       <button
         type="button"
-        className={`group w-full flex justify-between items-center px-3 py-2.5 rounded-lg transition-all duration-200 ease-in-out font-medium ${
+        className={`group w-full flex justify-between items-center px-4 py-3 rounded-lg transition-all duration-200 ease-in-out font-medium h-11 ${
           isGroupActive 
             ? "bg-government-50 text-government-800 border-l-4 border-government-600" 
             : "text-gray-700 hover:bg-gray-50 hover:text-government-700"
         }`}
         title={collapsed ? item.title : undefined}
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-4 min-w-0">
           <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
             isGroupActive ? "text-government-600" : "text-gray-500 group-hover:text-government-600"
           }`} />
@@ -68,14 +68,14 @@ const SidebarGroupMenu = ({
     </CollapsibleTrigger>
     {!collapsed && (
       <CollapsibleContent className="overflow-hidden transition-all duration-200 ease-in-out">
-        <SidebarMenuSub className="ml-6 mt-1 space-y-1 border-l-2 border-gray-100 pl-4">
+        <SidebarMenuSub className="ml-8 mt-2 space-y-1 border-l-2 border-gray-100 pl-4">
           {item.subItems
             .filter(subItem => !subItem.requiresPermission || hasPermission(subItem.requiresPermission))
             .map(subItem => (
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton
                   asChild
-                  className={`group rounded-md transition-all duration-200 ${
+                  className={`group rounded-md transition-all duration-200 h-9 ${
                     currentPath === subItem.url
                       ? "bg-government-100 text-government-800 border-l-2 border-government-500"
                       : "text-gray-600 hover:bg-gray-50 hover:text-government-700"

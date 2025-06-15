@@ -76,7 +76,7 @@ export function AppSidebar() {
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <h2 className="font-bold text-xl text-white tracking-tight truncate">
+                <h2 className="font-bold text-lg text-white tracking-tight truncate">
                   SecureServe
                 </h2>
                 <p className="text-government-200 text-xs font-medium truncate">
@@ -89,9 +89,9 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className="px-4 py-4">
         <SidebarGroup>
-          <SidebarMenu className="space-y-1">
+          <SidebarMenu className="space-y-2">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 {hasSubItems(item) ? (
