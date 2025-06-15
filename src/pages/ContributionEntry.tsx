@@ -79,8 +79,8 @@ const ContributionEntry = () => {
 
   if (showForm) {
     return (
-      <div className="space-y-4 h-full">
-        <div className="flex items-center justify-between mb-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">New Contribution Entry</h1>
             <p className="text-gray-600 text-sm mt-1">Enter monthly contribution details</p>
@@ -179,12 +179,8 @@ const ContributionEntry = () => {
   }
 
   return (
-    <div className="space-y-4 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contribution Entry</h1>
-          <p className="text-gray-600 text-sm mt-1">Manage employer contribution entries</p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex gap-3">
           <Button variant="outline">
             <Upload className="h-4 w-4 mr-2" />
