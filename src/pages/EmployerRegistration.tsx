@@ -115,23 +115,21 @@ const EmployerRegistration = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Employer Registration</h1>
-          <p className="text-gray-600 mt-1">Complete all sections to register a new employer</p>
-        </div>
+    <div className="space-y-4 h-full">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-gray-900">Employer Registration</h1>
+        <p className="text-gray-600 text-sm mt-1">Complete all sections to register a new employer</p>
       </div>
 
       <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg">Registration Form</CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-6">
+                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 mb-4">
                   {tabs.map((tab) => (
                     <TabsTrigger 
                       key={tab.id} 
@@ -146,14 +144,14 @@ const EmployerRegistration = () => {
                 {tabs.map((tab) => {
                   const Component = tab.component;
                   return (
-                    <TabsContent key={tab.id} value={tab.id} className="mt-6">
+                    <TabsContent key={tab.id} value={tab.id} className="mt-4">
                       <Component />
                     </TabsContent>
                   );
                 })}
               </Tabs>
 
-              <div className="flex justify-between mt-8 pt-6 border-t">
+              <div className="flex justify-between mt-6 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"

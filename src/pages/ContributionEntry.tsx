@@ -79,11 +79,11 @@ const ContributionEntry = () => {
 
   if (showForm) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 h-full">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">New Contribution Entry</h1>
-            <p className="text-gray-600 mt-1">Enter monthly contribution details</p>
+            <p className="text-gray-600 text-sm mt-1">Enter monthly contribution details</p>
           </div>
           <Button variant="outline" onClick={() => setShowForm(false)}>
             Back to List
@@ -94,8 +94,8 @@ const ContributionEntry = () => {
           <CardHeader>
             <CardTitle>Contribution Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="employerCode">Employer Code</Label>
                 <Input id="employerCode" placeholder="Enter employer code" />
@@ -106,7 +106,7 @@ const ContributionEntry = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="month">Contribution Month</Label>
                 <Select>
@@ -144,7 +144,7 @@ const ContributionEntry = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="totalEmployees">Total Employees</Label>
                 <Input id="totalEmployees" type="number" placeholder="0" />
@@ -164,7 +164,7 @@ const ContributionEntry = () => {
               <Textarea id="notes" placeholder="Enter any additional notes..." rows={3} />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-4 border-t">
               <Button onClick={handleSubmit} className="bg-government-600 hover:bg-government-700">
                 Save Entry
               </Button>
@@ -179,11 +179,11 @@ const ContributionEntry = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 h-full">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Contribution Entry</h1>
-          <p className="text-gray-600 mt-1">Manage employer contribution entries</p>
+          <p className="text-gray-600 text-sm mt-1">Manage employer contribution entries</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline">

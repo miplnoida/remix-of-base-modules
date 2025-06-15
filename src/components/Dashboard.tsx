@@ -29,7 +29,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-full">
+    <div className="h-full">
       {renderDashboard()}
     </div>
   );
@@ -45,13 +45,13 @@ const HRDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">HR Management Overview</h2>
-        <p className="text-gray-600">Manage insured persons and employee registrations</p>
+    <div className="space-y-4 h-full">
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">HR Management Overview</h2>
+        <p className="text-gray-600 text-sm mt-1">Manage insured persons and employee registrations</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -76,10 +76,10 @@ const HRDashboard = () => {
 // Financial Dashboard Component
 const FinancialDashboard = () => {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Financial Overview</h2>
-        <p className="text-gray-600">Monitor financial metrics and contributions</p>
+    <div className="space-y-4 h-full">
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Financial Overview</h2>
+        <p className="text-gray-600 text-sm mt-1">Monitor financial metrics and contributions</p>
       </div>
       
       <Card className="hover:shadow-lg transition-shadow duration-200">
@@ -113,10 +113,10 @@ const FinancialDashboard = () => {
 // Default Dashboard Component
 const DefaultDashboard = () => {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to SecureServe</h2>
-        <p className="text-gray-600">Your personalized dashboard based on your role and permissions</p>
+    <div className="space-y-4 h-full">
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Welcome to SecureServe</h2>
+        <p className="text-gray-600 text-sm mt-1">Your personalized dashboard based on your role and permissions</p>
       </div>
       
       <Card className="hover:shadow-lg transition-shadow duration-200">
