@@ -62,30 +62,36 @@ export function AppSidebar() {
     subItems?.some(item => isActive(item.url));
 
   return (
-    <Sidebar className="border-r bg-white shadow-sm" collapsible="icon">
-      <div className="p-4 border-b bg-green-900 text-white">
-        <div className="flex items-center gap-3">
-          <img 
-            src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
-            alt="SecureServe Logo" 
-            className="h-8 w-8 bg-white rounded p-1 flex-shrink-0"
-          />
-          {!collapsed && (
-            <div className="min-w-0">
-              <h2 className="font-bold text-lg truncate">SecureServe</h2>
-              <p className="text-green-200 text-sm truncate">Management System</p>
+    <Sidebar className="border-r border-gray-200 bg-white shadow-lg" collapsible="icon">
+      {/* Header Section */}
+      <div className="border-b border-gray-200 bg-gradient-to-r from-government-800 to-government-900">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0">
+              <img 
+                src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
+                alt="SecureServe Logo" 
+                className="h-10 w-10 bg-white rounded-lg p-2 shadow-sm"
+              />
             </div>
-          )}
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <h2 className="font-bold text-xl text-white tracking-tight truncate">
+                  SecureServe
+                </h2>
+                <p className="text-government-200 text-xs font-medium truncate">
+                  Social Security System
+                </p>
+              </div>
+            )}
+          </div>
+          <SidebarTrigger className="text-white hover:bg-government-700 h-8 w-8" />
         </div>
       </div>
 
-      <SidebarContent className="p-0">
-        <div className="p-4">
-          <SidebarTrigger className="mb-4" />
-        </div>
-
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarMenu>
+          <SidebarMenu className="space-y-1">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 {hasSubItems(item) ? (
