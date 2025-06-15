@@ -7,28 +7,9 @@ import { Button } from "@/components/ui/button";
 import { AgeBenefitForm } from "@/components/benefits/AgeBenefitForm";
 import { NonContribPensionForm } from "@/components/benefits/NonContribPensionForm";
 import { InjuryBenefitForm } from "@/components/benefits/InjuryBenefitForm";
-
-// Placeholder components for the remaining forms
-const FuneralGrantForm = () => (
-  <div className="p-6 text-center">
-    <h3 className="text-lg font-semibold mb-2">Funeral Grant Form</h3>
-    <p className="text-gray-600">Funeral grant claim form will be implemented here</p>
-  </div>
-);
-
-const MaternityBenefitForm = () => (
-  <div className="p-6 text-center">
-    <h3 className="text-lg font-semibold mb-2">Maternity Benefit Form</h3>
-    <p className="text-gray-600">Maternity benefit claim form will be implemented here</p>
-  </div>
-);
-
-const SicknessBenefitForm = () => (
-  <div className="p-6 text-center">
-    <h3 className="text-lg font-semibold mb-2">Sickness Benefit Form</h3>
-    <p className="text-gray-600">Sickness/injury benefit claim form will be implemented here</p>
-  </div>
-);
+import { FuneralGrantForm } from "@/components/benefits/FuneralGrantForm";
+import { MaternityBenefitForm } from "@/components/benefits/MaternityBenefitForm";
+import { SicknessBenefitForm } from "@/components/benefits/SicknessBenefitForm";
 
 const benefitForms = [
   {
