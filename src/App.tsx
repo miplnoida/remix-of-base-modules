@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,8 +22,15 @@ import UnemploymentBenefits from "./pages/UnemploymentBenefits";
 import WorkInjuryBenefits from "./pages/WorkInjuryBenefits";
 import DeathBenefits from "./pages/DeathBenefits";
 import EducationalBenefits from "./pages/EducationalBenefits";
+import { AppLayout } from "@/components/AppLayout";
 
 const queryClient = new QueryClient();
+
+const withLayout = (Component: React.ComponentType) => (
+  <AppLayout>
+    <Component />
+  </AppLayout>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -35,81 +41,126 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/register" element={
-              <ProtectedRoute>
-                <EmployerRegistration />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/approval" element={
-              <ProtectedRoute requiredPermission="manage_employers">
-                <EmployerApproval />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/directory" element={
-              <ProtectedRoute>
-                <EmployerDirectory />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/contribution-entry" element={
-              <ProtectedRoute>
-                <ContributionEntry />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/compliance" element={
-              <ProtectedRoute>
-                <ComplianceMonitoring />
-              </ProtectedRoute>
-            } />
-            <Route path="/employer/contributions" element={
-              <ProtectedRoute>
-                <ContributionTracking />
-              </ProtectedRoute>
-            } />
-            <Route path="/person/register" element={
-              <ProtectedRoute>
-                <PersonRegistration />
-              </ProtectedRoute>
-            } />
-            <Route path="/person/approval" element={
-              <ProtectedRoute requiredPermission="manage_persons">
-                <PersonApproval />
-              </ProtectedRoute>
-            } />
-            <Route path="/person/directory" element={
-              <ProtectedRoute>
-                <PersonDirectory />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/maternity" element={
-              <ProtectedRoute>
-                <MaternityBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/unemployment" element={
-              <ProtectedRoute>
-                <UnemploymentBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/work-injury" element={
-              <ProtectedRoute>
-                <WorkInjuryBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/death" element={
-              <ProtectedRoute>
-                <DeathBenefits />
-              </ProtectedRoute>
-            } />
-            <Route path="/benefits/educational" element={
-              <ProtectedRoute>
-                <EducationalBenefits />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  {withLayout(Index)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/register"
+              element={
+                <ProtectedRoute>
+                  {withLayout(EmployerRegistration)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/approval"
+              element={
+                <ProtectedRoute requiredPermission="manage_employers">
+                  {withLayout(EmployerApproval)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/directory"
+              element={
+                <ProtectedRoute>
+                  {withLayout(EmployerDirectory)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/contribution-entry"
+              element={
+                <ProtectedRoute>
+                  {withLayout(ContributionEntry)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/compliance"
+              element={
+                <ProtectedRoute>
+                  {withLayout(ComplianceMonitoring)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/contributions"
+              element={
+                <ProtectedRoute>
+                  {withLayout(ContributionTracking)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/person/register"
+              element={
+                <ProtectedRoute>
+                  {withLayout(PersonRegistration)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/person/approval"
+              element={
+                <ProtectedRoute requiredPermission="manage_persons">
+                  {withLayout(PersonApproval)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/person/directory"
+              element={
+                <ProtectedRoute>
+                  {withLayout(PersonDirectory)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/benefits/maternity"
+              element={
+                <ProtectedRoute>
+                  {withLayout(MaternityBenefits)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/benefits/unemployment"
+              element={
+                <ProtectedRoute>
+                  {withLayout(UnemploymentBenefits)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/benefits/work-injury"
+              element={
+                <ProtectedRoute>
+                  {withLayout(WorkInjuryBenefits)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/benefits/death"
+              element={
+                <ProtectedRoute>
+                  {withLayout(DeathBenefits)}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/benefits/educational"
+              element={
+                <ProtectedRoute>
+                  {withLayout(EducationalBenefits)}
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
