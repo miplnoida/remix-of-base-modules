@@ -38,6 +38,12 @@ const themes: Record<string, Theme> = {
       '--color-government-700': '29 78 216',
       '--color-government-800': '30 64 175',
       '--color-government-900': '30 58 138',
+      '--primary': '222.2 47.4% 11.2%',
+      '--primary-foreground': '210 40% 98%',
+      '--secondary': '37 99 235',
+      '--secondary-foreground': '210 40% 98%',
+      '--accent': '60 130 246',
+      '--accent-foreground': '210 40% 98%',
     }
   },
   emerald: {
@@ -62,6 +68,12 @@ const themes: Record<string, Theme> = {
       '--color-government-700': '4 120 87',
       '--color-government-800': '6 95 70',
       '--color-government-900': '6 78 59',
+      '--primary': '4 120 87',
+      '--primary-foreground': '236 253 245',
+      '--secondary': '5 150 105',
+      '--secondary-foreground': '236 253 245',
+      '--accent': '16 185 129',
+      '--accent-foreground': '236 253 245',
     }
   },
   purple: {
@@ -86,6 +98,12 @@ const themes: Record<string, Theme> = {
       '--color-government-700': '109 40 217',
       '--color-government-800': '91 33 182',
       '--color-government-900': '76 29 149',
+      '--primary': '109 40 217',
+      '--primary-foreground': '250 245 255',
+      '--secondary': '124 58 237',
+      '--secondary-foreground': '250 245 255',
+      '--accent': '139 92 246',
+      '--accent-foreground': '250 245 255',
     }
   },
   slate: {
@@ -110,6 +128,12 @@ const themes: Record<string, Theme> = {
       '--color-government-700': '51 65 85',
       '--color-government-800': '30 41 59',
       '--color-government-900': '15 23 42',
+      '--primary': '51 65 85',
+      '--primary-foreground': '248 250 252',
+      '--secondary': '71 85 105',
+      '--secondary-foreground': '248 250 252',
+      '--accent': '100 116 139',
+      '--accent-foreground': '248 250 252',
     }
   },
   rose: {
@@ -134,6 +158,12 @@ const themes: Record<string, Theme> = {
       '--color-government-700': '190 18 60',
       '--color-government-800': '159 18 57',
       '--color-government-900': '136 19 55',
+      '--primary': '190 18 60',
+      '--primary-foreground': '255 241 242',
+      '--secondary': '225 29 72',
+      '--secondary-foreground': '255 241 242',
+      '--accent': '244 63 94',
+      '--accent-foreground': '255 241 242',
     }
   }
 };
@@ -168,6 +198,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       Object.entries(theme.cssVars).forEach(([property, value]) => {
         root.style.setProperty(property, value);
       });
+      
+      // Update body background to match theme
+      document.body.style.backgroundColor = theme.colors.background;
     }
   };
 
@@ -175,6 +208,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const savedTheme = localStorage.getItem('selectedTheme');
     if (savedTheme && themes[savedTheme]) {
       setTheme(savedTheme);
+    } else {
+      // Apply default theme on first load
+      setTheme('government');
     }
   }, []);
 
