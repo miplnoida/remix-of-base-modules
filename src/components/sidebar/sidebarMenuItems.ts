@@ -1,3 +1,4 @@
+
 import {
   Building2,
   Users,
@@ -24,6 +25,13 @@ import {
   Wrench,
   Skull,
   GraduationCap,
+  Gavel,
+  Bell,
+  TrendingUp,
+  Search,
+  Target,
+  Eye,
+  Scale,
 } from "lucide-react";
 
 export const menuItems = [
@@ -76,9 +84,15 @@ export const menuItems = [
     icon: ShieldCheck,
     subItems: [
       { title: "Compliance Dashboard", url: "/compliance/dashboard", icon: BarChart3 },
-      { title: "Audit Trails", url: "/compliance/audit", icon: FileText },
-      { title: "Violations", url: "/compliance/violations", icon: AlertTriangle },
-      { title: "Inspections", url: "/compliance/inspections", icon: ShieldCheck },
+      { title: "Employer Compliance", url: "/compliance/employer", icon: Building2 },
+      { title: "Contribution Monitoring", url: "/compliance/contributions", icon: TrendingUp },
+      { title: "Violation Management", url: "/compliance/violations", icon: AlertTriangle },
+      { title: "Penalty Management", url: "/compliance/penalties", icon: Scale },
+      { title: "Audit Management", url: "/compliance/audits", icon: Search },
+      { title: "Legal Proceedings", url: "/compliance/legal", icon: Gavel },
+      { title: "Notifications Center", url: "/compliance/notifications", icon: Bell },
+      { title: "Compliance Reports", url: "/compliance/reports", icon: FileText },
+      { title: "Rules Configuration", url: "/compliance/settings", icon: Settings },
     ],
   },
   {

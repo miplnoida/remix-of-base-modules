@@ -23,6 +23,9 @@ import WorkInjuryBenefits from "./pages/WorkInjuryBenefits";
 import DeathBenefits from "./pages/DeathBenefits";
 import EducationalBenefits from "./pages/EducationalBenefits";
 import AllBenefitsTabs from "./pages/AllBenefitsTabs";
+import ComplianceDashboard from "./pages/ComplianceDashboard";
+import EmployerComplianceManagement from "./pages/EmployerComplianceManagement";
+import ComplianceReports from "./pages/ComplianceReports";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +116,21 @@ const App = () => (
             <Route path="/benefits/all" element={
               <ProtectedRoute>
                 <AllBenefitsTabs />
+              </ProtectedRoute>
+            } />
+            <Route path="/compliance/dashboard" element={
+              <ProtectedRoute>
+                <ComplianceDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/compliance/employer" element={
+              <ProtectedRoute>
+                <EmployerComplianceManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/compliance/reports" element={
+              <ProtectedRoute>
+                <ComplianceReports />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
