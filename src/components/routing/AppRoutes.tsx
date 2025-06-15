@@ -36,6 +36,9 @@ import LegalProceedings from '@/pages/LegalProceedings';
 import AuditManagement from '@/pages/AuditManagement';
 import PenaltyManagement from '@/pages/PenaltyManagement';
 
+// Reports
+import ReportsHub from '@/pages/ReportsHub';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -72,6 +75,15 @@ export const AppRoutes = () => {
       <Route path="/compliance/legal" element={<ProtectedLayout><LegalProceedings /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
+
+      {/* Reports Routes */}
+      <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/cashier" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/employer" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/persons" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
