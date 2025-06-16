@@ -1,15 +1,16 @@
-
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { 
   SidebarMenuButton, 
   SidebarMenuSub, 
   SidebarMenuSubButton, 
-  SidebarMenuSubItem,
+  SidebarMenuSubItem
+} from '@/components/ui/sidebar';
+import { 
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger
-} from '@/components/ui/sidebar';
+} from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 
 interface SidebarGroupMenuProps {
