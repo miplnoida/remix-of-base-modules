@@ -16,7 +16,10 @@ import {
   Clipboard,
   AlertTriangle,
   CreditCard,
-  IdCard
+  IdCard,
+  FolderOpen,
+  Settings,
+  BarChart3
 } from "lucide-react";
 
 export const menuItems = [
@@ -98,14 +101,14 @@ export const menuItems = [
     ]
   },
   {
-    title: "Benefits",
+    title: "Benefits Management",
     icon: Heart,
     subItems: [
       {
         title: "All Benefits",
         url: "/benefits/all",
         icon: Heart,
-        requiresPermission: "process_claims"
+        requiresPermission: "benefits_management"
       },
       {
         title: "Maternity Benefits",
@@ -182,14 +185,14 @@ export const menuItems = [
     ]
   },
   {
-    title: "Reports",
-    icon: FileText,
+    title: "Reports & Analytics",
+    icon: BarChart3,
     subItems: [
       {
         title: "Claims Reports",
         url: "/reports/claims",
         icon: FileText,
-        requiresPermission: "generate_reports"
+        requiresPermission: "reports_analytics"
       },
       {
         title: "Cashier Reports",
@@ -201,25 +204,25 @@ export const menuItems = [
         title: "Employer Reports",
         url: "/reports/employer",
         icon: Building2,
-        requiresPermission: "generate_reports"
+        requiresPermission: "reports_analytics"
       },
       {
         title: "Employer Statement",
         url: "/reports/employer-statement",
         icon: FileSpreadsheet,
-        requiresPermission: "generate_reports"
+        requiresPermission: "reports_analytics"
       },
       {
         title: "Persons Reports",
         url: "/reports/persons",
         icon: Users,
-        requiresPermission: "generate_reports"
+        requiresPermission: "reports_analytics"
       },
       {
         title: "Statistics Reports",
         url: "/reports/statistics",
         icon: TrendingUp,
-        requiresPermission: "generate_reports"
+        requiresPermission: "reports_analytics"
       },
       {
         title: "Financial Reports",
@@ -231,7 +234,61 @@ export const menuItems = [
         title: "Custom Reports",
         url: "/reports/custom",
         icon: FileText,
-        requiresPermission: "generate_reports"
+        requiresPermission: "reports_analytics"
+      }
+    ]
+  },
+  {
+    title: "Document Management",
+    icon: FolderOpen,
+    subItems: [
+      {
+        title: "Document Archive",
+        url: "/documents/archive",
+        icon: FolderOpen,
+        requiresPermission: "manage_documents"
+      },
+      {
+        title: "Template Management",
+        url: "/documents/templates",
+        icon: FileText,
+        requiresPermission: "manage_documents"
+      },
+      {
+        title: "Digital Signatures",
+        url: "/documents/signatures",
+        icon: FileSpreadsheet,
+        requiresPermission: "manage_documents"
+      }
+    ]
+  },
+  {
+    title: "System Administration",
+    icon: Settings,
+    subItems: [
+      {
+        title: "User Management",
+        url: "/admin/users",
+        icon: Users,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "System Settings",
+        url: "/admin/settings",
+        icon: Settings,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Backup & Recovery",
+        url: "/admin/backup",
+        icon: Shield,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "System Logs",
+        url: "/admin/logs",
+        icon: FileText,
+        requiresPermission: "system_administration"
       }
     ]
   }

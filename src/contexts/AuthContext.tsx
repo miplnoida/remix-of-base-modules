@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from 'react';
 import { User } from '@/types/auth';
 
@@ -37,7 +38,11 @@ const mockUsers: User[] = [
       'view_financial_data', 
       'approve_benefits', 
       'conduct_inspections',
-      'manage_legal_proceedings'
+      'manage_legal_proceedings',
+      'manage_documents',
+      'system_administration',
+      'benefits_management',
+      'reports_analytics'
     ]
   },
   {
