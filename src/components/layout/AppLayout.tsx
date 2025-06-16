@@ -1,9 +1,8 @@
 
 import { ReactNode } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/AppSidebar';
-import { Header } from '@/components/Header';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { Header } from "@/components/Header";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -11,20 +10,18 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
-    <ThemeProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 p-4">
-              <div className="max-w-full mx-auto">
-                {children}
-              </div>
-            </main>
-          </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header />
+          <main className="flex-1 p-6">
+            <div className="max-w-7xl mx-auto w-full">
+              {children}
+            </div>
+          </main>
         </div>
-      </SidebarProvider>
-    </ThemeProvider>
+      </div>
+    </SidebarProvider>
   );
 };

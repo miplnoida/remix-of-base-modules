@@ -16,7 +16,8 @@ export type UserRole =
   | 'financial_analyst'
   | 'employer_liaison'
   | 'field_inspector'
-  | 'data_entry_clerk';
+  | 'data_entry_clerk'
+  | 'legal_officer';
 
 export type Department = 
   | 'administration'
@@ -26,7 +27,8 @@ export type Department =
   | 'finance'
   | 'employer_relations'
   | 'field_operations'
-  | 'data_management';
+  | 'data_management'
+  | 'legal';
 
 export type Permission = 
   | 'view_dashboard'
@@ -38,4 +40,5 @@ export type Permission =
   | 'manage_users'
   | 'view_financial_data'
   | 'approve_benefits'
-  | 'conduct_inspections';
+  | 'conduct_inspections'
+  | 'manage_legal_proceedings';

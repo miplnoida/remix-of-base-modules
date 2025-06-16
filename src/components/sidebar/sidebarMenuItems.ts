@@ -1,155 +1,238 @@
 
-import {
-  Building2,
-  Users,
-  CreditCard,
-  FileText,
-  ShieldCheck,
-  BarChart3,
-  FolderOpen,
-  Settings,
-  Home,
-  UserPlus,
-  Briefcase,
-  Heart,
-  AlertTriangle,
-  PieChart,
-  Calendar,
-  Download,
-  ChevronDown,
-  ChevronRight,
-  Upload,
-  CheckCircle,
-  Baby,
-  BriefcaseIcon,
-  Wrench,
-  Skull,
-  GraduationCap,
-  Gavel,
-  TrendingUp,
-  Search,
-  Target,
-  Eye,
-  Scale,
+import { 
+  LayoutDashboard, 
+  Building2, 
+  Users, 
+  Heart, 
+  Shield, 
+  FileText, 
+  UserCheck, 
+  CheckSquare,
   DollarSign,
-  Receipt,
-  Calculator,
-  TrendingDown,
-  UserCheck,
-  Clock,
-  Archive,
-  Mail,
-  MapPin,
-  Phone,
-  CreditCard as CardIcon,
-  Banknote,
-  Wallet,
-  Activity,
+  Search,
+  TrendingUp,
+  FileSpreadsheet,
+  Gavel,
+  Clipboard,
+  AlertTriangle,
+  CreditCard,
+  IdCard
 } from "lucide-react";
 
 export const menuItems = [
   {
     title: "Dashboard",
     url: "/",
-    icon: Home,
-    description: "Main dashboard with system overview and statistics"
+    icon: LayoutDashboard,
   },
   {
     title: "Employer Management",
     icon: Building2,
-    description: "Manage employer registrations, approvals, and contributions",
     subItems: [
-      { title: "Employer Registration", url: "/employer/register", icon: UserPlus, description: "Register new employers in the system" },
-      { title: "Employer Approval", url: "/employer/approval", icon: CheckCircle, requiresPermission: "manage_employers", description: "Review and approve pending employer registrations" },
-      { title: "Employer Directory", url: "/employer/directory", icon: Users, description: "Browse and manage all registered employers" },
-      { title: "Contribution Entry", url: "/employer/contribution-entry", icon: Upload, description: "Enter and process employer contributions" },
-      { title: "Compliance Monitoring", url: "/employer/compliance", icon: AlertTriangle, description: "Monitor employer compliance status" },
-      { title: "Contribution Tracking", url: "/employer/contributions", icon: BarChart3, description: "Track and analyze contribution patterns" },
-    ],
+      {
+        title: "Register Employer",
+        url: "/employer/register",
+        icon: UserCheck,
+        requiresPermission: "manage_employers"
+      },
+      {
+        title: "Employer Approval",
+        url: "/employer/approval",
+        icon: CheckSquare,
+        requiresPermission: "manage_employers"
+      },
+      {
+        title: "Employer Directory",
+        url: "/employer/directory",
+        icon: Search,
+        requiresPermission: "manage_employers"
+      },
+      {
+        title: "Contribution Entry",
+        url: "/employer/contribution-entry",
+        icon: DollarSign,
+        requiresPermission: "manage_employers"
+      },
+      {
+        title: "Contribution Tracking",
+        url: "/employer/contributions",
+        icon: TrendingUp,
+        requiresPermission: "view_financial_data"
+      },
+      {
+        title: "Compliance Monitoring",
+        url: "/employer/compliance",
+        icon: Shield,
+        requiresPermission: "manage_compliance"
+      }
+    ]
   },
   {
     title: "Insured Persons",
     icon: Users,
-    description: "Manage insured person registrations and benefits",
     subItems: [
-      { title: "Person Registration", url: "/person/register", icon: UserPlus, description: "Register new insured persons" },
-      { title: "Person Approval", url: "/person/approval", icon: CheckCircle, requiresPermission: "manage_persons", description: "Review and approve person registrations" },
-      { title: "Person Directory", url: "/person/directory", icon: Users, description: "Browse and manage all insured persons" },
-      { title: "ID Card Generation", url: "/person/id-cards", icon: CreditCard, description: "Generate and manage ID cards" },
-      { title: "Biometric Data", url: "/person/biometrics", icon: ShieldCheck, description: "Manage biometric information" },
-    ],
+      {
+        title: "Register Person",
+        url: "/person/register",
+        icon: UserCheck,
+        requiresPermission: "manage_insured_persons"
+      },
+      {
+        title: "Person Approval",
+        url: "/person/approval",
+        icon: CheckSquare,
+        requiresPermission: "manage_insured_persons"
+      },
+      {
+        title: "Person Directory",
+        url: "/person/directory",
+        icon: Search,
+        requiresPermission: "manage_insured_persons"
+      },
+      {
+        title: "ID Card Generation",
+        url: "/person/id-cards",
+        icon: IdCard,
+        requiresPermission: "manage_insured_persons"
+      }
+    ]
   },
   {
-    title: "Benefits Management",
+    title: "Benefits",
     icon: Heart,
-    description: "Process and manage all types of benefits",
     subItems: [
-      { title: "Claims Processing", url: "/benefits/claims", icon: FileText, description: "Process benefit claims and applications" },
-      { title: "Pension Management", url: "/benefits/pension", icon: Calendar, description: "Manage pension benefits and payments" },
-      { title: "Medical Benefits", url: "/benefits/medical", icon: Heart, description: "Process medical benefit claims" },
-      { title: "Disability Benefits", url: "/benefits/disability", icon: ShieldCheck, description: "Manage disability benefit applications" },
-      { title: "Maternity Benefits", url: "/benefits/maternity", icon: Baby, description: "Process maternity benefit claims" },
-      { title: "Unemployment Benefits", url: "/benefits/unemployment", icon: BriefcaseIcon, description: "Manage unemployment compensation" },
-      { title: "Work Injury Benefits", url: "/benefits/work-injury", icon: Wrench, description: "Process work-related injury claims" },
-      { title: "Death Benefits", url: "/benefits/death", icon: Skull, description: "Manage death benefit distributions" },
-      { title: "Educational Benefits", url: "/benefits/educational", icon: GraduationCap, description: "Process educational assistance benefits" },
-      { title: "All Benefits", url: "/benefits/all", icon: Heart, description: "Comprehensive benefits management hub" },
-    ],
+      {
+        title: "All Benefits",
+        url: "/benefits/all",
+        icon: Heart,
+        requiresPermission: "process_claims"
+      },
+      {
+        title: "Maternity Benefits",
+        url: "/benefits/maternity",
+        icon: Heart,
+        requiresPermission: "process_claims"
+      },
+      {
+        title: "Unemployment Benefits",
+        url: "/benefits/unemployment",
+        icon: Users,
+        requiresPermission: "process_claims"
+      },
+      {
+        title: "Work Injury Benefits",
+        url: "/benefits/work-injury",
+        icon: Shield,
+        requiresPermission: "process_claims"
+      },
+      {
+        title: "Death Benefits",
+        url: "/benefits/death",
+        icon: Heart,
+        requiresPermission: "process_claims"
+      },
+      {
+        title: "Educational Benefits",
+        url: "/benefits/educational",
+        icon: FileText,
+        requiresPermission: "process_claims"
+      }
+    ]
   },
   {
     title: "Compliance & Audit",
-    icon: ShieldCheck,
-    description: "Monitor compliance and manage audit processes",
+    icon: Shield,
     subItems: [
-      { title: "Compliance Dashboard", url: "/compliance/dashboard", icon: BarChart3, description: "Overview of compliance metrics" },
-      { title: "Employer Compliance", url: "/compliance/employer", icon: Building2, description: "Monitor employer compliance status" },
-      { title: "Audit Management", url: "/compliance/audits", icon: Search, description: "Manage audit processes and findings" },
-      { title: "Penalty Management", url: "/compliance/penalties", icon: Scale, description: "Process and track penalties" },
-      { title: "Contribution Monitoring", url: "/compliance/contributions", icon: TrendingUp, description: "Monitor contribution compliance" },
-      { title: "Violation Management", url: "/compliance/violations", icon: AlertTriangle, description: "Track and resolve violations" },
-      { title: "Legal Proceedings", url: "/compliance/legal", icon: Gavel, description: "Manage legal cases and proceedings" },
-      { title: "Compliance Reports", url: "/compliance/reports", icon: FileText, description: "Generate compliance reports" },
-      { title: "Rules Configuration", url: "/compliance/settings", icon: Settings, description: "Configure compliance rules" },
-    ],
+      {
+        title: "Compliance Dashboard",
+        url: "/compliance/dashboard",
+        icon: LayoutDashboard,
+        requiresPermission: "manage_compliance"
+      },
+      {
+        title: "Employer Compliance",
+        url: "/compliance/employer",
+        icon: Building2,
+        requiresPermission: "manage_compliance"
+      },
+      {
+        title: "Compliance Reports",
+        url: "/compliance/reports",
+        icon: FileText,
+        requiresPermission: "generate_reports"
+      },
+      {
+        title: "Legal Proceedings",
+        url: "/compliance/legal",
+        icon: Gavel,
+        requiresPermission: "manage_legal_proceedings"
+      },
+      {
+        title: "Audit Management",
+        url: "/compliance/audits",
+        icon: Clipboard,
+        requiresPermission: "conduct_inspections"
+      },
+      {
+        title: "Penalty Management",
+        url: "/compliance/penalties",
+        icon: AlertTriangle,
+        requiresPermission: "manage_compliance"
+      }
+    ]
   },
   {
-    title: "Reports & Analytics",
-    icon: BarChart3,
-    description: "Generate reports and analyze system data",
+    title: "Reports",
+    icon: FileText,
     subItems: [
-      { title: "Claims Reports", url: "/reports/claims", icon: FileText, description: "Claims administration reports" },
-      { title: "Cashier Reports", url: "/reports/cashier", icon: Receipt, description: "Financial transaction reports" },
-      { title: "Employer Reports", url: "/reports/employer", icon: Building2, description: "Employer administration reports" },
-      { title: "Employer Statement", url: "/reports/employer-statement", icon: Calculator, description: "Generate employer account statements" },
-      { title: "Person Reports", url: "/reports/persons", icon: Users, description: "Insured persons reports" },
-      { title: "Statistics", url: "/reports/statistics", icon: PieChart, description: "System statistics and metrics" },
-      { title: "Financial Reports", url: "/reports/financial", icon: DollarSign, description: "Financial analysis reports" },
-      { title: "All Reports", url: "/reports", icon: BarChart3, description: "Comprehensive reports hub" },
-    ],
-  },
-  {
-    title: "Document Management",
-    icon: FolderOpen,
-    description: "Manage documents and digital archives",
-    subItems: [
-      { title: "Document Repository", url: "/documents/repository", icon: FolderOpen, description: "Central document storage" },
-      { title: "Digital Archives", url: "/documents/archives", icon: FileText, description: "Archived document management" },
-      { title: "Document Templates", url: "/documents/templates", icon: Download, description: "Manage document templates" },
-      { title: "Bulk Operations", url: "/documents/bulk", icon: Settings, description: "Bulk document operations" },
-    ],
-  },
-  {
-    title: "System Administration",
-    icon: Settings,
-    description: "System configuration and user management",
-    subItems: [
-      { title: "User Management", url: "/admin/users", icon: Users, description: "Manage system users and roles" },
-      { title: "System Settings", url: "/admin/settings", icon: Settings, description: "Configure system settings" },
-      { title: "Security Settings", url: "/admin/security", icon: ShieldCheck, description: "Manage security configurations" },
-      { title: "Backup & Recovery", url: "/admin/backup", icon: Download, description: "System backup and recovery" },
-    ],
-  },
+      {
+        title: "Claims Reports",
+        url: "/reports/claims",
+        icon: FileText,
+        requiresPermission: "generate_reports"
+      },
+      {
+        title: "Cashier Reports",
+        url: "/reports/cashier",
+        icon: DollarSign,
+        requiresPermission: "view_financial_data"
+      },
+      {
+        title: "Employer Reports",
+        url: "/reports/employer",
+        icon: Building2,
+        requiresPermission: "generate_reports"
+      },
+      {
+        title: "Employer Statement",
+        url: "/reports/employer-statement",
+        icon: FileSpreadsheet,
+        requiresPermission: "generate_reports"
+      },
+      {
+        title: "Persons Reports",
+        url: "/reports/persons",
+        icon: Users,
+        requiresPermission: "generate_reports"
+      },
+      {
+        title: "Statistics Reports",
+        url: "/reports/statistics",
+        icon: TrendingUp,
+        requiresPermission: "generate_reports"
+      },
+      {
+        title: "Financial Reports",
+        url: "/reports/financial",
+        icon: DollarSign,
+        requiresPermission: "view_financial_data"
+      },
+      {
+        title: "Custom Reports",
+        url: "/reports/custom",
+        icon: FileText,
+        requiresPermission: "generate_reports"
+      }
+    ]
+  }
 ];
-
-// Export icons used for triggers if needed (ChevronDown, ChevronRight)
-export { ChevronDown, ChevronRight };

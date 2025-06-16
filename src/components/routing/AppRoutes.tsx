@@ -19,6 +19,7 @@ import ContributionTracking from '@/pages/ContributionTracking';
 import PersonRegistration from '@/pages/PersonRegistration';
 import PersonApproval from '@/pages/PersonApproval';
 import PersonDirectory from '@/pages/PersonDirectory';
+import IDCardGeneration from '@/pages/IDCardGeneration';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
@@ -60,6 +61,7 @@ export const AppRoutes = () => {
       <Route path="/person/register" element={<ProtectedLayout><PersonRegistration /></ProtectedLayout>} />
       <Route path="/person/approval" element={<ProtectedLayout><PersonApproval /></ProtectedLayout>} />
       <Route path="/person/directory" element={<ProtectedLayout><PersonDirectory /></ProtectedLayout>} />
+      <Route path="/person/id-cards" element={<ProtectedLayout><IDCardGeneration /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />

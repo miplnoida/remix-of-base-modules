@@ -56,13 +56,14 @@ export const LoginScreen = () => {
     { email: 'admin@secureserve.gov', role: 'System Administrator' },
     { email: 'hr@secureserve.gov', role: 'HR Manager' },
     { email: 'compliance@secureserve.gov', role: 'Compliance Officer' },
-    { email: 'benefits@secureserve.gov', role: 'Benefits Manager' }
+    { email: 'benefits@secureserve.gov', role: 'Benefits Manager' },
+    { email: 'legal@secureserve.gov', role: 'Legal Officer' }
   ];
 
   // Don't render login form if user is already authenticated
   if (user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center p-4">
+      <div className="min-h-screen w-full bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center">
         <div className="text-center">
           <p>Redirecting to dashboard...</p>
         </div>
@@ -71,8 +72,8 @@ export const LoginScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center">
+      <div className="w-full max-w-md mx-4 space-y-6">
         <div className="text-center space-y-4">
           <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
             <img 

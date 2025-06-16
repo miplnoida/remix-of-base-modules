@@ -52,6 +52,14 @@ const mockUsers: User[] = [
     role: 'benefits_manager',
     department: 'benefits',
     permissions: ['view_dashboard', 'process_claims', 'approve_benefits', 'generate_reports']
+  },
+  {
+    id: '5',
+    email: 'legal@secureserve.gov',
+    name: 'Legal Officer',
+    role: 'legal_officer',
+    department: 'legal',
+    permissions: ['view_dashboard', 'manage_compliance', 'conduct_inspections', 'generate_reports', 'manage_legal_proceedings']
   }
 ];
 

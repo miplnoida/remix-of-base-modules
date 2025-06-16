@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -165,29 +164,31 @@ const EmployerDirectory = () => {
           <Header />
           <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">
-              <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Employer Directory</h1>
-                <p className="text-gray-600 mt-2">Search and manage employer records</p>
-              </div>
-
               <div className="space-y-6">
-                <EmployerFilters 
-                  filters={filters} 
-                  setFilters={setFilters}
-                  onClear={clearFilters}
-                  onApply={applyFilters}
-                />
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      Employers ({filteredEmployers.length} records)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <EmployerTable employers={filteredEmployers} />
-                  </CardContent>
-                </Card>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Employer Directory</h1>
+                  <p className="text-gray-600 mt-2">Search and manage employer records</p>
+                </div>
+
+                <div className="space-y-6">
+                  <EmployerFilters 
+                    filters={filters} 
+                    setFilters={setFilters}
+                    onClear={clearFilters}
+                    onApply={applyFilters}
+                  />
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        Employers ({filteredEmployers.length} records)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <EmployerTable employers={filteredEmployers} />
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           </main>
