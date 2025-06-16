@@ -23,6 +23,7 @@ import IDCardGeneration from '@/pages/IDCardGeneration';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
+import OnlineBenefitApplications from '@/pages/OnlineBenefitApplications';
 import MaternityBenefits from '@/pages/MaternityBenefits';
 import UnemploymentBenefits from '@/pages/UnemploymentBenefits';
 import WorkInjuryBenefits from '@/pages/WorkInjuryBenefits';
@@ -40,6 +41,10 @@ import PenaltyManagement from '@/pages/PenaltyManagement';
 // Reports
 import ReportsHub from '@/pages/ReportsHub';
 import EmployerStatement from '@/pages/EmployerStatement';
+
+// System Administration
+import WebUsers from '@/pages/WebUsers';
+import AuditLog from '@/pages/AuditLog';
 
 export const AppRoutes = () => {
   return (
@@ -65,6 +70,7 @@ export const AppRoutes = () => {
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />
+      <Route path="/benefits/online-applications" element={<ProtectedLayout><OnlineBenefitApplications /></ProtectedLayout>} />
       <Route path="/benefits/maternity" element={<ProtectedLayout><MaternityBenefits /></ProtectedLayout>} />
       <Route path="/benefits/unemployment" element={<ProtectedLayout><UnemploymentBenefits /></ProtectedLayout>} />
       <Route path="/benefits/work-injury" element={<ProtectedLayout><WorkInjuryBenefits /></ProtectedLayout>} />
@@ -78,6 +84,10 @@ export const AppRoutes = () => {
       <Route path="/compliance/legal" element={<ProtectedLayout><LegalProceedings /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
+
+      {/* System Administration Routes */}
+      <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
+      <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLog /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />

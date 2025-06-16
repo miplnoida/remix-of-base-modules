@@ -3,7 +3,8 @@ import {
   Heart, 
   Users, 
   Shield, 
-  FileText
+  FileText,
+  Globe
 } from "lucide-react";
 
 export const benefitsMenuItems = [
@@ -15,6 +16,12 @@ export const benefitsMenuItems = [
         title: "All Benefits",
         url: "/benefits/all",
         icon: Heart,
+        requiresPermission: "benefits_management"
+      },
+      {
+        title: "Online Benefit Applications",
+        url: "/benefits/online-applications",
+        icon: Globe,
         requiresPermission: "benefits_management"
       },
       {
