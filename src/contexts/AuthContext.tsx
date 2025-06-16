@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { User } from '@/types/auth';
 
@@ -27,7 +26,19 @@ const mockUsers: User[] = [
     name: 'System Administrator',
     role: 'admin',
     department: 'administration',
-    permissions: ['view_dashboard', 'manage_employers', 'manage_insured_persons', 'process_claims', 'generate_reports', 'manage_compliance', 'manage_users', 'view_financial_data', 'approve_benefits', 'conduct_inspections']
+    permissions: [
+      'view_dashboard', 
+      'manage_employers', 
+      'manage_insured_persons', 
+      'process_claims', 
+      'generate_reports', 
+      'manage_compliance', 
+      'manage_users', 
+      'view_financial_data', 
+      'approve_benefits', 
+      'conduct_inspections',
+      'manage_legal_proceedings'
+    ]
   },
   {
     id: '2',
