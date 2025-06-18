@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { 
@@ -57,7 +58,7 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
     <Collapsible open={open} onOpenChange={toggle}>
       <CollapsibleTrigger asChild>
         <SidebarMenuButton 
-          className={`group ${isGroupActive ? 'bg-government-100 text-government-700' : 'hover:bg-gray-100'}`}
+          className={`group px-2 ${isGroupActive ? 'bg-government-100 text-government-700' : 'hover:bg-gray-100'}`}
         >
           <item.icon className="h-4 w-4" />
           {!collapsed && (
@@ -75,13 +76,13 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
       
       {!collapsed && (
         <CollapsibleContent>
-          <SidebarMenuSub>
+          <SidebarMenuSub className="mx-1 border-l border-sidebar-border px-2 py-0.5">
             {visibleSubItems.map((subItem) => (
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton asChild>
                   <Link 
                     to={subItem.url}
-                    className={`flex items-center gap-3 px-4 py-2 text-sm rounded-md transition-colors ${
+                    className={`flex items-center gap-3 px-2 py-2 text-sm rounded-md transition-colors ${
                       isActive(subItem.url)
                         ? 'bg-government-500 text-white'
                         : 'text-gray-700 hover:bg-government-50 hover:text-government-700'
