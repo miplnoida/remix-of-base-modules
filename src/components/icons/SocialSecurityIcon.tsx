@@ -4,11 +4,13 @@ import React from 'react';
 interface SocialSecurityIconProps {
   className?: string;
   size?: number;
+  style?: React.CSSProperties;
 }
 
 export const SocialSecurityIcon: React.FC<SocialSecurityIconProps> = ({ 
   className = "", 
-  size = 24 
+  size = 24,
+  style 
 }) => {
   return (
     <svg
@@ -18,6 +20,7 @@ export const SocialSecurityIcon: React.FC<SocialSecurityIconProps> = ({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={style}
     >
       {/* Shield outline */}
       <path
