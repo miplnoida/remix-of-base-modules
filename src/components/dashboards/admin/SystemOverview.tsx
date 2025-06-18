@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,32 @@ export const SystemOverview = () => {
     { action: 'Bulk ID cards generated', entity: '500 cards processed', time: '2 hours ago', type: 'info' },
     { action: 'System backup completed', entity: 'Database backup', time: '6 hours ago', type: 'success' },
   ];
+
+  const getBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'success':
+        return 'default';
+      case 'warning':
+        return 'destructive';
+      case 'info':
+        return 'secondary';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getBadgeColor = (type: string) => {
+    switch (type) {
+      case 'success':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'warning':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      case 'info':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      default:
+        return '';
+    }
+  };
 
   return (
     <>
@@ -97,8 +122,8 @@ export const SystemOverview = () => {
                 <div key={index} className="flex gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                   <div className="w-16 flex-shrink-0">
                     <Badge 
-                      variant={activity.type === 'success' ? 'default' : activity.type === 'warning' ? 'destructive' : 'secondary'}
-                      className="text-xs w-full justify-center"
+                      variant={getBadgeVariant(activity.type)}
+                      className={`text-xs w-full justify-center ${getBadgeColor(activity.type)}`}
                     >
                       {activity.type}
                     </Badge>
