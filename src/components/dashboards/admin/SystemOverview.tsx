@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -92,19 +91,23 @@ export const SystemOverview = () => {
             <CardDescription>Latest system events and actions</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <Badge 
-                    variant={activity.type === 'success' ? 'default' : activity.type === 'warning' ? 'destructive' : 'secondary'}
-                    className="mt-1"
-                  >
-                    {activity.type}
-                  </Badge>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">{activity.action}</p>
-                    <p className="text-sm text-gray-600">{activity.entity}</p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <Badge 
+                      variant={activity.type === 'success' ? 'default' : activity.type === 'warning' ? 'destructive' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {activity.type}
+                    </Badge>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-medium text-gray-900 leading-snug">{activity.action}</p>
+                      <p className="text-sm text-gray-600 leading-snug">{activity.entity}</p>
+                      <p className="text-xs text-gray-500">{activity.time}</p>
+                    </div>
                   </div>
                 </div>
               ))}
