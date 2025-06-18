@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Employer } from '@/pages/EmployerDirectory';
 import { 
   User, 
@@ -14,14 +14,56 @@ import {
   Calendar, 
   Users, 
   FileText, 
-  Gavel 
+  Gavel,
+  Plus,
+  Edit,
+  Trash2
 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface EmployerDetailsDialogProps {
   employer: Employer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// Mock data for lists
+const mockOwners = [
+  { id: 1, ownerId: 'OWN001', name: 'John Smith', title: 'CEO', phone: '(869) 465-1234' },
+  { id: 2, ownerId: 'OWN002', name: 'Jane Doe', title: 'CFO', phone: '(869) 465-5678' }
+];
+
+const mockLocations = [
+  { id: 1, address: '123 Main Street', city: 'Basseterre', state: 'St. Kitts', type: 'Main Office' },
+  { id: 2, address: '456 Bay Road', city: 'Charlestown', state: 'Nevis', type: 'Branch Office' }
+];
+
+const mockCommenceDates = [
+  { id: 1, type: 'Business Operations', dateCommenced: '2020-01-15', dateCeased: '' },
+  { id: 2, type: 'Employment Registration', dateCommenced: '2020-02-01', dateCeased: '' }
+];
+
+const mockVisits = [
+  { id: 1, visitDate: '2024-01-15', inspector: 'INS001', purpose: 'Compliance Check', status: 'Completed' },
+  { id: 2, visitDate: '2023-06-20', inspector: 'INS002', purpose: 'Annual Audit', status: 'Completed' }
+];
+
+const mockSuits = [
+  { id: 1, type: 'Civil', status: 'Active', amount: 50000, year: 2024, beginPeriod: '2024-01-01', endPeriod: '2024-12-31', schemeCode: 'SCH001' },
+  { id: 2, type: 'Criminal', status: 'Resolved', amount: 25000, year: 2023, beginPeriod: '2023-01-01', endPeriod: '2023-12-31', schemeCode: 'SCH002' }
+];
+
+const mockNotes = [
+  { id: 1, noteDate: '2024-01-15', note: 'Compliance review completed successfully', userId: 'USER001' },
+  { id: 2, noteDate: '2023-12-10', note: 'Follow-up required for documentation', userId: 'USER002' }
+];
 
 export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
   employer,
@@ -241,35 +283,49 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           <TabsContent value="owners" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Owners Information
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Owners Information
+                  </div>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Owner
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <div>
-                      <Label>Owner Id</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Name</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Title</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Phone</Label>
-                      <Input value="" readOnly />
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 text-center py-8">
-                    No owner information available
-                  </div>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Owner ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockOwners.map((owner) => (
+                      <TableRow key={owner.id}>
+                        <TableCell>{owner.ownerId}</TableCell>
+                        <TableCell>{owner.name}</TableCell>
+                        <TableCell>{owner.title}</TableCell>
+                        <TableCell>{owner.phone}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -277,15 +333,49 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           <TabsContent value="locations" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Locations
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Locations
+                  </div>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Location
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-gray-500 text-center py-8">
-                  No additional locations recorded
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Address</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>State</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockLocations.map((location) => (
+                      <TableRow key={location.id}>
+                        <TableCell>{location.address}</TableCell>
+                        <TableCell>{location.city}</TableCell>
+                        <TableCell>{location.state}</TableCell>
+                        <TableCell>{location.type}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -293,27 +383,47 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           <TabsContent value="commence-dates" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Commence Dates
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Commence Dates
+                  </div>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Date
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Date Commenced</Label>
-                      <Input value={formatDate(employer.registrationDate)} readOnly />
-                    </div>
-                    <div>
-                      <Label>Date Ceased</Label>
-                      <Input value="" readOnly />
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 text-center py-8">
-                    Additional commence date information not available
-                  </div>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Date Commenced</TableHead>
+                      <TableHead>Date Ceased</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockCommenceDates.map((date) => (
+                      <TableRow key={date.id}>
+                        <TableCell>{date.type}</TableCell>
+                        <TableCell>{formatDate(date.dateCommenced)}</TableCell>
+                        <TableCell>{date.dateCeased ? formatDate(date.dateCeased) : 'Active'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -321,15 +431,53 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           <TabsContent value="visits" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Visits
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Visits
+                  </div>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Visit
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-gray-500 text-center py-8">
-                  No visit records available
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Visit Date</TableHead>
+                      <TableHead>Inspector</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockVisits.map((visit) => (
+                      <TableRow key={visit.id}>
+                        <TableCell>{formatDate(visit.visitDate)}</TableCell>
+                        <TableCell>{visit.inspector}</TableCell>
+                        <TableCell>{visit.purpose}</TableCell>
+                        <TableCell>
+                          <Badge variant={visit.status === 'Completed' ? 'default' : 'outline'}>
+                            {visit.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -337,65 +485,59 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           <TabsContent value="suits" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Gavel className="h-5 w-5" />
-                  Suits
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Gavel className="h-5 w-5" />
+                    Legal Suits
+                  </div>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Suit
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-                    <div>
-                      <Label>Type</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Status</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Amount</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Year</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Begin period</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>End period</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Scheme Code</Label>
-                      <Input value="" readOnly />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <Label>Date Of Filing</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Number</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Date Of Hearing</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Awarded Amount</Label>
-                      <Input value="" readOnly />
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 text-center py-8">
-                    No legal suits recorded
-                  </div>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Year</TableHead>
+                      <TableHead>Begin Period</TableHead>
+                      <TableHead>End Period</TableHead>
+                      <TableHead>Scheme Code</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockSuits.map((suit) => (
+                      <TableRow key={suit.id}>
+                        <TableCell>{suit.type}</TableCell>
+                        <TableCell>
+                          <Badge variant={suit.status === 'Active' ? 'destructive' : 'default'}>
+                            {suit.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatCurrency(suit.amount)}</TableCell>
+                        <TableCell>{suit.year}</TableCell>
+                        <TableCell>{formatDate(suit.beginPeriod)}</TableCell>
+                        <TableCell>{formatDate(suit.endPeriod)}</TableCell>
+                        <TableCell>{suit.schemeCode}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -403,31 +545,47 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           <TabsContent value="notes" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Notes
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Notes
+                  </div>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Note
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Note Date</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>Note</Label>
-                      <Input value="" readOnly />
-                    </div>
-                    <div>
-                      <Label>User Id</Label>
-                      <Input value="" readOnly />
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 text-center py-8">
-                    No notes available
-                  </div>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Note Date</TableHead>
+                      <TableHead>Note</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockNotes.map((note) => (
+                      <TableRow key={note.id}>
+                        <TableCell>{formatDate(note.noteDate)}</TableCell>
+                        <TableCell>{note.note}</TableCell>
+                        <TableCell>{note.userId}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>

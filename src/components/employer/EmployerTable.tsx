@@ -56,6 +56,7 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Actions</TableHead>
             <TableHead>ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
@@ -69,12 +70,22 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
             <TableHead>Compliance</TableHead>
             <TableHead>Last Contribution</TableHead>
             <TableHead>Contact</TableHead>
-            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {employers.map((employer) => (
             <TableRow key={employer.employerId}>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onViewDetails(employer)}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Details
+                </Button>
+              </TableCell>
               <TableCell className="font-medium">{employer.employerId}</TableCell>
               <TableCell>
                 <div>
@@ -102,17 +113,6 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
                   <div>{employer.contactInfo.phone}</div>
                   <div className="text-gray-500">{employer.contactInfo.email}</div>
                 </div>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onViewDetails(employer)}
-                  className="flex items-center gap-2"
-                >
-                  <Eye className="h-4 w-4" />
-                  Details
-                </Button>
               </TableCell>
             </TableRow>
           ))}
