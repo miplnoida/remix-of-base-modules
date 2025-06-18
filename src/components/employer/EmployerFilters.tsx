@@ -36,9 +36,9 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* Basic Information */}
+      <CardContent className="space-y-6">
+        {/* Basic Information Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="employerId">Employer ID</Label>
             <Input
@@ -75,7 +75,10 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
               </SelectContent>
             </Select>
           </div>
+        </div>
 
+        {/* Status and ID Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="employerStatus">Status</Label>
             <Select value={filters.employerStatus || "all"} onValueChange={(value) => updateFilter('employerStatus', value)}>
@@ -115,7 +118,10 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
               </SelectContent>
             </Select>
           </div>
+        </div>
 
+        {/* Compliance and Industry Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="complianceStatus">Compliance Status</Label>
             <Select value={filters.complianceStatus || "all"} onValueChange={(value) => updateFilter('complianceStatus', value)}>
@@ -141,7 +147,24 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
             />
           </div>
 
-          {/* Location Filters */}
+          <div className="space-y-2">
+            <Label htmlFor="contributionFrequency">Contribution Frequency</Label>
+            <Select value={filters.contributionFrequency || "all"} onValueChange={(value) => updateFilter('contributionFrequency', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Frequencies</SelectItem>
+                <SelectItem value="Monthly">Monthly</SelectItem>
+                <SelectItem value="Quarterly">Quarterly</SelectItem>
+                <SelectItem value="Annually">Annually</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Location Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
             <Select value={filters.country || "all"} onValueChange={(value) => updateFilter('country', value)}>
@@ -166,23 +189,10 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
               placeholder="State/Province"
             />
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contributionFrequency">Contribution Frequency</Label>
-            <Select value={filters.contributionFrequency || "all"} onValueChange={(value) => updateFilter('contributionFrequency', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Frequencies</SelectItem>
-                <SelectItem value="Monthly">Monthly</SelectItem>
-                <SelectItem value="Quarterly">Quarterly</SelectItem>
-                <SelectItem value="Annually">Annually</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Numeric Range Filters */}
+        {/* Numeric Range Filters Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Number of Employees</Label>
             <div className="flex gap-2">
@@ -218,8 +228,10 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
               />
             </div>
           </div>
+        </div>
 
-          {/* Date Range Filters */}
+        {/* Date Range Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Registration Date</Label>
             <div className="flex gap-2">
@@ -227,11 +239,13 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
                 value={filters.registrationDateFrom}
                 onChange={(e) => updateFilter('registrationDateFrom', e.target.value)}
                 type="date"
+                placeholder="From"
               />
               <Input
                 value={filters.registrationDateTo}
                 onChange={(e) => updateFilter('registrationDateTo', e.target.value)}
                 type="date"
+                placeholder="To"
               />
             </div>
           </div>
@@ -243,11 +257,13 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
                 value={filters.lastContributionDateFrom}
                 onChange={(e) => updateFilter('lastContributionDateFrom', e.target.value)}
                 type="date"
+                placeholder="From"
               />
               <Input
                 value={filters.lastContributionDateTo}
                 onChange={(e) => updateFilter('lastContributionDateTo', e.target.value)}
                 type="date"
+                placeholder="To"
               />
             </div>
           </div>
@@ -259,11 +275,13 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
                 value={filters.lastAuditDateFrom}
                 onChange={(e) => updateFilter('lastAuditDateFrom', e.target.value)}
                 type="date"
+                placeholder="From"
               />
               <Input
                 value={filters.lastAuditDateTo}
                 onChange={(e) => updateFilter('lastAuditDateTo', e.target.value)}
                 type="date"
+                placeholder="To"
               />
             </div>
           </div>
