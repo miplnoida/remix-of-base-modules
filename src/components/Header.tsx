@@ -1,7 +1,7 @@
-
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Bell, Settings, User, LogOut, Palette } from "lucide-react";
+import { SocialSecurityIcon } from "@/components/icons/SocialSecurityIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -32,16 +32,23 @@ export const Header = () => {
           className="text-gray-600 hover:text-government-700" 
           style={{ color: currentTheme.colors.primary }}
         />
-        <div className="flex items-center gap-2">
-          <h1 
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: currentTheme.colors.text }}
-          >
-            SecureServe Portal
-          </h1>
-          <span className="text-sm text-gray-500 font-medium">
-            Social Security Administration
-          </span>
+        <div className="flex items-center gap-3">
+          <SocialSecurityIcon 
+            size={32}
+            className="text-government-600"
+            style={{ color: currentTheme.colors.primary }}
+          />
+          <div className="flex flex-col">
+            <h1 
+              className="text-xl font-semibold tracking-tight"
+              style={{ color: currentTheme.colors.text }}
+            >
+              SecureServe Portal
+            </h1>
+            <span className="text-sm text-gray-500 font-medium">
+              Social Security Administration
+            </span>
+          </div>
         </div>
       </div>
 
