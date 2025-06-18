@@ -63,7 +63,7 @@ export const LoginScreen = () => {
   // Don't render login form if user is already authenticated
   if (user) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-gradient-to-br from-emerald-300 via-emerald-200 to-emerald-100 flex items-center justify-center">
         <div className="text-center">
           <p>Redirecting to dashboard...</p>
         </div>
@@ -72,8 +72,8 @@ export const LoginScreen = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-government-200 via-government-100 to-government-50 flex items-center justify-center">
-      <div className="w-full max-w-md mx-4 space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-300 via-emerald-200 to-emerald-100 flex items-center justify-center p-0 m-0">
+      <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
           <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
             <img 
@@ -83,12 +83,12 @@ export const LoginScreen = () => {
             />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-government-800">SecureServe</h1>
-            <p className="text-government-600">Social Security Management System</p>
+            <h1 className="text-3xl font-bold text-emerald-800">SecureServe</h1>
+            <p className="text-emerald-700">Social Security Management System</p>
           </div>
         </div>
 
-        <Card className="shadow-2xl">
+        <Card className="shadow-2xl mx-4">
           <CardHeader>
             <CardTitle className="text-center">Sign In</CardTitle>
             <CardDescription className="text-center">
@@ -142,7 +142,7 @@ export const LoginScreen = () => {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full bg-government-500 hover:bg-government-600" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
