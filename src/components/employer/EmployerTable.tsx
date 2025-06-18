@@ -2,13 +2,16 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
 import { Employer } from '@/pages/EmployerDirectory';
 
 interface EmployerTableProps {
   employers: Employer[];
+  onViewDetails: (employer: Employer) => void;
 }
 
-export const EmployerTable: React.FC<EmployerTableProps> = ({ employers }) => {
+export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewDetails }) => {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       'Active': 'default',
@@ -66,6 +69,7 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers }) => {
             <TableHead>Compliance</TableHead>
             <TableHead>Last Contribution</TableHead>
             <TableHead>Contact</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -98,6 +102,17 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers }) => {
                   <div>{employer.contactInfo.phone}</div>
                   <div className="text-gray-500">{employer.contactInfo.email}</div>
                 </div>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onViewDetails(employer)}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Details
+                </Button>
               </TableCell>
             </TableRow>
           ))}

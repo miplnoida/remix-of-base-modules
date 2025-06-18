@@ -1,7 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmployerFilters } from '@/components/employer/EmployerFilters';
 import { EmployerTable } from '@/components/employer/EmployerTable';
+import { EmployerDetailsDialog } from '@/components/employer/EmployerDetailsDialog';
 import { employerData } from '@/data/employerData';
 
 export interface Employer {
@@ -87,6 +89,8 @@ const EmployerDirectory = () => {
   });
 
   const [appliedFilters, setAppliedFilters] = useState<EmployerFilters>(filters);
+  const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   const filteredEmployers = useMemo(() => {
     return employerData.filter(employer => {
@@ -153,6 +157,11 @@ const EmployerDirectory = () => {
     setAppliedFilters(emptyFilters);
   };
 
+  const handleViewDetails = (employer: Employer) => {
+    setSelectedEmployer(employer);
+    setDetailsDialogOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -175,10 +184,19 @@ const EmployerDirectory = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <EmployerTable employers={filteredEmployers} />
+            <EmployerTable 
+              employers={filteredEmployers} 
+              onViewDetails={handleViewDetails}
+            />
           </CardContent>
         </Card>
       </div>
+
+      <EmployerDetailsDialog
+        employer={selectedEmployer}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </div>
   );
 };
