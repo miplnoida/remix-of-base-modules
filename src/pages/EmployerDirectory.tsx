@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmployerFilters } from '@/components/employer/EmployerFilters';
 import { EmployerTable } from '@/components/employer/EmployerTable';
 import { employerData } from '@/data/employerData';
-import { AppLayout } from '@/components/layout/AppLayout';
 
 export interface Employer {
   employerId: string;
@@ -155,34 +154,32 @@ const EmployerDirectory = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Employer Directory</h1>
-          <p className="text-gray-600 mt-2">Search and manage employer records</p>
-        </div>
-
-        <div className="space-y-6">
-          <EmployerFilters 
-            filters={filters} 
-            setFilters={setFilters}
-            onClear={clearFilters}
-            onApply={applyFilters}
-          />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Employers ({filteredEmployers.length} records)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EmployerTable employers={filteredEmployers} />
-            </CardContent>
-          </Card>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Employer Directory</h1>
+        <p className="text-gray-600 mt-2">Search and manage employer records</p>
       </div>
-    </AppLayout>
+
+      <div className="space-y-6">
+        <EmployerFilters 
+          filters={filters} 
+          setFilters={setFilters}
+          onClear={clearFilters}
+          onApply={applyFilters}
+        />
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Employers ({filteredEmployers.length} records)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EmployerTable employers={filteredEmployers} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 
