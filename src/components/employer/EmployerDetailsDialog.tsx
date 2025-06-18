@@ -85,34 +85,34 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 text-government-800">
+            <Building className="h-5 w-5 text-government-600" />
             Employer Details - {employer.employerName}
           </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="basic">Basic</TabsTrigger>
-            <TabsTrigger value="owners">Owners</TabsTrigger>
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-            <TabsTrigger value="commence-dates">Commence Dates</TabsTrigger>
-            <TabsTrigger value="visits">Visits</TabsTrigger>
-            <TabsTrigger value="suits">Suits</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 bg-government-50">
+            <TabsTrigger value="basic" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Basic</TabsTrigger>
+            <TabsTrigger value="owners" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Owners</TabsTrigger>
+            <TabsTrigger value="locations" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Locations</TabsTrigger>
+            <TabsTrigger value="commence-dates" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Commence Dates</TabsTrigger>
+            <TabsTrigger value="visits" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Visits</TabsTrigger>
+            <TabsTrigger value="suits" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Suits</TabsTrigger>
+            <TabsTrigger value="notes" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Notes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
+                <CardTitle className="flex items-center gap-2 text-government-800">
+                  <User className="h-5 w-5 text-government-600" />
                   Basic Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 bg-white">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label>Name</Label>
@@ -281,311 +281,323 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="owners" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
+                  <div className="flex items-center gap-2 text-government-800">
+                    <Users className="h-5 w-5 text-government-600" />
                     Owners Information
                   </div>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
                     <Plus className="h-4 w-4" />
                     Add Owner
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Owner ID</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockOwners.map((owner) => (
-                      <TableRow key={owner.id}>
-                        <TableCell>{owner.ownerId}</TableCell>
-                        <TableCell>{owner.name}</TableCell>
-                        <TableCell>{owner.title}</TableCell>
-                        <TableCell>{owner.phone}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <CardContent className="bg-white">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-government-50">
+                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Owner ID</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Name</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Title</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Phone</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockOwners.map((owner) => (
+                        <TableRow key={owner.id} className="hover:bg-government-50/50">
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-government-700">{owner.ownerId}</TableCell>
+                          <TableCell className="text-government-800 font-medium">{owner.name}</TableCell>
+                          <TableCell className="text-government-700">{owner.title}</TableCell>
+                          <TableCell className="text-government-700">{owner.phone}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="locations" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
+                  <div className="flex items-center gap-2 text-government-800">
+                    <MapPin className="h-5 w-5 text-government-600" />
                     Locations
                   </div>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
                     <Plus className="h-4 w-4" />
                     Add Location
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Address</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>State</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockLocations.map((location) => (
-                      <TableRow key={location.id}>
-                        <TableCell>{location.address}</TableCell>
-                        <TableCell>{location.city}</TableCell>
-                        <TableCell>{location.state}</TableCell>
-                        <TableCell>{location.type}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <CardContent className="bg-white">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-government-50">
+                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Address</TableHead>
+                        <TableHead className="text-government-800 font-semibold">City</TableHead>
+                        <TableHead className="text-government-800 font-semibold">State</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Type</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockLocations.map((location) => (
+                        <TableRow key={location.id} className="hover:bg-government-50/50">
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-government-700">{location.address}</TableCell>
+                          <TableCell className="text-government-700">{location.city}</TableCell>
+                          <TableCell className="text-government-700">{location.state}</TableCell>
+                          <TableCell className="text-government-700">{location.type}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="commence-dates" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
+                  <div className="flex items-center gap-2 text-government-800">
+                    <Calendar className="h-5 w-5 text-government-600" />
                     Commence Dates
                   </div>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
                     <Plus className="h-4 w-4" />
                     Add Date
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date Commenced</TableHead>
-                      <TableHead>Date Ceased</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockCommenceDates.map((date) => (
-                      <TableRow key={date.id}>
-                        <TableCell>{date.type}</TableCell>
-                        <TableCell>{formatDate(date.dateCommenced)}</TableCell>
-                        <TableCell>{date.dateCeased ? formatDate(date.dateCeased) : 'Active'}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <CardContent className="bg-white">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-government-50">
+                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Type</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Date Commenced</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Date Ceased</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockCommenceDates.map((date) => (
+                        <TableRow key={date.id} className="hover:bg-government-50/50">
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-government-700">{date.type}</TableCell>
+                          <TableCell className="text-government-700">{formatDate(date.dateCommenced)}</TableCell>
+                          <TableCell className="text-government-700">{date.dateCeased ? formatDate(date.dateCeased) : 'Active'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="visits" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
+                  <div className="flex items-center gap-2 text-government-800">
+                    <Calendar className="h-5 w-5 text-government-600" />
                     Visits
                   </div>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
                     <Plus className="h-4 w-4" />
                     Add Visit
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Visit Date</TableHead>
-                      <TableHead>Inspector</TableHead>
-                      <TableHead>Purpose</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockVisits.map((visit) => (
-                      <TableRow key={visit.id}>
-                        <TableCell>{formatDate(visit.visitDate)}</TableCell>
-                        <TableCell>{visit.inspector}</TableCell>
-                        <TableCell>{visit.purpose}</TableCell>
-                        <TableCell>
-                          <Badge variant={visit.status === 'Completed' ? 'default' : 'outline'}>
-                            {visit.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <CardContent className="bg-white">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-government-50">
+                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Visit Date</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Inspector</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Purpose</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockVisits.map((visit) => (
+                        <TableRow key={visit.id} className="hover:bg-government-50/50">
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-government-700">{formatDate(visit.visitDate)}</TableCell>
+                          <TableCell className="text-government-700">{visit.inspector}</TableCell>
+                          <TableCell className="text-government-700">{visit.purpose}</TableCell>
+                          <TableCell>
+                            <Badge variant={visit.status === 'Completed' ? 'default' : 'outline'}>
+                              {visit.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="suits" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Gavel className="h-5 w-5" />
+                  <div className="flex items-center gap-2 text-government-800">
+                    <Gavel className="h-5 w-5 text-government-600" />
                     Legal Suits
                   </div>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
                     <Plus className="h-4 w-4" />
                     Add Suit
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Year</TableHead>
-                      <TableHead>Begin Period</TableHead>
-                      <TableHead>End Period</TableHead>
-                      <TableHead>Scheme Code</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockSuits.map((suit) => (
-                      <TableRow key={suit.id}>
-                        <TableCell>{suit.type}</TableCell>
-                        <TableCell>
-                          <Badge variant={suit.status === 'Active' ? 'destructive' : 'default'}>
-                            {suit.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatCurrency(suit.amount)}</TableCell>
-                        <TableCell>{suit.year}</TableCell>
-                        <TableCell>{formatDate(suit.beginPeriod)}</TableCell>
-                        <TableCell>{formatDate(suit.endPeriod)}</TableCell>
-                        <TableCell>{suit.schemeCode}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <CardContent className="bg-white">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-government-50">
+                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Type</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Status</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Amount</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Year</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Begin Period</TableHead>
+                        <TableHead className="text-government-800 font-semibold">End Period</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Scheme Code</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockSuits.map((suit) => (
+                        <TableRow key={suit.id} className="hover:bg-government-50/50">
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-government-700">{suit.type}</TableCell>
+                          <TableCell>
+                            <Badge variant={suit.status === 'Active' ? 'destructive' : 'default'}>
+                              {suit.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-government-700">{formatCurrency(suit.amount)}</TableCell>
+                          <TableCell className="text-government-700">{suit.year}</TableCell>
+                          <TableCell className="text-government-700">{formatDate(suit.beginPeriod)}</TableCell>
+                          <TableCell className="text-government-700">{formatDate(suit.endPeriod)}</TableCell>
+                          <TableCell className="text-government-700">{suit.schemeCode}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-government-200">
+              <CardHeader className="bg-government-50">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                  <div className="flex items-center gap-2 text-government-800">
+                    <FileText className="h-5 w-5 text-government-600" />
                     Notes
                   </div>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
                     <Plus className="h-4 w-4" />
                     Add Note
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Note Date</TableHead>
-                      <TableHead>Note</TableHead>
-                      <TableHead>User ID</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockNotes.map((note) => (
-                      <TableRow key={note.id}>
-                        <TableCell>{formatDate(note.noteDate)}</TableCell>
-                        <TableCell>{note.note}</TableCell>
-                        <TableCell>{note.userId}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <CardContent className="bg-white">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-government-50">
+                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Note Date</TableHead>
+                        <TableHead className="text-government-800 font-semibold">Note</TableHead>
+                        <TableHead className="text-government-800 font-semibold">User ID</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockNotes.map((note) => (
+                        <TableRow key={note.id} className="hover:bg-government-50/50">
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-government-700">{formatDate(note.noteDate)}</TableCell>
+                          <TableCell className="text-government-700">{note.note}</TableCell>
+                          <TableCell className="text-government-700">{note.userId}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -45,73 +45,73 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
 
   if (employers.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-600">
         No employers found matching the current filters.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Actions</TableHead>
-            <TableHead>ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Tax ID</TableHead>
-            <TableHead>Employees</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Registration Date</TableHead>
-            <TableHead>Contribution Status</TableHead>
-            <TableHead>Total Contributions</TableHead>
-            <TableHead>Compliance</TableHead>
-            <TableHead>Last Contribution</TableHead>
-            <TableHead>Contact</TableHead>
+          <TableRow className="bg-government-50">
+            <TableHead className="text-government-800 font-semibold">Actions</TableHead>
+            <TableHead className="text-government-800 font-semibold">ID</TableHead>
+            <TableHead className="text-government-800 font-semibold">Name</TableHead>
+            <TableHead className="text-government-800 font-semibold">Type</TableHead>
+            <TableHead className="text-government-800 font-semibold">Status</TableHead>
+            <TableHead className="text-government-800 font-semibold">Tax ID</TableHead>
+            <TableHead className="text-government-800 font-semibold">Employees</TableHead>
+            <TableHead className="text-government-800 font-semibold">Location</TableHead>
+            <TableHead className="text-government-800 font-semibold">Registration Date</TableHead>
+            <TableHead className="text-government-800 font-semibold">Contribution Status</TableHead>
+            <TableHead className="text-government-800 font-semibold">Total Contributions</TableHead>
+            <TableHead className="text-government-800 font-semibold">Compliance</TableHead>
+            <TableHead className="text-government-800 font-semibold">Last Contribution</TableHead>
+            <TableHead className="text-government-800 font-semibold">Contact</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {employers.map((employer) => (
-            <TableRow key={employer.employerId}>
+            <TableRow key={employer.employerId} className="hover:bg-government-50/50">
               <TableCell>
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   onClick={() => onViewDetails(employer)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white"
                 >
                   <Eye className="h-4 w-4" />
                   Details
                 </Button>
               </TableCell>
-              <TableCell className="font-medium">{employer.employerId}</TableCell>
+              <TableCell className="font-medium text-government-800">{employer.employerId}</TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium">{employer.employerName}</div>
-                  <div className="text-sm text-gray-500">{employer.employerType}</div>
+                  <div className="font-medium text-government-900">{employer.employerName}</div>
+                  <div className="text-sm text-government-600">{employer.employerType}</div>
                 </div>
               </TableCell>
-              <TableCell>{employer.businessType}</TableCell>
+              <TableCell className="text-government-700">{employer.businessType}</TableCell>
               <TableCell>{getStatusBadge(employer.employerStatus)}</TableCell>
-              <TableCell className="font-mono text-sm">{employer.taxId}</TableCell>
-              <TableCell>{employer.numberOfEmployees.toLocaleString()}</TableCell>
+              <TableCell className="font-mono text-sm text-government-700">{employer.taxId}</TableCell>
+              <TableCell className="text-government-700">{employer.numberOfEmployees.toLocaleString()}</TableCell>
               <TableCell>
                 <div className="text-sm">
-                  <div>{employer.address.city}, {employer.address.state}</div>
-                  <div className="text-gray-500">{employer.address.country}</div>
+                  <div className="text-government-800">{employer.address.city}, {employer.address.state}</div>
+                  <div className="text-government-600">{employer.address.country}</div>
                 </div>
               </TableCell>
-              <TableCell>{formatDate(employer.registrationDate)}</TableCell>
+              <TableCell className="text-government-700">{formatDate(employer.registrationDate)}</TableCell>
               <TableCell>{getStatusBadge(employer.contributionStatus)}</TableCell>
-              <TableCell>{formatCurrency(employer.totalContributions)}</TableCell>
+              <TableCell className="text-government-700">{formatCurrency(employer.totalContributions)}</TableCell>
               <TableCell>{getStatusBadge(employer.complianceStatus)}</TableCell>
-              <TableCell>{formatDate(employer.lastContributionDate)}</TableCell>
+              <TableCell className="text-government-700">{formatDate(employer.lastContributionDate)}</TableCell>
               <TableCell>
                 <div className="text-sm">
-                  <div>{employer.contactInfo.phone}</div>
-                  <div className="text-gray-500">{employer.contactInfo.email}</div>
+                  <div className="text-government-800">{employer.contactInfo.phone}</div>
+                  <div className="text-government-600">{employer.contactInfo.email}</div>
                 </div>
               </TableCell>
             </TableRow>

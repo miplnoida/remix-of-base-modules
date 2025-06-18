@@ -9,14 +9,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "btn-government text-white font-medium shadow-sm",
+        default: "bg-government-600 text-white hover:bg-government-700 shadow-sm",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-government-300 bg-background hover:bg-government-50 hover:text-government-700",
+          "border border-government-300 bg-white text-government-700 hover:bg-government-50 hover:text-government-800",
         secondary:
-          "bg-government-100 text-government-700 hover:bg-government-200",
-        ghost: "hover:bg-government-50 hover:text-government-700",
+          "bg-government-100 text-government-800 hover:bg-government-200",
+        ghost: "text-government-700 hover:bg-government-50 hover:text-government-800",
         link: "text-government-600 underline-offset-4 hover:underline",
       },
       size: {
