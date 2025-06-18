@@ -98,7 +98,7 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <SidebarContent className="px-[15px] py-4">
+      <SidebarContent className="px-[10px] py-4">
         <SidebarGroup>
           <SidebarMenu className="space-y-2">
             {menuItems.map((item) => (

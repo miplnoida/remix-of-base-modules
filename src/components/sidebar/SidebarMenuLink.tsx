@@ -24,7 +24,7 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
           : "text-gray-700 hover:bg-gray-50 hover:text-government-700"
       }`}
     >
-      <NavLink to={item.url} className={`flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-2' : 'px-2 py-3'}`}>
+      <NavLink to={item.url} className={`flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`}>
         <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
           isActive ? "text-government-600" : "text-gray-500 group-hover:text-government-600"
         }`} />
