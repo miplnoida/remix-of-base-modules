@@ -36,7 +36,7 @@ export const EmployerFilters: React.FC<EmployerFiltersProps> = ({ filters, setFi
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* Basic Information Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
