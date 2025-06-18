@@ -63,7 +63,7 @@ export const LoginScreen = () => {
   // Don't render login form if user is already authenticated
   if (user) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-emerald-300 via-emerald-200 to-emerald-100 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-gradient-to-br from-emerald-300 via-emerald-200 to-emerald-100 flex items-center justify-center p-4 sm:p-6 md:p-8">
         <div className="text-center">
           <p>Redirecting to dashboard...</p>
         </div>
@@ -72,7 +72,7 @@ export const LoginScreen = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-300 via-emerald-200 to-emerald-100 flex items-center justify-center p-0 m-0">
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-300 via-emerald-200 to-emerald-100 flex items-center justify-center p-4 sm:p-6 md:p-8 m-0">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
           <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
@@ -88,7 +88,7 @@ export const LoginScreen = () => {
           </div>
         </div>
 
-        <Card className="shadow-2xl mx-4">
+        <Card className="shadow-2xl">
           <CardHeader>
             <CardTitle className="text-center">Sign In</CardTitle>
             <CardDescription className="text-center">
