@@ -1,6 +1,7 @@
 
 import { dashboardMenuItems } from './menuItems/dashboardMenuItems';
 import { employerMenuItems } from './menuItems/employerMenuItems';
+import { selfEmployedMenuItems } from './menuItems/selfEmployedMenuItems';
 import { insuredPersonsMenuItems } from './menuItems/insuredPersonsMenuItems';
 import { benefitsMenuItems } from './menuItems/benefitsMenuItems';
 import { complianceMenuItems } from './menuItems/complianceMenuItems';
@@ -11,6 +12,7 @@ import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
 export const menuItems = [
   ...dashboardMenuItems,
   ...employerMenuItems,
+  ...selfEmployedMenuItems,
   ...insuredPersonsMenuItems,
   ...benefitsMenuItems,
   ...complianceMenuItems,

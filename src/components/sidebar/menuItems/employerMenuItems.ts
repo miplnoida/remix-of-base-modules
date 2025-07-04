@@ -5,8 +5,7 @@ import {
   CheckSquare,
   DollarSign,
   Search,
-  TrendingUp,
-  Shield
+  TrendingUp
 } from "lucide-react";
 
 export const employerMenuItems = [
@@ -43,12 +42,6 @@ export const employerMenuItems = [
         url: "/employer/contributions",
         icon: TrendingUp,
         requiresPermission: "view_financial_data"
-      },
-      {
-        title: "Compliance Monitoring",
-        url: "/employer/compliance",
-        icon: Shield,
-        requiresPermission: "manage_compliance"
       }
     ]
   }

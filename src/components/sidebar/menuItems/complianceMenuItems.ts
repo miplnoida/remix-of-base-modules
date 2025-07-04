@@ -6,7 +6,8 @@ import {
   FileText, 
   Gavel, 
   Clipboard, 
-  AlertTriangle
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 
 export const complianceMenuItems = [
@@ -18,6 +19,12 @@ export const complianceMenuItems = [
         title: "Compliance Dashboard",
         url: "/compliance/dashboard",
         icon: LayoutDashboard,
+        requiresPermission: "manage_compliance"
+      },
+      {
+        title: "Compliance Monitoring",
+        url: "/employer/compliance",
+        icon: Eye,
         requiresPermission: "manage_compliance"
       },
       {
