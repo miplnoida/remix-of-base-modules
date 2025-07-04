@@ -1,4 +1,3 @@
-
 import { Routes, Route } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -45,6 +44,8 @@ import EmployerStatement from '@/pages/EmployerStatement';
 // System Administration
 import WebUsers from '@/pages/WebUsers';
 import AuditLog from '@/pages/AuditLog';
+
+import ManageEmployers from '@/pages/ManageEmployers';
 
 export const AppRoutes = () => {
   return (
@@ -98,6 +99,8 @@ export const AppRoutes = () => {
       <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+
+      <Route path="/employers-management/manage" element={<ManageEmployers />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

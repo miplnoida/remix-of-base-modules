@@ -6,7 +6,8 @@ import {
   DollarSign,
   Search,
   TrendingUp,
-  FileText
+  FileText,
+  Users
 } from "lucide-react";
 
 export const employersManagementMenuItems = [
@@ -14,6 +15,12 @@ export const employersManagementMenuItems = [
     title: "Employers Management",
     icon: Building2,
     subItems: [
+      {
+        title: "Manage Employers",
+        url: "/employers-management/manage",
+        icon: Users,
+        requiresPermission: "manage_employers"
+      },
       {
         title: "Register Employer",
         url: "/employer/register",
