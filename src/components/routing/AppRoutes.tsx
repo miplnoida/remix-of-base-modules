@@ -1,4 +1,3 @@
-
 import { Routes, Route } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -48,6 +47,21 @@ import AuditLog from '@/pages/AuditLog';
 
 import ManageEmployers from '@/pages/ManageEmployers';
 
+// New pages for missing routes
+import AddEmployer from '@/pages/AddEmployer';
+import EmployersReports from '@/pages/EmployersReports';
+import ManageSelfEmployed from '@/pages/ManageSelfEmployed';
+import AddSelfEmployed from '@/pages/AddSelfEmployed';
+import SelfEmployedReports from '@/pages/SelfEmployedReports';
+import InsuredPersonGuide from '@/pages/InsuredPersonGuide';
+import EmployerRules from '@/pages/EmployerRules';
+import ApprovalWorkflow from '@/pages/ApprovalWorkflow';
+import DocumentationRequirements from '@/pages/DocumentationRequirements';
+import UserProfile from '@/pages/UserProfile';
+import ChangePassword from '@/pages/ChangePassword';
+import ManageRoles from '@/pages/ManageRoles';
+import SystemSettings from '@/pages/SystemSettings';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -56,7 +70,37 @@ export const AppRoutes = () => {
       {/* Dashboard */}
       <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
       
-      {/* Employer Management Routes */}
+      {/* Employers Management Routes */}
+      <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
+      <Route path="/employers-management/add" element={<ProtectedLayout><AddEmployer /></ProtectedLayout>} />
+      <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />
+
+      {/* Self-Employed Management Routes */}
+      <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
+      <Route path="/self-employed/add" element={<ProtectedLayout><AddSelfEmployed /></ProtectedLayout>} />
+      <Route path="/self-employed/reports" element={<ProtectedLayout><SelfEmployedReports /></ProtectedLayout>} />
+
+      {/* Compliance & Audit Routes */}
+      <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
+      <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
+      <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
+      <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
+      <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
+
+      {/* Registration Rules & Process Routes */}
+      <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
+      <Route path="/registration/employer-rules" element={<ProtectedLayout><EmployerRules /></ProtectedLayout>} />
+      <Route path="/registration/approval-workflow" element={<ProtectedLayout><ApprovalWorkflow /></ProtectedLayout>} />
+      <Route path="/registration/documentation" element={<ProtectedLayout><DocumentationRequirements /></ProtectedLayout>} />
+
+      {/* User Profile & Permissions Routes */}
+      <Route path="/profile" element={<ProtectedLayout><UserProfile /></ProtectedLayout>} />
+      <Route path="/profile/change-password" element={<ProtectedLayout><ChangePassword /></ProtectedLayout>} />
+      <Route path="/admin/roles" element={<ProtectedLayout><ManageRoles /></ProtectedLayout>} />
+      <Route path="/admin/settings" element={<ProtectedLayout><SystemSettings /></ProtectedLayout>} />
+
+      {/* Legacy Routes - keeping existing functionality */}
       <Route path="/employer/register" element={<ProtectedLayout><EmployerRegistration /></ProtectedLayout>} />
       <Route path="/employer/approval" element={<ProtectedLayout><EmployerApproval /></ProtectedLayout>} />
       <Route path="/employer/directory" element={<ProtectedLayout><EmployerDirectory /></ProtectedLayout>} />
@@ -79,14 +123,6 @@ export const AppRoutes = () => {
       <Route path="/benefits/death" element={<ProtectedLayout><DeathBenefits /></ProtectedLayout>} />
       <Route path="/benefits/educational" element={<ProtectedLayout><EducationalBenefits /></ProtectedLayout>} />
 
-      {/* Compliance & Audit Routes */}
-      <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
-      <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
-      <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
-      <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
-      <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
-
       {/* System Administration Routes */}
       <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
       <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLog /></ProtectedLayout>} />
@@ -100,8 +136,6 @@ export const AppRoutes = () => {
       <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-
-      <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
