@@ -1,3 +1,4 @@
+
 import { Routes, Route } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -80,9 +81,9 @@ export const AppRoutes = () => {
 
       {/* Compliance & Audit Routes */}
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
       <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
-      <Route path="/compliance/legal" element={<ProtectedLayout><LegalProceedings /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
 
@@ -100,7 +101,7 @@ export const AppRoutes = () => {
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
-      <Route path="/employers-management/manage" element={<ManageEmployers />} />
+      <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
