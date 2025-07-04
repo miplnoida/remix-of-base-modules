@@ -1,11 +1,8 @@
 
 import { 
   Building2, 
-  UserCheck, 
-  CheckSquare,
-  DollarSign,
   Search,
-  TrendingUp,
+  Plus,
   FileText,
   Users
 } from "lucide-react";
@@ -19,43 +16,22 @@ export const employersManagementMenuItems = [
         title: "Manage Employers",
         url: "/employers-management/manage",
         icon: Users,
-        requiresPermission: "manage_employers"
+        requiresPermission: "manage_employers",
+        description: "Search, filter, and manage employer listings"
       },
       {
-        title: "Register Employer",
-        url: "/employer/register",
-        icon: UserCheck,
-        requiresPermission: "manage_employers"
+        title: "Add New Employer",
+        url: "/employers-management/add",
+        icon: Plus,
+        requiresPermission: "manage_employers",
+        description: "Register new employer with complete details"
       },
       {
-        title: "Employer Approval",
-        url: "/employer/approval",
-        icon: CheckSquare,
-        requiresPermission: "manage_employers"
-      },
-      {
-        title: "Employer Directory",
-        url: "/employer/directory",
-        icon: Search,
-        requiresPermission: "manage_employers"
-      },
-      {
-        title: "Contribution Entry",
-        url: "/employer/contribution-entry",
-        icon: DollarSign,
-        requiresPermission: "manage_employers"
-      },
-      {
-        title: "Contribution Tracking",
-        url: "/employer/contributions",
-        icon: TrendingUp,
-        requiresPermission: "view_financial_data"
-      },
-      {
-        title: "Employer Reports",
-        url: "/employer/reports",
+        title: "Employers Reports",
+        url: "/employers-management/reports",
         icon: FileText,
-        requiresPermission: "generate_reports"
+        requiresPermission: "generate_reports",
+        description: "Generate employer reports and exports"
       }
     ]
   }

@@ -1,54 +1,36 @@
 
 import { 
   User, 
-  UserPlus, 
-  UserCheck, 
-  Search,
-  DollarSign,
-  TrendingUp,
+  Users, 
+  Plus, 
   FileText
 } from "lucide-react";
 
 export const selfEmployedMenuItems = [
   {
-    title: "Self Employed Management",
+    title: "Self-Employed Management",
     icon: User,
     subItems: [
       {
-        title: "Register Self Employed",
-        url: "/self-employed/register",
-        icon: UserPlus,
-        requiresPermission: "manage_self_employed"
+        title: "Manage Self-Employed",
+        url: "/self-employed/manage",
+        icon: Users,
+        requiresPermission: "manage_self_employed",
+        description: "Search, filter, and manage self-employed listings"
       },
       {
-        title: "Self Employed Approval",
-        url: "/self-employed/approval",
-        icon: UserCheck,
-        requiresPermission: "manage_self_employed"
+        title: "Add New Self-Employed",
+        url: "/self-employed/add",
+        icon: Plus,
+        requiresPermission: "manage_self_employed",
+        description: "Register new self-employed individual"
       },
       {
-        title: "Self Employed Directory",
-        url: "/self-employed/directory",
-        icon: Search,
-        requiresPermission: "manage_self_employed"
-      },
-      {
-        title: "Contribution Entry",
-        url: "/self-employed/contribution-entry",
-        icon: DollarSign,
-        requiresPermission: "manage_self_employed"
-      },
-      {
-        title: "Contribution Tracking",
-        url: "/self-employed/contributions",
-        icon: TrendingUp,
-        requiresPermission: "view_financial_data"
-      },
-      {
-        title: "Self Employed Reports",
+        title: "Self-Employed Reports",
         url: "/self-employed/reports",
         icon: FileText,
-        requiresPermission: "generate_reports"
+        requiresPermission: "generate_reports",
+        description: "Generate self-employed reports and exports"
       }
     ]
   }
