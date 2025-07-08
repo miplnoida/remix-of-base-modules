@@ -14,12 +14,9 @@ import ContributionEntry from '@/pages/ContributionEntry';
 import ComplianceMonitoring from '@/pages/ComplianceMonitoring';
 import ContributionTracking from '@/pages/ContributionTracking';
 
-// Insured Persons
-import PersonRegistration from '@/pages/PersonRegistration';
-import PersonApproval from '@/pages/PersonApproval';
-import PersonDirectory from '@/pages/PersonDirectory';
+// Insured Persons - New consolidated page
+import IPManagement from '@/pages/IPManagement';
 import IDCardGeneration from '@/pages/IDCardGeneration';
-import InsuredPersonListing from '@/pages/InsuredPersonListing';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
@@ -109,11 +106,10 @@ export const AppRoutes = () => {
       <Route path="/employer/compliance" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
       <Route path="/employer/contributions" element={<ProtectedLayout><ContributionTracking /></ProtectedLayout>} />
 
-      {/* Insured Persons Routes */}
-      <Route path="/person/listing" element={<ProtectedLayout><InsuredPersonListing /></ProtectedLayout>} />
-      <Route path="/person/register" element={<ProtectedLayout><PersonRegistration /></ProtectedLayout>} />
-      <Route path="/person/approval" element={<ProtectedLayout><PersonApproval /></ProtectedLayout>} />
-      <Route path="/person/directory" element={<ProtectedLayout><PersonDirectory /></ProtectedLayout>} />
+      {/* Insured Persons Routes - Consolidated */}
+      <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
+      <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
+      <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/id-cards" element={<ProtectedLayout><IDCardGeneration /></ProtectedLayout>} />
 
       {/* Benefits Routes */}

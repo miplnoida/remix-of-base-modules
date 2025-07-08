@@ -14,27 +14,9 @@ export const insuredPersonsMenuItems = [
     icon: Users,
     subItems: [
       {
-        title: "IP Listing",
-        url: "/person/listing",
+        title: "IP Management",
+        url: "/person/management",
         icon: List,
-        requiresPermission: "manage_insured_persons"
-      },
-      {
-        title: "Register Person",
-        url: "/person/register",
-        icon: UserCheck,
-        requiresPermission: "manage_insured_persons"
-      },
-      {
-        title: "Person Approval",
-        url: "/person/approval",
-        icon: CheckSquare,
-        requiresPermission: "manage_insured_persons"
-      },
-      {
-        title: "Person Directory",
-        url: "/person/directory",
-        icon: Search,
         requiresPermission: "manage_insured_persons"
       },
       {
