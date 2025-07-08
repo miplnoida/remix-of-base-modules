@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
   TableBody,
@@ -25,11 +26,14 @@ import {
   Home,
   FileText,
   X,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const InsuredPersonListing = () => {
   const navigate = useNavigate();
+  const [isSearchOpen, setIsSearchOpen] = useState(true);
   const [searchParams, setSearchParams] = useState({
     ssn: '',
     dob: '',
@@ -163,14 +167,34 @@ const InsuredPersonListing = () => {
 
   const handleSearch = () => {
     console.log('Searching with parameters:', searchParams);
+    // Implement actual search functionality here
   };
 
   const handleReturnResult = () => {
     console.log('Returning search results');
+    // Implement return result functionality
   };
 
   const handleClose = () => {
     navigate('/');
+  };
+
+  const handleClearSearch = () => {
+    setSearchParams({
+      ssn: '', dob: '', surname: '', firstname: '', phone: '', gender: '', status: '', selfRefNo: ''
+    });
+  };
+
+  const handleViewDetails = (person: any) => {
+    console.log('Viewing details for:', person);
+    // Navigate to view page or open modal
+    navigate(`/person/view/${person.ssn}`);
+  };
+
+  const handleEditDetails = (person: any) => {
+    console.log('Editing details for:', person);
+    // Navigate to edit page or open modal
+    navigate(`/person/edit/${person.ssn}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -232,118 +256,127 @@ const InsuredPersonListing = () => {
         </div>
       </div>
 
-      {/* Search and Filter Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Search Insured Persons</CardTitle>
-          <CardDescription>Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="text-sm font-medium">SSN</label>
-              <Input
-                placeholder="Enter SSN"
-                value={searchParams.ssn}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Date of Birth</label>
-              <Input
-                type="date"
-                value={searchParams.dob}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Surname</label>
-              <Input
-                placeholder="Enter surname"
-                value={searchParams.surname}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, surname: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">First Name</label>
-              <Input
-                placeholder="Enter first name"
-                value={searchParams.firstname}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, firstname: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Phone</label>
-              <Input
-                placeholder="Enter phone number"
-                value={searchParams.phone}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Gender</label>
-              <Select value={searchParams.gender} onValueChange={(value) => setSearchParams(prev => ({ ...prev, gender: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Not Specified">Not Specified</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Status</label>
-              <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Self Ref No.</label>
-              <Input
-                placeholder="Enter self ref no."
-                value={searchParams.selfRefNo}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, selfRefNo: e.target.value }))}
-              />
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <Button onClick={handleSearch} className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
-            <Button variant="outline" onClick={() => setSearchParams({
-              ssn: '', dob: '', surname: '', firstname: '', phone: '', gender: '', status: '', selfRefNo: ''
-            })}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-            <Button variant="outline" onClick={handleReturnResult}>
-              <FileText className="h-4 w-4 mr-2" />
-              Return Result
-            </Button>
-            <Button variant="outline">
-              <HelpCircle className="h-4 w-4 mr-2" />
-              Help
-            </Button>
-            <Button variant="outline" onClick={handleClose}>
-              <X className="h-4 w-4 mr-2" />
-              Close
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search and Filter Section - Now Collapsible */}
+      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Search Insured Persons</CardTitle>
+                  <CardDescription>Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
+                </div>
+                {isSearchOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="text-sm font-medium">SSN</label>
+                  <Input
+                    placeholder="Enter SSN"
+                    value={searchParams.ssn}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Date of Birth</label>
+                  <Input
+                    type="date"
+                    value={searchParams.dob}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Surname</label>
+                  <Input
+                    placeholder="Enter surname"
+                    value={searchParams.surname}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, surname: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">First Name</label>
+                  <Input
+                    placeholder="Enter first name"
+                    value={searchParams.firstname}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, firstname: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Phone</label>
+                  <Input
+                    placeholder="Enter phone number"
+                    value={searchParams.phone}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Gender</label>
+                  <Select value={searchParams.gender} onValueChange={(value) => setSearchParams(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Not Specified">Not Specified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Self Ref No.</label>
+                  <Input
+                    placeholder="Enter self ref no."
+                    value={searchParams.selfRefNo}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, selfRefNo: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button onClick={handleSearch} className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+                <Button variant="outline" onClick={handleClearSearch}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
+                <Button variant="outline" onClick={handleReturnResult}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Return Result
+                </Button>
+                <Button variant="outline">
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Help
+                </Button>
+                <Button variant="outline" onClick={handleClose}>
+                  <X className="h-4 w-4 mr-2" />
+                  Close
+                </Button>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* IP Listing Section - Table Layout */}
+      {/* IP Listing Section - Table Layout with Enhanced Actions */}
       <Card>
         <CardHeader>
           <CardTitle>Insured Persons ({insuredPersons.length})</CardTitle>
@@ -447,10 +480,20 @@ const InsuredPersonListing = () => {
                     <TableCell>{person.registrationDate}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="outline" size="sm" title="View Details">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          title="View Details"
+                          onClick={() => handleViewDetails(person)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" title="Edit Details">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          title="Edit Details"
+                          onClick={() => handleEditDetails(person)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
