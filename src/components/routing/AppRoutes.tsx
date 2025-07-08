@@ -16,7 +16,6 @@ import ContributionTracking from '@/pages/ContributionTracking';
 
 // Insured Persons - New consolidated page
 import IPManagement from '@/pages/IPManagement';
-import IDCardGeneration from '@/pages/IDCardGeneration';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
@@ -110,7 +109,6 @@ export const AppRoutes = () => {
       <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
-      <Route path="/person/id-cards" element={<ProtectedLayout><IDCardGeneration /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />

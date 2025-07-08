@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +20,10 @@ import {
   Eye,
   HelpCircle,
   FileText,
-  X,
   RefreshCw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  UserPlus
 } from 'lucide-react';
 
 export const IPListing = () => {
@@ -189,6 +188,12 @@ export const IPListing = () => {
     navigate(`/person/edit/${person.ssn}`);
   };
 
+  const handleRegisterPerson = () => {
+    // Switch to register tab in parent component or navigate
+    const event = new CustomEvent('switchToRegister');
+    window.dispatchEvent(event);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
@@ -203,7 +208,19 @@ export const IPListing = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Insured Persons Management</h2>
+        <Button 
+          onClick={handleRegisterPerson}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          <UserPlus className="h-4 w-4" />
+          Register New Person
+        </Button>
+      </div>
+
       {/* Search and Filter Section - Collapsible */}
       <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <Card>
@@ -211,16 +228,16 @@ export const IPListing = () => {
             <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Search Insured Persons</CardTitle>
-                  <CardDescription>Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
+                  <CardTitle className="text-base lg:text-lg">Search Insured Persons</CardTitle>
+                  <CardDescription className="text-sm">Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
                 </div>
-                {isSearchOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="text-sm font-medium">SSN</label>
                   <Input
@@ -297,7 +314,7 @@ export const IPListing = () => {
                 </div>
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 lg:gap-3">
                 <Button onClick={handleSearch} className="flex items-center gap-2">
                   <Search className="h-4 w-4" />
                   Search
@@ -323,57 +340,57 @@ export const IPListing = () => {
       {/* IP Listing Section - Table Layout with Enhanced Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Insured Persons ({insuredPersons.length})</CardTitle>
+          <CardTitle className="text-base lg:text-lg">Insured Persons ({insuredPersons.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SSN</TableHead>
-                  <TableHead>Sur Name</TableHead>
-                  <TableHead>First Name</TableHead>
-                  <TableHead>Middle Name</TableHead>
-                  <TableHead>Previous Name</TableHead>
-                  <TableHead>DOB</TableHead>
-                  <TableHead>Sex</TableHead>
-                  <TableHead>Alias</TableHead>
-                  <TableHead>Primary Occup</TableHead>
-                  <TableHead>Self Ref No.</TableHead>
-                  <TableHead>ASP Num.</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Resident Addr1</TableHead>
-                  <TableHead>Resident Addr2</TableHead>
-                  <TableHead>District</TableHead>
-                  <TableHead>Mail Addr1</TableHead>
-                  <TableHead>Mail Addr2</TableHead>
-                  <TableHead>Birth Place</TableHead>
-                  <TableHead>Nationality</TableHead>
-                  <TableHead>Date of Residency</TableHead>
-                  <TableHead>Marital Status</TableHead>
-                  <TableHead>Date Married</TableHead>
-                  <TableHead>Spouse Name</TableHead>
-                  <TableHead>Spouse Addr</TableHead>
-                  <TableHead>Father's Name</TableHead>
-                  <TableHead>Mother's Name</TableHead>
-                  <TableHead>Beneficiary</TableHead>
-                  <TableHead>Ben Addr</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Contact Relation</TableHead>
-                  <TableHead>Contact Addr</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Work Permit</TableHead>
-                  <TableHead>NPF</TableHead>
-                  <TableHead>Date Died</TableHead>
-                  <TableHead>Verify Birth</TableHead>
-                  <TableHead>Verify Name</TableHead>
-                  <TableHead>Verify Marital</TableHead>
-                  <TableHead>Verify Death</TableHead>
-                  <TableHead>Date Verified</TableHead>
-                  <TableHead>Verified By</TableHead>
-                  <TableHead>Application Date</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="min-w-[80px]">SSN</TableHead>
+                  <TableHead className="min-w-[100px]">Sur Name</TableHead>
+                  <TableHead className="min-w-[100px]">First Name</TableHead>
+                  <TableHead className="min-w-[100px]">Middle Name</TableHead>
+                  <TableHead className="min-w-[100px]">Previous Name</TableHead>
+                  <TableHead className="min-w-[100px]">DOB</TableHead>
+                  <TableHead className="min-w-[80px]">Sex</TableHead>
+                  <TableHead className="min-w-[80px]">Alias</TableHead>
+                  <TableHead className="min-w-[120px]">Primary Occup</TableHead>
+                  <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
+                  <TableHead className="min-w-[100px]">ASP Num.</TableHead>
+                  <TableHead className="min-w-[80px]">Status</TableHead>
+                  <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
+                  <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
+                  <TableHead className="min-w-[120px]">District</TableHead>
+                  <TableHead className="min-w-[150px]">Mail Addr1</TableHead>
+                  <TableHead className="min-w-[150px]">Mail Addr2</TableHead>
+                  <TableHead className="min-w-[100px]">Birth Place</TableHead>
+                  <TableHead className="min-w-[100px]">Nationality</TableHead>
+                  <TableHead className="min-w-[120px]">Date of Residency</TableHead>
+                  <TableHead className="min-w-[100px]">Marital Status</TableHead>
+                  <TableHead className="min-w-[100px]">Date Married</TableHead>
+                  <TableHead className="min-w-[120px]">Spouse Name</TableHead>
+                  <TableHead className="min-w-[150px]">Spouse Addr</TableHead>
+                  <TableHead className="min-w-[120px]">Father's Name</TableHead>
+                  <TableHead className="min-w-[120px]">Mother's Name</TableHead>
+                  <TableHead className="min-w-[100px]">Beneficiary</TableHead>
+                  <TableHead className="min-w-[150px]">Ben Addr</TableHead>
+                  <TableHead className="min-w-[120px]">Contact</TableHead>
+                  <TableHead className="min-w-[120px]">Contact Relation</TableHead>
+                  <TableHead className="min-w-[150px]">Contact Addr</TableHead>
+                  <TableHead className="min-w-[120px]">Phone</TableHead>
+                  <TableHead className="min-w-[100px]">Work Permit</TableHead>
+                  <TableHead className="min-w-[80px]">NPF</TableHead>
+                  <TableHead className="min-w-[100px]">Date Died</TableHead>
+                  <TableHead className="min-w-[120px]">Verify Birth</TableHead>
+                  <TableHead className="min-w-[120px]">Verify Name</TableHead>
+                  <TableHead className="min-w-[120px]">Verify Marital</TableHead>
+                  <TableHead className="min-w-[120px]">Verify Death</TableHead>
+                  <TableHead className="min-w-[120px]">Date Verified</TableHead>
+                  <TableHead className="min-w-[120px]">Verified By</TableHead>
+                  <TableHead className="min-w-[120px]">Application Date</TableHead>
+                  <TableHead className="min-w-[120px]">Registration Date</TableHead>
+                  <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -422,7 +439,7 @@ export const IPListing = () => {
                     <TableCell>{person.verifiedBy}</TableCell>
                     <TableCell>{person.applicationDate}</TableCell>
                     <TableCell>{person.registrationDate}</TableCell>
-                    <TableCell>
+                    <TableCell className="sticky right-0 bg-background">
                       <div className="flex gap-1">
                         <Button 
                           variant="outline" 

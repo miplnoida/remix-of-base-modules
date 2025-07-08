@@ -14,7 +14,11 @@ import {
   CheckCircle,
   Clock,
   User,
-  TrendingUp
+  TrendingUp,
+  IdCard,
+  AlertTriangle,
+  Calendar,
+  CreditCard
 } from 'lucide-react';
 import { IPListing } from '@/components/ip/IPListing';
 import { IPRegistration } from '@/components/ip/IPRegistration';
@@ -30,6 +34,14 @@ const IPManagement = () => {
     { label: 'New This Month', value: '156', icon: TrendingUp, color: 'from-purple-500 to-purple-600', change: '+23%' },
   ];
 
+  // ID Card Status Statistics - mock data
+  const idCardStats = [
+    { label: 'Active ID Cards', value: '10,892', icon: IdCard, color: 'from-green-500 to-green-600', description: 'Valid and active cards' },
+    { label: 'Expiring Soon', value: '234', icon: AlertTriangle, color: 'from-orange-500 to-orange-600', description: 'Expiring in next 30 days' },
+    { label: 'Expired Cards', value: '67', icon: Calendar, color: 'from-red-500 to-red-600', description: 'Require renewal' },
+    { label: 'Pending Generation', value: '89', icon: CreditCard, color: 'from-blue-500 to-blue-600', description: 'Cards to be generated' },
+  ];
+
   const recentActivities = [
     { action: 'New Registration', person: 'John Doe', time: '2 hours ago', status: 'Completed' },
     { action: 'Status Update', person: 'Jane Smith', time: '4 hours ago', status: 'Active' },
@@ -38,9 +50,9 @@ const IPManagement = () => {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Navigation Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Button 
             variant="outline" 
@@ -48,22 +60,23 @@ const IPManagement = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Button>
           <div className="h-6 w-px bg-gray-300" />
-          <Users className="h-8 w-8 text-blue-600" />
+          <Users className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Insured Person Management</h1>
-            <p className="text-gray-600">Manage all insured person registrations and records</p>
+            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Insured Person Management</h1>
+            <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Manage all insured person registrations and records</p>
           </div>
         </div>
         <Button 
           variant="ghost" 
           onClick={() => navigate('/')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 self-start lg:self-center"
         >
           <Home className="h-4 w-4" />
-          Main Menu
+          <span className="hidden sm:inline">Main Menu</span>
         </Button>
       </div>
 
@@ -82,33 +95,37 @@ const IPManagement = () => {
       {/* Tabs Section */}
       <Tabs defaultValue="dashboard" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="dashboard" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Dashboard
+          <TabsTrigger value="dashboard" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+            <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+            <span className="sm:hidden">Stats</span>
           </TabsTrigger>
-          <TabsTrigger value="listing" className="flex items-center gap-2">
-            <List className="h-4 w-4" />
-            IP Listing
+          <TabsTrigger value="listing" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+            <List className="h-3 w-3 lg:h-4 lg:w-4" />
+            <span className="hidden sm:inline">IP Listing</span>
+            <span className="sm:hidden">List</span>
           </TabsTrigger>
-          <TabsTrigger value="register" className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Register Person
+          <TabsTrigger value="register" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+            <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
+            <span className="hidden sm:inline">Register Person</span>
+            <span className="sm:hidden">Register</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <TabsContent value="dashboard" className="space-y-4 lg:space-y-6">
+          {/* Main Statistics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             {dashboardStats.map((stat, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
-                  <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
-                    <stat.icon className="h-5 w-5 text-white" />
+                  <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
+                    <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                  <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
                   <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
                     {stat.change} from last month
                   </p>
@@ -117,8 +134,31 @@ const IPManagement = () => {
             ))}
           </div>
 
-          {/* Recent Activities */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* ID Card Status Section */}
+          <div>
+            <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">ID Card Status</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              {idCardStats.map((stat, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div>
+                      <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
+                      <CardDescription className="text-xs">{stat.description}</CardDescription>
+                    </div>
+                    <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
+                      <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activities and Quick Actions */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Recent Activities</CardTitle>
@@ -129,7 +169,7 @@ const IPManagement = () => {
                   {recentActivities.map((activity, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium">{activity.action}</p>
+                        <p className="font-medium text-sm lg:text-base">{activity.action}</p>
                         <p className="text-sm text-gray-600">{activity.person}</p>
                       </div>
                       <div className="text-right">
@@ -149,21 +189,21 @@ const IPManagement = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button className="h-20 flex flex-col gap-2">
-                    <UserPlus className="h-6 w-6" />
-                    <span className="text-sm">New Registration</span>
+                  <Button className="h-16 lg:h-20 flex flex-col gap-2">
+                    <UserPlus className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">New Registration</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <List className="h-6 w-6" />
-                    <span className="text-sm">View All</span>
+                  <Button variant="outline" className="h-16 lg:h-20 flex flex-col gap-2">
+                    <List className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">View All</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <CheckCircle className="h-6 w-6" />
-                    <span className="text-sm">Pending Reviews</span>
+                  <Button variant="outline" className="h-16 lg:h-20 flex flex-col gap-2">
+                    <CheckCircle className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">Pending Reviews</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <User className="h-6 w-6" />
-                    <span className="text-sm">ID Cards</span>
+                  <Button variant="outline" className="h-16 lg:h-20 flex flex-col gap-2">
+                    <IdCard className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">Generate ID Cards</span>
                   </Button>
                 </div>
               </CardContent>
