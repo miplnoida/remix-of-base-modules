@@ -19,6 +19,7 @@ import PersonRegistration from '@/pages/PersonRegistration';
 import PersonApproval from '@/pages/PersonApproval';
 import PersonDirectory from '@/pages/PersonDirectory';
 import IDCardGeneration from '@/pages/IDCardGeneration';
+import InsuredPersonListing from '@/pages/InsuredPersonListing';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
@@ -109,6 +110,7 @@ export const AppRoutes = () => {
       <Route path="/employer/contributions" element={<ProtectedLayout><ContributionTracking /></ProtectedLayout>} />
 
       {/* Insured Persons Routes */}
+      <Route path="/person/listing" element={<ProtectedLayout><InsuredPersonListing /></ProtectedLayout>} />
       <Route path="/person/register" element={<ProtectedLayout><PersonRegistration /></ProtectedLayout>} />
       <Route path="/person/approval" element={<ProtectedLayout><PersonApproval /></ProtectedLayout>} />
       <Route path="/person/directory" element={<ProtectedLayout><PersonDirectory /></ProtectedLayout>} />
