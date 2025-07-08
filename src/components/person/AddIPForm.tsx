@@ -322,7 +322,7 @@ export const AddIPForm = () => {
                   <Label htmlFor="height">Height (Ft. & In.)</Label>
                   <Input
                     id="height"
-                    placeholder="e.g., 5'8\""
+                    placeholder="e.g., 5'8&quot;"
                     value={formData.height}
                     onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
                   />
