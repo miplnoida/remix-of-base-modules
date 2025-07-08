@@ -15,14 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
   Users,
   Search,
   Plus,
@@ -30,7 +22,10 @@ import {
   Eye,
   HelpCircle,
   ArrowLeft,
-  Home
+  Home,
+  FileText,
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 const InsuredPersonListing = () => {
@@ -46,7 +41,7 @@ const InsuredPersonListing = () => {
     selfRefNo: ''
   });
 
-  // Mock data for insured persons
+  // Enhanced mock data with all required fields
   const insuredPersons = [
     {
       ssn: '123456',
@@ -64,8 +59,47 @@ const InsuredPersonListing = () => {
       residentAddr1: '123 Main Street',
       residentAddr2: 'Apt 2B',
       district: 'Basseterre Zone 01',
+      mailAddr1: '123 Main Street',
+      mailAddr2: 'Apt 2B',
+      birthPlace: 'St. Kitts',
+      nationality: 'Kittitian',
+      dateOfResidency: '2020-01-01',
+      maritalStatus: 'Married',
+      dateMarried: '2010-06-15',
+      spouseName: 'Jane Doe',
+      spouseAddr: '123 Main Street',
+      fatherName: 'Robert Doe',
+      motherName: 'Mary Doe',
+      beneficiary: 'Jane Doe',
+      benAddr: '123 Main Street',
+      contactName: 'Emergency Contact',
+      contactRelation: 'Sister',
+      contactAddr: '456 Oak Street',
       phone: '+1869-465-1234',
-      registrationDate: '2024-01-15'
+      email: 'john.doe@email.com',
+      workPermit: 'No',
+      npf: 'Yes',
+      dateOfDeath: '',
+      verifyBirth: 'Birth Certificate',
+      verifyName: 'Passport',
+      verifyMaritalStatus: 'Marriage Certificate',
+      verifyDeath: '',
+      dateVerified: '2024-01-10',
+      verifiedBy: 'Admin User',
+      applicationDate: '2024-01-15',
+      registrationDate: '2024-01-20',
+      witnessName: 'Witness Smith',
+      dateWitnessed: '2024-01-15',
+      tempCardDate: '2024-01-25',
+      permCardDate: '2024-02-01',
+      cardExpiration: '2029-02-01',
+      dateCardReceived: '2024-02-05',
+      terminationDate: '',
+      terminationCode: '',
+      dateModified: '2024-01-20',
+      userId: 'USER001',
+      tranCode: 'TRN001',
+      dateOfEntry: '2024-01-15'
     },
     {
       ssn: '789012',
@@ -83,13 +117,60 @@ const InsuredPersonListing = () => {
       residentAddr1: '456 Church Street',
       residentAddr2: '',
       district: 'Charlestown',
+      mailAddr1: '456 Church Street',
+      mailAddr2: '',
+      birthPlace: 'Nevis',
+      nationality: 'Nevisian',
+      dateOfResidency: '2019-05-10',
+      maritalStatus: 'Single',
+      dateMarried: '',
+      spouseName: '',
+      spouseAddr: '',
+      fatherName: 'William Smith',
+      motherName: 'Carol Smith',
+      beneficiary: 'Carol Smith',
+      benAddr: '789 Pine Street',
+      contactName: 'Emergency Contact',
+      contactRelation: 'Mother',
+      contactAddr: '789 Pine Street',
       phone: '+1869-469-5678',
-      registrationDate: '2024-01-20'
+      email: 'jane.smith@email.com',
+      workPermit: 'Yes',
+      npf: 'No',
+      dateOfDeath: '',
+      verifyBirth: 'Birth Certificate',
+      verifyName: 'Identification Card',
+      verifyMaritalStatus: 'Affidavit',
+      verifyDeath: '',
+      dateVerified: '2024-01-12',
+      verifiedBy: 'Supervisor',
+      applicationDate: '2024-01-20',
+      registrationDate: '',
+      witnessName: 'Witness Brown',
+      dateWitnessed: '2024-01-20',
+      tempCardDate: '',
+      permCardDate: '',
+      cardExpiration: '',
+      dateCardReceived: '',
+      terminationDate: '',
+      terminationCode: '',
+      dateModified: '2024-01-20',
+      userId: 'USER002',
+      tranCode: 'TRN002',
+      dateOfEntry: '2024-01-20'
     }
   ];
 
   const handleSearch = () => {
     console.log('Searching with parameters:', searchParams);
+  };
+
+  const handleReturnResult = () => {
+    console.log('Returning search results');
+  };
+
+  const handleClose = () => {
+    navigate('/');
   };
 
   const getStatusBadge = (status: string) => {
@@ -107,7 +188,7 @@ const InsuredPersonListing = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Navigation Header */}
+      {/* Navigation Panel */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button 
@@ -134,6 +215,13 @@ const InsuredPersonListing = () => {
             Add New IP
           </Button>
           <Button 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Manual Entry
+          </Button>
+          <Button 
             variant="ghost" 
             onClick={() => navigate('/')}
             className="flex items-center gap-2"
@@ -144,11 +232,11 @@ const InsuredPersonListing = () => {
         </div>
       </div>
 
-      {/* Search Filters */}
+      {/* Search and Filter Section */}
       <Card>
         <CardHeader>
           <CardTitle>Search Insured Persons</CardTitle>
-          <CardDescription>Use the filters below to find specific insured persons</CardDescription>
+          <CardDescription>Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -236,17 +324,26 @@ const InsuredPersonListing = () => {
             <Button variant="outline" onClick={() => setSearchParams({
               ssn: '', dob: '', surname: '', firstname: '', phone: '', gender: '', status: '', selfRefNo: ''
             })}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Clear
+            </Button>
+            <Button variant="outline" onClick={handleReturnResult}>
+              <FileText className="h-4 w-4 mr-2" />
+              Return Result
             </Button>
             <Button variant="outline">
               <HelpCircle className="h-4 w-4 mr-2" />
               Help
             </Button>
+            <Button variant="outline" onClick={handleClose}>
+              <X className="h-4 w-4 mr-2" />
+              Close
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Results Table */}
+      {/* IP Listing Section - Table Layout */}
       <Card>
         <CardHeader>
           <CardTitle>Insured Persons ({insuredPersons.length})</CardTitle>
@@ -257,14 +354,48 @@ const InsuredPersonListing = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>SSN</TableHead>
-                  <TableHead>Full Name</TableHead>
+                  <TableHead>Sur Name</TableHead>
+                  <TableHead>First Name</TableHead>
+                  <TableHead>Middle Name</TableHead>
+                  <TableHead>Previous Name</TableHead>
                   <TableHead>DOB</TableHead>
                   <TableHead>Sex</TableHead>
-                  <TableHead>Primary Occupation</TableHead>
+                  <TableHead>Alias</TableHead>
+                  <TableHead>Primary Occup</TableHead>
                   <TableHead>Self Ref No.</TableHead>
+                  <TableHead>ASP Num.</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Resident Addr1</TableHead>
+                  <TableHead>Resident Addr2</TableHead>
                   <TableHead>District</TableHead>
+                  <TableHead>Mail Addr1</TableHead>
+                  <TableHead>Mail Addr2</TableHead>
+                  <TableHead>Birth Place</TableHead>
+                  <TableHead>Nationality</TableHead>
+                  <TableHead>Date of Residency</TableHead>
+                  <TableHead>Marital Status</TableHead>
+                  <TableHead>Date Married</TableHead>
+                  <TableHead>Spouse Name</TableHead>
+                  <TableHead>Spouse Addr</TableHead>
+                  <TableHead>Father's Name</TableHead>
+                  <TableHead>Mother's Name</TableHead>
+                  <TableHead>Beneficiary</TableHead>
+                  <TableHead>Ben Addr</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Contact Relation</TableHead>
+                  <TableHead>Contact Addr</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Work Permit</TableHead>
+                  <TableHead>NPF</TableHead>
+                  <TableHead>Date Died</TableHead>
+                  <TableHead>Verify Birth</TableHead>
+                  <TableHead>Verify Name</TableHead>
+                  <TableHead>Verify Marital</TableHead>
+                  <TableHead>Verify Death</TableHead>
+                  <TableHead>Date Verified</TableHead>
+                  <TableHead>Verified By</TableHead>
+                  <TableHead>Application Date</TableHead>
+                  <TableHead>Registration Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -272,17 +403,48 @@ const InsuredPersonListing = () => {
                 {insuredPersons.map((person, index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{person.ssn}</TableCell>
-                    <TableCell>
-                      {person.surname}, {person.firstname} {person.middlename}
-                      {person.previousName && <div className="text-sm text-gray-500">Prev: {person.previousName}</div>}
-                    </TableCell>
+                    <TableCell>{person.surname}</TableCell>
+                    <TableCell>{person.firstname}</TableCell>
+                    <TableCell>{person.middlename}</TableCell>
+                    <TableCell>{person.previousName}</TableCell>
                     <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
                     <TableCell>{person.sex}</TableCell>
+                    <TableCell>{person.alias}</TableCell>
                     <TableCell>{person.primaryOccup}</TableCell>
                     <TableCell>{person.selfRefNo}</TableCell>
+                    <TableCell>{person.aspNum}</TableCell>
                     <TableCell>{getStatusBadge(person.status)}</TableCell>
+                    <TableCell>{person.residentAddr1}</TableCell>
+                    <TableCell>{person.residentAddr2}</TableCell>
                     <TableCell>{person.district}</TableCell>
+                    <TableCell>{person.mailAddr1}</TableCell>
+                    <TableCell>{person.mailAddr2}</TableCell>
+                    <TableCell>{person.birthPlace}</TableCell>
+                    <TableCell>{person.nationality}</TableCell>
+                    <TableCell>{person.dateOfResidency}</TableCell>
+                    <TableCell>{person.maritalStatus}</TableCell>
+                    <TableCell>{person.dateMarried}</TableCell>
+                    <TableCell>{person.spouseName}</TableCell>
+                    <TableCell>{person.spouseAddr}</TableCell>
+                    <TableCell>{person.fatherName}</TableCell>
+                    <TableCell>{person.motherName}</TableCell>
+                    <TableCell>{person.beneficiary}</TableCell>
+                    <TableCell>{person.benAddr}</TableCell>
+                    <TableCell>{person.contactName}</TableCell>
+                    <TableCell>{person.contactRelation}</TableCell>
+                    <TableCell>{person.contactAddr}</TableCell>
                     <TableCell>{person.phone}</TableCell>
+                    <TableCell>{person.workPermit}</TableCell>
+                    <TableCell>{person.npf}</TableCell>
+                    <TableCell>{person.dateOfDeath}</TableCell>
+                    <TableCell>{person.verifyBirth}</TableCell>
+                    <TableCell>{person.verifyName}</TableCell>
+                    <TableCell>{person.verifyMaritalStatus}</TableCell>
+                    <TableCell>{person.verifyDeath}</TableCell>
+                    <TableCell>{person.dateVerified}</TableCell>
+                    <TableCell>{person.verifiedBy}</TableCell>
+                    <TableCell>{person.applicationDate}</TableCell>
+                    <TableCell>{person.registrationDate}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="outline" size="sm" title="View Details">
