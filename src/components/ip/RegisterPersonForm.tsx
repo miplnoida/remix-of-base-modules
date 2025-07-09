@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -866,7 +865,7 @@ export const RegisterPersonForm = () => {
       <RelationDialog 
         open={showRelationDialog} 
         onClose={() => setShowRelationDialog(false)}
-        onAdd={addRelation}
+        onAddRelation={addRelation}
       />
     </div>
   );
