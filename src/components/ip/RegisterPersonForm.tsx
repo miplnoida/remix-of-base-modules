@@ -11,44 +11,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Plus, Edit, Save, Printer, CreditCard, Shield } from 'lucide-react';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
 
+// Form schema
 const registrationSchema = z.object({
   surname: z.string().min(1, 'Surname is required'),
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional(),
-  age: z.number().min(0, 'Age must be positive'),
-  mailingAddress: z.string().min(1, 'Mailing address is required'),
+  age: z.number().min(1, 'Age is required'),
+  mailingAddressType: z.enum(['same', 'different']).default('same'),
   residentAddress: z.string().min(1, 'Resident address is required'),
+  mailingAddress: z.string().optional(),
   postalDistrict: z.string().min(1, 'Postal district is required'),
   sex: z.enum(['Male', 'Female', 'Not Specified']),
   dateOfBirth: z.date({ required_error: 'Date of birth is required' }),
   maritalStatus: z.enum(['Common Law', 'Divorced', 'Married', 'Separated', 'Single', 'Unknown', 'Widowed']),
   heightFeet: z.number().optional(),
   heightInches: z.number().optional(),
-  birthplace: z.string().min(1, 'Birthplace is required'),
+  birthPlace: z.string().min(1, 'Birth place is required'),
   nationality: z.string().min(1, 'Nationality is required'),
   dateMarried: z.date().optional(),
   eyeColor: z.enum(['Black', 'Blue', 'Brown', 'Green']).optional(),
   occupation: z.string().min(1, 'Occupation is required'),
-  workPermit: z.boolean().default(false),
-  workPermitExperience: z.string().optional(),
+  workPermit: z.enum(['Yes', 'No']).default('No'),
+  workPermitExp: z.string().optional(),
   dateResident: z.date().optional(),
-  npf: z.boolean().default(false),
+  npf: z.enum(['Yes', 'No']).default('No'),
   plOfResidence: z.string().min(1, 'Place of residence is required'),
   applicationDate: z.date().default(() => new Date()),
   telNumber: z.string().optional(),
   mobileNumber: z.string().optional(),
   email: z.string().email().optional(),
-  citizenship: z.boolean().default(false),
+  citizenship: z.enum(['Yes', 'No']).default('No'),
   dateOfDeath: z.date().optional(),
-  signatureOnFile: z.boolean().default(false)
+  signatureOnFile: z.enum(['Yes', 'No']).default('No'),
 });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -77,7 +79,7 @@ const countries = [
   'United States', 'Canada', 'United Kingdom', 'Other'
 ];
 
-const verificationDocuments = [
+const documentTypes = [
   'Baptism Certificate', 'Birth Certificate', 'Certificate of Death', 'Deed Poll',
   'Adoption Certificate', 'Affidavit', 'Divorce Certificate', 'Identification Card',
   'Identification Letter', 'Marriage Certificate', 'Passport', 'Document not Available'
@@ -85,8 +87,23 @@ const verificationDocuments = [
 
 interface Relation {
   id: string;
-  type: 'beneficiary' | 'contact' | 'parent' | 'spouse' | 'witness';
-  data: any;
+  type: 'Beneficiary' | 'Contact' | 'Parent' | 'Spouse' | 'Witness';
+  name?: string;
+  address?: string;
+  relation?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  fatherName?: string;
+  motherName?: string;
+  spouseName?: string;
+  spouseAddress?: string;
+  spouseDOB?: Date;
+  spouseSSN?: string;
+  witnessName?: string;
+  dateWitnessed?: Date;
+  beneficiaryName?: string;
+  beneficiaryAddress?: string;
 }
 
 export const RegisterPersonForm = () => {
@@ -94,15 +111,15 @@ export const RegisterPersonForm = () => {
   const [showRelationDialog, setShowRelationDialog] = useState(false);
   const [relations, setRelations] = useState<Relation[]>([]);
   const [verification, setVerification] = useState({
-    maritalStatus: { verifiedBy: '', dateVerified: null as Date | null, verifierName: '' },
-    birthStatus: { verifiedBy: '', dateVerified: null as Date | null, verifierName: '' },
-    deathStatus: { verifiedBy: '', dateVerified: null as Date | null, verifierName: '' },
-    nameStatus: { verifiedBy: '', dateVerified: null as Date | null, verifierName: '' }
+    maritalStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
+    birthStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
+    deathStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
+    nameStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' }
   });
   const [cardDetails, setCardDetails] = useState({
-    permCardDate: null as Date | null,
+    pemCardDate: null as Date | null,
     tempCardDate: null as Date | null,
-    dateCardReceived: null as Date | null,
+    dateCardRecvd: null as Date | null,
     cardExpiration: null as Date | null
   });
   const [transactionDetails, setTransactionDetails] = useState({
@@ -118,13 +135,14 @@ export const RegisterPersonForm = () => {
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
-      applicationDate: new Date(),
+      mailingAddressType: 'same',
       sex: 'Male',
       maritalStatus: 'Single',
-      workPermit: false,
-      npf: false,
-      citizenship: false,
-      signatureOnFile: false
+      workPermit: 'No',
+      npf: 'No',
+      citizenship: 'No',
+      signatureOnFile: 'No',
+      applicationDate: new Date()
     }
   });
 
@@ -142,8 +160,8 @@ export const RegisterPersonForm = () => {
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
+      <PopoverContent className="w-auto p-0 bg-background border">
+        <CalendarComponent
           mode="single"
           selected={date}
           onSelect={onSelect}
@@ -154,8 +172,8 @@ export const RegisterPersonForm = () => {
     </Popover>
   );
 
-  const addRelation = (relationData: Relation) => {
-    setRelations([...relations, relationData]);
+  const addRelation = (relation: Relation) => {
+    setRelations([...relations, relation]);
   };
 
   const removeRelation = (id: string) => {
@@ -167,8 +185,8 @@ export const RegisterPersonForm = () => {
       ...data, 
       relations, 
       verification, 
-      cardDetails,
-      transactionDetails
+      cardDetails, 
+      transactionDetails 
     });
   };
 
@@ -178,7 +196,10 @@ export const RegisterPersonForm = () => {
         {/* Basic Details Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Basic Details</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Basic Details
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -186,14 +207,14 @@ export const RegisterPersonForm = () => {
                 <Label htmlFor="surname">Surname *</Label>
                 <Input {...form.register('surname')} placeholder="Enter surname" />
                 {form.formState.errors.surname && (
-                  <p className="text-sm text-red-600">{form.formState.errors.surname.message}</p>
+                  <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
                 )}
               </div>
               <div>
                 <Label htmlFor="firstName">First Name *</Label>
                 <Input {...form.register('firstName')} placeholder="Enter first name" />
                 {form.formState.errors.firstName && (
-                  <p className="text-sm text-red-600">{form.formState.errors.firstName.message}</p>
+                  <p className="text-sm text-destructive">{form.formState.errors.firstName.message}</p>
                 )}
               </div>
               <div>
@@ -202,101 +223,129 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Button type="button" variant="outline" onClick={() => setShowNameDialog(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Name Details
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="age">Age</Label>
+                <Label htmlFor="age">Age *</Label>
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('age', parseInt(e.target.value))}
                   placeholder="Enter age" 
                 />
+                {form.formState.errors.age && (
+                  <p className="text-sm text-destructive">{form.formState.errors.age.message}</p>
+                )}
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowNameDialog(true)}
+                  className="w-full"
+                >
+                  Name Details
+                </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-medium">Address Information</h4>
+              
               <div>
-                <Label htmlFor="mailingAddress">Mailing Address *</Label>
-                <Textarea {...form.register('mailingAddress')} placeholder="Enter mailing address" />
+                <Label>Address Type</Label>
+                <Select onValueChange={(value: 'same' | 'different') => form.setValue('mailingAddressType', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select address type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="same">Mailing & Resident Address Same</SelectItem>
+                    <SelectItem value="different">Different Addresses</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <Label htmlFor="residentAddress">Resident Address *</Label>
-                <Textarea {...form.register('residentAddress')} placeholder="Enter resident address" />
-              </div>
-            </div>
 
-            <div>
-              <Label>Postal District *</Label>
-              <Select onValueChange={(value) => form.setValue('postalDistrict', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select postal district" />
-                </SelectTrigger>
-                <SelectContent>
-                  {postalDistricts.map((district) => (
-                    <SelectItem key={district} value={district}>{district}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Relations Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Relations
-              <Button type="button" onClick={() => setShowRelationDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Relation
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {relations.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No relations added yet</p>
-            ) : (
-              <div className="space-y-2">
-                {relations.map((relation) => (
-                  <div key={relation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <div>
-                      <span className="font-medium capitalize">{relation.type}</span>
-                      <span className="text-gray-500 ml-2">
-                        {relation.data.name || relation.data.fatherName || 'Unnamed'}
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeRelation(relation.id)}
-                    >
-                      Remove
-                    </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="residentAddress">Resident Address *</Label>
+                  <Textarea {...form.register('residentAddress')} placeholder="Enter resident address" />
+                  {form.formState.errors.residentAddress && (
+                    <p className="text-sm text-destructive">{form.formState.errors.residentAddress.message}</p>
+                  )}
+                </div>
+                
+                {form.watch('mailingAddressType') === 'different' && (
+                  <div>
+                    <Label htmlFor="mailingAddress">Mailing Address</Label>
+                    <Textarea {...form.register('mailingAddress')} placeholder="Enter mailing address" />
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Personal Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+              <div>
+                <Label>Postal District *</Label>
+                <Select onValueChange={(value) => form.setValue('postalDistrict', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select postal district" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                    {postalDistricts.map((district) => (
+                      <SelectItem key={district} value={district}>{district}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.postalDistrict && (
+                  <p className="text-sm text-destructive">{form.formState.errors.postalDistrict.message}</p>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-medium">Relations</h4>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowRelationDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Relation
+                </Button>
+              </div>
+              
+              {relations.length > 0 && (
+                <div className="space-y-2">
+                  {relations.map((relation) => (
+                    <div key={relation.id} className="flex justify-between items-center p-3 border rounded-lg">
+                      <div>
+                        <span className="font-medium">{relation.type}</span>
+                        {relation.name && <span className="ml-2 text-muted-foreground">- {relation.name}</span>}
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => removeRelation(relation.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Sex *</Label>
-                <Select onValueChange={(value: any) => form.setValue('sex', value)}>
-                  <SelectTrigger>
+                <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
+                  <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select sex" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border">
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
                     <SelectItem value="Not Specified">Not Specified</SelectItem>
@@ -310,14 +359,17 @@ export const RegisterPersonForm = () => {
                   onSelect={(date) => form.setValue('dateOfBirth', date!)}
                   placeholder="Select date of birth"
                 />
+                {form.formState.errors.dateOfBirth && (
+                  <p className="text-sm text-destructive">{form.formState.errors.dateOfBirth.message}</p>
+                )}
               </div>
               <div>
                 <Label>Marital Status *</Label>
                 <Select onValueChange={(value: any) => form.setValue('maritalStatus', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select marital status" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border">
                     <SelectItem value="Common Law">Common Law</SelectItem>
                     <SelectItem value="Divorced">Divorced</SelectItem>
                     <SelectItem value="Married">Married</SelectItem>
@@ -330,49 +382,30 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label>Height (Feet)</Label>
-                  <Input 
-                    type="number" 
-                    onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
-                    placeholder="5" 
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label>Height (Inches)</Label>
-                  <Input 
-                    type="number" 
-                    onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
-                    placeholder="8" 
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label>Height (Feet)</Label>
+                <Input 
+                  type="number" 
+                  onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
+                  placeholder="e.g., 5" 
+                />
               </div>
               <div>
-                <Label>Eye Color</Label>
-                <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select eye color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Black">Black</SelectItem>
-                    <SelectItem value="Blue">Blue</SelectItem>
-                    <SelectItem value="Brown">Brown</SelectItem>
-                    <SelectItem value="Green">Green</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Height (Inches)</Label>
+                <Input 
+                  type="number" 
+                  onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
+                  placeholder="e.g., 8" 
+                />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Birthplace *</Label>
-                <Select onValueChange={(value) => form.setValue('birthplace', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select birthplace" />
+                <Label>Birth Place *</Label>
+                <Select onValueChange={(value) => form.setValue('birthPlace', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select birth place" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border">
                     {countries.map((country) => (
                       <SelectItem key={country} value={country}>{country}</SelectItem>
                     ))}
@@ -382,10 +415,10 @@ export const RegisterPersonForm = () => {
               <div>
                 <Label>Nationality *</Label>
                 <Select onValueChange={(value) => form.setValue('nationality', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select nationality" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border">
                     {countries.map((country) => (
                       <SelectItem key={country} value={country}>{country}</SelectItem>
                     ))}
@@ -394,64 +427,96 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            {(form.watch('maritalStatus') === 'Married' || form.watch('maritalStatus') === 'Common Law') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(form.watch('maritalStatus') === 'Married' || form.watch('maritalStatus') === 'Common Law') && (
+                <div>
+                  <Label>Date Married</Label>
+                  <DatePicker
+                    date={form.watch('dateMarried')}
+                    onSelect={(date) => form.setValue('dateMarried', date)}
+                    placeholder="Select date married"
+                  />
+                </div>
+              )}
               <div>
-                <Label>Date Married</Label>
-                <DatePicker
-                  date={form.watch('dateMarried')}
-                  onSelect={(date) => form.setValue('dateMarried', date)}
-                  placeholder="Select date of marriage"
-                />
+                <Label>Eye Color</Label>
+                <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select eye color" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Black">Black</SelectItem>
+                    <SelectItem value="Blue">Blue</SelectItem>
+                    <SelectItem value="Brown">Brown</SelectItem>
+                    <SelectItem value="Green">Green</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Employment Information */}
+        {/* Employment Information Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Employment Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Employment Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label>Occupation *</Label>
-              <Select onValueChange={(value) => form.setValue('occupation', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select occupation" />
-                </SelectTrigger>
-                <SelectContent>
-                  {occupations.map((occupation) => (
-                    <SelectItem key={occupation} value={occupation}>{occupation}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Occupation *</Label>
+                <Select onValueChange={(value) => form.setValue('occupation', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select occupation" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                    {occupations.map((occupation) => (
+                      <SelectItem key={occupation} value={occupation}>{occupation}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.occupation && (
+                  <p className="text-sm text-destructive">{form.formState.errors.occupation.message}</p>
+                )}
+              </div>
+              <div>
+                <Label>Work Permit</Label>
+                <Select onValueChange={(value: 'Yes' | 'No') => form.setValue('workPermit', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select work permit status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Yes">Yes</SelectItem>
+                    <SelectItem value="No">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="workPermit" 
-                  checked={form.watch('workPermit')}
-                  onCheckedChange={(checked) => form.setValue('workPermit', checked as boolean)}
+              <div>
+                <Label>Work Permit Experience</Label>
+                <Textarea 
+                  {...form.register('workPermitExp')} 
+                  placeholder="Enter work permit experience" 
                 />
-                <Label htmlFor="workPermit">Work Permit</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="npf" 
-                  checked={form.watch('npf')}
-                  onCheckedChange={(checked) => form.setValue('npf', checked as boolean)}
-                />
-                <Label htmlFor="npf">NPF</Label>
+              <div>
+                <Label>NPF</Label>
+                <Select onValueChange={(value: 'Yes' | 'No') => form.setValue('npf', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select NPF status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Yes">Yes</SelectItem>
+                    <SelectItem value="No">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-
-            {form.watch('workPermit') && (
-              <div>
-                <Label htmlFor="workPermitExperience">Work Permit Experience</Label>
-                <Textarea {...form.register('workPermitExperience')} placeholder="Describe work permit experience" />
-              </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -459,16 +524,16 @@ export const RegisterPersonForm = () => {
                 <DatePicker
                   date={form.watch('dateResident')}
                   onSelect={(date) => form.setValue('dateResident', date)}
-                  placeholder="Select date of residency"
+                  placeholder="Select date resident"
                 />
               </div>
               <div>
                 <Label>Place of Residence *</Label>
                 <Select onValueChange={(value) => form.setValue('plOfResidence', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select place of residence" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border">
                     {countries.map((country) => (
                       <SelectItem key={country} value={country}>{country}</SelectItem>
                     ))}
@@ -481,68 +546,84 @@ export const RegisterPersonForm = () => {
               <Label>Application Date</Label>
               <DatePicker
                 date={form.watch('applicationDate')}
-                onSelect={(date) => form.setValue('applicationDate', date!)}
+                onSelect={(date) => form.setValue('applicationDate', date || new Date())}
                 placeholder="Application date"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Contact Information */}
+        {/* Contact Information Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5" />
+              Contact Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="telNumber">Telephone Number</Label>
+                <Label>Tel Number</Label>
                 <Input {...form.register('telNumber')} placeholder="+1 869 xxx-xxxx" />
               </div>
               <div>
-                <Label htmlFor="mobileNumber">Mobile Number</Label>
+                <Label>Mobile Number</Label>
                 <Input {...form.register('mobileNumber')} placeholder="+1 869 xxx-xxxx" />
               </div>
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label>Email</Label>
               <Input {...form.register('email')} type="email" placeholder="example@email.com" />
+              {form.formState.errors.email && (
+                <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Additional Information */}
+        {/* Additional Information Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Additional Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Additional Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="citizenship" 
-                  checked={form.watch('citizenship')}
-                  onCheckedChange={(checked) => form.setValue('citizenship', checked as boolean)}
-                />
-                <Label htmlFor="citizenship">Citizenship</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Citizenship</Label>
+                <Select onValueChange={(value: 'Yes' | 'No') => form.setValue('citizenship', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select citizenship status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Yes">Yes</SelectItem>
+                    <SelectItem value="No">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="signatureOnFile" 
-                  checked={form.watch('signatureOnFile')}
-                  onCheckedChange={(checked) => form.setValue('signatureOnFile', checked as boolean)}
+              <div>
+                <Label>Date of Death</Label>
+                <DatePicker
+                  date={form.watch('dateOfDeath')}
+                  onSelect={(date) => form.setValue('dateOfDeath', date)}
+                  placeholder="Select date of death"
                 />
-                <Label htmlFor="signatureOnFile">Signature on File</Label>
               </div>
-            </div>
-
-            <div>
-              <Label>Date of Death</Label>
-              <DatePicker
-                date={form.watch('dateOfDeath')}
-                onSelect={(date) => form.setValue('dateOfDeath', date)}
-                placeholder="Select date of death (if applicable)"
-              />
+              <div>
+                <Label>Signature on File</Label>
+                <Select onValueChange={(value: 'Yes' | 'No') => form.setValue('signatureOnFile', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select signature status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Yes">Yes</SelectItem>
+                    <SelectItem value="No">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -550,13 +631,16 @@ export const RegisterPersonForm = () => {
         {/* Verification Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Verification Section</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Verification Section
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {Object.entries(verification).map(([key, value]) => (
-              <div key={key} className="space-y-4 p-4 border rounded">
-                <h4 className="font-semibold">
-                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} Verification
+              <div key={key} className="space-y-4">
+                <h4 className="font-medium capitalize">
+                  {key.replace(/([A-Z])/g, ' $1').trim()} Verification
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -565,11 +649,11 @@ export const RegisterPersonForm = () => {
                       ...verification,
                       [key]: { ...value, verifiedBy: val }
                     })}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-background">
                         <SelectValue placeholder="Select document type" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {verificationDocuments.map((doc) => (
+                      <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                        {documentTypes.map((doc) => (
                           <SelectItem key={doc} value={doc}>{doc}</SelectItem>
                         ))}
                       </SelectContent>
@@ -587,36 +671,40 @@ export const RegisterPersonForm = () => {
                     />
                   </div>
                   <div>
-                    <Label>Verified by (User)</Label>
+                    <Label>Verified By (User)</Label>
                     <Input 
-                      value={value.verifierName}
+                      value={value.verifier}
                       onChange={(e) => setVerification({
                         ...verification,
-                        [key]: { ...value, verifierName: e.target.value }
+                        [key]: { ...value, verifier: e.target.value }
                       })}
                       placeholder="Enter verifier name" 
                     />
                   </div>
                 </div>
+                {key !== 'nameStatus' && <Separator />}
               </div>
             ))}
           </CardContent>
         </Card>
 
-        {/* Registration Card Details */}
+        {/* Registration Card Details Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Registration Card Details</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Registration Card Details
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Permanent Card Date</Label>
                 <DatePicker
-                  date={cardDetails.permCardDate || undefined}
+                  date={cardDetails.pemCardDate || undefined}
                   onSelect={(date) => setCardDetails({
                     ...cardDetails,
-                    permCardDate: date || null
+                    pemCardDate: date || null
                   })}
                   placeholder="Select permanent card date"
                 />
@@ -633,15 +721,14 @@ export const RegisterPersonForm = () => {
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Date Card Received</Label>
                 <DatePicker
-                  date={cardDetails.dateCardReceived || undefined}
+                  date={cardDetails.dateCardRecvd || undefined}
                   onSelect={(date) => setCardDetails({
                     ...cardDetails,
-                    dateCardReceived: date || null
+                    dateCardRecvd: date || null
                   })}
                   placeholder="Select card received date"
                 />
@@ -661,13 +748,16 @@ export const RegisterPersonForm = () => {
           </CardContent>
         </Card>
 
-        {/* Transaction Details */}
+        {/* Transaction Details Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Transaction Details</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Transaction Details
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Date of Entry</Label>
                 <DatePicker
@@ -690,9 +780,6 @@ export const RegisterPersonForm = () => {
                   placeholder="Registration date"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Entered By</Label>
                 <Input 
@@ -704,6 +791,19 @@ export const RegisterPersonForm = () => {
                   placeholder="Enter user name" 
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Date Modified</Label>
+                <DatePicker
+                  date={transactionDetails.dateModified || undefined}
+                  onSelect={(date) => setTransactionDetails({
+                    ...transactionDetails,
+                    dateModified: date || null
+                  })}
+                  placeholder="Select modification date"
+                />
+              </div>
               <div>
                 <Label>User ID</Label>
                 <Input 
@@ -713,20 +813,6 @@ export const RegisterPersonForm = () => {
                     userId: e.target.value
                   })}
                   placeholder="Enter user ID" 
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Date Modified</Label>
-                <DatePicker
-                  date={transactionDetails.dateModified || undefined}
-                  onSelect={(date) => setTransactionDetails({
-                    ...transactionDetails,
-                    dateModified: date || null
-                  })}
-                  placeholder="Date modified"
                 />
               </div>
               <div>
@@ -756,7 +842,7 @@ export const RegisterPersonForm = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4 justify-end">
+        <div className="flex flex-wrap gap-3 justify-end">
           <Button type="submit" className="flex items-center gap-2">
             <Save className="h-4 w-4" />
             Save
@@ -769,19 +855,18 @@ export const RegisterPersonForm = () => {
             <CreditCard className="h-4 w-4" />
             Generate ID Card
           </Button>
-          <Button type="button" variant="outline" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Verify Data
-          </Button>
         </div>
       </form>
 
-      {/* Dialogs */}
-      <NameDialog open={showNameDialog} onClose={() => setShowNameDialog(false)} />
+      <NameDialog 
+        open={showNameDialog} 
+        onClose={() => setShowNameDialog(false)} 
+      />
+      
       <RelationDialog 
         open={showRelationDialog} 
         onClose={() => setShowRelationDialog(false)}
-        onAddRelation={addRelation}
+        onAdd={addRelation}
       />
     </div>
   );
