@@ -1,26 +1,24 @@
 
 import { dashboardMenuItems } from './menuItems/dashboardMenuItems';
+import { insuredPersonsMenuItems } from './menuItems/insuredPersonsMenuItems';
 import { employersManagementMenuItems } from './menuItems/employersManagementMenuItems';
 import { selfEmployedMenuItems } from './menuItems/selfEmployedMenuItems';
-import { complianceMenuItems } from './menuItems/complianceMenuItems';
-import { registrationMenuItems } from './menuItems/registrationMenuItems';
-import { userMenuItems } from './menuItems/userMenuItems';
-import { insuredPersonsMenuItems } from './menuItems/insuredPersonsMenuItems';
 import { benefitsMenuItems } from './menuItems/benefitsMenuItems';
-import { reportsMenuItems } from './menuItems/reportsMenuItems';
+import { complianceMenuItems } from './menuItems/complianceMenuItems';
 import { documentMenuItems } from './menuItems/documentMenuItems';
+import { reportsMenuItems } from './menuItems/reportsMenuItems';
+import { userMenuItems } from './menuItems/userMenuItems';
 import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
+  ...insuredPersonsMenuItems,
   ...employersManagementMenuItems,
   ...selfEmployedMenuItems,
-  ...complianceMenuItems,
-  ...registrationMenuItems,
-  ...insuredPersonsMenuItems,
   ...benefitsMenuItems,
-  ...reportsMenuItems,
+  ...complianceMenuItems,
   ...documentMenuItems,
+  ...reportsMenuItems,
   ...userMenuItems,
   ...systemAdminMenuItems
 ];
