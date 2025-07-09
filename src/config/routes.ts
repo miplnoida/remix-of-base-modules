@@ -1,35 +1,45 @@
+export const routes = {
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  PROFILE: '/profile',
+  SETTINGS: '/settings',
+  ADMIN: '/admin',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_ROLES: '/admin/roles',
+  ADMIN_PERMISSIONS: '/admin/permissions',
+  EXAMPLE_CRUD: '/example-crud',
+  ACCESS_DENIED: '/access-denied',
+  UNAUTHORIZED: '/unauthorized',
+  MAINTENANCE: '/maintenance',
+  NOT_FOUND: '/404',
+  FORBIDDEN: '/403',
+  SERVER_ERROR: '/500',
 
-// Route configuration for the application
-export const routes = [
-  // Dashboard
-  { path: '/', component: 'Index' },
-  
-  // Employer Management
-  { path: '/employer/register', component: 'EmployerRegistration' },
-  { path: '/employer/approval', component: 'EmployerApproval' },
-  { path: '/employer/directory', component: 'EmployerDirectory' },
-  { path: '/employer/contribution-entry', component: 'ContributionEntry' },
-  { path: '/employer/compliance', component: 'ComplianceMonitoring' },
-  { path: '/employer/contributions', component: 'ContributionTracking' },
-  
-  // Insured Persons
-  { path: '/person/register', component: 'PersonRegistration' },
-  { path: '/person/approval', component: 'PersonApproval' },
-  { path: '/person/directory', component: 'PersonDirectory' },
-  
-  // Benefits
-  { path: '/benefits/all', component: 'AllBenefitsTabs' },
-  { path: '/benefits/maternity', component: 'MaternityBenefits' },
-  { path: '/benefits/unemployment', component: 'UnemploymentBenefits' },
-  { path: '/benefits/work-injury', component: 'WorkInjuryBenefits' },
-  { path: '/benefits/death', component: 'DeathBenefits' },
-  { path: '/benefits/educational', component: 'EducationalBenefits' },
-  
-  // Compliance & Audit
-  { path: '/compliance/dashboard', component: 'ComplianceDashboard' },
-  { path: '/compliance/employer', component: 'EmployerComplianceManagement' },
-  { path: '/compliance/reports', component: 'ComplianceReports' },
-  { path: '/compliance/legal', component: 'LegalProceedings' },
-  { path: '/compliance/audits', component: 'AuditManagement' },
-  { path: '/compliance/penalties', component: 'PenaltyManagement' },
-];
+  // Employer routes
+  EMPLOYER_REGISTER: '/employer/register',
+  EMPLOYER_APPROVAL: '/employer/approval',
+  EMPLOYER_DIRECTORY: '/employer/directory',
+  EMPLOYER_CONTRIBUTION_ENTRY: '/employer/contribution-entry',
+  EMPLOYER_CONTRIBUTIONS: '/employer/contributions',
+
+  // Insured Person routes
+  PERSON_MANAGEMENT: '/person/management',
+  PERSON_REGISTRATION: '/person/register',
+  PERSON_LISTING: '/person/listing',
+  PERSON_VIEW: '/person/view/:ssn',
+  PERSON_EDIT: '/person/edit/:ssn',
+  PERSON_APPROVAL: '/person/approval',
+  PERSON_DIRECTORY: '/person/directory',
+  PENDING_REVIEWS: '/person/pending-reviews',
+  WAGES_HISTORY: '/person/wages-history',
+  CLAIM_HISTORY: '/person/claim-history',
+  BENEFIT_ELIGIBILITY: '/person/benefit-eligibility',
+  ID_CARD_GENERATION: '/person/id-card',
+
+  // Employers Management routes
+  EMPLOYERS_MANAGEMENT: '/employers-management',
+  EMPLOYERS_MANAGEMENT_MANAGE: '/employers-management/manage',
+  EMPLOYERS_MANAGEMENT_ADD: '/employers-management/add',
+  EMPLOYERS_MANAGEMENT_REPORTS: '/employers-management/reports',
+} as const;

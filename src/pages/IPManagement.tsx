@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
-  ArrowLeft,
-  Home,
   BarChart3,
   List,
   UserPlus,
@@ -89,45 +86,12 @@ const IPManagement = () => {
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-      {/* Navigation Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Simplified Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-          <div className="h-6 w-px bg-gray-300" />
           <Users className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
-          <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Insured Person Management</h1>
-            <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Manage all insured person registrations and records</p>
-          </div>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Insured Person Management</h1>
         </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 self-start lg:self-center"
-        >
-          <Home className="h-4 w-4" />
-          <span className="hidden sm:inline">Main Menu</span>
-        </Button>
-      </div>
-
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <button 
-          onClick={() => navigate('/')}
-          className="hover:text-gray-700 transition-colors"
-        >
-          Dashboard
-        </button>
-        <span>/</span>
-        <span className="text-gray-900">Insured Person Management</span>
       </div>
 
       {/* Tabs Section */}

@@ -6,6 +6,7 @@ import { EmployerTable } from '@/components/employer/EmployerTable';
 import { EmployerDetailsDialog } from '@/components/employer/EmployerDetailsDialog';
 import { employerData } from '@/data/employerData';
 import { Employer, EmployerFilters as EmployerFiltersType } from '@/pages/EmployerDirectory';
+import { Building2 } from 'lucide-react';
 
 const ManageEmployers = () => {
   const [filters, setFilters] = useState<EmployerFiltersType>({
@@ -107,10 +108,13 @@ const ManageEmployers = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Manage Employers</h1>
-        <p className="text-gray-600 mt-2">Comprehensive employer management with advanced search and filtering</p>
+    <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
+      {/* Simplified Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Building2 className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Employer Management</h1>
+        </div>
       </div>
 
       <div className="space-y-6">
