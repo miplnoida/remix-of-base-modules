@@ -18,13 +18,17 @@ import {
   IdCard,
   AlertTriangle,
   Calendar,
-  CreditCard
+  CreditCard,
+  DollarSign,
+  FileText,
+  Shield
 } from 'lucide-react';
 import { IPListing } from '@/components/ip/IPListing';
 import { IPRegistration } from '@/components/ip/IPRegistration';
 
 const IPManagement = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Dashboard statistics - mock data
   const dashboardStats = [
@@ -48,6 +52,16 @@ const IPManagement = () => {
     { action: 'Document Verification', person: 'Mike Johnson', time: '6 hours ago', status: 'Verified' },
     { action: 'Profile Edit', person: 'Sarah Wilson', time: '1 day ago', status: 'Updated' },
   ];
+
+  const handleQuickAction = (action: string) => {
+    console.log(`${action} clicked`);
+    if (action === 'Register Person') {
+      setActiveTab('register');
+    } else if (action === 'Pending Reviews') {
+      // Navigate to pending reviews or filter listings
+      setActiveTab('listing');
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
@@ -93,8 +107,8 @@ const IPManagement = () => {
       </div>
 
       {/* Tabs Section */}
-      <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="dashboard" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
             <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -104,11 +118,6 @@ const IPManagement = () => {
             <List className="h-3 w-3 lg:h-4 lg:w-4" />
             <span className="hidden sm:inline">IP Listing</span>
             <span className="sm:hidden">List</span>
-          </TabsTrigger>
-          <TabsTrigger value="register" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-            <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
-            <span className="hidden sm:inline">Register Person</span>
-            <span className="sm:hidden">Register</span>
           </TabsTrigger>
         </TabsList>
 
@@ -189,21 +198,52 @@ const IPManagement = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button className="h-16 lg:h-20 flex flex-col gap-2">
+                  <Button 
+                    className="h-16 lg:h-20 flex flex-col gap-2"
+                    onClick={() => handleQuickAction('Register Person')}
+                  >
                     <UserPlus className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">New Registration</span>
+                    <span className="text-xs lg:text-sm">Register Person</span>
                   </Button>
-                  <Button variant="outline" className="h-16 lg:h-20 flex flex-col gap-2">
-                    <List className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">View All</span>
-                  </Button>
-                  <Button variant="outline" className="h-16 lg:h-20 flex flex-col gap-2">
-                    <CheckCircle className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <Button 
+                    variant="outline" 
+                    className="h-16 lg:h-20 flex flex-col gap-2"
+                    onClick={() => handleQuickAction('Pending Reviews')}
+                  >
+                    <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
                     <span className="text-xs lg:text-sm">Pending Reviews</span>
                   </Button>
-                  <Button variant="outline" className="h-16 lg:h-20 flex flex-col gap-2">
-                    <IdCard className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">Generate ID Cards</span>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 lg:h-20 flex flex-col gap-2"
+                    onClick={() => handleQuickAction('View Wages History')}
+                  >
+                    <DollarSign className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">Wages History</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 lg:h-20 flex flex-col gap-2"
+                    onClick={() => handleQuickAction('View Claim History')}
+                  >
+                    <FileText className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">Claim History</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 lg:h-20 flex flex-col gap-2"
+                    onClick={() => handleQuickAction('Check Benefit Eligibilities')}
+                  >
+                    <Shield className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">Benefit Eligibility</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 lg:h-20 flex flex-col gap-2"
+                    onClick={() => setActiveTab('listing')}
+                  >
+                    <List className="h-5 w-5 lg:h-6 lg:w-6" />
+                    <span className="text-xs lg:text-sm">View All</span>
                   </Button>
                 </div>
               </CardContent>
@@ -216,7 +256,7 @@ const IPManagement = () => {
           <IPListing />
         </TabsContent>
 
-        {/* Register Person Tab */}
+        {/* Register Tab - Hidden from tab list but accessible via actions */}
         <TabsContent value="register">
           <IPRegistration />
         </TabsContent>
