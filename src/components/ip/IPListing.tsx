@@ -40,7 +40,6 @@ export const IPListing = () => {
     selfRefNo: ''
   });
 
-  // Enhanced mock data with all required fields
   const insuredPersons = [
     {
       ssn: '123456',
@@ -178,18 +177,16 @@ export const IPListing = () => {
 
   const handleViewDetails = (person: any) => {
     console.log('Viewing details for:', person);
-    // Navigate to view page or open modal
     navigate(`/person/view/${person.ssn}`);
   };
 
   const handleEditDetails = (person: any) => {
     console.log('Editing details for:', person);
-    // Navigate to edit page or open modal
     navigate(`/person/edit/${person.ssn}`);
   };
 
   const handleRegisterPerson = () => {
-    // Switch to register tab in parent component or navigate
+    // Switch to register tab in parent component
     const event = new CustomEvent('switchToRegister');
     window.dispatchEvent(event);
   };

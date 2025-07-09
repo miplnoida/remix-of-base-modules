@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import {
   UserPlus,
   CheckCircle,
   Clock,
-  User,
   TrendingUp,
   IdCard,
   AlertTriangle,
@@ -55,13 +54,38 @@ const IPManagement = () => {
 
   const handleQuickAction = (action: string) => {
     console.log(`${action} clicked`);
-    if (action === 'Register Person') {
-      setActiveTab('register');
-    } else if (action === 'Pending Reviews') {
-      // Navigate to pending reviews or filter listings
-      setActiveTab('listing');
+    switch (action) {
+      case 'Register Person':
+        setActiveTab('register');
+        break;
+      case 'Pending Reviews':
+        navigate('/person/pending-reviews');
+        break;
+      case 'View Wages History':
+        navigate('/person/wages-history');
+        break;
+      case 'View Claim History':
+        navigate('/person/claim-history');
+        break;
+      case 'Check Benefit Eligibilities':
+        navigate('/person/benefit-eligibility');
+        break;
+      default:
+        console.log(`Action not handled: ${action}`);
     }
   };
+
+  // Listen for custom event from IPListing component
+  useEffect(() => {
+    const handleSwitchToRegister = () => {
+      setActiveTab('register');
+    };
+
+    window.addEventListener('switchToRegister', handleSwitchToRegister);
+    return () => {
+      window.removeEventListener('switchToRegister', handleSwitchToRegister);
+    };
+  }, []);
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">

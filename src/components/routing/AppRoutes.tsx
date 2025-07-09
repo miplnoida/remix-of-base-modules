@@ -1,3 +1,4 @@
+
 import { Routes, Route } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -16,6 +17,12 @@ import ContributionTracking from '@/pages/ContributionTracking';
 
 // Insured Persons - New consolidated page
 import IPManagement from '@/pages/IPManagement';
+
+// Quick Actions Pages
+import WagesHistory from '@/pages/WagesHistory';
+import ClaimHistory from '@/pages/ClaimHistory';
+import BenefitEligibility from '@/pages/BenefitEligibility';
+import PendingReviews from '@/pages/PendingReviews';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
@@ -109,6 +116,12 @@ export const AppRoutes = () => {
       <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
+
+      {/* Quick Actions Routes */}
+      <Route path="/person/wages-history" element={<ProtectedLayout><WagesHistory /></ProtectedLayout>} />
+      <Route path="/person/claim-history" element={<ProtectedLayout><ClaimHistory /></ProtectedLayout>} />
+      <Route path="/person/benefit-eligibility" element={<ProtectedLayout><BenefitEligibility /></ProtectedLayout>} />
+      <Route path="/person/pending-reviews" element={<ProtectedLayout><PendingReviews /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />
