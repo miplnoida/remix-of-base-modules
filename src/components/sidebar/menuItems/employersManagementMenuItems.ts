@@ -13,25 +13,18 @@ export const employersManagementMenuItems = [
     icon: Building2,
     subItems: [
       {
+        title: "Dashboard",
+        url: "/employers-management/dashboard",
+        icon: Search,
+        requiresPermission: "view_employers",
+        description: "View employer statistics and quick actions"
+      },
+      {
         title: "Manage Employers",
         url: "/employers-management/manage",
         icon: Users,
         requiresPermission: "manage_employers",
-        description: "Search, filter, and manage employer listings"
-      },
-      {
-        title: "Add New Employer",
-        url: "/employers-management/add",
-        icon: Plus,
-        requiresPermission: "manage_employers",
-        description: "Register new employer with complete details"
-      },
-      {
-        title: "Employers Reports",
-        url: "/employers-management/reports",
-        icon: FileText,
-        requiresPermission: "generate_reports",
-        description: "Generate employer reports and exports"
+        description: "Manage employers by status with search and filters"
       }
     ]
   }
