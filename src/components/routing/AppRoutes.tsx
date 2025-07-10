@@ -50,6 +50,7 @@ import WebUsers from '@/pages/WebUsers';
 import AuditLog from '@/pages/AuditLog';
 
 import ManageEmployers from '@/pages/ManageEmployers';
+import EmployersDashboard from '@/pages/EmployersDashboard';
 
 // New pages for missing routes
 import AddEmployer from '@/pages/AddEmployer';
@@ -75,6 +76,7 @@ export const AppRoutes = () => {
       <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
       
       {/* Employers Management Routes */}
+      <Route path="/employers-management/dashboard" element={<ProtectedLayout><EmployersDashboard /></ProtectedLayout>} />
       <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
       <Route path="/employers-management/add" element={<ProtectedLayout><AddEmployer /></ProtectedLayout>} />
       <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />

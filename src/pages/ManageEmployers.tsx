@@ -1,14 +1,20 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { EmployerFilters } from '@/components/employer/EmployerFilters';
 import { EmployerTable } from '@/components/employer/EmployerTable';
 import { EmployerDetailsDialog } from '@/components/employer/EmployerDetailsDialog';
 import { employerData } from '@/data/employerData';
 import { Employer, EmployerFilters as EmployerFiltersType } from '@/pages/EmployerDirectory';
-import { Building2 } from 'lucide-react';
+import { Building2, Plus, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const ManageEmployers = () => {
+  const navigate = useNavigate();
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  
   const [filters, setFilters] = useState<EmployerFiltersType>({
     employerId: '',
     employerName: '',
@@ -109,33 +115,75 @@ const ManageEmployers = () => {
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-      {/* Simplified Header */}
+      {/* Header with Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Building2 className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Employer Management</h1>
         </div>
+        <Button 
+          onClick={() => navigate('/employers-management/add')}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Register Employer
+        </Button>
       </div>
 
       <div className="space-y-6">
-        <EmployerFilters 
-          filters={filters} 
-          setFilters={setFilters}
-          onClear={clearFilters}
-          onApply={applyFilters}
-        />
-        
+        {/* Collapsible Search & Filter Section */}
         <Card>
-          <CardHeader>
+          <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-5 w-5" />
+                    Search & Filter Options
+                  </div>
+                  {isFiltersOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <EmployerFilters 
+                  filters={filters} 
+                  setFilters={setFilters}
+                  onClear={clearFilters}
+                  onApply={applyFilters}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+        
+        {/* Employers Table with Fixed Actions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>
               Employers ({filteredEmployers.length} records)
             </CardTitle>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/employers-management/add')}
+              className="ml-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Employer
+            </Button>
           </CardHeader>
           <CardContent>
-            <EmployerTable 
-              employers={filteredEmployers} 
-              onViewDetails={handleViewDetails}
-            />
+            <div className="overflow-hidden">
+              <EmployerTable 
+                employers={filteredEmployers} 
+                onViewDetails={handleViewDetails}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

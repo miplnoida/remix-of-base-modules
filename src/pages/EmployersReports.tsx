@@ -3,34 +3,37 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Search, Filter, Calendar } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Search, Filter, Calendar, Plus, Building2 } from 'lucide-react';
+import { employerData } from '@/data/employerData';
 
 const EmployersReports = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('registered');
 
-  const registeredEmployers = [
-    { id: 'EMP001', name: 'ABC Manufacturing Ltd', type: 'Manufacturing', status: 'Active', registeredDate: '2024-01-15', employees: 45 },
-    { id: 'EMP002', name: 'XYZ Services Corp', type: 'Services', status: 'Active', registeredDate: '2024-01-10', employees: 23 },
-    { id: 'EMP003', name: 'Tech Solutions Inc', type: 'Technology', status: 'Active', registeredDate: '2024-01-08', employees: 67 },
-    { id: 'EMP004', name: 'Retail Chain Ltd', type: 'Retail', status: 'Active', registeredDate: '2024-01-05', employees: 89 },
-  ];
+  // Generate reports from actual employer data
+  const registeredEmployers = employerData.filter(emp => emp.employerStatus === 'Active');
+  const ceasedEmployers = employerData.filter(emp => emp.employerStatus === 'Inactive');
+  const pendingVerification = employerData.filter(emp => emp.complianceStatus === 'Under Audit');
 
-  const ceasedEmployers = [
-    { id: 'EMP005', name: 'Old Factory Ltd', type: 'Manufacturing', status: 'Ceased', ceasedDate: '2024-01-20', reason: 'Business Closure' },
-    { id: 'EMP006', name: 'Temp Services', type: 'Services', status: 'Suspended', ceasedDate: '2024-01-18', reason: 'Non-compliance' },
-  ];
+  const filteredRegistered = registeredEmployers.filter(emp =>
+    emp.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.employerId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const pendingVerification = [
-    { id: 'EMP007', name: 'New Business Ltd', type: 'Construction', status: 'Pending', appliedDate: '2024-01-22', inspector: 'John Smith' },
-    { id: 'EMP008', name: 'Startup Corp', type: 'Technology', status: 'Under Review', appliedDate: '2024-01-20', inspector: 'Jane Doe' },
-  ];
+  const filteredCeased = ceasedEmployers.filter(emp =>
+    emp.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.employerId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredPending = pendingVerification.filter(emp =>
+    emp.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.employerId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,6 +58,13 @@ const EmployersReports = () => {
               </nav>
             </div>
             <div className="flex items-center space-x-2">
+              <Button 
+                onClick={() => navigate('/employers-management/add')}
+                className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Register Employer
+              </Button>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
                 <Download className="h-4 w-4" />
                 Export PDF
@@ -69,9 +79,21 @@ const EmployersReports = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Employers Reports</h1>
-          <p className="text-gray-600">Generate and view reports for registered, ceased, and pending employers</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Building2 className="h-8 w-8 text-blue-600" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Employers Reports</h1>
+              <p className="text-gray-600">Generate and view reports for registered, ceased, and pending employers</p>
+            </div>
+          </div>
+          <Button 
+            onClick={() => navigate('/employers-management/add')}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Register New Employer
+          </Button>
         </div>
 
         <div className="mb-6 flex items-center gap-4">
@@ -120,16 +142,16 @@ const EmployersReports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {registeredEmployers.map((employer) => (
-                      <TableRow key={employer.id}>
-                        <TableCell className="font-medium">{employer.id}</TableCell>
-                        <TableCell>{employer.name}</TableCell>
-                        <TableCell>{employer.type}</TableCell>
+                    {filteredRegistered.map((employer) => (
+                      <TableRow key={employer.employerId}>
+                        <TableCell className="font-medium">{employer.employerId}</TableCell>
+                        <TableCell>{employer.employerName}</TableCell>
+                        <TableCell>{employer.businessType}</TableCell>
                         <TableCell>
-                          <Badge variant="default">{employer.status}</Badge>
+                          <Badge variant="default">{employer.employerStatus}</Badge>
                         </TableCell>
-                        <TableCell>{employer.registeredDate}</TableCell>
-                        <TableCell>{employer.employees}</TableCell>
+                        <TableCell>{new Date(employer.registrationDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{employer.numberOfEmployees.toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -157,18 +179,18 @@ const EmployersReports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ceasedEmployers.map((employer) => (
-                      <TableRow key={employer.id}>
-                        <TableCell className="font-medium">{employer.id}</TableCell>
-                        <TableCell>{employer.name}</TableCell>
-                        <TableCell>{employer.type}</TableCell>
+                    {filteredCeased.map((employer) => (
+                      <TableRow key={employer.employerId}>
+                        <TableCell className="font-medium">{employer.employerId}</TableCell>
+                        <TableCell>{employer.employerName}</TableCell>
+                        <TableCell>{employer.businessType}</TableCell>
                         <TableCell>
-                          <Badge variant={employer.status === 'Ceased' ? 'secondary' : 'destructive'}>
-                            {employer.status}
+                          <Badge variant="secondary">
+                            {employer.employerStatus}
                           </Badge>
                         </TableCell>
-                        <TableCell>{employer.ceasedDate}</TableCell>
-                        <TableCell>{employer.reason}</TableCell>
+                        <TableCell>{new Date(employer.lastAuditDate).toLocaleDateString()}</TableCell>
+                        <TableCell>Business Operations Ceased</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -196,16 +218,16 @@ const EmployersReports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingVerification.map((employer) => (
-                      <TableRow key={employer.id}>
-                        <TableCell className="font-medium">{employer.id}</TableCell>
-                        <TableCell>{employer.name}</TableCell>
-                        <TableCell>{employer.type}</TableCell>
+                    {filteredPending.map((employer) => (
+                      <TableRow key={employer.employerId}>
+                        <TableCell className="font-medium">{employer.employerId}</TableCell>
+                        <TableCell>{employer.employerName}</TableCell>
+                        <TableCell>{employer.businessType}</TableCell>
                         <TableCell>
-                          <Badge variant="default">{employer.status}</Badge>
+                          <Badge variant="outline">{employer.complianceStatus}</Badge>
                         </TableCell>
-                        <TableCell>{employer.appliedDate}</TableCell>
-                        <TableCell>{employer.inspector}</TableCell>
+                        <TableCell>{new Date(employer.lastAuditDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{employer.authorizedRepresentative}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

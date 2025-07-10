@@ -4,7 +4,8 @@ import {
   Search,
   Plus,
   FileText,
-  Users
+  Users,
+  BarChart3
 } from "lucide-react";
 
 export const employersManagementMenuItems = [
@@ -12,6 +13,13 @@ export const employersManagementMenuItems = [
     title: "Employers Management",
     icon: Building2,
     subItems: [
+      {
+        title: "Dashboard",
+        url: "/employers-management/dashboard",
+        icon: BarChart3,
+        requiresPermission: "view_dashboard",
+        description: "View employer statistics and quick links"
+      },
       {
         title: "Manage Employers",
         url: "/employers-management/manage",
