@@ -39,7 +39,7 @@ export const routes = {
 
   // Employers Management routes
   EMPLOYERS_MANAGEMENT: '/employers-management',
-  EMPLOYERS_MANAGEMENT_DASHBOARD: '/employers-management/dashboard',
   EMPLOYERS_MANAGEMENT_MANAGE: '/employers-management/manage',
+  EMPLOYERS_MANAGEMENT_ADD: '/employers-management/add',
   EMPLOYERS_MANAGEMENT_REPORTS: '/employers-management/reports',
 } as const;
