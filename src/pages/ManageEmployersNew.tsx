@@ -59,12 +59,15 @@ const ManageEmployersNew = () => {
         employer.employerId.toLowerCase().includes(filters.search.toLowerCase());
       
       const matchesBusinessType = !filters.businessType || 
+        filters.businessType === 'all-types' ||
         employer.businessType === filters.businessType;
       
       const matchesComplianceStatus = !filters.complianceStatus || 
+        filters.complianceStatus === 'all-compliance' ||
         employer.complianceStatus === filters.complianceStatus;
       
       const matchesContributionStatus = !filters.contributionStatus || 
+        filters.contributionStatus === 'all-contribution' ||
         employer.contributionStatus === filters.contributionStatus;
 
       return matchesSearch && matchesBusinessType && matchesComplianceStatus && matchesContributionStatus;
@@ -118,7 +121,7 @@ const ManageEmployersNew = () => {
               <SelectValue placeholder="Business Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all-types">All Types</SelectItem>
               <SelectItem value="Private">Private</SelectItem>
               <SelectItem value="Government">Government</SelectItem>
               <SelectItem value="Non-profit">Non-profit</SelectItem>
@@ -131,7 +134,7 @@ const ManageEmployersNew = () => {
               <SelectValue placeholder="Compliance Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all-compliance">All Status</SelectItem>
               <SelectItem value="Compliant">Compliant</SelectItem>
               <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
               <SelectItem value="Under Audit">Under Audit</SelectItem>
@@ -143,7 +146,7 @@ const ManageEmployersNew = () => {
               <SelectValue placeholder="Contribution Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all-contribution">All Status</SelectItem>
               <SelectItem value="Paid">Paid</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Overdue">Overdue</SelectItem>
