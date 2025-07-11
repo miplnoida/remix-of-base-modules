@@ -1403,22 +1403,24 @@ export const RegisterPersonForm = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 justify-end">
+        <div className="flex flex-wrap gap-3 justify-between items-center">
           <Button type="button" variant="destructive" className="flex items-center gap-2">
             Change Account Status
           </Button>
-          {/*<Button type="submit" className="flex items-center gap-2">
-            <Save className="h-4 w-4" />
-            Save
-          </Button>*/}
-          <Button type="button" variant="outline" className="flex items-center gap-2">
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
-          <Button type="button" variant="outline" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Generate ID Card
-          </Button>
+          <div className="flex gap-3">
+            {/*<Button type="submit" className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              Save
+            </Button>*/}
+            <Button type="button" variant="outline" className="flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+            <Button type="button" variant="outline" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Generate ID Card
+            </Button>
+          </div>
         </div>
       </form>
 
