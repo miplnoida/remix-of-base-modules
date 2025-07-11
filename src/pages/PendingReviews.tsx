@@ -149,16 +149,18 @@ const PendingReviews = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Document Verification':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex items-center gap-1">
-          <FileText className="h-3 w-3" />
-          Document Verification
-        </Badge>;
-      case 'Medical Review':
-        return <Badge variant="secondary" className="bg-purple-100 text-purple-800 flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          Medical Review
-        </Badge>;
+      case 'Active':
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+      case 'Pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'Inactive':
+        return <Badge className="bg-red-100 text-red-800">Inactive</Badge>;
+      case 'Verify':
+        return <Badge className="bg-blue-100 text-blue-800">Verify</Badge>;
+      case 'Suspend':
+        return <Badge className="bg-orange-100 text-orange-800">Suspend</Badge>;
+      case 'Ceased':
+        return <Badge className="bg-gray-100 text-gray-800">Ceased</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
