@@ -596,6 +596,76 @@ const RelationFormModal = ({
   );
 };
 
+// Account Status Modal
+const AccountStatusModal = ({
+  open,
+  onClose,
+  currentStatus,
+  onChangeStatus
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentStatus: string;
+  onChangeStatus: (newStatus: string, reason: string) => void;
+}) => {
+  const [newStatus, setNewStatus] = useState('');
+  const [reason, setReason] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onChangeStatus(newStatus, reason);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Account Status</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Current Status</Label>
+            <span className={`inline-block ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-800`}>
+              {currentStatus}
+            </span>
+          </div>
+          <div>
+            <Label>Change Status</Label>
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border">
+                <SelectItem value="Suspend">Suspend</SelectItem>
+                <SelectItem value="Verify">Verify</SelectItem>
+                <SelectItem value="Ceased">Ceased</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Reason</Label>
+            <Textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Enter reason for status change"
+              rows={3}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="destructive">
+              Change Status
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const RegisterPersonForm = () => {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [showRelationDialog, setShowRelationDialog] = useState(false);
@@ -632,6 +702,8 @@ export const RegisterPersonForm = () => {
     terminationDate: null as Date | null,
     terminationCode: ''
   });
+  const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
+  const [accountStatus, setAccountStatus] = useState('Active');
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -754,6 +826,11 @@ export const RegisterPersonForm = () => {
       cardDetails, 
       transactionDetails 
     });
+  };
+
+  const handleChangeAccountStatus = (newStatus: string, reason: string) => {
+    setAccountStatus(newStatus);
+    // You can handle the reason or API call here
   };
 
   return (
@@ -1404,7 +1481,7 @@ export const RegisterPersonForm = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 justify-between items-center">
-          <Button type="button" variant="destructive" className="flex items-center gap-2">
+          <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
             Change Account Status
           </Button>
           <div className="flex gap-3">
@@ -1449,6 +1526,13 @@ export const RegisterPersonForm = () => {
         onSubmit={handleRelationSubmit}
         mode={relationModal.mode}
         initialValues={relationModal.selectedRelation || undefined}
+      />
+
+      <AccountStatusModal
+        open={accountStatusModalOpen}
+        onClose={() => setAccountStatusModalOpen(false)}
+        currentStatus={accountStatus}
+        onChangeStatus={handleChangeAccountStatus}
       />
     </div>
   );
