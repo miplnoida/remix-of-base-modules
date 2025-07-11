@@ -185,14 +185,13 @@ export const IPListing = () => {
     navigate(`/person/edit/${person.ssn}`);
   };
 
-  const handleStatusChange = (person: any) => {
-    console.log('Changing status for:', person);
-    // This could open a dropdown or modal for status management
-    // For now, cycle through status options
-    const statuses = ['Verify', 'Active', 'Suspend', 'Ceased'];
-    const currentIndex = statuses.indexOf(person.status);
-    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
-    console.log(`Status changed from ${person.status} to ${nextStatus}`);
+  const handleStatusChange = (person: any, newStatus: string) => {
+    console.log('Changing status for:', person, 'to:', newStatus);
+    // Update the person's status in the data
+    // In a real app, this would make an API call
+    person.status = newStatus;
+    // Force a re-render or update state
+    console.log(`Status changed from ${person.status} to ${newStatus}`);
   };
 
   const handleRegisterPerson = () => {
@@ -448,15 +447,17 @@ export const IPListing = () => {
                     <TableCell>{person.registrationDate}</TableCell>
                     <TableCell className="sticky right-0 bg-background">
                       <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleStatusChange(person)}
-                          className="h-8 w-8 p-0"
-                          title="Manage Status"
-                        >
-                          <Badge variant="outline" className="h-3 w-3 rounded-full p-0" />
-                        </Button>
+                        <Select onValueChange={(value) => handleStatusChange(person, value)}>
+                          <SelectTrigger className="h-8 w-20 text-xs">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Verify">Verify</SelectItem>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Suspend">Suspend</SelectItem>
+                            <SelectItem value="Ceased">Ceased</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Button
                           size="sm"
                           variant="outline"
