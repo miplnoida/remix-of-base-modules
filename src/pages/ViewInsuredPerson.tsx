@@ -32,29 +32,22 @@ import {
   Clock
 } from 'lucide-react';
 
-// Import form tabs
-import { PersonalInfoTab } from '@/components/person/PersonalInfoTab';
-import { AddressInfoTab } from '@/components/person/AddressInfoTab';
-import { EmploymentInfoTab } from '@/components/person/EmploymentInfoTab';
-import { DependantsTab } from '@/components/person/DependantsTab';
-import { EmergencyContactTab } from '@/components/person/EmergencyContactTab';
-import { PhotoSignatureTab } from '@/components/person/PhotoSignatureTab';
-import { DeclarationTab } from '@/components/person/DeclarationTab';
+// Import registration tabs
+import { RegisterPersonForm } from '@/components/ip/RegisterPersonForm';
+import { DependentTab } from '@/components/ip/DependentTab';
+import { NotesTab } from '@/components/ip/NotesTab';
+import { NPFTab } from '@/components/ip/NPFTab';
+import { PhotoTab } from '@/components/ip/PhotoTab';
+import { CaricomTab } from '@/components/ip/CaricomTab';
 
 const ViewInsuredPerson = () => {
   const navigate = useNavigate();
   const { ssn } = useParams();
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState('register');
   const [activeHistoryTab, setActiveHistoryTab] = useState('wages');
   const [isRegisterSectionOpen, setIsRegisterSectionOpen] = useState(true);
   const [isHistorySectionOpen, setIsHistorySectionOpen] = useState(true);
   const [currentStatus, setCurrentStatus] = useState('Active');
-  
-  // Form data and handlers for tabs
-  const [formData, setFormData] = useState({});
-  const [dependants, setDependants] = useState([]);
-  const [formerEmployers, setFormerEmployers] = useState([]);
-  const [caricomCountries, setCaricomCountries] = useState([]);
 
   // Mock data - replace with actual data fetching
   const personData = {
@@ -70,10 +63,6 @@ const ViewInsuredPerson = () => {
     email: 'john.doe@email.com',
     address: '123 Main Street, Apt 2B',
     district: 'Basseterre Zone 01'
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const getStatusBadge = (status: string) => {
@@ -109,7 +98,6 @@ const ViewInsuredPerson = () => {
 
   const handleStatusChange = (newStatus: string) => {
     setCurrentStatus(newStatus);
-    // Update person data status
     console.log(`Status changed to: ${newStatus}`);
   };
 
@@ -204,71 +192,56 @@ const ViewInsuredPerson = () => {
           <CollapsibleContent>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-7">
-                  <TabsTrigger value="personal" className="flex items-center gap-1">
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="register" className="flex items-center gap-1">
                     <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">Personal</span>
+                    <span className="hidden sm:inline">Register Person</span>
                   </TabsTrigger>
-                  <TabsTrigger value="address" className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <span className="hidden sm:inline">Address</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="employment" className="flex items-center gap-1">
-                    <Building2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Employment</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="dependants" className="flex items-center gap-1">
+                  <TabsTrigger value="dependent" className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    <span className="hidden sm:inline">Dependants</span>
+                    <span className="hidden sm:inline">Dependent</span>
                   </TabsTrigger>
-                  <TabsTrigger value="emergency" className="flex items-center gap-1">
-                    <Phone className="h-4 w-4" />
-                    <span className="hidden sm:inline">Emergency</span>
+                  <TabsTrigger value="notes" className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Notes</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="npf" className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">NPF</span>
                   </TabsTrigger>
                   <TabsTrigger value="photo" className="flex items-center gap-1">
                     <Camera className="h-4 w-4" />
                     <span className="hidden sm:inline">Photo</span>
                   </TabsTrigger>
-                  <TabsTrigger value="declaration" className="flex items-center gap-1">
+                  <TabsTrigger value="caricom" className="flex items-center gap-1">
                     <Shield className="h-4 w-4" />
-                    <span className="hidden sm:inline">Declaration</span>
+                    <span className="hidden sm:inline">Caricom</span>
                   </TabsTrigger>
                 </TabsList>
 
                 <div className="mt-6">
-                  <TabsContent value="personal">
-                    <PersonalInfoTab formData={formData} handleInputChange={handleInputChange} />
+                  <TabsContent value="register">
+                    <RegisterPersonForm />
                   </TabsContent>
                   
-                  <TabsContent value="address">
-                    <AddressInfoTab formData={formData} handleInputChange={handleInputChange} />
+                  <TabsContent value="dependent">
+                    <DependentTab />
                   </TabsContent>
                   
-                  <TabsContent value="employment">
-                    <EmploymentInfoTab 
-                      formData={formData} 
-                      handleInputChange={handleInputChange}
-                      formerEmployers={formerEmployers}
-                      setFormerEmployers={setFormerEmployers}
-                      caricomCountries={caricomCountries}
-                      setCaricomCountries={setCaricomCountries}
-                    />
+                  <TabsContent value="notes">
+                    <NotesTab />
                   </TabsContent>
                   
-                  <TabsContent value="dependants">
-                    <DependantsTab dependants={dependants} setDependants={setDependants} />
-                  </TabsContent>
-                  
-                  <TabsContent value="emergency">
-                    <EmergencyContactTab formData={formData} handleInputChange={handleInputChange} />
+                  <TabsContent value="npf">
+                    <NPFTab />
                   </TabsContent>
                   
                   <TabsContent value="photo">
-                    <PhotoSignatureTab formData={formData} handleInputChange={handleInputChange} />
+                    <PhotoTab />
                   </TabsContent>
                   
-                  <TabsContent value="declaration">
-                    <DeclarationTab formData={formData} handleInputChange={handleInputChange} />
+                  <TabsContent value="caricom">
+                    <CaricomTab />
                   </TabsContent>
                 </div>
               </Tabs>
