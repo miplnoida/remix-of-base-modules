@@ -137,19 +137,8 @@ const ViewInsuredPerson = () => {
 
       {/* Person Summary Card */}
       <Card>
-        {/* <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>Personal Information</CardTitle>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-sm text-gray-600">Status: {getStatusBadge(personData.status)}</span>
-                <span className="text-sm text-gray-600">DOB: {new Date(personData.dob).toLocaleDateString()}</span>
-                <span className="text-sm text-gray-600">Gender: {personData.sex}</span>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>*/}
+        
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-500">Occupation</label>
