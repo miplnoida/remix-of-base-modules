@@ -120,7 +120,7 @@ const ViewInsuredPerson = () => {
             <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
               {personData.firstname} {personData.surname}
             </h1>
-            <p className="text-gray-600">SSN: {personData.ssn}</p>
+            <p className="text-gray-600">SSN: {personData.ssn} {getStatusBadge(personData.status)}</p>
           </div>
         </div>
         <div className="flex gap-2">
