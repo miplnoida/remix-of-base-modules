@@ -138,107 +138,81 @@ const EditInsuredPerson = () => {
       {/* Form Sections */}
       <div className="space-y-6">
         {/* Basic Information */}
+        {/* Register Person Form Tabs Section - Collapsible */}
+      <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Basic Information
-            </CardTitle>
-            <CardDescription>Update personal identification details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="surname">Surname *</Label>
-                <Input
-                  id="surname"
-                  value={formData.surname}
-                  onChange={(e) => handleInputChange('surname', e.target.value)}
-                  required
-                />
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Registration Information
+                </CardTitle>
+                {isRegisterSectionOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
-              <div>
-                <Label htmlFor="firstname">First Name *</Label>
-                <Input
-                  id="firstname"
-                  value={formData.firstname}
-                  onChange={(e) => handleInputChange('firstname', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="middlename">Middle Name</Label>
-                <Input
-                  id="middlename"
-                  value={formData.middlename}
-                  onChange={(e) => handleInputChange('middlename', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="previousName">Previous Name</Label>
-                <Input
-                  id="previousName"
-                  value={formData.previousName}
-                  onChange={(e) => handleInputChange('previousName', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="dob">Date of Birth *</Label>
-                <Input
-                  id="dob"
-                  type="date"
-                  value={formData.dob}
-                  onChange={(e) => handleInputChange('dob', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="sex">Sex *</Label>
-                <Select value={formData.sex} onValueChange={(value) => handleInputChange('sex', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Not Specified">Not Specified</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="alias">Alias</Label>
-                <Input
-                  id="alias"
-                  value={formData.alias}
-                  onChange={(e) => handleInputChange('alias', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="primaryOccup">Primary Occupation *</Label>
-                <Input
-                  id="primaryOccup"
-                  value={formData.primaryOccup}
-                  onChange={(e) => handleInputChange('primaryOccup', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Verify">Verify</SelectItem>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Suspend">Suspend</SelectItem>
-                    <SelectItem value="Ceased">Ceased</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="register" className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Register Person</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dependent" className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    <span className="hidden sm:inline">Dependent</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Notes</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="npf" className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">NPF</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="photo" className="flex items-center gap-1">
+                    <Camera className="h-4 w-4" />
+                    <span className="hidden sm:inline">Photo</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="caricom" className="flex items-center gap-1">
+                    <Shield className="h-4 w-4" />
+                    <span className="hidden sm:inline">Caricom</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className="mt-6">
+                  <TabsContent value="register">
+                    <RegisterPersonForm />
+                  </TabsContent>
+                  
+                  <TabsContent value="dependent">
+                    <DependentTab />
+                  </TabsContent>
+                  
+                  <TabsContent value="notes">
+                    <NotesTab />
+                  </TabsContent>
+                  
+                  <TabsContent value="npf">
+                    <NPFTab />
+                  </TabsContent>
+                  
+                  <TabsContent value="photo">
+                    <PhotoTab />
+                  </TabsContent>
+                  
+                  <TabsContent value="caricom">
+                    <CaricomTab />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </CardContent>
+          </CollapsibleContent>
         </Card>
+      </Collapsible>
+      
 
         {/* Contact Information */}
         <Card>
