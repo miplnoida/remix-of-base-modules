@@ -210,7 +210,7 @@ const PendingReviews = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
@@ -260,7 +260,7 @@ const PendingReviews = () => {
             <p className="text-xs text-muted-foreground">Average processing time</p>
           </CardContent>
         </Card>
-      </div>
+      </div>*/}
 
       {/* Search and Filter Section */}
       <Card>
