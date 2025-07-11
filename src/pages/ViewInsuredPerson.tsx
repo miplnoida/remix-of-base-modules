@@ -118,7 +118,7 @@ const ViewInsuredPerson = () => {
           <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <div>
             <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
-              {personData.firstname} {personData.surname} d
+              {personData.firstname} {personData.surname}
             </h1>
             <p className="text-gray-600">SSN: {personData.ssn}</p>
           </div>
@@ -136,7 +136,7 @@ const ViewInsuredPerson = () => {
       </div>
 
       {/* Person Summary Card */}
-      <Card>
+      {/*<Card>
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
@@ -173,7 +173,7 @@ const ViewInsuredPerson = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card>*/}
 
       {/* Register Person Form Tabs Section - Collapsible */}
       <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
