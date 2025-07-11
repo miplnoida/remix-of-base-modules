@@ -118,7 +118,7 @@ const ViewInsuredPerson = () => {
           <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <div>
             <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
-              {personData.firstname} {personData.surname}
+              {personData.firstname} {personData.surname} {getStatusBadge(personData.status)}
             </h1>
             <p className="text-gray-600">SSN: {personData.ssn}</p>
           </div>
