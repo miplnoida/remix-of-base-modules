@@ -36,7 +36,10 @@ import {
   UserCheck,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Plus,
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 
 // Import registration tabs
@@ -316,12 +319,12 @@ const ViewInsuredPerson = () => {
                         <CardTitle>Wages History</CardTitle>
                         <div className="flex items-center gap-2">
                           <Button variant="outline" size="sm" className="flex items-center gap-2">
-                            <Search className="h-4 w-4" />
-                            Search
+                            <Plus className="h-4 w-4" />
+                            Add Wages
                           </Button>
                           <Button variant="outline" size="sm" className="flex items-center gap-2">
-                            <Filter className="h-4 w-4" />
-                            Filter
+                            <Trash2 className="h-4 w-4" />
+                            Delete
                           </Button>
                           <Button variant="outline" size="sm" className="flex items-center gap-2">
                             <Download className="h-4 w-4" />
@@ -347,7 +350,7 @@ const ViewInsuredPerson = () => {
                           </div>
                           <Select>
                             <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Filter by period" />
+                              <SelectValue placeholder="Filter by year" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="2024">2024</SelectItem>
@@ -359,43 +362,68 @@ const ViewInsuredPerson = () => {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Period</TableHead>
-                              <TableHead>Employer</TableHead>
-                              <TableHead>Wages</TableHead>
-                              <TableHead>Contributions</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead>Year</TableHead>
+                              <TableHead>Weeks Paid</TableHead>
+                              <TableHead>Weeks Credited</TableHead>
+                              <TableHead>Weeks Deducted</TableHead>
+                              <TableHead>Actual Wages Paid</TableHead>
+                              <TableHead>Wages Credited</TableHead>
+                              <TableHead>Total Annual Wages</TableHead>
+                              <TableHead>Total Wages Deducted</TableHead>
+                              <TableHead>Total Adjusted Wages</TableHead>
+                              <TableHead>Total Annual Contribution</TableHead>
                               <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             <TableRow>
-                              <TableCell>2024 Q1</TableCell>
-                              <TableCell>ABC Company Ltd</TableCell>
-                              <TableCell>$4,500.00</TableCell>
-                              <TableCell>$450.00</TableCell>
-                              <TableCell><Badge variant="secondary" className="bg-green-100 text-green-800">Paid</Badge></TableCell>
+                              <TableCell>2024</TableCell>
+                              <TableCell>52</TableCell>
+                              <TableCell>52</TableCell>
+                              <TableCell>0</TableCell>
+                              <TableCell>$52,000.00</TableCell>
+                              <TableCell>$52,000.00</TableCell>
+                              <TableCell>$52,000.00</TableCell>
+                              <TableCell>$0.00</TableCell>
+                              <TableCell>$52,000.00</TableCell>
+                              <TableCell>$5,200.00</TableCell>
                               <TableCell>
-                                <Button variant="outline" size="sm">View</Button>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell>2023 Q4</TableCell>
-                              <TableCell>ABC Company Ltd</TableCell>
-                              <TableCell>$4,200.00</TableCell>
-                              <TableCell>$420.00</TableCell>
-                              <TableCell><Badge variant="secondary" className="bg-green-100 text-green-800">Paid</Badge></TableCell>
+                              <TableCell>2023</TableCell>
+                              <TableCell>50</TableCell>
+                              <TableCell>50</TableCell>
+                              <TableCell>2</TableCell>
+                              <TableCell>$50,000.00</TableCell>
+                              <TableCell>$50,000.00</TableCell>
+                              <TableCell>$50,000.00</TableCell>
+                              <TableCell>$2,000.00</TableCell>
+                              <TableCell>$48,000.00</TableCell>
+                              <TableCell>$4,800.00</TableCell>
                               <TableCell>
-                                <Button variant="outline" size="sm">View</Button>
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>2023 Q3</TableCell>
-                              <TableCell>XYZ Corp</TableCell>
-                              <TableCell>$3,800.00</TableCell>
-                              <TableCell>$380.00</TableCell>
-                              <TableCell><Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge></TableCell>
-                              <TableCell>
-                                <Button variant="outline" size="sm">View</Button>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           </TableBody>
@@ -406,18 +434,59 @@ const ViewInsuredPerson = () => {
 
                   <TabsContent value="claims">
                     <Card>
-                      <CardHeader>
-                        <CardTitle>Claims History</CardTitle>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                        <CardTitle>Claim History</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Download className="h-4 w-4" />
+                            Export
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <FileDown className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Printer className="h-4 w-4" />
+                            Print
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
+                        <div className="mb-4 flex items-center gap-4">
+                          <div className="flex-1">
+                            <Input 
+                              placeholder="Search claim records..." 
+                              className="max-w-sm"
+                            />
+                          </div>
+                          <Select>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="medical">Medical</SelectItem>
+                              <SelectItem value="unemployment">Unemployment</SelectItem>
+                              <SelectItem value="maternity">Maternity</SelectItem>
+                              <SelectItem value="injury">Work Injury</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Claim ID</TableHead>
+                              <TableHead>Claim Sequence</TableHead>
                               <TableHead>Type</TableHead>
-                              <TableHead>Date Filed</TableHead>
+                              <TableHead>Claim Date</TableHead>
+                              <TableHead>Start Date</TableHead>
+                              <TableHead>End Date</TableHead>
+                              <TableHead>Wks/Days</TableHead>
                               <TableHead>Amount</TableHead>
+                              <TableHead>Weekly Rate</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Avg. Weekly Wages</TableHead>
+                              <TableHead>Disallowance Reason</TableHead>
+                              <TableHead>Remark</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -425,8 +494,55 @@ const ViewInsuredPerson = () => {
                               <TableCell>CLM-2024-001</TableCell>
                               <TableCell>Medical</TableCell>
                               <TableCell>2024-02-15</TableCell>
+                              <TableCell>2024-02-20</TableCell>
+                              <TableCell>2024-03-05</TableCell>
+                              <TableCell>2 weeks</TableCell>
                               <TableCell>$750.00</TableCell>
+                              <TableCell>$375.00</TableCell>
                               <TableCell><Badge className="bg-blue-100 text-blue-800">Processing</Badge></TableCell>
+                              <TableCell>$400.00</TableCell>
+                              <TableCell>-</TableCell>
+                              <TableCell>Medical documentation submitted</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>CLM-2023-012</TableCell>
+                              <TableCell>Unemployment</TableCell>
+                              <TableCell>2023-11-10</TableCell>
+                              <TableCell>2023-11-15</TableCell>
+                              <TableCell>2024-01-15</TableCell>
+                              <TableCell>8 weeks</TableCell>
+                              <TableCell>$3,200.00</TableCell>
+                              <TableCell>$400.00</TableCell>
+                              <TableCell><Badge className="bg-green-100 text-green-800">Approved</Badge></TableCell>
+                              <TableCell>$450.00</TableCell>
+                              <TableCell>-</TableCell>
+                              <TableCell>Job seeking verification provided</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -489,26 +605,99 @@ const ViewInsuredPerson = () => {
 
                   <TabsContent value="voluntary">
                     <Card>
-                      <CardHeader>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                         <CardTitle>Voluntary Contributions</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Download className="h-4 w-4" />
+                            Export
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <FileDown className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Printer className="h-4 w-4" />
+                            Print
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-gray-500 mb-4">Voluntary contribution history and management.</p>
+                        <div className="mb-4 flex items-center gap-4">
+                          <div className="flex-1">
+                            <Input 
+                              placeholder="Search voluntary contributions..." 
+                              className="max-w-sm"
+                            />
+                          </div>
+                          <Select>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Filter by status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="ceased">Ceased</SelectItem>
+                              <SelectItem value="suspended">Suspended</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Method</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead>Date Registered</TableHead>
+                              <TableHead>Payment Commencement Date</TableHead>
+                              <TableHead>Payment Interval</TableHead>
+                              <TableHead>Contribution Amount</TableHead>
+                              <TableHead>Date Ceased</TableHead>
+                              <TableHead>Date Suspended</TableHead>
+                              <TableHead>Due Date</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             <TableRow>
-                              <TableCell>2024-03-01</TableCell>
+                              <TableCell>2024-01-15</TableCell>
+                              <TableCell>2024-02-01</TableCell>
+                              <TableCell>Monthly</TableCell>
                               <TableCell>$200.00</TableCell>
-                              <TableCell>Bank Transfer</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">Received</Badge></TableCell>
+                              <TableCell>-</TableCell>
+                              <TableCell>-</TableCell>
+                              <TableCell>2024-04-01</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>2023-06-10</TableCell>
+                              <TableCell>2023-07-01</TableCell>
+                              <TableCell>Quarterly</TableCell>
+                              <TableCell>$600.00</TableCell>
+                              <TableCell>2024-01-10</TableCell>
+                              <TableCell>-</TableCell>
+                              <TableCell>-</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -549,11 +738,25 @@ const ViewInsuredPerson = () => {
 
                   <TabsContent value="contributions">
                     <Card>
-                      <CardHeader>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                         <CardTitle>Contribution Summary</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Download className="h-4 w-4" />
+                            Export
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <FileDown className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Printer className="h-4 w-4" />
+                            Print
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                           <div className="p-4 border rounded-lg">
                             <h4 className="font-medium">Total Contributions</h4>
                             <p className="text-2xl font-bold text-primary">$15,420.00</p>
@@ -566,15 +769,43 @@ const ViewInsuredPerson = () => {
                             <h4 className="font-medium">Last Payment</h4>
                             <p className="text-2xl font-bold text-primary">2024-03-01</p>
                           </div>
+                          <div className="p-4 border rounded-lg">
+                            <h4 className="font-medium">Compliance Status</h4>
+                            <p className="text-2xl font-bold text-green-600">Up to Date</p>
+                          </div>
                         </div>
+                        
+                        <div className="mb-4 flex items-center gap-4">
+                          <div className="flex-1">
+                            <Input 
+                              placeholder="Search contribution records..." 
+                              className="max-w-sm"
+                            />
+                          </div>
+                          <Select>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Filter by year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="2024">2024</SelectItem>
+                              <SelectItem value="2023">2023</SelectItem>
+                              <SelectItem value="2022">2022</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Year</TableHead>
                               <TableHead>Employee Contribution</TableHead>
                               <TableHead>Employer Contribution</TableHead>
+                              <TableHead>Government Contribution</TableHead>
+                              <TableHead>Voluntary Contribution</TableHead>
                               <TableHead>Total</TableHead>
                               <TableHead>Weeks Credited</TableHead>
+                              <TableHead>Compliance Rate</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -582,15 +813,70 @@ const ViewInsuredPerson = () => {
                               <TableCell>2024</TableCell>
                               <TableCell>$450.00</TableCell>
                               <TableCell>$450.00</TableCell>
-                              <TableCell>$900.00</TableCell>
+                              <TableCell>$150.00</TableCell>
+                              <TableCell>$200.00</TableCell>
+                              <TableCell>$1,250.00</TableCell>
                               <TableCell>12</TableCell>
+                              <TableCell><Badge className="bg-green-100 text-green-800">100%</Badge></TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
                             <TableRow>
                               <TableCell>2023</TableCell>
                               <TableCell>$1,680.00</TableCell>
                               <TableCell>$1,680.00</TableCell>
-                              <TableCell>$3,360.00</TableCell>
+                              <TableCell>$560.00</TableCell>
+                              <TableCell>$600.00</TableCell>
+                              <TableCell>$4,520.00</TableCell>
                               <TableCell>52</TableCell>
+                              <TableCell><Badge className="bg-green-100 text-green-800">100%</Badge></TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>2022</TableCell>
+                              <TableCell>$1,600.00</TableCell>
+                              <TableCell>$1,600.00</TableCell>
+                              <TableCell>$533.00</TableCell>
+                              <TableCell>$0.00</TableCell>
+                              <TableCell>$3,733.00</TableCell>
+                              <TableCell>50</TableCell>
+                              <TableCell><Badge className="bg-yellow-100 text-yellow-800">96%</Badge></TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
