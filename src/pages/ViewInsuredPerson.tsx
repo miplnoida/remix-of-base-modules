@@ -374,11 +374,11 @@ const ViewInsuredPerson = () => {
                   <TabsContent value="status">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Status Management</CardTitle>
+                        <CardTitle>Status History</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          <div className="flex items-center gap-4">
+                          {/*<div className="flex items-center gap-4">
                             <label className="text-sm font-medium">Current Status:</label>
                             {getStatusBadge(currentStatus)}
                           </div>
@@ -395,9 +395,9 @@ const ViewInsuredPerson = () => {
                                 <SelectItem value="Ceased">Ceased</SelectItem>
                               </SelectContent>
                             </Select>
-                          </div>
+                          </div>*/}
                           <div className="pt-4">
-                            <h4 className="font-medium mb-2">Status History</h4>
+                            {/* <h4 className="font-medium mb-2">Status History</h4>*/}
                             <Table>
                               <TableHeader>
                                 <TableRow>
