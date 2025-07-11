@@ -1403,12 +1403,10 @@ export const RegisterPersonForm = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 justify-start mb-4">
+        <div className="flex flex-wrap gap-3 justify-end">
           <Button type="button" variant="destructive" className="flex items-center gap-2">
             Change Account Status
           </Button>
-        </div>
-        <div className="flex flex-wrap gap-3 justify-end">
           {/*<Button type="submit" className="flex items-center gap-2">
             <Save className="h-4 w-4" />
             Save
