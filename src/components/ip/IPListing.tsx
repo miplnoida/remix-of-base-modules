@@ -363,8 +363,9 @@ export const IPListing = () => {
                   <TableHead className="min-w-[80px]">Alias</TableHead>
                   <TableHead className="min-w-[120px]">Primary Occup</TableHead>
                   <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
-                  <TableHead className="min-w-[100px]">ASP Num.</TableHead>
                   <TableHead className="min-w-[80px]">Status</TableHead>
+                  <TableHead className="min-w-[100px]">ASP Num.</TableHead>
+                  
                   <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
                   <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
                   <TableHead className="min-w-[120px]">District</TableHead>
@@ -412,8 +413,9 @@ export const IPListing = () => {
                     <TableCell>{person.alias}</TableCell>
                     <TableCell>{person.primaryOccup}</TableCell>
                     <TableCell>{person.selfRefNo}</TableCell>
+                     <TableCell>{getStatusBadge(person.status)}</TableCell>
                     <TableCell>{person.aspNum}</TableCell>
-                    <TableCell>{getStatusBadge(person.status)}</TableCell>
+                   
                     <TableCell>{person.residentAddr1}</TableCell>
                     <TableCell>{person.residentAddr2}</TableCell>
                     <TableCell>{person.district}</TableCell>
