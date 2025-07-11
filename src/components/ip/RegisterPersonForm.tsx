@@ -10,14 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus, Edit, Eye, Trash2 } from 'lucide-react';
+import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 // Form schema
 const registrationSchema = z.object({
@@ -25,6 +24,10 @@ const registrationSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional(),
   age: z.number().min(1, 'Age is required'),
+  mailingAddressType: z.enum(['same', 'different']).default('same'),
+  residentAddress: z.string().min(1, 'Resident address is required'),
+  mailingAddress: z.string().optional(),
+  postalDistrict: z.string().min(1, 'Postal district is required'),
   sex: z.enum(['Male', 'Female', 'Not Specified']),
   dateOfBirth: z.date({ required_error: 'Date of birth is required' }),
   maritalStatus: z.enum(['Common Law', 'Divorced', 'Married', 'Separated', 'Single', 'Unknown', 'Widowed']),
@@ -50,17 +53,6 @@ const registrationSchema = z.object({
 });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
-
-// Address schema
-const addressSchema = z.object({
-  id: z.string(),
-  addressType: z.enum(['same', 'different']),
-  residentAddress: z.string().min(1, 'Resident address is required'),
-  mailingAddress: z.string().optional(),
-  postalDistrict: z.string().min(1, 'Postal district is required'),
-});
-
-type Address = z.infer<typeof addressSchema>;
 
 const postalDistricts = [
   'Basseterre Zone 01', 'Basseterre Zone 02', 'Basseterre Zone 03', 'Basseterre Zone 04',
@@ -113,172 +105,10 @@ interface Relation {
   beneficiaryAddress?: string;
 }
 
-// Address List Item Component
-const AddressListItem = ({ 
-  address, 
-  onEdit, 
-  onView, 
-  onRemove 
-}: { 
-  address: Address; 
-  onEdit: () => void; 
-  onView: () => void; 
-  onRemove: () => void; 
-}) => (
-  <div className="flex justify-between items-center p-3 border rounded-lg bg-background">
-    <div className="flex-1">
-      <div className="flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium">
-          {address.addressType === 'same' ? 'Same Address' : 'Different Addresses'}
-        </span>
-      </div>
-      <div className="text-sm text-muted-foreground mt-1">
-        <div>{address.residentAddress}</div>
-        {address.addressType === 'different' && address.mailingAddress && (
-          <div>Mailing: {address.mailingAddress}</div>
-        )}
-        <div className="mt-1">{address.postalDistrict}</div>
-      </div>
-    </div>
-    <div className="flex gap-2">
-      <Button type="button" variant="ghost" size="sm" onClick={onView}>
-        <Eye className="h-4 w-4" />
-      </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
-        <Edit className="h-4 w-4" />
-      </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-);
-
-// Address Form Modal Component
-const AddressFormModal = ({ 
-  open, 
-  onClose, 
-  onSubmit, 
-  mode, 
-  initialValues 
-}: { 
-  open: boolean; 
-  onClose: () => void; 
-  onSubmit: (data: Address) => void; 
-  mode: 'add' | 'edit' | 'view'; 
-  initialValues?: Address; 
-}) => {
-  const [formData, setFormData] = useState<Address>(initialValues || {
-    id: '',
-    addressType: 'same',
-    residentAddress: '',
-    mailingAddress: '',
-    postalDistrict: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode !== 'view') {
-      onSubmit(formData);
-    }
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'add' ? 'Add New Address' : mode === 'edit' ? 'Edit Address' : 'View Address'}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Address Type</Label>
-            <Select 
-              value={formData.addressType} 
-              onValueChange={(value: 'same' | 'different') => 
-                setFormData({ ...formData, addressType: value })
-              }
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select address type" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border">
-                <SelectItem value="same">Mailing & Resident Address Same</SelectItem>
-                <SelectItem value="different">Different Addresses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Resident Address *</Label>
-            <Textarea 
-              value={formData.residentAddress}
-              onChange={(e) => setFormData({ ...formData, residentAddress: e.target.value })}
-              placeholder="Enter resident address"
-              disabled={mode === 'view'}
-            />
-          </div>
-
-          {formData.addressType === 'different' && (
-            <div>
-              <Label>Mailing Address</Label>
-              <Textarea 
-                value={formData.mailingAddress}
-                onChange={(e) => setFormData({ ...formData, mailingAddress: e.target.value })}
-                placeholder="Enter mailing address"
-                disabled={mode === 'view'}
-              />
-            </div>
-          )}
-
-          <div>
-            <Label>Postal District *</Label>
-            <Select 
-              value={formData.postalDistrict} 
-              onValueChange={(value) => setFormData({ ...formData, postalDistrict: value })}
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select postal district" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border max-h-48 overflow-y-auto">
-                {postalDistricts.map((district) => (
-                  <SelectItem key={district} value={district}>{district}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {mode !== 'view' && (
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {mode === 'add' ? 'Add Address' : 'Save Changes'}
-              </Button>
-            </div>
-          )}
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 export const RegisterPersonForm = () => {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [showRelationDialog, setShowRelationDialog] = useState(false);
   const [relations, setRelations] = useState<Relation[]>([]);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [addressModal, setAddressModal] = useState({
-    open: false,
-    mode: 'add' as 'add' | 'edit' | 'view',
-    selectedAddress: null as Address | null
-  });
   const [verification, setVerification] = useState({
     maritalStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
     birthStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
@@ -304,6 +134,7 @@ export const RegisterPersonForm = () => {
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
+      mailingAddressType: 'same',
       sex: 'Male',
       maritalStatus: 'Single',
       workPermit: 'No',
@@ -348,47 +179,9 @@ export const RegisterPersonForm = () => {
     setRelations(relations.filter(r => r.id !== id));
   };
 
-  const addAddress = (address: Address) => {
-    const newAddress = { ...address, id: Date.now().toString() };
-    setAddresses([...addresses, newAddress]);
-  };
-
-  const updateAddress = (address: Address) => {
-    setAddresses(addresses.map(a => a.id === address.id ? address : a));
-  };
-
-  const removeAddress = (id: string) => {
-    setAddresses(addresses.filter(a => a.id !== id));
-  };
-
-  const openAddressModal = (mode: 'add' | 'edit' | 'view', address?: Address) => {
-    setAddressModal({
-      open: true,
-      mode,
-      selectedAddress: address || null
-    });
-  };
-
-  const closeAddressModal = () => {
-    setAddressModal({
-      open: false,
-      mode: 'add',
-      selectedAddress: null
-    });
-  };
-
-  const handleAddressSubmit = (data: Address) => {
-    if (addressModal.mode === 'add') {
-      addAddress(data);
-    } else if (addressModal.mode === 'edit' && addressModal.selectedAddress) {
-      updateAddress({ ...data, id: addressModal.selectedAddress.id });
-    }
-  };
-
   const onSubmit = (data: RegistrationFormData) => {
     console.log('Form submission:', { 
       ...data, 
-      addresses,
       relations, 
       verification, 
       cardDetails, 
@@ -454,6 +247,95 @@ export const RegisterPersonForm = () => {
             </div>
 
             <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-medium">Address Information</h4>
+              
+              <div>
+                <Label>Address Type</Label>
+                <Select onValueChange={(value: 'same' | 'different') => form.setValue('mailingAddressType', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select address type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="same">Mailing & Resident Address Same</SelectItem>
+                    <SelectItem value="different">Different Addresses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="residentAddress">Resident Address *</Label>
+                  <Textarea {...form.register('residentAddress')} placeholder="Enter resident address" />
+                  {form.formState.errors.residentAddress && (
+                    <p className="text-sm text-destructive">{form.formState.errors.residentAddress.message}</p>
+                  )}
+                </div>
+                
+                {form.watch('mailingAddressType') === 'different' && (
+                  <div>
+                    <Label htmlFor="mailingAddress">Mailing Address</Label>
+                    <Textarea {...form.register('mailingAddress')} placeholder="Enter mailing address" />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label>Postal District *</Label>
+                <Select onValueChange={(value) => form.setValue('postalDistrict', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select postal district" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                    {postalDistricts.map((district) => (
+                      <SelectItem key={district} value={district}>{district}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.postalDistrict && (
+                  <p className="text-sm text-destructive">{form.formState.errors.postalDistrict.message}</p>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-medium">Relations</h4>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowRelationDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Relation
+                </Button>
+              </div>
+              
+              {relations.length > 0 && (
+                <div className="space-y-2">
+                  {relations.map((relation) => (
+                    <div key={relation.id} className="flex justify-between items-center p-3 border rounded-lg">
+                      <div>
+                        <span className="font-medium">{relation.type}</span>
+                        {relation.name && <span className="ml-2 text-muted-foreground">- {relation.name}</span>}
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => removeRelation(relation.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -570,101 +452,6 @@ export const RegisterPersonForm = () => {
                 </Select>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Address Information Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Address Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="font-medium">Address List</h4>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => openAddressModal('add')}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Address
-              </Button>
-            </div>
-            
-            {addresses.length > 0 ? (
-              <div className="space-y-2">
-                {addresses.map((address) => (
-                  <AddressListItem
-                    key={address.id}
-                    address={address}
-                    onEdit={() => openAddressModal('edit', address)}
-                    onView={() => openAddressModal('view', address)}
-                    onRemove={() => removeAddress(address.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No addresses added yet</p>
-                <p className="text-sm">Click "Add New Address" to get started</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Relations Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Relations
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="font-medium">Relations List</h4>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowRelationDialog(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Relation
-              </Button>
-            </div>
-            
-            {relations.length > 0 ? (
-              <div className="space-y-2">
-                {relations.map((relation) => (
-                  <div key={relation.id} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div>
-                      <span className="font-medium">{relation.type}</span>
-                      {relation.name && <span className="ml-2 text-muted-foreground">- {relation.name}</span>}
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => removeRelation(relation.id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No relations added yet</p>
-                <p className="text-sm">Click "Add Relation" to get started</p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -1079,14 +866,6 @@ export const RegisterPersonForm = () => {
         open={showRelationDialog} 
         onClose={() => setShowRelationDialog(false)}
         onAddRelation={addRelation}
-      />
-
-      <AddressFormModal
-        open={addressModal.open}
-        onClose={closeAddressModal}
-        onSubmit={handleAddressSubmit}
-        mode={addressModal.mode}
-        initialValues={addressModal.selectedAddress || undefined}
       />
     </div>
   );
