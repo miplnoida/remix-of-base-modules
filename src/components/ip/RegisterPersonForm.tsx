@@ -936,14 +936,11 @@ export const RegisterPersonForm = () => {
         {/* Address Information Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Address Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
-              <h4 className="font-medium">Address List</h4>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Address Information
+              </CardTitle>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -954,7 +951,8 @@ export const RegisterPersonForm = () => {
                 Add New Address
               </Button>
             </div>
-            
+          </CardHeader>
+          <CardContent className="space-y-4">
             {addresses.length > 0 ? (
               <div className="space-y-2">
                 {addresses.map((address) => (
@@ -980,14 +978,11 @@ export const RegisterPersonForm = () => {
         {/* Relations Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Relations
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
-              <h4 className="font-medium">Relations List</h4>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Relations
+              </CardTitle>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -998,7 +993,8 @@ export const RegisterPersonForm = () => {
                 Add Relation
               </Button>
             </div>
-            
+          </CardHeader>
+          <CardContent className="space-y-4">
             {relations.length > 0 ? (
               <div className="space-y-2">
                 {relations.map((relation) => (
@@ -1407,11 +1403,16 @@ export const RegisterPersonForm = () => {
         </Card>
 
         {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3 justify-start mb-4">
+          <Button type="button" variant="destructive" className="flex items-center gap-2">
+            Change Account Status
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-3 justify-end">
-          <Button type="submit" className="flex items-center gap-2">
+          {/*<Button type="submit" className="flex items-center gap-2">
             <Save className="h-4 w-4" />
             Save
-          </Button>
+          </Button>*/}
           <Button type="button" variant="outline" className="flex items-center gap-2">
             <Printer className="h-4 w-4" />
             Print
