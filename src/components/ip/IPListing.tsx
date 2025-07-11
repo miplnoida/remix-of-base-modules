@@ -185,6 +185,16 @@ export const IPListing = () => {
     navigate(`/person/edit/${person.ssn}`);
   };
 
+  const handleStatusChange = (person: any) => {
+    console.log('Changing status for:', person);
+    // This could open a dropdown or modal for status management
+    // For now, cycle through status options
+    const statuses = ['Verify', 'Active', 'Suspend', 'Ceased'];
+    const currentIndex = statuses.indexOf(person.status);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    console.log(`Status changed from ${person.status} to ${nextStatus}`);
+  };
+
   const handleRegisterPerson = () => {
     // Switch to register tab in parent component
     const event = new CustomEvent('switchToRegister');
@@ -387,7 +397,7 @@ export const IPListing = () => {
                   <TableHead className="min-w-[120px]">Verified By</TableHead>
                   <TableHead className="min-w-[120px]">Application Date</TableHead>
                   <TableHead className="min-w-[120px]">Registration Date</TableHead>
-                  <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
+                  <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -437,20 +447,31 @@ export const IPListing = () => {
                     <TableCell>{person.applicationDate}</TableCell>
                     <TableCell>{person.registrationDate}</TableCell>
                     <TableCell className="sticky right-0 bg-background">
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="View Details"
+                      <div className="flex space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusChange(person)}
+                          className="h-8 w-8 p-0"
+                          title="Manage Status"
+                        >
+                          <Badge variant="outline" className="h-3 w-3 rounded-full p-0" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleViewDetails(person)}
+                          className="h-8 w-8 p-0"
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="Edit Details"
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEditDetails(person)}
+                          className="h-8 w-8 p-0"
+                          title="Edit Details"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>

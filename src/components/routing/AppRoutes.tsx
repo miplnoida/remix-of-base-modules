@@ -6,6 +6,8 @@ import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 // Page imports
 import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
+import ViewInsuredPerson from '@/pages/ViewInsuredPerson';
+import EditInsuredPerson from '@/pages/EditInsuredPerson';
 
 // Employer Management
 import EmployerRegistration from '@/pages/EmployerRegistration';
@@ -118,6 +120,8 @@ export const AppRoutes = () => {
       <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
+      <Route path="/person/view/:ssn" element={<ProtectedLayout><ViewInsuredPerson /></ProtectedLayout>} />
+      <Route path="/person/edit/:ssn" element={<ProtectedLayout><EditInsuredPerson /></ProtectedLayout>} />
 
       {/* Quick Actions Routes */}
       <Route path="/person/wages-history" element={<ProtectedLayout><WagesHistory /></ProtectedLayout>} />

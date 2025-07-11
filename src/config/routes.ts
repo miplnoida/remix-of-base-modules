@@ -29,6 +29,8 @@ export const routes = {
   PERSON_LISTING: '/person/listing',
   PERSON_VIEW: '/person/view/:ssn',
   PERSON_EDIT: '/person/edit/:ssn',
+  PERSON_VIEW_SPECIFIC: (ssn: string) => `/person/view/${ssn}`,
+  PERSON_EDIT_SPECIFIC: (ssn: string) => `/person/edit/${ssn}`,
   PERSON_APPROVAL: '/person/approval',
   PERSON_DIRECTORY: '/person/directory',
   PENDING_REVIEWS: '/person/pending-reviews',
