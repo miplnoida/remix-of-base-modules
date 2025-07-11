@@ -118,7 +118,10 @@ const PendingReviews = () => {
   const handleSearch = () => {
     console.log('Searching pending reviews with parameters:', searchParams);
   };
-
+  const handleViewDetails = (person: any) => {
+    console.log('Viewing details for:', person);
+    navigate(`/person/view/${person.ssn}`);
+  };
   const handleReview = (item: any) => {
     console.log('Reviewing item:', item);
     // Navigate to review page or open modal
@@ -437,7 +440,7 @@ const PendingReviews = () => {
                           variant="outline" 
                           size="sm" 
                           title="View Details"
-                          onClick={() => handleReview(person)}
+                          onClick={() => handleViewDetails(person)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
