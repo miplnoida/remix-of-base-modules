@@ -136,8 +136,19 @@ const ViewInsuredPerson = () => {
       </div>
 
       {/* Person Summary Card */}
-      <Card>
-        
+      {/*<Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Personal Information</CardTitle>
+              <div className="flex items-center gap-4 mt-2">
+                <span className="text-sm text-gray-600">Status: {getStatusBadge(personData.status)}</span>
+                <span className="text-sm text-gray-600">DOB: {new Date(personData.dob).toLocaleDateString()}</span>
+                <span className="text-sm text-gray-600">Gender: {personData.sex}</span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -162,7 +173,7 @@ const ViewInsuredPerson = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card>*/}
 
       {/* Register Person Form Tabs Section - Collapsible */}
       <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
