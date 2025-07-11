@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft,
@@ -18,13 +20,30 @@ import {
   Phone,
   Mail,
   Users,
-  Heart
+  Heart,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Building2,
+  Camera
 } from 'lucide-react';
+
+// Import registration tabs
+import { RegisterPersonForm } from '@/components/ip/RegisterPersonForm';
+import { DependentTab } from '@/components/ip/DependentTab';
+import { NotesTab } from '@/components/ip/NotesTab';
+import { NPFTab } from '@/components/ip/NPFTab';
+import { PhotoTab } from '@/components/ip/PhotoTab';
+import { CaricomTab } from '@/components/ip/CaricomTab';
 
 const EditInsuredPerson = () => {
   const { ssn } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // State for tabs and collapsible sections
+  const [activeTab, setActiveTab] = useState('register');
+  const [isRegisterSectionOpen, setIsRegisterSectionOpen] = useState(true);
 
   // State for form data - initialized with mock data
   const [formData, setFormData] = useState({
@@ -137,82 +156,80 @@ const EditInsuredPerson = () => {
 
       {/* Form Sections */}
       <div className="space-y-6">
-        {/* Basic Information */}
         {/* Register Person Form Tabs Section - Collapsible */}
-      <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Registration Information
-                </CardTitle>
-                {isRegisterSectionOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-6">
-                  <TabsTrigger value="register" className="flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">Register Person</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="dependent" className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    <span className="hidden sm:inline">Dependent</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="notes" className="flex items-center gap-1">
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden sm:inline">Notes</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="npf" className="flex items-center gap-1">
-                    <Building2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">NPF</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="photo" className="flex items-center gap-1">
-                    <Camera className="h-4 w-4" />
-                    <span className="hidden sm:inline">Photo</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="caricom" className="flex items-center gap-1">
-                    <Shield className="h-4 w-4" />
-                    <span className="hidden sm:inline">Caricom</span>
-                  </TabsTrigger>
-                </TabsList>
-
-                <div className="mt-6">
-                  <TabsContent value="register">
-                    <RegisterPersonForm />
-                  </TabsContent>
-                  
-                  <TabsContent value="dependent">
-                    <DependentTab />
-                  </TabsContent>
-                  
-                  <TabsContent value="notes">
-                    <NotesTab />
-                  </TabsContent>
-                  
-                  <TabsContent value="npf">
-                    <NPFTab />
-                  </TabsContent>
-                  
-                  <TabsContent value="photo">
-                    <PhotoTab />
-                  </TabsContent>
-                  
-                  <TabsContent value="caricom">
-                    <CaricomTab />
-                  </TabsContent>
+        <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Personal Registration Information
+                  </CardTitle>
+                  {isRegisterSectionOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
-              </Tabs>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-      
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-6">
+                    <TabsTrigger value="register" className="flex items-center gap-1">
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline">Register Person</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="dependent" className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span className="hidden sm:inline">Dependent</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="notes" className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      <span className="hidden sm:inline">Notes</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="npf" className="flex items-center gap-1">
+                      <Building2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">NPF</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="photo" className="flex items-center gap-1">
+                      <Camera className="h-4 w-4" />
+                      <span className="hidden sm:inline">Photo</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="caricom" className="flex items-center gap-1">
+                      <Shield className="h-4 w-4" />
+                      <span className="hidden sm:inline">Caricom</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <div className="mt-6">
+                    <TabsContent value="register">
+                      <RegisterPersonForm />
+                    </TabsContent>
+                    
+                    <TabsContent value="dependent">
+                      <DependentTab />
+                    </TabsContent>
+                    
+                    <TabsContent value="notes">
+                      <NotesTab />
+                    </TabsContent>
+                    
+                    <TabsContent value="npf">
+                      <NPFTab />
+                    </TabsContent>
+                    
+                    <TabsContent value="photo">
+                      <PhotoTab />
+                    </TabsContent>
+                    
+                    <TabsContent value="caricom">
+                      <CaricomTab />
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Contact Information */}
         <Card>
