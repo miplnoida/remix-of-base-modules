@@ -118,9 +118,9 @@ const ViewInsuredPerson = () => {
           <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <div>
             <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
-              {personData.firstname} {personData.surname} 
+              {personData.firstname} {personData.surname}
             </h1>
-            <p className="text-gray-600">SSN: {personData.ssn} {getStatusBadge(personData.status)}</p>
+            <p className="text-gray-600">SSN: {personData.ssn}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -137,7 +137,7 @@ const ViewInsuredPerson = () => {
 
       {/* Person Summary Card */}
       <Card>
-        <CardHeader>
+        {/* <CardHeader>
           <div className="flex justify-between items-start">
             <div>
               <CardTitle>Personal Information</CardTitle>
@@ -149,7 +149,7 @@ const ViewInsuredPerson = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent>*/}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-500">Occupation</label>
