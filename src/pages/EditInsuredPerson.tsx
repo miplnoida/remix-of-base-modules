@@ -139,17 +139,24 @@ const EditInsuredPerson = () => {
             <h1 className="text-3xl font-bold text-gray-900">
               Edit: {formData.firstname} {formData.middlename} {formData.surname}
             </h1>
-            <p className="text-gray-600">SSN: {formData.ssn} | Self Ref: {formData.selfRefNo}</p>
+            <p className="text-gray-600">SSN: {formData.ssn} | {getStatusBadge(formData.status)}</p>
           </div>
         </div>
         <div className="flex gap-3">
-          {getStatusBadge(formData.status)}
+          
           <Button 
             onClick={handleSave}
             className="flex items-center gap-2"
           >
             <Save className="h-4 w-4" />
             Save Changes
+          </Button>
+          <Button 
+            onClick={handleSave}
+            className="flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Submit
           </Button>
         </div>
       </div>
