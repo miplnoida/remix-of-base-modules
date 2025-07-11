@@ -19,7 +19,6 @@ import ContributionTracking from '@/pages/ContributionTracking';
 
 // Insured Persons - New consolidated page
 import IPManagement from '@/pages/IPManagement';
-import InsuredPersonListing from '@/pages/InsuredPersonListing';
 
 // Quick Actions Pages
 import WagesHistory from '@/pages/WagesHistory';
@@ -118,7 +117,7 @@ export const AppRoutes = () => {
       <Route path="/employer/contributions" element={<ProtectedLayout><ContributionTracking /></ProtectedLayout>} />
 
       {/* Insured Persons Routes - Consolidated */}
-      <Route path="/person/listing" element={<ProtectedLayout><InsuredPersonListing /></ProtectedLayout>} />
+      <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/view/:ssn" element={<ProtectedLayout><ViewInsuredPerson /></ProtectedLayout>} />
