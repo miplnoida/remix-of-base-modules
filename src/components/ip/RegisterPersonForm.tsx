@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus } from 'lucide-react';
+import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus, Edit, Eye, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 // Form schema
 const registrationSchema = z.object({
@@ -24,10 +25,6 @@ const registrationSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional(),
   age: z.number().min(1, 'Age is required'),
-  mailingAddressType: z.enum(['same', 'different']).default('same'),
-  residentAddress: z.string().min(1, 'Resident address is required'),
-  mailingAddress: z.string().optional(),
-  postalDistrict: z.string().min(1, 'Postal district is required'),
   sex: z.enum(['Male', 'Female', 'Not Specified']),
   dateOfBirth: z.date({ required_error: 'Date of birth is required' }),
   maritalStatus: z.enum(['Common Law', 'Divorced', 'Married', 'Separated', 'Single', 'Unknown', 'Widowed']),
@@ -53,6 +50,17 @@ const registrationSchema = z.object({
 });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
+
+// Address schema
+const addressSchema = z.object({
+  id: z.string(),
+  addressType: z.enum(['same', 'different']),
+  residentAddress: z.string().min(1, 'Resident address is required'),
+  mailingAddress: z.string().optional(),
+  postalDistrict: z.string().min(1, 'Postal district is required'),
+});
+
+type Address = z.infer<typeof addressSchema>;
 
 const postalDistricts = [
   'Basseterre Zone 01', 'Basseterre Zone 02', 'Basseterre Zone 03', 'Basseterre Zone 04',
@@ -105,10 +113,504 @@ interface Relation {
   beneficiaryAddress?: string;
 }
 
+// Address List Item Component
+const AddressListItem = ({ 
+  address, 
+  onEdit, 
+  onView, 
+  onRemove 
+}: { 
+  address: Address; 
+  onEdit: () => void; 
+  onView: () => void; 
+  onRemove: () => void; 
+}) => (
+  <div className="flex justify-between items-center p-3 border rounded-lg bg-background">
+    <div className="flex-1">
+      <div className="flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        <span className="font-medium">
+          {address.addressType === 'same' ? 'Same Address' : 'Different Addresses'}
+        </span>
+      </div>
+      <div className="text-sm text-muted-foreground mt-1">
+        <div>{address.residentAddress}</div>
+        {address.addressType === 'different' && address.mailingAddress && (
+          <div>Mailing: {address.mailingAddress}</div>
+        )}
+        <div className="mt-1">{address.postalDistrict}</div>
+      </div>
+    </div>
+    <div className="flex gap-2">
+      <Button type="button" variant="ghost" size="sm" onClick={onView}>
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+        <Edit className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+);
+
+// Address Form Modal Component
+const AddressFormModal = ({ 
+  open, 
+  onClose, 
+  onSubmit, 
+  mode, 
+  initialValues 
+}: { 
+  open: boolean; 
+  onClose: () => void; 
+  onSubmit: (data: Address) => void; 
+  mode: 'add' | 'edit' | 'view'; 
+  initialValues?: Address; 
+}) => {
+  const [formData, setFormData] = useState<Address>(initialValues || {
+    id: '',
+    addressType: 'same',
+    residentAddress: '',
+    mailingAddress: '',
+    postalDistrict: ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode !== 'view') {
+      onSubmit(formData);
+    }
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === 'add' ? 'Add New Address' : mode === 'edit' ? 'Edit Address' : 'View Address'}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Address Type</Label>
+            <Select 
+              value={formData.addressType} 
+              onValueChange={(value: 'same' | 'different') => 
+                setFormData({ ...formData, addressType: value })
+              }
+              disabled={mode === 'view'}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select address type" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border">
+                <SelectItem value="same">Mailing & Resident Address Same</SelectItem>
+                <SelectItem value="different">Different Addresses</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Resident Address *</Label>
+            <Textarea 
+              value={formData.residentAddress}
+              onChange={(e) => setFormData({ ...formData, residentAddress: e.target.value })}
+              placeholder="Enter resident address"
+              disabled={mode === 'view'}
+            />
+          </div>
+
+          {formData.addressType === 'different' && (
+            <div>
+              <Label>Mailing Address</Label>
+              <Textarea 
+                value={formData.mailingAddress}
+                onChange={(e) => setFormData({ ...formData, mailingAddress: e.target.value })}
+                placeholder="Enter mailing address"
+                disabled={mode === 'view'}
+              />
+            </div>
+          )}
+
+          <div>
+            <Label>Postal District *</Label>
+            <Select 
+              value={formData.postalDistrict} 
+              onValueChange={(value) => setFormData({ ...formData, postalDistrict: value })}
+              disabled={mode === 'view'}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select postal district" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                {postalDistricts.map((district) => (
+                  <SelectItem key={district} value={district}>{district}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {mode !== 'view' && (
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {mode === 'add' ? 'Add Address' : 'Save Changes'}
+              </Button>
+            </div>
+          )}
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Relation List Item Component
+const RelationListItem = ({ 
+  relation, 
+  onEdit, 
+  onView, 
+  onRemove 
+}: { 
+  relation: Relation; 
+  onEdit: () => void; 
+  onView: () => void; 
+  onRemove: () => void; 
+}) => (
+  <div className="flex justify-between items-center p-3 border rounded-lg bg-background">
+    <div className="flex-1">
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <span className="font-medium">{relation.type}</span>
+      </div>
+      <div className="text-sm text-muted-foreground mt-1">
+        {relation.name && <div>Name: {relation.name}</div>}
+        {relation.address && <div>Address: {relation.address}</div>}
+        {relation.relation && <div>Relation: {relation.relation}</div>}
+        {relation.phone && <div>Phone: {relation.phone}</div>}
+        {relation.mobile && <div>Mobile: {relation.mobile}</div>}
+        {relation.email && <div>Email: {relation.email}</div>}
+        {relation.fatherName && <div>Father: {relation.fatherName}</div>}
+        {relation.motherName && <div>Mother: {relation.motherName}</div>}
+        {relation.spouseName && <div>Spouse: {relation.spouseName}</div>}
+        {relation.witnessName && <div>Witness: {relation.witnessName}</div>}
+        {relation.beneficiaryName && <div>Beneficiary: {relation.beneficiaryName}</div>}
+      </div>
+    </div>
+    <div className="flex gap-2">
+      <Button type="button" variant="ghost" size="sm" onClick={onView}>
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+        <Edit className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+);
+
+// Relation Form Modal Component
+const RelationFormModal = ({ 
+  open, 
+  onClose, 
+  onSubmit, 
+  mode, 
+  initialValues 
+}: { 
+  open: boolean; 
+  onClose: () => void; 
+  onSubmit: (data: Relation) => void; 
+  mode: 'add' | 'edit' | 'view'; 
+  initialValues?: Relation; 
+}) => {
+  const [formData, setFormData] = useState<Relation>(initialValues || {
+    id: '',
+    type: 'Contact',
+    name: '',
+    address: '',
+    relation: '',
+    phone: '',
+    mobile: '',
+    email: '',
+    fatherName: '',
+    motherName: '',
+    spouseName: '',
+    spouseAddress: '',
+    spouseDOB: undefined,
+    spouseSSN: '',
+    witnessName: '',
+    dateWitnessed: undefined,
+    beneficiaryName: '',
+    beneficiaryAddress: ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode !== 'view') {
+      onSubmit(formData);
+    }
+    onClose();
+  };
+
+  const renderFieldsByType = () => {
+    switch (formData.type) {
+      case 'Parent':
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Father's Name</Label>
+                <Input 
+                  value={formData.fatherName || ''}
+                  onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
+                  placeholder="Enter father's name"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Mother's Name</Label>
+                <Input 
+                  value={formData.motherName || ''}
+                  onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
+                  placeholder="Enter mother's name"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+          </>
+        );
+      case 'Spouse':
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Spouse Name</Label>
+                <Input 
+                  value={formData.spouseName || ''}
+                  onChange={(e) => setFormData({ ...formData, spouseName: e.target.value })}
+                  placeholder="Enter spouse name"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Spouse Address</Label>
+                <Textarea 
+                  value={formData.spouseAddress || ''}
+                  onChange={(e) => setFormData({ ...formData, spouseAddress: e.target.value })}
+                  placeholder="Enter spouse address"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Spouse Date of Birth</Label>
+                <DatePicker
+                  date={formData.spouseDOB}
+                  onSelect={(date) => setFormData({ ...formData, spouseDOB: date })}
+                  placeholder="Select spouse DOB"
+                />
+              </div>
+              <div>
+                <Label>Spouse SSN</Label>
+                <Input 
+                  value={formData.spouseSSN || ''}
+                  onChange={(e) => setFormData({ ...formData, spouseSSN: e.target.value })}
+                  placeholder="Enter spouse SSN"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+          </>
+        );
+      case 'Witness':
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Witness Name</Label>
+                <Input 
+                  value={formData.witnessName || ''}
+                  onChange={(e) => setFormData({ ...formData, witnessName: e.target.value })}
+                  placeholder="Enter witness name"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Date Witnessed</Label>
+                <DatePicker
+                  date={formData.dateWitnessed}
+                  onSelect={(date) => setFormData({ ...formData, dateWitnessed: date })}
+                  placeholder="Select date witnessed"
+                />
+              </div>
+            </div>
+          </>
+        );
+      case 'Beneficiary':
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Beneficiary Name</Label>
+                <Input 
+                  value={formData.beneficiaryName || ''}
+                  onChange={(e) => setFormData({ ...formData, beneficiaryName: e.target.value })}
+                  placeholder="Enter beneficiary name"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Beneficiary Address</Label>
+                <Textarea 
+                  value={formData.beneficiaryAddress || ''}
+                  onChange={(e) => setFormData({ ...formData, beneficiaryAddress: e.target.value })}
+                  placeholder="Enter beneficiary address"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+          </>
+        );
+      default: // Contact
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Name</Label>
+                <Input 
+                  value={formData.name || ''}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter name"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Relation</Label>
+                <Input 
+                  value={formData.relation || ''}
+                  onChange={(e) => setFormData({ ...formData, relation: e.target.value })}
+                  placeholder="Enter relation"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Address</Label>
+                <Textarea 
+                  value={formData.address || ''}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Enter address"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input 
+                  value={formData.email || ''}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Enter email"
+                  type="email"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Phone</Label>
+                <Input 
+                  value={formData.phone || ''}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                  disabled={mode === 'view'}
+                />
+              </div>
+              <div>
+                <Label>Mobile</Label>
+                <Input 
+                  value={formData.mobile || ''}
+                  onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                  placeholder="Enter mobile number"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+          </>
+        );
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === 'add' ? 'Add New Relation' : mode === 'edit' ? 'Edit Relation' : 'View Relation'}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Relation Type</Label>
+            <Select 
+              value={formData.type} 
+              onValueChange={(value: 'Beneficiary' | 'Contact' | 'Parent' | 'Spouse' | 'Witness') => 
+                setFormData({ ...formData, type: value })
+              }
+              disabled={mode === 'view'}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select relation type" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border">
+                <SelectItem value="Contact">Contact</SelectItem>
+                <SelectItem value="Parent">Parent</SelectItem>
+                <SelectItem value="Spouse">Spouse</SelectItem>
+                <SelectItem value="Witness">Witness</SelectItem>
+                <SelectItem value="Beneficiary">Beneficiary</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {renderFieldsByType()}
+
+          {mode !== 'view' && (
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {mode === 'add' ? 'Add Relation' : 'Save Changes'}
+              </Button>
+            </div>
+          )}
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const RegisterPersonForm = () => {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [showRelationDialog, setShowRelationDialog] = useState(false);
   const [relations, setRelations] = useState<Relation[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addressModal, setAddressModal] = useState({
+    open: false,
+    mode: 'add' as 'add' | 'edit' | 'view',
+    selectedAddress: null as Address | null
+  });
+  const [relationModal, setRelationModal] = useState({
+    open: false,
+    mode: 'add' as 'add' | 'edit' | 'view',
+    selectedRelation: null as Relation | null
+  });
   const [verification, setVerification] = useState({
     maritalStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
     birthStatus: { verifiedBy: '', dateVerified: null as Date | null, verifier: '' },
@@ -134,7 +636,6 @@ export const RegisterPersonForm = () => {
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
-      mailingAddressType: 'same',
       sex: 'Male',
       maritalStatus: 'Single',
       workPermit: 'No',
@@ -179,9 +680,75 @@ export const RegisterPersonForm = () => {
     setRelations(relations.filter(r => r.id !== id));
   };
 
+  const updateRelation = (relation: Relation) => {
+    setRelations(relations.map(r => r.id === relation.id ? relation : r));
+  };
+
+  const addAddress = (address: Address) => {
+    const newAddress = { ...address, id: Date.now().toString() };
+    setAddresses([...addresses, newAddress]);
+  };
+
+  const updateAddress = (address: Address) => {
+    setAddresses(addresses.map(a => a.id === address.id ? address : a));
+  };
+
+  const removeAddress = (id: string) => {
+    setAddresses(addresses.filter(a => a.id !== id));
+  };
+
+  const openAddressModal = (mode: 'add' | 'edit' | 'view', address?: Address) => {
+    setAddressModal({
+      open: true,
+      mode,
+      selectedAddress: address || null
+    });
+  };
+
+  const closeAddressModal = () => {
+    setAddressModal({
+      open: false,
+      mode: 'add',
+      selectedAddress: null
+    });
+  };
+
+  const handleAddressSubmit = (data: Address) => {
+    if (addressModal.mode === 'add') {
+      addAddress(data);
+    } else if (addressModal.mode === 'edit' && addressModal.selectedAddress) {
+      updateAddress({ ...data, id: addressModal.selectedAddress.id });
+    }
+  };
+
+  const openRelationModal = (mode: 'add' | 'edit' | 'view', relation?: Relation) => {
+    setRelationModal({
+      open: true,
+      mode,
+      selectedRelation: relation || null
+    });
+  };
+
+  const closeRelationModal = () => {
+    setRelationModal({
+      open: false,
+      mode: 'add',
+      selectedRelation: null
+    });
+  };
+
+  const handleRelationSubmit = (data: Relation) => {
+    if (relationModal.mode === 'add') {
+      addRelation(data);
+    } else if (relationModal.mode === 'edit' && relationModal.selectedRelation) {
+      updateRelation({ ...data, id: relationModal.selectedRelation.id });
+    }
+  };
+
   const onSubmit = (data: RegistrationFormData) => {
     console.log('Form submission:', { 
       ...data, 
+      addresses,
       relations, 
       verification, 
       cardDetails, 
@@ -247,95 +814,6 @@ export const RegisterPersonForm = () => {
             </div>
 
             <Separator />
-
-            <div className="space-y-4">
-              <h4 className="font-medium">Address Information</h4>
-              
-              <div>
-                <Label>Address Type</Label>
-                <Select onValueChange={(value: 'same' | 'different') => form.setValue('mailingAddressType', value)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select address type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border">
-                    <SelectItem value="same">Mailing & Resident Address Same</SelectItem>
-                    <SelectItem value="different">Different Addresses</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="residentAddress">Resident Address *</Label>
-                  <Textarea {...form.register('residentAddress')} placeholder="Enter resident address" />
-                  {form.formState.errors.residentAddress && (
-                    <p className="text-sm text-destructive">{form.formState.errors.residentAddress.message}</p>
-                  )}
-                </div>
-                
-                {form.watch('mailingAddressType') === 'different' && (
-                  <div>
-                    <Label htmlFor="mailingAddress">Mailing Address</Label>
-                    <Textarea {...form.register('mailingAddress')} placeholder="Enter mailing address" />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <Label>Postal District *</Label>
-                <Select onValueChange={(value) => form.setValue('postalDistrict', value)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select postal district" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
-                    {postalDistricts.map((district) => (
-                      <SelectItem key={district} value={district}>{district}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.postalDistrict && (
-                  <p className="text-sm text-destructive">{form.formState.errors.postalDistrict.message}</p>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium">Relations</h4>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowRelationDialog(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Relation
-                </Button>
-              </div>
-              
-              {relations.length > 0 && (
-                <div className="space-y-2">
-                  {relations.map((relation) => (
-                    <div key={relation.id} className="flex justify-between items-center p-3 border rounded-lg">
-                      <div>
-                        <span className="font-medium">{relation.type}</span>
-                        {relation.name && <span className="ml-2 text-muted-foreground">- {relation.name}</span>}
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => removeRelation(relation.id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -452,6 +930,94 @@ export const RegisterPersonForm = () => {
                 </Select>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Address Information Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Address Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="font-medium">Address List</h4>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => openAddressModal('add')}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Address
+              </Button>
+            </div>
+            
+            {addresses.length > 0 ? (
+              <div className="space-y-2">
+                {addresses.map((address) => (
+                  <AddressListItem
+                    key={address.id}
+                    address={address}
+                    onEdit={() => openAddressModal('edit', address)}
+                    onView={() => openAddressModal('view', address)}
+                    onRemove={() => removeAddress(address.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No addresses added yet</p>
+                <p className="text-sm">Click "Add New Address" to get started</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Relations Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Relations
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="font-medium">Relations List</h4>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => openRelationModal('add')}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Relation
+              </Button>
+            </div>
+            
+            {relations.length > 0 ? (
+              <div className="space-y-2">
+                {relations.map((relation) => (
+                  <RelationListItem
+                    key={relation.id}
+                    relation={relation}
+                    onEdit={() => openRelationModal('edit', relation)}
+                    onView={() => openRelationModal('view', relation)}
+                    onRemove={() => removeRelation(relation.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No relations added yet</p>
+                <p className="text-sm">Click "Add Relation" to get started</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -866,6 +1432,22 @@ export const RegisterPersonForm = () => {
         open={showRelationDialog} 
         onClose={() => setShowRelationDialog(false)}
         onAddRelation={addRelation}
+      />
+
+      <AddressFormModal
+        open={addressModal.open}
+        onClose={closeAddressModal}
+        onSubmit={handleAddressSubmit}
+        mode={addressModal.mode}
+        initialValues={addressModal.selectedAddress || undefined}
+      />
+
+      <RelationFormModal
+        open={relationModal.open}
+        onClose={closeRelationModal}
+        onSubmit={handleRelationSubmit}
+        mode={relationModal.mode}
+        initialValues={relationModal.selectedRelation || undefined}
       />
     </div>
   );
