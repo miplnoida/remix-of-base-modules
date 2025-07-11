@@ -8,8 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {Printer,CreditCard} from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
+  Printer, 
+  CreditCard, 
+  Search, 
+  Filter, 
+  Download, 
+  FileDown,
   ArrowLeft,
   User,
   DollarSign,
@@ -306,10 +312,50 @@ const ViewInsuredPerson = () => {
                 <div className="mt-6">
                   <TabsContent value="wages">
                     <Card>
-                      <CardHeader>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                         <CardTitle>Wages History</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Search className="h-4 w-4" />
+                            Search
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Filter className="h-4 w-4" />
+                            Filter
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Download className="h-4 w-4" />
+                            Export
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <FileDown className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Printer className="h-4 w-4" />
+                            Print
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
+                        <div className="mb-4 flex items-center gap-4">
+                          <div className="flex-1">
+                            <Input 
+                              placeholder="Search wages records..." 
+                              className="max-w-sm"
+                            />
+                          </div>
+                          <Select>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Filter by period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="2024">2024</SelectItem>
+                              <SelectItem value="2023">2023</SelectItem>
+                              <SelectItem value="2022">2022</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -318,6 +364,7 @@ const ViewInsuredPerson = () => {
                               <TableHead>Wages</TableHead>
                               <TableHead>Contributions</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -326,14 +373,30 @@ const ViewInsuredPerson = () => {
                               <TableCell>ABC Company Ltd</TableCell>
                               <TableCell>$4,500.00</TableCell>
                               <TableCell>$450.00</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">Paid</Badge></TableCell>
+                              <TableCell><Badge variant="secondary" className="bg-green-100 text-green-800">Paid</Badge></TableCell>
+                              <TableCell>
+                                <Button variant="outline" size="sm">View</Button>
+                              </TableCell>
                             </TableRow>
                             <TableRow>
                               <TableCell>2023 Q4</TableCell>
                               <TableCell>ABC Company Ltd</TableCell>
                               <TableCell>$4,200.00</TableCell>
                               <TableCell>$420.00</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">Paid</Badge></TableCell>
+                              <TableCell><Badge variant="secondary" className="bg-green-100 text-green-800">Paid</Badge></TableCell>
+                              <TableCell>
+                                <Button variant="outline" size="sm">View</Button>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>2023 Q3</TableCell>
+                              <TableCell>XYZ Corp</TableCell>
+                              <TableCell>$3,800.00</TableCell>
+                              <TableCell>$380.00</TableCell>
+                              <TableCell><Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge></TableCell>
+                              <TableCell>
+                                <Button variant="outline" size="sm">View</Button>
+                              </TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
