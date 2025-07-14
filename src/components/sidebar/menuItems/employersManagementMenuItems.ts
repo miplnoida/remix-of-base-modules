@@ -28,13 +28,6 @@ export const employersManagementMenuItems = [
         description: "Search, filter, and manage employer listings"
       },
       {
-        title: "Add New Employer",
-        url: "/employers-management/add",
-        icon: Plus,
-        requiresPermission: "manage_employers",
-        description: "Register new employer with complete details"
-      },
-      {
         title: "Employers Reports",
         url: "/employers-management/reports",
         icon: FileText,
