@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -31,20 +32,29 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Info
+  Info,
+  X,
+  HelpCircle,
+  Filter,
+  Download,
+  Upload,
+  Search
 } from 'lucide-react';
 import { DatePicker } from '@/components/ip/DatePicker';
 import { toast } from '@/hooks/use-toast';
 
 interface Owner {
   id: string;
+  ownerId: string;
   name: string;
   title: string;
   phone: string;
+  countryCode: string;
 }
 
 interface Location {
   id: string;
+  locationId: string;
   tradeName: string;
   address1: string;
   address2: string;
@@ -53,6 +63,7 @@ interface Location {
 
 interface Note {
   id: string;
+  noteId: string;
   date: Date;
   note: string;
   userId: string;
@@ -64,31 +75,58 @@ interface PreviousOwner {
   address: string;
 }
 
+interface Visit {
+  id: string;
+  date: Date;
+  inspector: string;
+  outcome: string;
+  notes: string;
+}
+
+interface Suit {
+  id: string;
+  suitId: string;
+  date: Date;
+  status: string;
+  summary: string;
+}
+
 const AddEmployer = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('form-detail');
   const [formData, setFormData] = useState({
+    // General Information
     name: '',
     tradeName: '',
     addressType: 'mailing',
     mailingAddress: '',
     hqAddress: '',
+    
+    // Contact Information
     phone: '',
-    countryCode: '+1',
+    phoneCountryCode: '+1',
     fax: '',
     faxCountryCode: '+1',
     email: '',
+    
+    // Organizational Information
     parentRegNo: '',
     officeCode: '',
     ownershipCode: '',
     sectorCode: '',
     industrialCode: '',
-    acquiredCode: 'No',
+    
+    // Acquisition / Incorporation
+    acquiredCode: false,
     acquisitionDate: null as Date | null,
     incorporatedDate: null as Date | null,
+    
+    // Location
     villageCode: '',
     activityType: '',
     inspectorCode: '',
+    
+    // Dates & Employees
     dateOfApplication: null as Date | null,
     totalEmployees: 0,
     maleEmployees: 0,
@@ -96,8 +134,12 @@ const AddEmployer = () => {
     dateWagesFirstPaid: null as Date | null,
     dateOfClosure: null as Date | null,
     reRegistrationDate: null as Date | null,
-    computerPayroll: 'No',
+    
+    // Technical Information
+    computerPayroll: false,
     makeModel: '',
+    
+    // Commencement Date
     commencementDate: null as Date | null
   });
 
@@ -105,12 +147,17 @@ const AddEmployer = () => {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [suits, setSuits] = useState<Suit[]>([]);
 
-  const [newOwner, setNewOwner] = useState({ name: '', title: '', phone: '' });
-  const [newLocation, setNewLocation] = useState({ tradeName: '', address1: '', address2: '', activityType: '' });
-  const [newNote, setNewNote] = useState({ note: '', userId: '' });
+  const [newOwner, setNewOwner] = useState({ ownerId: '', name: '', title: '', phone: '', countryCode: '+1' });
+  const [newLocation, setNewLocation] = useState({ locationId: '', tradeName: '', address1: '', address2: '', activityType: '' });
+  const [newNote, setNewNote] = useState({ noteId: '', note: '', userId: '' });
   const [newPreviousOwner, setNewPreviousOwner] = useState({ name: '', address: '' });
+  const [newVisit, setNewVisit] = useState({ date: null as Date | null, inspector: '', outcome: '', notes: '' });
+  const [newSuit, setNewSuit] = useState({ suitId: '', date: null as Date | null, status: '', summary: '' });
 
+  // Data arrays for dropdowns
   const industrialCodes = [
     'Account/Book-keep/Audit',
     'Act of other trans agency',
@@ -191,6 +238,23 @@ const AddEmployer = () => {
     'N04 Sheon Lewis'
   ];
 
+  const visitOutcomes = [
+    'Completed',
+    'Partially Completed',
+    'Rescheduled',
+    'No Access',
+    'Cancelled',
+    'Follow-up Required'
+  ];
+
+  const suitStatuses = [
+    'Active',
+    'Closed',
+    'Pending',
+    'Under Review',
+    'Dismissed'
+  ];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
@@ -201,9 +265,9 @@ const AddEmployer = () => {
   };
 
   const addOwner = () => {
-    if (newOwner.name && newOwner.title && newOwner.phone) {
+    if (newOwner.name && newOwner.title && newOwner.phone && newOwner.ownerId) {
       setOwners([...owners, { ...newOwner, id: Date.now().toString() }]);
-      setNewOwner({ name: '', title: '', phone: '' });
+      setNewOwner({ ownerId: '', name: '', title: '', phone: '', countryCode: '+1' });
       toast({
         title: "Owner Added",
         description: "Owner has been successfully added to the list.",
@@ -212,9 +276,9 @@ const AddEmployer = () => {
   };
 
   const addLocation = () => {
-    if (newLocation.tradeName && newLocation.address1) {
+    if (newLocation.tradeName && newLocation.address1 && newLocation.locationId) {
       setLocations([...locations, { ...newLocation, id: Date.now().toString() }]);
-      setNewLocation({ tradeName: '', address1: '', address2: '', activityType: '' });
+      setNewLocation({ locationId: '', tradeName: '', address1: '', address2: '', activityType: '' });
       toast({
         title: "Location Added",
         description: "Location has been successfully added to the list.",
@@ -223,12 +287,34 @@ const AddEmployer = () => {
   };
 
   const addNote = () => {
-    if (newNote.note && newNote.userId) {
+    if (newNote.note && newNote.userId && newNote.noteId) {
       setNotes([...notes, { ...newNote, id: Date.now().toString(), date: new Date() }]);
-      setNewNote({ note: '', userId: '' });
+      setNewNote({ noteId: '', note: '', userId: '' });
       toast({
         title: "Note Added",
         description: "Note has been successfully added to the list.",
+      });
+    }
+  };
+
+  const addVisit = () => {
+    if (newVisit.date && newVisit.inspector && newVisit.outcome) {
+      setVisits([...visits, { ...newVisit, id: Date.now().toString() }]);
+      setNewVisit({ date: null, inspector: '', outcome: '', notes: '' });
+      toast({
+        title: "Visit Added",
+        description: "Visit has been successfully added to the list.",
+      });
+    }
+  };
+
+  const addSuit = () => {
+    if (newSuit.suitId && newSuit.date && newSuit.status && newSuit.summary) {
+      setSuits([...suits, { ...newSuit, id: Date.now().toString() }]);
+      setNewSuit({ suitId: '', date: null, status: '', summary: '' });
+      toast({
+        title: "Suit Added",
+        description: "Suit has been successfully added to the list.",
       });
     }
   };
@@ -256,8 +342,32 @@ const AddEmployer = () => {
     setNotes(notes.filter(note => note.id !== id));
   };
 
+  const deleteVisit = (id: string) => {
+    setVisits(visits.filter(visit => visit.id !== id));
+  };
+
+  const deleteSuit = (id: string) => {
+    setSuits(suits.filter(suit => suit.id !== id));
+  };
+
   const deletePreviousOwner = (id: string) => {
     setPreviousOwners(previousOwners.filter(owner => owner.id !== id));
+  };
+
+  const updateEmployeeCount = (type: 'male' | 'female', value: number) => {
+    if (type === 'male') {
+      setFormData(prev => ({ 
+        ...prev, 
+        maleEmployees: value,
+        totalEmployees: value + prev.femaleEmployees
+      }));
+    } else {
+      setFormData(prev => ({ 
+        ...prev, 
+        femaleEmployees: value,
+        totalEmployees: prev.maleEmployees + value
+      }));
+    }
   };
 
   const getTabStatus = (tab: string) => {
@@ -268,10 +378,58 @@ const AddEmployer = () => {
         return owners.length > 0 ? 'complete' : 'incomplete';
       case 'locations':
         return locations.length > 0 ? 'complete' : 'incomplete';
+      case 'notes':
+        return notes.length > 0 ? 'complete' : 'incomplete';
+      case 'commencement':
+        return formData.commencementDate ? 'complete' : 'incomplete';
       default:
         return 'incomplete';
     }
   };
+
+  const FloatingLabelInput = ({ label, value, onChange, type = "text", required = false, placeholder = " " }: {
+    label: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    type?: string;
+    required?: boolean;
+    placeholder?: string;
+  }) => (
+    <div className="relative">
+      <Input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="peer pt-6 pb-2"
+        required={required}
+      />
+      <Label className="absolute left-3 top-2 text-xs text-muted-foreground transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-primary">
+        {label} {required && <span className="text-destructive">*</span>}
+      </Label>
+    </div>
+  );
+
+  const FloatingLabelTextarea = ({ label, value, onChange, required = false, placeholder = " " }: {
+    label: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    required?: boolean;
+    placeholder?: string;
+  }) => (
+    <div className="relative">
+      <Textarea
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="peer pt-6 pb-2 min-h-20"
+        required={required}
+      />
+      <Label className="absolute left-3 top-2 text-xs text-muted-foreground transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-primary">
+        {label} {required && <span className="text-destructive">*</span>}
+      </Label>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
@@ -341,10 +499,12 @@ const AddEmployer = () => {
               <TabsTrigger value="notes" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Notes
+                {getTabStatus('notes') === 'complete' && <CheckCircle className="h-3 w-3 text-green-500" />}
               </TabsTrigger>
               <TabsTrigger value="commencement" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Commencement
+                {getTabStatus('commencement') === 'complete' && <CheckCircle className="h-3 w-3 text-green-500" />}
               </TabsTrigger>
               <TabsTrigger value="visits" className="flex items-center gap-2">
                 <Eye className="h-4 w-4" />
@@ -356,98 +516,66 @@ const AddEmployer = () => {
               </TabsTrigger>
             </TabsList>
 
+            {/* Tab 1: Form Detail */}
             <TabsContent value="form-detail" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* General Information */}
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-primary" />
-                      General Information
-                    </CardTitle>
-                    <CardDescription>Basic company details and identification</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="relative">
-                      <Input
-                        id="name"
-                        placeholder=" "
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="peer"
-                        required
-                      />
-                      <Label htmlFor="name" className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Company Name *
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        id="tradeName"
-                        placeholder=" "
-                        value={formData.tradeName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, tradeName: e.target.value }))}
-                        className="peer"
-                        required
-                      />
-                      <Label htmlFor="tradeName" className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Trade Name *
-                      </Label>
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Group 1: General Information */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    General Information
+                  </CardTitle>
+                  <CardDescription>Basic company details and identification</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FloatingLabelInput
+                      label="Company Name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="Trade Name"
+                      value={formData.tradeName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tradeName: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Label className="text-sm font-medium">Address Type</Label>
+                    <RadioGroup
+                      value={formData.addressType}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, addressType: value }))}
+                      className="flex gap-6"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="mailing" id="mailing" />
+                        <Label htmlFor="mailing">Mailing Address</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="hq" id="hq" />
+                        <Label htmlFor="hq">HQ Address</Label>
+                      </div>
+                    </RadioGroup>
+                    <FloatingLabelTextarea
+                      label={formData.addressType === 'mailing' ? 'Mailing Address' : 'HQ Address'}
+                      value={formData.addressType === 'mailing' ? formData.mailingAddress : formData.hqAddress}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        [formData.addressType === 'mailing' ? 'mailingAddress' : 'hqAddress']: e.target.value 
+                      }))}
+                      required
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Address Information */}
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      Address Information
-                    </CardTitle>
-                    <CardDescription>Select address type and enter details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium mb-3 block">Address Type</Label>
-                      <RadioGroup
-                        value={formData.addressType}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, addressType: value }))}
-                        className="flex gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="mailing" id="mailing" />
-                          <Label htmlFor="mailing">Mailing Address</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="hq" id="hq" />
-                          <Label htmlFor="hq">HQ Address</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div className="relative">
-                      <Textarea
-                        id="address"
-                        placeholder=" "
-                        value={formData.addressType === 'mailing' ? formData.mailingAddress : formData.hqAddress}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          [formData.addressType === 'mailing' ? 'mailingAddress' : 'hqAddress']: e.target.value 
-                        }))}
-                        className="peer min-h-20"
-                        required
-                      />
-                      <Label htmlFor="address" className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        {formData.addressType === 'mailing' ? 'Mailing Address' : 'HQ Address'} *
-                      </Label>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Previous Owners */}
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              {/* Group 2: Previous Owner */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <User className="h-5 w-5 text-primary" />
                     Previous Owners
                   </CardTitle>
@@ -455,28 +583,16 @@ const AddEmployer = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newPreviousOwner.name}
-                        onChange={(e) => setNewPreviousOwner(prev => ({ ...prev, name: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Previous Owner Name
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newPreviousOwner.address}
-                        onChange={(e) => setNewPreviousOwner(prev => ({ ...prev, address: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Previous Owner Address
-                      </Label>
-                    </div>
+                    <FloatingLabelInput
+                      label="Previous Owner Name"
+                      value={newPreviousOwner.name}
+                      onChange={(e) => setNewPreviousOwner(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                    <FloatingLabelInput
+                      label="Previous Owner Address"
+                      value={newPreviousOwner.address}
+                      onChange={(e) => setNewPreviousOwner(prev => ({ ...prev, address: e.target.value }))}
+                    />
                   </div>
                   <Button type="button" onClick={addPreviousOwner} variant="outline" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
@@ -497,7 +613,7 @@ const AddEmployer = () => {
                             size="sm"
                             onClick={() => deletePreviousOwner(owner.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       ))}
@@ -506,10 +622,10 @@ const AddEmployer = () => {
                 </CardContent>
               </Card>
 
-              {/* Contact Information */}
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              {/* Group 3: Contact Information */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <Phone className="h-5 w-5 text-primary" />
                     Contact Information
                   </CardTitle>
@@ -517,144 +633,158 @@ const AddEmployer = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex gap-2">
-                      <Select value={formData.countryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, countryCode: value }))}>
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="+1">🇺🇸 +1</SelectItem>
-                          <SelectItem value="+44">🇬🇧 +44</SelectItem>
-                          <SelectItem value="+1-869">🇰🇳 +1-869</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="relative flex-1">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Phone Number</Label>
+                      <div className="flex gap-2">
+                        <Select value={formData.phoneCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, phoneCountryCode: value }))}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                            <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                            <SelectItem value="+1-869">🇰🇳 +1-869</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Input
-                          placeholder=" "
                           value={formData.phone}
                           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                          className="peer"
+                          placeholder="Enter phone number"
+                          className="flex-1"
                         />
-                        <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                          Phone Number
-                        </Label>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Select value={formData.faxCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, faxCountryCode: value }))}>
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="+1">🇺🇸 +1</SelectItem>
-                          <SelectItem value="+44">🇬🇧 +44</SelectItem>
-                          <SelectItem value="+1-869">🇰🇳 +1-869</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="relative flex-1">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Fax Number</Label>
+                      <div className="flex gap-2">
+                        <Select value={formData.faxCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, faxCountryCode: value }))}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                            <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                            <SelectItem value="+1-869">🇰🇳 +1-869</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Input
-                          placeholder=" "
                           value={formData.fax}
                           onChange={(e) => setFormData(prev => ({ ...prev, fax: e.target.value }))}
-                          className="peer"
+                          placeholder="Enter fax number"
+                          className="flex-1"
                         />
-                        <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                          Fax Number
-                        </Label>
                       </div>
                     </div>
                   </div>
-                  <div className="relative">
-                    <Input
-                      type="email"
-                      placeholder=" "
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="peer"
+                  <FloatingLabelInput
+                    label="Email Address"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    type="email"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Group 4: Organizational Information */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Settings className="h-5 w-5 text-primary" />
+                    Organizational Information
+                  </CardTitle>
+                  <CardDescription>Codes and organizational details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FloatingLabelInput
+                      label="Parent Reg. No."
+                      value={formData.parentRegNo}
+                      onChange={(e) => setFormData(prev => ({ ...prev, parentRegNo: e.target.value }))}
                     />
-                    <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                      Email Address
-                    </Label>
+                    <FloatingLabelInput
+                      label="Office Code"
+                      value={formData.officeCode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, officeCode: e.target.value }))}
+                    />
+                    <FloatingLabelInput
+                      label="Ownership Code"
+                      value={formData.ownershipCode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, ownershipCode: e.target.value }))}
+                    />
+                    <FloatingLabelInput
+                      label="Sector Code"
+                      value={formData.sectorCode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, sectorCode: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Industrial Code</Label>
+                    <Select value={formData.industrialCode} onValueChange={(value) => setFormData(prev => ({ ...prev, industrialCode: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select industrial code" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {industrialCodes.map((code) => (
+                          <SelectItem key={code} value={code}>{code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Organizational Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-primary" />
-                      Organizational Info
-                    </CardTitle>
-                    <CardDescription>Codes and organizational details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+              {/* Group 5: Acquisition / Incorporation */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calculator className="h-5 w-5 text-primary" />
+                    Acquisition / Incorporation
+                  </CardTitle>
+                  <CardDescription>Company acquisition and incorporation details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="acquired"
+                      checked={formData.acquiredCode}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, acquiredCode: checked }))}
+                    />
+                    <Label htmlFor="acquired" className="text-sm font-medium">
+                      Acquired Company
+                    </Label>
+                  </div>
+                  {formData.acquiredCode && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Parent Reg. No.</Label>
-                      <Input
-                        value={formData.parentRegNo}
-                        onChange={(e) => setFormData(prev => ({ ...prev, parentRegNo: e.target.value }))}
-                        placeholder="Enter parent registration number"
+                      <Label className="text-sm font-medium">Acquisition Date</Label>
+                      <DatePicker
+                        date={formData.acquisitionDate}
+                        onSelect={(date) => setFormData(prev => ({ ...prev, acquisitionDate: date }))}
+                        placeholder="Select acquisition date"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Office Code</Label>
-                      <Input
-                        value={formData.officeCode}
-                        onChange={(e) => setFormData(prev => ({ ...prev, officeCode: e.target.value }))}
-                        placeholder="Enter office code"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Ownership Code</Label>
-                      <Input
-                        value={formData.ownershipCode}
-                        onChange={(e) => setFormData(prev => ({ ...prev, ownershipCode: e.target.value }))}
-                        placeholder="Enter ownership code"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Sector Code</Label>
-                      <Input
-                        value={formData.sectorCode}
-                        onChange={(e) => setFormData(prev => ({ ...prev, sectorCode: e.target.value }))}
-                        placeholder="Enter sector code"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                  )}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Incorporated Date</Label>
+                    <DatePicker
+                      date={formData.incorporatedDate}
+                      onSelect={(date) => setFormData(prev => ({ ...prev, incorporatedDate: date }))}
+                      placeholder="Select incorporation date"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calculator className="h-5 w-5 text-primary" />
-                      Industrial & Activity
-                    </CardTitle>
-                    <CardDescription>Business classification and activity type</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Industrial Code</Label>
-                      <Select value={formData.industrialCode} onValueChange={(value) => setFormData(prev => ({ ...prev, industrialCode: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select industrial code" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {industrialCodes.map((code) => (
-                            <SelectItem key={code} value={code}>{code}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Activity Type</Label>
-                      <Input
-                        value={formData.activityType}
-                        onChange={(e) => setFormData(prev => ({ ...prev, activityType: e.target.value }))}
-                        placeholder="Enter activity type"
-                      />
-                    </div>
+              {/* Group 6: Location */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Location Information
+                  </CardTitle>
+                  <CardDescription>Location and activity details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Village</Label>
                       <Select value={formData.villageCode} onValueChange={(value) => setFormData(prev => ({ ...prev, villageCode: value }))}>
@@ -668,88 +798,78 @@ const AddEmployer = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Inspector Code</Label>
-                      <Select value={formData.inspectorCode} onValueChange={(value) => setFormData(prev => ({ ...prev, inspectorCode: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select inspector" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {inspectorCodes.map((code) => (
-                            <SelectItem key={code} value={code}>{code}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <FloatingLabelInput
+                      label="Activity Type"
+                      value={formData.activityType}
+                      onChange={(e) => setFormData(prev => ({ ...prev, activityType: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Inspector Code</Label>
+                    <Select value={formData.inspectorCode} onValueChange={(value) => setFormData(prev => ({ ...prev, inspectorCode: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select inspector" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {inspectorCodes.map((code) => (
+                          <SelectItem key={code} value={code}>{code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Additional Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      Dates & Employees
-                    </CardTitle>
-                    <CardDescription>Important dates and employee information</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+              {/* Group 7: Dates & Employees */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Dates & Employees
+                  </CardTitle>
+                  <CardDescription>Important dates and employee information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Date of Application</Label>
+                    <DatePicker
+                      date={formData.dateOfApplication}
+                      onSelect={(date) => setFormData(prev => ({ ...prev, dateOfApplication: date }))}
+                      placeholder="Select application date"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Date of Application</Label>
-                      <DatePicker
-                        date={formData.dateOfApplication}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, dateOfApplication: date }))}
-                        placeholder="Select application date"
+                      <Label className="text-sm font-medium">Total Employees</Label>
+                      <Input
+                        type="number"
+                        value={formData.totalEmployees}
+                        readOnly
+                        className="bg-muted"
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Total Employees</Label>
-                        <Input
-                          type="number"
-                          value={formData.totalEmployees}
-                          onChange={(e) => {
-                            const total = parseInt(e.target.value) || 0;
-                            setFormData(prev => ({ ...prev, totalEmployees: total }));
-                          }}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Male</Label>
-                        <Input
-                          type="number"
-                          value={formData.maleEmployees}
-                          onChange={(e) => {
-                            const male = parseInt(e.target.value) || 0;
-                            setFormData(prev => ({ 
-                              ...prev, 
-                              maleEmployees: male,
-                              totalEmployees: male + prev.femaleEmployees
-                            }));
-                          }}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Female</Label>
-                        <Input
-                          type="number"
-                          value={formData.femaleEmployees}
-                          onChange={(e) => {
-                            const female = parseInt(e.target.value) || 0;
-                            setFormData(prev => ({ 
-                              ...prev, 
-                              femaleEmployees: female,
-                              totalEmployees: prev.maleEmployees + female
-                            }));
-                          }}
-                          placeholder="0"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Male</Label>
+                      <Input
+                        type="number"
+                        value={formData.maleEmployees}
+                        onChange={(e) => updateEmployeeCount('male', parseInt(e.target.value) || 0)}
+                        placeholder="0"
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Female</Label>
+                      <Input
+                        type="number"
+                        value={formData.femaleEmployees}
+                        onChange={(e) => updateEmployeeCount('female', parseInt(e.target.value) || 0)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Date Wages First Paid</Label>
                       <DatePicker
@@ -774,85 +894,42 @@ const AddEmployer = () => {
                         placeholder="Select date"
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-primary" />
-                      Technical Information
-                    </CardTitle>
-                    <CardDescription>Technical and system details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Acquired</Label>
-                      <RadioGroup
-                        value={formData.acquiredCode}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, acquiredCode: value }))}
-                        className="flex gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id="acquired-yes" />
-                          <Label htmlFor="acquired-yes">Yes</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id="acquired-no" />
-                          <Label htmlFor="acquired-no">No</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    {formData.acquiredCode === 'Yes' && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Acquisition Date</Label>
-                        <DatePicker
-                          date={formData.acquisitionDate}
-                          onSelect={(date) => setFormData(prev => ({ ...prev, acquisitionDate: date }))}
-                          placeholder="Select acquisition date"
-                        />
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Incorporated Date</Label>
-                      <DatePicker
-                        date={formData.incorporatedDate}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, incorporatedDate: date }))}
-                        placeholder="Select incorporation date"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Computer Payroll</Label>
-                      <RadioGroup
-                        value={formData.computerPayroll}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, computerPayroll: value }))}
-                        className="flex gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id="payroll-yes" />
-                          <Label htmlFor="payroll-yes">Yes</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id="payroll-no" />
-                          <Label htmlFor="payroll-no">No</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Make Model</Label>
-                      <Input
-                        value={formData.makeModel}
-                        onChange={(e) => setFormData(prev => ({ ...prev, makeModel: e.target.value }))}
-                        placeholder="Enter make and model"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Group 8: Technical Information */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Settings className="h-5 w-5 text-primary" />
+                    Technical Information
+                  </CardTitle>
+                  <CardDescription>Technical and system details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="payroll"
+                      checked={formData.computerPayroll}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, computerPayroll: checked }))}
+                    />
+                    <Label htmlFor="payroll" className="text-sm font-medium">
+                      Computer Payroll
+                    </Label>
+                  </div>
+                  <FloatingLabelInput
+                    label="Make Model"
+                    value={formData.makeModel}
+                    onChange={(e) => setFormData(prev => ({ ...prev, makeModel: e.target.value }))}
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
 
+            {/* Tab 2: Owners */}
             <TabsContent value="owners" className="space-y-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-primary" />
@@ -861,39 +938,45 @@ const AddEmployer = () => {
                   <CardDescription>Add and manage company owners and stakeholders</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newOwner.name}
-                        onChange={(e) => setNewOwner(prev => ({ ...prev, name: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Owner Name
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newOwner.title}
-                        onChange={(e) => setNewOwner(prev => ({ ...prev, title: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Title
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newOwner.phone}
-                        onChange={(e) => setNewOwner(prev => ({ ...prev, phone: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Phone Number
-                      </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <FloatingLabelInput
+                      label="Owner ID"
+                      value={newOwner.ownerId}
+                      onChange={(e) => setNewOwner(prev => ({ ...prev, ownerId: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="Owner Name"
+                      value={newOwner.name}
+                      onChange={(e) => setNewOwner(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="Title"
+                      value={newOwner.title}
+                      onChange={(e) => setNewOwner(prev => ({ ...prev, title: e.target.value }))}
+                      required
+                    />
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Phone Number</Label>
+                      <div className="flex gap-2">
+                        <Select value={newOwner.countryCode} onValueChange={(value) => setNewOwner(prev => ({ ...prev, countryCode: value }))}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                            <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                            <SelectItem value="+1-869">🇰🇳 +1-869</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={newOwner.phone}
+                          onChange={(e) => setNewOwner(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="Enter phone number"
+                          className="flex-1"
+                        />
+                      </div>
                     </div>
                   </div>
                   <Button type="button" onClick={addOwner} className="flex items-center gap-2">
@@ -916,10 +999,10 @@ const AddEmployer = () => {
                         <TableBody>
                           {owners.map((owner) => (
                             <TableRow key={owner.id}>
-                              <TableCell className="font-medium">{owner.id}</TableCell>
+                              <TableCell className="font-medium">{owner.ownerId}</TableCell>
                               <TableCell>{owner.name}</TableCell>
                               <TableCell>{owner.title}</TableCell>
-                              <TableCell>{owner.phone}</TableCell>
+                              <TableCell>{owner.countryCode} {owner.phone}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
                                   <Button variant="outline" size="sm">
@@ -930,7 +1013,7 @@ const AddEmployer = () => {
                                     size="sm"
                                     onClick={() => deleteOwner(owner.id)}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -944,8 +1027,9 @@ const AddEmployer = () => {
               </Card>
             </TabsContent>
 
+            {/* Tab 3: Locations */}
             <TabsContent value="locations" className="space-y-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -954,51 +1038,35 @@ const AddEmployer = () => {
                   <CardDescription>Add and manage business locations and branches</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newLocation.tradeName}
-                        onChange={(e) => setNewLocation(prev => ({ ...prev, tradeName: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Trade Name
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newLocation.activityType}
-                        onChange={(e) => setNewLocation(prev => ({ ...prev, activityType: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Activity Type
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newLocation.address1}
-                        onChange={(e) => setNewLocation(prev => ({ ...prev, address1: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Address Line 1
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newLocation.address2}
-                        onChange={(e) => setNewLocation(prev => ({ ...prev, address2: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Address Line 2
-                      </Label>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <FloatingLabelInput
+                      label="Location ID"
+                      value={newLocation.locationId}
+                      onChange={(e) => setNewLocation(prev => ({ ...prev, locationId: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="Trade Name"
+                      value={newLocation.tradeName}
+                      onChange={(e) => setNewLocation(prev => ({ ...prev, tradeName: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="Loc Addr1"
+                      value={newLocation.address1}
+                      onChange={(e) => setNewLocation(prev => ({ ...prev, address1: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="Loc Addr2"
+                      value={newLocation.address2}
+                      onChange={(e) => setNewLocation(prev => ({ ...prev, address2: e.target.value }))}
+                    />
+                    <FloatingLabelInput
+                      label="Activity Type"
+                      value={newLocation.activityType}
+                      onChange={(e) => setNewLocation(prev => ({ ...prev, activityType: e.target.value }))}
+                    />
                   </div>
                   <Button type="button" onClick={addLocation} className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
@@ -1012,8 +1080,8 @@ const AddEmployer = () => {
                           <TableRow>
                             <TableHead>Location ID</TableHead>
                             <TableHead>Trade Name</TableHead>
-                            <TableHead>Address 1</TableHead>
-                            <TableHead>Address 2</TableHead>
+                            <TableHead>Loc Addr1</TableHead>
+                            <TableHead>Loc Addr2</TableHead>
                             <TableHead>Activity Type</TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
@@ -1021,7 +1089,7 @@ const AddEmployer = () => {
                         <TableBody>
                           {locations.map((location) => (
                             <TableRow key={location.id}>
-                              <TableCell className="font-medium">{location.id}</TableCell>
+                              <TableCell className="font-medium">{location.locationId}</TableCell>
                               <TableCell>{location.tradeName}</TableCell>
                               <TableCell>{location.address1}</TableCell>
                               <TableCell>{location.address2}</TableCell>
@@ -1036,7 +1104,7 @@ const AddEmployer = () => {
                                     size="sm"
                                     onClick={() => deleteLocation(location.id)}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -1050,8 +1118,9 @@ const AddEmployer = () => {
               </Card>
             </TabsContent>
 
+            {/* Tab 4: Notes */}
             <TabsContent value="notes" className="space-y-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
@@ -1060,28 +1129,26 @@ const AddEmployer = () => {
                   <CardDescription>Add and manage notes and documentation</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <Textarea
-                        placeholder=" "
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FloatingLabelInput
+                      label="Notes ID"
+                      value={newNote.noteId}
+                      onChange={(e) => setNewNote(prev => ({ ...prev, noteId: e.target.value }))}
+                      required
+                    />
+                    <FloatingLabelInput
+                      label="User's ID"
+                      value={newNote.userId}
+                      onChange={(e) => setNewNote(prev => ({ ...prev, userId: e.target.value }))}
+                      required
+                    />
+                    <div className="md:col-span-1">
+                      <FloatingLabelTextarea
+                        label="Note"
                         value={newNote.note}
                         onChange={(e) => setNewNote(prev => ({ ...prev, note: e.target.value }))}
-                        className="peer min-h-20"
+                        required
                       />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        Note Content
-                      </Label>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder=" "
-                        value={newNote.userId}
-                        onChange={(e) => setNewNote(prev => ({ ...prev, userId: e.target.value }))}
-                        className="peer"
-                      />
-                      <Label className="absolute left-2 top-2 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-primary">
-                        User ID
-                      </Label>
                     </div>
                   </div>
                   <Button type="button" onClick={addNote} className="flex items-center gap-2">
@@ -1094,19 +1161,19 @@ const AddEmployer = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Note ID</TableHead>
-                            <TableHead>Date</TableHead>
+                            <TableHead>Notes ID</TableHead>
+                            <TableHead>Note Date</TableHead>
                             <TableHead>Note</TableHead>
-                            <TableHead>User ID</TableHead>
+                            <TableHead>User's ID</TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {notes.map((note) => (
                             <TableRow key={note.id}>
-                              <TableCell className="font-medium">{note.id}</TableCell>
+                              <TableCell className="font-medium">{note.noteId}</TableCell>
                               <TableCell>{note.date.toLocaleDateString()}</TableCell>
-                              <TableCell>{note.note}</TableCell>
+                              <TableCell className="max-w-xs truncate">{note.note}</TableCell>
                               <TableCell>{note.userId}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
@@ -1118,7 +1185,7 @@ const AddEmployer = () => {
                                     size="sm"
                                     onClick={() => deleteNote(note.id)}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -1132,8 +1199,9 @@ const AddEmployer = () => {
               </Card>
             </TabsContent>
 
+            {/* Tab 5: Commencement Date */}
             <TabsContent value="commencement" className="space-y-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
@@ -1165,8 +1233,9 @@ const AddEmployer = () => {
               </Card>
             </TabsContent>
 
+            {/* Tab 6: Visits */}
             <TabsContent value="visits" className="space-y-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="h-5 w-5 text-primary" />
@@ -1175,25 +1244,109 @@ const AddEmployer = () => {
                   <CardDescription>Track visits and inspections</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Initial Registration Visit</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Visit Date</Label>
+                      <DatePicker
+                        date={newVisit.date}
+                        onSelect={(date) => setNewVisit(prev => ({ ...prev, date }))}
+                        placeholder="Select visit date"
+                      />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Registration process initiated on {new Date().toLocaleDateString()}
-                    </p>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Inspector</Label>
+                      <Select value={newVisit.inspector} onValueChange={(value) => setNewVisit(prev => ({ ...prev, inspector: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select inspector" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {inspectorCodes.map((code) => (
+                            <SelectItem key={code} value={code}>{code}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Visit Outcome</Label>
+                      <Select value={newVisit.outcome} onValueChange={(value) => setNewVisit(prev => ({ ...prev, outcome: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select outcome" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {visitOutcomes.map((outcome) => (
+                            <SelectItem key={outcome} value={outcome}>{outcome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <FloatingLabelTextarea
+                        label="Visit Notes"
+                        value={newVisit.notes}
+                        onChange={(e) => setNewVisit(prev => ({ ...prev, notes: e.target.value }))}
+                      />
+                    </div>
                   </div>
-                  <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Visit history will appear here once visits are scheduled</p>
-                  </div>
+                  <Button type="button" onClick={addVisit} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Visit
+                  </Button>
+                  
+                  {visits.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Inspector</TableHead>
+                            <TableHead>Visit Outcome</TableHead>
+                            <TableHead>Notes</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {visits.map((visit) => (
+                            <TableRow key={visit.id}>
+                              <TableCell>{visit.date.toLocaleDateString()}</TableCell>
+                              <TableCell>{visit.inspector}</TableCell>
+                              <TableCell>
+                                <Badge variant={visit.outcome === 'Completed' ? 'default' : 'secondary'}>
+                                  {visit.outcome}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">{visit.notes}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteVisit(visit.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No visits recorded yet</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* Tab 7: Suits */}
             <TabsContent value="suits" className="space-y-6">
-              <Card className="shadow-lg">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5 text-primary" />
@@ -1202,10 +1355,96 @@ const AddEmployer = () => {
                   <CardDescription>Manage legal proceedings and suits</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-center py-8">
-                    <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No legal suits recorded for this employer</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <FloatingLabelInput
+                      label="Suit ID"
+                      value={newSuit.suitId}
+                      onChange={(e) => setNewSuit(prev => ({ ...prev, suitId: e.target.value }))}
+                      required
+                    />
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Date</Label>
+                      <DatePicker
+                        date={newSuit.date}
+                        onSelect={(date) => setNewSuit(prev => ({ ...prev, date }))}
+                        placeholder="Select suit date"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Status</Label>
+                      <Select value={newSuit.status} onValueChange={(value) => setNewSuit(prev => ({ ...prev, status: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suitStatuses.map((status) => (
+                            <SelectItem key={status} value={status}>{status}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <FloatingLabelTextarea
+                        label="Summary"
+                        value={newSuit.summary}
+                        onChange={(e) => setNewSuit(prev => ({ ...prev, summary: e.target.value }))}
+                        required
+                      />
+                    </div>
                   </div>
+                  <Button type="button" onClick={addSuit} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Suit
+                  </Button>
+                  
+                  {suits.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Suit ID</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Summary</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {suits.map((suit) => (
+                            <TableRow key={suit.id}>
+                              <TableCell className="font-medium">{suit.suitId}</TableCell>
+                              <TableCell>{suit.date.toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <Badge variant={suit.status === 'Active' ? 'default' : suit.status === 'Closed' ? 'secondary' : 'outline'}>
+                                  {suit.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">{suit.summary}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteSuit(suit.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No legal suits recorded</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
