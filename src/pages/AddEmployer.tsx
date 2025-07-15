@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Save, 
@@ -93,7 +93,17 @@ interface Suit {
 
 const AddEmployer = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('form-detail');
+  
+  // Get mode and employer data from URL params and location state
+  const mode = searchParams.get('mode') || 'add'; // add, edit, or view
+  const regNo = searchParams.get('regNo');
+  const employerData = location.state?.employerData;
+  const isViewMode = mode === 'view';
+  const isEditMode = mode === 'edit';
+  const isAddMode = mode === 'add';
   const [formData, setFormData] = useState({
     // General Information
     name: '',
@@ -142,6 +152,45 @@ const AddEmployer = () => {
     // Commencement Date
     commencementDate: null as Date | null
   });
+
+  // Effect to populate form data when editing or viewing
+  useEffect(() => {
+    if ((isEditMode || isViewMode) && employerData) {
+      setFormData({
+        name: employerData.name || '',
+        tradeName: employerData.tradeName || '',
+        addressType: 'mailing',
+        mailingAddress: employerData.mailingAddress1 || '',
+        hqAddress: employerData.hqAddress1 || '',
+        phone: employerData.phone || '',
+        phoneCountryCode: '+1',
+        fax: employerData.fax || '',
+        faxCountryCode: '+1',
+        email: '',
+        parentRegNo: employerData.parentRegNo || '',
+        officeCode: employerData.officeCode || '',
+        ownershipCode: employerData.ownershipCode || '',
+        sectorCode: employerData.sectorCode || '',
+        industrialCode: employerData.industrialCode || '',
+        acquiredCode: employerData.acquiredCode === 'Yes',
+        acquisitionDate: employerData.dateOfAcquisition ? new Date(employerData.dateOfAcquisition) : null,
+        incorporatedDate: employerData.dateOfIncorporated ? new Date(employerData.dateOfIncorporated) : null,
+        villageCode: employerData.villageCode || '',
+        activityType: employerData.activityType || '',
+        inspectorCode: employerData.inspectorCode || '',
+        dateOfApplication: employerData.dateOfApplication ? new Date(employerData.dateOfApplication) : null,
+        totalEmployees: (employerData.malesEmployed || 0) + (employerData.femalesEmployed || 0),
+        maleEmployees: employerData.malesEmployed || 0,
+        femaleEmployees: employerData.femalesEmployed || 0,
+        dateWagesFirstPaid: employerData.dateWagesFirstPaid ? new Date(employerData.dateWagesFirstPaid) : null,
+        dateOfClosure: employerData.dateOfClosure ? new Date(employerData.dateOfClosure) : null,
+        reRegistrationDate: employerData.reRegistrationDate ? new Date(employerData.reRegistrationDate) : null,
+        computerPayroll: employerData.companyPayroll === 'Yes',
+        makeModel: employerData.makeModel || '',
+        commencementDate: null
+      });
+    }
+  }, [isEditMode, isViewMode, employerData]);
 
   const [previousOwners, setPreviousOwners] = useState<PreviousOwner[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
@@ -257,9 +306,10 @@ const AddEmployer = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const action = isEditMode ? 'updated' : 'registered';
     toast({
       title: "Success",
-      description: "Employer has been successfully registered!",
+      description: `Employer has been successfully ${action}!`,
     });
     navigate('/employers-management/manage');
   };
@@ -403,6 +453,7 @@ const AddEmployer = () => {
         onChange={onChange}
         className="peer pt-6 pb-2"
         required={required}
+        disabled={isViewMode}
       />
       <Label className="absolute left-3 top-2 text-xs text-muted-foreground transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-primary">
         {label} {required && <span className="text-destructive">*</span>}
@@ -424,6 +475,7 @@ const AddEmployer = () => {
         onChange={onChange}
         className="peer pt-6 pb-2 min-h-20"
         required={required}
+        disabled={isViewMode}
       />
       <Label className="absolute left-3 top-2 text-xs text-muted-foreground transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-primary">
         {label} {required && <span className="text-destructive">*</span>}
@@ -451,17 +503,21 @@ const AddEmployer = () => {
               <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Employers Management</span>
                 <span>/</span>
-                <span className="text-foreground font-medium">Add New Employer</span>
+                <span className="text-foreground font-medium">
+                  {isViewMode ? 'View Employer' : isEditMode ? 'Edit Employer' : 'Add New Employer'}
+                </span>
               </nav>
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="outline" onClick={() => navigate('/employers-management/manage')}>
-                Cancel
+                {isViewMode ? 'Back' : 'Cancel'}
               </Button>
-              <Button onClick={handleSubmit} className="flex items-center gap-2">
-                <Save className="h-4 w-4" />
-                Save Employer
-              </Button>
+              {!isViewMode && (
+                <Button onClick={handleSubmit} className="flex items-center gap-2">
+                  <Save className="h-4 w-4" />
+                  {isEditMode ? 'Update Employer' : 'Save Employer'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -471,10 +527,23 @@ const AddEmployer = () => {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Building2 className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Add New Employer</h1>
-              <p className="text-muted-foreground">Register a new employer with complete details and requirements</p>
-            </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  {isViewMode ? 'View Employer Details' : isEditMode ? 'Edit Employer' : 'Add New Employer'}
+                </h1>
+                <p className="text-muted-foreground">
+                  {isViewMode 
+                    ? `Viewing details for ${employerData?.name || 'employer'}` 
+                    : isEditMode 
+                    ? `Editing details for ${employerData?.name || 'employer'}` 
+                    : 'Register a new employer with complete details and requirements'}
+                </p>
+                {(isViewMode || isEditMode) && employerData && (
+                  <Badge variant="secondary" className="mt-2">
+                    Reg. No: {employerData.regNo}
+                  </Badge>
+                )}
+              </div>
           </div>
         </div>
 
@@ -549,13 +618,14 @@ const AddEmployer = () => {
                       value={formData.addressType}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, addressType: value }))}
                       className="flex gap-6"
+                      disabled={isViewMode}
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="mailing" id="mailing" />
+                        <RadioGroupItem value="mailing" id="mailing" disabled={isViewMode} />
                         <Label htmlFor="mailing">Mailing Address</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="hq" id="hq" />
+                        <RadioGroupItem value="hq" id="hq" disabled={isViewMode} />
                         <Label htmlFor="hq">HQ Address</Label>
                       </div>
                     </RadioGroup>
@@ -594,7 +664,7 @@ const AddEmployer = () => {
                       onChange={(e) => setNewPreviousOwner(prev => ({ ...prev, address: e.target.value }))}
                     />
                   </div>
-                  <Button type="button" onClick={addPreviousOwner} variant="outline" className="flex items-center gap-2">
+                  <Button type="button" onClick={addPreviousOwner} variant="outline" className="flex items-center gap-2" disabled={isViewMode}>
                     <Plus className="h-4 w-4" />
                     Add Previous Owner
                   </Button>
@@ -636,7 +706,7 @@ const AddEmployer = () => {
                     <div>
                       <Label className="text-sm font-medium mb-2 block">Phone Number</Label>
                       <div className="flex gap-2">
-                        <Select value={formData.phoneCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, phoneCountryCode: value }))}>
+                        <Select value={formData.phoneCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, phoneCountryCode: value }))} disabled={isViewMode}>
                           <SelectTrigger className="w-24">
                             <SelectValue />
                           </SelectTrigger>
@@ -657,7 +727,7 @@ const AddEmployer = () => {
                     <div>
                       <Label className="text-sm font-medium mb-2 block">Fax Number</Label>
                       <div className="flex gap-2">
-                        <Select value={formData.faxCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, faxCountryCode: value }))}>
+                        <Select value={formData.faxCountryCode} onValueChange={(value) => setFormData(prev => ({ ...prev, faxCountryCode: value }))} disabled={isViewMode}>
                           <SelectTrigger className="w-24">
                             <SelectValue />
                           </SelectTrigger>
@@ -719,7 +789,7 @@ const AddEmployer = () => {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Industrial Code</Label>
-                    <Select value={formData.industrialCode} onValueChange={(value) => setFormData(prev => ({ ...prev, industrialCode: value }))}>
+                    <Select value={formData.industrialCode} onValueChange={(value) => setFormData(prev => ({ ...prev, industrialCode: value }))} disabled={isViewMode}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select industrial code" />
                       </SelectTrigger>
@@ -748,6 +818,7 @@ const AddEmployer = () => {
                       id="acquired"
                       checked={formData.acquiredCode}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, acquiredCode: checked }))}
+                      disabled={isViewMode}
                     />
                     <Label htmlFor="acquired" className="text-sm font-medium">
                       Acquired Company
@@ -787,7 +858,7 @@ const AddEmployer = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Village</Label>
-                      <Select value={formData.villageCode} onValueChange={(value) => setFormData(prev => ({ ...prev, villageCode: value }))}>
+                      <Select value={formData.villageCode} onValueChange={(value) => setFormData(prev => ({ ...prev, villageCode: value }))} disabled={isViewMode}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select village" />
                         </SelectTrigger>
@@ -806,7 +877,7 @@ const AddEmployer = () => {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Inspector Code</Label>
-                    <Select value={formData.inspectorCode} onValueChange={(value) => setFormData(prev => ({ ...prev, inspectorCode: value }))}>
+                    <Select value={formData.inspectorCode} onValueChange={(value) => setFormData(prev => ({ ...prev, inspectorCode: value }))} disabled={isViewMode}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select inspector" />
                       </SelectTrigger>
@@ -913,6 +984,7 @@ const AddEmployer = () => {
                       id="payroll"
                       checked={formData.computerPayroll}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, computerPayroll: checked }))}
+                      disabled={isViewMode}
                     />
                     <Label htmlFor="payroll" className="text-sm font-medium">
                       Computer Payroll
@@ -979,7 +1051,7 @@ const AddEmployer = () => {
                       </div>
                     </div>
                   </div>
-                  <Button type="button" onClick={addOwner} className="flex items-center gap-2">
+                  <Button type="button" onClick={addOwner} className="flex items-center gap-2" disabled={isViewMode}>
                     <Plus className="h-4 w-4" />
                     Add Owner
                   </Button>
@@ -1068,7 +1140,7 @@ const AddEmployer = () => {
                       onChange={(e) => setNewLocation(prev => ({ ...prev, activityType: e.target.value }))}
                     />
                   </div>
-                  <Button type="button" onClick={addLocation} className="flex items-center gap-2">
+                  <Button type="button" onClick={addLocation} className="flex items-center gap-2" disabled={isViewMode}>
                     <Plus className="h-4 w-4" />
                     Add Location
                   </Button>
@@ -1151,7 +1223,7 @@ const AddEmployer = () => {
                       />
                     </div>
                   </div>
-                  <Button type="button" onClick={addNote} className="flex items-center gap-2">
+                  <Button type="button" onClick={addNote} className="flex items-center gap-2" disabled={isViewMode}>
                     <Plus className="h-4 w-4" />
                     Add Note
                   </Button>
@@ -1287,7 +1359,7 @@ const AddEmployer = () => {
                       />
                     </div>
                   </div>
-                  <Button type="button" onClick={addVisit} className="flex items-center gap-2">
+                  <Button type="button" onClick={addVisit} className="flex items-center gap-2" disabled={isViewMode}>
                     <Plus className="h-4 w-4" />
                     Add Visit
                   </Button>
@@ -1392,7 +1464,7 @@ const AddEmployer = () => {
                       />
                     </div>
                   </div>
-                  <Button type="button" onClick={addSuit} className="flex items-center gap-2">
+                  <Button type="button" onClick={addSuit} className="flex items-center gap-2" disabled={isViewMode}>
                     <Plus className="h-4 w-4" />
                     Add Suit
                   </Button>

@@ -219,17 +219,20 @@ const ManageEmployers = () => {
 
   const handleViewDetails = (employer: EmployerRecord) => {
     console.log('Viewing details for:', employer);
-    // Navigate to employer details view
+    navigate(`/add-employer?mode=view&regNo=${employer.regNo}`, { state: { employerData: employer } });
   };
 
   const handleEditDetails = (employer: EmployerRecord) => {
     console.log('Editing details for:', employer);
-    // Navigate to employer edit form
+    navigate(`/add-employer?mode=edit&regNo=${employer.regNo}`, { state: { employerData: employer } });
   };
 
   const handleDeleteEmployer = (employer: EmployerRecord) => {
-    console.log('Deleting employer:', employer);
-    // Implement delete functionality
+    if (confirm(`Are you sure you want to delete employer "${employer.name}"? This action cannot be undone.`)) {
+      console.log('Deleting employer:', employer);
+      // Implement delete functionality here
+      alert('Employer deleted successfully!');
+    }
   };
 
   const handleAddNewEmployer = () => {
@@ -346,10 +349,6 @@ const ManageEmployers = () => {
                 <Button onClick={handleSearch} className="flex items-center gap-2">
                   <Search className="h-4 w-4" />
                   Search
-                </Button>
-                <Button variant="outline" onClick={handleAddNewEmployer}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add New Employers
                 </Button>
                 <Button variant="outline" onClick={handleHelp}>
                   <HelpCircle className="h-4 w-4 mr-2" />

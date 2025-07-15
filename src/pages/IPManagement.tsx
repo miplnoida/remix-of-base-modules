@@ -90,7 +90,6 @@ const IPManagement = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
-          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Insured Person Management</h1>
         </div>
       </div>
 
