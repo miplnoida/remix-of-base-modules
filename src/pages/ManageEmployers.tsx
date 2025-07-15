@@ -1,32 +1,32 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { 
-  Building2, 
-  Search, 
-  Plus, 
-  HelpCircle, 
-  ArrowLeft, 
-  X,
-  Eye,
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Search,
   Edit,
-  Trash2,
-  MoreVertical,
-  ArrowUpDown,
-  Calendar,
-  Phone
+  Eye,
+  HelpCircle,
+  FileText,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  ArrowLeft,
+  Trash2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 
 interface EmployerRecord {
   regNo: string;
@@ -81,7 +81,7 @@ interface EmployerRecord {
   reRegistrationDate: string;
 }
 
-// Sample data with comprehensive data
+// Sample data with comprehensive employer records
 const sampleEmployers: EmployerRecord[] = [
   {
     regNo: "EMP001",
@@ -189,122 +189,47 @@ const sampleEmployers: EmployerRecord[] = [
   }
 ];
 
-// Date Picker Component
-const DateRangePicker = ({ 
-  date, 
-  onSelect, 
-  placeholder = "Pick a date" 
-}: { 
-  date: Date | null; 
-  onSelect: (date: Date | null) => void; 
-  placeholder?: string; 
-}) => {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground"
-          )}
-        >
-          <Calendar className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <CalendarComponent
-          mode="single"
-          selected={date || undefined}
-          onSelect={(selectedDate) => onSelect(selectedDate || null)}
-          initialFocus
-          className="p-3 pointer-events-auto"
-        />
-      </PopoverContent>
-    </Popover>
-  );
-};
-
 const ManageEmployers = () => {
   const navigate = useNavigate();
-  
-  // Search filters state
-  const [searchFilters, setSearchFilters] = useState({
+  const [isSearchOpen, setIsSearchOpen] = useState(true);
+  const [searchParams, setSearchParams] = useState({
     regNo: '',
     name: '',
     tradeName: '',
     phone: '',
-    registrationDateFrom: null as Date | null,
-    registrationDateTo: null as Date | null,
+    registrationDate: '',
     status: ''
   });
 
-  // Table state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [sortColumn, setSortColumn] = useState<keyof EmployerRecord>('regNo');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  // Filtered and sorted data
-  const processedEmployers = useMemo(() => {
-    let filtered = sampleEmployers.filter(employer => {
-      if (searchFilters.regNo && !employer.regNo.toLowerCase().includes(searchFilters.regNo.toLowerCase())) return false;
-      if (searchFilters.name && !employer.name.toLowerCase().includes(searchFilters.name.toLowerCase())) return false;
-      if (searchFilters.tradeName && !employer.tradeName.toLowerCase().includes(searchFilters.tradeName.toLowerCase())) return false;
-      if (searchFilters.phone && !employer.phone.includes(searchFilters.phone)) return false;
-      if (searchFilters.status && employer.status !== searchFilters.status) return false;
-      
-      // Date range filter
-      if (searchFilters.registrationDateFrom || searchFilters.registrationDateTo) {
-        const empDate = new Date(employer.dateOfRegistration);
-        if (searchFilters.registrationDateFrom && empDate < searchFilters.registrationDateFrom) return false;
-        if (searchFilters.registrationDateTo && empDate > searchFilters.registrationDateTo) return false;
-      }
-      
-      return true;
-    });
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      const aValue = a[sortColumn];
-      const bValue = b[sortColumn];
-      const direction = sortDirection === 'asc' ? 1 : -1;
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return aValue.localeCompare(bValue) * direction;
-      }
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return (aValue - bValue) * direction;
-      }
-      return 0;
-    });
-
-    return filtered;
-  }, [searchFilters, sortColumn, sortDirection]);
-
-  // Paginated data
-  const paginatedEmployers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return processedEmployers.slice(start, end);
-  }, [processedEmployers, currentPage, pageSize]);
-
-  const totalPages = Math.ceil(processedEmployers.length / pageSize);
-
-  // Event handlers
-  const handleSort = (column: keyof EmployerRecord) => {
-    if (sortColumn === column) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
+  const handleSearch = () => {
+    console.log('Searching with parameters:', searchParams);
+    // Implement actual search functionality here
   };
 
-  const handleSearch = () => {
-    setCurrentPage(1);
-    // Search logic is handled by the processedEmployers useMemo
+  const handleReturnResults = () => {
+    console.log('Returning search results');
+    // Implement return result functionality
+  };
+
+  const handleClearSearch = () => {
+    setSearchParams({
+      regNo: '', name: '', tradeName: '', phone: '', registrationDate: '', status: ''
+    });
+  };
+
+  const handleViewDetails = (employer: EmployerRecord) => {
+    console.log('Viewing details for:', employer);
+    // Navigate to employer details view
+  };
+
+  const handleEditDetails = (employer: EmployerRecord) => {
+    console.log('Editing details for:', employer);
+    // Navigate to employer edit form
+  };
+
+  const handleDeleteEmployer = (employer: EmployerRecord) => {
+    console.log('Deleting employer:', employer);
+    // Implement delete functionality
   };
 
   const handleAddNewEmployer = () => {
@@ -312,368 +237,288 @@ const ManageEmployers = () => {
   };
 
   const handleHelp = () => {
-    alert('Search and manage employer records. Use filters to narrow down results.');
-  };
-
-  const handleReturnResults = () => {
-    setSearchFilters({
-      regNo: '',
-      name: '',
-      tradeName: '',
-      phone: '',
-      registrationDateFrom: null,
-      registrationDateTo: null,
-      status: ''
-    });
-    setCurrentPage(1);
+    alert('Use the search filters to find specific employer records. All fields support partial text matching.');
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'Active': { color: 'bg-green-100 text-green-800', dot: 'bg-green-500' },
-      'Closed': { color: 'bg-red-100 text-red-800', dot: 'bg-red-500' },
-      'Suspended': { color: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500' },
-      'Inactive': { color: 'bg-gray-100 text-gray-800', dot: 'bg-gray-500' }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['Inactive'];
-
-    return (
-      <Badge variant="secondary" className={config.color}>
-        <div className={`w-2 h-2 rounded-full mr-1 ${config.dot}`}></div>
-        {status}
-      </Badge>
-    );
+    switch (status) {
+      case 'Active':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+      case 'Suspended':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Suspended</Badge>;
+      case 'Closed':
+        return <Badge variant="secondary" className="bg-red-100 text-red-800">Closed</Badge>;
+      case 'Inactive':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Inactive</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
-  // Table columns configuration
-  const allColumns = [
-    { key: 'regNo', label: 'Reg. No.', sortable: true },
-    { key: 'name', label: 'Name', sortable: true },
-    { key: 'tradeName', label: 'Trade Name', sortable: true },
-    { key: 'phone', label: 'Phone', sortable: false },
-    { key: 'fax', label: 'Fax', sortable: false },
-    { key: 'hqAddress1', label: 'HQ Address 1', sortable: true },
-    { key: 'hqAddress2', label: 'HQ Address 2', sortable: true },
-    { key: 'officeCode', label: 'Office Code', sortable: true },
-    { key: 'activityType', label: 'Activity Type', sortable: true },
-    { key: 'industrialCode', label: 'Industrial Code', sortable: true },
-    { key: 'mailingAddress1', label: 'Mailing Address 1', sortable: true },
-    { key: 'mailingAddress2', label: 'Mailing Address 2', sortable: true },
-    { key: 'villageCode', label: 'Village Code', sortable: true },
-    { key: 'sectorCode', label: 'Sector Code', sortable: true },
-    { key: 'malesEmployed', label: 'Males Employed', sortable: true },
-    { key: 'femalesEmployed', label: 'Females Employed', sortable: true },
-    { key: 'arrears', label: 'Arrears', sortable: true },
-    { key: 'legalAction', label: 'Legal Action', sortable: true },
-    { key: 'expectedMonthlyIncomeDate', label: 'Expected Monthly Income Date', sortable: true },
-    { key: 'dateOfRegistration', label: 'Date of Registration', sortable: true },
-    { key: 'dateWagesFirstPaid', label: 'Date Wages First Paid', sortable: true },
-    { key: 'dateOfClosure', label: 'Date of Closure', sortable: true },
-    { key: 'dateOfApplication', label: 'Date of Application', sortable: true },
-    { key: 'dateOfEntry', label: 'Date of Entry', sortable: true },
-    { key: 'dateOfIssue', label: 'Date of Issue', sortable: true },
-    { key: 'dateModified', label: 'Date Modified', sortable: true },
-    { key: 'dateVerified', label: 'Date Verified', sortable: true },
-    { key: 'enteredBy', label: 'Entered By', sortable: true },
-    { key: 'modifiedBy', label: 'Modified By', sortable: true },
-    { key: 'verifiedBy', label: 'Verified By', sortable: true },
-    { key: 'ownershipCode', label: 'Ownership Code', sortable: true },
-    { key: 'previousOwner', label: 'Previous Owner', sortable: true },
-    { key: 'previousOwnerAddress1', label: 'Previous Owner Address 1', sortable: true },
-    { key: 'previousOwnerAddress2', label: 'Previous Owner Address 2', sortable: true },
-    { key: 'dateOfAcquisition', label: 'Date of Acquisition', sortable: true },
-    { key: 'dateOfIncorporated', label: 'Date of Incorporated', sortable: true },
-    { key: 'companyPayroll', label: 'Company Payroll', sortable: true },
-    { key: 'makeModel', label: 'Make Model', sortable: true },
-    { key: 'diskType', label: 'Disk Type', sortable: true },
-    { key: 'acquiredCode', label: 'Acquired Code', sortable: true },
-    { key: 'estimatedArrearsSS', label: 'Estimated Arrears SS', sortable: true },
-    { key: 'estimatedArrearsLV', label: 'Estimated Arrears LV', sortable: true },
-    { key: 'estimatedArrearsPE', label: 'Estimated Arrears PE', sortable: true },
-    { key: 'estimatedWagesSS', label: 'Estimated Wages SS', sortable: true },
-    { key: 'estimatedWagesLV', label: 'Estimated Wages LV', sortable: true },
-    { key: 'estimatedWagesPE', label: 'Estimated Wages PE', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
-    { key: 'inspectorCode', label: 'Inspector Code', sortable: true },
-    { key: 'parentRegNo', label: 'Parent Reg. No.', sortable: true },
-    { key: 'reRegistrationDate', label: 'Re Registration Date', sortable: true }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto p-4 lg:p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Building2 className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Manage Employers</h1>
-              <p className="text-muted-foreground">Search, filter, and manage employer records</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Panel */}
-        <Card className="border-primary/20 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-primary" />
-              Query By
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Registration No. */}
-              <div className="space-y-2">
-                <Label htmlFor="regNo" className="text-sm font-medium">Registration No.</Label>
-                <Input
-                  id="regNo"
-                  value={searchFilters.regNo}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, regNo: e.target.value }))}
-                  placeholder="Enter registration number"
-                />
-              </div>
-
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">Name</Label>
-                <Input
-                  id="name"
-                  value={searchFilters.name}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter employer name"
-                />
-              </div>
-
-              {/* Trade Name */}
-              <div className="space-y-2">
-                <Label htmlFor="tradeName" className="text-sm font-medium">Trade Name</Label>
-                <Input
-                  id="tradeName"
-                  value={searchFilters.tradeName}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, tradeName: e.target.value }))}
-                  placeholder="Enter trade name"
-                />
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">Phone</Label>
-                <Input
-                  id="phone"
-                  value={searchFilters.phone}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Enter phone number"
-                />
-              </div>
-
-              {/* Registration Date From */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Registration Date (From)</Label>
-                <DateRangePicker
-                  date={searchFilters.registrationDateFrom}
-                  onSelect={(date) => setSearchFilters(prev => ({ ...prev, registrationDateFrom: date }))}
-                  placeholder="Select from date"
-                />
-              </div>
-
-              {/* Registration Date To */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Registration Date (To)</Label>
-                <DateRangePicker
-                  date={searchFilters.registrationDateTo}
-                  onSelect={(date) => setSearchFilters(prev => ({ ...prev, registrationDateTo: date }))}
-                  placeholder="Select to date"
-                />
-              </div>
-
-              {/* Status */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Status</Label>
-                <Select value={searchFilters.status} onValueChange={(value) => setSearchFilters(prev => ({ ...prev, status: value === "all" ? "" : value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="Active">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        Active
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Inactive">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                        Inactive
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Suspended">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        Suspended
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Closed">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        Closed
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 mt-6">
-              <Button onClick={handleSearch} className="bg-primary hover:bg-primary/90">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-              <Button onClick={handleAddNewEmployer} className="bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Employers
-              </Button>
-              <Button onClick={handleHelp} variant="outline">
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Help
-              </Button>
-              <Button onClick={handleReturnResults} variant="outline">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Return Results
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Results Table */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                Search Results ({processedEmployers.length} records)
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="sticky top-0 bg-background">
-                  <TableRow>
-                    {allColumns.slice(0, 15).map((column) => (
-                      <TableHead 
-                        key={column.key}
-                        className={column.sortable ? "cursor-pointer hover:bg-muted/50" : ""}
-                        onClick={column.sortable ? () => handleSort(column.key as keyof EmployerRecord) : undefined}
-                      >
-                        <div className="flex items-center gap-2">
-                          {column.label}
-                          {column.sortable && <ArrowUpDown className="h-4 w-4" />}
-                        </div>
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-20">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedEmployers.map((employer) => (
-                    <TableRow key={employer.regNo} className="hover:bg-muted/50 transition-colors">
-                      <TableCell className="font-medium text-primary">{employer.regNo}</TableCell>
-                      <TableCell className="font-medium">{employer.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{employer.tradeName}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          {employer.phone}
-                        </div>
-                      </TableCell>
-                      <TableCell>{employer.fax}</TableCell>
-                      <TableCell>{employer.hqAddress1}</TableCell>
-                      <TableCell>{employer.hqAddress2}</TableCell>
-                      <TableCell>{employer.officeCode}</TableCell>
-                      <TableCell>{employer.activityType}</TableCell>
-                      <TableCell>{employer.industrialCode}</TableCell>
-                      <TableCell>{employer.mailingAddress1}</TableCell>
-                      <TableCell>{employer.mailingAddress2}</TableCell>
-                      <TableCell>{employer.villageCode}</TableCell>
-                      <TableCell>{employer.sectorCode}</TableCell>
-                      <TableCell>{employer.malesEmployed}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, processedEmployers.length)} of {processedEmployers.length} entries
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+    <div className="space-y-4 lg:space-y-6">
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Manage Employers</h2>
+        <Button 
+          onClick={handleAddNewEmployer}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Add New Employers
+        </Button>
       </div>
+
+      {/* Search and Filter Section - Collapsible */}
+      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base lg:text-lg">Query By</CardTitle>
+                  <CardDescription className="text-sm">Reg No., Name, Trade Name, Phone, Registration Date, Status</CardDescription>
+                </div>
+                {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="text-sm font-medium">Registration No.</label>
+                  <Input
+                    placeholder="Enter registration number"
+                    value={searchParams.regNo}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, regNo: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Name</label>
+                  <Input
+                    placeholder="Enter employer name"
+                    value={searchParams.name}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Trade Name</label>
+                  <Input
+                    placeholder="Enter trade name"
+                    value={searchParams.tradeName}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Phone</label>
+                  <Input
+                    placeholder="Enter phone number"
+                    value={searchParams.phone}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Registration Date</label>
+                  <Input
+                    type="date"
+                    value={searchParams.registrationDate}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, registrationDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Suspended">Suspended</SelectItem>
+                      <SelectItem value="Closed">Closed</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 lg:gap-3">
+                <Button onClick={handleSearch} className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+                <Button variant="outline" onClick={handleAddNewEmployer}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Employers
+                </Button>
+                <Button variant="outline" onClick={handleHelp}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Help
+                </Button>
+                <Button variant="outline" onClick={handleReturnResults}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Return Results
+                </Button>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Employer Listing Section - Table Layout with All Columns */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base lg:text-lg">Search Results ({sampleEmployers.length} records)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[100px]">Reg. No.</TableHead>
+                  <TableHead className="min-w-[150px]">Name</TableHead>
+                  <TableHead className="min-w-[150px]">Trade Name</TableHead>
+                  <TableHead className="min-w-[120px]">Phone</TableHead>
+                  <TableHead className="min-w-[120px]">Fax</TableHead>
+                  <TableHead className="min-w-[150px]">HQ Address 1</TableHead>
+                  <TableHead className="min-w-[150px]">HQ Address 2</TableHead>
+                  <TableHead className="min-w-[120px]">Office Code</TableHead>
+                  <TableHead className="min-w-[130px]">Activity Type</TableHead>
+                  <TableHead className="min-w-[150px]">Industrial Code</TableHead>
+                  <TableHead className="min-w-[150px]">Mailing Address 1</TableHead>
+                  <TableHead className="min-w-[150px]">Mailing Address 2</TableHead>
+                  <TableHead className="min-w-[120px]">Village Code</TableHead>
+                  <TableHead className="min-w-[120px]">Sector Code</TableHead>
+                  <TableHead className="min-w-[120px]">Males Employed</TableHead>
+                  <TableHead className="min-w-[130px]">Females Employed</TableHead>
+                  <TableHead className="min-w-[100px]">Arrears</TableHead>
+                  <TableHead className="min-w-[120px]">Legal Action</TableHead>
+                  <TableHead className="min-w-[180px]">Expected Monthly Income Date</TableHead>
+                  <TableHead className="min-w-[150px]">Date of Registration</TableHead>
+                  <TableHead className="min-w-[160px]">Date Wages First Paid</TableHead>
+                  <TableHead className="min-w-[130px]">Date of Closure</TableHead>
+                  <TableHead className="min-w-[140px]">Date of Application</TableHead>
+                  <TableHead className="min-w-[120px]">Date of Entry</TableHead>
+                  <TableHead className="min-w-[120px]">Date of Issue</TableHead>
+                  <TableHead className="min-w-[130px]">Date Modified</TableHead>
+                  <TableHead className="min-w-[130px]">Date Verified</TableHead>
+                  <TableHead className="min-w-[120px]">Entered By</TableHead>
+                  <TableHead className="min-w-[120px]">Modified By</TableHead>
+                  <TableHead className="min-w-[120px]">Verified By</TableHead>
+                  <TableHead className="min-w-[130px]">Ownership Code</TableHead>
+                  <TableHead className="min-w-[130px]">Previous Owner</TableHead>
+                  <TableHead className="min-w-[180px]">Previous Owner Address 1</TableHead>
+                  <TableHead className="min-w-[180px]">Previous Owner Address 2</TableHead>
+                  <TableHead className="min-w-[150px]">Date of Acquisition</TableHead>
+                  <TableHead className="min-w-[150px]">Date of Incorporated</TableHead>
+                  <TableHead className="min-w-[130px]">Company Payroll</TableHead>
+                  <TableHead className="min-w-[120px]">Make Model</TableHead>
+                  <TableHead className="min-w-[100px]">Disk Type</TableHead>
+                  <TableHead className="min-w-[120px]">Acquired Code</TableHead>
+                  <TableHead className="min-w-[150px]">Estimated Arrears SS</TableHead>
+                  <TableHead className="min-w-[150px]">Estimated Arrears LV</TableHead>
+                  <TableHead className="min-w-[150px]">Estimated Arrears PE</TableHead>
+                  <TableHead className="min-w-[140px]">Estimated Wages SS</TableHead>
+                  <TableHead className="min-w-[140px]">Estimated Wages LV</TableHead>
+                  <TableHead className="min-w-[140px]">Estimated Wages PE</TableHead>
+                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  <TableHead className="min-w-[130px]">Inspector Code</TableHead>
+                  <TableHead className="min-w-[130px]">Parent Reg. No.</TableHead>
+                  <TableHead className="min-w-[160px]">Re Registration Date</TableHead>
+                  <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sampleEmployers.map((employer, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{employer.regNo}</TableCell>
+                    <TableCell>{employer.name}</TableCell>
+                    <TableCell>{employer.tradeName}</TableCell>
+                    <TableCell>{employer.phone}</TableCell>
+                    <TableCell>{employer.fax}</TableCell>
+                    <TableCell>{employer.hqAddress1}</TableCell>
+                    <TableCell>{employer.hqAddress2}</TableCell>
+                    <TableCell>{employer.officeCode}</TableCell>
+                    <TableCell>{employer.activityType}</TableCell>
+                    <TableCell>{employer.industrialCode}</TableCell>
+                    <TableCell>{employer.mailingAddress1}</TableCell>
+                    <TableCell>{employer.mailingAddress2}</TableCell>
+                    <TableCell>{employer.villageCode}</TableCell>
+                    <TableCell>{employer.sectorCode}</TableCell>
+                    <TableCell>{employer.malesEmployed}</TableCell>
+                    <TableCell>{employer.femalesEmployed}</TableCell>
+                    <TableCell>{employer.arrears}</TableCell>
+                    <TableCell>{employer.legalAction}</TableCell>
+                    <TableCell>{employer.expectedMonthlyIncomeDate}</TableCell>
+                    <TableCell>{employer.dateOfRegistration}</TableCell>
+                    <TableCell>{employer.dateWagesFirstPaid}</TableCell>
+                    <TableCell>{employer.dateOfClosure}</TableCell>
+                    <TableCell>{employer.dateOfApplication}</TableCell>
+                    <TableCell>{employer.dateOfEntry}</TableCell>
+                    <TableCell>{employer.dateOfIssue}</TableCell>
+                    <TableCell>{employer.dateModified}</TableCell>
+                    <TableCell>{employer.dateVerified}</TableCell>
+                    <TableCell>{employer.enteredBy}</TableCell>
+                    <TableCell>{employer.modifiedBy}</TableCell>
+                    <TableCell>{employer.verifiedBy}</TableCell>
+                    <TableCell>{employer.ownershipCode}</TableCell>
+                    <TableCell>{employer.previousOwner}</TableCell>
+                    <TableCell>{employer.previousOwnerAddress1}</TableCell>
+                    <TableCell>{employer.previousOwnerAddress2}</TableCell>
+                    <TableCell>{employer.dateOfAcquisition}</TableCell>
+                    <TableCell>{employer.dateOfIncorporated}</TableCell>
+                    <TableCell>{employer.companyPayroll}</TableCell>
+                    <TableCell>{employer.makeModel}</TableCell>
+                    <TableCell>{employer.diskType}</TableCell>
+                    <TableCell>{employer.acquiredCode}</TableCell>
+                    <TableCell>{employer.estimatedArrearsSS}</TableCell>
+                    <TableCell>{employer.estimatedArrearsLV}</TableCell>
+                    <TableCell>{employer.estimatedArrearsPE}</TableCell>
+                    <TableCell>{employer.estimatedWagesSS}</TableCell>
+                    <TableCell>{employer.estimatedWagesLV}</TableCell>
+                    <TableCell>{employer.estimatedWagesPE}</TableCell>
+                    <TableCell>{getStatusBadge(employer.status)}</TableCell>
+                    <TableCell>{employer.inspectorCode}</TableCell>
+                    <TableCell>{employer.parentRegNo}</TableCell>
+                    <TableCell>{employer.reRegistrationDate}</TableCell>
+                    <TableCell className="sticky right-0 bg-background">
+                      <div className="flex space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewDetails(employer)}
+                          className="h-8 w-8 p-0"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditDetails(employer)}
+                          className="h-8 w-8 p-0"
+                          title="Edit Details"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteEmployer(employer)}
+                          className="h-8 w-8 p-0"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
