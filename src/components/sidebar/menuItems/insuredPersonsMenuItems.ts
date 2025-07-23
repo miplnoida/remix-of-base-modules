@@ -13,13 +13,35 @@ export const insuredPersonsMenuItems = [
         title: "Dashboard",
         url: "/person/management",
         icon: List,
-        requiresPermission: "manage_insured_persons"
+        requiresPermission: "manage_insured_persons",
+        subItems: [
+          {
+            title: "Pending Reviews",
+            url: "/person/pending-reviews",
+            icon: List,
+            requiresPermission: "manage_insured_persons"
+          }
+        ]
       },
       {
         title: "IP Management",
-        url: "/person/ip-management",
+        url: "/person/ip-management", 
         icon: List,
-        requiresPermission: "manage_insured_persons"
+        requiresPermission: "manage_insured_persons",
+        subItems: [
+          {
+            title: "Pending Reviews",
+            url: "/person/pending-reviews",
+            icon: List,
+            requiresPermission: "manage_insured_persons"
+          },
+          {
+            title: "Insured Person Listing",
+            url: "/person/ip-management",
+            icon: List,
+            requiresPermission: "manage_insured_persons"
+          }
+        ]
       }
     ]
   }

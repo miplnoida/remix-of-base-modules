@@ -7,15 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Home, Search, Clock, AlertTriangle, CheckCircle, Eye, Edit, FileText } from 'lucide-react';
+import { Search, Clock, AlertTriangle, CheckCircle, Eye, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const PendingReviews = () => {
   const navigate = useNavigate();
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchParams, setSearchParams] = useState({
     ssn: '',
-    type: '',
-    priority: '',
-    daysWaiting: ''
+    name: '',
+    dob: '',
+    status: '',
+    applicationDate: '',
+    assignedOfficer: ''
   });
 
   // Replace the pendingItems mock data and table with insuredPersons data and table
@@ -183,34 +187,6 @@ const PendingReviews = () => {
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-      {/* Navigation Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/person/management')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to IP Management</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-          <div className="h-6 w-px bg-gray-300" />
-          <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600" />
-          <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Reviews</h1>
-            <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Review and process pending applications and claims</p>
-          </div>
-        </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 self-start lg:self-center"
-        >
-          <Home className="h-4 w-4" />
-          <span className="hidden sm:inline">Main Menu</span>
-        </Button>
-      </div>
 
       {/* Summary Cards */}
       {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -265,77 +241,101 @@ const PendingReviews = () => {
         </Card>
       </div>*/}
 
-      {/* Search and Filter Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Filter Pending Reviews</CardTitle>
-          <CardDescription>Search and filter items awaiting review</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="text-sm font-medium">SSN</label>
-              <Input
-                placeholder="Enter SSN"
-                value={searchParams.ssn}
-                onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Type</label>
-              <Select value={searchParams.type} onValueChange={(value) => setSearchParams(prev => ({ ...prev, type: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Registration">Registration</SelectItem>
-                  <SelectItem value="Benefit Claim">Benefit Claim</SelectItem>
-                  <SelectItem value="Address Change">Address Change</SelectItem>
-                  <SelectItem value="Document Update">Document Update</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Priority</label>
-              <Select value={searchParams.priority} onValueChange={(value) => setSearchParams(prev => ({ ...prev, priority: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Days Waiting</label>
-              <Select value={searchParams.daysWaiting} onValueChange={(value) => setSearchParams(prev => ({ ...prev, daysWaiting: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0-7">0-7 days</SelectItem>
-                  <SelectItem value="8-14">8-14 days</SelectItem>
-                  <SelectItem value="15+">15+ days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-2 lg:gap-3">
-            <Button onClick={handleSearch} className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Expandable Filter Section */}
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base lg:text-lg">
+                    {isFiltersOpen ? "Hide Filters" : "Show Filters"}
+                  </CardTitle>
+                  <CardDescription>Filter pending reviews by SSN, Name, DOB, Status, Application Date, Assigned Officer</CardDescription>
+                </div>
+                {isFiltersOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="text-sm font-medium">SSN</label>
+                  <Input
+                    placeholder="Enter SSN"
+                    value={searchParams.ssn}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Name</label>
+                  <Input
+                    placeholder="Enter name"
+                    value={searchParams.name}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Date of Birth</label>
+                  <Input
+                    type="date"
+                    value={searchParams.dob}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pending Review">Pending Review</SelectItem>
+                      <SelectItem value="Under Review">Under Review</SelectItem>
+                      <SelectItem value="Approved">Approved</SelectItem>
+                      <SelectItem value="Rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Application Date</label>
+                  <Input
+                    type="date"
+                    value={searchParams.applicationDate}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, applicationDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Assigned Officer</label>
+                  <Input
+                    placeholder="Enter officer name"
+                    value={searchParams.assignedOfficer}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, assignedOfficer: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 lg:gap-3">
+                <Button onClick={handleSearch} className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+                <Button variant="outline" onClick={() => setSearchParams({
+                  ssn: '', name: '', dob: '', status: '', applicationDate: '', assignedOfficer: ''
+                })}>
+                  Clear Filters
+                </Button>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Insured Persons Table (replaces Pending Items) */}
+      {/* Pending Reviews Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Insured Persons ({insuredPersons.length})</CardTitle>
+          <CardTitle className="text-base lg:text-lg">Pending Reviews ({insuredPersons.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
