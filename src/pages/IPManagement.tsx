@@ -76,15 +76,15 @@ const IPManagement = () => {
         {/* Main Statistics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {dashboardStats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
-                <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
-                  <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+            <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+                <div className={`p-2.5 rounded-full bg-gradient-to-r ${stat.color} shadow-lg`}>
+                  <stat.icon className="h-5 w-5 text-white" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
+                <div className="text-2xl lg:text-3xl font-bold text-foreground">{stat.value}</div>
                 <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
                   {stat.change} from last month
                 </p>
@@ -95,21 +95,20 @@ const IPManagement = () => {
 
         {/* ID Card Status Section */}
         <div>
-          <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">ID Card Status</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             {idCardStats.map((stat, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-secondary">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <div>
-                    <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
-                    <CardDescription className="text-xs">{stat.description}</CardDescription>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">{stat.description}</CardDescription>
                   </div>
-                  <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
-                    <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                  <div className={`p-2.5 rounded-full bg-gradient-to-r ${stat.color} shadow-lg`}>
+                    <stat.icon className="h-5 w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
+                  <div className="text-2xl lg:text-3xl font-bold text-foreground">{stat.value}</div>
                 </CardContent>
               </Card>
             ))}

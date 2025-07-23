@@ -1,7 +1,9 @@
 
 import { 
   Users, 
-  List
+  List,
+  BarChart3,
+  UserCog
 } from "lucide-react";
 
 export const insuredPersonsMenuItems = [
@@ -12,7 +14,7 @@ export const insuredPersonsMenuItems = [
       {
         title: "Dashboard",
         url: "/person/management",
-        icon: List,
+        icon: BarChart3,
         requiresPermission: "manage_insured_persons",
         subItems: [
           {
@@ -26,7 +28,7 @@ export const insuredPersonsMenuItems = [
       {
         title: "IP Management",
         url: "/person/ip-management", 
-        icon: List,
+        icon: UserCog,
         requiresPermission: "manage_insured_persons",
         subItems: [
           {

@@ -249,7 +249,7 @@ export const IPListing = () => {
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
         <Button 
-          onClick={() => navigate('/person/register')}
+          onClick={handleRegisterPerson}
           className="flex items-center gap-2 w-full sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
