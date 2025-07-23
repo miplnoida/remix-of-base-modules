@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserCog, UserPlus } from 'lucide-react';
 import { IPListing } from '@/components/ip/IPListing';
-import { IPRegistration } from '@/components/ip/IPRegistration';
 
 const PersonIPManagement = () => {
-  const [activeTab, setActiveTab] = useState('listing');
+  const [activeTab, setActiveTab] = useState('pending-reviews');
 
   useEffect(() => {
     const handleSwitchToRegister = () => {
-      setActiveTab('register');
+      // Navigate to register person page instead of switching tab
+      window.location.href = '/person/register-tabs';
     };
 
     window.addEventListener('switchToRegister', handleSwitchToRegister);
@@ -22,22 +22,22 @@ const PersonIPManagement = () => {
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="listing" className="flex items-center gap-2">
+          <TabsTrigger value="pending-reviews" className="flex items-center gap-2">
             <UserCog className="h-4 w-4" />
-            IP Listing
+            Pending Reviews
           </TabsTrigger>
-          <TabsTrigger value="register" className="flex items-center gap-2">
+          <TabsTrigger value="listing" className="flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
-            Register Person
+            IP Listing
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="listing" className="space-y-4 lg:space-y-6">
+        <TabsContent value="pending-reviews" className="space-y-4 lg:space-y-6">
           <IPListing />
         </TabsContent>
 
-        <TabsContent value="register" className="space-y-4 lg:space-y-6">
-          <IPRegistration />
+        <TabsContent value="listing" className="space-y-4 lg:space-y-6">
+          <IPListing />
         </TabsContent>
       </Tabs>
     </div>
