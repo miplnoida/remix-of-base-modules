@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { UserCog, UserPlus } from 'lucide-react';
 import { IPListing } from '@/components/ip/IPListing';
 
@@ -12,9 +13,16 @@ const PersonIPManagement = () => {
       window.location.href = '/person/register-tabs';
     };
 
+    const handleSwitchToPendingReviews = () => {
+      // Navigate to pending reviews page instead of switching tab
+      window.location.href = '/person/pending-reviews';
+    };
+
     window.addEventListener('switchToRegister', handleSwitchToRegister);
+    window.addEventListener('switchToPendingReviews', handleSwitchToPendingReviews);
     return () => {
       window.removeEventListener('switchToRegister', handleSwitchToRegister);
+      window.removeEventListener('switchToPendingReviews', handleSwitchToPendingReviews);
     };
   }, []);
 
@@ -33,7 +41,12 @@ const PersonIPManagement = () => {
         </TabsList>
 
         <TabsContent value="pending-reviews" className="space-y-4 lg:space-y-6">
-          <IPListing />
+          <div className="text-center p-8">
+            <p className="text-muted-foreground mb-4">Pending Reviews content will open in dedicated page</p>
+            <Button onClick={() => window.location.href = '/person/pending-reviews'}>
+              Go to Pending Reviews
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="listing" className="space-y-4 lg:space-y-6">

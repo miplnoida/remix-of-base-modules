@@ -33,12 +33,7 @@ export const IPListing = () => {
   const [activeTab, setActiveTab] = useState('insured-persons');
   const [isSearchOpen, setIsSearchOpen] = useState(true);
 
-  // Handle navigation when pending reviews tab is selected
-  useEffect(() => {
-    if (activeTab === 'pending-reviews') {
-      navigate('/person/pending-reviews');
-    }
-  }, [activeTab, navigate]);
+  // Handle navigation when pending reviews tab is selected - removed as tabs are no longer used here
   const [searchParams, setSearchParams] = useState({
     ssn: '',
     dob: '',
@@ -205,9 +200,8 @@ export const IPListing = () => {
   };
 
   const handleRegisterPerson = () => {
-    // Switch to register tab in parent component
-    const event = new CustomEvent('switchToRegister');
-    window.dispatchEvent(event);
+    // Navigate directly to register person page
+    navigate('/person/register-tabs');
   };
 
   const getStatusBadge = (status: string) => {
