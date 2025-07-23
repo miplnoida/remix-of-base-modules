@@ -19,6 +19,7 @@ import ContributionTracking from '@/pages/ContributionTracking';
 
 // Insured Persons - New consolidated page
 import IPManagement from '@/pages/IPManagement';
+import PersonIPManagement from '@/pages/PersonIPManagement';
 
 // Quick Actions Pages
 import WagesHistory from '@/pages/WagesHistory';
@@ -120,6 +121,7 @@ export const AppRoutes = () => {
       <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
+      <Route path="/person/ip-management" element={<ProtectedLayout><PersonIPManagement /></ProtectedLayout>} />
       <Route path="/person/view/:ssn" element={<ProtectedLayout><ViewInsuredPerson /></ProtectedLayout>} />
       <Route path="/person/edit/:ssn" element={<ProtectedLayout><EditInsuredPerson /></ProtectedLayout>} />
 

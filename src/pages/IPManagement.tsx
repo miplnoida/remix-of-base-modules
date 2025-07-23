@@ -24,7 +24,6 @@ import { IPRegistration } from '@/components/ip/IPRegistration';
 
 const IPManagement = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Dashboard statistics - mock data
   const dashboardStats = [
@@ -52,9 +51,6 @@ const IPManagement = () => {
   const handleQuickAction = (action: string) => {
     console.log(`${action} clicked`);
     switch (action) {
-      case 'Register Person':
-        setActiveTab('register');
-        break;
       case 'Pending Reviews':
         navigate('/person/pending-reviews');
         break;
@@ -72,182 +68,144 @@ const IPManagement = () => {
     }
   };
 
-  // Listen for custom event from IPListing component
-  useEffect(() => {
-    const handleSwitchToRegister = () => {
-      setActiveTab('register');
-    };
-
-    window.addEventListener('switchToRegister', handleSwitchToRegister);
-    return () => {
-      window.removeEventListener('switchToRegister', handleSwitchToRegister);
-    };
-  }, []);
-
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-      {/* Header - IP Management */}
+      {/* Header - Dashboard */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl lg:text-2xl font-semibold text-gray-900">IP Management</h1>
+          <h1 className="text-xl lg:text-2xl font-semibold text-gray-900">Dashboard</h1>
         </div>
       </div>
 
-      {/* Navigation Menu */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="dashboard" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-            <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4" />
-            <span className="hidden sm:inline">Dashboard</span>
-            <span className="sm:hidden">Stats</span>
-          </TabsTrigger>
-          <TabsTrigger value="listing" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-            <List className="h-3 w-3 lg:h-4 lg:w-4" />
-            <span className="hidden sm:inline">IP Listing</span>
-            <span className="sm:hidden">List</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Dashboard Content */}
+      <div className="space-y-4 lg:space-y-6">
+        {/* Main Statistics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          {dashboardStats.map((stat, index) => (
+            <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
+                <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
+                  <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
+                <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                  {stat.change} from last month
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-        {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-4 lg:space-y-6">
-          {/* Main Statistics */}
+        {/* ID Card Status Section */}
+        <div>
+          <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">ID Card Status</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            {dashboardStats.map((stat, index) => (
+            {idCardStats.map((stat, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
+                  <div>
+                    <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
+                    <CardDescription className="text-xs">{stat.description}</CardDescription>
+                  </div>
                   <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
                     <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
-                  <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    {stat.change} from last month
-                  </p>
                 </CardContent>
               </Card>
             ))}
           </div>
+        </div>
 
-          {/* ID Card Status Section */}
-          <div>
-            <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">ID Card Status</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              {idCardStats.map((stat, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* Recent Activities and Quick Actions */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activities</CardTitle>
+              <CardDescription>Latest actions performed on insured person records</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
-                      <CardDescription className="text-xs">{stat.description}</CardDescription>
+                      <p className="font-medium text-sm lg:text-base">{activity.action}</p>
+                      <p className="text-sm text-gray-600">{activity.person}</p>
                     </div>
-                    <div className={`p-2 lg:p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
-                      <stat.icon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                    <div className="text-right">
+                      <p className="text-sm text-green-600 font-medium">{activity.status}</p>
+                      <p className="text-xs text-gray-500">{activity.time}</p>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Recent Activities and Quick Actions */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activities</CardTitle>
-                <CardDescription>Latest actions performed on insured person records</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentActivities.map((activity, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-sm lg:text-base">{activity.action}</p>
-                        <p className="text-sm text-gray-600">{activity.person}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-green-600 font-medium">{activity.status}</p>
-                        <p className="text-xs text-gray-500">{activity.time}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Frequently used actions for IP management</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button 
-                    className="h-16 lg:h-20 flex flex-col gap-2"
-                    onClick={() => handleQuickAction('Register Person')}
-                  >
-                    <UserPlus className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">Register Person</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 lg:h-20 flex flex-col gap-2"
-                    onClick={() => handleQuickAction('Pending Reviews')}
-                  >
-                    <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">Pending Reviews</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 lg:h-20 flex flex-col gap-2"
-                    onClick={() => handleQuickAction('View Wages History')}
-                  >
-                    <DollarSign className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">Wages History</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 lg:h-20 flex flex-col gap-2"
-                    onClick={() => handleQuickAction('View Claim History')}
-                  >
-                    <FileText className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">Claim History</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 lg:h-20 flex flex-col gap-2"
-                    onClick={() => handleQuickAction('Check Benefit Eligibilities')}
-                  >
-                    <Shield className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">Benefit Eligibility</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 lg:h-20 flex flex-col gap-2"
-                    onClick={() => setActiveTab('listing')}
-                  >
-                    <List className="h-5 w-5 lg:h-6 lg:w-6" />
-                    <span className="text-xs lg:text-sm">View All</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* IP Listing Tab */}
-        <TabsContent value="listing">
-          <IPListing />
-        </TabsContent>
-
-        {/* Register Tab - Hidden from tab list but accessible via actions */}
-        <TabsContent value="register">
-          <IPRegistration />
-        </TabsContent>
-      </Tabs>
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Frequently used actions for IP management</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  className="h-16 lg:h-20 flex flex-col gap-2"
+                  onClick={() => navigate('/person/ip-management')}
+                >
+                  <UserPlus className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <span className="text-xs lg:text-sm">Register Person</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-16 lg:h-20 flex flex-col gap-2"
+                  onClick={() => handleQuickAction('Pending Reviews')}
+                >
+                  <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <span className="text-xs lg:text-sm">Pending Reviews</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-16 lg:h-20 flex flex-col gap-2"
+                  onClick={() => handleQuickAction('View Wages History')}
+                >
+                  <DollarSign className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <span className="text-xs lg:text-sm">Wages History</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-16 lg:h-20 flex flex-col gap-2"
+                  onClick={() => handleQuickAction('View Claim History')}
+                >
+                  <FileText className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <span className="text-xs lg:text-sm">Claim History</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-16 lg:h-20 flex flex-col gap-2"
+                  onClick={() => handleQuickAction('Check Benefit Eligibilities')}
+                >
+                  <Shield className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <span className="text-xs lg:text-sm">Benefit Eligibility</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-16 lg:h-20 flex flex-col gap-2"
+                  onClick={() => navigate('/person/ip-management')}
+                >
+                  <List className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <span className="text-xs lg:text-sm">View All</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
