@@ -257,32 +257,8 @@ export const IPListing = () => {
         </Button>
       </div>
 
-      {/* Tabs Section */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="pending-reviews" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-            <Clock className="h-3 w-3 lg:h-4 lg:w-4" />
-            <span className="hidden sm:inline">Pending Reviews</span>
-            <span className="sm:hidden">Pending</span>
-          </TabsTrigger>
-          <TabsTrigger value="insured-persons" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-            <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
-            <span className="hidden sm:inline">Insured Persons ({insuredPersons.length})</span>
-            <span className="sm:hidden">All ({insuredPersons.length})</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Pending Reviews Tab - Redirects to dedicated page */}
-        <TabsContent value="pending-reviews" className="space-y-4 lg:space-y-6">
-          <div className="text-center py-8">
-            <p className="text-gray-600">Redirecting to Pending Reviews...</p>
-          </div>
-        </TabsContent>
-
-        {/* Insured Persons Tab */}
-        <TabsContent value="insured-persons" className="space-y-4 lg:space-y-6">
-          {/* Search and Filter Section - Collapsible */}
-          <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+      {/* Search and Filter Section - Collapsible */}
+      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
             <Card>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
@@ -541,8 +517,6 @@ export const IPListing = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };
