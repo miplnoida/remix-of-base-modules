@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -23,11 +24,13 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  UserPlus
+  UserPlus,
+  Clock
 } from 'lucide-react';
 
 export const IPListing = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('pending-reviews');
   const [isSearchOpen, setIsSearchOpen] = useState(true);
   const [searchParams, setSearchParams] = useState({
     ssn: '',
@@ -213,11 +216,32 @@ export const IPListing = () => {
     }
   };
 
+  // Sample pending reviews data
+  const pendingReviews = [
+    {
+      ssn: '789012',
+      surname: 'Smith',
+      firstname: 'Jane',
+      middlename: 'Elizabeth',
+      dob: '1990-07-22',
+      sex: 'Female',
+      primaryOccup: 'Administrative Assistance',
+      selfRefNo: 'IP002',
+      aspNum: 'ASP456',
+      status: 'Pending Review',
+      phone: '+1869-469-5678',
+      email: 'jane.smith@email.com',
+      applicationDate: '2024-01-20',
+      submittedBy: 'Registration Officer',
+      reviewRequired: 'Document Verification'
+    }
+  ];
+
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Insured Persons Management</h2>
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-900">IP Listing</h2>
         <Button 
           onClick={handleRegisterPerson}
           className="flex items-center gap-2 w-full sm:w-auto"
@@ -227,266 +251,375 @@ export const IPListing = () => {
         </Button>
       </div>
 
-      {/* Search and Filter Section - Collapsible */}
-      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base lg:text-lg">Search Insured Persons</CardTitle>
-                  <CardDescription className="text-sm">Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
-                </div>
-                {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
-              </div>
+      {/* Tabs Section */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pending-reviews" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+            <Clock className="h-3 w-3 lg:h-4 lg:w-4" />
+            <span className="hidden sm:inline">Pending Reviews</span>
+            <span className="sm:hidden">Pending</span>
+          </TabsTrigger>
+          <TabsTrigger value="insured-persons" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+            <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
+            <span className="hidden sm:inline">Insured Persons ({insuredPersons.length})</span>
+            <span className="sm:hidden">All ({insuredPersons.length})</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Pending Reviews Tab */}
+        <TabsContent value="pending-reviews" className="space-y-4 lg:space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base lg:text-lg">Pending Reviews ({pendingReviews.length})</CardTitle>
+              <CardDescription>Records awaiting supervisor/manager verification</CardDescription>
             </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <label className="text-sm font-medium">SSN</label>
-                  <Input
-                    placeholder="Enter SSN"
-                    value={searchParams.ssn}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Date of Birth</label>
-                  <Input
-                    type="date"
-                    value={searchParams.dob}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Surname</label>
-                  <Input
-                    placeholder="Enter surname"
-                    value={searchParams.surname}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, surname: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">First Name</label>
-                  <Input
-                    placeholder="Enter first name"
-                    value={searchParams.firstname}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, firstname: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Phone</label>
-                  <Input
-                    placeholder="Enter phone number"
-                    value={searchParams.phone}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Gender</label>
-                  <Select value={searchParams.gender} onValueChange={(value) => setSearchParams(prev => ({ ...prev, gender: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Not Specified">Not Specified</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Status</label>
-                  <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Self Ref No.</label>
-                  <Input
-                    placeholder="Enter self ref no."
-                    value={searchParams.selfRefNo}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, selfRefNo: e.target.value }))}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 lg:gap-3">
-                <Button onClick={handleSearch} className="flex items-center gap-2">
-                  <Search className="h-4 w-4" />
-                  Search
-                </Button>
-                <Button variant="outline" onClick={handleClearSearch}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Clear
-                </Button>
-                <Button variant="outline" onClick={handleReturnResult}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Return Result
-                </Button>
-                <Button variant="outline">
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  Help
-                </Button>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[80px]">SSN</TableHead>
+                      <TableHead className="min-w-[100px]">Sur Name</TableHead>
+                      <TableHead className="min-w-[100px]">First Name</TableHead>
+                      <TableHead className="min-w-[100px]">Middle Name</TableHead>
+                      <TableHead className="min-w-[100px]">DOB</TableHead>
+                      <TableHead className="min-w-[80px]">Sex</TableHead>
+                      <TableHead className="min-w-[120px]">Primary Occup</TableHead>
+                      <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
+                      <TableHead className="min-w-[100px]">ASP Num.</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="min-w-[120px]">Phone</TableHead>
+                      <TableHead className="min-w-[120px]">Application Date</TableHead>
+                      <TableHead className="min-w-[120px]">Submitted By</TableHead>
+                      <TableHead className="min-w-[120px]">Review Required</TableHead>
+                      <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingReviews.map((person, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{person.ssn}</TableCell>
+                        <TableCell>{person.surname}</TableCell>
+                        <TableCell>{person.firstname}</TableCell>
+                        <TableCell>{person.middlename}</TableCell>
+                        <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
+                        <TableCell>{person.sex}</TableCell>
+                        <TableCell>{person.primaryOccup}</TableCell>
+                        <TableCell>{person.selfRefNo}</TableCell>
+                        <TableCell>{person.aspNum}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                            {person.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{person.phone}</TableCell>
+                        <TableCell>{person.applicationDate}</TableCell>
+                        <TableCell>{person.submittedBy}</TableCell>
+                        <TableCell>{person.reviewRequired}</TableCell>
+                        <TableCell className="sticky right-0 bg-background">
+                          <div className="flex space-x-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewDetails(person)}
+                              className="h-8 w-8 p-0"
+                              title="Review Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => console.log('Approve:', person)}
+                              className="h-8 px-2 text-xs"
+                              title="Approve"
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => console.log('Reject:', person)}
+                              className="h-8 px-2 text-xs"
+                              title="Reject"
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+          </Card>
+        </TabsContent>
 
-      {/* IP Listing Section - Table Layout with Enhanced Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Insured Persons ({insuredPersons.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[80px]">SSN</TableHead>
-                  <TableHead className="min-w-[100px]">Sur Name</TableHead>
-                  <TableHead className="min-w-[100px]">First Name</TableHead>
-                  <TableHead className="min-w-[100px]">Middle Name</TableHead>
-                  <TableHead className="min-w-[100px]">Previous Name</TableHead>
-                  <TableHead className="min-w-[100px]">DOB</TableHead>
-                  <TableHead className="min-w-[80px]">Sex</TableHead>
-                  <TableHead className="min-w-[80px]">Alias</TableHead>
-                  <TableHead className="min-w-[120px]">Primary Occup</TableHead>
-                  <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
-                  <TableHead className="min-w-[80px]">Status</TableHead>
-                  <TableHead className="min-w-[100px]">ASP Num.</TableHead>
+        {/* Insured Persons Tab */}
+        <TabsContent value="insured-persons" className="space-y-4 lg:space-y-6">
+          {/* Search and Filter Section - Collapsible */}
+          <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base lg:text-lg">Search Insured Persons</CardTitle>
+                      <CardDescription className="text-sm">Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
+                    </div>
+                    {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <label className="text-sm font-medium">SSN</label>
+                      <Input
+                        placeholder="Enter SSN"
+                        value={searchParams.ssn}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Date of Birth</label>
+                      <Input
+                        type="date"
+                        value={searchParams.dob}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Surname</label>
+                      <Input
+                        placeholder="Enter surname"
+                        value={searchParams.surname}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, surname: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">First Name</label>
+                      <Input
+                        placeholder="Enter first name"
+                        value={searchParams.firstname}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, firstname: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Phone</label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={searchParams.phone}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Gender</label>
+                      <Select value={searchParams.gender} onValueChange={(value) => setSearchParams(prev => ({ ...prev, gender: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Not Specified">Not Specified</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Status</label>
+                      <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Self Ref No.</label>
+                      <Input
+                        placeholder="Enter self ref no."
+                        value={searchParams.selfRefNo}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, selfRefNo: e.target.value }))}
+                      />
+                    </div>
+                  </div>
                   
-                  <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
-                  <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
-                  <TableHead className="min-w-[120px]">District</TableHead>
-                  <TableHead className="min-w-[150px]">Mail Addr1</TableHead>
-                  <TableHead className="min-w-[150px]">Mail Addr2</TableHead>
-                  <TableHead className="min-w-[100px]">Birth Place</TableHead>
-                  <TableHead className="min-w-[100px]">Nationality</TableHead>
-                  <TableHead className="min-w-[120px]">Date of Residency</TableHead>
-                  <TableHead className="min-w-[100px]">Marital Status</TableHead>
-                  <TableHead className="min-w-[100px]">Date Married</TableHead>
-                  <TableHead className="min-w-[120px]">Spouse Name</TableHead>
-                  <TableHead className="min-w-[150px]">Spouse Addr</TableHead>
-                  <TableHead className="min-w-[120px]">Father's Name</TableHead>
-                  <TableHead className="min-w-[120px]">Mother's Name</TableHead>
-                  <TableHead className="min-w-[100px]">Beneficiary</TableHead>
-                  <TableHead className="min-w-[150px]">Ben Addr</TableHead>
-                  <TableHead className="min-w-[120px]">Contact</TableHead>
-                  <TableHead className="min-w-[120px]">Contact Relation</TableHead>
-                  <TableHead className="min-w-[150px]">Contact Addr</TableHead>
-                  <TableHead className="min-w-[120px]">Phone</TableHead>
-                  <TableHead className="min-w-[100px]">Work Permit</TableHead>
-                  <TableHead className="min-w-[80px]">NPF</TableHead>
-                  <TableHead className="min-w-[100px]">Date Died</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Birth</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Name</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Marital</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Death</TableHead>
-                  <TableHead className="min-w-[120px]">Date Verified</TableHead>
-                  <TableHead className="min-w-[120px]">Verified By</TableHead>
-                  <TableHead className="min-w-[120px]">Application Date</TableHead>
-                  <TableHead className="min-w-[120px]">Registration Date</TableHead>
-                  <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {insuredPersons.map((person, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{person.ssn}</TableCell>
-                    <TableCell>{person.surname}</TableCell>
-                    <TableCell>{person.firstname}</TableCell>
-                    <TableCell>{person.middlename}</TableCell>
-                    <TableCell>{person.previousName}</TableCell>
-                    <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
-                    <TableCell>{person.sex}</TableCell>
-                    <TableCell>{person.alias}</TableCell>
-                    <TableCell>{person.primaryOccup}</TableCell>
-                    <TableCell>{person.selfRefNo}</TableCell>
-                     <TableCell>{getStatusBadge(person.status)}</TableCell>
-                    <TableCell>{person.aspNum}</TableCell>
-                   
-                    <TableCell>{person.residentAddr1}</TableCell>
-                    <TableCell>{person.residentAddr2}</TableCell>
-                    <TableCell>{person.district}</TableCell>
-                    <TableCell>{person.mailAddr1}</TableCell>
-                    <TableCell>{person.mailAddr2}</TableCell>
-                    <TableCell>{person.birthPlace}</TableCell>
-                    <TableCell>{person.nationality}</TableCell>
-                    <TableCell>{person.dateOfResidency}</TableCell>
-                    <TableCell>{person.maritalStatus}</TableCell>
-                    <TableCell>{person.dateMarried}</TableCell>
-                    <TableCell>{person.spouseName}</TableCell>
-                    <TableCell>{person.spouseAddr}</TableCell>
-                    <TableCell>{person.fatherName}</TableCell>
-                    <TableCell>{person.motherName}</TableCell>
-                    <TableCell>{person.beneficiary}</TableCell>
-                    <TableCell>{person.benAddr}</TableCell>
-                    <TableCell>{person.contactName}</TableCell>
-                    <TableCell>{person.contactRelation}</TableCell>
-                    <TableCell>{person.contactAddr}</TableCell>
-                    <TableCell>{person.phone}</TableCell>
-                    <TableCell>{person.workPermit}</TableCell>
-                    <TableCell>{person.npf}</TableCell>
-                    <TableCell>{person.dateOfDeath}</TableCell>
-                    <TableCell>{person.verifyBirth}</TableCell>
-                    <TableCell>{person.verifyName}</TableCell>
-                    <TableCell>{person.verifyMaritalStatus}</TableCell>
-                    <TableCell>{person.verifyDeath}</TableCell>
-                    <TableCell>{person.dateVerified}</TableCell>
-                    <TableCell>{person.verifiedBy}</TableCell>
-                    <TableCell>{person.applicationDate}</TableCell>
-                    <TableCell>{person.registrationDate}</TableCell>
-                    <TableCell className="sticky right-0 bg-background">
-                      <div className="flex space-x-1">
-                        <Select onValueChange={(value) => handleStatusChange(person, value)}>
-                          <SelectTrigger className="h-8 w-20 text-xs">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Verify">Verify</SelectItem>
-                            <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="Suspend">Suspend</SelectItem>
-                            <SelectItem value="Ceased">Ceased</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewDetails(person)}
-                          className="h-8 w-8 p-0"
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditDetails(person)}
-                          className="h-8 w-8 p-0"
-                          title="Edit Details"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  <div className="flex flex-wrap gap-2 lg:gap-3">
+                    <Button onClick={handleSearch} className="flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      Search
+                    </Button>
+                    <Button variant="outline" onClick={handleClearSearch}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Clear
+                    </Button>
+                    <Button variant="outline" onClick={handleReturnResult}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Return Result
+                    </Button>
+                    <Button variant="outline">
+                      <HelpCircle className="h-4 w-4 mr-2" />
+                      Help
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* IP Listing Section - Table Layout with Enhanced Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base lg:text-lg">Insured Persons ({insuredPersons.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[80px]">SSN</TableHead>
+                      <TableHead className="min-w-[100px]">Sur Name</TableHead>
+                      <TableHead className="min-w-[100px]">First Name</TableHead>
+                      <TableHead className="min-w-[100px]">Middle Name</TableHead>
+                      <TableHead className="min-w-[100px]">Previous Name</TableHead>
+                      <TableHead className="min-w-[100px]">DOB</TableHead>
+                      <TableHead className="min-w-[80px]">Sex</TableHead>
+                      <TableHead className="min-w-[80px]">Alias</TableHead>
+                      <TableHead className="min-w-[120px]">Primary Occup</TableHead>
+                      <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="min-w-[100px]">ASP Num.</TableHead>
+                      
+                      <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
+                      <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
+                      <TableHead className="min-w-[120px]">District</TableHead>
+                      <TableHead className="min-w-[150px]">Mail Addr1</TableHead>
+                      <TableHead className="min-w-[150px]">Mail Addr2</TableHead>
+                      <TableHead className="min-w-[100px]">Birth Place</TableHead>
+                      <TableHead className="min-w-[100px]">Nationality</TableHead>
+                      <TableHead className="min-w-[120px]">Date of Residency</TableHead>
+                      <TableHead className="min-w-[100px]">Marital Status</TableHead>
+                      <TableHead className="min-w-[100px]">Date Married</TableHead>
+                      <TableHead className="min-w-[120px]">Spouse Name</TableHead>
+                      <TableHead className="min-w-[150px]">Spouse Addr</TableHead>
+                      <TableHead className="min-w-[120px]">Father's Name</TableHead>
+                      <TableHead className="min-w-[120px]">Mother's Name</TableHead>
+                      <TableHead className="min-w-[100px]">Beneficiary</TableHead>
+                      <TableHead className="min-w-[150px]">Ben Addr</TableHead>
+                      <TableHead className="min-w-[120px]">Contact</TableHead>
+                      <TableHead className="min-w-[120px]">Contact Relation</TableHead>
+                      <TableHead className="min-w-[150px]">Contact Addr</TableHead>
+                      <TableHead className="min-w-[120px]">Phone</TableHead>
+                      <TableHead className="min-w-[100px]">Work Permit</TableHead>
+                      <TableHead className="min-w-[80px]">NPF</TableHead>
+                      <TableHead className="min-w-[100px]">Date Died</TableHead>
+                      <TableHead className="min-w-[120px]">Verify Birth</TableHead>
+                      <TableHead className="min-w-[120px]">Verify Name</TableHead>
+                      <TableHead className="min-w-[120px]">Verify Marital</TableHead>
+                      <TableHead className="min-w-[120px]">Verify Death</TableHead>
+                      <TableHead className="min-w-[120px]">Date Verified</TableHead>
+                      <TableHead className="min-w-[120px]">Verified By</TableHead>
+                      <TableHead className="min-w-[120px]">Application Date</TableHead>
+                      <TableHead className="min-w-[120px]">Registration Date</TableHead>
+                      <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {insuredPersons.map((person, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{person.ssn}</TableCell>
+                        <TableCell>{person.surname}</TableCell>
+                        <TableCell>{person.firstname}</TableCell>
+                        <TableCell>{person.middlename}</TableCell>
+                        <TableCell>{person.previousName}</TableCell>
+                        <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
+                        <TableCell>{person.sex}</TableCell>
+                        <TableCell>{person.alias}</TableCell>
+                        <TableCell>{person.primaryOccup}</TableCell>
+                        <TableCell>{person.selfRefNo}</TableCell>
+                        <TableCell>{getStatusBadge(person.status)}</TableCell>
+                        <TableCell>{person.aspNum}</TableCell>
+                        
+                        <TableCell>{person.residentAddr1}</TableCell>
+                        <TableCell>{person.residentAddr2}</TableCell>
+                        <TableCell>{person.district}</TableCell>
+                        <TableCell>{person.mailAddr1}</TableCell>
+                        <TableCell>{person.mailAddr2}</TableCell>
+                        <TableCell>{person.birthPlace}</TableCell>
+                        <TableCell>{person.nationality}</TableCell>
+                        <TableCell>{person.dateOfResidency}</TableCell>
+                        <TableCell>{person.maritalStatus}</TableCell>
+                        <TableCell>{person.dateMarried}</TableCell>
+                        <TableCell>{person.spouseName}</TableCell>
+                        <TableCell>{person.spouseAddr}</TableCell>
+                        <TableCell>{person.fatherName}</TableCell>
+                        <TableCell>{person.motherName}</TableCell>
+                        <TableCell>{person.beneficiary}</TableCell>
+                        <TableCell>{person.benAddr}</TableCell>
+                        <TableCell>{person.contactName}</TableCell>
+                        <TableCell>{person.contactRelation}</TableCell>
+                        <TableCell>{person.contactAddr}</TableCell>
+                        <TableCell>{person.phone}</TableCell>
+                        <TableCell>{person.workPermit}</TableCell>
+                        <TableCell>{person.npf}</TableCell>
+                        <TableCell>{person.dateOfDeath}</TableCell>
+                        <TableCell>{person.verifyBirth}</TableCell>
+                        <TableCell>{person.verifyName}</TableCell>
+                        <TableCell>{person.verifyMaritalStatus}</TableCell>
+                        <TableCell>{person.verifyDeath}</TableCell>
+                        <TableCell>{person.dateVerified}</TableCell>
+                        <TableCell>{person.verifiedBy}</TableCell>
+                        <TableCell>{person.applicationDate}</TableCell>
+                        <TableCell>{person.registrationDate}</TableCell>
+                        <TableCell className="sticky right-0 bg-background">
+                          <div className="flex space-x-1">
+                            <Select onValueChange={(value) => handleStatusChange(person, value)}>
+                              <SelectTrigger className="h-8 w-20 text-xs">
+                                <SelectValue placeholder="Status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Verify">Verify</SelectItem>
+                                <SelectItem value="Active">Active</SelectItem>
+                                <SelectItem value="Suspend">Suspend</SelectItem>
+                                <SelectItem value="Ceased">Ceased</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewDetails(person)}
+                              className="h-8 w-8 p-0"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditDetails(person)}
+                              className="h-8 w-8 p-0"
+                              title="Edit Details"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
