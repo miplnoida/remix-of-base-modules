@@ -149,7 +149,7 @@ const IPManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <Button 
                   className="h-16 lg:h-20 flex flex-col gap-2"
-                  onClick={() => navigate('/person/ip-management')}
+                  onClick={() => navigate('/person/register-tabs')}
                 >
                   <UserPlus className="h-5 w-5 lg:h-6 lg:w-6" />
                   <span className="text-xs lg:text-sm">Register Person</span>
