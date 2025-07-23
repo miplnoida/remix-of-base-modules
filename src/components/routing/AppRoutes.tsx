@@ -71,6 +71,7 @@ import ManageRoles from '@/pages/ManageRoles';
 import SystemSettings from '@/pages/SystemSettings';
 import PersonRegistration from '@/pages/PersonRegistration';
 import RegisterPersonTabs from '@/pages/RegisterPersonTabs';
+import PendingReviewsPage from '@/pages/PendingReviewsPage';
 
 export const AppRoutes = () => {
   return (
@@ -132,7 +133,7 @@ export const AppRoutes = () => {
       <Route path="/person/wages-history" element={<ProtectedLayout><WagesHistory /></ProtectedLayout>} />
       <Route path="/person/claim-history" element={<ProtectedLayout><ClaimHistory /></ProtectedLayout>} />
       <Route path="/person/benefit-eligibility" element={<ProtectedLayout><BenefitEligibility /></ProtectedLayout>} />
-      <Route path="/person/pending-reviews" element={<ProtectedLayout><PendingReviews /></ProtectedLayout>} />
+      <Route path="/person/pending-reviews" element={<ProtectedLayout><PendingReviewsPage /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />

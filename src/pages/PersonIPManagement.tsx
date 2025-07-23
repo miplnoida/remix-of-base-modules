@@ -12,9 +12,16 @@ const PersonIPManagement = () => {
       window.location.href = '/person/register-tabs';
     };
 
+    const handleSwitchToPendingReviews = () => {
+      // Navigate to pending reviews page
+      window.location.href = '/person/pending-reviews';
+    };
+
     window.addEventListener('switchToRegister', handleSwitchToRegister);
+    window.addEventListener('switchToPendingReviews', handleSwitchToPendingReviews);
     return () => {
       window.removeEventListener('switchToRegister', handleSwitchToRegister);
+      window.removeEventListener('switchToPendingReviews', handleSwitchToPendingReviews);
     };
   }, []);
 
