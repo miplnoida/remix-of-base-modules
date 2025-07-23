@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,8 +30,15 @@ import {
 
 export const IPListing = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('pending-reviews');
+  const [activeTab, setActiveTab] = useState('insured-persons');
   const [isSearchOpen, setIsSearchOpen] = useState(true);
+
+  // Handle navigation when pending reviews tab is selected
+  useEffect(() => {
+    if (activeTab === 'pending-reviews') {
+      navigate('/person/pending-reviews');
+    }
+  }, [activeTab, navigate]);
   const [searchParams, setSearchParams] = useState({
     ssn: '',
     dob: '',
@@ -240,14 +247,13 @@ export const IPListing = () => {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg lg:text-xl font-semibold text-gray-900">IP Listing</h2>
+      <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
         <Button 
-          onClick={handleRegisterPerson}
+          onClick={() => navigate('/person/register')}
           className="flex items-center gap-2 w-full sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
-          Register New Person
+          Register Person
         </Button>
       </div>
 
@@ -266,94 +272,11 @@ export const IPListing = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Pending Reviews Tab */}
+        {/* Pending Reviews Tab - Redirects to dedicated page */}
         <TabsContent value="pending-reviews" className="space-y-4 lg:space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base lg:text-lg">Pending Reviews ({pendingReviews.length})</CardTitle>
-              <CardDescription>Records awaiting supervisor/manager verification</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[80px]">SSN</TableHead>
-                      <TableHead className="min-w-[100px]">Sur Name</TableHead>
-                      <TableHead className="min-w-[100px]">First Name</TableHead>
-                      <TableHead className="min-w-[100px]">Middle Name</TableHead>
-                      <TableHead className="min-w-[100px]">DOB</TableHead>
-                      <TableHead className="min-w-[80px]">Sex</TableHead>
-                      <TableHead className="min-w-[120px]">Primary Occup</TableHead>
-                      <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
-                      <TableHead className="min-w-[100px]">ASP Num.</TableHead>
-                      <TableHead className="min-w-[80px]">Status</TableHead>
-                      <TableHead className="min-w-[120px]">Phone</TableHead>
-                      <TableHead className="min-w-[120px]">Application Date</TableHead>
-                      <TableHead className="min-w-[120px]">Submitted By</TableHead>
-                      <TableHead className="min-w-[120px]">Review Required</TableHead>
-                      <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingReviews.map((person, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{person.ssn}</TableCell>
-                        <TableCell>{person.surname}</TableCell>
-                        <TableCell>{person.firstname}</TableCell>
-                        <TableCell>{person.middlename}</TableCell>
-                        <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
-                        <TableCell>{person.sex}</TableCell>
-                        <TableCell>{person.primaryOccup}</TableCell>
-                        <TableCell>{person.selfRefNo}</TableCell>
-                        <TableCell>{person.aspNum}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                            {person.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{person.phone}</TableCell>
-                        <TableCell>{person.applicationDate}</TableCell>
-                        <TableCell>{person.submittedBy}</TableCell>
-                        <TableCell>{person.reviewRequired}</TableCell>
-                        <TableCell className="sticky right-0 bg-background">
-                          <div className="flex space-x-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewDetails(person)}
-                              className="h-8 w-8 p-0"
-                              title="Review Details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => console.log('Approve:', person)}
-                              className="h-8 px-2 text-xs"
-                              title="Approve"
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => console.log('Reject:', person)}
-                              className="h-8 px-2 text-xs"
-                              title="Reject"
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center py-8">
+            <p className="text-gray-600">Redirecting to Pending Reviews...</p>
+          </div>
         </TabsContent>
 
         {/* Insured Persons Tab */}

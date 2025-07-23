@@ -69,6 +69,7 @@ import UserProfile from '@/pages/UserProfile';
 import ChangePassword from '@/pages/ChangePassword';
 import ManageRoles from '@/pages/ManageRoles';
 import SystemSettings from '@/pages/SystemSettings';
+import PersonRegistration from '@/pages/PersonRegistration';
 
 export const AppRoutes = () => {
   return (
@@ -119,7 +120,7 @@ export const AppRoutes = () => {
 
       {/* Insured Persons Routes - Consolidated */}
       <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
-      <Route path="/person/register" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
+      <Route path="/person/register" element={<ProtectedLayout><PersonRegistration /></ProtectedLayout>} />
       <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
       <Route path="/person/ip-management" element={<ProtectedLayout><PersonIPManagement /></ProtectedLayout>} />
       <Route path="/person/view/:ssn" element={<ProtectedLayout><ViewInsuredPerson /></ProtectedLayout>} />
