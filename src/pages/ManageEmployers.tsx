@@ -219,12 +219,12 @@ const ManageEmployers = () => {
 
   const handleViewDetails = (employer: EmployerRecord) => {
     console.log('Viewing details for:', employer);
-    navigate(`/add-employer?mode=view&regNo=${employer.regNo}`, { state: { employerData: employer } });
+    navigate(`/employer/register?mode=view&regNo=${employer.regNo}`, { state: { employerData: employer } });
   };
 
   const handleEditDetails = (employer: EmployerRecord) => {
     console.log('Editing details for:', employer);
-    navigate(`/add-employer?mode=edit&regNo=${employer.regNo}`, { state: { employerData: employer } });
+    navigate(`/employer/register?mode=edit&regNo=${employer.regNo}`, { state: { employerData: employer } });
   };
 
   const handleDeleteEmployer = (employer: EmployerRecord) => {
@@ -236,7 +236,7 @@ const ManageEmployers = () => {
   };
 
   const handleAddNewEmployer = () => {
-    navigate('/add-employer');
+    navigate('/employer/register');
   };
 
   const handleHelp = () => {

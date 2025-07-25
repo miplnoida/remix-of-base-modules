@@ -1,8 +1,8 @@
 import React from 'react';
-import { CompactEmployerRegistration } from '@/components/employer/CompactEmployerRegistration';
+import { MultiTabEmployerRegistration } from '@/components/employer/MultiTabEmployerRegistration';
 
 const EmployerRegistration = () => {
-  return <CompactEmployerRegistration />;
+  return <MultiTabEmployerRegistration />;
 };
 
 export default EmployerRegistration;

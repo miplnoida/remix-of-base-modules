@@ -88,7 +88,7 @@ const EmployersDashboard = () => {
       title: "Register New Employer",
       description: "Add a new employer to the system",
       icon: Plus,
-      action: () => navigate('/employers-management/add'),
+      action: () => navigate('/employer/register'),
       color: "bg-blue-600 hover:bg-blue-700"
     },
     {
