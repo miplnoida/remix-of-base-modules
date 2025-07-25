@@ -71,6 +71,7 @@ import ManageRoles from '@/pages/ManageRoles';
 import SystemSettings from '@/pages/SystemSettings';
 import PersonRegistration from '@/pages/PersonRegistration';
 import RegisterPersonTabs from '@/pages/RegisterPersonTabs';
+import PendingVerificationPage from '@/pages/PendingVerificationPage';
 
 export const AppRoutes = () => {
   return (
@@ -85,6 +86,7 @@ export const AppRoutes = () => {
       <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
       <Route path="/employers-management/add" element={<ProtectedLayout><AddEmployer /></ProtectedLayout>} />
       <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />
+      <Route path="/employers-management/pending-verification" element={<ProtectedLayout><PendingVerificationPage /></ProtectedLayout>} />
 
       {/* Self-Employed Management Routes */}
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />

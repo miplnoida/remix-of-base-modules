@@ -92,6 +92,13 @@ const EmployersDashboard = () => {
       color: "bg-blue-600 hover:bg-blue-700"
     },
     {
+      title: "Pending Verification",
+      description: "Review and approve pending employer registrations",
+      icon: Clock,
+      action: () => navigate('/employers-management/pending-verification'),
+      color: "bg-yellow-600 hover:bg-yellow-700"
+    },
+    {
       title: "Search Employers",
       description: "Find and manage existing employers",
       icon: Search,
@@ -104,13 +111,6 @@ const EmployersDashboard = () => {
       icon: FileText,
       action: () => navigate('/employers-management/reports'),
       color: "bg-purple-600 hover:bg-purple-700"
-    },
-    {
-      title: "Penalty Management",
-      description: "View and manage employer penalties",
-      icon: AlertTriangle,
-      action: () => navigate('/compliance/penalties'),
-      color: "bg-orange-600 hover:bg-orange-700"
     }
   ];
 
@@ -143,10 +143,7 @@ const EmployersDashboard = () => {
             <p className="text-gray-600">Overview of employer registrations and activities</p>
           </div>
         </div>
-        <Button onClick={() => navigate('/employers-management/add')} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Register New Employer
-        </Button>
+        {/* Register button removed from header as requested */}
       </div>
 
       {/* KPI Cards */}

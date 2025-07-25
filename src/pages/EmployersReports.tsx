@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Search, Filter, Calendar, Plus, Building2 } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Search, Filter, Calendar, Plus, Building2, ChevronDown } from 'lucide-react';
 import { employerData } from '@/data/employerData';
 
 const EmployersReports = () => {
@@ -40,46 +41,21 @@ const EmployersReports = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/employers-management/manage")}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Employers
-              </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
-                <span>Employers Management</span>
-                <span>/</span>
-                <span className="text-gray-900 font-medium">Reports</span>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button 
-                onClick={() => navigate('/employers-management/add')}
-                className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Register Employer
-              </Button>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export PDF
-              </Button>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Export Excel
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/employers-management/manage")}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Employers
+            </Button>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8">
           <div className="flex items-center gap-3">
             <Building2 className="h-8 w-8 text-blue-600" />
             <div>
@@ -87,13 +63,6 @@ const EmployersReports = () => {
               <p className="text-gray-600">Generate and view reports for registered, ceased, and pending employers</p>
             </div>
           </div>
-          <Button 
-            onClick={() => navigate('/employers-management/add')}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Register New Employer
-          </Button>
         </div>
 
         <div className="mb-6 flex items-center gap-4">
@@ -114,6 +83,29 @@ const EmployersReports = () => {
             <Calendar className="h-4 w-4" />
             Date Range
           </Button>
+        </div>
+
+        {/* Export Button */}
+        <div className="mb-6 flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Download className="h-4 w-4 mr-2" />
+                Export as Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
