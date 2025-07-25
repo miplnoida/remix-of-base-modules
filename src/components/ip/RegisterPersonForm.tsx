@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useLocation } from 'react-router-dom';
 
 // Form schema
 const registrationSchema = z.object({
@@ -58,6 +59,7 @@ const addressSchema = z.object({
   addressType: z.enum(['same', 'different']),
   residentAddress: z.string().min(1, 'Resident address is required'),
   mailingAddress: z.string().optional(),
+  postalCode: z.string().optional(),
   postalDistrict: z.string().min(1, 'Postal district is required'),
 });
 
@@ -175,8 +177,11 @@ const AddressFormModal = ({
     addressType: 'same',
     residentAddress: '',
     mailingAddress: '',
+    postalCode:'',
     postalDistrict: ''
   });
+  // Local state for the checkbox only
+  const [isSameAddress, setIsSameAddress] = useState(formData.addressType === 'same');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,8 +213,8 @@ const AddressFormModal = ({
                 <SelectValue placeholder="Select address type" />
               </SelectTrigger>
               <SelectContent className="bg-background border">
-                <SelectItem value="same">Mailing & Resident Address Same</SelectItem>
-                <SelectItem value="different">Different Addresses</SelectItem>
+                <SelectItem value="same">Mailing Same</SelectItem>
+                <SelectItem value="different">Resident Addresses</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -235,7 +240,16 @@ const AddressFormModal = ({
               />
             </div>
           )}
-
+ {/* Postal Code for Resident Address */}
+ <div>
+            <Label>Postal Code</Label>
+            <Input
+              value={formData.postalCode || ''}
+              onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+              placeholder="Enter postal code"
+              disabled={mode === 'view'}
+            />
+          </div>
           <div>
             <Label>Postal District *</Label>
             <Select 
@@ -252,6 +266,23 @@ const AddressFormModal = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Checkbox for Mailing & Resident Address Same */}
+          <div className="flex items-center gap-2 mt-2">
+            <Checkbox
+              id="mailing-resident-same"
+              checked={isSameAddress}
+              onCheckedChange={(checked) => {
+                setIsSameAddress(!!checked);
+                setFormData({ ...formData, addressType: checked ? 'same' : 'different' });
+              }}
+              disabled={mode === 'view'}
+              style={{ borderColor: '#0284c7', color: isSameAddress ? '#0284c7' : undefined }}
+            />
+            <Label htmlFor="mailing-resident-same" style={{ color: '#0284c7', cursor: mode === 'view' ? 'not-allowed' : 'pointer' }}>
+              Is Mailing & Resident Address Same
+            </Label>
           </div>
 
           {mode !== 'view' && (
@@ -705,6 +736,7 @@ export const RegisterPersonForm = () => {
   });
   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
   const [accountStatus, setAccountStatus] = useState('Active');
+  const location = useLocation();
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -836,6 +868,7 @@ export const RegisterPersonForm = () => {
 
   return (
     <div className="space-y-6">
+    
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Details Section */}
         <Card>
@@ -1480,61 +1513,80 @@ export const RegisterPersonForm = () => {
           </CardContent>
         </Card>
 
+        <NameDialog 
+          open={showNameDialog} 
+          onClose={() => setShowNameDialog(false)} 
+        />
+        
+        <RelationDialog 
+          open={showRelationDialog} 
+          onClose={() => setShowRelationDialog(false)}
+          onAddRelation={addRelation}
+        />
+
+        <AddressFormModal
+          open={addressModal.open}
+          onClose={closeAddressModal}
+          onSubmit={handleAddressSubmit}
+          mode={addressModal.mode}
+          initialValues={addressModal.selectedAddress || undefined}
+        />
+
+        <RelationFormModal
+          open={relationModal.open}
+          onClose={closeRelationModal}
+          onSubmit={handleRelationSubmit}
+          mode={relationModal.mode}
+          initialValues={relationModal.selectedRelation || undefined}
+        />
+
+        <AccountStatusModal
+          open={accountStatusModalOpen}
+          onClose={() => setAccountStatusModalOpen(false)}
+          currentStatus={accountStatus}
+          onChangeStatus={handleChangeAccountStatus}
+        />
+
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 justify-between items-center">
-          <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
-            Change Account Status
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* You can add left-side buttons here if needed */}
+          </div>
           <div className="flex gap-3">
-            {/*<Button type="submit" className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Save
-            </Button>*/}
-            <Button type="button" variant="outline" className="flex items-center gap-2">
-              <Printer className="h-4 w-4" />
-              Print
-            </Button>
-            <Button type="button" variant="outline" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Generate ID Card
-            </Button>
+            {location.pathname.includes('/person/view/') && (
+              <>
+              <Button variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button type="button"  className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Generate ID Card
+                </Button>
+                <Button type="button" variant="outline" className="flex items-center gap-2">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
+                  Change Account Status
+                </Button>
+                
+                
+              </>
+            )}
+            {location.pathname.includes('/person/edit/') && (
+              <>
+                <Button type="button" variant="outline" className="flex items-center gap-2">
+                  Save
+                </Button>
+                <Button type="submit" className="flex items-center gap-2">
+                  Submit
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </form>
-
-      <NameDialog 
-        open={showNameDialog} 
-        onClose={() => setShowNameDialog(false)} 
-      />
-      
-      <RelationDialog 
-        open={showRelationDialog} 
-        onClose={() => setShowRelationDialog(false)}
-        onAddRelation={addRelation}
-      />
-
-      <AddressFormModal
-        open={addressModal.open}
-        onClose={closeAddressModal}
-        onSubmit={handleAddressSubmit}
-        mode={addressModal.mode}
-        initialValues={addressModal.selectedAddress || undefined}
-      />
-
-      <RelationFormModal
-        open={relationModal.open}
-        onClose={closeRelationModal}
-        onSubmit={handleRelationSubmit}
-        mode={relationModal.mode}
-        initialValues={relationModal.selectedRelation || undefined}
-      />
-
-      <AccountStatusModal
-        open={accountStatusModalOpen}
-        onClose={() => setAccountStatusModalOpen(false)}
-        currentStatus={accountStatus}
-        onChangeStatus={handleChangeAccountStatus}
-      />
     </div>
   );
 };

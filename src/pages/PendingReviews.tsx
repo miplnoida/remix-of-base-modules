@@ -1,17 +1,18 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Clock, AlertTriangle, CheckCircle, Eye, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Clock, AlertTriangle, CheckCircle, Eye, Edit, ChevronDown, ChevronUp, ArrowLeft, Home } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const PendingReviews = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchParams, setSearchParams] = useState({
     ssn: '',
@@ -26,7 +27,7 @@ const PendingReviews = () => {
   // --- Add insuredPersons mock data (from IPListing) ---
   const insuredPersons = [
     {
-      ssn: '123456',
+      ssn: 'TE0001',
       surname: 'Doe',
       firstname: 'John',
       middlename: 'Michael',
@@ -37,7 +38,7 @@ const PendingReviews = () => {
       primaryOccup: 'Accountant',
       selfRefNo: 'IP001',
       aspNum: 'ASP123',
-      status: 'Active',
+      status: 'Draft',
       residentAddr1: '123 Main Street',
       residentAddr2: 'Apt 2B',
       district: 'Basseterre Zone 01',
@@ -72,7 +73,7 @@ const PendingReviews = () => {
       registrationDate: '2024-01-20',
     },
     {
-      ssn: '789012',
+      ssn: 'TE0002',
       surname: 'Smith',
       firstname: 'Jane',
       middlename: 'Elizabeth',
@@ -124,7 +125,7 @@ const PendingReviews = () => {
   };
   const handleViewDetails = (person: any) => {
     console.log('Viewing details for:', person);
-    navigate(`/person/view/${person.ssn}`);
+    navigate(`/person/view/${person.ssn}`, { state: { status: person.status } });
   };
   const handleReview = (item: any) => {
     console.log('Reviewing item:', item);
@@ -156,8 +157,8 @@ const PendingReviews = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+      case 'Draft':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Draft</Badge>;
       case 'Pending':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'Inactive':
@@ -187,7 +188,33 @@ const PendingReviews = () => {
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-
+      {location.pathname === '/person/pending-reviews' && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/person/management')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Back</span>
+            </Button>
+            <div className="h-6 w-px bg-gray-300" />
+            <div>
+              <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Reviews</h1>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 self-start lg:self-center"
+          >
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">Main Menu</span>
+          </Button>
+        </div>
+      )}
       {/* Summary Cards */}
       {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
@@ -249,9 +276,9 @@ const PendingReviews = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base lg:text-lg">
-                    {isFiltersOpen ? "Hide Filters" : "Show Filters"}
+                    Query by
                   </CardTitle>
-                  <CardDescription>Filter pending reviews by SSN, Name, DOB, Status, Application Date, Assigned Officer</CardDescription>
+                  
                 </div>
                 {isFiltersOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
               </div>
@@ -342,17 +369,18 @@ const PendingReviews = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[80px]">SSN</TableHead>
+                  <TableHead className="min-w-[80px]">Application ID</TableHead>
                   <TableHead className="min-w-[100px]">Sur Name</TableHead>
                   <TableHead className="min-w-[100px]">First Name</TableHead>
                   <TableHead className="min-w-[100px]">Middle Name</TableHead>
                   <TableHead className="min-w-[100px]">Previous Name</TableHead>
+                  <TableHead className="min-w-[80px]">Status</TableHead>
                   <TableHead className="min-w-[100px]">DOB</TableHead>
                   <TableHead className="min-w-[80px]">Sex</TableHead>
                   <TableHead className="min-w-[80px]">Alias</TableHead>
                   <TableHead className="min-w-[120px]">Primary Occup</TableHead>
                   <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
-                  <TableHead className="min-w-[80px]">Status</TableHead>
+                  
                   <TableHead className="min-w-[100px]">ASP Num.</TableHead>
                   <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
                   <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
@@ -396,12 +424,13 @@ const PendingReviews = () => {
                     <TableCell>{person.firstname}</TableCell>
                     <TableCell>{person.middlename}</TableCell>
                     <TableCell>{person.previousName}</TableCell>
+                    <TableCell>{getStatusBadge(person.status)}</TableCell>
                     <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
                     <TableCell>{person.sex}</TableCell>
                     <TableCell>{person.alias}</TableCell>
                     <TableCell>{person.primaryOccup}</TableCell>
                     <TableCell>{person.selfRefNo}</TableCell>
-                    <TableCell>{getStatusBadge(person.status)}</TableCell>
+                    
                     <TableCell>{person.aspNum}</TableCell>
                     <TableCell>{person.residentAddr1}</TableCell>
                     <TableCell>{person.residentAddr2}</TableCell>

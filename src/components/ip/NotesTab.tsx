@@ -26,6 +26,8 @@ export const NotesTab = () => {
     noteDate: new Date(),
     userId: 'current-user'
   });
+  const [editNoteId, setEditNoteId] = useState<string | null>(null);
+  const [editNote, setEditNote] = useState<Partial<Note> | null>(null);
 
   const DatePicker = ({ date, onSelect, placeholder }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string }) => (
     <Popover>
@@ -66,6 +68,29 @@ export const NotesTab = () => {
       setNewNote({ noteDate: new Date(), userId: 'current-user' });
       setShowAddForm(false);
     }
+  };
+
+  const handleEditClick = (note: Note) => {
+    setEditNoteId(note.id);
+    setEditNote({ ...note });
+  };
+
+  const handleEditSave = () => {
+    if (editNote && editNote.note && editNote.noteDate && editNote.userId) {
+      setNotes(notes.map(n => n.id === editNoteId ? {
+        ...n,
+        note: editNote.note!,
+        noteDate: editNote.noteDate!,
+        userId: editNote.userId!
+      } : n));
+      setEditNoteId(null);
+      setEditNote(null);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditNoteId(null);
+    setEditNote(null);
   };
 
   const removeNote = (id: string) => {
@@ -144,21 +169,65 @@ export const NotesTab = () => {
                     <CardContent className="pt-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-2">
-                            <span className="font-semibold">
+                        <div className="flex items-center gap-4 mb-2">
+                        <span className="font-semibold">
                               {format(note.noteDate, 'PPP')}
                             </span>
+                        </div>
+                          <div className="flex items-center gap-4 mb-2">
+                            
                             <span className="text-sm text-gray-500">
                               User: {note.userId}
                             </span>
+                           
                             <span className="text-sm text-gray-500">
                               Created: {format(note.createdAt, 'PPP')}
                             </span>
                           </div>
-                          <p className="text-gray-700 whitespace-pre-wrap">{note.note}</p>
+                          {editNoteId === note.id ? (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label>Note Date *</Label>
+                                  <DatePicker
+                                    date={editNote?.noteDate}
+                                    onSelect={(date) => setEditNote(editNote ? { ...editNote, noteDate: date || new Date() } : null)}
+                                    placeholder="Select note date"
+                                  />
+                                </div>
+                                <div>
+                                  <Label>User ID *</Label>
+                                  <Input
+                                    value={editNote?.userId || ''}
+                                    onChange={(e) => setEditNote(editNote ? { ...editNote, userId: e.target.value } : null)}
+                                    placeholder="Enter user ID"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <Label>Note *</Label>
+                                <Textarea
+                                  value={editNote?.note || ''}
+                                  onChange={(e) => setEditNote(editNote ? { ...editNote, note: e.target.value } : null)}
+                                  placeholder="Enter note content"
+                                  rows={4}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button onClick={handleEditSave} disabled={!editNote?.note || !editNote?.noteDate}>
+                                  Save
+                                </Button>
+                                <Button variant="outline" onClick={handleEditCancel}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-700 whitespace-pre-wrap">{note.note}</p>
+                          )}
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleEditClick(note)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="destructive" size="sm" onClick={() => removeNote(note.id)}>

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,11 +53,15 @@ import { CaricomTab } from '@/components/ip/CaricomTab';
 const ViewInsuredPerson = () => {
   const navigate = useNavigate();
   const { ssn } = useParams();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('register');
   const [activeHistoryTab, setActiveHistoryTab] = useState('wages');
   const [isRegisterSectionOpen, setIsRegisterSectionOpen] = useState(true);
   const [isHistorySectionOpen, setIsHistorySectionOpen] = useState(true);
   const [currentStatus, setCurrentStatus] = useState('Active');
+
+  // Get status from location state if available
+  const statusFromLocation = location.state?.status;
 
   // Mock data - replace with actual data fetching
   const personData = {
@@ -67,7 +71,7 @@ const ViewInsuredPerson = () => {
     middlename: 'Michael',
     dob: '1985-03-15',
     sex: 'Male',
-    status: 'Active',
+    status: statusFromLocation || 'Active',
     occupation: 'Accountant',
     phone: '+1869-465-1234',
     email: 'john.doe@email.com',
@@ -125,16 +129,16 @@ const ViewInsuredPerson = () => {
             Back
           </Button>
           <div className="h-6 w-px bg-gray-300" />
-          <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+          {/* <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <div>
             <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
               {personData.firstname} {personData.surname}
             </h1>
             <p className="text-gray-600">SSN: {personData.ssn} {getStatusBadge(personData.status)}</p>
-          </div>
+          </div> */}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleEdit}>
+        {/* <Button variant="outline" onClick={handleEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
@@ -142,57 +146,78 @@ const ViewInsuredPerson = () => {
             <IdCard className="h-4 w-4 mr-2" />
             Generate ID Card
           </Button>
-		  <Button type="button" variant="outline" className="flex items-center gap-2">
+      <Button type="button" variant="outline" className="flex items-center gap-2">
               <Printer className="h-4 w-4" />
               Print
             </Button>
             
-			<Button type="button" variant="destructive" className="flex items-center gap-2">
+      <Button type="button" variant="destructive" className="flex items-center gap-2">
             Change Account Status
-          </Button>
+          </Button> */}
+          {personData.status === 'Draft' && (
+            <Button variant="outline" onClick={handleEdit}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+          {personData.status === 'Pending' && (
+            <>
+              <Button variant="outline" onClick={handleEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button type="button" variant="outline" className="flex items-center gap-2">
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+              <Button type="button" variant="default" className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+                Approve
+              </Button>
+              <Button type="button" variant="destructive" className="flex items-center gap-2">
+                Reject
+              </Button>
+            </>
+          )}
+          {personData.status !== 'Draft' && personData.status !== 'Pending' && (
+            <>
+              <Button variant="outline" onClick={handleEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button>
+                <IdCard className="h-4 w-4 mr-2" />
+                Generate ID Card
+              </Button>
+              <Button type="button" variant="outline" className="flex items-center gap-2">
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+              <Button type="button" variant="destructive" className="flex items-center gap-2">
+                Change Account Status
+              </Button>
+            </>
+          )}
         </div>
       </div>
-
-      {/* Person Summary Card */}
-      {/*<Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>Personal Information</CardTitle>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-sm text-gray-600">Status: {getStatusBadge(personData.status)}</span>
-                <span className="text-sm text-gray-600">DOB: {new Date(personData.dob).toLocaleDateString()}</span>
-                <span className="text-sm text-gray-600">Gender: {personData.sex}</span>
+      {/* New Person Info Card */}
+      <Card className="mb-4">
+        <CardContent className="py-4 px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+            </div>
+            <div className="flex flex-col gap-1 justify-center">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+                {personData.firstname} {personData.surname}
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 text-sm font-medium">SSN: {personData.ssn}</span>
+                {getStatusBadge(personData.status)}
               </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Occupation</label>
-              <p className="text-sm">{personData.occupation}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Phone</label>
-              <p className="text-sm">{personData.phone}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Email</label>
-              <p className="text-sm">{personData.email}</p>
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-500">Address</label>
-              <p className="text-sm">{personData.address}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">District</label>
-              <p className="text-sm">{personData.district}</p>
-            </div>
-          </div>
         </CardContent>
-      </Card>*/}
-
+      </Card>
       {/* Register Person Form Tabs Section - Collapsible */}
       <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
         <Card>
@@ -269,7 +294,7 @@ const ViewInsuredPerson = () => {
       </Collapsible>
 
       {/* History and Status Management Section - Collapsible */}
-      <Collapsible open={isHistorySectionOpen} onOpenChange={setIsHistorySectionOpen}>
+      {/* <Collapsible open={isHistorySectionOpen} onOpenChange={setIsHistorySectionOpen}>
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
@@ -557,26 +582,9 @@ const ViewInsuredPerson = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {/*<div className="flex items-center gap-4">
-                            <label className="text-sm font-medium">Current Status:</label>
-                            {getStatusBadge(currentStatus)}
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <label className="text-sm font-medium">Change Status:</label>
-                            <Select value={currentStatus} onValueChange={handleStatusChange}>
-                              <SelectTrigger className="w-48">
-                                <SelectValue placeholder="Select new status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Verify">Verify</SelectItem>
-                                <SelectItem value="Active">Active</SelectItem>
-                                <SelectItem value="Suspend">Suspend</SelectItem>
-                                <SelectItem value="Ceased">Ceased</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>*/}
+                         
                           <div className="pt-4">
-                            {/* <h4 className="font-medium mb-2">Status History</h4>*/}
+                          
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -888,7 +896,7 @@ const ViewInsuredPerson = () => {
             </CardContent>
           </CollapsibleContent>
         </Card>
-      </Collapsible>
+      </Collapsible> */}
     </div>
   );
 };

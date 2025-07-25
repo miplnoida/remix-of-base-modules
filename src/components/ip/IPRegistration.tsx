@@ -8,18 +8,49 @@ import { NotesTab } from './NotesTab';
 import { NPFTab } from './NPFTab';
 import { PhotoTab } from './PhotoTab';
 import { CaricomTab } from './CaricomTab';
-import { User, Users, FileText, Building, Camera, Globe } from 'lucide-react';
+import { User, Users, FileText, Building, Camera, Globe, Home } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export const IPRegistration = () => {
   const [activeTab, setActiveTab] = useState('register');
+  const navigate = useNavigate();
 
   return (
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/person/management')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
+          </Button>
+          <div className="h-6 w-px bg-gray-300" />
+         
+          <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Insured Person Registration</h1>
           <p className="text-gray-600">Complete registration for new insured person</p>
+          </div>
         </div>
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 self-start lg:self-center"
+        >
+           <div className="flex gap-2 mt-4 lg:mt-0">
+          <Button type="button" variant="outline" className="flex items-center gap-2">Save</Button>
+          <Button type="button" className="flex items-center gap-2">Submit</Button>
+        </div>
+        </Button>
+</div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      
+       
       </div>
 
       <Card>

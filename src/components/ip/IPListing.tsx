@@ -258,8 +258,8 @@ export const IPListing = () => {
                 <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base lg:text-lg">Search Insured Persons</CardTitle>
-                      <CardDescription className="text-sm">Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription>
+                      <CardTitle className="text-base lg:text-lg">Query by</CardTitle>
+                      {/* <CardDescription className="text-sm">Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription> */}
                     </div>
                     {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
                   </div>

@@ -101,38 +101,19 @@ export const DependentTab = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Dependent Management</CardTitle>
+          <Button onClick={() => { setShowAddForm(true); setNewDependent({ schoolChild: false, invalid: false, status: 'Active' }); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Dependent
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search Section */}
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Label>Search by SSN</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={searchSSN}
-                  onChange={(e) => setSearchSSN(e.target.value)}
-                  placeholder="Enter SSN to search" 
-                />
-                <Button onClick={handleSearchSSN} variant="outline">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={() => setShowAddForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Dependent
-              </Button>
-            </div>
-          </div>
-
-          {/* Add Dependent Form */}
+          {/* Add/Edit Dependent Form */}
           {showAddForm && (
             <Card className="border-2 border-dashed">
               <CardHeader>
-                <CardTitle className="text-base">Add New Dependent</CardTitle>
+                <CardTitle className="text-base">{newDependent.id ? 'Edit Dependent' : 'Add New Dependent'}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -174,7 +155,7 @@ export const DependentTab = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Sex *</Label>
-                    <Select onValueChange={(value) => setNewDependent({...newDependent, sex: value})}>
+                    <Select value={newDependent.sex} onValueChange={(value) => setNewDependent({...newDependent, sex: value})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select sex" />
                       </SelectTrigger>
@@ -195,7 +176,7 @@ export const DependentTab = () => {
                   </div>
                   <div>
                     <Label>Relation</Label>
-                    <Select onValueChange={(value) => setNewDependent({...newDependent, relation: value})}>
+                    <Select value={newDependent.relation} onValueChange={(value) => setNewDependent({...newDependent, relation: value})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select relation" />
                       </SelectTrigger>
@@ -239,8 +220,41 @@ export const DependentTab = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={handleAddDependent}>Add Dependent</Button>
-                  <Button variant="outline" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                  <Button onClick={() => {
+                    if (newDependent.surname && newDependent.firstName && newDependent.dob) {
+                      if (newDependent.id) {
+                        // Edit mode: update existing
+                        setDependents(dependents.map(d => d.id === newDependent.id ? {
+                          ...d,
+                          ...newDependent,
+                          dob: newDependent.dob!,
+                          dateModified: new Date(),
+                        } as Dependent : d));
+                      } else {
+                        // Add mode: add new
+                        const dependent: Dependent = {
+                          id: Date.now().toString(),
+                          surname: newDependent.surname!,
+                          firstName: newDependent.firstName!,
+                          middleName: newDependent.middleName || '',
+                          address: newDependent.address || '',
+                          sex: newDependent.sex || 'Male',
+                          dob: newDependent.dob!,
+                          relation: newDependent.relation || '',
+                          schoolChild: newDependent.schoolChild || false,
+                          invalid: newDependent.invalid || false,
+                          status: newDependent.status || 'Active',
+                          dateModified: new Date(),
+                          userId: 'current-user',
+                          dateOfDeath: newDependent.dateOfDeath
+                        };
+                        setDependents([...dependents, dependent]);
+                      }
+                      setNewDependent({ schoolChild: false, invalid: false, status: 'Active' });
+                      setShowAddForm(false);
+                    }
+                  }}>{newDependent.id ? 'Update Dependent' : 'Add Dependent'}</Button>
+                  <Button variant="outline" onClick={() => { setShowAddForm(false); setNewDependent({ schoolChild: false, invalid: false, status: 'Active' }); }}>Cancel</Button>
                 </div>
               </CardContent>
             </Card>
@@ -248,7 +262,6 @@ export const DependentTab = () => {
 
           {/* Dependents List */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Current Dependents</h3>
             {dependents.length === 0 ? (
               <p className="text-gray-500 text-center py-8">No dependents added yet</p>
             ) : (
@@ -256,33 +269,43 @@ export const DependentTab = () => {
                 {dependents.map((dependent) => (
                   <Card key={dependent.id}>
                     <CardContent className="pt-4">
-                      <div className="flex justify-between items-start">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
-                          <div>
-                            <p className="font-semibold">{dependent.firstName} {dependent.middleName} {dependent.surname}</p>
-                            <p className="text-sm text-gray-600">DOB: {format(dependent.dob, 'PPP')}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm"><strong>Sex:</strong> {dependent.sex}</p>
-                            <p className="text-sm"><strong>Relation:</strong> {dependent.relation}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm"><strong>Status:</strong> {dependent.status}</p>
-                            <p className="text-sm"><strong>Modified:</strong> {format(dependent.dateModified, 'PPP')}</p>
-                          </div>
-                          <div>
-                            {dependent.schoolChild && <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2">School Child</span>}
-                            {dependent.invalid && <span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Invalid</span>}
-                            {dependent.dateOfDeath && <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Deceased</span>}
-                          </div>
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                        {/* Full Name - full width, single line */}
+                        <div className="w-full mb-2 md:mb-0">
+                          <p className="font-semibold text-lg">{dependent.firstName} {dependent.middleName} {dependent.surname}</p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                        {/* Action Buttons - right aligned on desktop */}
+                        <div className="flex gap-2 md:ml-4 mt-2 md:mt-0 self-end md:self-center">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setShowAddForm(true);
+                            setNewDependent({ ...dependent });
+                          }}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="destructive" size="sm" onClick={() => removeDependent(dependent.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        </div>
+                      </div>
+                      {/* Details Row - Sex/Relation and Status/Modified in a single row at the bottom */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                      <div>
+                          <p className="text-sm text-gray-600"><strong>DOB:</strong> {format(dependent.dob, 'PPP')}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-end mt-2">
+                        <div className="flex-1 mb-2 md:mb-0">
+                          <p className="text-sm"><strong>Sex:</strong> {dependent.sex}</p>
+                          <p className="text-sm"><strong>Relation:</strong> {dependent.relation}</p>
+                        </div>
+                        <div className="flex-1 mb-2 md:mb-0">
+                          <p className="text-sm"><strong>Status:</strong> {dependent.status}</p>
+                          <p className="text-sm"><strong>Modified:</strong> {format(dependent.dateModified, 'PPP')}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center md:ml-4">
+                          {dependent.schoolChild && <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">School Child</span>}
+                          {dependent.invalid && <span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Invalid</span>}
+                          {dependent.dateOfDeath && <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Deceased</span>}
                         </div>
                       </div>
                     </CardContent>

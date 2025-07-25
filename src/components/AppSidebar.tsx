@@ -77,8 +77,13 @@ export function AppSidebar() {
     );
   };
 
-  const isActive = (path: string) => currentPath === path;
-  const isGroupActive = (subItems: any[]) => 
+  const isActive = (path: string) => {
+    if (path === "/person/management") {
+      return currentPath === "/person/management" || currentPath === "/person/register-tabs";
+    }
+    return currentPath === path;
+  };
+  const isGroupActive = (subItems: any[]) =>
     subItems?.some(item => isActive(item.url));
 
   return (

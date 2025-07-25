@@ -3,10 +3,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { UserCog, UserPlus } from 'lucide-react';
 import { IPListing } from '@/components/ip/IPListing';
+import PendingReviews from './PendingReviews';
+import { useNavigate } from 'react-router-dom';
 
 const PersonIPManagement = () => {
   const [activeTab, setActiveTab] = useState('pending-reviews');
-
+  const navigate = useNavigate();
+  const handleRegisterPerson = () => {
+    // Navigate directly to register person page
+    navigate('/person/register-tabs');
+  };
   useEffect(() => {
     const handleSwitchToRegister = () => {
       // Navigate to register person page instead of switching tab
@@ -41,12 +47,23 @@ const PersonIPManagement = () => {
         </TabsList>
 
         <TabsContent value="pending-reviews" className="space-y-4 lg:space-y-6">
-          <div className="text-center p-8">
+          {/* <div className="text-center p-8">
             <p className="text-muted-foreground mb-4">Pending Reviews content will open in dedicated page</p>
             <Button onClick={() => window.location.href = '/person/pending-reviews'}>
               Go to Pending Reviews
             </Button>
-          </div>
+          </div> */}
+          {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
+        <Button 
+          onClick={handleRegisterPerson}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          <UserPlus className="h-4 w-4" />
+          Register Person
+        </Button>
+      </div>
+          <PendingReviews/>
         </TabsContent>
 
         <TabsContent value="listing" className="space-y-4 lg:space-y-6">

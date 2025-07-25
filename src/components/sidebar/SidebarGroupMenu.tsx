@@ -45,7 +45,12 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
   hasPermission,
   currentPath
 }) => {
-  const isActive = (path: string) => currentPath === path;
+  const isActive = (path: string) => {
+    if (path === "/person/management") {
+      return currentPath === "/person/management" || currentPath === "/person/register-tabs";
+    }
+    return currentPath === path;
+  };
 
   // Filter sub-items based on permissions
   const visibleSubItems = item.subItems.filter(subItem => 

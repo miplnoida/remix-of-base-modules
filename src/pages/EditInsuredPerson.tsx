@@ -134,6 +134,7 @@ const EditInsuredPerson = () => {
             Back to View
           </Button>
           <div className="h-6 w-px bg-gray-300" />
+          {/*
           <User className="h-8 w-8 text-blue-600" />
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -141,6 +142,7 @@ const EditInsuredPerson = () => {
             </h1>
             <p className="text-gray-600">SSN: {formData.ssn} | {getStatusBadge(formData.status)}</p>
           </div>
+          */}
         </div>
         <div className="flex gap-3">
           
@@ -151,15 +153,34 @@ const EditInsuredPerson = () => {
             <Save className="h-4 w-4" />
             Save Changes
           </Button>
-          <Button 
+          {/* <Button 
             onClick={handleSave}
             className="flex items-center gap-2"
           >
             <Save className="h-4 w-4" />
             Submit
-          </Button>
+          </Button> */}
         </div>
       </div>
+      {/* New Person Info Card */}
+      <Card className="mb-4">
+        <CardContent className="py-4 px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+            </div>
+            <div className="flex flex-col gap-1 justify-center">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+                Edit: {formData.firstname} {formData.middlename} {formData.surname}
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 text-sm font-medium">SSN: {formData.ssn}</span>
+                {getStatusBadge(formData.status)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Form Sections */}
       <div className="space-y-6">
