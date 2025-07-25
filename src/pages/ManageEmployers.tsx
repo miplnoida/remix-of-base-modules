@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -16,16 +17,14 @@ import {
 } from '@/components/ui/table';
 import {
   Search,
-  Edit,
-  Eye,
-  HelpCircle,
-  FileText,
+  Save,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
+  CheckCircle,
+  FileText,
+  Printer,
+  RotateCcw,
   Plus,
-  ArrowLeft,
-  Trash2
+  Download
 } from 'lucide-react';
 
 interface EmployerRecord {
@@ -191,14 +190,12 @@ const sampleEmployers: EmployerRecord[] = [
 
 const ManageEmployers = () => {
   const navigate = useNavigate();
-  const [isSearchOpen, setIsSearchOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('pending');
   const [searchParams, setSearchParams] = useState({
-    regNo: '',
-    name: '',
+    employerName: '',
     tradeName: '',
-    phone: '',
-    registrationDate: '',
-    status: ''
+    status: 'All',
+    inspectorCode: ''
   });
 
   const handleSearch = () => {
@@ -206,319 +203,401 @@ const ManageEmployers = () => {
     // Implement actual search functionality here
   };
 
-  const handleReturnResults = () => {
-    console.log('Returning search results');
-    // Implement return result functionality
-  };
-
-  const handleClearSearch = () => {
+  const handleReset = () => {
     setSearchParams({
-      regNo: '', name: '', tradeName: '', phone: '', registrationDate: '', status: ''
+      employerName: '',
+      tradeName: '',
+      status: 'All',
+      inspectorCode: ''
     });
-  };
-
-  const handleViewDetails = (employer: EmployerRecord) => {
-    console.log('Viewing details for:', employer);
-    navigate(`/employer/register?mode=view&regNo=${employer.regNo}`, { state: { employerData: employer } });
-  };
-
-  const handleEditDetails = (employer: EmployerRecord) => {
-    console.log('Editing details for:', employer);
-    navigate(`/employer/register?mode=edit&regNo=${employer.regNo}`, { state: { employerData: employer } });
-  };
-
-  const handleDeleteEmployer = (employer: EmployerRecord) => {
-    if (confirm(`Are you sure you want to delete employer "${employer.name}"? This action cannot be undone.`)) {
-      console.log('Deleting employer:', employer);
-      // Implement delete functionality here
-      alert('Employer deleted successfully!');
-    }
   };
 
   const handleAddNewEmployer = () => {
     navigate('/employer/register');
   };
 
-  const handleHelp = () => {
-    alert('Use the search filters to find specific employer records. All fields support partial text matching.');
+  // Action handlers
+  const handleSave = (employer: EmployerRecord) => {
+    console.log('Saving employer:', employer);
+    alert('Employer data saved successfully!');
+  };
+
+  const handleChangeStatus = (employer: EmployerRecord) => {
+    console.log('Changing status for:', employer);
+    alert(`Status changed for ${employer.name}`);
+  };
+
+  const handleVerifyData = (employer: EmployerRecord) => {
+    console.log('Verifying data for:', employer);
+    alert(`Data verified for ${employer.name}`);
+  };
+
+  const handleRegistrationCertificate = (employer: EmployerRecord) => {
+    console.log('Generating registration certificate for:', employer);
+    alert(`Registration certificate generated for ${employer.name}`);
+  };
+
+  const handlePrint = (employer: EmployerRecord) => {
+    console.log('Printing details for:', employer);
+    alert(`Printing details for ${employer.name}`);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">Active</Badge>;
       case 'Suspended':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Suspended</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Suspended</Badge>;
       case 'Closed':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800">Closed</Badge>;
+        return <Badge variant="secondary" className="bg-red-100 text-red-800 hover:bg-red-200">Closed</Badge>;
       case 'Inactive':
-        return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Inactive</Badge>;
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-200">Inactive</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg lg:text-xl font-semibold text-gray-900">Manage Employers</h2>
-        <Button 
-          onClick={handleAddNewEmployer}
-          className="flex items-center gap-2 w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4" />
-          Add New Employers
-        </Button>
-      </div>
+  // Filter employers based on active tab
+  const getFilteredEmployers = () => {
+    switch (activeTab) {
+      case 'pending':
+        return sampleEmployers.filter(emp => emp.status === 'Pending' || !emp.dateVerified);
+      case 'registered':
+        return sampleEmployers.filter(emp => emp.status === 'Active');
+      case 'ceased':
+        return sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed');
+      default:
+        return sampleEmployers;
+    }
+  };
 
-      {/* Search and Filter Section - Collapsible */}
-      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base lg:text-lg">Query By</CardTitle>
-                  <CardDescription className="text-sm">Reg No., Name, Trade Name, Phone, Registration Date, Status</CardDescription>
-                </div>
-                {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
-              </div>
+  const filteredEmployers = getFilteredEmployers();
+
+  return (
+    <TooltipProvider>
+      <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Manage Employers</h1>
+          
+          {/* Section 1: Query By (Filters Panel) */}
+          <Card className="mb-6 shadow-sm">
+            <CardHeader className="border-b bg-white">
+              <CardTitle className="text-lg text-gray-800">Query By</CardTitle>
+              <CardDescription>Filter employers by name, status, and inspector</CardDescription>
             </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <CardContent className="p-6 bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div>
-                  <label className="text-sm font-medium">Registration No.</label>
-                  <Input
-                    placeholder="Enter registration number"
-                    value={searchParams.regNo}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, regNo: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Name</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Employer Name</label>
                   <Input
                     placeholder="Enter employer name"
-                    value={searchParams.name}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
+                    value={searchParams.employerName}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
+                    className="bg-white"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Trade Name</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Trade Name</label>
                   <Input
                     placeholder="Enter trade name"
                     value={searchParams.tradeName}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                    className="bg-white"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Phone</label>
-                  <Input
-                    placeholder="Enter phone number"
-                    value={searchParams.phone}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Registration Date</label>
-                  <Input
-                    type="date"
-                    value={searchParams.registrationDate}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, registrationDate: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Status</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
                   <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Suspended">Suspended</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="All">All</SelectItem>
+                      <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+                      <SelectItem value="Registered">Registered</SelectItem>
+                      <SelectItem value="Ceased/Suspended">Ceased/Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Inspector Code</label>
+                  <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select inspector" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
+                      <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
+                      <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2 lg:gap-3">
-                <Button onClick={handleSearch} className="flex items-center gap-2">
-                  <Search className="h-4 w-4" />
+              <div className="flex gap-3">
+                <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Search className="h-4 w-4 mr-2" />
                   Search
                 </Button>
-                <Button variant="outline" onClick={handleHelp}>
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  Help
-                </Button>
-                <Button variant="outline" onClick={handleReturnResults}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Return Results
+                <Button variant="outline" onClick={handleReset} className="border-gray-300">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset
                 </Button>
               </div>
             </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+          </Card>
 
-      {/* Employer Listing Section - Table Layout with All Columns */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Search Results ({sampleEmployers.length} records)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[100px]">Reg. No.</TableHead>
-                  <TableHead className="min-w-[150px]">Name</TableHead>
-                  <TableHead className="min-w-[150px]">Trade Name</TableHead>
-                  <TableHead className="min-w-[120px]">Phone</TableHead>
-                  <TableHead className="min-w-[120px]">Fax</TableHead>
-                  <TableHead className="min-w-[150px]">HQ Address 1</TableHead>
-                  <TableHead className="min-w-[150px]">HQ Address 2</TableHead>
-                  <TableHead className="min-w-[120px]">Office Code</TableHead>
-                  <TableHead className="min-w-[130px]">Activity Type</TableHead>
-                  <TableHead className="min-w-[150px]">Industrial Code</TableHead>
-                  <TableHead className="min-w-[150px]">Mailing Address 1</TableHead>
-                  <TableHead className="min-w-[150px]">Mailing Address 2</TableHead>
-                  <TableHead className="min-w-[120px]">Village Code</TableHead>
-                  <TableHead className="min-w-[120px]">Sector Code</TableHead>
-                  <TableHead className="min-w-[120px]">Males Employed</TableHead>
-                  <TableHead className="min-w-[130px]">Females Employed</TableHead>
-                  <TableHead className="min-w-[100px]">Arrears</TableHead>
-                  <TableHead className="min-w-[120px]">Legal Action</TableHead>
-                  <TableHead className="min-w-[180px]">Expected Monthly Income Date</TableHead>
-                  <TableHead className="min-w-[150px]">Date of Registration</TableHead>
-                  <TableHead className="min-w-[160px]">Date Wages First Paid</TableHead>
-                  <TableHead className="min-w-[130px]">Date of Closure</TableHead>
-                  <TableHead className="min-w-[140px]">Date of Application</TableHead>
-                  <TableHead className="min-w-[120px]">Date of Entry</TableHead>
-                  <TableHead className="min-w-[120px]">Date of Issue</TableHead>
-                  <TableHead className="min-w-[130px]">Date Modified</TableHead>
-                  <TableHead className="min-w-[130px]">Date Verified</TableHead>
-                  <TableHead className="min-w-[120px]">Entered By</TableHead>
-                  <TableHead className="min-w-[120px]">Modified By</TableHead>
-                  <TableHead className="min-w-[120px]">Verified By</TableHead>
-                  <TableHead className="min-w-[130px]">Ownership Code</TableHead>
-                  <TableHead className="min-w-[130px]">Previous Owner</TableHead>
-                  <TableHead className="min-w-[180px]">Previous Owner Address 1</TableHead>
-                  <TableHead className="min-w-[180px]">Previous Owner Address 2</TableHead>
-                  <TableHead className="min-w-[150px]">Date of Acquisition</TableHead>
-                  <TableHead className="min-w-[150px]">Date of Incorporated</TableHead>
-                  <TableHead className="min-w-[130px]">Company Payroll</TableHead>
-                  <TableHead className="min-w-[120px]">Make Model</TableHead>
-                  <TableHead className="min-w-[100px]">Disk Type</TableHead>
-                  <TableHead className="min-w-[120px]">Acquired Code</TableHead>
-                  <TableHead className="min-w-[150px]">Estimated Arrears SS</TableHead>
-                  <TableHead className="min-w-[150px]">Estimated Arrears LV</TableHead>
-                  <TableHead className="min-w-[150px]">Estimated Arrears PE</TableHead>
-                  <TableHead className="min-w-[140px]">Estimated Wages SS</TableHead>
-                  <TableHead className="min-w-[140px]">Estimated Wages LV</TableHead>
-                  <TableHead className="min-w-[140px]">Estimated Wages PE</TableHead>
-                  <TableHead className="min-w-[100px]">Status</TableHead>
-                  <TableHead className="min-w-[130px]">Inspector Code</TableHead>
-                  <TableHead className="min-w-[130px]">Parent Reg. No.</TableHead>
-                  <TableHead className="min-w-[160px]">Re Registration Date</TableHead>
-                  <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sampleEmployers.map((employer, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{employer.regNo}</TableCell>
-                    <TableCell>{employer.name}</TableCell>
-                    <TableCell>{employer.tradeName}</TableCell>
-                    <TableCell>{employer.phone}</TableCell>
-                    <TableCell>{employer.fax}</TableCell>
-                    <TableCell>{employer.hqAddress1}</TableCell>
-                    <TableCell>{employer.hqAddress2}</TableCell>
-                    <TableCell>{employer.officeCode}</TableCell>
-                    <TableCell>{employer.activityType}</TableCell>
-                    <TableCell>{employer.industrialCode}</TableCell>
-                    <TableCell>{employer.mailingAddress1}</TableCell>
-                    <TableCell>{employer.mailingAddress2}</TableCell>
-                    <TableCell>{employer.villageCode}</TableCell>
-                    <TableCell>{employer.sectorCode}</TableCell>
-                    <TableCell>{employer.malesEmployed}</TableCell>
-                    <TableCell>{employer.femalesEmployed}</TableCell>
-                    <TableCell>{employer.arrears}</TableCell>
-                    <TableCell>{employer.legalAction}</TableCell>
-                    <TableCell>{employer.expectedMonthlyIncomeDate}</TableCell>
-                    <TableCell>{employer.dateOfRegistration}</TableCell>
-                    <TableCell>{employer.dateWagesFirstPaid}</TableCell>
-                    <TableCell>{employer.dateOfClosure}</TableCell>
-                    <TableCell>{employer.dateOfApplication}</TableCell>
-                    <TableCell>{employer.dateOfEntry}</TableCell>
-                    <TableCell>{employer.dateOfIssue}</TableCell>
-                    <TableCell>{employer.dateModified}</TableCell>
-                    <TableCell>{employer.dateVerified}</TableCell>
-                    <TableCell>{employer.enteredBy}</TableCell>
-                    <TableCell>{employer.modifiedBy}</TableCell>
-                    <TableCell>{employer.verifiedBy}</TableCell>
-                    <TableCell>{employer.ownershipCode}</TableCell>
-                    <TableCell>{employer.previousOwner}</TableCell>
-                    <TableCell>{employer.previousOwnerAddress1}</TableCell>
-                    <TableCell>{employer.previousOwnerAddress2}</TableCell>
-                    <TableCell>{employer.dateOfAcquisition}</TableCell>
-                    <TableCell>{employer.dateOfIncorporated}</TableCell>
-                    <TableCell>{employer.companyPayroll}</TableCell>
-                    <TableCell>{employer.makeModel}</TableCell>
-                    <TableCell>{employer.diskType}</TableCell>
-                    <TableCell>{employer.acquiredCode}</TableCell>
-                    <TableCell>{employer.estimatedArrearsSS}</TableCell>
-                    <TableCell>{employer.estimatedArrearsLV}</TableCell>
-                    <TableCell>{employer.estimatedArrearsPE}</TableCell>
-                    <TableCell>{employer.estimatedWagesSS}</TableCell>
-                    <TableCell>{employer.estimatedWagesLV}</TableCell>
-                    <TableCell>{employer.estimatedWagesPE}</TableCell>
-                    <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                    <TableCell>{employer.inspectorCode}</TableCell>
-                    <TableCell>{employer.parentRegNo}</TableCell>
-                    <TableCell>{employer.reRegistrationDate}</TableCell>
-                    <TableCell className="sticky right-0 bg-background">
-                      <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewDetails(employer)}
-                          className="h-8 w-8 p-0"
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditDetails(employer)}
-                          className="h-8 w-8 p-0"
-                          title="Edit Details"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteEmployer(employer)}
-                          className="h-8 w-8 p-0"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {/* Section 2: Search Result Area */}
+          <Card className="shadow-sm">
+            <CardHeader className="border-b bg-white">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-lg text-gray-800">Search Result ({filteredEmployers.length})</CardTitle>
+                  <CardDescription>Comprehensive employer information and management</CardDescription>
+                </div>
+                <Button variant="outline" className="border-gray-300">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {/* Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 bg-gray-50 border-b">
+                  <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+                    Pending Verification
+                  </TabsTrigger>
+                  <TabsTrigger value="registered" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+                    Registered Employers
+                  </TabsTrigger>
+                  <TabsTrigger value="ceased" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+                    Ceased/Suspended Employers
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value={activeTab} className="m-0">
+                  <div className="overflow-x-auto max-h-[600px]">
+                    <Table className="relative">
+                      <TableHeader className="sticky top-0 bg-white z-10 border-b-2">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="min-w-[100px] font-semibold">Reg. No.</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Name</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Trade Name</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Phone</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Fax</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">HQ Address 1</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">HQ Address 2</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Office Code</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Activity Type</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Industrial Code</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Mailing Address 1</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Mailing Address 2</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Village Code</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Sector Code</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Males Employed</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Females Employed</TableHead>
+                          <TableHead className="min-w-[100px] font-semibold">Arrears</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Legal Action</TableHead>
+                          <TableHead className="min-w-[180px] font-semibold">Expected Monthly Income Date</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Date of Registration</TableHead>
+                          <TableHead className="min-w-[160px] font-semibold">Date Wages First Paid</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Date of Closure</TableHead>
+                          <TableHead className="min-w-[140px] font-semibold">Date of Application</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Date of Entry</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Date of Issue</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Date Modified</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Date Verified</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Entered By</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Modified By</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Verified By</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Ownership Code</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Previous Owner</TableHead>
+                          <TableHead className="min-w-[180px] font-semibold">Previous Owner Address 1</TableHead>
+                          <TableHead className="min-w-[180px] font-semibold">Previous Owner Address 2</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Date of Acquisition</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Date of Incorporated</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Company Payroll</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Make Model</TableHead>
+                          <TableHead className="min-w-[100px] font-semibold">Disk Type</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Acquired Code</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Estimated Arrears SS</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Estimated Arrears LV</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Estimated Arrears PE</TableHead>
+                          <TableHead className="min-w-[140px] font-semibold">Estimated Wages SS</TableHead>
+                          <TableHead className="min-w-[140px] font-semibold">Estimated Wages LV</TableHead>
+                          <TableHead className="min-w-[140px] font-semibold">Estimated Wages PE</TableHead>
+                          <TableHead className="min-w-[100px] font-semibold">Status</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Inspector Code</TableHead>
+                          <TableHead className="min-w-[130px] font-semibold">Parent Reg. No.</TableHead>
+                          <TableHead className="min-w-[160px] font-semibold">Re Registration Date</TableHead>
+                          <TableHead className="min-w-[200px] sticky right-0 bg-white font-semibold border-l-2">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEmployers.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={47} className="text-center py-8 text-gray-500">
+                              No data found for the selected criteria
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredEmployers.map((employer, index) => (
+                            <TableRow key={index} className="hover:bg-blue-50 transition-colors border-b">
+                              <TableCell className="font-medium">{employer.regNo}</TableCell>
+                              <TableCell>{employer.name}</TableCell>
+                              <TableCell>{employer.tradeName}</TableCell>
+                              <TableCell>{employer.phone}</TableCell>
+                              <TableCell>{employer.fax}</TableCell>
+                              <TableCell>{employer.hqAddress1}</TableCell>
+                              <TableCell>{employer.hqAddress2}</TableCell>
+                              <TableCell>{employer.officeCode}</TableCell>
+                              <TableCell>{employer.activityType}</TableCell>
+                              <TableCell>{employer.industrialCode}</TableCell>
+                              <TableCell>{employer.mailingAddress1}</TableCell>
+                              <TableCell>{employer.mailingAddress2}</TableCell>
+                              <TableCell>{employer.villageCode}</TableCell>
+                              <TableCell>{employer.sectorCode}</TableCell>
+                              <TableCell>{employer.malesEmployed}</TableCell>
+                              <TableCell>{employer.femalesEmployed}</TableCell>
+                              <TableCell>${employer.arrears.toLocaleString()}</TableCell>
+                              <TableCell>{employer.legalAction}</TableCell>
+                              <TableCell>{employer.expectedMonthlyIncomeDate}</TableCell>
+                              <TableCell>{employer.dateOfRegistration}</TableCell>
+                              <TableCell>{employer.dateWagesFirstPaid}</TableCell>
+                              <TableCell>{employer.dateOfClosure || '-'}</TableCell>
+                              <TableCell>{employer.dateOfApplication}</TableCell>
+                              <TableCell>{employer.dateOfEntry}</TableCell>
+                              <TableCell>{employer.dateOfIssue}</TableCell>
+                              <TableCell>{employer.dateModified}</TableCell>
+                              <TableCell>{employer.dateVerified}</TableCell>
+                              <TableCell>{employer.enteredBy}</TableCell>
+                              <TableCell>{employer.modifiedBy}</TableCell>
+                              <TableCell>{employer.verifiedBy}</TableCell>
+                              <TableCell>{employer.ownershipCode}</TableCell>
+                              <TableCell>{employer.previousOwner || '-'}</TableCell>
+                              <TableCell>{employer.previousOwnerAddress1 || '-'}</TableCell>
+                              <TableCell>{employer.previousOwnerAddress2 || '-'}</TableCell>
+                              <TableCell>{employer.dateOfAcquisition || '-'}</TableCell>
+                              <TableCell>{employer.dateOfIncorporated}</TableCell>
+                              <TableCell>{employer.companyPayroll}</TableCell>
+                              <TableCell>{employer.makeModel}</TableCell>
+                              <TableCell>{employer.diskType}</TableCell>
+                              <TableCell>{employer.acquiredCode}</TableCell>
+                              <TableCell>${employer.estimatedArrearsSS.toLocaleString()}</TableCell>
+                              <TableCell>${employer.estimatedArrearsLV.toLocaleString()}</TableCell>
+                              <TableCell>${employer.estimatedArrearsPE.toLocaleString()}</TableCell>
+                              <TableCell>${employer.estimatedWagesSS.toLocaleString()}</TableCell>
+                              <TableCell>${employer.estimatedWagesLV.toLocaleString()}</TableCell>
+                              <TableCell>${employer.estimatedWagesPE.toLocaleString()}</TableCell>
+                              <TableCell>{getStatusBadge(employer.status)}</TableCell>
+                              <TableCell>{employer.inspectorCode}</TableCell>
+                              <TableCell>{employer.parentRegNo || '-'}</TableCell>
+                              <TableCell>{employer.reRegistrationDate || '-'}</TableCell>
+                              <TableCell className="sticky right-0 bg-white border-l-2">
+                                <div className="flex gap-1 justify-end">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleSave(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-blue-50"
+                                      >
+                                        <Save className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Save</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleChangeStatus(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-orange-50"
+                                      >
+                                        <RefreshCw className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Change Status</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleVerifyData(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-green-50"
+                                      >
+                                        <CheckCircle className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Verify Data</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleRegistrationCertificate(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-purple-50"
+                                      >
+                                        <FileText className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Registration Certificate</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handlePrint(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-gray-50"
+                                      >
+                                        <Printer className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Print</TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+          
+          {/* Pagination */}
+          <div className="flex justify-between items-center mt-4">
+            <p className="text-sm text-gray-500">
+              Showing {filteredEmployers.length} of {sampleEmployers.length} employers
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" className="bg-blue-600 text-white">
+                1
+              </Button>
+              <Button variant="outline" size="sm" disabled>
+                Next
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </TooltipProvider>
   );
 };
 
