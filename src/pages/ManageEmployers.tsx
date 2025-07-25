@@ -329,11 +329,10 @@ const ManageEmployers = () => {
           {/* Section 1: Query By (Collapsible Filters Panel) */}
           <Card className="mb-6 shadow-sm">
             <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
-              <CardHeader className="border-b bg-white">
+              <CardHeader className="border-b bg-background">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg text-gray-800">Query By</CardTitle>
-                    <CardDescription>Filter employers by registration, name, and status</CardDescription>
+                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
                   </div>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="p-2 h-auto">
@@ -346,268 +345,148 @@ const ManageEmployers = () => {
                   </CollapsibleTrigger>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 bg-white">
-                {/* Collapsed View - Essential 7 Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Registration Number</label>
-                    <Input
-                      placeholder="Enter reg. number"
-                      value={searchParams.registrationNumber}
-                      onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Employer Name</label>
-                    <Input
-                      placeholder="Enter employer name"
-                      value={searchParams.employerName}
-                      onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Trade Name</label>
-                    <Input
-                      placeholder="Enter trade name"
-                      value={searchParams.tradeName}
-                      onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Phone Number</label>
-                    <Input
-                      placeholder="Enter phone number"
-                      value={searchParams.phoneNumber}
-                      onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Registration Date</label>
-                    <div className="flex gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "flex-1 justify-start text-left font-normal bg-white",
-                              !fromDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {fromDate ? format(fromDate, "MMM dd") : "From"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={setFromDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto bg-white"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "flex-1 justify-start text-left font-normal bg-white",
-                              !toDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {toDate ? format(toDate, "MMM dd") : "To"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={toDate}
-                            onSelect={setToDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto bg-white"
-                          />
-                        </PopoverContent>
-                      </Popover>
+              
+              {/* Expanded View - Show 7 Essential Filters */}
+              <CollapsibleContent className="bg-background">
+                <CardContent className="p-6 bg-background">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Number</label>
+                      <Input
+                        placeholder="Enter reg. number"
+                        value={searchParams.registrationNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Employer Name</label>
+                      <Input
+                        placeholder="Enter employer name"
+                        value={searchParams.employerName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name</label>
+                      <Input
+                        placeholder="Enter trade name"
+                        value={searchParams.tradeName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone Number</label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={searchParams.phoneNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date</label>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !fromDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fromDate ? format(fromDate, "MMM dd") : "From"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={fromDate}
+                              onSelect={setFromDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !toDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {toDate ? format(toDate, "MMM dd") : "To"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={toDate}
+                              onSelect={setToDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Inspector Code</label>
+                      <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select inspector" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="00 Nevis">00 Nevis</SelectItem>
+                          <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
+                          <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
+                          <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
+                      <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="All">All</SelectItem>
+                          <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+                          <SelectItem value="Registered">Registered</SelectItem>
+                          <SelectItem value="Ceased/Suspended">Ceased/Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Inspector Code</label>
-                    <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select inspector" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white z-50">
-                        <SelectItem value="00 Nevis">00 Nevis</SelectItem>
-                        <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
-                        <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
-                        <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
-                    <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white z-50">
-                        <SelectItem value="All">All</SelectItem>
-                        <SelectItem value="Pending Verification">Pending Verification</SelectItem>
-                        <SelectItem value="Registered">Registered</SelectItem>
-                        <SelectItem value="Ceased/Suspended">Ceased/Suspended</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
-                {/* Expanded View - Advanced Filters */}
-                <CollapsibleContent className="space-y-4">
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-semibold text-gray-800 mb-4">Advanced Filters</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Fax Number</label>
-                        <Input
-                          placeholder="Enter fax number"
-                          value={searchParams.fax}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, fax: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">HQ Address 1</label>
-                        <Input
-                          placeholder="Enter HQ address"
-                          value={searchParams.hqAddress1}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, hqAddress1: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">HQ Address 2</label>
-                        <Input
-                          placeholder="Enter HQ address 2"
-                          value={searchParams.hqAddress2}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, hqAddress2: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Office Code</label>
-                        <Input
-                          placeholder="Enter office code"
-                          value={searchParams.officeCode}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, officeCode: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Activity Type</label>
-                        <Input
-                          placeholder="Enter activity type"
-                          value={searchParams.activityType}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, activityType: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Industrial Code</label>
-                        <Select value={searchParams.industrialCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, industrialCode: value }))}>
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Select industrial code" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white z-50">
-                            <SelectItem value="Account/Book-keep/Audit">Account/Book-keep/Audit</SelectItem>
-                            <SelectItem value="Act of other trans agency">Act of other trans agency</SelectItem>
-                            <SelectItem value="Admin of Financial Market">Admin of Financial Market</SelectItem>
-                            <SelectItem value="Building of Complete Con">Building of Complete Con</SelectItem>
-                            <SelectItem value="Farming Domestic Animals">Farming Domestic Animals</SelectItem>
-                            <SelectItem value="Gardening">Gardening</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Mailing Address 1</label>
-                        <Input
-                          placeholder="Enter mailing address"
-                          value={searchParams.mailingAddress1}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, mailingAddress1: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Mailing Address 2</label>
-                        <Input
-                          placeholder="Enter mailing address 2"
-                          value={searchParams.mailingAddress2}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, mailingAddress2: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Village Code</label>
-                        <Select value={searchParams.villageCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, villageCode: value }))}>
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Select village" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white z-50">
-                            <SelectItem value="Adams Hill">Adams Hill</SelectItem>
-                            <SelectItem value="Barnaby">Barnaby</SelectItem>
-                            <SelectItem value="Barnes Bhaut">Barnes Bhaut</SelectItem>
-                            <SelectItem value="Basseterre">Basseterre</SelectItem>
-                            <SelectItem value="Cayon">Cayon</SelectItem>
-                            <SelectItem value="Clifton Estate">Clifton Estate</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Sector Code</label>
-                        <Input
-                          placeholder="Enter sector code"
-                          value={searchParams.sectorCode}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, sectorCode: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Ownership Code</label>
-                        <Input
-                          placeholder="Enter ownership code"
-                          value={searchParams.ownershipCode}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, ownershipCode: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Parent Reg. No.</label>
-                        <Input
-                          placeholder="Enter parent reg. number"
-                          value={searchParams.parentRegNo}
-                          onChange={(e) => setSearchParams(prev => ({ ...prev, parentRegNo: e.target.value }))}
-                          className="bg-white"
-                        />
-                      </div>
-                    </div>
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={handleSearch} 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleReset}
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
                   </div>
-                </CollapsibleContent>
-                
-                <div className="flex gap-3 pt-4">
-                  <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                  <Button variant="outline" onClick={handleReset} className="border-gray-300 hover:bg-gray-50">
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset
-                  </Button>
-                </div>
-              </CardContent>
+                </CardContent>
+              </CollapsibleContent>
             </Collapsible>
           </Card>
 
