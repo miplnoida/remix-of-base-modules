@@ -282,14 +282,11 @@ const ManageEmployers = () => {
 
   // Action handlers
   const handleView = (employer: EmployerRecord) => {
-    setSelectedEmployer(employer);
-    setViewDialogOpen(true);
+    navigate(`/employers-management/view/${employer.regNo}`);
   };
 
   const handleEdit = (employer: EmployerRecord) => {
-    setSelectedEmployer(employer);
-    setEditedEmployer({ ...employer });
-    setEditDialogOpen(true);
+    navigate(`/employers-management/edit/${employer.regNo}`);
   };
 
   const handleDelete = (employer: EmployerRecord) => {

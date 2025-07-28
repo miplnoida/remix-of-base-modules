@@ -58,6 +58,8 @@ import EmployersDashboard from '@/pages/EmployersDashboard';
 // New pages for missing routes
 import AddEmployer from '@/pages/AddEmployer';
 import EmployersReports from '@/pages/EmployersReports';
+import ViewEmployer from '@/pages/ViewEmployer';
+import EditEmployer from '@/pages/EditEmployer';
 import ManageSelfEmployed from '@/pages/ManageSelfEmployed';
 import AddSelfEmployed from '@/pages/AddSelfEmployed';
 import SelfEmployedReports from '@/pages/SelfEmployedReports';
@@ -85,6 +87,8 @@ export const AppRoutes = () => {
       <Route path="/employers-management/dashboard" element={<ProtectedLayout><EmployersDashboard /></ProtectedLayout>} />
       <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
       <Route path="/employers-management/add" element={<ProtectedLayout><AddEmployer /></ProtectedLayout>} />
+      <Route path="/employers-management/view/:regNo" element={<ProtectedLayout><ViewEmployer /></ProtectedLayout>} />
+      <Route path="/employers-management/edit/:regNo" element={<ProtectedLayout><EditEmployer /></ProtectedLayout>} />
       <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />
       <Route path="/employers-management/pending-verification" element={<ProtectedLayout><PendingVerificationPage /></ProtectedLayout>} />
 
