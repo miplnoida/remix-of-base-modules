@@ -30,7 +30,10 @@ import {
   Download,
   ChevronDown,
   ChevronRight,
-  CalendarIcon
+  CalendarIcon,
+  Eye,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -264,29 +267,24 @@ const ManageEmployers = () => {
   };
 
   // Action handlers
-  const handleSave = (employer: EmployerRecord) => {
-    console.log('Saving employer:', employer);
-    alert('Employer data saved successfully!');
+  const handleView = (employer: EmployerRecord) => {
+    console.log('Viewing employer:', employer);
+    alert(`Viewing details for ${employer.name}`);
+  };
+
+  const handleEdit = (employer: EmployerRecord) => {
+    console.log('Editing employer:', employer);
+    alert(`Editing ${employer.name}`);
+  };
+
+  const handleDelete = (employer: EmployerRecord) => {
+    console.log('Deleting employer:', employer);
+    alert(`Deleting ${employer.name}`);
   };
 
   const handleChangeStatus = (employer: EmployerRecord) => {
     console.log('Changing status for:', employer);
     alert(`Status changed for ${employer.name}`);
-  };
-
-  const handleVerifyData = (employer: EmployerRecord) => {
-    console.log('Verifying data for:', employer);
-    alert(`Data verified for ${employer.name}`);
-  };
-
-  const handleRegistrationCertificate = (employer: EmployerRecord) => {
-    console.log('Generating registration certificate for:', employer);
-    alert(`Registration certificate generated for ${employer.name}`);
-  };
-
-  const handlePrint = (employer: EmployerRecord) => {
-    console.log('Printing details for:', employer);
-    alert(`Printing details for ${employer.name}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -644,13 +642,41 @@ const ManageEmployers = () => {
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => handleSave(employer)}
+                                        onClick={() => handleView(employer)}
                                         className="h-8 w-8 p-0 hover:bg-blue-50"
                                       >
-                                        <Save className="h-3 w-3" />
+                                        <Eye className="h-3 w-3" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>Save</TooltipContent>
+                                    <TooltipContent>View</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleEdit(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-green-50"
+                                      >
+                                        <Edit className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Edit</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleDelete(employer)}
+                                        className="h-8 w-8 p-0 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Delete</TooltipContent>
                                   </Tooltip>
                                   
                                   <Tooltip>
@@ -665,48 +691,6 @@ const ManageEmployers = () => {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>Change Status</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleVerifyData(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-green-50"
-                                      >
-                                        <CheckCircle className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Verify Data</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleRegistrationCertificate(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-purple-50"
-                                      >
-                                        <FileText className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Registration Certificate</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handlePrint(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-gray-50"
-                                      >
-                                        <Printer className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Print</TooltipContent>
                                   </Tooltip>
                                 </div>
                               </TableCell>
