@@ -10,6 +10,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -205,6 +209,16 @@ const ManageEmployers = () => {
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
+  
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedEmployer, setSelectedEmployer] = useState<EmployerRecord | null>(null);
+  const [editedEmployer, setEditedEmployer] = useState<EmployerRecord | null>(null);
+  const [newStatus, setNewStatus] = useState('');
+  
   const [searchParams, setSearchParams] = useState({
     registrationNumber: '',
     employerName: '',
@@ -268,23 +282,56 @@ const ManageEmployers = () => {
 
   // Action handlers
   const handleView = (employer: EmployerRecord) => {
-    console.log('Viewing employer:', employer);
-    alert(`Viewing details for ${employer.name}`);
+    setSelectedEmployer(employer);
+    setViewDialogOpen(true);
   };
 
   const handleEdit = (employer: EmployerRecord) => {
-    console.log('Editing employer:', employer);
-    alert(`Editing ${employer.name}`);
+    setSelectedEmployer(employer);
+    setEditedEmployer({ ...employer });
+    setEditDialogOpen(true);
   };
 
   const handleDelete = (employer: EmployerRecord) => {
-    console.log('Deleting employer:', employer);
-    alert(`Deleting ${employer.name}`);
+    setSelectedEmployer(employer);
+    setDeleteDialogOpen(true);
   };
 
   const handleChangeStatus = (employer: EmployerRecord) => {
-    console.log('Changing status for:', employer);
-    alert(`Status changed for ${employer.name}`);
+    setSelectedEmployer(employer);
+    setNewStatus(employer.status);
+    setStatusDialogOpen(true);
+  };
+
+  const confirmEdit = () => {
+    if (editedEmployer) {
+      // Update the employer in the data (in real app, this would be an API call)
+      console.log('Updating employer:', editedEmployer);
+      alert(`Successfully updated ${editedEmployer.name}`);
+      setEditDialogOpen(false);
+      setEditedEmployer(null);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (selectedEmployer) {
+      // Delete the employer (in real app, this would be an API call)
+      console.log('Deleting employer:', selectedEmployer);
+      alert(`Successfully deleted ${selectedEmployer.name}`);
+      setDeleteDialogOpen(false);
+      setSelectedEmployer(null);
+    }
+  };
+
+  const confirmStatusChange = () => {
+    if (selectedEmployer && newStatus) {
+      // Update status (in real app, this would be an API call)
+      console.log('Changing status:', selectedEmployer, 'to:', newStatus);
+      alert(`Successfully changed status of ${selectedEmployer.name} to ${newStatus}`);
+      setStatusDialogOpen(false);
+      setSelectedEmployer(null);
+      setNewStatus('');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -723,6 +770,273 @@ const ManageEmployers = () => {
             </div>
           </div>
         </div>
+
+        {/* View Employer Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Employer Details</DialogTitle>
+              <DialogDescription>
+                Complete information for {selectedEmployer?.name}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedEmployer && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Registration Number</Label>
+                    <p className="mt-1">{selectedEmployer.regNo}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Employer Name</Label>
+                    <p className="mt-1">{selectedEmployer.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Trade Name</Label>
+                    <p className="mt-1">{selectedEmployer.tradeName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
+                    <p className="mt-1">{selectedEmployer.phone}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Fax</Label>
+                    <p className="mt-1">{selectedEmployer.fax}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">HQ Address</Label>
+                    <p className="mt-1">{selectedEmployer.hqAddress1}</p>
+                    <p>{selectedEmployer.hqAddress2}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Activity Type</Label>
+                    <p className="mt-1">{selectedEmployer.activityType}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Industrial Code</Label>
+                    <p className="mt-1">{selectedEmployer.industrialCode}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Employees</Label>
+                    <p className="mt-1">Males: {selectedEmployer.malesEmployed}, Females: {selectedEmployer.femalesEmployed}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <div className="mt-1">{getStatusBadge(selectedEmployer.status)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Registration Date</Label>
+                    <p className="mt-1">{selectedEmployer.dateOfRegistration}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Inspector Code</Label>
+                    <p className="mt-1">{selectedEmployer.inspectorCode}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Arrears</Label>
+                    <p className="mt-1">${selectedEmployer.arrears.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Legal Action</Label>
+                    <p className="mt-1">{selectedEmployer.legalAction}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Mailing Address</Label>
+                    <p className="mt-1">{selectedEmployer.mailingAddress1}</p>
+                    <p>{selectedEmployer.mailingAddress2}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Entered By</Label>
+                    <p className="mt-1">{selectedEmployer.enteredBy}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Date Modified</Label>
+                    <p className="mt-1">{selectedEmployer.dateModified}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Modified By</Label>
+                    <p className="mt-1">{selectedEmployer.modifiedBy}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Employer Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Employer</DialogTitle>
+              <DialogDescription>
+                Update employer information for {editedEmployer?.name}
+              </DialogDescription>
+            </DialogHeader>
+            {editedEmployer && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-name">Employer Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editedEmployer.name}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-trade-name">Trade Name</Label>
+                    <Input
+                      id="edit-trade-name"
+                      value={editedEmployer.tradeName}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, tradeName: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-phone">Phone</Label>
+                    <Input
+                      id="edit-phone"
+                      value={editedEmployer.phone}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-fax">Fax</Label>
+                    <Input
+                      id="edit-fax"
+                      value={editedEmployer.fax}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, fax: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-hq-address1">HQ Address 1</Label>
+                    <Input
+                      id="edit-hq-address1"
+                      value={editedEmployer.hqAddress1}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, hqAddress1: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-hq-address2">HQ Address 2</Label>
+                    <Input
+                      id="edit-hq-address2"
+                      value={editedEmployer.hqAddress2}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, hqAddress2: e.target.value } : null)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-activity-type">Activity Type</Label>
+                    <Input
+                      id="edit-activity-type"
+                      value={editedEmployer.activityType}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, activityType: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-industrial-code">Industrial Code</Label>
+                    <Input
+                      id="edit-industrial-code"
+                      value={editedEmployer.industrialCode}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, industrialCode: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-males">Males Employed</Label>
+                    <Input
+                      id="edit-males"
+                      type="number"
+                      value={editedEmployer.malesEmployed}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, malesEmployed: parseInt(e.target.value) || 0 } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-females">Females Employed</Label>
+                    <Input
+                      id="edit-females"
+                      type="number"
+                      value={editedEmployer.femalesEmployed}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, femalesEmployed: parseInt(e.target.value) || 0 } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-mailing1">Mailing Address 1</Label>
+                    <Input
+                      id="edit-mailing1"
+                      value={editedEmployer.mailingAddress1}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, mailingAddress1: e.target.value } : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-mailing2">Mailing Address 2</Label>
+                    <Input
+                      id="edit-mailing2"
+                      value={editedEmployer.mailingAddress2}
+                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, mailingAddress2: e.target.value } : null)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmEdit}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Employer Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Employer</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedEmployer?.name}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Change Status Dialog */}
+        <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Status</DialogTitle>
+              <DialogDescription>
+                Change the status for {selectedEmployer?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="status-select">New Status</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select new status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmStatusChange}>Change Status</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
