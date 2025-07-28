@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Edit, Download, Print, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -760,7 +760,7 @@ export default function ViewEmployer() {
                         Export
                       </Button>
                       <Button variant="outline" size="sm">
-                        <Print className="h-4 w-4 mr-2" />
+                        <Printer className="h-4 w-4 mr-2" />
                         Print
                       </Button>
                     </div>
