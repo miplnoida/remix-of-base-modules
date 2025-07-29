@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,12 +24,9 @@ import {
 } from '@/components/ui/table';
 import {
   Search,
-  Save,
   RefreshCw,
   CheckCircle,
-  FileText,
   Printer,
-  RotateCcw,
   Plus,
   Download,
   ChevronDown,
@@ -200,6 +197,111 @@ const sampleEmployers: EmployerRecord[] = [
     inspectorCode: "02 Dexter Richardson",
     parentRegNo: "PARENT001",
     reRegistrationDate: "2023-01-01"
+  },
+  // Adding pending verification employers
+  {
+    regNo: "PEND001",
+    name: "PendingCorp Solutions",
+    tradeName: "PendingCorp",
+    phone: "(869) 465-4567",
+    fax: "(869) 465-4568",
+    hqAddress1: "789 Pending Street",
+    hqAddress2: "Charlestown",
+    officeCode: "CHT001",
+    activityType: "IT Services",
+    industrialCode: "Software Development",
+    mailingAddress1: "P.O. Box 789",
+    mailingAddress2: "Charlestown",
+    villageCode: "Charlestown",
+    sectorCode: "SEC003",
+    malesEmployed: 12,
+    femalesEmployed: 8,
+    arrears: 0,
+    legalAction: "None",
+    expectedMonthlyIncomeDate: "2024-03-15",
+    dateOfRegistration: "",
+    dateWagesFirstPaid: "",
+    dateOfClosure: "",
+    dateOfApplication: "2024-02-01",
+    dateOfEntry: "2024-02-05",
+    dateOfIssue: "",
+    dateModified: "",
+    dateVerified: "",
+    enteredBy: "System Admin",
+    modifiedBy: "",
+    verifiedBy: "",
+    ownershipCode: "OWN003",
+    previousOwner: "",
+    previousOwnerAddress1: "",
+    previousOwnerAddress2: "",
+    dateOfAcquisition: "",
+    dateOfIncorporated: "2024-01-01",
+    companyPayroll: "No",
+    makeModel: "",
+    diskType: "",
+    acquiredCode: "No",
+    estimatedArrearsSS: 0,
+    estimatedArrearsLV: 0,
+    estimatedArrearsPE: 0,
+    estimatedWagesSS: 8000,
+    estimatedWagesLV: 6000,
+    estimatedWagesPE: 12000,
+    status: "Pending",
+    inspectorCode: "03 Sarah Williams",
+    parentRegNo: "",
+    reRegistrationDate: ""
+  },
+  {
+    regNo: "PEND002",
+    name: "NewTech Innovations",
+    tradeName: "NewTech",
+    phone: "(869) 465-5678",
+    fax: "(869) 465-5679",
+    hqAddress1: "321 Innovation Drive",
+    hqAddress2: "Sandy Point",
+    officeCode: "SPT001",
+    activityType: "Technology",
+    industrialCode: "Tech Innovation",
+    mailingAddress1: "P.O. Box 321",
+    mailingAddress2: "Sandy Point",
+    villageCode: "Sandy Point",
+    sectorCode: "SEC004",
+    malesEmployed: 18,
+    femalesEmployed: 22,
+    arrears: 0,
+    legalAction: "None",
+    expectedMonthlyIncomeDate: "2024-03-20",
+    dateOfRegistration: "",
+    dateWagesFirstPaid: "",
+    dateOfClosure: "",
+    dateOfApplication: "2024-02-10",
+    dateOfEntry: "2024-02-15",
+    dateOfIssue: "",
+    dateModified: "",
+    dateVerified: "",
+    enteredBy: "Admin User",
+    modifiedBy: "",
+    verifiedBy: "",
+    ownershipCode: "OWN004",
+    previousOwner: "",
+    previousOwnerAddress1: "",
+    previousOwnerAddress2: "",
+    dateOfAcquisition: "",
+    dateOfIncorporated: "2024-01-15",
+    companyPayroll: "Yes",
+    makeModel: "",
+    diskType: "",
+    acquiredCode: "No",
+    estimatedArrearsSS: 0,
+    estimatedArrearsLV: 0,
+    estimatedArrearsPE: 0,
+    estimatedWagesSS: 15000,
+    estimatedWagesLV: 12000,
+    estimatedWagesPE: 20000,
+    status: "Pending",
+    inspectorCode: "04 Michael Davis",
+    parentRegNo: "",
+    reRegistrationDate: ""
   }
 ];
 
@@ -211,13 +313,10 @@ const ManageEmployers = () => {
   const [toDate, setToDate] = useState<Date>();
   
   // Dialog states
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedEmployer, setSelectedEmployer] = useState<EmployerRecord | null>(null);
-  const [editedEmployer, setEditedEmployer] = useState<EmployerRecord | null>(null);
-  const [newStatus, setNewStatus] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   
   const [searchParams, setSearchParams] = useState({
     registrationNumber: '',
@@ -226,21 +325,6 @@ const ManageEmployers = () => {
     phoneNumber: '',
     status: 'All',
     inspectorCode: '',
-    // Advanced filters
-    regNo: '',
-    fax: '',
-    hqAddress1: '',
-    hqAddress2: '',
-    officeCode: '',
-    activityType: '',
-    industrialCode: '',
-    mailingAddress1: '',
-    mailingAddress2: '',
-    villageCode: '',
-    sectorCode: '',
-    ownershipCode: '',
-    parentRegNo: '',
-    acquiredCode: ''
   });
 
   const handleSearch = () => {
@@ -256,31 +340,12 @@ const ManageEmployers = () => {
       phoneNumber: '',
       status: 'All',
       inspectorCode: '',
-      // Advanced filters
-      regNo: '',
-      fax: '',
-      hqAddress1: '',
-      hqAddress2: '',
-      officeCode: '',
-      activityType: '',
-      industrialCode: '',
-      mailingAddress1: '',
-      mailingAddress2: '',
-      villageCode: '',
-      sectorCode: '',
-      ownershipCode: '',
-      parentRegNo: '',
-      acquiredCode: ''
     });
     setFromDate(undefined);
     setToDate(undefined);
   };
 
-  const handleAddNewEmployer = () => {
-    navigate('/employer/register');
-  };
-
-  // Action handlers
+  // Action handlers for regular employers
   const handleView = (employer: EmployerRecord) => {
     navigate(`/employers-management/view/${employer.regNo}`);
   };
@@ -290,44 +355,43 @@ const ManageEmployers = () => {
   };
 
   const handleDelete = (employer: EmployerRecord) => {
-    setSelectedEmployer(employer);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleChangeStatus = (employer: EmployerRecord) => {
-    setSelectedEmployer(employer);
-    setNewStatus(employer.status);
-    setStatusDialogOpen(true);
-  };
-
-  const confirmEdit = () => {
-    if (editedEmployer) {
-      // Update the employer in the data (in real app, this would be an API call)
-      console.log('Updating employer:', editedEmployer);
-      alert(`Successfully updated ${editedEmployer.name}`);
-      setEditDialogOpen(false);
-      setEditedEmployer(null);
+    if (confirm(`Are you sure you want to delete ${employer.name}?`)) {
+      console.log('Deleting employer:', employer);
+      alert(`Successfully deleted ${employer.name}`);
     }
   };
 
-  const confirmDelete = () => {
+  // Pending Verification handlers
+  const handleApprove = (employer: EmployerRecord) => {
+    setSelectedEmployer(employer);
+    setApproveDialogOpen(true);
+  };
+
+  const handleReject = (employer: EmployerRecord) => {
+    setSelectedEmployer(employer);
+    setRejectDialogOpen(true);
+  };
+
+  const handleViewDetails = (employer: EmployerRecord) => {
+    navigate(`/employers-management/view/${employer.regNo}`);
+  };
+
+  const confirmApprove = () => {
     if (selectedEmployer) {
-      // Delete the employer (in real app, this would be an API call)
-      console.log('Deleting employer:', selectedEmployer);
-      alert(`Successfully deleted ${selectedEmployer.name}`);
-      setDeleteDialogOpen(false);
+      console.log('Approving employer:', selectedEmployer);
+      alert(`Successfully approved ${selectedEmployer.name}. Status changed to Active.`);
+      setApproveDialogOpen(false);
       setSelectedEmployer(null);
     }
   };
 
-  const confirmStatusChange = () => {
-    if (selectedEmployer && newStatus) {
-      // Update status (in real app, this would be an API call)
-      console.log('Changing status:', selectedEmployer, 'to:', newStatus);
-      alert(`Successfully changed status of ${selectedEmployer.name} to ${newStatus}`);
-      setStatusDialogOpen(false);
+  const confirmReject = () => {
+    if (selectedEmployer && rejectionReason.trim()) {
+      console.log('Rejecting employer:', selectedEmployer, 'Reason:', rejectionReason);
+      alert(`Successfully rejected ${selectedEmployer.name}. Rejection email sent with reason: ${rejectionReason}`);
+      setRejectDialogOpen(false);
       setSelectedEmployer(null);
-      setNewStatus('');
+      setRejectionReason('');
     }
   };
 
@@ -339,6 +403,8 @@ const ManageEmployers = () => {
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Suspended</Badge>;
       case 'Closed':
         return <Badge variant="secondary" className="bg-red-100 text-red-800 hover:bg-red-200">Closed</Badge>;
+      case 'Pending':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">Pending</Badge>;
       case 'Inactive':
         return <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-200">Inactive</Badge>;
       default:
@@ -350,7 +416,7 @@ const ManageEmployers = () => {
   const getFilteredEmployers = () => {
     switch (activeTab) {
       case 'pending':
-        return sampleEmployers.filter(emp => emp.status === 'Pending' || !emp.dateVerified);
+        return sampleEmployers.filter(emp => emp.status === 'Pending');
       case 'registered':
         return sampleEmployers.filter(emp => emp.status === 'Active');
       case 'ceased':
@@ -366,7 +432,16 @@ const ManageEmployers = () => {
     <TooltipProvider>
       <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Manage Employers</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Manage Employers</h1>
+            <Button 
+              onClick={() => navigate('/employer/register')}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Register New Employers
+            </Button>
+          </div>
           
           {/* Section 1: Query By (Collapsible Filters Panel) */}
           <Card className="mb-6 shadow-sm">
@@ -388,7 +463,6 @@ const ManageEmployers = () => {
                 </div>
               </CardHeader>
               
-              {/* Expanded View - Show 7 Essential Filters */}
               <CollapsibleContent className="bg-background">
                 <CardContent className="p-6 bg-background">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -493,20 +567,6 @@ const ManageEmployers = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
-                      <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="All">All</SelectItem>
-                          <SelectItem value="Pending Verification">Pending Verification</SelectItem>
-                          <SelectItem value="Registered">Registered</SelectItem>
-                          <SelectItem value="Ceased/Suspended">Ceased/Suspended</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
                   {/* Action Buttons */}
@@ -523,7 +583,7 @@ const ManageEmployers = () => {
                       onClick={handleReset}
                       className="border-primary text-primary hover:bg-primary/10"
                     >
-                      <RotateCcw className="w-4 h-4 mr-2" />
+                      <RefreshCw className="w-4 h-4 mr-2" />
                       Reset
                     </Button>
                   </div>
@@ -547,200 +607,249 @@ const ManageEmployers = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-gray-50 border-b">
-                  <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-                    Pending Verification
+                <TabsList className="w-full h-12 grid grid-cols-3 bg-gray-50 p-1 rounded-none">
+                  <TabsTrigger 
+                    value="pending" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Pending Verification ({sampleEmployers.filter(emp => emp.status === 'Pending').length})
                   </TabsTrigger>
-                  <TabsTrigger value="registered" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-                    Registered Employers
+                  <TabsTrigger 
+                    value="registered" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Registered Employers ({sampleEmployers.filter(emp => emp.status === 'Active').length})
                   </TabsTrigger>
-                  <TabsTrigger value="ceased" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-                    Ceased/Suspended Employers
+                  <TabsTrigger 
+                    value="ceased" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Ceased/Suspended ({sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed').length})
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value={activeTab} className="m-0">
-                  <div className="overflow-x-auto max-h-[600px]">
-                    <Table className="relative">
-                      <TableHeader className="sticky top-0 bg-white z-10 border-b-2">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="min-w-[100px] font-semibold">Reg. No.</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Name</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Trade Name</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Phone</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Fax</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">HQ Address 1</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">HQ Address 2</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Office Code</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Activity Type</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Industrial Code</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Mailing Address 1</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Mailing Address 2</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Village Code</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Sector Code</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Males Employed</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Females Employed</TableHead>
-                          <TableHead className="min-w-[100px] font-semibold">Arrears</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Legal Action</TableHead>
-                          <TableHead className="min-w-[180px] font-semibold">Expected Monthly Income Date</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Date of Registration</TableHead>
-                          <TableHead className="min-w-[160px] font-semibold">Date Wages First Paid</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Date of Closure</TableHead>
-                          <TableHead className="min-w-[140px] font-semibold">Date of Application</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Date of Entry</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Date of Issue</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Date Modified</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Date Verified</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Entered By</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Modified By</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Verified By</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Ownership Code</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Previous Owner</TableHead>
-                          <TableHead className="min-w-[180px] font-semibold">Previous Owner Address 1</TableHead>
-                          <TableHead className="min-w-[180px] font-semibold">Previous Owner Address 2</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Date of Acquisition</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Date of Incorporated</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Company Payroll</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Make Model</TableHead>
-                          <TableHead className="min-w-[100px] font-semibold">Disk Type</TableHead>
-                          <TableHead className="min-w-[120px] font-semibold">Acquired Code</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Estimated Arrears SS</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Estimated Arrears LV</TableHead>
-                          <TableHead className="min-w-[150px] font-semibold">Estimated Arrears PE</TableHead>
-                          <TableHead className="min-w-[140px] font-semibold">Estimated Wages SS</TableHead>
-                          <TableHead className="min-w-[140px] font-semibold">Estimated Wages LV</TableHead>
-                          <TableHead className="min-w-[140px] font-semibold">Estimated Wages PE</TableHead>
-                          <TableHead className="min-w-[100px] font-semibold">Status</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Inspector Code</TableHead>
-                          <TableHead className="min-w-[130px] font-semibold">Parent Reg. No.</TableHead>
-                          <TableHead className="min-w-[160px] font-semibold">Re Registration Date</TableHead>
-                          <TableHead className="min-w-[200px] sticky right-0 bg-white font-semibold border-l-2">Actions</TableHead>
+                {/* Pending Verification Tab */}
+                <TabsContent value="pending" className="p-6 mt-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b">
+                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Business Name</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Date Submitted</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Registration Number</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
+                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredEmployers.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={47} className="text-center py-8 text-gray-500">
-                              No data found for the selected criteria
+                        {filteredEmployers.map((employer) => (
+                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
+                            <TableCell className="font-medium text-gray-900">{employer.name}</TableCell>
+                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
+                            <TableCell className="text-gray-700">{employer.dateOfApplication || 'N/A'}</TableCell>
+                            <TableCell className="text-gray-700">{employer.regNo}</TableCell>
+                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="default" 
+                                      size="sm" 
+                                      onClick={() => handleApprove(employer)}
+                                      className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Approve
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Approve Registration</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="destructive" 
+                                      size="sm" 
+                                      onClick={() => handleReject(employer)}
+                                      className="h-8 px-3"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Reject
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Reject Registration</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => handleViewDetails(employer)}
+                                      className="h-8 px-3"
+                                    >
+                                      <Eye className="h-4 w-4 mr-1" />
+                                      View Details
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Registration Details</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          filteredEmployers.map((employer, index) => (
-                            <TableRow key={index} className="hover:bg-blue-50 transition-colors border-b">
-                              <TableCell className="font-medium">{employer.regNo}</TableCell>
-                              <TableCell>{employer.name}</TableCell>
-                              <TableCell>{employer.tradeName}</TableCell>
-                              <TableCell>{employer.phone}</TableCell>
-                              <TableCell>{employer.fax}</TableCell>
-                              <TableCell>{employer.hqAddress1}</TableCell>
-                              <TableCell>{employer.hqAddress2}</TableCell>
-                              <TableCell>{employer.officeCode}</TableCell>
-                              <TableCell>{employer.activityType}</TableCell>
-                              <TableCell>{employer.industrialCode}</TableCell>
-                              <TableCell>{employer.mailingAddress1}</TableCell>
-                              <TableCell>{employer.mailingAddress2}</TableCell>
-                              <TableCell>{employer.villageCode}</TableCell>
-                              <TableCell>{employer.sectorCode}</TableCell>
-                              <TableCell>{employer.malesEmployed}</TableCell>
-                              <TableCell>{employer.femalesEmployed}</TableCell>
-                              <TableCell>${employer.arrears.toLocaleString()}</TableCell>
-                              <TableCell>{employer.legalAction}</TableCell>
-                              <TableCell>{employer.expectedMonthlyIncomeDate}</TableCell>
-                              <TableCell>{employer.dateOfRegistration}</TableCell>
-                              <TableCell>{employer.dateWagesFirstPaid}</TableCell>
-                              <TableCell>{employer.dateOfClosure || '-'}</TableCell>
-                              <TableCell>{employer.dateOfApplication}</TableCell>
-                              <TableCell>{employer.dateOfEntry}</TableCell>
-                              <TableCell>{employer.dateOfIssue}</TableCell>
-                              <TableCell>{employer.dateModified}</TableCell>
-                              <TableCell>{employer.dateVerified}</TableCell>
-                              <TableCell>{employer.enteredBy}</TableCell>
-                              <TableCell>{employer.modifiedBy}</TableCell>
-                              <TableCell>{employer.verifiedBy}</TableCell>
-                              <TableCell>{employer.ownershipCode}</TableCell>
-                              <TableCell>{employer.previousOwner || '-'}</TableCell>
-                              <TableCell>{employer.previousOwnerAddress1 || '-'}</TableCell>
-                              <TableCell>{employer.previousOwnerAddress2 || '-'}</TableCell>
-                              <TableCell>{employer.dateOfAcquisition || '-'}</TableCell>
-                              <TableCell>{employer.dateOfIncorporated}</TableCell>
-                              <TableCell>{employer.companyPayroll}</TableCell>
-                              <TableCell>{employer.makeModel}</TableCell>
-                              <TableCell>{employer.diskType}</TableCell>
-                              <TableCell>{employer.acquiredCode}</TableCell>
-                              <TableCell>${employer.estimatedArrearsSS.toLocaleString()}</TableCell>
-                              <TableCell>${employer.estimatedArrearsLV.toLocaleString()}</TableCell>
-                              <TableCell>${employer.estimatedArrearsPE.toLocaleString()}</TableCell>
-                              <TableCell>${employer.estimatedWagesSS.toLocaleString()}</TableCell>
-                              <TableCell>${employer.estimatedWagesLV.toLocaleString()}</TableCell>
-                              <TableCell>${employer.estimatedWagesPE.toLocaleString()}</TableCell>
-                              <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                              <TableCell>{employer.inspectorCode}</TableCell>
-                              <TableCell>{employer.parentRegNo || '-'}</TableCell>
-                              <TableCell>{employer.reRegistrationDate || '-'}</TableCell>
-                              <TableCell className="sticky right-0 bg-white border-l-2">
-                                <div className="flex gap-1 justify-end">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleView(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-blue-50"
-                                      >
-                                        <Eye className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>View</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleEdit(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-green-50"
-                                      >
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Edit</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleDelete(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Delete</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleChangeStatus(employer)}
-                                        className="h-8 w-8 p-0 hover:bg-orange-50"
-                                      >
-                                        <RefreshCw className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Change Status</TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+
+                {/* Registered Employers Tab */}
+                <TabsContent value="registered" className="p-6 mt-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b">
+                          <TableHead className="text-gray-600 font-medium">Reg. No</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
+                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEmployers.map((employer) => (
+                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
+                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
+                            <TableCell className="text-gray-700">{employer.name}</TableCell>
+                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
+                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
+                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
+                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleView(employer)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Details</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleEdit(employer)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Edit</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleDelete(employer)}
+                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+
+                {/* Ceased/Suspended Employers Tab */}
+                <TabsContent value="ceased" className="p-6 mt-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b">
+                          <TableHead className="text-gray-600 font-medium">Reg. No</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
+                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEmployers.map((employer) => (
+                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
+                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
+                            <TableCell className="text-gray-700">{employer.name}</TableCell>
+                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
+                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
+                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
+                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleView(employer)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Details</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleEdit(employer)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Edit</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -748,289 +857,61 @@ const ManageEmployers = () => {
               </Tabs>
             </CardContent>
           </Card>
-          
-          {/* Pagination */}
-          <div className="flex justify-between items-center mt-4">
-            <p className="text-sm text-gray-500">
-              Showing {filteredEmployers.length} of {sampleEmployers.length} employers
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" className="bg-blue-600 text-white">
-                1
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Next
-              </Button>
-            </div>
-          </div>
         </div>
 
-        {/* View Employer Dialog */}
-        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Employer Details</DialogTitle>
-              <DialogDescription>
-                Complete information for {selectedEmployer?.name}
-              </DialogDescription>
-            </DialogHeader>
-            {selectedEmployer && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Registration Number</Label>
-                    <p className="mt-1">{selectedEmployer.regNo}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Employer Name</Label>
-                    <p className="mt-1">{selectedEmployer.name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Trade Name</Label>
-                    <p className="mt-1">{selectedEmployer.tradeName}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                    <p className="mt-1">{selectedEmployer.phone}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Fax</Label>
-                    <p className="mt-1">{selectedEmployer.fax}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">HQ Address</Label>
-                    <p className="mt-1">{selectedEmployer.hqAddress1}</p>
-                    <p>{selectedEmployer.hqAddress2}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Activity Type</Label>
-                    <p className="mt-1">{selectedEmployer.activityType}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Industrial Code</Label>
-                    <p className="mt-1">{selectedEmployer.industrialCode}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Employees</Label>
-                    <p className="mt-1">Males: {selectedEmployer.malesEmployed}, Females: {selectedEmployer.femalesEmployed}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <div className="mt-1">{getStatusBadge(selectedEmployer.status)}</div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Registration Date</Label>
-                    <p className="mt-1">{selectedEmployer.dateOfRegistration}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Inspector Code</Label>
-                    <p className="mt-1">{selectedEmployer.inspectorCode}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Arrears</Label>
-                    <p className="mt-1">${selectedEmployer.arrears.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Legal Action</Label>
-                    <p className="mt-1">{selectedEmployer.legalAction}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Mailing Address</Label>
-                    <p className="mt-1">{selectedEmployer.mailingAddress1}</p>
-                    <p>{selectedEmployer.mailingAddress2}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Entered By</Label>
-                    <p className="mt-1">{selectedEmployer.enteredBy}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Date Modified</Label>
-                    <p className="mt-1">{selectedEmployer.dateModified}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Modified By</Label>
-                    <p className="mt-1">{selectedEmployer.modifiedBy}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Employer Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Employer</DialogTitle>
-              <DialogDescription>
-                Update employer information for {editedEmployer?.name}
-              </DialogDescription>
-            </DialogHeader>
-            {editedEmployer && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="edit-name">Employer Name</Label>
-                    <Input
-                      id="edit-name"
-                      value={editedEmployer.name}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, name: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-trade-name">Trade Name</Label>
-                    <Input
-                      id="edit-trade-name"
-                      value={editedEmployer.tradeName}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, tradeName: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-phone">Phone</Label>
-                    <Input
-                      id="edit-phone"
-                      value={editedEmployer.phone}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-fax">Fax</Label>
-                    <Input
-                      id="edit-fax"
-                      value={editedEmployer.fax}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, fax: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-hq-address1">HQ Address 1</Label>
-                    <Input
-                      id="edit-hq-address1"
-                      value={editedEmployer.hqAddress1}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, hqAddress1: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-hq-address2">HQ Address 2</Label>
-                    <Input
-                      id="edit-hq-address2"
-                      value={editedEmployer.hqAddress2}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, hqAddress2: e.target.value } : null)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="edit-activity-type">Activity Type</Label>
-                    <Input
-                      id="edit-activity-type"
-                      value={editedEmployer.activityType}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, activityType: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-industrial-code">Industrial Code</Label>
-                    <Input
-                      id="edit-industrial-code"
-                      value={editedEmployer.industrialCode}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, industrialCode: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-males">Males Employed</Label>
-                    <Input
-                      id="edit-males"
-                      type="number"
-                      value={editedEmployer.malesEmployed}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, malesEmployed: parseInt(e.target.value) || 0 } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-females">Females Employed</Label>
-                    <Input
-                      id="edit-females"
-                      type="number"
-                      value={editedEmployer.femalesEmployed}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, femalesEmployed: parseInt(e.target.value) || 0 } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-mailing1">Mailing Address 1</Label>
-                    <Input
-                      id="edit-mailing1"
-                      value={editedEmployer.mailingAddress1}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, mailingAddress1: e.target.value } : null)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-mailing2">Mailing Address 2</Label>
-                    <Input
-                      id="edit-mailing2"
-                      value={editedEmployer.mailingAddress2}
-                      onChange={(e) => setEditedEmployer(prev => prev ? { ...prev, mailingAddress2: e.target.value } : null)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-              <Button onClick={confirmEdit}>Save Changes</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Employer Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Employer</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete {selectedEmployer?.name}? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Change Status Dialog */}
-        <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        {/* Approval Dialog */}
+        <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Change Status</DialogTitle>
+              <DialogTitle>Approve Employer Registration</DialogTitle>
               <DialogDescription>
-                Change the status for {selectedEmployer?.name}
+                Are you sure you want to approve the registration for {selectedEmployer?.name}? 
+                This will change their status to Active and send a confirmation notification.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmApprove} className="bg-green-600 hover:bg-green-700">
+                Approve Registration
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rejection Dialog */}
+        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Employer Registration</DialogTitle>
+              <DialogDescription>
+                Please provide a reason for rejecting the registration for {selectedEmployer?.name}. 
+                This reason will be included in the rejection email.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <Label htmlFor="status-select">New Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select new status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Suspended">Suspended</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="rejection-reason">Rejection Reason</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Enter the reason for rejection..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-2"
+                rows={4}
+              />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
-              <Button onClick={confirmStatusChange}>Change Status</Button>
+              <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmReject} 
+                disabled={!rejectionReason.trim()}
+                variant="destructive"
+              >
+                Reject Registration
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

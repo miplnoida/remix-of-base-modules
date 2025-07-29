@@ -26,13 +26,6 @@ export const employersManagementMenuItems = [
         icon: Users,
         requiresPermission: "manage_employers",
         description: "Search, filter, and manage employer listings"
-      },
-      {
-        title: "Employers Reports",
-        url: "/employers-management/reports",
-        icon: FileText,
-        requiresPermission: "generate_reports",
-        description: "Generate employer reports and exports"
       }
     ]
   }
