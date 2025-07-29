@@ -53,7 +53,7 @@ export const IPRegistration = () => {
        
       </div>
 
-      <Card>
+     
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6">
@@ -114,7 +114,7 @@ export const IPRegistration = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card>
+     
     </div>
   );
 };

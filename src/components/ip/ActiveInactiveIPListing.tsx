@@ -1,33 +1,54 @@
-
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Clock, AlertTriangle, CheckCircle, Eye, Edit, ChevronDown, ChevronUp, ArrowLeft, Home } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Search,
+  Edit,
+  Eye,
+  HelpCircle,
+  FileText,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  UserPlus,
+  Clock,
+  ToggleLeft,
+  ToggleRight
+} from 'lucide-react';
 
-const PendingReviews = () => {
+export const ActiveInactiveIPListing = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
   const [searchParams, setSearchParams] = useState({
     ssn: '',
-    name: '',
     dob: '',
+    surname: '',
+    firstname: '',
+    phone: '',
+    gender: '',
     status: '',
-    applicationDate: '',
-    assignedOfficer: ''
+    selfRefNo: ''
   });
 
-  // Replace the pendingItems mock data and table with insuredPersons data and table
-  // --- Add insuredPersons mock data (from IPListing) ---
   const insuredPersons = [
     {
-      ssn: 'TE0001',
+      ssn: '123456',
       surname: 'Doe',
       firstname: 'John',
       middlename: 'Michael',
@@ -38,7 +59,7 @@ const PendingReviews = () => {
       primaryOccup: 'Accountant',
       selfRefNo: 'IP001',
       aspNum: 'ASP123',
-      status: 'Draft',
+      status: 'Active',
       residentAddr1: '123 Main Street',
       residentAddr2: 'Apt 2B',
       district: 'Basseterre Zone 01',
@@ -71,9 +92,16 @@ const PendingReviews = () => {
       verifiedBy: 'Admin User',
       applicationDate: '2024-01-15',
       registrationDate: '2024-01-20',
+      witnessName: 'Witness Smith',
+      dateWitnessed: '2024-01-15',
+      tempCardDate: '2024-01-25',
+      permCardDate: '2024-02-01',
+      cardExpiration: '2029-02-01',
+      dateCardReceived: '2024-02-05',
+      terminationDate: '',
     },
     {
-      ssn: 'TE0002',
+      ssn: '789012',
       surname: 'Smith',
       firstname: 'Jane',
       middlename: 'Elizabeth',
@@ -84,7 +112,7 @@ const PendingReviews = () => {
       primaryOccup: 'Administrative Assistance',
       selfRefNo: 'IP002',
       aspNum: 'ASP456',
-      status: 'Pending',
+      status: 'Inactive',
       residentAddr1: '456 Church Street',
       residentAddr2: '',
       district: 'Charlestown',
@@ -98,67 +126,131 @@ const PendingReviews = () => {
       spouseName: '',
       spouseAddr: '',
       fatherName: 'William Smith',
-      motherName: 'Carol Smith',
-      beneficiary: 'Carol Smith',
-      benAddr: '789 Pine Street',
-      contactName: 'Emergency Contact',
-      contactRelation: 'Mother',
+      motherName: 'Sarah Smith',
+      beneficiary: 'William Smith',
+      benAddr: '456 Church Street',
+      contactName: 'Emergency Contact 2',
+      contactRelation: 'Brother',
       contactAddr: '789 Pine Street',
       phone: '+1869-469-5678',
       email: 'jane.smith@email.com',
-      workPermit: 'Yes',
+      workPermit: 'No',
       npf: 'No',
       dateOfDeath: '',
       verifyBirth: 'Birth Certificate',
-      verifyName: 'Identification Card',
-      verifyMaritalStatus: 'Affidavit',
+      verifyName: 'National ID',
+      verifyMaritalStatus: 'Single Status Certificate',
       verifyDeath: '',
       dateVerified: '2024-01-12',
-      verifiedBy: 'Supervisor',
-      applicationDate: '2024-01-20',
-      registrationDate: '',
+      verifiedBy: 'Admin User',
+      applicationDate: '2024-01-18',
+      registrationDate: '2024-01-25',
+      witnessName: 'Witness Johnson',
+      dateWitnessed: '2024-01-18',
+      tempCardDate: '2024-01-28',
+      permCardDate: '2024-02-05',
+      cardExpiration: '2029-02-05',
+      dateCardReceived: '2024-02-10',
+      terminationDate: '2024-06-15',
+    },
+    {
+      ssn: '345678',
+      surname: 'Wilson',
+      firstname: 'Robert',
+      middlename: 'James',
+      previousName: '',
+      dob: '1978-11-08',
+      sex: 'Male',
+      alias: 'Bob',
+      primaryOccup: 'Engineer',
+      selfRefNo: 'IP003',
+      aspNum: 'ASP789',
+      status: 'Active',
+      residentAddr1: '789 Beach Road',
+      residentAddr2: 'Unit 5C',
+      district: 'Sandy Point',
+      mailAddr1: '789 Beach Road',
+      mailAddr2: 'Unit 5C',
+      birthPlace: 'St. Kitts',
+      nationality: 'Kittitian',
+      dateOfResidency: '2018-03-20',
+      maritalStatus: 'Divorced',
+      dateMarried: '2005-09-10',
+      spouseName: '',
+      spouseAddr: '',
+      fatherName: 'Thomas Wilson',
+      motherName: 'Patricia Wilson',
+      beneficiary: 'Robert Wilson Jr.',
+      benAddr: '789 Beach Road',
+      contactName: 'Emergency Contact 3',
+      contactRelation: 'Son',
+      contactAddr: '321 Hill Street',
+      phone: '+1869-465-9012',
+      email: 'robert.wilson@email.com',
+      workPermit: 'No',
+      npf: 'Yes',
+      dateOfDeath: '',
+      verifyBirth: 'Birth Certificate',
+      verifyName: 'Passport',
+      verifyMaritalStatus: 'Divorce Decree',
+      verifyDeath: '',
+      dateVerified: '2024-01-14',
+      verifiedBy: 'Admin User',
+      applicationDate: '2024-01-22',
+      registrationDate: '2024-01-30',
+      witnessName: 'Witness Brown',
+      dateWitnessed: '2024-01-22',
+      tempCardDate: '2024-02-01',
+      permCardDate: '2024-02-08',
+      cardExpiration: '2029-02-08',
+      dateCardReceived: '2024-02-12',
+      terminationDate: '',
     }
   ];
 
   const handleSearch = () => {
-    console.log('Searching pending reviews with parameters:', searchParams);
+    console.log('Searching with parameters:', searchParams);
   };
+
+  const handleReturnResult = () => {
+    console.log('Returning results');
+  };
+
+  const handleClearSearch = () => {
+    setSearchParams({
+      ssn: '',
+      dob: '',
+      surname: '',
+      firstname: '',
+      phone: '',
+      gender: '',
+      status: '',
+      selfRefNo: ''
+    });
+  };
+
   const handleViewDetails = (person: any) => {
     console.log('Viewing details for:', person);
-    navigate(`/person/view/${person.ssn}`, { state: { status: person.status } });
-  };
-  const handleReview = (item: any) => {
-    console.log('Reviewing item:', item);
-    // Navigate to review page or open modal
+    navigate(`/person/view/${person.ssn}`);
   };
 
-  const handleApprove = (id: number) => {
-    console.log('Approving item:', id);
-    // Handle approval logic
+  const handleEditDetails = (person: any) => {
+    console.log('Editing details for:', person);
+    navigate(`/person/edit/${person.ssn}`);
   };
 
-  const handleReject = (id: number) => {
-    console.log('Rejecting item:', id);
-    // Handle rejection logic
+  const handleStatusChange = (person: any, newStatus: string) => {
+    console.log('Changing status for:', person.ssn, 'to:', newStatus);
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'High':
-        return <Badge variant="destructive">High</Badge>;
-      case 'Medium':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-      case 'Low':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Low</Badge>;
-      default:
-        return <Badge variant="secondary">{priority}</Badge>;
-    }
+  const handleRegisterPerson = () => {
+    navigate('/person/register-tabs');
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Draft':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Draft</Badge>;
+      case 'Active':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
       case 'Pending':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'Inactive':
@@ -168,139 +260,82 @@ const PendingReviews = () => {
     }
   };
 
-  const getDaysWaitingBadge = (days: number) => {
-    if (days > 14) {
-      return <Badge variant="destructive" className="flex items-center gap-1">
-        <AlertTriangle className="h-3 w-3" />
-        {days} days
-      </Badge>;
-    } else if (days > 7) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 flex items-center gap-1">
-        <Clock className="h-3 w-3" />
-        {days} days
-      </Badge>;
-    } else {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800">
-        {days} days
-      </Badge>;
-    }
-  };
+  // Filter insured persons based on status filter
+  const filteredInsuredPersons = insuredPersons.filter(person => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'active') return person.status === 'Active';
+    if (statusFilter === 'inactive') return person.status === 'Inactive';
+    return true;
+  });
 
   return (
-    <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-      {location.pathname === '/person/pending-reviews' && (
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/person/management')}
-              className="flex items-center gap-2"
+    <div className="space-y-4 lg:space-y-6">
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        {/* Status Filter Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Status Filter:</span>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <Button
+              variant={statusFilter === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter('all')}
+              className="text-xs"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to Dashboard</span>
-              <span className="sm:hidden">Back</span>
+              All
             </Button>
-            <div className="h-6 w-px bg-gray-300" />
-            <div>
-              <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Verification</h1>
-            </div>
+            <Button
+              variant={statusFilter === 'active' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter('active')}
+              className="text-xs"
+            >
+              <ToggleRight className="h-3 w-3 mr-1" />
+              Active
+            </Button>
+            <Button
+              variant={statusFilter === 'inactive' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter('inactive')}
+              className="text-xs"
+            >
+              <ToggleLeft className="h-3 w-3 mr-1" />
+              Inactive
+            </Button>
           </div>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 self-start lg:self-center"
-          >
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Main Menu</span>
-          </Button>
         </div>
-      )}
-      {/* Summary Cards */}
-      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">{insuredPersons.length}</div>
-            <p className="text-xs text-muted-foreground">Awaiting review</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">
-              {insuredPersons.filter(person => person.status === 'High').length}
-            </div>
-            <p className="text-xs text-muted-foreground">Urgent attention needed</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue ({`>`}14 days)</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">
-              {insuredPersons.filter(person => person.dateOfResidency && new Date(person.dateOfResidency).getTime() < new Date().getTime() - 14 * 24 * 60 * 60 * 1000).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Past target time</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Wait Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">
-              {Math.round(insuredPersons.reduce((sum, person) => sum + (new Date(person.applicationDate).getTime() - new Date(person.registrationDate).getTime()), 0) / insuredPersons.length)} days
-            </div>
-            <p className="text-xs text-muted-foreground">Average processing time</p>
-          </CardContent>
-        </Card>
-      </div>*/}
 
-      {/* Expandable Filter Section */}
-      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <Button 
+          onClick={handleRegisterPerson}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          <UserPlus className="h-4 w-4" />
+          Register Person
+        </Button>
+      </div>
+
+      {/* Search and Filter Section - Collapsible */}
+      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base lg:text-lg">
-                    Query by
-                  </CardTitle>
-                  
+                  <CardTitle className="text-base lg:text-lg">Query by</CardTitle>
                 </div>
-                {isFiltersOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
+                {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="text-sm font-medium">SSN</label>
                   <Input
                     placeholder="Enter SSN"
                     value={searchParams.ssn}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Name</label>
-                  <Input
-                    placeholder="Enter name"
-                    value={searchParams.name}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -312,46 +347,74 @@ const PendingReviews = () => {
                   />
                 </div>
                 <div>
+                  <label className="text-sm font-medium">Surname</label>
+                  <Input
+                    placeholder="Enter surname"
+                    value={searchParams.surname}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, surname: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">First Name</label>
+                  <Input
+                    placeholder="Enter first name"
+                    value={searchParams.firstname}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, firstname: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Phone</label>
+                  <Input
+                    placeholder="Enter phone number"
+                    value={searchParams.phone}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Gender</label>
+                  <Select value={searchParams.gender} onValueChange={(value) => setSearchParams(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-sm font-medium">Status</label>
                   <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Pending Review">Pending Review</SelectItem>
-                      <SelectItem value="Under Review">Under Review</SelectItem>
-                      <SelectItem value="Approved">Approved</SelectItem>
-                      <SelectItem value="Rejected">Rejected</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Application Date</label>
+                  <label className="text-sm font-medium">Self Ref No</label>
                   <Input
-                    type="date"
-                    value={searchParams.applicationDate}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, applicationDate: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Assigned Officer</label>
-                  <Input
-                    placeholder="Enter officer name"
-                    value={searchParams.assignedOfficer}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, assignedOfficer: e.target.value }))}
+                    placeholder="Enter self ref no"
+                    value={searchParams.selfRefNo}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, selfRefNo: e.target.value }))}
                   />
                 </div>
               </div>
-              
-              <div className="flex flex-wrap gap-2 lg:gap-3">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleSearch} className="flex items-center gap-2">
                   <Search className="h-4 w-4" />
                   Search
                 </Button>
-                <Button variant="outline" onClick={() => setSearchParams({
-                  ssn: '', name: '', dob: '', status: '', applicationDate: '', assignedOfficer: ''
-                })}>
-                  Clear Filters
+                <Button variant="outline" onClick={handleReturnResult} className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Return Result
+                </Button>
+                <Button variant="outline" onClick={handleClearSearch} className="flex items-center gap-2">
+                  Clear
                 </Button>
               </div>
             </CardContent>
@@ -359,29 +422,34 @@ const PendingReviews = () => {
         </Card>
       </Collapsible>
 
-      {/* Pending Reviews Table */}
+      {/* Active/Inactive Insured Person Listing Section - Table Layout with Enhanced Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Pending Verification ({insuredPersons.length})</CardTitle>
+          <CardTitle className="text-base lg:text-lg">
+            Active/Inactive Insured Person ({filteredInsuredPersons.length})
+          </CardTitle>
+          <CardDescription>
+            View and manage active and inactive insured persons
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[80px]">Application ID</TableHead>
+                  <TableHead className="min-w-[80px]">SSN</TableHead>
                   <TableHead className="min-w-[100px]">Sur Name</TableHead>
                   <TableHead className="min-w-[100px]">First Name</TableHead>
                   <TableHead className="min-w-[100px]">Middle Name</TableHead>
                   <TableHead className="min-w-[100px]">Previous Name</TableHead>
-                  <TableHead className="min-w-[80px]">Status</TableHead>
                   <TableHead className="min-w-[100px]">DOB</TableHead>
                   <TableHead className="min-w-[80px]">Sex</TableHead>
                   <TableHead className="min-w-[80px]">Alias</TableHead>
                   <TableHead className="min-w-[120px]">Primary Occup</TableHead>
                   <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
-                  
+                  <TableHead className="min-w-[80px]">Status</TableHead>
                   <TableHead className="min-w-[100px]">ASP Num.</TableHead>
+                  
                   <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
                   <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
                   <TableHead className="min-w-[120px]">District</TableHead>
@@ -417,21 +485,21 @@ const PendingReviews = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {insuredPersons.map((person, index) => (
+                {filteredInsuredPersons.map((person, index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{person.ssn}</TableCell>
                     <TableCell>{person.surname}</TableCell>
                     <TableCell>{person.firstname}</TableCell>
                     <TableCell>{person.middlename}</TableCell>
                     <TableCell>{person.previousName}</TableCell>
-                    <TableCell>{getStatusBadge(person.status)}</TableCell>
                     <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
                     <TableCell>{person.sex}</TableCell>
                     <TableCell>{person.alias}</TableCell>
                     <TableCell>{person.primaryOccup}</TableCell>
                     <TableCell>{person.selfRefNo}</TableCell>
-                    
+                    <TableCell>{getStatusBadge(person.status)}</TableCell>
                     <TableCell>{person.aspNum}</TableCell>
+                    
                     <TableCell>{person.residentAddr1}</TableCell>
                     <TableCell>{person.residentAddr2}</TableCell>
                     <TableCell>{person.district}</TableCell>
@@ -464,39 +532,35 @@ const PendingReviews = () => {
                     <TableCell>{person.applicationDate}</TableCell>
                     <TableCell>{person.registrationDate}</TableCell>
                     <TableCell className="sticky right-0 bg-background">
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="View Details"
+                      <div className="flex space-x-1">
+                        <Select onValueChange={(value) => handleStatusChange(person, value)}>
+                          <SelectTrigger className="h-8 w-20 text-xs">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Verify">Verify</SelectItem>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Suspend">Suspend</SelectItem>
+                            <SelectItem value="Ceased">Ceased</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleViewDetails(person)}
+                          className="h-8 w-8 p-0"
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="Edit"
-                          onClick={() => handleReview(person)}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditDetails(person)}
+                          className="h-8 w-8 p-0"
+                          title="Edit Details"
                         >
                           <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          title="Approve"
-                          onClick={() => handleApprove(Number(person.ssn) || 0)}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          title="Reject"
-                          onClick={() => handleReject(Number(person.ssn) || 0)}
-                        >
-                          <AlertTriangle className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -509,6 +573,4 @@ const PendingReviews = () => {
       </Card>
     </div>
   );
-};
-
-export default PendingReviews;
+}; 

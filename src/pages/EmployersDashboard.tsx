@@ -102,7 +102,7 @@ const EmployersDashboard = () => {
       title: "Search Employers",
       description: "Find and manage existing employers",
       icon: Search,
-      action: () => navigate('/employers-management/manage'),
+      action: () => navigate('/employers-management/pending-verification'),
       color: "bg-green-600 hover:bg-green-700"
     },
     {

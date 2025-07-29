@@ -236,9 +236,19 @@ export const MultiTabEmployerRegistration = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-government-900">Add New Employer</h1>
-        <p className="text-government-600 mt-2">Complete employer registration with detailed information</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-government-900">Add New Employer</h1>
+          <p className="text-government-600 mt-2">Complete employer registration with detailed information</p>
+        </div>
+        <div className="flex space-x-4">
+          <Button type="button" variant="outline">
+            Cancel
+          </Button>
+          <Button type="submit">
+            Submit Registration
+          </Button>
+        </div>
       </div>
 
       <Form {...form}>

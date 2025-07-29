@@ -635,22 +635,24 @@ const ManageEmployers = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="border-b">
+                          <TableHead className="text-gray-600 font-medium">Application. No</TableHead>
                           <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Business Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Date Submitted</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Registration Number</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
                           <TableHead className="text-gray-600 font-medium">Phone</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
+                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
                           <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredEmployers.map((employer) => (
                           <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{employer.name}</TableCell>
+                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
+                            <TableCell className="text-gray-700">{employer.name}</TableCell>
                             <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                            <TableCell className="text-gray-700">{employer.dateOfApplication || 'N/A'}</TableCell>
-                            <TableCell className="text-gray-700">{employer.regNo}</TableCell>
                             <TableCell className="text-gray-700">{employer.phone}</TableCell>
+                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
+                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
                             <TableCell>
                               <div className="flex items-center justify-center gap-2">
                                 <Tooltip>

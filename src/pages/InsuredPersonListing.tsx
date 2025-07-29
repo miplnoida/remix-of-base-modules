@@ -376,7 +376,7 @@ const InsuredPersonListing = () => {
         </Card>
       </Collapsible>
 
-      {/* IP Listing Section - Table Layout with Enhanced Actions */}
+              {/* Registered IP Insured Person Section - Table Layout with Enhanced Actions */}
       <Card>
         <CardHeader>
           <CardTitle>Insured Persons ({insuredPersons.length})</CardTitle>

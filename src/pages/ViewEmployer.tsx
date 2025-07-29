@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp, FileText, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -64,6 +64,10 @@ export default function ViewEmployer() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("form-detail");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isGeneralInfoExpanded, setIsGeneralInfoExpanded] = useState(true);
+  const [isContactInfoExpanded, setIsContactInfoExpanded] = useState(true);
+  const [isEmploymentDetailsExpanded, setIsEmploymentDetailsExpanded] = useState(true);
+  const [isPayrollRegistrationExpanded, setIsPayrollRegistrationExpanded] = useState(true);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
@@ -133,17 +137,34 @@ export default function ViewEmployer() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate('/employers-management/manage')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Employers
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-government-900">View Employer Details</h1>
-              <p className="text-government-600 mt-2">Complete employer information with detailed data</p>
-            </div>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => navigate('/employers-management/manage')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Employers
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-government-900">View Employer Details</h1>
+            <p className="text-government-600 mt-2">Complete employer information with detailed data</p>
           </div>
+        </div>
+        
+        <div className="flex gap-2 justify-end my-4">
+          <Button variant="outline" onClick={() => navigate(`/employers-management/view/${regNo}`)}>
+            <FileText className="h-4 w-4 mr-2" />
+            View
+          </Button>
+          <Button variant="outline" onClick={() => console.log('Change Status clicked')}>
+            <Settings className="h-4 w-4 mr-2" />
+            Change Status
+          </Button>
+          <Button variant="outline" onClick={() => console.log('Registration Certificate clicked')}>
+            <FileText className="h-4 w-4 mr-2" />
+            Registration Certificate
+          </Button>
+          <Button variant="outline" onClick={() => console.log('Print clicked')}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
           <Button onClick={() => navigate(`/employers-management/edit/${regNo}`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Employer
@@ -151,8 +172,9 @@ export default function ViewEmployer() {
         </div>
       </div>
 
-      <Form {...form}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="mb-6">
+        <Form {...form}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="form-detail">Form Detail</TabsTrigger>
             <TabsTrigger value="owners">Owners</TabsTrigger>
@@ -165,11 +187,20 @@ export default function ViewEmployer() {
 
           <TabsContent value="form-detail" className="space-y-6">
             {/* General Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>General Information</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Collapsible open={isGeneralInfoExpanded} onOpenChange={setIsGeneralInfoExpanded}>
+              <CollapsibleTrigger asChild>
+                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      General Information
+                      {isGeneralInfoExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
                 <FormField
                   control={form.control}
                   name="name"
@@ -453,13 +484,24 @@ export default function ViewEmployer() {
                 />
               </CardContent>
             </Card>
+            </CollapsibleContent>
+            </Collapsible>
 
             {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Collapsible open={isContactInfoExpanded} onOpenChange={setIsContactInfoExpanded}>
+              <CollapsibleTrigger asChild>
+                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Contact Information
+                      {isContactInfoExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
                 <FormField
                   control={form.control}
                   name="telephone"
@@ -488,13 +530,24 @@ export default function ViewEmployer() {
                 />
               </CardContent>
             </Card>
+            </CollapsibleContent>
+            </Collapsible>
 
             {/* Employment Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Employment Details</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Collapsible open={isEmploymentDetailsExpanded} onOpenChange={setIsEmploymentDetailsExpanded}>
+              <CollapsibleTrigger asChild>
+                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Employment Details
+                      {isEmploymentDetailsExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
                 <FormField
                   control={form.control}
                   name="totalEmployees"
@@ -536,13 +589,24 @@ export default function ViewEmployer() {
                 />
               </CardContent>
             </Card>
+            </CollapsibleContent>
+            </Collapsible>
 
             {/* Payroll and Registration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payroll and Registration</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Collapsible open={isPayrollRegistrationExpanded} onOpenChange={setIsPayrollRegistrationExpanded}>
+              <CollapsibleTrigger asChild>
+                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Payroll and Registration
+                      {isPayrollRegistrationExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
                 <FormField
                   control={form.control}
                   name="computerPayroll"
@@ -570,6 +634,10 @@ export default function ViewEmployer() {
                 />
               </CardContent>
             </Card>
+            </CollapsibleContent>
+            </Collapsible>
+
+            
           </TabsContent>
 
           <TabsContent value="owners" className="space-y-6">
@@ -722,7 +790,29 @@ export default function ViewEmployer() {
           </TabsContent>
         </Tabs>
       </Form>
-
+      </div>
+      <div className="flex gap-2 justify-end my-4">
+          <Button variant="outline" onClick={() => navigate(`/employers-management/view/${regNo}`)}>
+            <FileText className="h-4 w-4 mr-2" />
+            View
+          </Button>
+          <Button variant="outline" onClick={() => console.log('Change Status clicked')}>
+            <Settings className="h-4 w-4 mr-2" />
+            Change Status
+          </Button>
+          <Button variant="outline" onClick={() => console.log('Registration Certificate clicked')}>
+            <FileText className="h-4 w-4 mr-2" />
+            Registration Certificate
+          </Button>
+          <Button variant="outline" onClick={() => console.log('Print clicked')}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+          <Button onClick={() => navigate(`/employers-management/edit/${regNo}`)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Employer
+          </Button>
+        </div>
       {/* Expandable Management Sections */}
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleTrigger asChild>

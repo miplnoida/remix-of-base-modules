@@ -160,7 +160,7 @@ const IPManagement = () => {
                   onClick={() => handleQuickAction('Pending Reviews')}
                 >
                   <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
-                  <span className="text-xs lg:text-sm">Pending Reviews</span>
+                  <span className="text-xs lg:text-sm">Pending Verification</span>
                 </Button>
                 <Button 
                   variant="outline" 
