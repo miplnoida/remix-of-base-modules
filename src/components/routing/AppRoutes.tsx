@@ -75,6 +75,11 @@ import PersonRegistration from '@/pages/PersonRegistration';
 import RegisterPersonTabs from '@/pages/RegisterPersonTabs';
 import PendingVerificationPage from '@/pages/PendingVerificationPage';
 
+// C3 Management
+import C3Dashboard from '@/pages/C3Dashboard';
+import C3Management from '@/pages/C3Management';
+import C3InputForm from '@/pages/C3InputForm';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -91,6 +96,11 @@ export const AppRoutes = () => {
       <Route path="/employers-management/edit/:regNo" element={<ProtectedLayout><EditEmployer /></ProtectedLayout>} />
       <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />
       <Route path="/employers-management/pending-verification" element={<ProtectedLayout><PendingVerificationPage /></ProtectedLayout>} />
+
+      {/* C3 Management Routes */}
+      <Route path="/c3-management/dashboard" element={<ProtectedLayout><C3Dashboard /></ProtectedLayout>} />
+      <Route path="/c3-management/manage" element={<ProtectedLayout><C3Management /></ProtectedLayout>} />
+      <Route path="/c3-management/add" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
 
       {/* Self-Employed Management Routes */}
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />

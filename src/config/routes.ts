@@ -45,4 +45,10 @@ export const routes = {
   EMPLOYERS_MANAGEMENT_MANAGE: '/employers-management/manage',
   EMPLOYERS_MANAGEMENT_ADD: '/employers-management/add',
   EMPLOYERS_MANAGEMENT_REPORTS: '/employers-management/reports',
+
+  // C3 Management routes
+  C3_MANAGEMENT: '/c3-management',
+  C3_MANAGEMENT_DASHBOARD: '/c3-management/dashboard',
+  C3_MANAGEMENT_MANAGE: '/c3-management/manage',
+  C3_MANAGEMENT_ADD: '/c3-management/add',
 } as const;
