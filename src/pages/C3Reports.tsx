@@ -130,7 +130,6 @@ export default function C3Reports() {
                   <SelectValue placeholder="All Report Types" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  <SelectItem value="">All Report Types</SelectItem>
                   <SelectItem value="summary">Monthly Summary</SelectItem>
                   <SelectItem value="verification">Verification Reports</SelectItem>
                   <SelectItem value="analysis">Analysis Reports</SelectItem>
@@ -146,7 +145,6 @@ export default function C3Reports() {
                   <SelectValue placeholder="All Dates" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  <SelectItem value="">All Dates</SelectItem>
                   <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="week">This Week</SelectItem>
                   <SelectItem value="month">This Month</SelectItem>
@@ -162,7 +160,6 @@ export default function C3Reports() {
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  <SelectItem value="">All Statuses</SelectItem>
                   <SelectItem value="generated">Generated</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>

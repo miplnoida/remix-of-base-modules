@@ -186,7 +186,6 @@ export default function C3Verification() {
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  <SelectItem value="">All Statuses</SelectItem>
                   <SelectItem value="pending review">Pending Review</SelectItem>
                   <SelectItem value="pending verification">Pending Verification</SelectItem>
                   <SelectItem value="needs clarification">Needs Clarification</SelectItem>
@@ -201,7 +200,6 @@ export default function C3Verification() {
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  <SelectItem value="">All Types</SelectItem>
                   <SelectItem value="Employer">Employer</SelectItem>
                   <SelectItem value="Self-Employed">Self-Employed</SelectItem>
                   <SelectItem value="Voluntary Contribution">Voluntary Contribution</SelectItem>
