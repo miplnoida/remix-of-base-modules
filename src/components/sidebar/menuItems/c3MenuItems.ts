@@ -23,6 +23,20 @@ export const c3MenuItems = [
         icon: Users,
         requiresPermission: "manage_c3",
         description: "Add and manage C3 contribution records"
+      },
+      {
+        title: "C3 Reports",
+        url: "/c3-management/reports",
+        icon: FileText,
+        requiresPermission: "view_reports",
+        description: "Generate and view C3 reports"
+      },
+      {
+        title: "Verification Queue",
+        url: "/c3-management/verification",
+        icon: BarChart3,
+        requiresPermission: "verify_c3",
+        description: "Review and verify pending C3 records"
       }
     ]
   }

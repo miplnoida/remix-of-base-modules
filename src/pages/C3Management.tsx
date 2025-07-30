@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Mock data for the table
+// Enhanced mock data for the table with all required columns
 const mockC3Data = [
   {
     payerId: "EMP001",
@@ -25,9 +26,10 @@ const mockC3Data = [
     status: "Verified",
     type: "Employer",
     payerName: "ABC Company Ltd",
-    cnc3ReportedReceivedBy: "System",
+    cnc3ReportedReceivedBy: "System Admin",
     cnc3ReportedModifiedDate: "2024-01-17",
-    cnc3ReportedModifiedBy: "Admin"
+    cnc3ReportedModifiedBy: "Jane Doe",
+    amount: 15750.00
   },
   {
     payerId: "SE002",
@@ -41,9 +43,44 @@ const mockC3Data = [
     status: "Pending",
     type: "Self-Employed",
     payerName: "XYZ Consultancy",
-    cnc3ReportedReceivedBy: "System",
+    cnc3ReportedReceivedBy: "System Admin",
     cnc3ReportedModifiedDate: "2024-01-15",
-    cnc3ReportedModifiedBy: "Mike Johnson"
+    cnc3ReportedModifiedBy: "Mike Johnson",
+    amount: 8420.00
+  },
+  {
+    payerId: "VOL003",
+    scheduleNo: "SCH-2024-003",
+    period: "2024-01",
+    dateReceived: "2024-01-13",
+    enteredBy: "Sarah Wilson",
+    verifiedBy: "Robert Brown",
+    dateEntered: "2024-01-14",
+    dateVerified: "2024-01-16",
+    status: "Verified",
+    type: "Voluntary Contribution",
+    payerName: "Individual Contributor",
+    cnc3ReportedReceivedBy: "System Admin",
+    cnc3ReportedModifiedDate: "2024-01-16",
+    cnc3ReportedModifiedBy: "Robert Brown",
+    amount: 2300.00
+  },
+  {
+    payerId: "EMP004",
+    scheduleNo: "SCH-2024-004",
+    period: "2024-01",
+    dateReceived: "2024-01-12",
+    enteredBy: "David Lee",
+    verifiedBy: "",
+    dateEntered: "2024-01-13",
+    dateVerified: "",
+    status: "Rejected",
+    type: "Employer",
+    payerName: "DEF Corporation",
+    cnc3ReportedReceivedBy: "System Admin",
+    cnc3ReportedModifiedDate: "2024-01-13",
+    cnc3ReportedModifiedBy: "David Lee",
+    amount: 5670.00
   }
 ];
 
@@ -52,6 +89,8 @@ export default function C3Management() {
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
   const [contributionType, setContributionType] = useState("employer");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(20);
   const [filters, setFilters] = useState({
     regNo: "",
     scheduleNo: "",
@@ -63,13 +102,14 @@ export default function C3Management() {
     status: ""
   });
 
+
   const handleAddNewC3 = () => {
     navigate("/c3-management/add");
   };
 
   const handleSearch = () => {
+    console.log("Searching with filters:", filters, "Type:", contributionType);
     // Implement search logic here
-    console.log("Searching with filters:", filters);
   };
 
   const handleReset = () => {
@@ -84,18 +124,64 @@ export default function C3Management() {
       status: ""
     });
     setSearchTerm("");
+    setContributionType("employer");
   };
+
+  const handleView = (record: any) => {
+    console.log("Viewing record:", record);
+    // Implement view logic
+  };
+
+  const handleEdit = (record: any) => {
+    console.log("Editing record:", record);
+    // Navigate to edit form
+  };
+
+  const handleDelete = (record: any) => {
+    console.log("Deleting record:", record);
+    // Implement delete logic with confirmation
+  };
+
+  const handlePrint = (record: any) => {
+    console.log("Printing record:", record);
+    // Implement print logic
+  };
+
+  const handleExportExcel = () => {
+    console.log("Exporting to Excel");
+    // Implement Excel export
+  };
+
+  const handleExportPDF = () => {
+    console.log("Exporting to PDF");
+    // Implement PDF export
+  };
+
+  // Filter data based on search term
+  const filteredData = mockC3Data.filter(record =>
+    record.payerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.payerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.scheduleNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Pagination logic
+  const totalRecords = filteredData.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentRecords = filteredData.slice(startIndex, endIndex);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Verified":
-        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Verified</Badge>;
       case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
       case "Rejected":
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Rejected</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{status}</Badge>;
     }
   };
 
@@ -104,13 +190,34 @@ export default function C3Management() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">C3 Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Manage C3</h1>
           <p className="text-muted-foreground">Manage and view C3 contribution records</p>
         </div>
-        <Button onClick={handleAddNewC3} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add New C3
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-background border shadow-md z-50">
+              <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={handleAddNewC3} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add New C3
+          </Button>
+        </div>
       </div>
 
       {/* Query By Section */}
@@ -256,22 +363,43 @@ export default function C3Management() {
         </Collapsible>
       </Card>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-4">
+      {/* Search Bar and Records Per Page */}
+      <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
           <Input
-            placeholder="Search by Payer Name, Reg No, Status..."
+            placeholder="Search by Payer Name, Reg No, Schedule No, Status..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="recordsPerPage" className="text-sm">Show:</Label>
+          <Select value={recordsPerPage.toString()} onValueChange={(value) => setRecordsPerPage(Number(value))}>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-md z-50">
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-muted-foreground">records</span>
         </div>
       </div>
 
       {/* C3 Data Table */}
       <Card>
         <CardHeader>
-          <CardTitle>C3 Records</CardTitle>
-          <CardDescription>Manage and view contribution records</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>C3 Records</CardTitle>
+              <CardDescription>
+                Showing {startIndex + 1}-{Math.min(endIndex, totalRecords)} of {totalRecords} records
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -289,14 +417,16 @@ export default function C3Management() {
                   <TableHead>Status</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Payer Name</TableHead>
+                  <TableHead>Amount</TableHead>
                   <TableHead>CNC3 Received By</TableHead>
                   <TableHead>CNC3 Modified Date</TableHead>
                   <TableHead>CNC3 Modified By</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockC3Data.map((record, index) => (
-                  <TableRow key={index}>
+                {currentRecords.map((record, index) => (
+                  <TableRow key={index} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{record.payerId}</TableCell>
                     <TableCell>{record.scheduleNo}</TableCell>
                     <TableCell>{record.period}</TableCell>
@@ -308,13 +438,100 @@ export default function C3Management() {
                     <TableCell>{getStatusBadge(record.status)}</TableCell>
                     <TableCell>{record.type}</TableCell>
                     <TableCell>{record.payerName}</TableCell>
+                    <TableCell>${record.amount.toLocaleString()}</TableCell>
                     <TableCell>{record.cnc3ReportedReceivedBy}</TableCell>
                     <TableCell>{record.cnc3ReportedModifiedDate}</TableCell>
                     <TableCell>{record.cnc3ReportedModifiedBy}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-background border shadow-md z-50" align="end">
+                          <DropdownMenuItem onClick={() => handleView(record)} className="cursor-pointer">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(record)} className="cursor-pointer">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handlePrint(record)} className="cursor-pointer">
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(record)} 
+                            className="cursor-pointer text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, totalRecords)} of {totalRecords} entries
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-muted-foreground">...</span>
+                    <Button
+                      variant={currentPage === totalPages ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {totalPages}
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
