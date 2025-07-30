@@ -4,18 +4,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp, Save, FileText, AlertCircle } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp, Save, FileText, AlertCircle, Users, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
@@ -71,6 +72,7 @@ export default function EditEmployer() {
   const [isPayrollRegistrationExpanded, setIsPayrollRegistrationExpanded] = useState(true);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [owners, setOwners] = useState<Array<{id: string, name: string, title: string, phoneNumber: string}>>([]);
 
   const form = useForm<EmployerFormData>({
     resolver: zodResolver(employerSchema),
@@ -128,6 +130,26 @@ export default function EditEmployer() {
     navigate(`/employers-management/view/${regNo}`);
   };
 
+  const addOwner = () => {
+    const newOwner = {
+      id: Date.now().toString(),
+      name: "",
+      title: "",
+      phoneNumber: ""
+    };
+    setOwners([...owners, newOwner]);
+  };
+
+  const updateOwner = (id: string, field: string, value: string) => {
+    setOwners(owners.map(owner => 
+      owner.id === id ? { ...owner, [field]: value } : owner
+    ));
+  };
+
+  const removeOwner = (id: string) => {
+    setOwners(owners.filter(owner => owner.id !== id));
+  };
+
   // Mock data for management tabs
   const c3Details = [
     { period: "2024-01", contributionDueSSB: "$2,500", contributionDueLevy: "$500", contributionDueSev: "$300", ssbFinesDue: "$0", levyPenalties: "$0", severancePending: "$0", totalWages: "$25,000" },
@@ -161,7 +183,7 @@ export default function EditEmployer() {
         </div>
         
         {/* Action Buttons */}
-        <div className="flex items-center justify-center gap-4 py-4">
+        <div className="flex items-center justify-end gap-4 py-4">
           <Button variant="outline" onClick={() => navigate(`/employers-management/view/${regNo}`)}>
             <Edit className="h-4 w-4 mr-2" />
             View Employer
@@ -662,7 +684,13 @@ export default function EditEmployer() {
             <TabsContent value="owners" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Owners</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Owners</span>
+                    <Button type="button" onClick={addOwner} className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Owner
+                    </Button>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -672,14 +700,57 @@ export default function EditEmployer() {
                         <TableHead>Name</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead>Phone Number</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground">
-                          No owners registered
-                        </TableCell>
-                      </TableRow>
+                      {owners.map((owner) => (
+                        <TableRow key={owner.id}>
+                          <TableCell className="font-medium">{owner.id}</TableCell>
+                          <TableCell>
+                            <Input
+                              value={owner.name}
+                              onChange={(e) => updateOwner(owner.id, 'name', e.target.value)}
+                              placeholder="Enter name"
+                              className="bg-white"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={owner.title}
+                              onChange={(e) => updateOwner(owner.id, 'title', e.target.value)}
+                              placeholder="Enter title"
+                              className="bg-white"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={owner.phoneNumber}
+                              onChange={(e) => updateOwner(owner.id, 'phoneNumber', e.target.value)}
+                              placeholder="+1 (000) 000-0000"
+                              className="bg-white"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => removeOwner(owner.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {owners.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                            No owners added yet. Click "Add Owner" to get started.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>

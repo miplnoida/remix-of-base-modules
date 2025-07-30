@@ -241,7 +241,7 @@ export const IPListing = () => {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
+      {/* <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
         <Button 
           onClick={handleRegisterPerson}
           className="flex items-center gap-2 w-full sm:w-auto"
@@ -249,18 +249,17 @@ export const IPListing = () => {
           <UserPlus className="h-4 w-4" />
           Register Person
         </Button>
-      </div>
+      </div> */}
 
       {/* Search and Filter Section - Collapsible */}
-      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+      {/* <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
             <Card>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-base lg:text-lg">Query by</CardTitle>
-                      {/* <CardDescription className="text-sm">Query by: SSN, DOB, Surname, Firstname, Phone, Gender, Status, Self Ref No. etc.</CardDescription> */}
-                    </div>
+                      </div>
                     {isSearchOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
                   </div>
                 </CardHeader>
@@ -365,7 +364,7 @@ export const IPListing = () => {
                 </CardContent>
               </CollapsibleContent>
             </Card>
-          </Collapsible>
+          </Collapsible> */}
 
           {/* IP Listing Section - Table Layout with Enhanced Actions */}
           <Card>

@@ -4,18 +4,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp, FileText, Settings } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp, FileText, Settings, Users, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 
@@ -58,7 +59,7 @@ const employerSchema = z.object({
 });
 
 type EmployerFormData = z.infer<typeof employerSchema>;
-
+ 
 export default function ViewEmployer() {
   const { regNo } = useParams();
   const navigate = useNavigate();
@@ -643,7 +644,13 @@ export default function ViewEmployer() {
           <TabsContent value="owners" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Owners</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Owners</span>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Owner
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -653,12 +660,25 @@ export default function ViewEmployer() {
                       <TableHead>Name</TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Phone Number</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No owners registered
+                      <TableCell className="font-medium">1753855774648</TableCell>
+                      <TableCell>
+                        <Input placeholder="Enter name" className="bg-white" disabled />
+                      </TableCell>
+                      <TableCell>
+                        <Input placeholder="Enter title" className="bg-white" disabled />
+                      </TableCell>
+                      <TableCell>
+                        <Input placeholder="+1 (000) 000-0000" className="bg-white" disabled />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" className="text-destructive" disabled>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   </TableBody>

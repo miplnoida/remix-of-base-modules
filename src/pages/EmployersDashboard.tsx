@@ -95,14 +95,14 @@ const EmployersDashboard = () => {
       title: "Pending Verification",
       description: "Review and approve pending employer registrations",
       icon: Clock,
-      action: () => navigate('/employers-management/pending-verification'),
+      action: () => navigate('/employers-management/manage'),
       color: "bg-yellow-600 hover:bg-yellow-700"
     },
     {
       title: "Search Employers",
       description: "Find and manage existing employers",
       icon: Search,
-      action: () => navigate('/employers-management/pending-verification'),
+      action: () => navigate('/employers-management/manage'),
       color: "bg-green-600 hover:bg-green-700"
     },
     {

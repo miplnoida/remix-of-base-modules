@@ -274,48 +274,20 @@ export const ActiveInactiveIPListing = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         {/* Status Filter Toggle */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Status Filter:</span>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            <Button
-              variant={statusFilter === 'all' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setStatusFilter('all')}
-              className="text-xs"
-            >
-              All
-            </Button>
-            <Button
-              variant={statusFilter === 'active' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setStatusFilter('active')}
-              className="text-xs"
-            >
-              <ToggleRight className="h-3 w-3 mr-1" />
-              Active
-            </Button>
-            <Button
-              variant={statusFilter === 'inactive' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setStatusFilter('inactive')}
-              className="text-xs"
-            >
-              <ToggleLeft className="h-3 w-3 mr-1" />
-              Inactive
-            </Button>
-          </div>
+          
         </div>
 
-        <Button 
+        {/* <Button 
           onClick={handleRegisterPerson}
           className="flex items-center gap-2 w-full sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
           Register Person
-        </Button>
+        </Button> */}
       </div>
 
       {/* Search and Filter Section - Collapsible */}
-      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+      {/* <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
@@ -420,7 +392,7 @@ export const ActiveInactiveIPListing = () => {
             </CardContent>
           </CollapsibleContent>
         </Card>
-      </Collapsible>
+      </Collapsible> */}
 
       {/* Active/Inactive Insured Person Listing Section - Table Layout with Enhanced Actions */}
       <Card>
