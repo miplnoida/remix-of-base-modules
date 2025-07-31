@@ -77,7 +77,7 @@ import PendingVerificationPage from '@/pages/PendingVerificationPage';
 
 // C3 Management
 import C3Dashboard from '@/pages/C3Dashboard';
-import ManageC3 from '@/pages/ManageC3';
+import C3Management from '@/pages/C3Management';
 import C3InputForm from '@/pages/C3InputForm';
 import C3Reports from '@/pages/C3Reports';
 import C3Verification from '@/pages/C3Verification';
@@ -101,7 +101,7 @@ export const AppRoutes = () => {
 
       {/* C3 Management Routes */}
       <Route path="/c3-management/dashboard" element={<ProtectedLayout><C3Dashboard /></ProtectedLayout>} />
-      <Route path="/c3-management/manage" element={<ProtectedLayout><ManageC3 /></ProtectedLayout>} />
+      <Route path="/c3-management/manage" element={<ProtectedLayout><C3Management /></ProtectedLayout>} />
       <Route path="/c3-management/add" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
       <Route path="/c3-management/reports" element={<ProtectedLayout><C3Reports /></ProtectedLayout>} />
       <Route path="/c3-management/verification" element={<ProtectedLayout><C3Verification /></ProtectedLayout>} />
