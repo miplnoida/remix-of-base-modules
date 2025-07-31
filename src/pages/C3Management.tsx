@@ -9,8 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // Enhanced mock data for the table with all required columns
 const mockC3Data = [
@@ -86,11 +88,14 @@ const mockC3Data = [
 
 export default function C3Management() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
   const [contributionType, setContributionType] = useState("employer");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(20);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const [filters, setFilters] = useState({
     regNo: "",
     scheduleNo: "",
@@ -128,23 +133,70 @@ export default function C3Management() {
   };
 
   const handleView = (record: any) => {
-    console.log("Viewing record:", record);
-    // Implement view logic
+    navigate(`/c3-management/view/${record.scheduleNo}`);
   };
 
   const handleEdit = (record: any) => {
-    console.log("Editing record:", record);
-    // Navigate to edit form
+    navigate(`/c3-management/edit/${record.scheduleNo}`);
   };
 
   const handleDelete = (record: any) => {
-    console.log("Deleting record:", record);
-    // Implement delete logic with confirmation
+    setRecordToDelete(record);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (recordToDelete) {
+      // In real app, this would call API to delete
+      toast({
+        title: "Record Deleted",
+        description: `C3 record ${recordToDelete.scheduleNo} has been deleted.`,
+      });
+      setDeleteDialogOpen(false);
+      setRecordToDelete(null);
+    }
   };
 
   const handlePrint = (record: any) => {
-    console.log("Printing record:", record);
-    // Implement print logic
+    // Create a printable version
+    const printContent = `
+      <html>
+        <head>
+          <title>C3 Record - ${record.scheduleNo}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .info-table { width: 100%; border-collapse: collapse; }
+            .info-table th, .info-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .info-table th { background-color: #f2f2f2; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>C3 Contribution Record</h1>
+            <h2>Schedule No: ${record.scheduleNo}</h2>
+          </div>
+          <table class="info-table">
+            <tr><th>Payer ID</th><td>${record.payerId}</td></tr>
+            <tr><th>Payer Name</th><td>${record.payerName}</td></tr>
+            <tr><th>Type</th><td>${record.type}</td></tr>
+            <tr><th>Period</th><td>${record.period}</td></tr>
+            <tr><th>Amount</th><td>$${record.amount.toLocaleString()}</td></tr>
+            <tr><th>Status</th><td>${record.status}</td></tr>
+            <tr><th>Date Received</th><td>${record.dateReceived}</td></tr>
+            <tr><th>Entered By</th><td>${record.enteredBy}</td></tr>
+            <tr><th>Verified By</th><td>${record.verifiedBy || '-'}</td></tr>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   const handleExportExcel = () => {
@@ -238,24 +290,24 @@ export default function C3Management() {
           <CollapsibleContent>
             <CardContent className="space-y-6">
               {/* Contribution Type Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Contribution Type</Label>
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border-2 border-dashed border-government-300">
+                <Label className="text-base font-bold text-government-800">Contribution Type</Label>
                 <RadioGroup 
                   value={contributionType} 
                   onValueChange={setContributionType}
-                  className="flex flex-row space-x-6"
+                  className="flex flex-row space-x-8"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="employer" id="employer" />
-                    <Label htmlFor="employer">Employer</Label>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="employer" id="employer" className="h-5 w-5" />
+                    <Label htmlFor="employer" className="text-sm font-semibold text-government-700 cursor-pointer">Employer</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="self-employed" id="self-employed" />
-                    <Label htmlFor="self-employed">Self-Employed</Label>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="self-employed" id="self-employed" className="h-5 w-5" />
+                    <Label htmlFor="self-employed" className="text-sm font-semibold text-government-700 cursor-pointer">Self-Employed</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="voluntary" id="voluntary" />
-                    <Label htmlFor="voluntary">Voluntary Contribution</Label>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="voluntary" id="voluntary" className="h-5 w-5" />
+                    <Label htmlFor="voluntary" className="text-sm font-semibold text-government-700 cursor-pointer">Voluntary Contribution</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -421,7 +473,7 @@ export default function C3Management() {
                   <TableHead>CNC3 Received By</TableHead>
                   <TableHead>CNC3 Modified Date</TableHead>
                   <TableHead>CNC3 Modified By</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center sticky right-0 bg-background border-l-2 border-border shadow-lg z-10">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -442,7 +494,7 @@ export default function C3Management() {
                     <TableCell>{record.cnc3ReportedReceivedBy}</TableCell>
                     <TableCell>{record.cnc3ReportedModifiedDate}</TableCell>
                     <TableCell>{record.cnc3ReportedModifiedBy}</TableCell>
-                    <TableCell>
+                    <TableCell className="sticky right-0 bg-background border-l-2 border-border shadow-lg z-10">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -535,6 +587,25 @@ export default function C3Management() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete C3 Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the C3 record "{recordToDelete?.scheduleNo}"? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
