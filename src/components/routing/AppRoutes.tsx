@@ -4,86 +4,86 @@ import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 
 // Page imports
-import Index from '@/pages/Index';
+import Index from '@/pages/dashboard/Index';
 import NotFound from '@/pages/NotFound';
-import ViewInsuredPerson from '@/pages/ViewInsuredPerson';
-import EditInsuredPerson from '@/pages/EditInsuredPerson';
+import ViewInsuredPerson from '@/pages/insuredPersons/ViewInsuredPerson';
+import EditInsuredPerson from '@/pages/insuredPersons/EditInsuredPerson';
 
 // Employer Management
-import EmployerRegistration from '@/pages/EmployerRegistration';
-import EmployerApproval from '@/pages/EmployerApproval';
-import EmployerDirectory from '@/pages/EmployerDirectory';
-import ContributionEntry from '@/pages/ContributionEntry';
-import ComplianceMonitoring from '@/pages/ComplianceMonitoring';
-import ContributionTracking from '@/pages/ContributionTracking';
+import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
+import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
+import EmployerDirectory from '@/pages/employersManagement/EmployerDirectory';
+import ContributionEntry from '@/pages/employersManagement/ContributionEntry';
+import ComplianceMonitoring from '@/pages/compliance/ComplianceMonitoring';
+import ContributionTracking from '@/pages/employersManagement/ContributionTracking';
 
 // Insured Persons - New consolidated page
-import IPManagement from '@/pages/IPManagement';
-import PersonIPManagement from '@/pages/PersonIPManagement';
+import IPManagement from '@/pages/insuredPersons/IPManagement';
+import PersonIPManagement from '@/pages/insuredPersons/PersonIPManagement';
 
 // Quick Actions Pages
-import WagesHistory from '@/pages/WagesHistory';
-import ClaimHistory from '@/pages/ClaimHistory';
-import BenefitEligibility from '@/pages/BenefitEligibility';
-import PendingReviews from '@/pages/PendingReviews';
+import WagesHistory from '@/pages/insuredPersons/WagesHistory';
+import ClaimHistory from '@/pages/insuredPersons/ClaimHistory';
+import BenefitEligibility from '@/pages/insuredPersons/BenefitEligibility';
+import PendingReviews from '@/pages/insuredPersons/PendingReviews';
 
 // Benefits
-import AllBenefitsTabs from '@/pages/AllBenefitsTabs';
-import OnlineBenefitApplications from '@/pages/OnlineBenefitApplications';
-import MaternityBenefits from '@/pages/MaternityBenefits';
-import UnemploymentBenefits from '@/pages/UnemploymentBenefits';
-import WorkInjuryBenefits from '@/pages/WorkInjuryBenefits';
-import DeathBenefits from '@/pages/DeathBenefits';
-import EducationalBenefits from '@/pages/EducationalBenefits';
+import AllBenefitsTabs from '@/pages/benefits/AllBenefitsTabs';
+import OnlineBenefitApplications from '@/pages/benefits/OnlineBenefitApplications';
+import MaternityBenefits from '@/pages/benefits/MaternityBenefits';
+import UnemploymentBenefits from '@/pages/benefits/UnemploymentBenefits';
+import WorkInjuryBenefits from '@/pages/benefits/WorkInjuryBenefits';
+import DeathBenefits from '@/pages/benefits/DeathBenefits';
+import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
 // Compliance & Audit
-import ComplianceDashboard from '@/pages/ComplianceDashboard';
-import EmployerComplianceManagement from '@/pages/EmployerComplianceManagement';
-import ComplianceReports from '@/pages/ComplianceReports';
-import LegalProceedings from '@/pages/LegalProceedings';
-import AuditManagement from '@/pages/AuditManagement';
-import PenaltyManagement from '@/pages/PenaltyManagement';
+import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
+import EmployerComplianceManagement from '@/pages/compliance/EmployerComplianceManagement';
+import ComplianceReports from '@/pages/compliance/ComplianceReports';
+import LegalProceedings from '@/pages/compliance/LegalProceedings';
+import AuditManagement from '@/pages/compliance/AuditManagement';
+import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
 
 // Reports
-import ReportsHub from '@/pages/ReportsHub';
-import EmployerStatement from '@/pages/EmployerStatement';
+import ReportsHub from '@/pages/reports/ReportsHub';
+import EmployerStatement from '@/pages/reports/EmployerStatement';
 
 // System Administration
-import WebUsers from '@/pages/WebUsers';
-import AuditLog from '@/pages/AuditLog';
+import WebUsers from '@/pages/users/WebUsers';
+import AuditLog from '@/pages/systemAdmin/AuditLog';
 
-import ManageEmployers from '@/pages/ManageEmployers';
-import EmployersDashboard from '@/pages/EmployersDashboard';
+import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
+import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
 
 // New pages for missing routes
-import AddEmployer from '@/pages/AddEmployer';
-import EmployersReports from '@/pages/EmployersReports';
-import ViewEmployer from '@/pages/ViewEmployer';
-import EditEmployer from '@/pages/EditEmployer';
-import ManageSelfEmployed from '@/pages/ManageSelfEmployed';
-import AddSelfEmployed from '@/pages/AddSelfEmployed';
-import SelfEmployedReports from '@/pages/SelfEmployedReports';
-import InsuredPersonGuide from '@/pages/InsuredPersonGuide';
-import EmployerRules from '@/pages/EmployerRules';
-import ApprovalWorkflow from '@/pages/ApprovalWorkflow';
-import DocumentationRequirements from '@/pages/DocumentationRequirements';
-import UserProfile from '@/pages/UserProfile';
-import ChangePassword from '@/pages/ChangePassword';
-import ManageRoles from '@/pages/ManageRoles';
-import SystemSettings from '@/pages/SystemSettings';
-import SecuritySettings from '@/pages/SecuritySettings';
-import PersonRegistration from '@/pages/PersonRegistration';
-import RegisterPersonTabs from '@/pages/RegisterPersonTabs';
-import PendingVerificationPage from '@/pages/PendingVerificationPage';
+import AddEmployer from '@/pages/employersManagement/AddEmployer';
+import EmployersReports from '@/pages/reports/EmployersReports';
+import ViewEmployer from '@/pages/employersManagement/ViewEmployer';
+import EditEmployer from '@/pages/employersManagement/EditEmployer';
+import ManageSelfEmployed from '@/pages/selfEmployed/ManageSelfEmployed';
+import AddSelfEmployed from '@/pages/selfEmployed/AddSelfEmployed';
+import SelfEmployedReports from '@/pages/selfEmployed/SelfEmployedReports';
+import InsuredPersonGuide from '@/pages/insuredPersons/InsuredPersonGuide';
+import EmployerRules from '@/pages/employersManagement/EmployerRules';
+import ApprovalWorkflow from '@/pages/registration/ApprovalWorkflow';
+import DocumentationRequirements from '@/pages/registration/DocumentationRequirements';
+import UserProfile from '@/pages/users/UserProfile';
+import ChangePassword from '@/pages/users/ChangePassword';
+import ManageRoles from '@/pages/users/ManageRoles';
+import SystemSettings from '@/pages/systemAdmin/SystemSettings';
+import SecuritySettings from '@/pages/systemAdmin/SecuritySettings';
+import PersonRegistration from '@/pages/insuredPersons/PersonRegistration';
+import RegisterPersonTabs from '@/pages/insuredPersons/RegisterPersonTabs';
+import PendingVerificationPage from '@/pages/insuredPersons/PendingVerificationPage';
 
 // C3 Management
-import C3Dashboard from '@/pages/C3Dashboard';
-import C3Management from '@/pages/C3Management';
-import C3InputForm from '@/pages/C3InputForm';
-import C3Reports from '@/pages/C3Reports';
-import C3Verification from '@/pages/C3Verification';
-import ViewC3Record from '@/pages/ViewC3Record';
-import EditC3Record from '@/pages/EditC3Record';
+import C3Dashboard from '@/pages/c3Management/C3Dashboard';
+import C3Management from '@/pages/c3Management/C3Management';
+import C3InputForm from '@/pages/c3Management/C3InputForm';
+import C3Reports from '@/pages/c3Management/C3Reports';
+import C3Verification from '@/pages/c3Management/C3Verification';
+import ViewC3Record from '@/pages/c3Management/ViewC3Record';
+import EditC3Record from '@/pages/c3Management/EditC3Record';
 
 export const AppRoutes = () => {
   return (
