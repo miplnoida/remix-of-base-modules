@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, AlertTriangle, UserPlus, BarChart3, Download, Copy } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function SecuritySettings() {
   const navigate = useNavigate();
@@ -22,6 +23,16 @@ export default function SecuritySettings() {
   const [userEmail, setUserEmail] = useState('');
   const [searchUsers, setSearchUsers] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('All Roles');
+  const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
+  const [newRoleAccessLevel, setNewRoleAccessLevel] = useState('');
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    employer: true,
+    insured: true,
+    benefits: true,
+    reports: true
+  });
 
   // Mock data for users
   const users = [
@@ -185,6 +196,21 @@ export default function SecuritySettings() {
     setSelectedRole('');
   };
 
+  const handleCreateRole = () => {
+    // Handle role creation logic here
+    setIsCreateRoleOpen(false);
+    setNewRoleName('');
+    setNewRoleDescription('');
+    setNewRoleAccessLevel('');
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   const getRoleColor = (role: string) => {
     const roleColors: { [key: string]: string } = {
       'System Administrator': 'bg-red-100 text-red-800',
@@ -228,10 +254,64 @@ export default function SecuritySettings() {
               <p className="text-muted-foreground">Manage roles, permissions, and access controls</p>
             </div>
           </div>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create Role
-          </Button>
+          <Dialog open={isCreateRoleOpen} onOpenChange={setIsCreateRoleOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Create Role
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Create New Role</DialogTitle>
+                <DialogDescription>
+                  Define a new role with specific permissions and access levels.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="roleName">Role Name</Label>
+                  <Input 
+                    id="roleName" 
+                    placeholder="Enter role name" 
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    placeholder="Describe the role's purpose" 
+                    value={newRoleDescription}
+                    onChange={(e) => setNewRoleDescription(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accessLevel">Access Level</Label>
+                  <Select value={newRoleAccessLevel} onValueChange={setNewRoleAccessLevel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select access level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">Basic</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                      <SelectItem value="admin">Administrator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateRoleOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateRole}>
+                  Create Role
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -292,62 +372,289 @@ export default function SecuritySettings() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Collapsible>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-medium">Legal Officer</span>
+                    <Button size="sm" variant="outline" className="bg-green-600 hover:bg-green-700 text-white">Save Changes</Button>
+                  </div>
+
+                  {/* Employer Management */}
+                  <div className="border rounded-lg">
+                    <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggleSection('employer')}>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        <span className="font-medium">Employer Management</span>
+                        <div>
+                          <h4 className="font-medium">Employer Management</h4>
+                          <p className="text-sm text-muted-foreground">Manage employer registration and contributions</p>
+                        </div>
                       </div>
-                      <ChevronDown className="h-4 w-4" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-2">
-                      <p className="text-sm text-muted-foreground px-3">Manage employer registration and contributions</p>
-                    </CollapsibleContent>
-                  </Collapsible>
+                      {expandedSections.employer ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </div>
+                    {expandedSections.employer && (
+                      <div className="border-t p-3">
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="font-medium mb-2">Employer</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Handle employer registrations and approvals</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Add</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Approval</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Report</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="font-medium mb-2">Contribution</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Manage employee contributions and bulk operations</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Add</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Import/Bulk</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Report</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                  <Collapsible>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg">
+                  {/* Insured Persons */}
+                  <div className="border rounded-lg">
+                    <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggleSection('insured')}>
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        <span className="font-medium">Insured Persons</span>
+                        <UserPlus className="h-4 w-4" />
+                        <div>
+                          <h4 className="font-medium">Insured Persons</h4>
+                          <p className="text-sm text-muted-foreground">Manage insured person registration and data</p>
+                        </div>
                       </div>
-                      <ChevronDown className="h-4 w-4" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-2">
-                      <p className="text-sm text-muted-foreground px-3">Manage insured person registration and data</p>
-                    </CollapsibleContent>
-                  </Collapsible>
+                      {expandedSections.insured ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </div>
+                    {expandedSections.insured && (
+                      <div className="border-t p-3">
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="font-medium mb-2">Person Registration</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Register new insured persons</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="font-medium mb-2">Person Management</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Manage existing insured person records</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                  <Collapsible>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg">
+                  {/* Benefits */}
+                  <div className="border rounded-lg">
+                    <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggleSection('benefits')}>
                       <div className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
-                        <span className="font-medium">Benefits</span>
+                        <div>
+                          <h4 className="font-medium">Benefits</h4>
+                          <p className="text-sm text-muted-foreground">Manage benefits claims and processing</p>
+                        </div>
                       </div>
-                      <ChevronDown className="h-4 w-4" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-2">
-                      <p className="text-sm text-muted-foreground px-3">Manage benefits claims and processing</p>
-                    </CollapsibleContent>
-                  </Collapsible>
+                      {expandedSections.benefits ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </div>
+                    {expandedSections.benefits && (
+                      <div className="border-t p-3">
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="font-medium mb-2">Claims Management</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Process and manage benefit claims</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="font-medium mb-2">Benefits Processing</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Handle benefit calculations and payments</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                  <Collapsible>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg">
+                  {/* Reports & Analytics */}
+                  <div className="border rounded-lg">
+                    <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggleSection('reports')}>
                       <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        <span className="font-medium">Reports & Analytics</span>
+                        <BarChart3 className="h-4 w-4" />
+                        <div>
+                          <h4 className="font-medium">Reports & Analytics</h4>
+                          <p className="text-sm text-muted-foreground">Generate reports and analytics</p>
+                        </div>
                       </div>
-                      <ChevronDown className="h-4 w-4" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-2">
-                      <p className="text-sm text-muted-foreground px-3">Generate reports and analytics</p>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  <div className="pt-4">
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      Save Changes
-                    </Button>
+                      {expandedSections.reports ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </div>
+                    {expandedSections.reports && (
+                      <div className="border-t p-3">
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="font-medium mb-2">Standard Reports</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Generate standard system reports</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="font-medium mb-2">Advanced Analytics</h5>
+                            <p className="text-sm text-muted-foreground mb-3">Access advanced analytics and insights</p>
+                            <div className="grid grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span>View</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Edit</span>
+                                <Switch defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Delete</span>
+                                <Switch />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Export</span>
+                                <Switch />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
