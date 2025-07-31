@@ -100,70 +100,7 @@ export default function C3Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">C3 Dashboard</h1>
           <p className="text-muted-foreground">Overview of C3 contribution records and statistics</p>
         </div>
-        <Button onClick={handleAddNewC3} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add New C3
-        </Button>
       </div>
-
-      {/* Search and Filter Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Search & Filter
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
-              <Input
-                placeholder="Search by Employer, Reg No, Period..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date Range</label>
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Dates" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="quarter">This Quarter</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end">
-              <Button className="w-full gap-2">
-                <Search className="h-4 w-4" />
-                Search
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* C3 Summary Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
