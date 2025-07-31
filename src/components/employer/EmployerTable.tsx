@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
-import { Employer } from '@/pages/EmployerDirectory';
+import { Employer } from '@/pages/employersManagement/EmployerDirectory';
 
 interface EmployerTableProps {
   employers: Employer[];

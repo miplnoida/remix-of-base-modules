@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { EmployerFilters as EmployerFiltersType } from '@/pages/EmployerDirectory';
+import { EmployerFilters as EmployerFiltersType } from '@/pages/employersManagement/EmployerDirectory';
 
 interface EmployerFiltersProps {
   filters: EmployerFiltersType;
