@@ -71,6 +71,7 @@ import UserProfile from '@/pages/UserProfile';
 import ChangePassword from '@/pages/ChangePassword';
 import ManageRoles from '@/pages/ManageRoles';
 import SystemSettings from '@/pages/SystemSettings';
+import SecuritySettings from '@/pages/SecuritySettings';
 import PersonRegistration from '@/pages/PersonRegistration';
 import RegisterPersonTabs from '@/pages/RegisterPersonTabs';
 import PendingVerificationPage from '@/pages/PendingVerificationPage';
@@ -133,6 +134,7 @@ export const AppRoutes = () => {
       <Route path="/profile" element={<ProtectedLayout><UserProfile /></ProtectedLayout>} />
       <Route path="/profile/change-password" element={<ProtectedLayout><ChangePassword /></ProtectedLayout>} />
       <Route path="/admin/roles" element={<ProtectedLayout><ManageRoles /></ProtectedLayout>} />
+      <Route path="/admin/security" element={<ProtectedLayout><SecuritySettings /></ProtectedLayout>} />
       <Route path="/admin/settings" element={<ProtectedLayout><SystemSettings /></ProtectedLayout>} />
 
       {/* Legacy Routes - keeping existing functionality */}

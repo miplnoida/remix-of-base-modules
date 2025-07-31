@@ -26,6 +26,12 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration"
       },
       {
+        title: "Security Settings",
+        url: "/admin/security",
+        icon: Shield,
+        requiresPermission: "system_administration"
+      },
+      {
         title: "System Settings",
         url: "/admin/settings",
         icon: Settings,
