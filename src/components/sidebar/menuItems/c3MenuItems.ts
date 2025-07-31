@@ -21,7 +21,7 @@ export const c3MenuItems = [
         title: "Manage C3",
         url: "/c3-management/manage",
         icon: Users,
-        requiresPermission: "manage_c3",
+        requiresPermission: "view_dashboard",
         description: "Add and manage C3 contribution records"
       },
       {
