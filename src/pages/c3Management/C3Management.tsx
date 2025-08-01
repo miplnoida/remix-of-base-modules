@@ -109,7 +109,7 @@ export default function C3Management() {
 
 
   const handleAddNewC3 = () => {
-    navigate("/c3-management/add");
+    navigate("/c3-management/new-submission");
   };
 
   const handleSearch = () => {
