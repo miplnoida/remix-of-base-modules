@@ -1,5 +1,41 @@
 
-import { Employer } from '@/pages/EmployerDirectory';
+// Define Employer interface locally
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}
+
+interface ContactInfo {
+  phone: string;
+  email: string;
+}
+
+interface Employer {
+  employerId: string;
+  employerName: string;
+  businessType: string;
+  registrationNumber: string;
+  employerType: string;
+  address: Address;
+  contactInfo: ContactInfo;
+  employerStatus: string;
+  taxId: string;
+  industryCode: string;
+  registrationDate: string;
+  numberOfEmployees: number;
+  contributionType: string;
+  contributionStatus: string;
+  lastContributionDate: string;
+  totalContributions: number;
+  contributionFrequency: string;
+  authorizedRepresentative: string;
+  totalPayroll: number;
+  complianceStatus: string;
+  lastAuditDate: string;
+}
 
 export const employerData: Employer[] = [
   {
