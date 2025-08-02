@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,18 +31,21 @@ interface EmployeeEntry {
 
 interface EmployerC3FormProps {
   data?: any;
+  mode?: 'add' | 'edit' | 'view';
   onSave?: (data: any) => void;
   onClose?: () => void;
 }
 
-export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3FormProps) {
+export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: EmployerC3FormProps) {
+  const isReadOnly = mode === 'view';
+
   const [formData, setFormData] = useState({
-    regNo: data?.regNo || "",
-    employerName: data?.employerName || "",
+    regNo: data?.regNo || data?.payerId || "",
+    employerName: data?.employerName || data?.payerName || "",
     address: data?.address || "",
     period: data?.period || "",
     dateReceived: data?.dateReceived || "",
-    schedule: data?.schedule || "",
+    schedule: data?.schedule || data?.scheduleNo || "",
     numberOfEmployees: data?.numberOfEmployees || "",
     status: data?.status || "pending",
     payments: data?.payments || "",
@@ -77,17 +79,18 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
   );
 
   const [transactionInfo, setTransactionInfo] = useState({
-    dateEntered: data?.transactionInfo?.dateEntered || "",
-    enteredBy: data?.transactionInfo?.enteredBy || "",
+    dateEntered: data?.transactionInfo?.dateEntered || data?.dateEntered || "",
+    enteredBy: data?.transactionInfo?.enteredBy || data?.enteredBy || "",
     dateModified: data?.transactionInfo?.dateModified || "",
     modifiedBy: data?.transactionInfo?.modifiedBy || "",
-    dateVerified: data?.transactionInfo?.dateVerified || "",
-    verifiedBy: data?.transactionInfo?.verifiedBy || ""
+    dateVerified: data?.transactionInfo?.dateVerified || data?.dateVerified || "",
+    verifiedBy: data?.transactionInfo?.verifiedBy || data?.verifiedBy || ""
   });
 
   const [notes, setNotes] = useState(data?.notes || "");
 
   const handleFormChange = (field: string, value: any) => {
+    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -95,89 +98,82 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
   };
 
   const handleEmployeeChange = (index: number, field: keyof EmployeeEntry, value: any) => {
+    if (isReadOnly) return;
     const updatedEmployees = [...employees];
     updatedEmployees[index] = {
       ...updatedEmployees[index],
       [field]: value
     };
 
-    // Calculate totals when wages change
+    // Recalculate totals if wages or bonus changed
     if (field === 'wagesSalary' || field === 'bonus') {
       const employee = updatedEmployees[index];
       employee.totalWages = employee.wagesSalary + employee.bonus;
-      employee.hssdLevy = employee.totalWages * 0.02; // 2% for H.S.S.D Levy
-      employee.socialSecurity = employee.totalWages * 0.03; // 3% for Social Security
+      employee.socialSecurity = employee.totalWages * 0.03; // 3%
+      employee.hssdLevy = employee.totalWages * 0.015; // 1.5%
     }
 
     setEmployees(updatedEmployees);
   };
 
-  const handleWeekChange = (empIndex: number, week: keyof EmployeeEntry['weeks'], checked: boolean) => {
+  const handleWeekChange = (employeeIndex: number, week: string, checked: boolean) => {
+    if (isReadOnly) return;
     const updatedEmployees = [...employees];
-    updatedEmployees[empIndex].weeks[week] = checked;
+    updatedEmployees[employeeIndex] = {
+      ...updatedEmployees[employeeIndex],
+      weeks: {
+        ...updatedEmployees[employeeIndex].weeks,
+        [week]: checked
+      }
+    };
     setEmployees(updatedEmployees);
   };
 
-  const addEmployeeRow = () => {
-    setEmployees(prev => [
-      ...prev,
-      {
-        ssn: "",
-        name: "",
-        weeks: {
-          w1: false,
-          w2: false,
-          w3: false,
-          w4: false,
-          w5: false,
-          h: false,
-          p: false,
-          b: false
-        },
-        wagesSalary: 0,
-        bonus: 0,
-        totalWages: 0,
-        hssdLevy: 0,
-        socialSecurity: 0,
-        isVerified: false
-      }
-    ]);
+  const addEmployee = () => {
+    if (isReadOnly) return;
+    setEmployees([...employees, {
+      ssn: "",
+      name: "",
+      weeks: {
+        w1: false,
+        w2: false,
+        w3: false,
+        w4: false,
+        w5: false,
+        h: false,
+        p: false,
+        b: false
+      },
+      wagesSalary: 0,
+      bonus: 0,
+      totalWages: 0,
+      hssdLevy: 0,
+      socialSecurity: 0,
+      isVerified: false
+    }]);
   };
 
-  const deleteEmployeeRow = (index: number) => {
-    if (employees.length > 1) {
-      setEmployees(prev => prev.filter((_, i) => i !== index));
-    }
+  const removeEmployee = (index: number) => {
+    if (isReadOnly) return;
+    setEmployees(employees.filter((_, i) => i !== index));
   };
 
-  const calculateSubtotals = () => {
-    const totalWagesEmployees = employees.reduce((sum, emp) => sum + emp.totalWages, 0);
-    const totalEmployeesLevy = employees.reduce((sum, emp) => sum + emp.hssdLevy, 0);
-    const totalEmployeesSS = employees.reduce((sum, emp) => sum + emp.socialSecurity, 0);
-    const employersContribution = totalWagesEmployees * 0.03; // Employer's 3%
-    const severancePay = totalWagesEmployees * 0.01; // Employer's 1% for Severance
-    
-    return {
-      totalWagesEmployees,
-      totalEmployeesLevy: totalEmployeesLevy,
-      totalEmployeesSS,
-      employersContribution,
-      severancePay,
-      levyPenalty: 0,
-      severancePenalty: 0,
-      fines: 0
-    };
+  const calculateTotals = () => {
+    return employees.reduce((totals, emp) => ({
+      totalWages: totals.totalWages + emp.totalWages,
+      totalSocialSecurity: totals.totalSocialSecurity + emp.socialSecurity,
+      totalHssdLevy: totals.totalHssdLevy + emp.hssdLevy
+    }), { totalWages: 0, totalSocialSecurity: 0, totalHssdLevy: 0 });
   };
-
-  const subtotals = calculateSubtotals();
 
   const handleSave = () => {
+    if (isReadOnly) return;
     const formDataToSave = {
       ...formData,
       employees,
       transactionInfo,
       notes,
-      subtotals
+      totals: calculateTotals()
     };
     
     console.log("Saving Employer C3 form:", formDataToSave);
@@ -188,24 +184,32 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
     window.print();
   };
 
+  const totals = calculateTotals();
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header Information */}
+    <div className="flex flex-col gap-4 max-w-full overflow-hidden">
+      {/* Header */}
       <Card>
-        <CardHeader>
-          <CardTitle>ST CHRISTOPHER AND NEVIS - SOCIAL SECURITY</CardTitle>
-          <CardDescription>Social Security Act, 1978; Social Services Levy Act, 1986; and the Protection of Employment Act, 1996</CardDescription>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg md:text-xl">ST CHRISTOPHER AND NEVIS - SOCIAL SECURITY</CardTitle>
+          <CardDescription className="text-sm">
+            Social Security Act, 1978; Social Services Levy Act, 1986; and the Protection of Employment Act, 1996<br/>
+            <strong>C3 EMPLOYER'S CONTRIBUTION REMITTANCE FORM</strong>
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="regNo">Employer</Label>
+              <Label htmlFor="regNo">Reg No (6-digit)</Label>
               <Input
                 id="regNo"
                 value={formData.regNo}
                 onChange={(e) => handleFormChange("regNo", e.target.value)}
-                placeholder="6-digit registration number"
+                placeholder="Enter 6-digit registration number"
                 maxLength={6}
+                pattern="[0-9]{6}"
+                className="bg-green-50"
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -216,6 +220,40 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={formData.employerName}
                 onChange={(e) => handleFormChange("employerName", e.target.value)}
                 placeholder="Enter employer name"
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="period">Period</Label>
+              <Input
+                id="period"
+                value={formData.period}
+                onChange={(e) => handleFormChange("period", e.target.value)}
+                placeholder="Jul-2025"
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateReceived">Date Received</Label>
+              <Input
+                id="dateReceived"
+                type="date"
+                value={formData.dateReceived}
+                onChange={(e) => handleFormChange("dateReceived", e.target.value)}
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="schedule">Schedule No</Label>
+              <Input
+                id="schedule"
+                value={formData.schedule}
+                onChange={(e) => handleFormChange("schedule", e.target.value)}
+                placeholder="Auto-populated"
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -227,78 +265,16 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={formData.numberOfEmployees}
                 onChange={(e) => handleFormChange("numberOfEmployees", e.target.value)}
                 placeholder="0"
+                readOnly={isReadOnly}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="period">Period</Label>
-              <Input
-                id="period"
-                value={formData.period}
-                onChange={(e) => handleFormChange("period", e.target.value)}
-                placeholder="MMM-YYYY"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleFormChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="payments">Payments</Label>
-              <Input
-                id="payments"
-                value={formData.payments}
-                onChange={(e) => handleFormChange("payments", e.target.value)}
-                placeholder="$0.00"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateReceived">Date Received</Label>
-              <Input
-                id="dateReceived"
-                type="date"
-                value={formData.dateReceived}
-                onChange={(e) => handleFormChange("dateReceived", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="schedule">Schedule</Label>
-              <Input
-                id="schedule"
-                value={formData.schedule}
-                onChange={(e) => handleFormChange("schedule", e.target.value)}
-                placeholder="Schedule number"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="balance">Balance</Label>
-              <Input
-                id="balance"
-                value={formData.balance}
-                onChange={(e) => handleFormChange("balance", e.target.value)}
-                placeholder="$0.00"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 col-span-full">
               <Checkbox
                 id="nilReturn"
                 checked={formData.nilReturn}
                 onCheckedChange={(checked) => handleFormChange("nilReturn", checked)}
+                disabled={isReadOnly}
               />
               <Label htmlFor="nilReturn">Nil Return</Label>
             </div>
@@ -310,8 +286,9 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
               id="address"
               value={formData.address}
               onChange={(e) => handleFormChange("address", e.target.value)}
-              placeholder="Enter employer address"
+              placeholder="Enter address"
               rows={2}
+              readOnly={isReadOnly}
             />
           </div>
         </CardContent>
@@ -319,17 +296,18 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
 
       {/* Transaction Information */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Transaction Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>Date Entered</Label>
               <Input
                 value={transactionInfo.dateEntered}
                 onChange={(e) => setTransactionInfo({...transactionInfo, dateEntered: e.target.value})}
                 type="date"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -338,6 +316,7 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={transactionInfo.enteredBy}
                 onChange={(e) => setTransactionInfo({...transactionInfo, enteredBy: e.target.value})}
                 placeholder="Staff name"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -346,6 +325,7 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={transactionInfo.dateModified}
                 onChange={(e) => setTransactionInfo({...transactionInfo, dateModified: e.target.value})}
                 type="date"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -354,6 +334,7 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={transactionInfo.modifiedBy}
                 onChange={(e) => setTransactionInfo({...transactionInfo, modifiedBy: e.target.value})}
                 placeholder="Staff name"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -362,6 +343,7 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={transactionInfo.dateVerified}
                 onChange={(e) => setTransactionInfo({...transactionInfo, dateVerified: e.target.value})}
                 type="date"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -370,24 +352,27 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                 value={transactionInfo.verifiedBy}
                 onChange={(e) => setTransactionInfo({...transactionInfo, verifiedBy: e.target.value})}
                 placeholder="Staff name"
+                readOnly={isReadOnly}
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Employee Details */}
+      {/* Employee Details Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Details</CardTitle>
-              <CardDescription>Enter employee contribution details</CardDescription>
+              <CardTitle>Employee Details</CardTitle>
+              <CardDescription>List of employees and their contribution details</CardDescription>
             </div>
-            <Button onClick={addEmployeeRow} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Employee
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={addEmployee} size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Employee
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -395,35 +380,22 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SSN</TableHead>
-                  <TableHead>Name of Employee</TableHead>
-                  <TableHead>Mark "✓" in the week's worked or indicate Bonus</TableHead>
-                  <TableHead colSpan={8} className="text-center">
-                    <div className="grid grid-cols-8 gap-1 text-xs">
-                      <div>1</div>
-                      <div>2</div>
-                      <div>3</div>
-                      <div>4</div>
-                      <div>5</div>
-                      <div>H</div>
-                      <div>P</div>
-                      <div>B</div>
-                    </div>
-                  </TableHead>
-                  <TableHead>Total Wages/Salaries Paid for the month</TableHead>
-                  <TableHead>Contributions</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-                <TableRow>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
-                  <TableHead colSpan={8}></TableHead>
-                  <TableHead>Wages/Salary | Bonus</TableHead>
-                  <TableHead>H.S.S.D Levy | Social Security</TableHead>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="min-w-32">SSN</TableHead>
+                  <TableHead className="min-w-40">Name of Employee</TableHead>
+                  <TableHead className="text-center">1</TableHead>
+                  <TableHead className="text-center">2</TableHead>
+                  <TableHead className="text-center">3</TableHead>
+                  <TableHead className="text-center">4</TableHead>
+                  <TableHead className="text-center">5</TableHead>
+                  <TableHead className="text-center">H</TableHead>
+                  <TableHead className="text-center">P</TableHead>
+                  <TableHead className="text-center">B</TableHead>
+                  <TableHead className="min-w-24">Wages/Salary</TableHead>
+                  <TableHead className="min-w-24">Bonus</TableHead>
+                  <TableHead className="min-w-24">Total Wages</TableHead>
+                  <TableHead className="min-w-24">HSSD Levy</TableHead>
+                  <TableHead className="min-w-24">Social Security</TableHead>
+                  {!isReadOnly && <TableHead className="text-center">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -432,117 +404,147 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
                     <TableCell>
                       <Input
                         value={employee.ssn}
-                        onChange={(e) => handleEmployeeChange(index, "ssn", e.target.value)}
+                        onChange={(e) => handleEmployeeChange(index, 'ssn', e.target.value)}
                         placeholder="SSN"
-                        className="w-28"
+                        className="text-xs"
+                        readOnly={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
                         value={employee.name}
-                        onChange={(e) => handleEmployeeChange(index, "name", e.target.value)}
+                        onChange={(e) => handleEmployeeChange(index, 'name', e.target.value)}
                         placeholder="Employee name"
-                        className="w-48"
+                        className="text-xs"
+                        readOnly={isReadOnly}
                       />
                     </TableCell>
-                    <TableCell></TableCell>
-                    {Object.entries(employee.weeks).map(([week, checked]) => (
+                    {[1, 2, 3, 4, 5].map(week => (
                       <TableCell key={week} className="text-center">
                         <Checkbox
-                          checked={checked}
-                          onCheckedChange={(isChecked) => handleWeekChange(index, week as keyof EmployeeEntry['weeks'], isChecked as boolean)}
+                          checked={employee.weeks[`w${week}` as keyof typeof employee.weeks]}
+                          onCheckedChange={(checked) => handleWeekChange(index, `w${week}`, checked as boolean)}
+                          disabled={isReadOnly}
                         />
                       </TableCell>
                     ))}
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Input
-                          type="number"
-                          value={employee.wagesSalary}
-                          onChange={(e) => handleEmployeeChange(index, "wagesSalary", parseFloat(e.target.value) || 0)}
-                          placeholder="Wages"
-                          className="w-20"
-                        />
-                        <Input
-                          type="number"
-                          value={employee.bonus}
-                          onChange={(e) => handleEmployeeChange(index, "bonus", parseFloat(e.target.value) || 0)}
-                          placeholder="Bonus"
-                          className="w-20"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Input
-                          type="number"
-                          value={employee.hssdLevy.toFixed(2)}
-                          readOnly
-                          className="w-20 bg-muted"
-                        />
-                        <Input
-                          type="number"
-                          value={employee.socialSecurity.toFixed(2)}
-                          readOnly
-                          className="w-20 bg-muted"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Checkbox
-                        checked={employee.isVerified}
-                        onCheckedChange={(checked) => handleEmployeeChange(index, "isVerified", checked as boolean)}
+                        checked={employee.weeks.h}
+                        onCheckedChange={(checked) => handleWeekChange(index, 'h', checked as boolean)}
+                        disabled={isReadOnly}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={employee.weeks.p}
+                        onCheckedChange={(checked) => handleWeekChange(index, 'p', checked as boolean)}
+                        disabled={isReadOnly}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={employee.weeks.b}
+                        onCheckedChange={(checked) => handleWeekChange(index, 'b', checked as boolean)}
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteEmployeeRow(index)}
-                        disabled={employees.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Input
+                        type="number"
+                        value={employee.wagesSalary}
+                        onChange={(e) => handleEmployeeChange(index, 'wagesSalary', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        className="text-xs"
+                        readOnly={isReadOnly}
+                      />
                     </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={employee.bonus}
+                        onChange={(e) => handleEmployeeChange(index, 'bonus', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        className="text-xs"
+                        readOnly={isReadOnly}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">${employee.totalWages.toFixed(2)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">${employee.hssdLevy.toFixed(2)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">${employee.socialSecurity.toFixed(2)}</div>
+                    </TableCell>
+                    {!isReadOnly && (
+                      <TableCell className="text-center">
+                        {employees.length > 1 && (
+                          <Button
+                            onClick={() => removeEmployee(index)}
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+
+          {/* Totals Summary */}
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <h3 className="font-semibold mb-3">Total Summary</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">Total Wages</Label>
+                <div className="text-xl font-bold">${totals.totalWages.toFixed(2)}</div>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Total HSSD Levy</Label>
+                <div className="text-xl font-bold">${totals.totalHssdLevy.toFixed(2)}</div>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Total Social Security</Label>
+                <div className="text-xl font-bold">${totals.totalSocialSecurity.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Subtotals */}
+      {/* Payments and Balance */}
       <Card>
-        <CardHeader>
-          <CardTitle>Subtotals</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle>Payment Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center p-2 bg-muted rounded">
-              <span>Total Wages and Employee's Levy + SS Contribution →</span>
-              <span className="font-mono">${subtotals.totalWagesEmployees.toFixed(2)}</span>
-              <span className="font-mono">${(subtotals.totalEmployeesLevy + subtotals.totalEmployeesSS).toFixed(2)}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="payments">Payments</Label>
+              <Input
+                id="payments"
+                value={formData.payments}
+                onChange={(e) => handleFormChange("payments", e.target.value)}
+                placeholder="$0.00"
+                readOnly={isReadOnly}
+              />
             </div>
-            <div className="flex justify-between items-center p-2 bg-muted rounded">
-              <span>Employer's 3% Wages for Levy + SS Contribution →</span>
-              <span className="font-mono">${subtotals.employersContribution.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-muted rounded">
-              <span>Employer's 1% of Wages for Sev. Pay Contribution →</span>
-              <span className="font-mono">${subtotals.severancePay.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-red-100 rounded">
-              <span>Levy Penalty →</span>
-              <span className="font-mono text-red-600">${subtotals.levyPenalty.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-red-100 rounded">
-              <span>Severance Penalty →</span>
-              <span className="font-mono text-red-600">${subtotals.severancePenalty.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-red-100 rounded">
-              <span>Fines due for the month →</span>
-              <span className="font-mono text-red-600">${subtotals.fines.toFixed(2)}</span>
+            <div className="space-y-2">
+              <Label htmlFor="balance">Balance</Label>
+              <Input
+                id="balance"
+                value={formData.balance}
+                onChange={(e) => handleFormChange("balance", e.target.value)}
+                placeholder="$0.00"
+                readOnly={isReadOnly}
+              />
             </div>
           </div>
         </CardContent>
@@ -550,7 +552,7 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
 
       {/* Notes */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Notes</CardTitle>
         </CardHeader>
         <CardContent>
@@ -559,6 +561,7 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Add any additional notes..."
             rows={3}
+            readOnly={isReadOnly}
           />
         </CardContent>
       </Card>
@@ -567,20 +570,24 @@ export default function EmployerC3Form({ data, onSave, onClose }: EmployerC3Form
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleSave}>
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </Button>
-            <Button variant="outline">
-              <Check className="h-4 w-4 mr-2" />
-              Verify
-            </Button>
-            <Button onClick={handlePrint} variant="outline">
-              <Printer className="h-4 w-4 mr-2" />
+            {!isReadOnly && (
+              <Button onClick={handleSave} className="gap-2">
+                <Save className="h-4 w-4" />
+                {mode === 'edit' ? 'Update' : 'Save'}
+              </Button>
+            )}
+            {(mode === 'edit' || mode === 'add') && (
+              <Button variant="outline" className="gap-2">
+                <Check className="h-4 w-4" />
+                Verify
+              </Button>
+            )}
+            <Button onClick={handlePrint} variant="outline" className="gap-2">
+              <Printer className="h-4 w-4" />
               Print
             </Button>
-            <Button onClick={onClose} variant="ghost">
-              <X className="h-4 w-4 mr-2" />
+            <Button onClick={onClose} variant="ghost" className="gap-2">
+              <X className="h-4 w-4" />
               Close
             </Button>
           </div>

@@ -100,6 +100,9 @@ export default function C3Management() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [viewingRecord, setViewingRecord] = useState<any>(null);
+  const [formMode, setFormMode] = useState<'add' | 'edit' | 'view'>('add');
   const [filters, setFilters] = useState({
     regNo: "",
     scheduleNo: "",
@@ -113,6 +116,9 @@ export default function C3Management() {
 
 
   const handleAddNewC3 = () => {
+    setEditingRecord(null);
+    setViewingRecord(null);
+    setFormMode('add');
     setShowForm(true);
   };
 
@@ -137,11 +143,19 @@ export default function C3Management() {
   };
 
   const handleView = (record: any) => {
-    navigate(`/c3-management/view/${record.scheduleNo}`);
+    setViewingRecord(record);
+    setFormMode('view');
+    setContributionType(record.type === 'Employer' ? 'employer' : 
+                       record.type === 'Self-Employed' ? 'self-employed' : 'voluntary');
+    setShowForm(true);
   };
 
   const handleEdit = (record: any) => {
-    navigate(`/c3-management/edit/${record.scheduleNo}`);
+    setEditingRecord(record);
+    setFormMode('edit');
+    setContributionType(record.type === 'Employer' ? 'employer' : 
+                       record.type === 'Self-Employed' ? 'self-employed' : 'voluntary');
+    setShowForm(true);
   };
 
   const handleDelete = (record: any) => {
@@ -247,10 +261,21 @@ export default function C3Management() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">New C3 Submission</h1>
-            <p className="text-muted-foreground">Create a new C3 contribution record</p>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {formMode === 'add' ? 'New C3 Submission' : 
+               formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
+            </h1>
+            <p className="text-muted-foreground">
+              {formMode === 'add' ? 'Create a new C3 contribution record' : 
+               formMode === 'edit' ? 'Edit existing C3 contribution record' : 'View C3 contribution record'}
+            </p>
           </div>
-          <Button onClick={() => setShowForm(false)} variant="outline">
+          <Button onClick={() => {
+            setShowForm(false);
+            setEditingRecord(null);
+            setViewingRecord(null);
+            setFormMode('add');
+          }} variant="outline">
             Back to Manage C3
           </Button>
         </div>
@@ -264,15 +289,75 @@ export default function C3Management() {
           </TabsList>
           
           <TabsContent value="employer">
-            <EmployerC3Form onClose={() => setShowForm(false)} />
+            <EmployerC3Form 
+              data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+              mode={formMode}
+              onClose={() => {
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+              }} 
+              onSave={(data) => {
+                console.log('Employer C3 saved:', data);
+                toast({
+                  title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                  description: `Employer C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
+                });
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+              }}
+            />
           </TabsContent>
           
           <TabsContent value="self-employed">
-            <SelfEmployedC3Form onClose={() => setShowForm(false)} />
+            <SelfEmployedC3Form 
+              data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+              mode={formMode}
+              onClose={() => {
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+              }}
+              onSave={(data) => {
+                console.log('Self-employed C3 saved:', data);
+                toast({
+                  title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                  description: `Self-employed C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
+                });
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+              }}
+            />
           </TabsContent>
           
           <TabsContent value="voluntary">
-            <VoluntaryC3Form onClose={() => setShowForm(false)} />
+            <VoluntaryC3Form 
+              data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+              mode={formMode}
+              onClose={() => {
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+              }}
+              onSave={(data) => {
+                console.log('Voluntary C3 saved:', data);
+                toast({
+                  title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                  description: `Voluntary C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
+                });
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>

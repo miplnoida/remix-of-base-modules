@@ -3,21 +3,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Save, X, Printer, Check } from "lucide-react";
 
 interface SelfEmployedC3FormProps {
   data?: any;
+  mode?: 'add' | 'edit' | 'view';
   onSave?: (data: any) => void;
   onClose?: () => void;
 }
 
-export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmployedC3FormProps) {
+export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose }: SelfEmployedC3FormProps) {
+  const isReadOnly = mode === 'view';
+  
   const [formData, setFormData] = useState({
-    ssn: data?.ssn || "",
-    name: data?.name || "",
+    ssn: data?.ssn || data?.payerId || "",
+    name: data?.name || data?.payerName || "",
     address: data?.address || "",
     period: data?.period || "",
     dateReceived: data?.dateReceived || "",
@@ -26,26 +28,26 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
   });
 
   const [weeklyDetails, setWeeklyDetails] = useState({
-    weeks: data?.weeks || {
+    weeks: data?.weeklyDetails?.weeks || {
       w1: false,
       w2: false,
       w3: false,
       w4: false,
       w5: false
     },
-    totalWages: data?.totalWages || 0,
-    socialSecurityContribution: data?.socialSecurityContribution || 0,
-    penalties: data?.penalties || 0
+    totalWages: data?.weeklyDetails?.totalWages || data?.amount || 0,
+    socialSecurityContribution: data?.weeklyDetails?.socialSecurityContribution || 0,
+    penalties: data?.weeklyDetails?.penalties || 0
   });
 
   const [transactionInfo, setTransactionInfo] = useState({
     status: data?.transactionInfo?.status || "",
-    dateEntered: data?.transactionInfo?.dateEntered || "",
-    enteredBy: data?.transactionInfo?.enteredBy || "",
+    dateEntered: data?.transactionInfo?.dateEntered || data?.dateEntered || "",
+    enteredBy: data?.transactionInfo?.enteredBy || data?.enteredBy || "",
     dateModified: data?.transactionInfo?.dateModified || "",
     modifiedBy: data?.transactionInfo?.modifiedBy || "",
-    dateVerified: data?.transactionInfo?.dateVerified || "",
-    verifiedBy: data?.transactionInfo?.verifiedBy || "",
+    dateVerified: data?.transactionInfo?.dateVerified || data?.dateVerified || "",
+    verifiedBy: data?.transactionInfo?.verifiedBy || data?.verifiedBy || "",
     incomeCategory: data?.transactionInfo?.incomeCategory || ""
   });
 
@@ -57,6 +59,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
   const [notes, setNotes] = useState(data?.notes || "");
 
   const handleFormChange = (field: string, value: any) => {
+    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -64,6 +67,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
   };
 
   const handleWeekChange = (week: string, checked: boolean) => {
+    if (isReadOnly) return;
     setWeeklyDetails(prev => ({
       ...prev,
       weeks: {
@@ -74,6 +78,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
   };
 
   const handleWeeklyDetailsChange = (field: string, value: any) => {
+    if (isReadOnly) return;
     setWeeklyDetails(prev => ({
       ...prev,
       [field]: value
@@ -86,6 +91,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
   };
 
   const handleSave = () => {
+    if (isReadOnly) return;
     const formDataToSave = {
       ...formData,
       weeklyDetails,
@@ -104,18 +110,18 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 max-w-full overflow-hidden">
       {/* Header */}
       <Card>
-        <CardHeader>
-          <CardTitle>ST CHRISTOPHER AND NEVIS - SOCIAL SECURITY</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg md:text-xl">ST CHRISTOPHER AND NEVIS - SOCIAL SECURITY</CardTitle>
+          <CardDescription className="text-sm">
             Social Security Act, 1978; Social Services Levy Act, 1986; and the Protection of Employment Act, 1996<br/>
             <strong>SELF EMPLOYED PERSON CONTRIBUTION REMITTANCE FORM</strong>
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="ssn">SSN</Label>
               <Input
@@ -123,6 +129,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={formData.ssn}
                 onChange={(e) => handleFormChange("ssn", e.target.value)}
                 placeholder="Enter SSN"
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -133,6 +140,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={formData.name}
                 onChange={(e) => handleFormChange("name", e.target.value)}
                 placeholder="Enter full name"
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -143,6 +151,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={formData.period}
                 onChange={(e) => handleFormChange("period", e.target.value)}
                 placeholder="MMM-YYYY"
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -153,6 +162,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 type="date"
                 value={formData.dateReceived}
                 onChange={(e) => handleFormChange("dateReceived", e.target.value)}
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -161,6 +171,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 id="nilReturn"
                 checked={formData.nilReturn}
                 onCheckedChange={(checked) => handleFormChange("nilReturn", checked)}
+                disabled={isReadOnly}
               />
               <Label htmlFor="nilReturn">Nil Return</Label>
             </div>
@@ -174,6 +185,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
               onChange={(e) => handleFormChange("address", e.target.value)}
               placeholder="Enter address"
               rows={2}
+              readOnly={isReadOnly}
             />
           </div>
         </CardContent>
@@ -181,17 +193,18 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
 
       {/* Transaction Information */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Transaction Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>Status</Label>
               <Input
                 value={transactionInfo.status}
                 onChange={(e) => setTransactionInfo({...transactionInfo, status: e.target.value})}
                 placeholder="Status"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -200,6 +213,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.dateEntered}
                 onChange={(e) => setTransactionInfo({...transactionInfo, dateEntered: e.target.value})}
                 type="date"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -208,6 +222,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.enteredBy}
                 onChange={(e) => setTransactionInfo({...transactionInfo, enteredBy: e.target.value})}
                 placeholder="Staff name"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -216,6 +231,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.dateModified}
                 onChange={(e) => setTransactionInfo({...transactionInfo, dateModified: e.target.value})}
                 type="date"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -224,6 +240,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.modifiedBy}
                 onChange={(e) => setTransactionInfo({...transactionInfo, modifiedBy: e.target.value})}
                 placeholder="Staff name"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -232,6 +249,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.dateVerified}
                 onChange={(e) => setTransactionInfo({...transactionInfo, dateVerified: e.target.value})}
                 type="date"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -240,6 +258,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.verifiedBy}
                 onChange={(e) => setTransactionInfo({...transactionInfo, verifiedBy: e.target.value})}
                 placeholder="Staff name"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -248,6 +267,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                 value={transactionInfo.incomeCategory}
                 onChange={(e) => setTransactionInfo({...transactionInfo, incomeCategory: e.target.value})}
                 placeholder="Income category"
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -256,7 +276,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
 
       {/* Details Section */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Details</CardTitle>
           <CardDescription>Put the "✓" in the week(s) worked</CardDescription>
         </CardHeader>
@@ -265,13 +285,14 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
             {/* Weekly Selection */}
             <div>
               <Label className="text-base font-medium">Week(s)</Label>
-              <div className="flex gap-4 mt-2">
+              <div className="flex gap-4 mt-2 flex-wrap">
                 {[1, 2, 3, 4, 5].map((week) => (
                   <div key={week} className="flex items-center space-x-2">
                     <Checkbox
                       id={`week${week}`}
                       checked={weeklyDetails.weeks[`w${week}` as keyof typeof weeklyDetails.weeks]}
                       onCheckedChange={(checked) => handleWeekChange(`w${week}`, checked as boolean)}
+                      disabled={isReadOnly}
                     />
                     <Label htmlFor={`week${week}`}>{week}</Label>
                   </div>
@@ -280,7 +301,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
             </div>
 
             {/* Financial Details */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="totalWages">Total Wages</Label>
                 <Input
@@ -289,6 +310,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                   value={weeklyDetails.totalWages}
                   onChange={(e) => handleWeeklyDetailsChange("totalWages", parseFloat(e.target.value) || 0)}
                   placeholder="$0.00"
+                  readOnly={isReadOnly}
                 />
               </div>
 
@@ -300,6 +322,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                   value={weeklyDetails.socialSecurityContribution}
                   onChange={(e) => handleWeeklyDetailsChange("socialSecurityContribution", parseFloat(e.target.value) || 0)}
                   placeholder="$0.00"
+                  readOnly={isReadOnly}
                 />
               </div>
 
@@ -311,6 +334,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
                   value={weeklyDetails.penalties}
                   onChange={(e) => handleWeeklyDetailsChange("penalties", parseFloat(e.target.value) || 0)}
                   placeholder="$0.00"
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
@@ -320,17 +344,17 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
 
       {/* Calculation Summary */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Total</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-blue-50 rounded border">
               <span className="font-medium">Social Security Contribution due for the month →</span>
               <span className="font-mono text-lg font-bold">${calculateSocialSecurityDue().toFixed(2)}</span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Payments:</Label>
                 <div className="text-lg font-mono">${paymentInfo.payments.toFixed(2)}</div>
@@ -346,7 +370,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
 
       {/* Notes */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Notes</CardTitle>
         </CardHeader>
         <CardContent>
@@ -355,6 +379,7 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Add any additional notes..."
             rows={3}
+            readOnly={isReadOnly}
           />
         </CardContent>
       </Card>
@@ -363,20 +388,24 @@ export default function SelfEmployedC3Form({ data, onSave, onClose }: SelfEmploy
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleSave}>
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </Button>
-            <Button variant="outline">
-              <Check className="h-4 w-4 mr-2" />
-              Verify
-            </Button>
-            <Button onClick={handlePrint} variant="outline">
-              <Printer className="h-4 w-4 mr-2" />
+            {!isReadOnly && (
+              <Button onClick={handleSave} className="gap-2">
+                <Save className="h-4 w-4" />
+                {mode === 'edit' ? 'Update' : 'Save'}
+              </Button>
+            )}
+            {(mode === 'edit' || mode === 'add') && (
+              <Button variant="outline" className="gap-2">
+                <Check className="h-4 w-4" />
+                Verify
+              </Button>
+            )}
+            <Button onClick={handlePrint} variant="outline" className="gap-2">
+              <Printer className="h-4 w-4" />
               Print
             </Button>
-            <Button onClick={onClose} variant="ghost">
-              <X className="h-4 w-4 mr-2" />
+            <Button onClick={onClose} variant="ghost" className="gap-2">
+              <X className="h-4 w-4" />
               Close
             </Button>
           </div>
