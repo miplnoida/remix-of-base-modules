@@ -80,7 +80,7 @@ import PendingVerificationPage from '@/pages/insuredPersons/PendingVerificationP
 import C3Dashboard from '@/pages/c3Management/C3Dashboard';
 import C3Management from '@/pages/c3Management/C3Management';
 import C3InputForm from '@/pages/c3Management/C3InputForm';
-import C3SubmissionSelection from '@/pages/c3Management/C3SubmissionSelection';
+
 import C3Reports from '@/pages/c3Management/C3Reports';
 import C3Verification from '@/pages/c3Management/C3Verification';
 import ViewC3Record from '@/pages/c3Management/ViewC3Record';
@@ -107,7 +107,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/dashboard" element={<ProtectedLayout><C3Dashboard /></ProtectedLayout>} />
       <Route path="/c3-management/manage" element={<ProtectedLayout><C3Management /></ProtectedLayout>} />
       <Route path="/c3-management/add" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
-      <Route path="/c3-management/new-submission" element={<ProtectedLayout><C3SubmissionSelection /></ProtectedLayout>} />
+      
       <Route path="/c3-management/input-form" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
       <Route path="/c3-management/reports" element={<ProtectedLayout><C3Reports /></ProtectedLayout>} />
       <Route path="/c3-management/verification" element={<ProtectedLayout><C3Verification /></ProtectedLayout>} />

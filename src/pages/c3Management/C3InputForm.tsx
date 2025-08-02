@@ -19,7 +19,11 @@ interface EmployeeEntry {
   isVerified: boolean;
 }
 
-export default function C3InputForm() {
+interface C3InputFormProps {
+  type?: string;
+}
+
+export default function C3InputForm({ type = "employer" }: C3InputFormProps) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     regNo: "",
@@ -101,8 +105,8 @@ export default function C3InputForm() {
   const totals = calculateTotals();
 
   const handleSave = () => {
-    console.log("Saving C3 form data:", { formData, employees, notes });
-    navigate("/c3-management/manage");
+    console.log("Saving C3 form data:", { formData, employees, notes, type });
+    // Form will be closed by parent component
   };
 
   const handleVerify = () => {
@@ -114,7 +118,7 @@ export default function C3InputForm() {
   };
 
   const handleClose = () => {
-    navigate("/c3-management/manage");
+    // Form will be closed by parent component
   };
 
   const clearForm = () => {
@@ -141,23 +145,6 @@ export default function C3InputForm() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">C3 Input Form</h1>
-          <p className="text-muted-foreground">Add new C3 contribution record</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleClose}>
-            <X className="h-4 w-4 mr-2" />
-            Close
-          </Button>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save
-          </Button>
-        </div>
-      </div>
 
       {/* Basic Information */}
       <Card>
@@ -168,12 +155,16 @@ export default function C3InputForm() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="regNo">Registration No.</Label>
+              <Label htmlFor="regNo">
+                {type === "employer" ? "Registration No. (6-digit)" : "SSN"}
+              </Label>
               <Input
                 id="regNo"
                 value={formData.regNo}
                 onChange={(e) => handleFormChange("regNo", e.target.value)}
-                placeholder="Enter registration number"
+                placeholder={type === "employer" ? "Enter 6-digit registration number" : "Enter SSN"}
+                maxLength={type === "employer" ? 6 : undefined}
+                pattern={type === "employer" ? "[0-9]{6}" : undefined}
               />
             </div>
 

@@ -3,16 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import C3InputForm from "./C3InputForm";
 
 // Enhanced mock data for the table with all required columns
 const mockC3Data = [
@@ -96,6 +97,7 @@ export default function C3Management() {
   const [recordsPerPage, setRecordsPerPage] = useState(20);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState({
     regNo: "",
     scheduleNo: "",
@@ -109,7 +111,7 @@ export default function C3Management() {
 
 
   const handleAddNewC3 = () => {
-    navigate("/c3-management/new-submission");
+    setShowForm(true);
   };
 
   const handleSearch = () => {
@@ -237,6 +239,68 @@ export default function C3Management() {
     }
   };
 
+  if (showForm) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">New C3 Submission</h1>
+            <p className="text-muted-foreground">Create a new C3 contribution record</p>
+          </div>
+          <Button onClick={() => setShowForm(false)} variant="outline">
+            Back to Manage C3
+          </Button>
+        </div>
+
+        {/* Tabbed Form Interface */}
+        <Tabs value={contributionType} onValueChange={setContributionType} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="employer">🟩 Employer</TabsTrigger>
+            <TabsTrigger value="self-employed">🟨 Self Contributor</TabsTrigger>
+            <TabsTrigger value="voluntary">🟦 Voluntary Contribution</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="employer">
+            <Card>
+              <CardHeader>
+                <CardTitle>Employer C3 Form</CardTitle>
+                <CardDescription>For companies or organizations submitting Social Security data for their employees</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <C3InputForm type="employer" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="self-employed">
+            <Card>
+              <CardHeader>
+                <CardTitle>Self Contributor C3 Form</CardTitle>
+                <CardDescription>For individuals contributing on behalf of themselves as self-employed workers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <C3InputForm type="self-employed" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="voluntary">
+            <Card>
+              <CardHeader>
+                <CardTitle>Voluntary Contribution C3 Form</CardTitle>
+                <CardDescription>For individuals not employed or self-employed, but contributing voluntarily</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <C3InputForm type="voluntary" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Page Header */}
@@ -272,6 +336,15 @@ export default function C3Management() {
         </div>
       </div>
 
+      {/* Contribution Type Tabs */}
+      <Tabs value={contributionType} onValueChange={setContributionType} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="employer">🟩 Employer</TabsTrigger>
+          <TabsTrigger value="self-employed">🟨 Self Contributor</TabsTrigger>
+          <TabsTrigger value="voluntary">🟦 Voluntary Contribution</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Query By Section */}
       <Card>
         <Collapsible open={isQueryExpanded} onOpenChange={setIsQueryExpanded}>
@@ -289,38 +362,19 @@ export default function C3Management() {
           
           <CollapsibleContent>
             <CardContent className="space-y-6">
-              {/* Contribution Type Selection */}
-              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border-2 border-dashed border-government-300">
-                <Label className="text-base font-bold text-government-800">Contribution Type</Label>
-                <RadioGroup 
-                  value={contributionType} 
-                  onValueChange={setContributionType}
-                  className="flex flex-row space-x-8"
-                >
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="employer" id="employer" className="h-5 w-5" />
-                    <Label htmlFor="employer" className="text-sm font-semibold text-government-700 cursor-pointer">Employer</Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="self-employed" id="self-employed" className="h-5 w-5" />
-                    <Label htmlFor="self-employed" className="text-sm font-semibold text-government-700 cursor-pointer">Self-Employed</Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="voluntary" id="voluntary" className="h-5 w-5" />
-                    <Label htmlFor="voluntary" className="text-sm font-semibold text-government-700 cursor-pointer">Voluntary Contribution</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
               {/* Filter Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="regNo">Reg No</Label>
+                  <Label htmlFor="regNo">
+                    {contributionType === "employer" ? "Reg No (6-digit)" : "SSN"}
+                  </Label>
                   <Input
                     id="regNo"
-                    placeholder="Enter registration number"
+                    placeholder={contributionType === "employer" ? "Enter 6-digit registration number" : "Enter SSN"}
                     value={filters.regNo}
                     onChange={(e) => setFilters({ ...filters, regNo: e.target.value })}
+                    maxLength={contributionType === "employer" ? 6 : undefined}
+                    pattern={contributionType === "employer" ? "[0-9]{6}" : undefined}
                   />
                 </div>
 
