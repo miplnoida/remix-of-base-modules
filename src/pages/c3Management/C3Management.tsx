@@ -13,7 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import C3InputForm from "./C3InputForm";
+import EmployerC3Form from "./forms/EmployerC3Form";
+import SelfEmployedC3Form from "./forms/SelfEmployedC3Form";
+import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 
 // Enhanced mock data for the table with all required columns
 const mockC3Data = [
@@ -262,39 +264,15 @@ export default function C3Management() {
           </TabsList>
           
           <TabsContent value="employer">
-            <Card>
-              <CardHeader>
-                <CardTitle>Employer C3 Form</CardTitle>
-                <CardDescription>For companies or organizations submitting Social Security data for their employees</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <C3InputForm type="employer" />
-              </CardContent>
-            </Card>
+            <EmployerC3Form onClose={() => setShowForm(false)} />
           </TabsContent>
           
           <TabsContent value="self-employed">
-            <Card>
-              <CardHeader>
-                <CardTitle>Self Contributor C3 Form</CardTitle>
-                <CardDescription>For individuals contributing on behalf of themselves as self-employed workers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <C3InputForm type="self-employed" />
-              </CardContent>
-            </Card>
+            <SelfEmployedC3Form onClose={() => setShowForm(false)} />
           </TabsContent>
           
           <TabsContent value="voluntary">
-            <Card>
-              <CardHeader>
-                <CardTitle>Voluntary Contribution C3 Form</CardTitle>
-                <CardDescription>For individuals not employed or self-employed, but contributing voluntarily</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <C3InputForm type="voluntary" />
-              </CardContent>
-            </Card>
+            <VoluntaryC3Form onClose={() => setShowForm(false)} />
           </TabsContent>
         </Tabs>
       </div>
