@@ -9,7 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Printer, X } from "lucide-react";
+import { Save, Printer, X, Play, Upload, CheckCircle2, AlertTriangle, Ban, FileText } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 
 // Small helper for directory-like input with an ellipsis button
 function DirectoryInput({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
@@ -49,8 +54,8 @@ export default function ElectronicC3Config() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    document.title = "Configure Electronic C3 | C3 Management";
+useEffect(() => {
+    document.title = "Manage C3 Electronic Filing | C3 Management";
   }, []);
 
   const [form, setForm] = useState({
@@ -80,14 +85,20 @@ export default function ElectronicC3Config() {
   const onPrint = () => window.print();
   const onClose = () => navigate("/c3-management/manage");
 
-  const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }));
+const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Demo data for UI preview
+  const files = useMemo(() => ["656318052025.C3"], []);
+  const [selectedFile, setSelectedFile] = useState<string>(files[0]);
+  const [progress, setProgress] = useState(0);
+  const [counters, setCounters] = useState({ success: 0, errors: 0, aborted: 0 });
 
   return (
     <div className="p-6 space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configure Electronic C3</h1>
-          <p className="text-muted-foreground">Setup directories, file masks, and processing parameters</p>
+          <h1 className="text-3xl font-bold tracking-tight">Manage C3 Electronic Filing</h1>
+          <p className="text-muted-foreground">Setup, load, and view Electronic C3 files</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={onSave} className="gap-2"><Save className="h-4 w-4" />Save</Button>
@@ -97,7 +108,7 @@ export default function ElectronicC3Config() {
       </header>
 
       <Tabs defaultValue="setup" className="w-full">
-        <TabsList className="w-full grid grid-cols-4">
+<TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="setup">Setup</TabsTrigger>
           <TabsTrigger value="load">Load</TabsTrigger>
           <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
@@ -211,12 +222,59 @@ export default function ElectronicC3Config() {
         </TabsContent>
 
         <TabsContent value="load">
-          <Card>
+<Card>
             <CardHeader>
               <CardTitle>Load</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Placeholder for load operations (future integration).</p>
+            <CardContent className="pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1">
+                  <Label className="mb-2 block">Pending files</Label>
+                  <div className="border rounded-md bg-background">
+                    <ScrollArea className="h-80">
+                      <ul>
+                        {files.map((f) => (
+                          <li key={f}>
+                            <button
+                              className={`w-full text-left px-3 py-2 border-b last:border-b-0 hover:bg-muted ${selectedFile === f ? "bg-accent" : ""}`}
+                              onClick={() => setSelectedFile(f)}
+                            >
+                              {f}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </ScrollArea>
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex flex-col gap-4">
+                  <div className="flex gap-3">
+                    <Button className="w-24 justify-center gap-2"><Play className="h-4 w-4" />Start</Button>
+                    <Button variant="outline" className="w-24 justify-center gap-2"><Upload className="h-4 w-4" />Load</Button>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <span className="text-sm"># Files Imported Successfully</span>
+                      <span className="ml-auto font-medium">{counters.success}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-foreground" />
+                      <span className="text-sm"># Files Imported With Errors</span>
+                      <span className="ml-auto font-medium">{counters.errors}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Ban className="h-5 w-5 text-destructive" />
+                      <span className="text-sm"># Files Imported Aborted</span>
+                      <span className="ml-auto font-medium">{counters.aborted}</span>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Progress value={progress} className="h-3" />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">Path: {form.inputDirectory}</div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -233,12 +291,172 @@ export default function ElectronicC3Config() {
         </TabsContent>
 
         <TabsContent value="view">
-          <Card>
+<Card>
             <CardHeader>
               <CardTitle>View Input File</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Use this area to preview uploaded input files when implemented.</p>
+            <CardContent className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+                <div className="lg:col-span-5">
+                  <DirectoryInput id="viewDir" label="Directory" value={form.inputDirectory} onChange={(v) => set("inputDirectory", v)} />
+                </div>
+                <div className="lg:col-span-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="viewMask">File Mask</Label>
+                    <div className="flex gap-2">
+                      <Input id="viewMask" value={form.fileMask} onChange={(e) => set("fileMask", e.target.value)} placeholder="*.c3" />
+                      <Button variant="outline" className="px-3">...</Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="lg:col-span-2 flex justify-end">
+                  <Button variant="outline" onClick={onPrint} className="gap-2"><Printer className="h-4 w-4" />Print</Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-3">
+                  <div className="border rounded-md">
+                    <ScrollArea className="h-[28rem]">
+                      <ul>
+                        {files.map((f) => (
+                          <li key={f}>
+                            <button
+                              className={`w-full text-left px-3 py-2 border-b last:border-b-0 hover:bg-muted ${selectedFile === f ? "bg-accent" : ""}`}
+                              onClick={() => setSelectedFile(f)}
+                            >
+                              {f}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </ScrollArea>
+                  </div>
+                </div>
+                <div className="lg:col-span-9">
+                  <div className="border rounded-md bg-background p-3">
+                    <div className="text-center font-semibold mb-3">
+                      ST. CHRISTOPHER AND NEVIS – Electronic C3 Statement
+                    </div>
+                    <div className="overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-accent">
+                            <TableHead className="w-14">HDR</TableHead>
+                            <TableHead>Regno</TableHead>
+                            <TableHead>Company</TableHead>
+                            <TableHead>Month</TableHead>
+                            <TableHead>Version</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell>HDR</TableCell>
+                            <TableCell>656318</TableCell>
+                            <TableCell>Ross University School of Vet. Med</TableCell>
+                            <TableCell>01/5/2025</TableCell>
+                            <TableCell>{form.version}</TableCell>
+                          </TableRow>
+
+                          <TableRow className="bg-accent">
+                            <TableCell className="w-16">Line #</TableCell>
+                            <TableCell className="w-24">SSN</TableCell>
+                            <TableCell>Name of Employee</TableCell>
+                            <TableCell className="w-32">Start Date</TableCell>
+                            <TableCell className="w-32">Term. Date</TableCell>
+                            <TableCell className="w-24">Pay Period</TableCell>
+                            <TableCell className="w-[340px]">Mark "X" in the weeks worked</TableCell>
+                            <TableCell className="w-24"></TableCell>
+                          </TableRow>
+
+                          <TableRow>
+                            <TableCell>1</TableCell>
+                            <TableCell>195221</TableCell>
+                            <TableCell>Adams, Crystal</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell>2M</TableCell>
+                            <TableCell>
+                              <div className="grid grid-cols-7 gap-2">
+                                {[0,1,2,3,4,5,6].map((i) => (
+                                  <Checkbox key={i} checked={i < 3} className="h-4 w-4" />
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+
+                          <TableRow className="bg-accent">
+                            <TableCell colSpan={8} className="text-center font-medium">
+                              Record Wages/Salaries in respect of the weeks worked or Holiday Pay or Bonuses
+                            </TableCell>
+                          </TableRow>
+
+                          <TableRow className="bg-accent">
+                            <TableCell></TableCell>
+                            <TableCell colSpan={5}></TableCell>
+                            <TableCell colSpan={2} className="p-0">
+                              <div className="grid grid-cols-5">
+                                {[1,2,3,4,5].map((n) => (
+                                  <div key={n} className="px-2 py-1 text-center border-l">{n}</div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+
+                          <TableRow>
+                            <TableCell></TableCell>
+                            <TableCell colSpan={5}></TableCell>
+                            <TableCell colSpan={2} className="p-0">
+                              <div className="grid grid-cols-5 text-right">
+                                {["$0.00", "$3,632.32", "$0.00", "$5,355.52", "$0.00"].map((v, i) => (
+                                  <div key={i} className="px-2 py-1 border-l">{v}</div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+
+                          <TableRow className="bg-accent">
+                            <TableCell>6</TableCell>
+                            <TableCell>7</TableCell>
+                            <TableCell>Tot. Wages</TableCell>
+                            <TableCell># of Recs</TableCell>
+                            <TableCell>SocSec</TableCell>
+                            <TableCell colSpan={3}></TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right">$8,987.84</TableCell>
+                            <TableCell>1</TableCell>
+                            <TableCell className="text-right">$715.00</TableCell>
+                            <TableCell colSpan={3}></TableCell>
+                          </TableRow>
+
+                          <TableRow className="bg-accent">
+                            <TableCell>FTR</TableCell>
+                            <TableCell>Regno</TableCell>
+                            <TableCell>Month</TableCell>
+                            <TableCell>Ctrl Total</TableCell>
+                            <TableCell># of Recs</TableCell>
+                            <TableCell>Total SS</TableCell>
+                            <TableCell colSpan={2}>Total Levy</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>TR</TableCell>
+                            <TableCell>656318</TableCell>
+                            <TableCell>01/5/2025</TableCell>
+                            <TableCell className="text-right">$1,278,172.65</TableCell>
+                            <TableCell>213</TableCell>
+                            <TableCell className="text-right">$108,000.00</TableCell>
+                            <TableCell colSpan={2}></TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
