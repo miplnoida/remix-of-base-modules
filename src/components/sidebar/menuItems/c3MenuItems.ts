@@ -26,6 +26,13 @@ export const c3MenuItems = [
         description: "Add and manage C3 contribution records"
       },
       {
+        title: "Configure Electronic C3",
+        url: "/c3-management/configure-electronic-c3",
+        icon: Settings,
+        requiresPermission: "manage_c3_config",
+        description: "Setup directories, parameters, and notifications"
+      },
+      {
         title: "C3 Reports",
         url: "/c3-management/reports",
         icon: FileText,
@@ -38,13 +45,6 @@ export const c3MenuItems = [
         icon: BarChart3,
         requiresPermission: "verify_c3",
         description: "Review and verify pending C3 records"
-      },
-      {
-        title: "Configure Electronic C3",
-        url: "/c3-management/configure-electronic-c3",
-        icon: Settings,
-        requiresPermission: "manage_c3_config",
-        description: "Setup directories, parameters, and notifications"
       }
     ]
   }
