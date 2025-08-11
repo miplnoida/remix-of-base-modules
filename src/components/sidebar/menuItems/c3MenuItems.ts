@@ -29,7 +29,7 @@ export const c3MenuItems = [
         title: "Configure Electronic C3",
         url: "/c3-management/configure-electronic-c3",
         icon: Settings,
-        requiresPermission: "manage_c3_config",
+        requiresPermission: "view_dashboard",
         description: "Setup directories, parameters, and notifications"
       },
       {
