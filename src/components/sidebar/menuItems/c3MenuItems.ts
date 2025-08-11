@@ -2,7 +2,8 @@ import {
   Building2, 
   BarChart3,
   Users,
-  FileText
+  FileText,
+  Settings
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -37,6 +38,13 @@ export const c3MenuItems = [
         icon: BarChart3,
         requiresPermission: "verify_c3",
         description: "Review and verify pending C3 records"
+      },
+      {
+        title: "Configure Electronic C3",
+        url: "/c3-management/configure-electronic-c3",
+        icon: Settings,
+        requiresPermission: "manage_c3_config",
+        description: "Setup directories, parameters, and notifications"
       }
     ]
   }

@@ -83,6 +83,7 @@ import C3InputForm from '@/pages/c3Management/C3InputForm';
 
 import C3Reports from '@/pages/c3Management/C3Reports';
 import C3Verification from '@/pages/c3Management/C3Verification';
+import ElectronicC3Config from '@/pages/c3Management/ElectronicC3Config';
 import ViewC3Record from '@/pages/c3Management/ViewC3Record';
 import EditC3Record from '@/pages/c3Management/EditC3Record';
 
@@ -111,6 +112,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/input-form" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
       <Route path="/c3-management/reports" element={<ProtectedLayout><C3Reports /></ProtectedLayout>} />
       <Route path="/c3-management/verification" element={<ProtectedLayout><C3Verification /></ProtectedLayout>} />
+      <Route path="/c3-management/configure-electronic-c3" element={<ProtectedLayout><ElectronicC3Config /></ProtectedLayout>} />
       <Route path="/c3-management/view/:id" element={<ProtectedLayout><ViewC3Record /></ProtectedLayout>} />
       <Route path="/c3-management/edit/:id" element={<ProtectedLayout><EditC3Record /></ProtectedLayout>} />
 
