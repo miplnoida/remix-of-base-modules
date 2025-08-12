@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus, Edit, Eye, Trash2 } from 'lucide-react';
+import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus, Edit, Eye, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -20,6 +20,7 @@ import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useLocation } from 'react-router-dom';
+import { Stepper, StepperStep } from '@/components/ui/stepper';
 
 // Form schema
 const registrationSchema = z.object({
@@ -699,6 +700,7 @@ const AccountStatusModal = ({
 };
 
 export const RegisterPersonForm = () => {
+  const [currentStep, setCurrentStep] = useState(0);
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [showRelationDialog, setShowRelationDialog] = useState(false);
   const [relations, setRelations] = useState<Relation[]>([]);
@@ -737,6 +739,57 @@ export const RegisterPersonForm = () => {
   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
   const [accountStatus, setAccountStatus] = useState('Active');
   const location = useLocation();
+
+  // Define stepper steps
+  const steps: StepperStep[] = [
+    {
+      id: 'identity',
+      title: 'Identity Information',
+      icon: <User className="w-5 h-5" />,
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'address',
+      title: 'Address Information',
+      icon: <MapPin className="w-5 h-5" />,
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'relations',
+      title: 'Relations',
+      icon: <Users className="w-5 h-5" />,
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'employment',
+      title: 'Employment Information',
+      icon: <Briefcase className="w-5 h-5" />,
+      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'verification',
+      title: 'Verification Section',
+      icon: <Shield className="w-5 h-5" />,
+      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'upcoming'
+    }
+  ];
+
+  // Navigation functions
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const goToStep = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
+  };
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -866,16 +919,16 @@ export const RegisterPersonForm = () => {
     // You can handle the reason or API call here
   };
 
+  // Step content components
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0:
   return (
-    <div className="space-y-6">
-    
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basic Details Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Basic Details
+                Basic Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1043,8 +1096,10 @@ export const RegisterPersonForm = () => {
             </div>
           </CardContent>
         </Card>
+        );
 
-        {/* Address Information Section */}
+      case 1:
+        return (
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -1085,8 +1140,10 @@ export const RegisterPersonForm = () => {
             )}
           </CardContent>
         </Card>
+        );
 
-        {/* Relations Section */}
+      case 2:
+        return (
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -1127,8 +1184,11 @@ export const RegisterPersonForm = () => {
             )}
           </CardContent>
         </Card>
+        );
 
-        {/* Employment Information Section */}
+      case 3:
+        return (
+          <>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1225,7 +1285,6 @@ export const RegisterPersonForm = () => {
           </CardContent>
         </Card>
 
-        {/* Contact Information Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1254,7 +1313,6 @@ export const RegisterPersonForm = () => {
           </CardContent>
         </Card>
 
-        {/* Additional Information Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1299,8 +1357,12 @@ export const RegisterPersonForm = () => {
             </div>
           </CardContent>
         </Card>
+          </>
+        );
 
-        {/* Verification Section */}
+      case 4:
+        return (
+          <>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1360,7 +1422,6 @@ export const RegisterPersonForm = () => {
           </CardContent>
         </Card>
 
-        {/* Registration Card Details Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1420,7 +1481,6 @@ export const RegisterPersonForm = () => {
           </CardContent>
         </Card>
 
-        {/* Transaction Details Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1512,6 +1572,88 @@ export const RegisterPersonForm = () => {
             </div>
           </CardContent>
         </Card>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stepper */}
+      <Card>
+        <CardContent className="pt-6">
+          <Stepper 
+            steps={steps} 
+            currentStep={currentStep} 
+            onStepClick={goToStep}
+            className="mb-6"
+          />
+        </CardContent>
+      </Card>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Step Content */}
+        {renderStepContent()}
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between items-center pt-6">
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            
+            {location.pathname.includes('/person/view/') && (
+              <>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+                <Button type="button" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Generate ID Card
+                </Button>
+                <Button type="button" variant="outline" className="flex items-center gap-2">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
+                  Change Account Status
+                </Button>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            {currentStep < steps.length - 1 ? (
+              <Button
+                type="button"
+                onClick={nextStep}
+                className="flex items-center gap-2"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Submit
+              </Button>
+            )}
+          </div>
+        </div>
 
         <NameDialog 
           open={showNameDialog} 
@@ -1547,45 +1689,7 @@ export const RegisterPersonForm = () => {
           onChangeStatus={handleChangeAccountStatus}
         />
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 justify-between items-center">
-          <div className="flex items-center gap-2">
-            {/* You can add left-side buttons here if needed */}
-          </div>
-          <div className="flex gap-3">
-            {location.pathname.includes('/person/view/') && (
-              <>
-              <Button variant="outline">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button type="button"  className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Generate ID Card
-                </Button>
-                <Button type="button" variant="outline" className="flex items-center gap-2">
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
-                <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
-                  Change Account Status
-                </Button>
-                
-                
-              </>
-            )}
-            {location.pathname.includes('/person/edit/') && (
-              <>
-                <Button type="button" variant="outline" className="flex items-center gap-2">
-                  Save
-                </Button>
-                <Button type="submit" className="flex items-center gap-2">
-                  Submit
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+
       </form>
     </div>
   );
