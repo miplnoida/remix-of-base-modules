@@ -924,7 +924,7 @@ export const RegisterPersonForm = () => {
     switch (currentStep) {
       case 0:
   return (
-        <Card>
+        <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -1095,12 +1095,12 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
         );
 
       case 1:
         return (
-        <Card>
+        <div>
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center gap-2">
@@ -1119,7 +1119,8 @@ export const RegisterPersonForm = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {addresses.length > 0 ? (
+            <Card className='px-2 py-2'>
+              {addresses.length > 0 ? (
               <div className="space-y-2">
                 {addresses.map((address) => (
                   <AddressListItem
@@ -1138,13 +1139,14 @@ export const RegisterPersonForm = () => {
                 <p className="text-sm">Click "Add New Address" to get started</p>
               </div>
             )}
+            </Card>
           </CardContent>
-        </Card>
+        </div>
         );
 
       case 2:
         return (
-        <Card>
+        <div>
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center gap-2">
@@ -1163,6 +1165,7 @@ export const RegisterPersonForm = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Card className='px-2 py-2'>
             {relations.length > 0 ? (
               <div className="space-y-2">
                 {relations.map((relation) => (
@@ -1182,14 +1185,15 @@ export const RegisterPersonForm = () => {
                 <p className="text-sm">Click "Add Relation" to get started</p>
               </div>
             )}
+            </Card>
           </CardContent>
-        </Card>
+        </div>
         );
 
       case 3:
         return (
           <>
-        <Card>
+        <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Briefcase className="h-5 w-5" />
@@ -1283,9 +1287,9 @@ export const RegisterPersonForm = () => {
               />
             </div>
           </CardContent>
-        </Card>
+        </div>
 
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Phone className="h-5 w-5" />
@@ -1311,9 +1315,9 @@ export const RegisterPersonForm = () => {
               )}
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
-        <Card>
+        <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -1356,14 +1360,14 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
           </>
         );
 
       case 4:
         return (
           <>
-        <Card>
+        <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -1420,9 +1424,9 @@ export const RegisterPersonForm = () => {
               </div>
             ))}
           </CardContent>
-        </Card>
+        </div>
 
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -1571,7 +1575,7 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
           </>
         );
 
@@ -1583,33 +1587,33 @@ export const RegisterPersonForm = () => {
   return (
     <div className="space-y-6">
       {/* Stepper */}
-      <Card>
-        <CardContent className="pt-6">
-          <Stepper 
+      <Card className='py-5' style={{backgroundColor:"#F9FAFB"}}>
+          <div className='px-5'>
+            <Stepper 
             steps={steps} 
             currentStep={currentStep} 
             onStepClick={goToStep}
             className="mb-6"
           />
-        </CardContent>
-      </Card>
+          </div>
+       
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Step Content */}
         {renderStepContent()}
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center pt-6">
+        <div className="flex justify-end items-center pt-6 px-5">
           <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={prevStep}
               disabled={currentStep === 0}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-l-4 shadow-md mr-5"
             >
               <ArrowLeft className="h-4 w-4" />
-              Previous
+              Back
             </Button>
             
             {location.pathname.includes('/person/view/') && (
@@ -1691,6 +1695,7 @@ export const RegisterPersonForm = () => {
 
 
       </form>
+      </Card>
     </div>
   );
 };

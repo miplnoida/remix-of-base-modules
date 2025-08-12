@@ -1,7 +1,6 @@
 .stepper {
   display: flex;
   width: 100%;
-  max-width: 1100px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
@@ -76,9 +75,9 @@
 .step.step-3,
 .step.step-4,
 .step.step-5 {
-  margin-left: -22px;
+  margin-left: -26px;
   position: relative;
-  padding-left: 38px;
+  padding-left: 42px;
 }
 
 .step-2 { z-index: 8; }
