@@ -27,21 +27,21 @@ export const IPRegistration = () => {
           <Button 
             variant="outline" 
             onClick={() => navigate('/person/management')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 border-l-4 shadow-md"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
+           
             <span className="sm:hidden">Back</span>
           </Button>
           <div className="h-6 w-px bg-gray-300" />
          
           <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Insured Person Registration</h1>
-          <p className="text-gray-600">Complete registration for new insured person</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Register Person</h1>
+          
           </div>
         </div>
         <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-          <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => setShowSuccess(true)}>
+          <Button type="button" variant="outline"  className="flex items-center gap-2 border-l-4 shadow-md" onClick={() => setShowSuccess(true)}>
             Save
           </Button>
           <Button type="button" className="flex items-center gap-2" onClick={() => setShowSuccess(true)}>
@@ -54,7 +54,7 @@ export const IPRegistration = () => {
        
       </div>
 
-     
+     <Card>
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6">
@@ -115,7 +115,7 @@ export const IPRegistration = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-
+</Card>
         <SuccessDialog
           open={showSuccess}
           onOpenChange={setShowSuccess}

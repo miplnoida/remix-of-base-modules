@@ -78,8 +78,8 @@ const IPManagement = () => {
           {dashboardStats.map((stat, index) => (
             <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                <div className={`p-2.5 rounded-full bg-gradient-to-r ${stat.color} shadow-lg`}>
+                <CardTitle className="text-sm font-medium text-muted-foreground" style={{color:"#374151"}}>{stat.label}</CardTitle>
+                <div className={`p-2.5 rounded bg-gradient-to-r ${stat.color} shadow-lg`}>
                   <stat.icon className="h-5 w-5 text-white" />
                 </div>
               </CardHeader>
@@ -100,10 +100,10 @@ const IPManagement = () => {
               <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-secondary">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <div>
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground" style={{color:"#374151"}}>{stat.label}</CardTitle>
                     <CardDescription className="text-xs text-muted-foreground">{stat.description}</CardDescription>
                   </div>
-                  <div className={`p-2.5 rounded-full bg-gradient-to-r ${stat.color} shadow-lg`}>
+                  <div className={`p-2.5 rounded bg-gradient-to-r ${stat.color} shadow-lg`}>
                     <stat.icon className="h-5 w-5 text-white" />
                   </div>
                 </CardHeader>
@@ -117,29 +117,6 @@ const IPManagement = () => {
 
         {/* Recent Activities and Quick Actions */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
-              <CardDescription>Latest actions performed on insured person records</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm lg:text-base">{activity.action}</p>
-                      <p className="text-sm text-gray-600">{activity.person}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-green-600 font-medium">{activity.status}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -197,6 +174,33 @@ const IPManagement = () => {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activities</CardTitle>
+              <CardDescription>Latest actions performed on insured person records</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-4 h-4" style={{color:"#16a249"}} />
+            </div>
+                    <div  className="flex-1">
+                      <p className="font-medium text-sm lg:text-base">{activity.action}</p>
+                      <p className="text-sm text-gray-600">{activity.person}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-green-600 font-medium">{activity.status}</p>
+                      <p className="text-xs text-gray-500">{activity.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          
         </div>
       </div>
     </div>
