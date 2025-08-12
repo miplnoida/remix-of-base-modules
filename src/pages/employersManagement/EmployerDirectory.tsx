@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmployerFilters } from '@/components/employer/EmployerFilters';
 import { EmployerTable } from '@/components/employer/EmployerTable';
 import { EmployerDetailsDialog } from '@/components/employer/EmployerDetailsDialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { employerData } from '@/data/employerData';
 
 export interface Employer {

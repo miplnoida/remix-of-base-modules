@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Upload, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { SuccessDialog, ErrorDialog } from '@/components/ui/feedback';
 import { toast } from 'sonner';
 
 const compactEmployerSchema = z.object({
@@ -60,6 +61,8 @@ export function CompactEmployerRegistration() {
   const [additionalLocations, setAdditionalLocations] = useState<string[]>([]);
   const [showAcquisitionFields, setShowAcquisitionFields] = useState(false);
   const [showPayrollDescription, setShowPayrollDescription] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   const form = useForm<CompactEmployerFormData>({
     resolver: zodResolver(compactEmployerSchema),
@@ -105,7 +108,7 @@ export function CompactEmployerRegistration() {
 
   const onSubmit = (data: CompactEmployerFormData) => {
     console.log('Compact Employer Registration submitted:', data);
-    toast.success('Employer registration submitted successfully! You will receive a confirmation email with your reference number.');
+    setShowSuccess(true);
   };
 
   const DatePicker = ({ field, placeholder }: { field: any; placeholder: string }) => (
@@ -557,6 +560,19 @@ export function CompactEmployerRegistration() {
           </CardContent>
         </Card>
       </form>
+
+      <SuccessDialog
+        open={showSuccess}
+        onOpenChange={setShowSuccess}
+        title="Registration submitted successfully"
+        description="Your employer registration has been submitted for review. You will receive a confirmation email with your reference number."
+      />
+      <ErrorDialog
+        open={showError}
+        onOpenChange={setShowError}
+        title="Validation error"
+        description="Please fix the highlighted fields and try again."
+      />
     </div>
   );
 }

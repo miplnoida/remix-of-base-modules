@@ -37,6 +37,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 
 interface EmployerRecord {
@@ -631,85 +632,92 @@ const ManageEmployers = () => {
 
                 {/* Pending Verification Tab */}
                 <TabsContent value="pending" className="p-6 mt-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b">
-                          <TableHead className="text-gray-600 font-medium">Application. No</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
-                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEmployers.map((employer) => (
-                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
-                            <TableCell className="text-gray-700">{employer.name}</TableCell>
-                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
-                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
-                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="default" 
-                                      size="sm" 
-                                      onClick={() => handleApprove(employer)}
-                                      className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                      Approve
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Approve Registration</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="destructive" 
-                                      size="sm" 
-                                      onClick={() => handleReject(employer)}
-                                      className="h-8 px-3"
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Reject Registration</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => handleViewDetails(employer)}
-                                      className="h-8 px-3"
-                                    >
-                                      <Eye className="h-4 w-4 mr-1" />
-                                      View Details
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Registration Details</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TableCell>
+                  {filteredEmployers.length === 0 ? (
+                    <EmptyState 
+                      title="No pending applications"
+                      description="All employer registrations have been processed."
+                    />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table className="app-table">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Application. No</TableHead>
+                            <TableHead>Employer Name</TableHead>
+                            <TableHead>Trade Name</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Activity Type</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredEmployers.map((employer) => (
+                            <TableRow key={employer.regNo}>
+                              <TableCell className="font-medium">{employer.regNo}</TableCell>
+                              <TableCell>{employer.name}</TableCell>
+                              <TableCell>{employer.tradeName}</TableCell>
+                              <TableCell>{employer.phone}</TableCell>
+                              <TableCell>{employer.activityType}</TableCell>
+                              <TableCell>{getStatusBadge(employer.status)}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center justify-center gap-2">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="default" 
+                                        size="sm" 
+                                        onClick={() => handleApprove(employer)}
+                                        className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Approve Registration</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        onClick={() => handleReject(employer)}
+                                        className="h-8 px-3"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Reject Registration</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleViewDetails(employer)}
+                                        className="h-8 px-3"
+                                      >
+                                        <Eye className="h-4 w-4 mr-1" />
+                                        View Details
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>View Registration Details</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </TabsContent>
 
                 {/* Registered Employers Tab */}
