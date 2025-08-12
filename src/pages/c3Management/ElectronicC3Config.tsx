@@ -59,7 +59,7 @@ useEffect(() => {
   }, []);
 
   const [form, setForm] = useState({
-    inputDirectory: "C:\\ssims_proj\\Load",
+    inputDirectory: "C:\\Load",
     fileMask: "*.c3",
     successDirectory: "C:\\ssims_proj\\Success",
     errorDirectory: "C:\\ssims_proj\\Error",
@@ -94,18 +94,20 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
   const [counters, setCounters] = useState({ success: 0, errors: 0, aborted: 0 });
 
   return (
-    <div className="p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage C3 Electronic Filing</h1>
-          <p className="text-muted-foreground">Setup, load, and view Electronic C3 files</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={onSave} className="gap-2"><Save className="h-4 w-4" />Save</Button>
-          <Button variant="outline" onClick={onPrint} className="gap-2"><Printer className="h-4 w-4" />Print</Button>
-          <Button variant="outline" onClick={onClose} className="gap-2"><X className="h-4 w-4" />Close</Button>
-        </div>
-      </header>
+    <div className="p-6">
+      <div className="flex gap-4">
+        <aside className="hidden md:flex flex-col gap-3">
+          <Button onClick={onSave} size="icon" aria-label="Save"><Save className="h-5 w-5" /></Button>
+          <Button variant="outline" onClick={onPrint} size="icon" aria-label="Print"><Printer className="h-5 w-5" /></Button>
+          <Button variant="outline" onClick={onClose} size="icon" aria-label="Close"><X className="h-5 w-5" /></Button>
+        </aside>
+        <div className="flex-1 space-y-6">
+          <header className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Manage C3 Electronic Filing</h1>
+              <p className="text-muted-foreground">Setup, load, and view Electronic C3 files</p>
+            </div>
+          </header>
 
       <Tabs defaultValue="setup" className="w-full">
 <TabsList className="w-full grid grid-cols-4">
@@ -248,23 +250,46 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
                   </div>
                 </div>
                 <div className="md:col-span-2 flex flex-col gap-4">
-                  <div className="flex gap-3">
-                    <Button className="w-24 justify-center gap-2"><Play className="h-4 w-4" />Start</Button>
-                    <Button variant="outline" className="w-24 justify-center gap-2"><Upload className="h-4 w-4" />Load</Button>
+                  <div className="flex flex-col gap-3 w-28">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="justify-center gap-2"><Play className="h-4 w-4" />Start</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Upload started</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-muted-foreground">Processing file {selectedFile}...</p>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="justify-center gap-2"><Upload className="h-4 w-4" />Load</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Upload complete</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm">File loaded successfully.</p>
+                        <DialogFooter>
+                          <Button className="gap-2"><CheckCircle2 className="h-4 w-4"/>OK</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
                       <span className="text-sm"># Files Imported Successfully</span>
                       <span className="ml-auto font-medium">{counters.success}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-foreground" />
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
                       <span className="text-sm"># Files Imported With Errors</span>
                       <span className="ml-auto font-medium">{counters.errors}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Ban className="h-5 w-5 text-destructive" />
+                      <Ban className="h-5 w-5 text-red-600" />
                       <span className="text-sm"># Files Imported Aborted</span>
                       <span className="ml-auto font-medium">{counters.aborted}</span>
                     </div>
@@ -284,8 +309,78 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
             <CardHeader>
               <CardTitle>Exceptions</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Placeholder for exception review and handling.</p>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="w-64">
+                  <Label htmlFor="ex-search">Search</Label>
+                  <Input id="ex-search" placeholder="Search errors or file names" />
+                </div>
+                <div className="w-40">
+                  <Label htmlFor="ex-sev">Severity</Label>
+                  <Input id="ex-sev" placeholder="All / High / Low" />
+                </div>
+                <Button variant="outline">Clear</Button>
+              </div>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>File</TableHead>
+                      <TableHead className="w-20">Line</TableHead>
+                      <TableHead>Error</TableHead>
+                      <TableHead className="w-28">Severity</TableHead>
+                      <TableHead className="w-40 text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>656318052025.C3</TableCell>
+                      <TableCell>12</TableCell>
+                      <TableCell>Invalid SSN format</TableCell>
+                      <TableCell>High</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="gap-2"><AlertTriangle className="h-4 w-4" />Details</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Error details</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-2 text-sm">
+                              <p><span className="font-medium">File:</span> 656318052025.C3</p>
+                              <p><span className="font-medium">Line:</span> 12</p>
+                              <p><span className="font-medium">Message:</span> SSN must be 9 digits.</p>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="gap-2"><FileText className="h-4 w-4" />Notice</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Compliance notice preview</DialogTitle>
+                            </DialogHeader>
+                            <div className="prose prose-sm max-w-none">
+                              <p>Dear Employer,</p>
+                              <p>This notice summarizes exceptions found in your Electronic C3 submission.</p>
+                              <ul className="list-disc pl-6">
+                                <li>Line 12: Invalid SSN format</li>
+                              </ul>
+                              <p>Please correct and resubmit.</p>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline">Close</Button>
+                              <Button>Print Notice</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -358,7 +453,7 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
                             <TableCell>{form.version}</TableCell>
                           </TableRow>
 
-                          <TableRow className="bg-accent">
+                          <TableRow className="bg-green-600 text-white">
                             <TableCell className="w-16">Line #</TableCell>
                             <TableCell className="w-24">SSN</TableCell>
                             <TableCell>Name of Employee</TableCell>
@@ -386,13 +481,13 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
                             <TableCell></TableCell>
                           </TableRow>
 
-                          <TableRow className="bg-accent">
+                          <TableRow className="bg-green-50 text-green-900 font-medium">
                             <TableCell colSpan={8} className="text-center font-medium">
                               Record Wages/Salaries in respect of the weeks worked or Holiday Pay or Bonuses
                             </TableCell>
                           </TableRow>
 
-                          <TableRow className="bg-accent">
+                          <TableRow className="bg-green-50 text-green-900">
                             <TableCell></TableCell>
                             <TableCell colSpan={5}></TableCell>
                             <TableCell colSpan={2} className="p-0">
@@ -416,7 +511,7 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
                             </TableCell>
                           </TableRow>
 
-                          <TableRow className="bg-accent">
+                          <TableRow className="bg-green-50 text-green-900 font-semibold">
                             <TableCell>6</TableCell>
                             <TableCell>7</TableCell>
                             <TableCell>Tot. Wages</TableCell>
@@ -433,7 +528,7 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
                             <TableCell colSpan={3}></TableCell>
                           </TableRow>
 
-                          <TableRow className="bg-accent">
+                          <TableRow className="bg-green-100 font-semibold">
                             <TableCell>FTR</TableCell>
                             <TableCell>Regno</TableCell>
                             <TableCell>Month</TableCell>
@@ -460,7 +555,9 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
+        </Tabs>
+          </div>
+        </div>
+      </div>
   );
 }
