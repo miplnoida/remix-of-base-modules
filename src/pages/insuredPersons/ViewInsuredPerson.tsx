@@ -59,6 +59,10 @@ const ViewInsuredPerson = () => {
   const [isRegisterSectionOpen, setIsRegisterSectionOpen] = useState(true);
   const [isHistorySectionOpen, setIsHistorySectionOpen] = useState(true);
   const [currentStatus, setCurrentStatus] = useState('Active');
+  const history = [
+    { date: '2025-05-01 10:12', action: 'Created record', user: 'Admin' },
+    { date: '2025-05-03 14:20', action: 'Updated address', user: 'Clerk' },
+  ];
 
   // Get status from location state if available
   const statusFromLocation = location.state?.status;

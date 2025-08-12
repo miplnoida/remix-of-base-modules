@@ -296,6 +296,20 @@
   
   .theme-rose .btn-primary { background-color: #D32F55; }
   .theme-rose .btn-primary:hover { background-color: #c02849; }
+
+  /* Unified app table styles */
+  .app-table thead tr th {
+    @apply bg-muted font-semibold text-foreground;
+  }
+  .app-table tbody tr:nth-child(even) {
+    @apply bg-muted/20;
+  }
+  .app-table .totals-row {
+    @apply bg-green-50 text-green-900 font-semibold;
+  }
+  .app-table .numeric {
+    @apply text-right;
+  }
 }
 
 @keyframes fade-in {

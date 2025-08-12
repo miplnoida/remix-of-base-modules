@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Users,
   Search,
@@ -382,127 +383,132 @@ const InsuredPersonListing = () => {
           <CardTitle>Insured Persons ({insuredPersons.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SSN</TableHead>
-                  <TableHead>Sur Name</TableHead>
-                  <TableHead>First Name</TableHead>
-                  <TableHead>Middle Name</TableHead>
-                  <TableHead>Previous Name</TableHead>
-                  <TableHead>DOB</TableHead>
-                  <TableHead>Sex</TableHead>
-                  <TableHead>Alias</TableHead>
-                  <TableHead>Primary Occup</TableHead>
-                  <TableHead>Self Ref No.</TableHead>
-                  <TableHead>ASP Num.</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Resident Addr1</TableHead>
-                  <TableHead>Resident Addr2</TableHead>
-                  <TableHead>District</TableHead>
-                  <TableHead>Mail Addr1</TableHead>
-                  <TableHead>Mail Addr2</TableHead>
-                  <TableHead>Birth Place</TableHead>
-                  <TableHead>Nationality</TableHead>
-                  <TableHead>Date of Residency</TableHead>
-                  <TableHead>Marital Status</TableHead>
-                  <TableHead>Date Married</TableHead>
-                  <TableHead>Spouse Name</TableHead>
-                  <TableHead>Spouse Addr</TableHead>
-                  <TableHead>Father's Name</TableHead>
-                  <TableHead>Mother's Name</TableHead>
-                  <TableHead>Beneficiary</TableHead>
-                  <TableHead>Ben Addr</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Contact Relation</TableHead>
-                  <TableHead>Contact Addr</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Work Permit</TableHead>
-                  <TableHead>NPF</TableHead>
-                  <TableHead>Date Died</TableHead>
-                  <TableHead>Verify Birth</TableHead>
-                  <TableHead>Verify Name</TableHead>
-                  <TableHead>Verify Marital</TableHead>
-                  <TableHead>Verify Death</TableHead>
-                  <TableHead>Date Verified</TableHead>
-                  <TableHead>Verified By</TableHead>
-                  <TableHead>Application Date</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {insuredPersons.map((person, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{person.ssn}</TableCell>
-                    <TableCell>{person.surname}</TableCell>
-                    <TableCell>{person.firstname}</TableCell>
-                    <TableCell>{person.middlename}</TableCell>
-                    <TableCell>{person.previousName}</TableCell>
-                    <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
-                    <TableCell>{person.sex}</TableCell>
-                    <TableCell>{person.alias}</TableCell>
-                    <TableCell>{person.primaryOccup}</TableCell>
-                    <TableCell>{person.selfRefNo}</TableCell>
-                    <TableCell>{person.aspNum}</TableCell>
-                    <TableCell>{getStatusBadge(person.status)}</TableCell>
-                    <TableCell>{person.residentAddr1}</TableCell>
-                    <TableCell>{person.residentAddr2}</TableCell>
-                    <TableCell>{person.district}</TableCell>
-                    <TableCell>{person.mailAddr1}</TableCell>
-                    <TableCell>{person.mailAddr2}</TableCell>
-                    <TableCell>{person.birthPlace}</TableCell>
-                    <TableCell>{person.nationality}</TableCell>
-                    <TableCell>{person.dateOfResidency}</TableCell>
-                    <TableCell>{person.maritalStatus}</TableCell>
-                    <TableCell>{person.dateMarried}</TableCell>
-                    <TableCell>{person.spouseName}</TableCell>
-                    <TableCell>{person.spouseAddr}</TableCell>
-                    <TableCell>{person.fatherName}</TableCell>
-                    <TableCell>{person.motherName}</TableCell>
-                    <TableCell>{person.beneficiary}</TableCell>
-                    <TableCell>{person.benAddr}</TableCell>
-                    <TableCell>{person.contactName}</TableCell>
-                    <TableCell>{person.contactRelation}</TableCell>
-                    <TableCell>{person.contactAddr}</TableCell>
-                    <TableCell>{person.phone}</TableCell>
-                    <TableCell>{person.workPermit}</TableCell>
-                    <TableCell>{person.npf}</TableCell>
-                    <TableCell>{person.dateOfDeath}</TableCell>
-                    <TableCell>{person.verifyBirth}</TableCell>
-                    <TableCell>{person.verifyName}</TableCell>
-                    <TableCell>{person.verifyMaritalStatus}</TableCell>
-                    <TableCell>{person.verifyDeath}</TableCell>
-                    <TableCell>{person.dateVerified}</TableCell>
-                    <TableCell>{person.verifiedBy}</TableCell>
-                    <TableCell>{person.applicationDate}</TableCell>
-                    <TableCell>{person.registrationDate}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="View Details"
-                          onClick={() => handleViewDetails(person)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="Edit Details"
-                          onClick={() => handleEditDetails(person)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {insuredPersons.length === 0 ? (
+            <EmptyState title="No records found" description="Try adjusting your search or filters." />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="app-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SSN</TableHead>
+                    <TableHead>Sur Name</TableHead>
+                    <TableHead>First Name</TableHead>
+                    <TableHead>Middle Name</TableHead>
+                    <TableHead>Previous Name</TableHead>
+                    <TableHead>DOB</TableHead>
+                    <TableHead>Sex</TableHead>
+                    <TableHead>Alias</TableHead>
+                    <TableHead>Primary Occup</TableHead>
+                    <TableHead>Self Ref No.</TableHead>
+                    <TableHead>ASP Num.</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Resident Addr1</TableHead>
+                    <TableHead>Resident Addr2</TableHead>
+                    <TableHead>District</TableHead>
+                    <TableHead>Mail Addr1</TableHead>
+                    <TableHead>Mail Addr2</TableHead>
+                    <TableHead>Birth Place</TableHead>
+                    <TableHead>Nationality</TableHead>
+                    <TableHead>Date of Residency</TableHead>
+                    <TableHead>Marital Status</TableHead>
+                    <TableHead>Date Married</TableHead>
+                    <TableHead>Spouse Name</TableHead>
+                    <TableHead>Spouse Addr</TableHead>
+                    <TableHead>Father's Name</TableHead>
+                    <TableHead>Mother's Name</TableHead>
+                    <TableHead>Beneficiary</TableHead>
+                    <TableHead>Ben Addr</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Contact Relation</TableHead>
+                    <TableHead>Contact Addr</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Work Permit</TableHead>
+                    <TableHead>NPF</TableHead>
+                    <TableHead>Date Died</TableHead>
+                    <TableHead>Verify Birth</TableHead>
+                    <TableHead>Verify Name</TableHead>
+                    <TableHead>Verify Marital</TableHead>
+                    <TableHead>Verify Death</TableHead>
+                    <TableHead>Date Verified</TableHead>
+                    <TableHead>Verified By</TableHead>
+                    <TableHead>Application Date</TableHead>
+                    <TableHead>Registration Date</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {insuredPersons.map((person, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{person.ssn}</TableCell>
+                      <TableCell>{person.surname}</TableCell>
+                      <TableCell>{person.firstname}</TableCell>
+                      <TableCell>{person.middlename}</TableCell>
+                      <TableCell>{person.previousName}</TableCell>
+                      <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
+                      <TableCell>{person.sex}</TableCell>
+                      <TableCell>{person.alias}</TableCell>
+                      <TableCell>{person.primaryOccup}</TableCell>
+                      <TableCell>{person.selfRefNo}</TableCell>
+                      <TableCell>{person.aspNum}</TableCell>
+                      <TableCell>{getStatusBadge(person.status)}</TableCell>
+                      <TableCell>{person.residentAddr1}</TableCell>
+                      <TableCell>{person.residentAddr2}</TableCell>
+                      <TableCell>{person.district}</TableCell>
+                      <TableCell>{person.mailAddr1}</TableCell>
+                      <TableCell>{person.mailAddr2}</TableCell>
+                      <TableCell>{person.birthPlace}</TableCell>
+                      <TableCell>{person.nationality}</TableCell>
+                      <TableCell>{person.dateOfResidency}</TableCell>
+                      <TableCell>{person.maritalStatus}</TableCell>
+                      <TableCell>{person.dateMarried}</TableCell>
+                      <TableCell>{person.spouseName}</TableCell>
+                      <TableCell>{person.spouseAddr}</TableCell>
+                      <TableCell>{person.fatherName}</TableCell>
+                      <TableCell>{person.motherName}</TableCell>
+                      <TableCell>{person.beneficiary}</TableCell>
+                      <TableCell>{person.benAddr}</TableCell>
+                      <TableCell>{person.contactName}</TableCell>
+                      <TableCell>{person.contactRelation}</TableCell>
+                      <TableCell>{person.contactAddr}</TableCell>
+                      <TableCell>{person.phone}</TableCell>
+                      <TableCell>{person.workPermit}</TableCell>
+                      <TableCell>{person.npf}</TableCell>
+                      <TableCell>{person.dateOfDeath}</TableCell>
+                      <TableCell>{person.verifyBirth}</TableCell>
+                      <TableCell>{person.verifyName}</TableCell>
+                      <TableCell>{person.verifyMaritalStatus}</TableCell>
+                      <TableCell>{person.verifyDeath}</TableCell>
+                      <TableCell>{person.dateVerified}</TableCell>
+                      <TableCell>{person.verifiedBy}</TableCell>
+                      <TableCell>{person.applicationDate}</TableCell>
+                      <TableCell>{person.registrationDate}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            title="View Details"
+                            onClick={() => handleViewDetails(person)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            title="Edit Details"
+                            onClick={() => handleEditDetails(person)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
         </CardContent>
       </Card>
     </div>

@@ -12,9 +12,12 @@ import { User, Users, FileText, Building, Camera, Globe, Home } from 'lucide-rea
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { SuccessDialog, ErrorDialog } from '@/components/ui/feedback';
 
 export const IPRegistration = () => {
   const [activeTab, setActiveTab] = useState('register');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -37,16 +40,14 @@ export const IPRegistration = () => {
           <p className="text-gray-600">Complete registration for new insured person</p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 self-start lg:self-center"
-        >
-           <div className="flex gap-2 mt-4 lg:mt-0">
-          <Button type="button" variant="outline" className="flex items-center gap-2">Save</Button>
-          <Button type="button" className="flex items-center gap-2">Submit</Button>
+        <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
+          <Button type="button" variant="outline" className="flex items-center gap-2" onClick={() => setShowSuccess(true)}>
+            Save
+          </Button>
+          <Button type="button" className="flex items-center gap-2" onClick={() => setShowSuccess(true)}>
+            Submit
+          </Button>
         </div>
-        </Button>
 </div>
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       
@@ -114,7 +115,19 @@ export const IPRegistration = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-     
-    </div>
+
+        <SuccessDialog
+          open={showSuccess}
+          onOpenChange={setShowSuccess}
+          title="Submission successful"
+          description="The registration has been saved."
+        />
+        <ErrorDialog
+          open={showError}
+          onOpenChange={setShowError}
+          title="Validation error"
+          description="Please fix the highlighted fields and try again."
+        />
+      </div>
   );
 };
