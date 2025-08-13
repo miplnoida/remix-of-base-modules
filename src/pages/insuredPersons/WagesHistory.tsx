@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 import { ArrowLeft, Home, Search, Download, FileText, Calendar, DollarSign, Building, IdCard, AlertTriangle, Clock } from 'lucide-react';
 
 const WagesHistory = () => {
@@ -112,6 +112,92 @@ const WagesHistory = () => {
       style: 'currency',
       currency: 'XCD'
     }).format(amount);
+  };
+
+  // Define columns for DataTable
+  const columns: DataTableColumn[] = [
+    {
+      key: 'ssn',
+      label: 'SSN',
+      minWidth: '80px',
+      render: (value) => <span className="font-medium">{value}</span>
+    },
+    {
+      key: 'employeeName',
+      label: 'Employee',
+      minWidth: '120px'
+    },
+    {
+      key: 'employerName',
+      label: 'Employer',
+      minWidth: '150px'
+    },
+    {
+      key: 'employerRegNo',
+      label: 'Reg No.',
+      minWidth: '100px'
+    },
+    {
+      key: 'year',
+      label: 'Year',
+      minWidth: '80px'
+    },
+    {
+      key: 'quarter',
+      label: 'Quarter',
+      minWidth: '80px'
+    },
+    {
+      key: 'grossWages',
+      label: 'Gross Wages',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{formatCurrency(value)}</span>
+    },
+    {
+      key: 'contributionRate',
+      label: 'Rate %',
+      minWidth: '80px',
+      render: (value) => `${value}%`
+    },
+    {
+      key: 'employeeContribution',
+      label: 'Employee Cont.',
+      minWidth: '120px',
+      render: (value) => formatCurrency(value)
+    },
+    {
+      key: 'employerContribution',
+      label: 'Employer Cont.',
+      minWidth: '120px',
+      render: (value) => formatCurrency(value)
+    },
+    {
+      key: 'totalContribution',
+      label: 'Total Cont.',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{formatCurrency(value)}</span>
+    },
+    {
+      key: 'paymentDate',
+      label: 'Payment Date',
+      minWidth: '120px',
+      render: (value) => value || 'N/A'
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      minWidth: '100px'
+    }
+  ];
+
+  const handleViewWage = (wage: any) => {
+    console.log('Viewing wage record:', wage);
+    // Navigate to wage details page or open modal
+  };
+
+  const handleEditWage = (wage: any) => {
+    console.log('Editing wage record:', wage);
+    // Navigate to edit page or open edit modal
   };
 
   return (
@@ -260,54 +346,18 @@ const WagesHistory = () => {
         </CardContent>
       </Card>
 
-      {/* Wages History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Wages Records ({wagesData.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[80px]">SSN</TableHead>
-                  <TableHead className="min-w-[120px]">Employee</TableHead>
-                  <TableHead className="min-w-[150px]">Employer</TableHead>
-                  <TableHead className="min-w-[100px]">Reg No.</TableHead>
-                  <TableHead className="min-w-[80px]">Year</TableHead>
-                  <TableHead className="min-w-[80px]">Quarter</TableHead>
-                  <TableHead className="min-w-[120px]">Gross Wages</TableHead>
-                  <TableHead className="min-w-[80px]">Rate %</TableHead>
-                  <TableHead className="min-w-[120px]">Employee Cont.</TableHead>
-                  <TableHead className="min-w-[120px]">Employer Cont.</TableHead>
-                  <TableHead className="min-w-[120px]">Total Cont.</TableHead>
-                  <TableHead className="min-w-[120px]">Payment Date</TableHead>
-                  <TableHead className="min-w-[100px]">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {wagesData.map((wage) => (
-                  <TableRow key={wage.id}>
-                    <TableCell className="font-medium">{wage.ssn}</TableCell>
-                    <TableCell>{wage.employeeName}</TableCell>
-                    <TableCell>{wage.employerName}</TableCell>
-                    <TableCell>{wage.employerRegNo}</TableCell>
-                    <TableCell>{wage.year}</TableCell>
-                    <TableCell>{wage.quarter}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(wage.grossWages)}</TableCell>
-                    <TableCell>{wage.contributionRate}%</TableCell>
-                    <TableCell>{formatCurrency(wage.employeeContribution)}</TableCell>
-                    <TableCell>{formatCurrency(wage.employerContribution)}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(wage.totalContribution)}</TableCell>
-                    <TableCell>{wage.paymentDate || 'N/A'}</TableCell>
-                    <TableCell>{getStatusBadge(wage.status)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Wages History DataTable */}
+      <DataTable
+        data={wagesData}
+        columns={columns}
+        title="Wages Records"
+        searchPlaceholder="Search wages records..."
+        onView={handleViewWage}
+        onEdit={handleEditWage}
+        actions={{ view: false, edit: false, approve: false, reject: false }}
+        statusField="status"
+        getStatusBadge={getStatusBadge}
+      />
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 import { ArrowLeft, Home, Search, Download, FileText, Calendar, Shield, AlertCircle, CheckCircle, Clock, IdCard, AlertTriangle } from 'lucide-react';
 
 const ClaimHistory = () => {
@@ -148,6 +148,87 @@ const ClaimHistory = () => {
     .reduce((sum, claim) => sum + claim.approvedAmount, 0);
 
   const totalClaimed = claimsData.reduce((sum, claim) => sum + claim.claimAmount, 0);
+
+  // Define columns for DataTable
+  const columns: DataTableColumn[] = [
+    {
+      key: 'claimNumber',
+      label: 'Claim Number',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{value}</span>
+    },
+    {
+      key: 'ssn',
+      label: 'SSN',
+      minWidth: '80px'
+    },
+    {
+      key: 'claimantName',
+      label: 'Claimant',
+      minWidth: '120px'
+    },
+    {
+      key: 'claimType',
+      label: 'Claim Type',
+      minWidth: '150px'
+    },
+    {
+      key: 'dateSubmitted',
+      label: 'Date Submitted',
+      minWidth: '120px'
+    },
+    {
+      key: 'dateProcessed',
+      label: 'Date Processed',
+      minWidth: '120px',
+      render: (value) => value || 'N/A'
+    },
+    {
+      key: 'claimAmount',
+      label: 'Claim Amount',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{formatCurrency(value)}</span>
+    },
+    {
+      key: 'approvedAmount',
+      label: 'Approved Amount',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{value > 0 ? formatCurrency(value) : 'N/A'}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      minWidth: '120px'
+    },
+    {
+      key: 'reason',
+      label: 'Reason',
+      minWidth: '200px',
+      render: (value) => (
+        <span className="max-w-[200px] truncate" title={value}>
+          {value}
+        </span>
+      )
+    },
+    {
+      key: 'paymentDate',
+      label: 'Payment Date',
+      minWidth: '120px',
+      render: (value) => value || 'N/A'
+    }
+  ];
+
+  const handleViewClaim = (claim: any) => {
+    console.log('Viewing claim:', claim);
+    // Navigate to claim details page
+    // navigate(`/person/claims/${claim.id}`);
+  };
+
+  const handleEditClaim = (claim: any) => {
+    console.log('Editing claim:', claim);
+    // Navigate to edit claim page
+    // navigate(`/person/claims/${claim.id}/edit`);
+  };
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
@@ -302,54 +383,18 @@ const ClaimHistory = () => {
         </CardContent>
       </Card>
 
-      {/* Claims History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Claims Records ({claimsData.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[120px]">Claim Number</TableHead>
-                  <TableHead className="min-w-[80px]">SSN</TableHead>
-                  <TableHead className="min-w-[120px]">Claimant</TableHead>
-                  <TableHead className="min-w-[150px]">Claim Type</TableHead>
-                  <TableHead className="min-w-[120px]">Date Submitted</TableHead>
-                  <TableHead className="min-w-[120px]">Date Processed</TableHead>
-                  <TableHead className="min-w-[120px]">Claim Amount</TableHead>
-                  <TableHead className="min-w-[120px]">Approved Amount</TableHead>
-                  <TableHead className="min-w-[120px]">Status</TableHead>
-                  <TableHead className="min-w-[200px]">Reason</TableHead>
-                  <TableHead className="min-w-[120px]">Payment Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {claimsData.map((claim) => (
-                  <TableRow key={claim.id}>
-                    <TableCell className="font-medium">{claim.claimNumber}</TableCell>
-                    <TableCell>{claim.ssn}</TableCell>
-                    <TableCell>{claim.claimantName}</TableCell>
-                    <TableCell>{claim.claimType}</TableCell>
-                    <TableCell>{claim.dateSubmitted}</TableCell>
-                    <TableCell>{claim.dateProcessed || 'N/A'}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(claim.claimAmount)}</TableCell>
-                    <TableCell className="font-medium">
-                      {claim.approvedAmount > 0 ? formatCurrency(claim.approvedAmount) : 'N/A'}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(claim.status)}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={claim.reason}>
-                      {claim.reason}
-                    </TableCell>
-                    <TableCell>{claim.paymentDate || 'N/A'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Claims History DataTable */}
+      <DataTable
+        data={claimsData}
+        columns={columns}
+        title="Claims Records"
+        searchPlaceholder="Search claims..."
+        onView={handleViewClaim}
+        onEdit={handleEditClaim}
+        actions={{ view: false, edit: false, approve: false, reject: false }}
+        getStatusBadge={getStatusBadge}
+        statusField="status"
+      />
     </div>
   );
 };
