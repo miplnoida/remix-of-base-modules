@@ -41,10 +41,10 @@ export const IPRegistration = () => {
           </div>
         </div>
         <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-          <Button type="button" variant="outline"  className="flex items-center gap-2 border-l-4 shadow-md" onClick={() => setShowSuccess(true)}>
-            Save
+          <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" onClick={() => setShowSuccess(true)}>
+            Draft
           </Button>
-          <Button type="button" className="flex items-center gap-2" onClick={() => setShowSuccess(true)}>
+          <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]" onClick={() => setShowSuccess(true)}>
             Submit
           </Button>
         </div>
