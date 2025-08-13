@@ -1201,12 +1201,12 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
+              
               Employment Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Occupation *</Label>
                 <Select onValueChange={(value) => form.setValue('occupation', value)}>
@@ -1235,16 +1235,6 @@ export const RegisterPersonForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Work Permit Experience</Label>
-                <Textarea 
-                  {...form.register('workPermitExp')} 
-                  placeholder="Enter work permit experience" 
-                />
-              </div>
               <div>
                 <Label>NPF</Label>
                 <Select onValueChange={(value: 'Yes' | 'No') => form.setValue('npf', value)}>
@@ -1259,13 +1249,21 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Application Date</Label>
+                <DatePicker
+                  date={form.watch('applicationDate')}
+                  onSelect={(date) => form.setValue('applicationDate', date || new Date())}
+                  placeholder="mm/dd/yyyy"
+                />
+              </div>
               <div>
                 <Label>Date Resident</Label>
                 <DatePicker
                   date={form.watch('dateResident')}
                   onSelect={(date) => form.setValue('dateResident', date)}
-                  placeholder="Select date resident"
+                  placeholder="mm/dd/yyyy"
                 />
               </div>
               <div>
@@ -1283,13 +1281,14 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div>
-              <Label>Application Date</Label>
-              <DatePicker
-                date={form.watch('applicationDate')}
-                onSelect={(date) => form.setValue('applicationDate', date || new Date())}
-                placeholder="Application date"
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <div>
+              <Label>Work Permit Experience</Label>
+              <Textarea 
+                {...form.register('workPermitExp')} 
+                placeholder="Enter Work Permit Experience" 
               />
+              </div>
             </div>
           </CardContent>
         </div>
@@ -1325,7 +1324,7 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+              
               Additional Information
             </CardTitle>
           </CardHeader>
@@ -1375,14 +1374,15 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
               Verification Section
             </CardTitle>
           </CardHeader>
+          
           <CardContent className="space-y-6">
+          <hr />
             {Object.entries(verification).map(([key, value]) => (
               <div key={key} className="space-y-4">
-                <h4 className="font-medium capitalize">
+                <h4 className="font-medium capitalize text-[#6B7280]">
                   {key.replace(/([A-Z])/g, ' $1').trim()} Verification
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
