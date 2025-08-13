@@ -157,32 +157,25 @@ const BenefitEligibility = () => {
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Navigation Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/person/management')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-          <div className="h-6 w-px bg-gray-300" />
-          <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600" />
-          <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Benefit Eligibility</h1>
-            <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Check benefit eligibility and requirements</p>
-          </div>
-        </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 self-start lg:self-center"
-        >
-          <Home className="h-4 w-4" />
-          <span className="hidden sm:inline">Main Menu</span>
-        </Button>
-      </div>
+                <div className="flex items-center gap-3">
+                  <Button 
+                              variant="outline" 
+                              onClick={() => navigate('/person/management')}
+                              className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                            >
+                              <ArrowLeft className="h-4 w-4" />
+                             
+                              <span className="sm:hidden">Back</span>
+                            </Button>
+                 
+                  <div className="h-6 w-px bg-gray-300" />
+                  <div>
+                    <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Benefit Eligibility</h1>
+                  </div>
+                </div>
+                
+              </div>
+     
 
       {/* Search Section */}
       <Card>

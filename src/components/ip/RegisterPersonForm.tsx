@@ -331,7 +331,7 @@ const RelationListItem = ({
         <span className="font-medium">{relation.type}</span>
       </div>
       <div className="text-sm text-muted-foreground mt-1">
-        {relation.name && <div>Name: {relation.name}</div>}
+       {relation.name && <div>Name: {relation.name}</div>}
         {relation.address && <div>Address: {relation.address}</div>}
         {relation.relation && <div>Relation: {relation.relation}</div>}
         {relation.phone && <div>Phone: {relation.phone}</div>}
@@ -1026,7 +1026,7 @@ export const RegisterPersonForm = () => {
       <Label className="text-sm font-medium text-gray-700">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      <div className="mt-1 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-md">
+      <div className="mt-1 text-sm text-gray-600 bg-gray-50  rounded-md">
         {value || 'Not specified'}
       </div>
     </div>
@@ -1394,7 +1394,7 @@ export const RegisterPersonForm = () => {
             <div>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                 
                   Relations
                 </CardTitle>
               </CardHeader>

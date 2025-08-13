@@ -213,14 +213,7 @@ const PendingReviews = () => {
               <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Verification</h1>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 self-start lg:self-center"
-          >
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Main Menu</span>
-          </Button>
+          
         </div>
       )}
 

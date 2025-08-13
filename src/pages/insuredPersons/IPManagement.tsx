@@ -200,6 +200,13 @@ const IPManagement = () => {
                   </div>
                 ))}
               </div>
+              <Button 
+                          variant='outline'  
+                            className="flex items-center gap-2 w-full my-5"
+                          >
+                           
+                            View all Activies
+                          </Button>
             </CardContent>
           </Card>
 
