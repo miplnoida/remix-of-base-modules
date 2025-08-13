@@ -927,16 +927,15 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-                Basic Details
+             Basic Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* First Row: Surname, First Name, Middle Name */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="surname">Surname *</Label>
-                <Input {...form.register('surname')} placeholder="Enter surname" />
+                <Label htmlFor="surname" >Surname *</Label>
+                <Input {...form.register('surname')} placeholder="Enter surname"/>
                 {form.formState.errors.surname && (
                   <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
                 )}
@@ -1109,7 +1108,7 @@ export const RegisterPersonForm = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
+                
                 Address Information
               </CardTitle>
               <Button 
@@ -1146,6 +1145,34 @@ export const RegisterPersonForm = () => {
             )}
             </Card>
           </CardContent>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+             Contact Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* First Row: Surname, First Name, Middle Name */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="surname" >Tel number</Label>
+                <Input {...form.register('surname')} placeholder="+1869 xxx-xxxx"/>
+                {form.formState.errors.surname && (
+                  <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="firstName">Mobile number</Label>
+                <Input {...form.register('firstName')} placeholder="+1869 xxx-xxxx" />
+                {form.formState.errors.firstName && (
+                  <p className="text-sm text-destructive">{form.formState.errors.firstName.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="middleName">Email</Label>
+                <Input {...form.register('middleName')} placeholder="Example@email.com" />
+              </div>
+            </div>
+			</CardContent>
         </div>
         );
 
@@ -1593,13 +1620,15 @@ export const RegisterPersonForm = () => {
     <div className="space-y-6">
       {/* Stepper */}
       <Card className='py-5' style={{backgroundColor:"#F9FAFB"}}>
-          <div className='px-5'>
-            <Stepper 
+          <div className='px-5 mb-6'>
+            <Card className='p-3'>
+              <Stepper 
             steps={steps} 
             currentStep={currentStep} 
             onStepClick={goToStep}
-            className="mb-6"
+            className=""
           />
+            </Card>
           </div>
        
 
@@ -1615,7 +1644,7 @@ export const RegisterPersonForm = () => {
               variant="outline"
               onClick={prevStep}
               disabled={currentStep === 0}
-              className="flex items-center gap-2 border-l-4 shadow-md mr-5"
+              className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100 mr-5"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -1647,9 +1676,9 @@ export const RegisterPersonForm = () => {
               <Button
                 type="button"
                 onClick={nextStep}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
               >
-                Next
+                Continue
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
