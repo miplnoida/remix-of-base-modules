@@ -326,22 +326,32 @@ const RelationListItem = ({
 }) => (
   <div className="flex justify-between items-center p-3 border rounded-lg bg-background">
     <div className="flex-1">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-2">
         <Users className="h-4 w-4 text-muted-foreground" />
         <span className="font-medium">{relation.type}</span>
       </div>
-      <div className="text-sm text-muted-foreground mt-1">
-       {relation.name && <div>Name: {relation.name}</div>}
-        {relation.address && <div>Address: {relation.address}</div>}
-        {relation.relation && <div>Relation: {relation.relation}</div>}
-        {relation.phone && <div>Phone: {relation.phone}</div>}
-        {relation.mobile && <div>Mobile: {relation.mobile}</div>}
-        {relation.email && <div>Email: {relation.email}</div>}
-        {relation.fatherName && <div>Father: {relation.fatherName}</div>}
-        {relation.motherName && <div>Mother: {relation.motherName}</div>}
-        {relation.spouseName && <div>Spouse: {relation.spouseName}</div>}
-        {relation.witnessName && <div>Witness: {relation.witnessName}</div>}
-        {relation.beneficiaryName && <div>Beneficiary: {relation.beneficiaryName}</div>}
+      <div className="text-sm">
+        <div className="grid grid-cols-2 gap-8">
+          <div className="space-y-1">
+            {relation.name && <div className="text-left"><span className="font-semibold">Name:</span> {relation.name}</div>}
+            {relation.phone && <div className="text-left"><span className="font-semibold">Phone:</span> {relation.phone}</div>}
+            {relation.address && <div className="text-left"><span className="font-semibold">Address:</span> {relation.address}</div>}
+            {relation.fatherName && <div className="text-left"><span className="font-semibold">Father:</span> {relation.fatherName}</div>}
+            {relation.spouseName && <div className="text-left"><span className="font-semibold">Spouse:</span> {relation.spouseName}</div>}
+          </div>
+          <div className="space-y-1">
+            {relation.relation && <div className="text-left"><span className="font-semibold">Relation:</span> {relation.relation}</div>}
+            {relation.email && <div className="text-left"><span className="font-semibold">Email:</span> {relation.email}</div>}
+            {relation.mobile && <div className="text-left"><span className="font-semibold">Mobile:</span> {relation.mobile}</div>}
+            {relation.motherName && <div className="text-left"><span className="font-semibold">Mother:</span> {relation.motherName}</div>}
+            {relation.witnessName && <div className="text-left"><span className="font-semibold">Witness:</span> {relation.witnessName}</div>}
+          </div>
+        </div>
+        {relation.beneficiaryName && (
+          <div className="mt-2 text-left">
+            <span className="font-semibold">Beneficiary:</span> {relation.beneficiaryName}
+          </div>
+        )}
       </div>
     </div>
     <div className="flex gap-2">
