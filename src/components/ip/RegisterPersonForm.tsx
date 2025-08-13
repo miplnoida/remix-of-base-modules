@@ -27,6 +27,8 @@ const registrationSchema = z.object({
   surname: z.string().min(1, 'Surname is required'),
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional(),
+  maidenName: z.string().optional(),
+  alias: z.string().optional(),
   age: z.number().min(1, 'Age is required'),
   sex: z.enum(['Male', 'Female', 'Not Specified']),
   dateOfBirth: z.date({ required_error: 'Date of birth is required' }),
@@ -122,12 +124,14 @@ const AddressListItem = ({
   address, 
   onEdit, 
   onView, 
-  onRemove 
+  onRemove,
+  isViewMode = false
 }: { 
   address: Address; 
   onEdit: () => void; 
   onView: () => void; 
   onRemove: () => void; 
+  isViewMode?: boolean;
 }) => (
   <div className="flex justify-between items-center p-3 border rounded-lg bg-background">
     <div className="flex-1">
@@ -149,12 +153,16 @@ const AddressListItem = ({
       <Button type="button" variant="ghost" size="sm" onClick={onView}>
         <Eye className="h-4 w-4" />
       </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
-        <Edit className="h-4 w-4" />
-      </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {!isViewMode && (
+        <>
+          <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </>
+      )}
     </div>
   </div>
 );
@@ -307,43 +315,59 @@ const RelationListItem = ({
   relation, 
   onEdit, 
   onView, 
-  onRemove 
+  onRemove,
+  isViewMode = false
 }: { 
   relation: Relation; 
   onEdit: () => void; 
   onView: () => void; 
   onRemove: () => void; 
+  isViewMode?: boolean;
 }) => (
   <div className="flex justify-between items-center p-3 border rounded-lg bg-background">
     <div className="flex-1">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-2">
         <Users className="h-4 w-4 text-muted-foreground" />
         <span className="font-medium">{relation.type}</span>
       </div>
-      <div className="text-sm text-muted-foreground mt-1">
-        {relation.name && <div>Name: {relation.name}</div>}
-        {relation.address && <div>Address: {relation.address}</div>}
-        {relation.relation && <div>Relation: {relation.relation}</div>}
-        {relation.phone && <div>Phone: {relation.phone}</div>}
-        {relation.mobile && <div>Mobile: {relation.mobile}</div>}
-        {relation.email && <div>Email: {relation.email}</div>}
-        {relation.fatherName && <div>Father: {relation.fatherName}</div>}
-        {relation.motherName && <div>Mother: {relation.motherName}</div>}
-        {relation.spouseName && <div>Spouse: {relation.spouseName}</div>}
-        {relation.witnessName && <div>Witness: {relation.witnessName}</div>}
-        {relation.beneficiaryName && <div>Beneficiary: {relation.beneficiaryName}</div>}
+      <div className="text-sm">
+        <div className="grid grid-cols-2 gap-8">
+          <div className="space-y-1">
+            {relation.name && <div className="text-left"><span className="font-semibold">Name:</span> {relation.name}</div>}
+            {relation.phone && <div className="text-left"><span className="font-semibold">Phone:</span> {relation.phone}</div>}
+            {relation.address && <div className="text-left"><span className="font-semibold">Address:</span> {relation.address}</div>}
+            {relation.fatherName && <div className="text-left"><span className="font-semibold">Father:</span> {relation.fatherName}</div>}
+            {relation.spouseName && <div className="text-left"><span className="font-semibold">Spouse:</span> {relation.spouseName}</div>}
+          </div>
+          <div className="space-y-1">
+            {relation.relation && <div className="text-left"><span className="font-semibold">Relation:</span> {relation.relation}</div>}
+            {relation.email && <div className="text-left"><span className="font-semibold">Email:</span> {relation.email}</div>}
+            {relation.mobile && <div className="text-left"><span className="font-semibold">Mobile:</span> {relation.mobile}</div>}
+            {relation.motherName && <div className="text-left"><span className="font-semibold">Mother:</span> {relation.motherName}</div>}
+            {relation.witnessName && <div className="text-left"><span className="font-semibold">Witness:</span> {relation.witnessName}</div>}
+          </div>
+        </div>
+        {relation.beneficiaryName && (
+          <div className="mt-2 text-left">
+            <span className="font-semibold">Beneficiary:</span> {relation.beneficiaryName}
+          </div>
+        )}
       </div>
     </div>
     <div className="flex gap-2">
       <Button type="button" variant="ghost" size="sm" onClick={onView}>
         <Eye className="h-4 w-4" />
       </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
-        <Edit className="h-4 w-4" />
-      </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {!isViewMode && (
+        <>
+          <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </>
+      )}
     </div>
   </div>
 );
@@ -739,6 +763,93 @@ export const RegisterPersonForm = () => {
   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
   const [accountStatus, setAccountStatus] = useState('Active');
   const location = useLocation();
+  
+  // Check if we're in view mode (on '/person/view/' path)
+  const isViewMode = location.pathname.includes('/person/view/');
+  
+  // Mock data for preview - replace with actual data from props or API
+  const previewData = {
+    surname: 'Sanger',
+    firstName: 'Ayush',
+    middleName: 'Singh',
+    age: 18,
+    maidenName: 'All',
+    alias: 'Alias',
+    sex: 'Male',
+    dateOfBirth: new Date('2006-01-15'),
+    maritalStatus: 'Single',
+    heightFeet: 5,
+    heightInches: 8,
+    birthPlace: 'Saint Kitts and Nevis',
+    nationality: 'Saint Kitts and Nevis',
+    dateMarried: null,
+    eyeColor: 'Brown',
+    occupation: 'Student',
+    workPermit: 'No',
+    workPermitExp: '',
+    dateResident: new Date('2020-01-01'),
+    npf: 'No',
+    plOfResidence: 'Saint Kitts and Nevis',
+    applicationDate: new Date('2024-01-15'),
+    telNumber: '+1869-465-1234',
+    mobileNumber: '+1869-555-1234',
+    email: 'ayush.sanger@email.com',
+    citizenship: 'Yes',
+    dateOfDeath: null,
+    signatureOnFile: 'Yes'
+  };
+
+  // Mock address data for preview
+  const previewAddresses: Address[] = [
+    {
+      id: '1',
+      addressType: 'same',
+      residentAddress: '123 Main Street, Apt 2B, Basseterre',
+      mailingAddress: '',
+      postalCode: 'KN001',
+      postalDistrict: 'Basseterre Zone 01'
+    },
+    {
+      id: '2',
+      addressType: 'different',
+      residentAddress: '456 Oak Avenue, Suite 5',
+      mailingAddress: '789 Pine Street, P.O. Box 123',
+      postalCode: 'KN002',
+      postalDistrict: 'Charlestown'
+    }
+  ];
+
+  // Mock relations data for preview
+  const previewRelations: Relation[] = [
+    {
+      id: '1',
+      type: 'Parent',
+      fatherName: 'John Sanger',
+      motherName: 'Mary Sanger',
+      address: '123 Main Street, Basseterre',
+      phone: '+1869-555-1111',
+      mobile: '+1869-555-1112',
+      email: 'john.sanger@email.com'
+    },
+    {
+      id: '2',
+      type: 'Contact',
+      name: 'Jane Doe',
+      relation: 'Sister',
+      address: '456 Oak Avenue, Charlestown',
+      phone: '+1869-555-9876',
+      mobile: '+1869-555-9877',
+      email: 'jane.doe@email.com'
+    },
+    {
+      id: '3',
+      type: 'Spouse',
+      spouseName: 'Sarah Sanger',
+      spouseAddress: '123 Main Street, Basseterre',
+      spouseDOB: new Date('1990-05-20'),
+      spouseSSN: '123-45-6789'
+    }
+  ];
 
   // Define stepper steps
   const steps: StepperStep[] = [
@@ -919,23 +1030,91 @@ export const RegisterPersonForm = () => {
     // You can handle the reason or API call here
   };
 
+  // Preview Field Component
+  const PreviewField = ({ label, value, required = false }: { label: string; value: string | number | null | undefined; required?: boolean }) => (
+    <div>
+      <Label className="text-sm font-medium text-gray-700">
+        {label}{required && <span className="text-red-500 ml-1">*</span>}
+      </Label>
+      <div className="mt-1 text-sm text-gray-600 bg-gray-50  rounded-md">
+        {value || 'Not specified'}
+      </div>
+    </div>
+  );
+
   // Step content components
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
-  return (
+        if (isViewMode) {
+          return (
+            <div>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Basic Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* First Row: Surname, First Name, Middle Name */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <PreviewField label="Surname" value={previewData.surname} required />
+                  <PreviewField label="First Name" value={previewData.firstName} required />
+                  <PreviewField label="Middle Name" value={previewData.middleName} />
+                </div>
+
+                {/* Second Row: Age, Maiden Name, Alias */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <PreviewField label="Age" value={`${previewData.age} Year`} required />
+                  <PreviewField label="Maiden Name" value={previewData.maidenName} />
+                  <PreviewField label="Alias" value={previewData.alias} />
+                </div>
+
+                <hr/>
+
+                {/* Third Row: Sex, Date of Birth, Marital Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <PreviewField label="Sex" value={previewData.sex} required />
+                  <PreviewField label="Date of Birth" value={previewData.dateOfBirth ? format(previewData.dateOfBirth, 'MM/dd/yyyy') : null} required />
+                  <PreviewField label="Marital Status" value={previewData.maritalStatus} required />
+                </div>
+
+                {/* Fourth Row: Height Feet, Height Inches, Birth Place */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <PreviewField label="Height (Feet)" value={previewData.heightFeet} />
+                  <PreviewField label="Height (Inches)" value={previewData.heightInches} />
+                  <PreviewField label="Birth Place" value={previewData.birthPlace} required />
+                </div>
+
+                {/* Fifth Row: Nationality, Eye Color */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <PreviewField label="Nationality" value={previewData.nationality} required />
+                  <PreviewField label="Eye Color" value={previewData.eyeColor} />
+                </div>
+
+                {/* Conditional Date Married field */}
+                {(previewData.maritalStatus === 'Married' || previewData.maritalStatus === 'Common Law') && (
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                    <PreviewField label="Date Married" value={previewData.dateMarried ? format(previewData.dateMarried, 'MM/dd/yyyy') : null} />
+                  </div>
+                )}
+              </CardContent>
+            </div>
+          );
+        }
+        
+        return (
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-                Basic Details
+             Basic Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* First Row: Surname, First Name, Middle Name */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="surname">Surname *</Label>
-                <Input {...form.register('surname')} placeholder="Enter surname" />
+                <Label htmlFor="surname" >Surname *</Label>
+                <Input {...form.register('surname')} placeholder="Enter surname"/>
                 {form.formState.errors.surname && (
                   <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
                 )}
@@ -953,52 +1132,50 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Second Row: Age, Maiden Name, Alias */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="age">Age *</Label>
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('age', parseInt(e.target.value))}
-                  placeholder="Enter age" 
+                  placeholder="Enter Age" 
                 />
                 {form.formState.errors.age && (
                   <p className="text-sm text-destructive">{form.formState.errors.age.message}</p>
                 )}
               </div>
-              <div className="flex items-end">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowNameDialog(true)}
-                  className="w-full"
-                >
-                  Name Details
-                </Button>
+              <div>
+                <Label htmlFor="maidenName">Maiden Name</Label>
+                <Input {...form.register('maidenName')} placeholder="Enter maiden name" />
+              </div>
+              <div>
+                <Label htmlFor="alias">Alias</Label>
+                <Input {...form.register('alias')} placeholder="Enter alias" />
               </div>
             </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Sex *</Label>
-                <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select sex" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border">
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Not Specified">Not Specified</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+<hr/>
+                         {/* Third Row: Sex, Date of Birth, Marital Status */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <div>
+                 <Label>Sex *</Label>
+                 <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
+                   <SelectTrigger className="bg-background">
+                     <SelectValue placeholder="Select sex" />
+                   </SelectTrigger>
+                   <SelectContent className="bg-background border">
+                     <SelectItem value="Male">Male</SelectItem>
+                     <SelectItem value="Female">Female</SelectItem>
+                     <SelectItem value="Not Specified">Not Specified</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
               <div>
                 <Label>Date of Birth *</Label>
                 <DatePicker
                   date={form.watch('dateOfBirth')}
                   onSelect={(date) => form.setValue('dateOfBirth', date!)}
-                  placeholder="Select date of birth"
+                  placeholder="mm/dd/yyyy"
                 />
                 {form.formState.errors.dateOfBirth && (
                   <p className="text-sm text-destructive">{form.formState.errors.dateOfBirth.message}</p>
@@ -1023,13 +1200,14 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Fourth Row: Height Feet, Height Inches, Birth Place */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Height (Feet)</Label>
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
-                  placeholder="e.g., 5" 
+                  placeholder="eg; 5" 
                 />
               </div>
               <div>
@@ -1037,27 +1215,14 @@ export const RegisterPersonForm = () => {
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
-                  placeholder="e.g., 8" 
+                  placeholder="eg; 8" 
                 />
               </div>
               <div>
                 <Label>Birth Place *</Label>
                 <Select onValueChange={(value) => form.setValue('birthPlace', value)}>
                   <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select birth place" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border">
-                    {countries.map((country) => (
-                      <SelectItem key={country} value={country}>{country}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Nationality *</Label>
-                <Select onValueChange={(value) => form.setValue('nationality', value)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select nationality" />
+                    <SelectValue placeholder="Select Birth Place" />
                   </SelectTrigger>
                   <SelectContent className="bg-background border">
                     {countries.map((country) => (
@@ -1068,17 +1233,21 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(form.watch('maritalStatus') === 'Married' || form.watch('maritalStatus') === 'Common Law') && (
-                <div>
-                  <Label>Date Married</Label>
-                  <DatePicker
-                    date={form.watch('dateMarried')}
-                    onSelect={(date) => form.setValue('dateMarried', date)}
-                    placeholder="Select date married"
-                  />
-                </div>
-              )}
+            {/* Fifth Row: Nationality, Eye Color */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Nationality *</Label>
+                <Select onValueChange={(value) => form.setValue('nationality', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select Nationality" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    {countries.map((country) => (
+                      <SelectItem key={country} value={country}>{country}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label>Eye Color</Label>
                 <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
@@ -1094,17 +1263,79 @@ export const RegisterPersonForm = () => {
                 </Select>
               </div>
             </div>
+
+            {/* Conditional Date Married field */}
+            {(form.watch('maritalStatus') === 'Married' || form.watch('maritalStatus') === 'Common Law') && (
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                <div>
+                  <Label>Date Married</Label>
+                  <DatePicker
+                    date={form.watch('dateMarried')}
+                    onSelect={(date) => form.setValue('dateMarried', date)}
+                    placeholder="Select date married"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </div>
         );
 
       case 1:
+        if (isViewMode) {
+          return (
+            <div>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Address Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Card className='px-2 py-2'>
+                  {previewAddresses.length > 0 ? (
+                    <div className="space-y-2">
+                      {previewAddresses.map((address) => (
+                        <AddressListItem
+                          key={address.id}
+                          address={address}
+                          onEdit={() => {}} // Empty function since edit is disabled in view mode
+                          onView={() => openAddressModal('view', address)}
+                          onRemove={() => {}} // Empty function since remove is disabled in view mode
+                          isViewMode={true}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No addresses available</p>
+                    </div>
+                  )}
+                </Card>
+              </CardContent>
+              
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <PreviewField label="Tel Number" value={previewData.telNumber} />
+                  <PreviewField label="Mobile Number" value={previewData.mobileNumber} />
+                  <PreviewField label="Email" value={previewData.email} />
+                </div>
+              </CardContent>
+            </div>
+          );
+        }
+        
         return (
         <div>
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
+                
                 Address Information
               </CardTitle>
               <Button 
@@ -1129,6 +1360,7 @@ export const RegisterPersonForm = () => {
                     onEdit={() => openAddressModal('edit', address)}
                     onView={() => openAddressModal('view', address)}
                     onRemove={() => removeAddress(address.id)}
+                    isViewMode={false}
                   />
                 ))}
               </div>
@@ -1141,10 +1373,68 @@ export const RegisterPersonForm = () => {
             )}
             </Card>
           </CardContent>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+             Contact Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* First Row: Surname, First Name, Middle Name */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="telNumber" >Tel number</Label>
+                <Input {...form.register('telNumber')} placeholder="+1869 xxx-xxxx"/>
+              </div>
+              <div>
+                <Label htmlFor="mobileNumber">Mobile number</Label>
+                <Input {...form.register('mobileNumber')} placeholder="+1869 xxx-xxxx" />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input {...form.register('email')} placeholder="Example@email.com" />
+              </div>
+            </div>
+			</CardContent>
         </div>
         );
 
       case 2:
+        if (isViewMode) {
+          return (
+            <div>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                 
+                  Relations
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Card className='px-2 py-2'>
+                  {previewRelations.length > 0 ? (
+                    <div className="space-y-2">
+                      {previewRelations.map((relation) => (
+                        <RelationListItem
+                          key={relation.id}
+                          relation={relation}
+                          onEdit={() => {}} // Empty function since edit is disabled in view mode
+                          onView={() => openRelationModal('view', relation)}
+                          onRemove={() => {}} // Empty function since remove is disabled in view mode
+                          isViewMode={true}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No relations available</p>
+                    </div>
+                  )}
+                </Card>
+              </CardContent>
+            </div>
+          );
+        }
+        
         return (
         <div>
           <CardHeader>
@@ -1175,6 +1465,7 @@ export const RegisterPersonForm = () => {
                     onEdit={() => openRelationModal('edit', relation)}
                     onView={() => openRelationModal('view', relation)}
                     onRemove={() => removeRelation(relation.id)}
+                    isViewMode={false} // Ensure buttons are visible in non-view mode
                   />
                 ))}
               </div>
@@ -1191,17 +1482,63 @@ export const RegisterPersonForm = () => {
         );
 
       case 3:
+        if (isViewMode) {
+          return (
+            <>
+              <div>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Employment Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <PreviewField label="Occupation" value={previewData.occupation} required />
+                    <PreviewField label="Work Permit" value={previewData.workPermit} />
+                    <PreviewField label="NPF" value={previewData.npf} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <PreviewField label="Application Date" value={previewData.applicationDate ? format(previewData.applicationDate, 'MM/dd/yyyy') : null} />
+                    <PreviewField label="Date Resident" value={previewData.dateResident ? format(previewData.dateResident, 'MM/dd/yyyy') : null} />
+                    <PreviewField label="Place of Residence" value={previewData.plOfResidence} required />
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                    <PreviewField label="Work Permit Experience" value={previewData.workPermitExp} />
+                  </div>
+                </CardContent>
+              </div>
+
+              <div>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Additional Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <PreviewField label="Citizenship" value={previewData.citizenship} />
+                    <PreviewField label="Date of Death" value={previewData.dateOfDeath ? format(previewData.dateOfDeath, 'MM/dd/yyyy') : null} />
+                    <PreviewField label="Signature on File" value={previewData.signatureOnFile} />
+                  </div>
+                </CardContent>
+              </div>
+            </>
+          );
+        }
+        
         return (
           <>
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
+              
               Employment Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Occupation *</Label>
                 <Select onValueChange={(value) => form.setValue('occupation', value)}>
@@ -1230,16 +1567,6 @@ export const RegisterPersonForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Work Permit Experience</Label>
-                <Textarea 
-                  {...form.register('workPermitExp')} 
-                  placeholder="Enter work permit experience" 
-                />
-              </div>
               <div>
                 <Label>NPF</Label>
                 <Select onValueChange={(value: 'Yes' | 'No') => form.setValue('npf', value)}>
@@ -1254,13 +1581,21 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Application Date</Label>
+                <DatePicker
+                  date={form.watch('applicationDate')}
+                  onSelect={(date) => form.setValue('applicationDate', date || new Date())}
+                  placeholder="mm/dd/yyyy"
+                />
+              </div>
               <div>
                 <Label>Date Resident</Label>
                 <DatePicker
                   date={form.watch('dateResident')}
                   onSelect={(date) => form.setValue('dateResident', date)}
-                  placeholder="Select date resident"
+                  placeholder="mm/dd/yyyy"
                 />
               </div>
               <div>
@@ -1278,13 +1613,14 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div>
-              <Label>Application Date</Label>
-              <DatePicker
-                date={form.watch('applicationDate')}
-                onSelect={(date) => form.setValue('applicationDate', date || new Date())}
-                placeholder="Application date"
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <div>
+              <Label>Work Permit Experience</Label>
+              <Textarea 
+                {...form.register('workPermitExp')} 
+                placeholder="Enter Work Permit Experience" 
               />
+              </div>
             </div>
           </CardContent>
         </div>
@@ -1320,7 +1656,7 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+              
               Additional Information
             </CardTitle>
           </CardHeader>
@@ -1365,19 +1701,81 @@ export const RegisterPersonForm = () => {
         );
 
       case 4:
+        if (isViewMode) {
+          return (
+            <>
+              <div>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Verification Section
+                  </CardTitle>
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
+                  <hr />
+                  <div className="space-y-4">
+                    <h4 className="font-medium capitalize text-[#6B7280]">
+                      Marital Status Verification
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <PreviewField label="Verified By" value="Birth Certificate" />
+                      <PreviewField label="Date of Verification" value="01/15/2024" />
+                      <PreviewField label="Verified By (User)" value="John Smith" />
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="font-medium capitalize text-[#6B7280]">
+                      Birth Status Verification
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <PreviewField label="Verified By" value="Birth Certificate" />
+                      <PreviewField label="Date of Verification" value="01/15/2024" />
+                      <PreviewField label="Verified By (User)" value="John Smith" />
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="font-medium capitalize text-[#6B7280]">
+                      Death Status Verification
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <PreviewField label="Verified By" value="Not Applicable" />
+                      <PreviewField label="Date of Verification" value="Not Applicable" />
+                      <PreviewField label="Verified By (User)" value="Not Applicable" />
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="font-medium capitalize text-[#6B7280]">
+                      Name Status Verification
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <PreviewField label="Verified By" value="Birth Certificate" />
+                      <PreviewField label="Date of Verification" value="01/15/2024" />
+                      <PreviewField label="Verified By (User)" value="John Smith" />
+                    </div>
+                  </div>
+                </CardContent>
+              </div>
+            </>
+          );
+        }
+        
         return (
           <>
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
               Verification Section
             </CardTitle>
           </CardHeader>
+          
           <CardContent className="space-y-6">
+          <hr />
             {Object.entries(verification).map(([key, value]) => (
               <div key={key} className="space-y-4">
-                <h4 className="font-medium capitalize">
+                <h4 className="font-medium capitalize text-[#6B7280]">
                   {key.replace(/([A-Z])/g, ' $1').trim()} Verification
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1588,13 +1986,15 @@ export const RegisterPersonForm = () => {
     <div className="space-y-6">
       {/* Stepper */}
       <Card className='py-5' style={{backgroundColor:"#F9FAFB"}}>
-          <div className='px-5'>
-            <Stepper 
+          <div className='px-5 mb-6'>
+            <Card className='p-3'>
+              <Stepper 
             steps={steps} 
             currentStep={currentStep} 
             onStepClick={goToStep}
-            className="mb-6"
+            className=""
           />
+            </Card>
           </div>
        
 
@@ -1610,31 +2010,13 @@ export const RegisterPersonForm = () => {
               variant="outline"
               onClick={prevStep}
               disabled={currentStep === 0}
-              className="flex items-center gap-2 border-l-4 shadow-md mr-5"
+              className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100 mr-5"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
             
-            {location.pathname.includes('/person/view/') && (
-              <>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button type="button" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Generate ID Card
-                </Button>
-                <Button type="button" variant="outline" className="flex items-center gap-2">
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
-                <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
-                  Change Account Status
-                </Button>
-              </>
-            )}
+            
           </div>
 
           <div className="flex gap-3">
@@ -1642,9 +2024,9 @@ export const RegisterPersonForm = () => {
               <Button
                 type="button"
                 onClick={nextStep}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
               >
-                Next
+                Continue
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (

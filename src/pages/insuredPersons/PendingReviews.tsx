@@ -4,12 +4,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Clock, AlertTriangle, CheckCircle, Eye, Edit, ArrowLeft, Home } from 'lucide-react';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 
 const PendingReviews = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  
   // Replace the pendingItems mock data and table with insuredPersons data and table
   // --- Add insuredPersons mock data (from IPListing) ---
   const insuredPersons = [
@@ -107,37 +108,24 @@ const PendingReviews = () => {
     }
   ];
 
-
   const handleViewDetails = (person: any) => {
     console.log('Viewing details for:', person);
     navigate(`/person/view/${person.ssn}`, { state: { status: person.status } });
   };
+
   const handleReview = (item: any) => {
     console.log('Reviewing item:', item);
     // Navigate to review page or open modal
   };
 
-  const handleApprove = (id: number) => {
+  const handleApprove = (id: number | string) => {
     console.log('Approving item:', id);
     // Handle approval logic
   };
 
-  const handleReject = (id: number) => {
+  const handleReject = (id: number | string) => {
     console.log('Rejecting item:', id);
     // Handle rejection logic
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'High':
-        return <Badge variant="destructive">High</Badge>;
-      case 'Medium':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-      case 'Low':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Low</Badge>;
-      default:
-        return <Badge variant="secondary">{priority}</Badge>;
-    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -153,256 +141,103 @@ const PendingReviews = () => {
     }
   };
 
-  const getDaysWaitingBadge = (days: number) => {
-    if (days > 14) {
-      return <Badge variant="destructive" className="flex items-center gap-1">
-        <AlertTriangle className="h-3 w-3" />
-        {days} days
-      </Badge>;
-    } else if (days > 7) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 flex items-center gap-1">
-        <Clock className="h-3 w-3" />
-        {days} days
-      </Badge>;
-    } else {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800">
-        {days} days
-      </Badge>;
-    }
-  };
+  // Define table columns
+  const columns: DataTableColumn[] = [
+    { key: 'ssn', label: 'Application ID', minWidth: '80px' },
+    { key: 'surname', label: 'Sur Name', minWidth: '100px' },
+    { key: 'firstname', label: 'First Name', minWidth: '100px' },
+    { key: 'middlename', label: 'Middle Name', minWidth: '100px' },
+    { key: 'previousName', label: 'Previous Name', minWidth: '100px' },
+    { key: 'status', label: 'Status', minWidth: '80px' },
+    { 
+      key: 'dob', 
+      label: 'DOB', 
+      minWidth: '100px',
+      render: (value) => new Date(value).toLocaleDateString()
+    },
+    { key: 'sex', label: 'Sex', minWidth: '80px' },
+    { key: 'alias', label: 'Alias', minWidth: '80px' },
+    { key: 'primaryOccup', label: 'Primary Occup', minWidth: '120px' },
+    { key: 'selfRefNo', label: 'Self Ref No.', minWidth: '100px' },
+    { key: 'aspNum', label: 'ASP Num.', minWidth: '100px' },
+    { key: 'residentAddr1', label: 'Resident Addr1', minWidth: '150px' },
+    { key: 'residentAddr2', label: 'Resident Addr2', minWidth: '150px' },
+    { key: 'district', label: 'District', minWidth: '120px' },
+    { key: 'mailAddr1', label: 'Mail Addr1', minWidth: '150px' },
+    { key: 'mailAddr2', label: 'Mail Addr2', minWidth: '150px' },
+    { key: 'birthPlace', label: 'Birth Place', minWidth: '100px' },
+    { key: 'nationality', label: 'Nationality', minWidth: '100px' },
+    { key: 'dateOfResidency', label: 'Date of Residency', minWidth: '120px' },
+    { key: 'maritalStatus', label: 'Marital Status', minWidth: '100px' },
+    { key: 'dateMarried', label: 'Date Married', minWidth: '100px' },
+    { key: 'spouseName', label: 'Spouse Name', minWidth: '120px' },
+    { key: 'spouseAddr', label: 'Spouse Addr', minWidth: '150px' },
+    { key: 'fatherName', label: 'Father\'s Name', minWidth: '120px' },
+    { key: 'motherName', label: 'Mother\'s Name', minWidth: '120px' },
+    { key: 'beneficiary', label: 'Beneficiary', minWidth: '100px' },
+    { key: 'benAddr', label: 'Ben Addr', minWidth: '150px' },
+    { key: 'contactName', label: 'Contact', minWidth: '120px' },
+    { key: 'contactRelation', label: 'Contact Relation', minWidth: '120px' },
+    { key: 'contactAddr', label: 'Contact Addr', minWidth: '150px' },
+    { key: 'phone', label: 'Phone', minWidth: '120px' },
+    { key: 'workPermit', label: 'Work Permit', minWidth: '100px' },
+    { key: 'npf', label: 'NPF', minWidth: '80px' },
+    { key: 'dateOfDeath', label: 'Date Died', minWidth: '100px' },
+    { key: 'verifyBirth', label: 'Verify Birth', minWidth: '120px' },
+    { key: 'verifyName', label: 'Verify Name', minWidth: '120px' },
+    { key: 'verifyMaritalStatus', label: 'Verify Marital', minWidth: '120px' },
+    { key: 'verifyDeath', label: 'Verify Death', minWidth: '120px' },
+    { key: 'dateVerified', label: 'Date Verified', minWidth: '120px' },
+    { key: 'verifiedBy', label: 'Verified By', minWidth: '120px' },
+    { key: 'applicationDate', label: 'Application Date', minWidth: '120px' },
+    { key: 'registrationDate', label: 'Registration Date', minWidth: '120px' },
+  ];
 
   return (
-    <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {location.pathname === '/person/pending-reviews' && (
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button 
-              variant="outline" 
-              onClick={() => navigate('/person/management')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to Dashboard</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
+                        variant="outline" 
+                         onClick={() => navigate('/person/management')}
+                        className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                       
+                        <span className="sm:hidden">Back</span>
+                      </Button>
+           
             <div className="h-6 w-px bg-gray-300" />
             <div>
               <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Verification</h1>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 self-start lg:self-center"
-          >
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Main Menu</span>
-          </Button>
+          
         </div>
       )}
-      {/* Summary Cards */}
-      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">{insuredPersons.length}</div>
-            <p className="text-xs text-muted-foreground">Awaiting review</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">
-              {insuredPersons.filter(person => person.status === 'High').length}
-            </div>
-            <p className="text-xs text-muted-foreground">Urgent attention needed</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue ({`>`}14 days)</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">
-              {insuredPersons.filter(person => person.dateOfResidency && new Date(person.dateOfResidency).getTime() < new Date().getTime() - 14 * 24 * 60 * 60 * 1000).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Past target time</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Wait Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl lg:text-2xl font-bold">
-              {Math.round(insuredPersons.reduce((sum, person) => sum + (new Date(person.applicationDate).getTime() - new Date(person.registrationDate).getTime()), 0) / insuredPersons.length)} days
-            </div>
-            <p className="text-xs text-muted-foreground">Average processing time</p>
-          </CardContent>
-        </Card>
-      </div>*/}
 
-
-
-      {/* Pending Reviews Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Pending Verification ({insuredPersons.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[80px]">Application ID</TableHead>
-                  <TableHead className="min-w-[100px]">Sur Name</TableHead>
-                  <TableHead className="min-w-[100px]">First Name</TableHead>
-                  <TableHead className="min-w-[100px]">Middle Name</TableHead>
-                  <TableHead className="min-w-[100px]">Previous Name</TableHead>
-                  <TableHead className="min-w-[80px]">Status</TableHead>
-                  <TableHead className="min-w-[100px]">DOB</TableHead>
-                  <TableHead className="min-w-[80px]">Sex</TableHead>
-                  <TableHead className="min-w-[80px]">Alias</TableHead>
-                  <TableHead className="min-w-[120px]">Primary Occup</TableHead>
-                  <TableHead className="min-w-[100px]">Self Ref No.</TableHead>
-                  
-                  <TableHead className="min-w-[100px]">ASP Num.</TableHead>
-                  <TableHead className="min-w-[150px]">Resident Addr1</TableHead>
-                  <TableHead className="min-w-[150px]">Resident Addr2</TableHead>
-                  <TableHead className="min-w-[120px]">District</TableHead>
-                  <TableHead className="min-w-[150px]">Mail Addr1</TableHead>
-                  <TableHead className="min-w-[150px]">Mail Addr2</TableHead>
-                  <TableHead className="min-w-[100px]">Birth Place</TableHead>
-                  <TableHead className="min-w-[100px]">Nationality</TableHead>
-                  <TableHead className="min-w-[120px]">Date of Residency</TableHead>
-                  <TableHead className="min-w-[100px]">Marital Status</TableHead>
-                  <TableHead className="min-w-[100px]">Date Married</TableHead>
-                  <TableHead className="min-w-[120px]">Spouse Name</TableHead>
-                  <TableHead className="min-w-[150px]">Spouse Addr</TableHead>
-                  <TableHead className="min-w-[120px]">Father's Name</TableHead>
-                  <TableHead className="min-w-[120px]">Mother's Name</TableHead>
-                  <TableHead className="min-w-[100px]">Beneficiary</TableHead>
-                  <TableHead className="min-w-[150px]">Ben Addr</TableHead>
-                  <TableHead className="min-w-[120px]">Contact</TableHead>
-                  <TableHead className="min-w-[120px]">Contact Relation</TableHead>
-                  <TableHead className="min-w-[150px]">Contact Addr</TableHead>
-                  <TableHead className="min-w-[120px]">Phone</TableHead>
-                  <TableHead className="min-w-[100px]">Work Permit</TableHead>
-                  <TableHead className="min-w-[80px]">NPF</TableHead>
-                  <TableHead className="min-w-[100px]">Date Died</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Birth</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Name</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Marital</TableHead>
-                  <TableHead className="min-w-[120px]">Verify Death</TableHead>
-                  <TableHead className="min-w-[120px]">Date Verified</TableHead>
-                  <TableHead className="min-w-[120px]">Verified By</TableHead>
-                  <TableHead className="min-w-[120px]">Application Date</TableHead>
-                  <TableHead className="min-w-[120px]">Registration Date</TableHead>
-                  <TableHead className="min-w-[150px] sticky right-0 bg-background">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {insuredPersons.map((person, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{person.ssn}</TableCell>
-                    <TableCell>{person.surname}</TableCell>
-                    <TableCell>{person.firstname}</TableCell>
-                    <TableCell>{person.middlename}</TableCell>
-                    <TableCell>{person.previousName}</TableCell>
-                    <TableCell>{getStatusBadge(person.status)}</TableCell>
-                    <TableCell>{new Date(person.dob).toLocaleDateString()}</TableCell>
-                    <TableCell>{person.sex}</TableCell>
-                    <TableCell>{person.alias}</TableCell>
-                    <TableCell>{person.primaryOccup}</TableCell>
-                    <TableCell>{person.selfRefNo}</TableCell>
-                    
-                    <TableCell>{person.aspNum}</TableCell>
-                    <TableCell>{person.residentAddr1}</TableCell>
-                    <TableCell>{person.residentAddr2}</TableCell>
-                    <TableCell>{person.district}</TableCell>
-                    <TableCell>{person.mailAddr1}</TableCell>
-                    <TableCell>{person.mailAddr2}</TableCell>
-                    <TableCell>{person.birthPlace}</TableCell>
-                    <TableCell>{person.nationality}</TableCell>
-                    <TableCell>{person.dateOfResidency}</TableCell>
-                    <TableCell>{person.maritalStatus}</TableCell>
-                    <TableCell>{person.dateMarried}</TableCell>
-                    <TableCell>{person.spouseName}</TableCell>
-                    <TableCell>{person.spouseAddr}</TableCell>
-                    <TableCell>{person.fatherName}</TableCell>
-                    <TableCell>{person.motherName}</TableCell>
-                    <TableCell>{person.beneficiary}</TableCell>
-                    <TableCell>{person.benAddr}</TableCell>
-                    <TableCell>{person.contactName}</TableCell>
-                    <TableCell>{person.contactRelation}</TableCell>
-                    <TableCell>{person.contactAddr}</TableCell>
-                    <TableCell>{person.phone}</TableCell>
-                    <TableCell>{person.workPermit}</TableCell>
-                    <TableCell>{person.npf}</TableCell>
-                    <TableCell>{person.dateOfDeath}</TableCell>
-                    <TableCell>{person.verifyBirth}</TableCell>
-                    <TableCell>{person.verifyName}</TableCell>
-                    <TableCell>{person.verifyMaritalStatus}</TableCell>
-                    <TableCell>{person.verifyDeath}</TableCell>
-                    <TableCell>{person.dateVerified}</TableCell>
-                    <TableCell>{person.verifiedBy}</TableCell>
-                    <TableCell>{person.applicationDate}</TableCell>
-                    <TableCell>{person.registrationDate}</TableCell>
-                    <TableCell className="sticky right-0 bg-background">
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="View Details"
-                          onClick={() => handleViewDetails(person)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          title="Edit"
-                          onClick={() => handleReview(person)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          title="Approve"
-                          onClick={() => handleApprove(Number(person.ssn) || 0)}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          title="Reject"
-                          onClick={() => handleReject(Number(person.ssn) || 0)}
-                        >
-                          <AlertTriangle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Data Table */}
+      <DataTable
+        data={insuredPersons}
+        columns={columns}
+        title="Pending Verification"
+        searchPlaceholder="Search by Application ID, Employer Name..."
+        showRecordsOptions={[10, 25, 50, 100]}
+        onView={handleViewDetails}
+        onEdit={handleReview}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        actions={{
+          view: true,
+          edit: true,
+          approve: true,
+          reject: true
+        }}
+        idField="ssn"
+        statusField="status"
+        getStatusBadge={getStatusBadge}
+      />
     </div>
   );
 };

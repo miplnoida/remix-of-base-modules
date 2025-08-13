@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Home, Search, Download, FileText, Calendar, Shield, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
+import { ArrowLeft, Home, Search, Download, FileText, Calendar, Shield, AlertCircle, CheckCircle, Clock, IdCard, AlertTriangle } from 'lucide-react';
 
 const ClaimHistory = () => {
   const navigate = useNavigate();
@@ -149,43 +149,119 @@ const ClaimHistory = () => {
 
   const totalClaimed = claimsData.reduce((sum, claim) => sum + claim.claimAmount, 0);
 
+  // Define columns for DataTable
+  const columns: DataTableColumn[] = [
+    {
+      key: 'claimNumber',
+      label: 'Claim Number',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{value}</span>
+    },
+    {
+      key: 'ssn',
+      label: 'SSN',
+      minWidth: '80px'
+    },
+    {
+      key: 'claimantName',
+      label: 'Claimant',
+      minWidth: '120px'
+    },
+    {
+      key: 'claimType',
+      label: 'Claim Type',
+      minWidth: '150px'
+    },
+    {
+      key: 'dateSubmitted',
+      label: 'Date Submitted',
+      minWidth: '120px'
+    },
+    {
+      key: 'dateProcessed',
+      label: 'Date Processed',
+      minWidth: '120px',
+      render: (value) => value || 'N/A'
+    },
+    {
+      key: 'claimAmount',
+      label: 'Claim Amount',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{formatCurrency(value)}</span>
+    },
+    {
+      key: 'approvedAmount',
+      label: 'Approved Amount',
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{value > 0 ? formatCurrency(value) : 'N/A'}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      minWidth: '120px'
+    },
+    {
+      key: 'reason',
+      label: 'Reason',
+      minWidth: '200px',
+      render: (value) => (
+        <span className="max-w-[200px] truncate" title={value}>
+          {value}
+        </span>
+      )
+    },
+    {
+      key: 'paymentDate',
+      label: 'Payment Date',
+      minWidth: '120px',
+      render: (value) => value || 'N/A'
+    }
+  ];
+
+  const handleViewClaim = (claim: any) => {
+    console.log('Viewing claim:', claim);
+    // Navigate to claim details page
+    // navigate(`/person/claims/${claim.id}`);
+  };
+
+  const handleEditClaim = (claim: any) => {
+    console.log('Editing claim:', claim);
+    // Navigate to edit claim page
+    // navigate(`/person/claims/${claim.id}/edit`);
+  };
+
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Navigation Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/person/management')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-          <div className="h-6 w-px bg-gray-300" />
-          <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
-          <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Claim History</h1>
-            <p className="text-sm lg:text-base text-gray-600 hidden sm:block">View and manage benefit claims history</p>
-          </div>
-        </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 self-start lg:self-center"
-        >
-          <Home className="h-4 w-4" />
-          <span className="hidden sm:inline">Main Menu</span>
-        </Button>
-      </div>
+              <div className="flex items-center gap-3">
+                <Button 
+                            variant="outline" 
+                            onClick={() => navigate('/person/management')}
+                            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                           
+                            <span className="sm:hidden">Back</span>
+                          </Button>
+                <div className="h-6 w-px bg-gray-300" />
+                
+                <div>
+                  <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Claim History</h1>
+                   </div>
+              </div>
+           
+            </div>
+      
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
+                  <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+                </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">{claimsData.length}</div>
@@ -196,7 +272,9 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Approved Claims</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-orange-500 to-orange-600  shadow-lg`}>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground text-white" />
+                </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">
@@ -209,7 +287,9 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claimed</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
+                              <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+                            </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">{formatCurrency(totalClaimed)}</div>
@@ -220,7 +300,9 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Approved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-yellow-500 to-yellow-600  shadow-lg`}>
+                              <Clock className="h-4 w-4 text-muted-foreground text-white" />
+                            </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">{formatCurrency(totalApproved)}</div>
@@ -301,54 +383,18 @@ const ClaimHistory = () => {
         </CardContent>
       </Card>
 
-      {/* Claims History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base lg:text-lg">Claims Records ({claimsData.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[120px]">Claim Number</TableHead>
-                  <TableHead className="min-w-[80px]">SSN</TableHead>
-                  <TableHead className="min-w-[120px]">Claimant</TableHead>
-                  <TableHead className="min-w-[150px]">Claim Type</TableHead>
-                  <TableHead className="min-w-[120px]">Date Submitted</TableHead>
-                  <TableHead className="min-w-[120px]">Date Processed</TableHead>
-                  <TableHead className="min-w-[120px]">Claim Amount</TableHead>
-                  <TableHead className="min-w-[120px]">Approved Amount</TableHead>
-                  <TableHead className="min-w-[120px]">Status</TableHead>
-                  <TableHead className="min-w-[200px]">Reason</TableHead>
-                  <TableHead className="min-w-[120px]">Payment Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {claimsData.map((claim) => (
-                  <TableRow key={claim.id}>
-                    <TableCell className="font-medium">{claim.claimNumber}</TableCell>
-                    <TableCell>{claim.ssn}</TableCell>
-                    <TableCell>{claim.claimantName}</TableCell>
-                    <TableCell>{claim.claimType}</TableCell>
-                    <TableCell>{claim.dateSubmitted}</TableCell>
-                    <TableCell>{claim.dateProcessed || 'N/A'}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(claim.claimAmount)}</TableCell>
-                    <TableCell className="font-medium">
-                      {claim.approvedAmount > 0 ? formatCurrency(claim.approvedAmount) : 'N/A'}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(claim.status)}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={claim.reason}>
-                      {claim.reason}
-                    </TableCell>
-                    <TableCell>{claim.paymentDate || 'N/A'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Claims History DataTable */}
+      <DataTable
+        data={claimsData}
+        columns={columns}
+        title="Claims Records"
+        searchPlaceholder="Search claims..."
+        onView={handleViewClaim}
+        onEdit={handleEditClaim}
+        actions={{ view: false, edit: false, approve: false, reject: false }}
+        getStatusBadge={getStatusBadge}
+        statusField="status"
+      />
     </div>
   );
 };

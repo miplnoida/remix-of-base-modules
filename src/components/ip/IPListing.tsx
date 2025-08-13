@@ -7,14 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 import {
   Search,
   Edit,
@@ -217,25 +210,56 @@ export const IPListing = () => {
     }
   };
 
-  // Sample pending reviews data
-  const pendingReviews = [
-    {
-      ssn: '789012',
-      surname: 'Smith',
-      firstname: 'Jane',
-      middlename: 'Elizabeth',
-      dob: '1990-07-22',
-      sex: 'Female',
-      primaryOccup: 'Administrative Assistance',
-      selfRefNo: 'IP002',
-      aspNum: 'ASP456',
-      status: 'Pending Review',
-      phone: '+1869-469-5678',
-      email: 'jane.smith@email.com',
-      applicationDate: '2024-01-20',
-      submittedBy: 'Registration Officer',
-      reviewRequired: 'Document Verification'
-    }
+  // Define table columns
+  const columns: DataTableColumn[] = [
+    { key: 'ssn', label: 'SSN', minWidth: '80px' },
+    { key: 'surname', label: 'Sur Name', minWidth: '100px' },
+    { key: 'firstname', label: 'First Name', minWidth: '100px' },
+    { key: 'middlename', label: 'Middle Name', minWidth: '100px' },
+    { key: 'previousName', label: 'Previous Name', minWidth: '100px' },
+    { 
+      key: 'dob', 
+      label: 'DOB', 
+      minWidth: '100px',
+      render: (value) => new Date(value).toLocaleDateString()
+    },
+    { key: 'sex', label: 'Sex', minWidth: '80px' },
+    { key: 'alias', label: 'Alias', minWidth: '80px' },
+    { key: 'primaryOccup', label: 'Primary Occup', minWidth: '120px' },
+    { key: 'selfRefNo', label: 'Self Ref No.', minWidth: '100px' },
+    { key: 'status', label: 'Status', minWidth: '80px' },
+    { key: 'aspNum', label: 'ASP Num.', minWidth: '100px' },
+    { key: 'residentAddr1', label: 'Resident Addr1', minWidth: '150px' },
+    { key: 'residentAddr2', label: 'Resident Addr2', minWidth: '150px' },
+    { key: 'district', label: 'District', minWidth: '120px' },
+    { key: 'mailAddr1', label: 'Mail Addr1', minWidth: '150px' },
+    { key: 'mailAddr2', label: 'Mail Addr2', minWidth: '150px' },
+    { key: 'birthPlace', label: 'Birth Place', minWidth: '100px' },
+    { key: 'nationality', label: 'Nationality', minWidth: '100px' },
+    { key: 'dateOfResidency', label: 'Date of Residency', minWidth: '120px' },
+    { key: 'maritalStatus', label: 'Marital Status', minWidth: '100px' },
+    { key: 'dateMarried', label: 'Date Married', minWidth: '100px' },
+    { key: 'spouseName', label: 'Spouse Name', minWidth: '120px' },
+    { key: 'spouseAddr', label: 'Spouse Addr', minWidth: '150px' },
+    { key: 'fatherName', label: 'Father\'s Name', minWidth: '120px' },
+    { key: 'motherName', label: 'Mother\'s Name', minWidth: '120px' },
+    { key: 'beneficiary', label: 'Beneficiary', minWidth: '100px' },
+    { key: 'benAddr', label: 'Ben Addr', minWidth: '150px' },
+    { key: 'contactName', label: 'Contact', minWidth: '120px' },
+    { key: 'contactRelation', label: 'Contact Relation', minWidth: '120px' },
+    { key: 'contactAddr', label: 'Contact Addr', minWidth: '150px' },
+    { key: 'phone', label: 'Phone', minWidth: '120px' },
+    { key: 'workPermit', label: 'Work Permit', minWidth: '100px' },
+    { key: 'npf', label: 'NPF', minWidth: '80px' },
+    { key: 'dateOfDeath', label: 'Date Died', minWidth: '100px' },
+    { key: 'verifyBirth', label: 'Verify Birth', minWidth: '120px' },
+    { key: 'verifyName', label: 'Verify Name', minWidth: '120px' },
+    { key: 'verifyMaritalStatus', label: 'Verify Marital', minWidth: '120px' },
+    { key: 'verifyDeath', label: 'Verify Death', minWidth: '120px' },
+    { key: 'dateVerified', label: 'Date Verified', minWidth: '120px' },
+    { key: 'verifiedBy', label: 'Verified By', minWidth: '120px' },
+    { key: 'applicationDate', label: 'Application Date', minWidth: '120px' },
+    { key: 'registrationDate', label: 'Registration Date', minWidth: '120px' },
   ];
 
   return (
@@ -367,7 +391,7 @@ export const IPListing = () => {
           </Collapsible> */}
 
           {/* IP Listing Section - Table Layout with Enhanced Actions */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="text-base lg:text-lg">Insured Persons ({insuredPersons.length})</CardTitle>
             </CardHeader>
@@ -509,7 +533,25 @@ export const IPListing = () => {
                 </Table>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
+
+      {/* Data Table */}
+      <DataTable
+        data={insuredPersons}
+        columns={columns}
+        title="Insured Persons"
+        searchPlaceholder="Search by SSN, Name, Phone..."
+        showRecordsOptions={[10, 25, 50, 100]}
+        onView={handleViewDetails}
+        onEdit={handleEditDetails}
+        actions={{
+          view: true,
+          edit: true
+        }}
+        idField="ssn"
+        statusField="status"
+        getStatusBadge={getStatusBadge}
+      />
     </div>
   );
 };
