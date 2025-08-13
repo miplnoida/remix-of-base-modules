@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,9 @@ interface Note {
 }
 
 export const NotesTab = () => {
+  const location = useLocation();
+  const isViewMode = location.pathname.includes('/person/view/');
+  
   const [notes, setNotes] = useState<Note[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newNote, setNewNote] = useState<Partial<Note>>({
@@ -29,11 +33,47 @@ export const NotesTab = () => {
   const [editNoteId, setEditNoteId] = useState<string | null>(null);
   const [editNote, setEditNote] = useState<Partial<Note> | null>(null);
 
-  const DatePicker = ({ date, onSelect, placeholder }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string }) => (
+  // Mock data for preview
+  const previewNotes: Note[] = [
+    {
+      id: '1',
+      noteDate: new Date('2024-03-15'),
+      note: 'Initial registration completed. All required documents submitted and verified. Person is eligible for benefits.',
+      userId: 'admin-001',
+      createdAt: new Date('2024-03-15')
+    },
+    {
+      id: '2',
+      noteDate: new Date('2024-03-20'),
+      note: 'Address verification completed. Current address confirmed as 123 Main Street, Basseterre. No changes required.',
+      userId: 'clerk-002',
+      createdAt: new Date('2024-03-20')
+    },
+    {
+      id: '3',
+      noteDate: new Date('2024-03-25'),
+      note: 'Employment verification in progress. Waiting for employer response regarding current employment status.',
+      userId: 'verifier-003',
+      createdAt: new Date('2024-03-25')
+    },
+    {
+      id: '4',
+      noteDate: new Date('2024-03-28'),
+      note: 'Employment verification completed. Person is currently employed at ABC Company. Benefits activation approved.',
+      userId: 'admin-001',
+      createdAt: new Date('2024-03-28')
+    }
+  ];
+
+  // Use preview data in view mode, otherwise use actual notes
+  const displayNotes = isViewMode ? previewNotes : notes;
+
+  const DatePicker = ({ date, onSelect, placeholder, disabled }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string, disabled?: boolean }) => (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground"
@@ -43,15 +83,17 @@ export const NotesTab = () => {
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={onSelect}
-          initialFocus
-          className="p-3 pointer-events-auto"
-        />
-      </PopoverContent>
+      {!disabled && (
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={onSelect}
+            initialFocus
+            className="p-3 pointer-events-auto"
+          />
+        </PopoverContent>
+      )}
     </Popover>
   );
 
@@ -103,15 +145,17 @@ export const NotesTab = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Notes
-            <Button onClick={() => setShowAddForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Note
-            </Button>
+            {!isViewMode && (
+              <Button onClick={() => setShowAddForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Note
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
           {/* Add Note Form */}
-          {showAddForm && (
+          {showAddForm && !isViewMode && (
             <Card className="border-2 border-dashed">
               <CardHeader>
                 <CardTitle className="text-base">Add New Note</CardTitle>
@@ -160,7 +204,7 @@ export const NotesTab = () => {
 
           {/* Notes List */}
           <div className="space-y-4">
-            {notes.length === 0 ? (
+            {displayNotes.length === 0 ? (
               <p className="text-gray-500 text-center py-20">
                 <svg className='mx-auto' width="46" height="52" viewBox="0 0 46 52" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M22.4689 32.5216L22.5697 32.5242L22.6523 32.5139C23.0192 32.4648 24.4916 32.1652 24.5071 30.5945C24.5072 30.522 24.5106 30.4496 24.5175 30.3775C25.569 30.0516 26.5218 29.4667 27.2883 28.6765C28.0548 27.8863 28.6104 26.9162 28.9041 25.8552C29.1978 24.7942 29.2202 23.6764 28.9691 22.6046C28.7181 21.5327 28.2017 20.5411 27.4674 19.7209C26.7332 18.9006 25.8045 18.2781 24.7669 17.9104C23.7292 17.5427 22.6158 17.4417 21.5289 17.6167C20.442 17.7916 19.4165 18.2369 18.5466 18.9116C17.6767 19.5863 16.9904 20.4688 16.5505 21.478C16.4425 21.712 16.3822 21.9652 16.3732 22.2228C16.3643 22.4804 16.4068 22.7371 16.4983 22.9781C16.5898 23.219 16.7284 23.4393 16.9061 23.626C17.0838 23.8127 17.297 23.962 17.5331 24.0653C17.7692 24.1686 18.0236 24.2238 18.2813 24.2275C18.539 24.2313 18.7949 24.1836 19.0339 24.0872C19.273 23.9908 19.4904 23.8478 19.6735 23.6663C19.8565 23.4849 20.0015 23.2687 20.1 23.0306C20.3484 22.4649 20.7836 22.0018 21.3327 21.7188C21.8818 21.4357 22.5115 21.35 23.1163 21.4759C23.7211 21.6019 24.2643 21.9318 24.6548 22.4105C25.0453 22.8891 25.2595 23.4875 25.2615 24.1052C25.2615 25.3504 24.4141 26.3992 23.2646 26.7066C22.5645 26.8508 21.9322 27.2237 21.4673 27.7667C21.0024 28.3097 20.7314 28.9919 20.6968 29.7058C20.6373 30.1243 20.6322 30.5583 20.6322 30.5583V30.5867C20.6322 31.0832 20.8227 31.5607 21.1645 31.9207C21.5062 32.2807 21.9732 32.4958 22.4689 32.5216Z" fill="#D6D6D6"/>
@@ -172,7 +216,7 @@ export const NotesTab = () => {
               
             ) : (
               <div className="space-y-4">
-                {notes.map((note) => (
+                {displayNotes.map((note) => (
                   <Card key={note.id}>
                     <CardContent className="pt-4">
                       <div className="flex justify-between items-start">
@@ -192,7 +236,7 @@ export const NotesTab = () => {
                               Created: {format(note.createdAt, 'PPP')}
                             </span>
                           </div>
-                          {editNoteId === note.id ? (
+                          {editNoteId === note.id && !isViewMode ? (
                             <div className="space-y-2">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -234,14 +278,16 @@ export const NotesTab = () => {
                             <p className="text-gray-700 whitespace-pre-wrap">{note.note}</p>
                           )}
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleEditClick(note)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => removeNote(note.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {!isViewMode && (
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditClick(note)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => removeNote(note.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

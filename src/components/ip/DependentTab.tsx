@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,9 @@ interface Dependent {
 }
 
 export const DependentTab = () => {
+  const location = useLocation();
+  const isViewMode = location.pathname.includes('/person/view/');
+  
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchSSN, setSearchSSN] = useState('');
@@ -39,11 +43,64 @@ export const DependentTab = () => {
     status: 'Active'
   });
 
-  const DatePicker = ({ date, onSelect, placeholder }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string }) => (
+  // Mock data for preview
+  const previewDependents: Dependent[] = [
+    {
+      id: '1',
+      surname: 'Smith',
+      firstName: 'Emma',
+      middleName: 'Grace',
+      address: '123 Main Street, Basseterre',
+      sex: 'Female',
+      dob: new Date('2010-05-15'),
+      relation: 'Child',
+      schoolChild: true,
+      invalid: false,
+      status: 'Active',
+      dateModified: new Date('2024-01-15'),
+      userId: 'user-001'
+    },
+    {
+      id: '2',
+      surname: 'Smith',
+      firstName: 'Michael',
+      middleName: 'James',
+      address: '123 Main Street, Basseterre',
+      sex: 'Male',
+      dob: new Date('2008-12-03'),
+      relation: 'Child',
+      schoolChild: true,
+      invalid: false,
+      status: 'Active',
+      dateModified: new Date('2024-01-15'),
+      userId: 'user-001'
+    },
+    {
+      id: '3',
+      surname: 'Johnson',
+      firstName: 'Sarah',
+      middleName: 'Marie',
+      address: '456 Oak Avenue, Charlestown',
+      sex: 'Female',
+      dob: new Date('1985-08-22'),
+      relation: 'Spouse',
+      schoolChild: false,
+      invalid: false,
+      status: 'Active',
+      dateModified: new Date('2024-01-10'),
+      userId: 'user-001'
+    }
+  ];
+
+  // Use preview data in view mode, otherwise use actual dependents
+  const displayDependents = isViewMode ? previewDependents : dependents;
+
+  const DatePicker = ({ date, onSelect, placeholder, disabled }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string, disabled?: boolean }) => (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground"
@@ -53,15 +110,17 @@ export const DependentTab = () => {
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={onSelect}
-          initialFocus
-          className="p-3 pointer-events-auto"
-        />
-      </PopoverContent>
+      {!disabled && (
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={onSelect}
+            initialFocus
+            className="p-3 pointer-events-auto"
+          />
+        </PopoverContent>
+      )}
     </Popover>
   );
 
@@ -103,14 +162,16 @@ export const DependentTab = () => {
       <Card style={{backgroundColor:"#F9FAFB"}}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Dependent Management</CardTitle>
-          <Button onClick={() => { setShowAddForm(true); setNewDependent({ schoolChild: false, invalid: false, status: 'Active' }); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Dependent
-          </Button>
+          {!isViewMode && (
+            <Button onClick={() => { setShowAddForm(true); setNewDependent({ schoolChild: false, invalid: false, status: 'Active' }); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Dependent
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
           {/* Add/Edit Dependent Form */}
-          {showAddForm && (
+          {showAddForm && !isViewMode && (
             <Card className="border-2 border-dashed">
               <CardHeader>
                 <CardTitle className="text-base">{newDependent.id ? 'Edit Dependent' : 'Add New Dependent'}</CardTitle>
@@ -262,7 +323,7 @@ export const DependentTab = () => {
 
           {/* Dependents List */}
           <div className="space-y-4">
-            {dependents.length === 0 ? (
+            {displayDependents.length === 0 ? (
               <p className="text-gray-500 text-center py-20">
                 <svg className='mx-auto' width="46" height="52" viewBox="0 0 46 52" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M22.4689 32.5216L22.5697 32.5242L22.6523 32.5139C23.0192 32.4648 24.4916 32.1652 24.5071 30.5945C24.5072 30.522 24.5106 30.4496 24.5175 30.3775C25.569 30.0516 26.5218 29.4667 27.2883 28.6765C28.0548 27.8863 28.6104 26.9162 28.9041 25.8552C29.1978 24.7942 29.2202 23.6764 28.9691 22.6046C28.7181 21.5327 28.2017 20.5411 27.4674 19.7209C26.7332 18.9006 25.8045 18.2781 24.7669 17.9104C23.7292 17.5427 22.6158 17.4417 21.5289 17.6167C20.442 17.7916 19.4165 18.2369 18.5466 18.9116C17.6767 19.5863 16.9904 20.4688 16.5505 21.478C16.4425 21.712 16.3822 21.9652 16.3732 22.2228C16.3643 22.4804 16.4068 22.7371 16.4983 22.9781C16.5898 23.219 16.7284 23.4393 16.9061 23.626C17.0838 23.8127 17.297 23.962 17.5331 24.0653C17.7692 24.1686 18.0236 24.2238 18.2813 24.2275C18.539 24.2313 18.7949 24.1836 19.0339 24.0872C19.273 23.9908 19.4904 23.8478 19.6735 23.6663C19.8565 23.4849 20.0015 23.2687 20.1 23.0306C20.3484 22.4649 20.7836 22.0018 21.3327 21.7188C21.8818 21.4357 22.5115 21.35 23.1163 21.4759C23.7211 21.6019 24.2643 21.9318 24.6548 22.4105C25.0453 22.8891 25.2595 23.4875 25.2615 24.1052C25.2615 25.3504 24.4141 26.3992 23.2646 26.7066C22.5645 26.8508 21.9322 27.2237 21.4673 27.7667C21.0024 28.3097 20.7314 28.9919 20.6968 29.7058C20.6373 30.1243 20.6322 30.5583 20.6322 30.5583V30.5867C20.6322 31.0832 20.8227 31.5607 21.1645 31.9207C21.5062 32.2807 21.9732 32.4958 22.4689 32.5216Z" fill="#D6D6D6"/>
@@ -273,7 +334,7 @@ export const DependentTab = () => {
                 No dependents added yet</p>
             ) : (
               <div className="space-y-4">
-                {dependents.map((dependent) => (
+                {displayDependents.map((dependent) => (
                   <Card key={dependent.id}>
                     <CardContent className="pt-4">
                       <div className="flex flex-col md:flex-row md:justify-between md:items-center">
@@ -283,15 +344,19 @@ export const DependentTab = () => {
                         </div>
                         {/* Action Buttons - right aligned on desktop */}
                         <div className="flex gap-2 md:ml-4 mt-2 md:mt-0 self-end md:self-center">
-                          <Button variant="outline" size="sm" onClick={() => {
-                            setShowAddForm(true);
-                            setNewDependent({ ...dependent });
-                          }}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => removeDependent(dependent.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!isViewMode && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setShowAddForm(true);
+                                setNewDependent({ ...dependent });
+                              }}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => removeDependent(dependent.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                       {/* Details Row - Sex/Relation and Status/Modified in a single row at the bottom */}
