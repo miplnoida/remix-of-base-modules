@@ -1650,25 +1650,7 @@ export const RegisterPersonForm = () => {
               Back
             </Button>
             
-            {location.pathname.includes('/person/view/') && (
-              <>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button type="button" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Generate ID Card
-                </Button>
-                <Button type="button" variant="outline" className="flex items-center gap-2">
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
-                <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={() => setAccountStatusModalOpen(true)}>
-                  Change Account Status
-                </Button>
-              </>
-            )}
+            
           </div>
 
           <div className="flex gap-3">

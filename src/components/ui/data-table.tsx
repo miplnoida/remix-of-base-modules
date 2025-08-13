@@ -18,7 +18,8 @@ import {
   Eye,
   Edit,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react';
 
 export interface DataTableColumn {
@@ -171,24 +172,23 @@ export const DataTable: React.FC<DataTableProps> = ({
   };
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        {/* Search and Show Records Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+    <>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:space-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-20 w-full">
             {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative w-full ">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-full w-4 text-gray-400" />
               <Input
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full sm:w-64"
+                className="pl-10 w-full"
               />
             </div>
 
             {/* Show Records Dropdown */}
             <div className="flex items-center gap-2">
+               <span className="text-sm text-gray-600">show</span>
               <Select value={recordsPerPage.toString()} onValueChange={handleRecordsPerPageChange}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
@@ -205,6 +205,10 @@ export const DataTable: React.FC<DataTableProps> = ({
             </div>
           </div>
         </div>
+    <Card>
+      <CardContent className="p-6">
+        {/* Search and Show Records Row */}
+        
 
         {/* Table Title, Export, and Filter Row */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -216,12 +220,10 @@ export const DataTable: React.FC<DataTableProps> = ({
             {/* Export Button */}
             <div className="relative">
               <Select onValueChange={(value) => handleExport(value as 'csv' | 'pdf')}>
-                <SelectTrigger className="w-auto">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
+                <SelectTrigger  className="w-auto border border-[#0284C7] text-[#0284C7]">
+                  <Download className="h-4 w-4 text-[#0284C7]" /> &nbsp;
                     Export
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                    &nbsp; 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="csv">Export as CSV</SelectItem>
@@ -239,7 +241,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
+                <DialogHeader className='mt-5'>
                   <div className="flex items-center justify-between">
                     <DialogTitle>Filter Fields</DialogTitle>
                     <div className="flex items-center gap-4">
@@ -252,14 +254,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                       <div className="flex items-center gap-2 text-sm">
                         <button 
                           onClick={handleSelectAllFilters}
-                          className="text-blue-600 hover:underline"
+                          className="text-blue-600 hover:underline text-[#0284C7]"
                         >
                           Select All
                         </button>
                         <span>|</span>
                         <button 
                           onClick={handleClearAllFilters}
-                          className="text-blue-600 hover:underline"
+                          className="text-blue-600 hover:underline text-[#0284C7]"
                         >
                           Clear All
                         </button>
@@ -286,7 +288,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                         checked={selectedFilters.includes(column.key)}
                         onCheckedChange={() => handleFilterToggle(column.key)}
                       />
-                      <Label htmlFor={column.key} className="text-sm">
+                      <Label htmlFor={column.key} className="text-sm m-0">
                         {column.label}
                       </Label>
                     </div>
@@ -427,5 +429,6 @@ export const DataTable: React.FC<DataTableProps> = ({
         </div>
       </CardContent>
     </Card>
+    </>
   );
 };
