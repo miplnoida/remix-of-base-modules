@@ -932,6 +932,7 @@ export const RegisterPersonForm = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* First Row: Surname, First Name, Middle Name */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="surname">Surname *</Label>
@@ -953,52 +954,50 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Second Row: Age, Maiden Name, Alias */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="age">Age *</Label>
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('age', parseInt(e.target.value))}
-                  placeholder="Enter age" 
+                  placeholder="Enter Age" 
                 />
                 {form.formState.errors.age && (
                   <p className="text-sm text-destructive">{form.formState.errors.age.message}</p>
                 )}
               </div>
-              <div className="flex items-end">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowNameDialog(true)}
-                  className="w-full"
-                >
-                  Name Details
-                </Button>
+              <div>
+                <Label htmlFor="maidenName">Maiden Name</Label>
+                <Input {...form.register('maidenName')} placeholder="Enter maiden name" />
+              </div>
+              <div>
+                <Label htmlFor="alias">Alias</Label>
+                <Input {...form.register('alias')} placeholder="Enter alias" />
               </div>
             </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Sex *</Label>
-                <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select sex" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border">
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Not Specified">Not Specified</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+<hr/>
+                         {/* Third Row: Sex, Date of Birth, Marital Status */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <div>
+                 <Label>Sex *</Label>
+                 <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
+                   <SelectTrigger className="bg-background">
+                     <SelectValue placeholder="Select sex" />
+                   </SelectTrigger>
+                   <SelectContent className="bg-background border">
+                     <SelectItem value="Male">Male</SelectItem>
+                     <SelectItem value="Female">Female</SelectItem>
+                     <SelectItem value="Not Specified">Not Specified</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
               <div>
                 <Label>Date of Birth *</Label>
                 <DatePicker
                   date={form.watch('dateOfBirth')}
                   onSelect={(date) => form.setValue('dateOfBirth', date!)}
-                  placeholder="Select date of birth"
+                  placeholder="mm/dd/yyyy"
                 />
                 {form.formState.errors.dateOfBirth && (
                   <p className="text-sm text-destructive">{form.formState.errors.dateOfBirth.message}</p>
@@ -1023,13 +1022,14 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Fourth Row: Height Feet, Height Inches, Birth Place */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Height (Feet)</Label>
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
-                  placeholder="e.g., 5" 
+                  placeholder="eg; 5" 
                 />
               </div>
               <div>
@@ -1037,27 +1037,14 @@ export const RegisterPersonForm = () => {
                 <Input 
                   type="number" 
                   onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
-                  placeholder="e.g., 8" 
+                  placeholder="eg; 8" 
                 />
               </div>
               <div>
                 <Label>Birth Place *</Label>
                 <Select onValueChange={(value) => form.setValue('birthPlace', value)}>
                   <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select birth place" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border">
-                    {countries.map((country) => (
-                      <SelectItem key={country} value={country}>{country}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Nationality *</Label>
-                <Select onValueChange={(value) => form.setValue('nationality', value)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select nationality" />
+                    <SelectValue placeholder="Select Birth Place" />
                   </SelectTrigger>
                   <SelectContent className="bg-background border">
                     {countries.map((country) => (
@@ -1068,17 +1055,21 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(form.watch('maritalStatus') === 'Married' || form.watch('maritalStatus') === 'Common Law') && (
-                <div>
-                  <Label>Date Married</Label>
-                  <DatePicker
-                    date={form.watch('dateMarried')}
-                    onSelect={(date) => form.setValue('dateMarried', date)}
-                    placeholder="Select date married"
-                  />
-                </div>
-              )}
+            {/* Fifth Row: Nationality, Eye Color */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Nationality *</Label>
+                <Select onValueChange={(value) => form.setValue('nationality', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select Nationality" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    {countries.map((country) => (
+                      <SelectItem key={country} value={country}>{country}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label>Eye Color</Label>
                 <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
@@ -1094,6 +1085,20 @@ export const RegisterPersonForm = () => {
                 </Select>
               </div>
             </div>
+
+            {/* Conditional Date Married field */}
+            {(form.watch('maritalStatus') === 'Married' || form.watch('maritalStatus') === 'Common Law') && (
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                <div>
+                  <Label>Date Married</Label>
+                  <DatePicker
+                    date={form.watch('dateMarried')}
+                    onSelect={(date) => form.setValue('dateMarried', date)}
+                    placeholder="Select date married"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </div>
         );
