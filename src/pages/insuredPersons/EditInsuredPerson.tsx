@@ -134,7 +134,7 @@ const EditInsuredPerson = () => {
                               
                                <span className="sm:hidden">Back</span>
                              </Button>
-          <div className="h-6 w-px bg-gray-300" />
+        
           {/*
           <User className="h-8 w-8 text-blue-600" />
           <div>
@@ -261,7 +261,7 @@ const EditInsuredPerson = () => {
         </Collapsible>
 
         {/* Contact Information */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Phone className="h-5 w-5" />
@@ -291,10 +291,10 @@ const EditInsuredPerson = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Address Information */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
@@ -361,10 +361,10 @@ const EditInsuredPerson = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Place & Status */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -431,10 +431,10 @@ const EditInsuredPerson = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Family Information */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Heart className="h-5 w-5" />
@@ -542,10 +542,10 @@ const EditInsuredPerson = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3">
+        {/* <div className="flex justify-end gap-3">
           <Button 
             variant="outline" 
             onClick={() => navigate(`/person/view/${ssn}`)}
@@ -556,7 +556,7 @@ const EditInsuredPerson = () => {
             <Save className="h-4 w-4" />
             Save Changes
           </Button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

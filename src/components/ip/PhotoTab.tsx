@@ -165,7 +165,7 @@ export const PhotoTab = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Photo Section */}
-        <Card>
+        <Card style={{backgroundColor:"#F9FAFB"}}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
@@ -244,7 +244,7 @@ export const PhotoTab = () => {
         </Card>
 
         {/* Signature Section */}
-        <Card>
+        <Card style={{backgroundColor:"#F9FAFB"}}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -324,7 +324,7 @@ export const PhotoTab = () => {
       </div>
 
       {/* Document Status */}
-      <Card>
+      <Card style={{backgroundColor:"#F9FAFB"}}>
         <CardHeader>
           <CardTitle>Document Status</CardTitle>
         </CardHeader>

@@ -279,7 +279,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     </div>
                   </div>
                 </DialogHeader>
-                
+                <hr/>
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   {filteredColumns.map((column) => (
                     <div key={column.key} className="flex items-center space-x-2">
