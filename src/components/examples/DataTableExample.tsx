@@ -2,9 +2,12 @@ import React from 'react';
 import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 
-const DataTableExample = () => {
-  // Sample data
-  const sampleData = [
+interface DataTableExampleProps {
+  sampleData?: any[];
+}
+
+const DataTableExample: React.FC<DataTableExampleProps> = ({ 
+  sampleData = [
     {
       id: 1,
       name: 'John Doe',
@@ -35,8 +38,8 @@ const DataTableExample = () => {
       joinDate: '2022-11-10',
       salary: 85000
     }
-  ];
-
+  ]
+}) => {
   // Define columns
   const columns: DataTableColumn[] = [
     { key: 'id', label: 'ID', minWidth: '60px' },

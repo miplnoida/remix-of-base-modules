@@ -43,7 +43,7 @@ export interface DataTableProps {
     edit?: boolean;
     approve?: boolean;
     reject?: boolean;
-  };
+  } | false;
   idField?: string;
   statusField?: string;
   getStatusBadge?: (status: string) => React.ReactNode;
@@ -310,7 +310,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {column.label}
                   </TableHead>
                 ))}
-                {(actions.view || actions.edit || actions.approve || actions.reject) && (
+                {(actions && (actions.view || actions.edit || actions.approve || actions.reject)) && (
                   <TableHead className="min-w-[150px] sticky right-0 bg-background">
                     Actions
                   </TableHead>
@@ -330,7 +330,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                       }
                     </TableCell>
                   ))}
-                  {(actions.view || actions.edit || actions.approve || actions.reject) && (
+                  {(actions && (actions.view || actions.edit || actions.approve || actions.reject)) && (
                     <TableCell className="sticky right-0 bg-background">
                       <div className="flex gap-1">
                         {actions.view && (
