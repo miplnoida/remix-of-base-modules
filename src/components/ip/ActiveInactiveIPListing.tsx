@@ -316,20 +316,20 @@ export const ActiveInactiveIPListing = () => {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        {/* Status Filter Toggle */}
+      {/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      
         <div className="flex items-center gap-2">
           
         </div>
 
-        {/* <Button 
+        <Button 
           onClick={handleRegisterPerson}
           className="flex items-center gap-2 w-full sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
           Register Person
-        </Button> */}
-      </div>
+        </Button>
+      </div> */}
 
       {/* Search and Filter Section - Collapsible */}
       {/* <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>

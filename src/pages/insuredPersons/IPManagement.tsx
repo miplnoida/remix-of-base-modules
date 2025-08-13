@@ -70,7 +70,10 @@ const IPManagement = () => {
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
-
+<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
+            
+          </div>
       {/* Dashboard Content */}
       <div className="space-y-4 lg:space-y-6">
         {/* Main Statistics */}

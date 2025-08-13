@@ -194,7 +194,7 @@ const PendingReviews = () => {
   ];
 
   return (
-    <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {location.pathname === '/person/pending-reviews' && (
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">

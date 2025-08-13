@@ -125,14 +125,15 @@ const EditInsuredPerson = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(`/person/view/${ssn}`)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to View
-          </Button>
+         <Button 
+                               variant="outline" 
+                               onClick={() => navigate('/person/management')}
+                               className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                             >
+                               <ArrowLeft className="h-4 w-4" />
+                              
+                               <span className="sm:hidden">Back</span>
+                             </Button>
           <div className="h-6 w-px bg-gray-300" />
           {/*
           <User className="h-8 w-8 text-blue-600" />

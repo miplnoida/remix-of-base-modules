@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Home, Search, Download, FileText, Calendar, Shield, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Home, Search, Download, FileText, Calendar, Shield, AlertCircle, CheckCircle, Clock, IdCard, AlertTriangle } from 'lucide-react';
 
 const ClaimHistory = () => {
   const navigate = useNavigate();
@@ -153,39 +153,34 @@ const ClaimHistory = () => {
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Navigation Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/person/management')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-          <div className="h-6 w-px bg-gray-300" />
-          <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
-          <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Claim History</h1>
-            <p className="text-sm lg:text-base text-gray-600 hidden sm:block">View and manage benefit claims history</p>
-          </div>
-        </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 self-start lg:self-center"
-        >
-          <Home className="h-4 w-4" />
-          <span className="hidden sm:inline">Main Menu</span>
-        </Button>
-      </div>
+              <div className="flex items-center gap-3">
+                <Button 
+                            variant="outline" 
+                            onClick={() => navigate('/person/management')}
+                            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                           
+                            <span className="sm:hidden">Back</span>
+                          </Button>
+                <div className="h-6 w-px bg-gray-300" />
+                
+                <div>
+                  <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Claim History</h1>
+                   </div>
+              </div>
+           
+            </div>
+      
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
+                  <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+                </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">{claimsData.length}</div>
@@ -196,7 +191,9 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Approved Claims</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-orange-500 to-orange-600  shadow-lg`}>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground text-white" />
+                </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">
@@ -209,7 +206,9 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claimed</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
+                              <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+                            </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">{formatCurrency(totalClaimed)}</div>
@@ -220,7 +219,9 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Approved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className={`p-2.5 rounded bg-gradient-to-r from-yellow-500 to-yellow-600  shadow-lg`}>
+                              <Clock className="h-4 w-4 text-muted-foreground text-white" />
+                            </div>
           </CardHeader>
           <CardContent>
             <div className="text-xl lg:text-2xl font-bold">{formatCurrency(totalApproved)}</div>
