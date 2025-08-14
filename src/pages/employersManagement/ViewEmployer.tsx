@@ -1,86 +1,56 @@
-import React, { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus, Trash2, ArrowLeft, ArrowRight, Save, Building2, Users, Phone, Settings, FileText, Printer, Edit } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
-import { toast } from 'sonner';
+import { ArrowLeft, Building2, Users, Phone, Settings, FileText, Printer, Edit, CalendarIcon, User } from 'lucide-react';
+import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ErrorDialog, SuccessDialog } from '@/components/ui/feedback';
+import { Label } from '@/components/ui/label';
 
-
-const employerSchema = z.object({
-  // General Information
-  name: z.string().min(1, "Name is required"),
-  tradeName: z.string().optional(),
-  addressType: z.enum(["mailing", "hq"]),
-  mailingAddress: z.string().optional(),
-  mailingPostalCode: z.string().optional(),
-  hqAddress: z.string().optional(),
-  hqPostalCode: z.string().optional(),
-  previousOwners: z.array(z.object({
-    name: z.string(),
-    address: z.string()
-  })).optional(),
-  
-  // Contact Information
-  telephone: z.string().min(1, "Telephone is required"),
-  fax: z.string().optional(),
-  email: z.string().email("Invalid email").min(1, "Email is required"),
-  
-  // Organizational Information
-  parentRegNo: z.string().optional(),
-  officeCode: z.string().optional(),
-  ownershipCode: z.string().optional(),
-  sectorCode: z.string().optional(),
-  industrialCode: z.string().optional(),
-  
-  // Acquisition / Incorporation
-  acquiredCompany: z.boolean().default(false),
-  acquisitionDate: z.date().optional(),
-  incorporatedDate: z.date().optional(),
-  
-  // Location Information
-  village: z.string().optional(),
-  activityType: z.string().optional(),
-  inspectorCode: z.string().optional(),
-  
-  // Dates & Employees
-  applicationDate: z.date().optional(),
-  totalEmployees: z.string().optional(),
-  maleEmployees: z.string().optional(),
-  femaleEmployees: z.string().optional(),
-  dateWagesFirstPaid: z.date().optional(),
-  dateOfClosure: z.date().optional(),
-  reregistrationDate: z.date().optional(),
-  
-  // Technical Information
-  computerPayroll: z.boolean().default(false),
-  makeModel: z.string().optional(),
-  
-  // Transaction Details
-  dateOfEntry: z.date().optional(),
-  registrationDate: z.date().optional(),
-  enteredBy: z.string().optional(),
-  dateModified: z.date().optional(),
-  userId: z.string().optional(),
-});
-
-type EmployerFormData = z.infer<typeof employerSchema>;
+// Sample employer data for view mode
+const sampleEmployerData = {
+  regNo: "EMP001",
+  name: "ABC Construction Ltd",
+  tradeName: "ABC Construction",
+  addressType: "mailing",
+  mailingAddress: "123 Main Street, Basseterre",
+  mailingPostalCode: "KN001",
+  hqAddress: "456 Industrial Road, Cayon",
+  hqPostalCode: "KN002",
+  telephone: "(869) 465-2345",
+  fax: "(869) 465-2346",
+  email: "info@abcconstruction.com",
+  parentRegNo: "PARENT001",
+  officeCode: "BST001",
+  ownershipCode: "OWN001",
+  sectorCode: "SEC001",
+  industrialCode: "Building of Complete Con",
+  village: "Basseterre",
+  activityType: "Construction",
+  inspectorCode: "01 Vincent Sutton",
+  acquiredCompany: true,
+  acquisitionDate: new Date("2022-04-01"),
+  incorporatedDate: new Date("2023-01-01"),
+  applicationDate: new Date("2023-01-01"),
+  totalEmployees: "40",
+  maleEmployees: "25",
+  femaleEmployees: "15",
+  dateWagesFirstPaid: new Date("2023-02-01"),
+  dateOfClosure: null,
+  reregistrationDate: null,
+  computerPayroll: true,
+  makeModel: "Dell Optiplex",
+  dateOfEntry: new Date("2023-01-10"),
+  registrationDate: new Date("2023-01-20"),
+  enteredBy: "John Doe",
+  dateModified: new Date("2024-01-01"),
+  userId: "ADMIN001",
+  previousOwners: [
+    { name: "Previous Corp", address: "789 Old Street, Old Town" }
+  ]
+};
 
 interface Owner {
   id: string;
@@ -105,51 +75,86 @@ interface Note {
 }
 
 export const ViewEmployer = () => {
-   const { regNo } = useParams();
+  const { regNo } = useParams();
   const [activeTab, setActiveTab] = useState("form-detail");
   const [currentStep, setCurrentStep] = useState(0);
-  const [owners, setOwners] = useState<Owner[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [showSuccess, setShowSuccess] = useState(false);
-    const [showError, setShowError] = useState(false);
-  const navigate = useNavigate();
-
-  const form = useForm<EmployerFormData>({
-    resolver: zodResolver(employerSchema),
-    defaultValues: {
-      acquiredCompany: false,
-      computerPayroll: false,
-      addressType: "mailing",
-      previousOwners: [],
+  
+  // Sample data for Owners
+  const [owners] = useState<Owner[]>([
+    {
+      id: "OWN001",
+      name: "John Smith",
+      title: "Chief Executive Officer",
+      phoneNumber: "(869) 465-1234"
+    },
+    {
+      id: "OWN002", 
+      name: "Sarah Johnson",
+      title: "Chief Financial Officer",
+      phoneNumber: "(869) 465-5678"
+    },
+    {
+      id: "OWN003",
+      name: "Michael Brown",
+      title: "Chief Operations Officer", 
+      phoneNumber: "(869) 465-9012"
     }
-  });
+  ]);
 
-  const { fields: previousOwnerFields, append: appendPreviousOwner, remove: removePreviousOwner } = useFieldArray({
-    control: form.control,
-    name: "previousOwners"
-  });
+  // Sample data for Locations
+  const [locations] = useState<Location[]>([
+    {
+      id: "LOC001",
+      tradeName: "ABC Construction - Main Office",
+      locAddr1: "123 Main Street",
+      locAddr2: "Basseterre, Saint Kitts",
+      activityType: "Administrative"
+    },
+    {
+      id: "LOC002",
+      tradeName: "ABC Construction - Site A",
+      locAddr1: "456 Industrial Road",
+      locAddr2: "Cayon, Saint Kitts", 
+      activityType: "Construction Site"
+    },
+    {
+      id: "LOC003",
+      tradeName: "ABC Construction - Warehouse",
+      locAddr1: "789 Storage Lane",
+      locAddr2: "Sandy Point, Saint Kitts",
+      activityType: "Storage & Logistics"
+    }
+  ]);
 
-  const industrialCodes = [
-    "Account/Book-keep/Audit",
-    "Act of other trans agency", 
-    "Admin of Financial Market",
-    "Adult Education",
-    "Gardening"
-  ];
+  // Sample data for Notes
+  const [notes] = useState<Note[]>([
+    {
+      id: "NOTE001",
+      noteDate: new Date("2024-01-15"),
+      note: "Initial registration completed. All documents verified and approved. Company is compliant with all regulatory requirements.",
+      userId: "ADMIN001"
+    },
+    {
+      id: "NOTE002", 
+      noteDate: new Date("2024-02-20"),
+      note: "Annual compliance review conducted. No issues found. Company continues to meet all employment and safety standards.",
+      userId: "INSPECTOR001"
+    },
+    {
+      id: "NOTE003",
+      noteDate: new Date("2024-03-10"),
+      note: "Updated employee count: 40 total employees (25 male, 15 female). All new employees properly registered in the system.",
+      userId: "HR001"
+    },
+    {
+      id: "NOTE004",
+      noteDate: new Date("2024-04-05"),
+      note: "Site inspection completed at all three locations. Safety protocols are being followed correctly. No violations found.",
+      userId: "SAFETY001"
+    }
+  ]);
 
-  const villages = [
-    "Adams Hill",
-    "Barnaby", 
-    "Barnes Bhaut",
-    "Clifton Estate"
-  ];
-
-  const inspectorCodes = [
-    "00 Nevis",
-    "01 Vincent Sutton",
-    "N04 Sheon Lewis"
-  ];
+  const navigate = useNavigate();
 
   // Define stepper steps
   const steps: StepperStep[] = [
@@ -196,747 +201,288 @@ export const ViewEmployer = () => {
     setCurrentStep(stepIndex);
   };
 
-  const onSubmit = (data: EmployerFormData) => {
-    console.log("Form Data:", data);
-    toast.success("Employer registration submitted successfully!");
+  // Helper function to format dates
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Not specified";
+    return format(date, "MM/dd/yyyy");
   };
 
-  const addOwner = () => {
-    const newOwner: Owner = {
-      id: Date.now().toString(),
-      name: "",
-      title: "",
-      phoneNumber: ""
-    };
-    setOwners([...owners, newOwner]);
+  // Helper function to format boolean values
+  const formatBoolean = (value: boolean) => {
+    return value ? "Yes" : "No";
   };
 
-  const updateOwner = (id: string, field: keyof Owner, value: string) => {
-    setOwners(owners.map(owner => 
-      owner.id === id ? { ...owner, [field]: value } : owner
-    ));
-  };
-
-  const removeOwner = (id: string) => {
-    setOwners(owners.filter(owner => owner.id !== id));
-  };
-
-  const addLocation = () => {
-    const newLocation: Location = {
-      id: Date.now().toString(),
-      tradeName: "",
-      locAddr1: "",
-      locAddr2: "",
-      activityType: ""
-    };
-    setLocations([...locations, newLocation]);
-  };
-
-  const updateLocation = (id: string, field: keyof Location, value: string) => {
-    setLocations(locations.map(location => 
-      location.id === id ? { ...location, [field]: value } : location
-    ));
-  };
-
-  const removeLocation = (id: string) => {
-    setLocations(locations.filter(location => location.id !== id));
-  };
-
-  const addNote = () => {
-    const newNote: Note = {
-      id: Date.now().toString(),
-      noteDate: new Date(),
-      note: "",
-      userId: "current-user"
-    };
-    setNotes([...notes, newNote]);
-  };
-
-  const updateNote = (id: string, field: keyof Note, value: string | Date) => {
-    setNotes(notes.map(note => 
-      note.id === id ? { ...note, [field]: value } : note
-    ));
-  };
-
-  const removeNote = (id: string) => {
-    setNotes(notes.filter(note => note.id !== id));
-  };
-
-  const DatePicker = ({ field, placeholder }: any) => (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal mt-0",
-            !field.value && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {field.value ? format(field.value, "PPP") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={field.value}
-          onSelect={field.onChange}
-          initialFocus
-          className="pointer-events-auto"
-        />
-      </PopoverContent>
-    </Popover>
-  );
-
-  // Step content components
+  // Step content components for view mode
   const renderStepContent = () => {
     switch (currentStep) {
       case 0: // Entity Overview
         return (
           <div className="space-y-6">
-                         {/* General Information */}
-               <div>
-                 <CardHeader>
-                   <CardTitle>General Information</CardTitle>
-                 </CardHeader>
-                             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <FormField
-                   control={form.control}
-                   name="name"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Name *</FormLabel>
-                       <FormControl>
-                         <Input {...field} placeholder="Enter surname" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                 <FormField
-                   control={form.control}
-                   name="tradeName"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Trade Name</FormLabel>
-                       <FormControl>
-                         <Input {...field} placeholder="Enter first name" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                 <FormField
-                   control={form.control}
-                   name="addressType"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Address Type</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                         <FormControl>
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select Nationality" />
-                           </SelectTrigger>
-                         </FormControl>
-                         <SelectContent>
-                           <SelectItem value="mailing">Mailing Address</SelectItem>
-                           <SelectItem value="hq">HQ Address</SelectItem>
-                         </SelectContent>
-                       </Select>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                                 <FormField
-                   control={form.control}
-                   name="mailingAddress"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Mailing Address</FormLabel>
-                       <FormControl>
-                         <Input {...field} placeholder="Enter surname" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                 <FormField
-                   control={form.control}
-                   name="mailingPostalCode"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Postal Code</FormLabel>
-                       <FormControl>
-                         <Input {...field} placeholder="Enter first name" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                
+            {/* General Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>General Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Name *</Label>
+                    <p className="text-sm font-medium">{sampleEmployerData.name}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Trade Name</Label>
+                    <p className="text-sm">{sampleEmployerData.tradeName}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Address Type</Label>
+                    <p className="text-sm capitalize">{sampleEmployerData.addressType}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Mailing Address</Label>
+                    <p className="text-sm">{sampleEmployerData.mailingAddress}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Postal Code</Label>
+                    <p className="text-sm">{sampleEmployerData.mailingPostalCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">HQ Address</Label>
+                    <p className="text-sm">{sampleEmployerData.hqAddress}</p>
+                  </div>
+                </div>
               </CardContent>
             </div>
 
-                         {/* Organizational Information */}
-               <div>
-                 <CardHeader>
-                 <CardTitle>Organizational Information</CardTitle>
-                 </CardHeader>
-               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                       <FormField
-                         control={form.control}
-                   name="parentRegNo"
-                         render={({ field }) => (
-                           <FormItem>
-                       <FormLabel>Parent Reg. No.</FormLabel>
-                             <FormControl>
-                         <Input {...field} type="number" />
-                             </FormControl>
-                             <FormMessage />
-                           </FormItem>
-                         )}
-                       />
-
-                       <FormField
-                         control={form.control}
-                   name="officeCode"
-                         render={({ field }) => (
-                           <FormItem>
-                       <FormLabel>Office Code</FormLabel>
-                             <FormControl>
-                               <Input {...field} />
-                             </FormControl>
-                             <FormMessage />
-                           </FormItem>
-                         )}
-                       />
-
-                   <FormField
-                     control={form.control}
-                   name="ownershipCode"
-                     render={({ field }) => (
-                       <FormItem>
-                       <FormLabel>Ownership Code</FormLabel>
-                         <FormControl>
-                         <Input {...field} />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                   name="sectorCode"
-                     render={({ field }) => (
-                       <FormItem>
-                       <FormLabel>Sector Code</FormLabel>
-                         <FormControl>
-                         <Input {...field} />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                 
-                   <FormField
-                     control={form.control}
-                     name="industrialCode"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Industrial Code</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                         <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="Select Industrial Code" />
-                             </SelectTrigger>
-                         </FormControl>
-                           <SelectContent>
-                             {industrialCodes.map((code) => (
-                               <SelectItem key={code} value={code}>{code}</SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 
-                 </CardContent>
-               </div>
+            {/* Organizational Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Organizational Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Parent Reg. No.</Label>
+                    <p className="text-sm">{sampleEmployerData.parentRegNo || "Not specified"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Office Code</Label>
+                    <p className="text-sm">{sampleEmployerData.officeCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Ownership Code</Label>
+                    <p className="text-sm">{sampleEmployerData.ownershipCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Sector Code</Label>
+                    <p className="text-sm">{sampleEmployerData.sectorCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Industrial Code</Label>
+                    <p className="text-sm">{sampleEmployerData.industrialCode}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
           </div>
         );
 
-             case 1: // Background Info
-         return (
-           <div className="space-y-6">
-             {/* Previous Owners */}
-               <div>
-                 <CardHeader>
-                 <CardTitle className="flex items-center justify-between">
-                   Previous Owners
-                   <Button
-                     type="button"
-                     variant="outline"
-                     size="sm"
-                     onClick={() => appendPreviousOwner({ name: "", address: "" })}
-                   >
-                     <Plus className="h-4 w-4 mr-2" />
-                     Add Owner
-                   </Button>
-                 </CardTitle>
-                 </CardHeader>
-               <CardContent className="space-y-4">
-                 {previousOwnerFields.map((field, index) => (
-                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
-                     <FormField
-                       control={form.control}
-                       name={`previousOwners.${index}.name`}
-                       render={({ field }) => (
-                         <FormItem>
-                           <FormLabel>Previous Owner Name</FormLabel>
-                           <FormControl>
-                             <Input {...field} />
-                           </FormControl>
-                           <FormMessage />
-                         </FormItem>
-                       )}
-                     />
+      case 1: // Background Info
+        return (
+          <div className="space-y-6">
+            {/* Previous Owners */}
+            <div>
+              <CardHeader>
+                <CardTitle>Previous Owners</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sampleEmployerData.previousOwners.length > 0 ? (
+                  <div className="space-y-4">
+                    {sampleEmployerData.previousOwners.map((owner, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-500">Previous Owner Name</Label>
+                          <p className="text-sm">{owner.name}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-500">Previous Owner Address</Label>
+                          <p className="text-sm">{owner.address}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No previous owners recorded.</p>
+                )}
+              </CardContent>
+            </div>
 
-                     <FormField
-                       control={form.control}
-                       name={`previousOwners.${index}.address`}
-                       render={({ field }) => (
-                         <FormItem>
-                           <FormLabel>Previous Owner Address</FormLabel>
-                           <FormControl>
-                             <Input {...field} />
-                           </FormControl>
-                           <FormMessage />
-                         </FormItem>
-                       )}
-                     />
-
-                     <Button
-                       type="button"
-                       variant="destructive"
-                       size="sm"
-                       onClick={() => removePreviousOwner(index)}
-                       className="col-span-2 w-fit"
-                     >
-                       <Trash2 className="h-4 w-4 mr-2" />
-                       Remove
-                     </Button>
-                   </div>
-                 ))}
-               </CardContent>
-             </div>
-
-             {/* Acquisition / Incorporation */}
-             <div>
-               <CardHeader>
-                 <CardTitle>Acquisition / Incorporation</CardTitle>
-               </CardHeader>
-               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <FormField
-                   control={form.control}
-                   name="acquiredCompany"
-                   render={({ field }) => (
-                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                       <div className="space-y-0.5">
-                         <FormLabel className="text-base">Acquired Company</FormLabel>
-                       </div>
-                       <FormControl>
-                         <Switch checked={field.value} onCheckedChange={field.onChange} />
-                       </FormControl>
-                     </FormItem>
-                   )}
-                 />
-
-                 <FormField
-                   control={form.control}
-                   name="acquisitionDate"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Acquisition Date</FormLabel>
-                       <FormControl>
-                         <DatePicker field={field} placeholder="Select acquisition date" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                 <FormField
-                   control={form.control}
-                   name="incorporatedDate"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Incorporated Date</FormLabel>
-                       <FormControl>
-                         <DatePicker field={field} placeholder="Select incorporated date" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-               </CardContent>
-             </div>
-           </div>
-         );
-
-             case 2: // Contact & Reach
-         return (
-           <div className="space-y-6">
-             {/* Contact Information */}
-               <div>
-                 <CardHeader>
-                 <CardTitle>Contact Information</CardTitle>
-                 </CardHeader>
-                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <FormField
-                     control={form.control}
-                   name="telephone"
-                     render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Contact Telephone No. *</FormLabel>
-                         <FormControl>
-                         <Input {...field} placeholder="+1 (000) 000-0000" />
-                         </FormControl>
-                       <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                   name="fax"
-                     render={({ field }) => (
-                       <FormItem>
-                       <FormLabel>Contact Fax No.</FormLabel>
-                         <FormControl>
-                         <Input {...field} placeholder="+1 (000) 000-0000" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                   name="email"
-                     render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Email *</FormLabel>
-                         <FormControl>
-                         <Input {...field} type="email" />
-                         </FormControl>
-                       <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 </CardContent>
-               </div>
-
-                           {/* Location Information */}
-               <div>
-                 <CardHeader>
-                   <CardTitle>Location Information</CardTitle>
-                 </CardHeader>
-                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <FormField
-                     control={form.control}
-                     name="village"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Select Village</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                           <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="Select village" />
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             {villages.map((village) => (
-                               <SelectItem key={village} value={village}>{village}</SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="activityType"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Activity Type</FormLabel>
-                         <FormControl>
-                           <Input {...field} />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="inspectorCode"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Select Inspector Code</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                           <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="Select inspector code" />
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             {inspectorCodes.map((code) => (
-                               <SelectItem key={code} value={code}>{code}</SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 </CardContent>
-               </div>
-
-                           {/* Dates & Employees */}
-               <div>
-                 <CardHeader>
-                   <CardTitle>Dates & Employees</CardTitle>
-                 </CardHeader>
-                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <FormField
-                     control={form.control}
-                     name="applicationDate"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Date of Application</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select application date" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="totalEmployees"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Total Employees</FormLabel>
-                         <FormControl>
-                           <Input {...field} type="number" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="maleEmployees"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Male</FormLabel>
-                         <FormControl>
-                           <Input {...field} type="number" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="femaleEmployees"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Female</FormLabel>
-                         <FormControl>
-                           <Input {...field} type="number" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="dateWagesFirstPaid"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Date Wages First Paid</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select date wages first paid" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="dateOfClosure"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Date of Closure</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select closure date" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="reregistrationDate"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Re-registration Date</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select re-registration date" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 </CardContent>
-               </div>
+            {/* Acquisition / Incorporation */}
+            <div>
+              <CardHeader>
+                <CardTitle>Acquisition / Incorporation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Acquired Company</Label>
+                    <p className="text-sm">{formatBoolean(sampleEmployerData.acquiredCompany)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Acquisition Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.acquisitionDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Incorporated Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.incorporatedDate)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
           </div>
         );
 
-             case 3: // Tech & Finance Overview
-         return (
-           <div className="space-y-6">
-               {/* Technical Information */}
-               <div>
-                 <CardHeader>
-                   <CardTitle>Technical Information</CardTitle>
-                 </CardHeader>
-                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <FormField
-                     control={form.control}
-                     name="computerPayroll"
-                     render={({ field }) => (
-                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                         <div className="space-y-0.5">
-                           <FormLabel className="text-base">Computer Payroll</FormLabel>
-                         </div>
-                         <FormControl>
-                           <Switch checked={field.value} onCheckedChange={field.onChange}/>
-                         </FormControl>
-                       </FormItem>
-                     )}
-                   />
+      case 2: // Contact & Reach
+        return (
+          <div className="space-y-6">
+            {/* Contact Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Contact Telephone No. *</Label>
+                    <p className="text-sm font-medium">{sampleEmployerData.telephone}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Contact Fax No.</Label>
+                    <p className="text-sm">{sampleEmployerData.fax}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Email *</Label>
+                    <p className="text-sm font-medium">{sampleEmployerData.email}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
 
-                   <FormField
-                     control={form.control}
-                     name="makeModel"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Make Model</FormLabel>
-                         <FormControl>
-                           <Input {...field} />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 </CardContent>
-               </div>
+            {/* Location Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Location Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Village</Label>
+                    <p className="text-sm">{sampleEmployerData.village}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Activity Type</Label>
+                    <p className="text-sm">{sampleEmployerData.activityType}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Inspector Code</Label>
+                    <p className="text-sm">{sampleEmployerData.inspectorCode}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
 
-                           {/* Transaction Details */}
-               <div>
-                 <CardHeader>
-                   <CardTitle>Transaction Details</CardTitle>
-                 </CardHeader>
-                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <FormField
-                     control={form.control}
-                     name="dateOfEntry"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Date of Entry</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select Date Of Entry" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
+            {/* Dates & Employees */}
+            <div>
+              <CardHeader>
+                <CardTitle>Dates & Employees</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date of Application</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.applicationDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Total Employees</Label>
+                    <p className="text-sm">{sampleEmployerData.totalEmployees}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Male Employees</Label>
+                    <p className="text-sm">{sampleEmployerData.maleEmployees}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Female Employees</Label>
+                    <p className="text-sm">{sampleEmployerData.femaleEmployees}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date Wages First Paid</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateWagesFirstPaid)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date of Closure</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateOfClosure)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Re-registration Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.reregistrationDate)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+          </div>
+        );
 
-                   <FormField
-                     control={form.control}
-                     name="registrationDate"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Registration Date</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select Registration Date" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
+      case 3: // Tech & Finance Overview
+        return (
+          <div className="space-y-6">
+            {/* Technical Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Technical Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Computer Payroll</Label>
+                    <p className="text-sm">{formatBoolean(sampleEmployerData.computerPayroll)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Make Model</Label>
+                    <p className="text-sm">{sampleEmployerData.makeModel}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
 
-                   <FormField
-                     control={form.control}
-                     name="enteredBy"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Entered By</FormLabel>
-                         <FormControl>
-                           <Input {...field} value="System Administrator" readOnly />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="dateModified"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Date Modified</FormLabel>
-                         <FormControl>
-                           <DatePicker field={field} placeholder="Select date modified" />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-
-                   <FormField
-                     control={form.control}
-                     name="userId"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>User ID</FormLabel>
-                         <FormControl>
-                           <Input {...field} value="ADMIN001" readOnly />
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                 </CardContent>
-             </div>
+            {/* Transaction Details */}
+            <div>
+              <CardHeader>
+                <CardTitle>Transaction Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date of Entry</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateOfEntry)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Registration Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.registrationDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Entered By</Label>
+                    <p className="text-sm">{sampleEmployerData.enteredBy}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date Modified</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateModified)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">User ID</Label>
+                    <p className="text-sm">{sampleEmployerData.userId}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
           </div>
         );
 
@@ -949,28 +495,23 @@ export const ViewEmployer = () => {
     <div className="container mx-auto p-4 space-y-6">
       
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate('/employers-management/dashboard')}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                 
-                  <span className="sm:hidden">Back</span>
-                </Button>
-                <div className="h-6 w-px bg-gray-300" />
-               
-                <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">View Employer Details</h1>
-                
-                </div>
-              </div>
-              <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-                {/* <Button variant="outline" onClick={() => navigate(`/employers-management/view/${regNo}`)}>
-            <FileText className="h-4 w-4 mr-2" />
-            View
-          </Button> */}
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/employers-management/dashboard')}
+            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sm:hidden">Back</span>
+          </Button>
+          <div className="h-6 w-px bg-gray-300" />
+          
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">View </h1>
+            
+          </div>
+        </div>
+        <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
           <Button variant="outline" onClick={() => console.log('Change Status clicked')}>
             <Settings className="h-4 w-4 mr-2" />
             Change Status
@@ -987,13 +528,28 @@ export const ViewEmployer = () => {
             <Edit className="h-4 w-4 mr-2" />
             Edit Employer
           </Button>
-              </div>
+        </div>
       </div>
-
+      <Card className="mb-4">
+        <CardContent className="py-4 px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+            </div>
+            <div className="flex flex-col gap-1 justify-center">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              John Doe
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 text-sm font-medium">Regn No.: TE0001</span>
+                
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardContent className="p-6">
-  <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="form-detail">Form Detail</TabsTrigger>
@@ -1020,24 +576,22 @@ export const ViewEmployer = () => {
                 </div>
 
                 {/* Step Content */}
-                <div>
+                <div className="px-5">
                   {renderStepContent()}
                 </div>
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-end items-center pt-6 px-5">
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={prevStep}
-                      disabled={currentStep === 0}
-                      className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100 mr-5"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Back
-                    </Button>
-                  </div>
+                <div className="flex justify-between items-center pt-6 px-5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={prevStep}
+                    disabled={currentStep === 0}
+                    className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
 
                   <div className="flex gap-3">
                     {currentStep < steps.length - 1 ? (
@@ -1046,16 +600,17 @@ export const ViewEmployer = () => {
                         onClick={nextStep}
                         className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
                       >
-                        Continue
-                        <ArrowRight className="h-4 w-4" />
+                        Next
+                        <ArrowLeft className="h-4 w-4 rotate-180" />
                       </Button>
                     ) : (
                       <Button
-                        type="submit"
+                        type="button"
+                        variant="outline"
                         className="flex items-center gap-2"
                       >
-                        <Save className="h-4 w-4" />
-                        Submit
+                        <CalendarIcon className="h-4 w-4" />
+                        View History
                       </Button>
                     )}
                   </div>
@@ -1066,13 +621,7 @@ export const ViewEmployer = () => {
             <TabsContent value="owners" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Owners
-                    <Button type="button" onClick={addOwner}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Owner
-                    </Button>
-                  </CardTitle>
+                  <CardTitle>Owners</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1082,50 +631,22 @@ export const ViewEmployer = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead>Phone Number</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {owners.map((owner) => (
-                        <TableRow key={owner.id}>
-                          <TableCell>{owner.id}</TableCell>
-                          <TableCell>
-                            <Input
-                              value={owner.name}
-                              onChange={(e) => updateOwner(owner.id, 'name', e.target.value)}
-                              placeholder="Enter name"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              value={owner.title}
-                              onChange={(e) => updateOwner(owner.id, 'title', e.target.value)}
-                              placeholder="Enter title"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              value={owner.phoneNumber}
-                              onChange={(e) => updateOwner(owner.id, 'phoneNumber', e.target.value)}
-                              placeholder="+1 (000) 000-0000"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeOwner(owner.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {owners.length === 0 && (
+                      {owners.length > 0 ? (
+                        owners.map((owner) => (
+                          <TableRow key={owner.id}>
+                            <TableCell>{owner.id}</TableCell>
+                            <TableCell>{owner.name}</TableCell>
+                            <TableCell>{owner.title}</TableCell>
+                            <TableCell>{owner.phoneNumber}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground">
-                            No owners added yet. Click "Add Owner" to get started.
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No owners recorded for this employer.
                           </TableCell>
                         </TableRow>
                       )}
@@ -1138,13 +659,7 @@ export const ViewEmployer = () => {
             <TabsContent value="locations" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Locations
-                    <Button type="button" onClick={addLocation}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Location
-                    </Button>
-                  </CardTitle>
+                  <CardTitle>Locations</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1155,57 +670,23 @@ export const ViewEmployer = () => {
                         <TableHead>Loc Addr1</TableHead>
                         <TableHead>Loc Addr2</TableHead>
                         <TableHead>Activity Type</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {locations.map((location) => (
-                        <TableRow key={location.id}>
-                          <TableCell>{location.id}</TableCell>
-                          <TableCell>
-                            <Input
-                              value={location.tradeName}
-                              onChange={(e) => updateLocation(location.id, 'tradeName', e.target.value)}
-                              placeholder="Enter trade name"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              value={location.locAddr1}
-                              onChange={(e) => updateLocation(location.id, 'locAddr1', e.target.value)}
-                              placeholder="Enter address 1"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              value={location.locAddr2}
-                              onChange={(e) => updateLocation(location.id, 'locAddr2', e.target.value)}
-                              placeholder="Enter address 2"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              value={location.activityType}
-                              onChange={(e) => updateLocation(location.id, 'activityType', e.target.value)}
-                              placeholder="Enter activity type"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeLocation(location.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {locations.length === 0 && (
+                      {locations.length > 0 ? (
+                        locations.map((location) => (
+                          <TableRow key={location.id}>
+                            <TableCell>{location.id}</TableCell>
+                            <TableCell>{location.tradeName}</TableCell>
+                            <TableCell>{location.locAddr1}</TableCell>
+                            <TableCell>{location.locAddr2}</TableCell>
+                            <TableCell>{location.activityType}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
-                            No locations added yet. Click "Add Location" to get started.
+                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                            No locations recorded for this employer.
                           </TableCell>
                         </TableRow>
                       )}
@@ -1218,13 +699,7 @@ export const ViewEmployer = () => {
             <TabsContent value="notes" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Notes
-                    <Button type="button" onClick={addNote}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Note
-                    </Button>
-                  </CardTitle>
+                  <CardTitle>Notes</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1234,57 +709,22 @@ export const ViewEmployer = () => {
                         <TableHead>Note Date</TableHead>
                         <TableHead>Note</TableHead>
                         <TableHead>User's ID</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {notes.map((note) => (
-                        <TableRow key={note.id}>
-                          <TableCell>{note.id}</TableCell>
-                          <TableCell>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {format(note.noteDate, "PPP")}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={note.noteDate}
-                                  onSelect={(date) => date && updateNote(note.id, 'noteDate', date)}
-                                  initialFocus
-                                  className="pointer-events-auto"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </TableCell>
-                          <TableCell>
-                            <Textarea
-                              value={note.note}
-                              onChange={(e) => updateNote(note.id, 'note', e.target.value)}
-                              placeholder="Enter note"
-                              className="min-h-[80px]"
-                            />
-                          </TableCell>
-                          <TableCell>{note.userId}</TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeNote(note.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {notes.length === 0 && (
+                      {notes.length > 0 ? (
+                        notes.map((note) => (
+                          <TableRow key={note.id}>
+                            <TableCell>{note.id}</TableCell>
+                            <TableCell>{format(note.noteDate, "MM/dd/yyyy")}</TableCell>
+                            <TableCell>{note.note}</TableCell>
+                            <TableCell>{note.userId}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground">
-                            No notes added yet. Click "Add Note" to get started.
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No notes recorded for this employer.
                           </TableCell>
                         </TableRow>
                       )}
@@ -1333,32 +773,8 @@ export const ViewEmployer = () => {
               </Card>
             </TabsContent>
           </Tabs>
-
-          {/* <div className="flex justify-end space-x-4 mt-8">
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-            <Button type="submit">
-              Submit Registration
-            </Button>
-          </div> */}
-        </form>
-      </Form>
         </CardContent>
-      
       </Card>
-      <SuccessDialog
-                open={showSuccess}
-                onOpenChange={setShowSuccess}
-                title="Submission successful"
-                description="The registration has been saved."
-              />
-              <ErrorDialog
-                open={showError}
-                onOpenChange={setShowError}
-                title="Validation error"
-                description="Please fix the highlighted fields and try again."
-              />
     </div>
   );
 };
