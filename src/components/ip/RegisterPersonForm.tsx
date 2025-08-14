@@ -62,8 +62,10 @@ const addressSchema = z.object({
   addressType: z.enum(['same', 'different']),
   residentAddress: z.string().min(1, 'Resident address is required'),
   mailingAddress: z.string().optional(),
-  postalCode: z.string().optional(),
-  postalDistrict: z.string().min(1, 'Postal district is required'),
+  residentPostalCode: z.string().optional(),
+  residentPostalDistrict: z.string().min(1, 'Resident postal district is required'),
+  mailingPostalCode: z.string().optional(),
+  mailingPostalDistrict: z.string().optional(),
 });
 
 type Address = z.infer<typeof addressSchema>;
@@ -146,7 +148,7 @@ const AddressListItem = ({
         {address.addressType === 'different' && address.mailingAddress && (
           <div>Mailing: {address.mailingAddress}</div>
         )}
-        <div className="mt-1">{address.postalDistrict}</div>
+        <div className="mt-1">{address.residentPostalDistrict}</div>
       </div>
     </div>
     <div className="flex gap-2">
@@ -186,8 +188,10 @@ const AddressFormModal = ({
     addressType: 'same',
     residentAddress: '',
     mailingAddress: '',
-    postalCode:'',
-    postalDistrict: ''
+    residentPostalCode: '',
+    residentPostalDistrict: '',
+    mailingPostalCode: '',
+    mailingPostalDistrict: ''
   });
   // Local state for the checkbox only
   const [isSameAddress, setIsSameAddress] = useState(formData.addressType === 'same');
@@ -200,98 +204,158 @@ const AddressFormModal = ({
     onClose();
   };
 
+  // Handle checkbox change to copy resident address to mailing address
+  const handleSameAddressChange = (checked: boolean) => {
+    setIsSameAddress(checked);
+    setFormData({ 
+      ...formData, 
+      addressType: checked ? 'same' : 'different',
+      // When checked, copy all resident address fields to mailing address fields
+      mailingAddress: checked ? formData.residentAddress : formData.mailingAddress,
+      mailingPostalCode: checked ? formData.residentPostalCode : formData.mailingPostalCode,
+      mailingPostalDistrict: checked ? formData.residentPostalDistrict : formData.mailingPostalDistrict
+    });
+  };
+
+  // Handle resident address change to also update mailing address if same
+  const handleResidentAddressChange = (value: string) => {
+    const newFormData = { ...formData, residentAddress: value };
+    if (isSameAddress) {
+      newFormData.mailingAddress = value;
+    }
+    setFormData(newFormData);
+  };
+
+  // Handle resident postal code change to also update mailing postal code if same
+  const handleResidentPostalCodeChange = (value: string) => {
+    const newFormData = { ...formData, residentPostalCode: value };
+    if (isSameAddress) {
+      newFormData.mailingPostalCode = value;
+    }
+    setFormData(newFormData);
+  };
+
+  // Handle resident postal district change to also update mailing postal district if same
+  const handleResidentPostalDistrictChange = (value: string) => {
+    const newFormData = { ...formData, residentPostalDistrict: value };
+    if (isSameAddress) {
+      newFormData.mailingPostalDistrict = value;
+    }
+    setFormData(newFormData);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>
             {mode === 'add' ? 'Add New Address' : mode === 'edit' ? 'Edit Address' : 'View Address'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Address Type</Label>
-            <Select 
-              value={formData.addressType} 
-              onValueChange={(value: 'same' | 'different') => 
-                setFormData({ ...formData, addressType: value })
-              }
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select address type" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border">
-                <SelectItem value="same">Mailing Same</SelectItem>
-                <SelectItem value="different">Resident Addresses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Resident Address *</Label>
-            <Textarea 
-              value={formData.residentAddress}
-              onChange={(e) => setFormData({ ...formData, residentAddress: e.target.value })}
-              placeholder="Enter resident address"
-              disabled={mode === 'view'}
-            />
-          </div>
-
-          {formData.addressType === 'different' && (
-            <div>
-              <Label>Mailing Address</Label>
-              <Textarea 
-                value={formData.mailingAddress}
-                onChange={(e) => setFormData({ ...formData, mailingAddress: e.target.value })}
-                placeholder="Enter mailing address"
-                disabled={mode === 'view'}
-              />
-            </div>
-          )}
- {/* Postal Code for Resident Address */}
- <div>
-            <Label>Postal Code</Label>
-            <Input
-              value={formData.postalCode || ''}
-              onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-              placeholder="Enter postal code"
-              disabled={mode === 'view'}
-            />
-          </div>
-          <div>
-            <Label>Postal District *</Label>
-            <Select 
-              value={formData.postalDistrict} 
-              onValueChange={(value) => setFormData({ ...formData, postalDistrict: value })}
-              disabled={mode === 'view'}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select postal district" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border max-h-48 overflow-y-auto">
-                {postalDistricts.map((district) => (
-                  <SelectItem key={district} value={district}>{district}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Checkbox for Mailing & Resident Address Same */}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 justify-center">
             <Checkbox
               id="mailing-resident-same"
               checked={isSameAddress}
-              onCheckedChange={(checked) => {
-                setIsSameAddress(!!checked);
-                setFormData({ ...formData, addressType: checked ? 'same' : 'different' });
-              }}
+              onCheckedChange={handleSameAddressChange}
               disabled={mode === 'view'}
               style={{ borderColor: '#0284c7', color: isSameAddress ? '#0284c7' : undefined }}
             />
             <Label htmlFor="mailing-resident-same" style={{ color: '#0284c7', cursor: mode === 'view' ? 'not-allowed' : 'pointer' }}>
               Is Mailing & Resident Address Same
             </Label>
+          </div>
+
+          {/* Two-column layout for addresses */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left side: Resident Address */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-center">Resident Address</h3>
+              
+              <div>
+                <Label>Resident Address *</Label>
+                <Textarea 
+                  value={formData.residentAddress}
+                  onChange={(e) => handleResidentAddressChange(e.target.value)}
+                  placeholder="Enter resident address"
+                  disabled={mode === 'view'}
+                />
+              </div>
+
+              <div>
+                <Label>Postal Code</Label>
+                <Input
+                  value={formData.residentPostalCode || ''}
+                  onChange={(e) => handleResidentPostalCodeChange(e.target.value)}
+                  placeholder="Enter postal code"
+                  disabled={mode === 'view'}
+                />
+              </div>
+
+              <div>
+                <Label>Postal District *</Label>
+                <Select 
+                  value={formData.residentPostalDistrict} 
+                  onValueChange={handleResidentPostalDistrictChange}
+                  disabled={mode === 'view'}
+                >
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select postal district" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                    {postalDistricts.map((district) => (
+                      <SelectItem key={district} value={district}>{district}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Right side: Mailing Address */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-center">Mailing Address</h3>
+              
+              <div>
+                <Label>Mailing Address {isSameAddress ? '(Auto-filled)' : ''}</Label>
+                <Textarea 
+                  value={formData.mailingAddress}
+                  onChange={(e) => setFormData({ ...formData, mailingAddress: e.target.value })}
+                  placeholder="Enter mailing address"
+                  disabled={mode === 'view' || isSameAddress}
+                  className={isSameAddress ? 'bg-gray-100' : ''}
+                />
+              </div>
+
+              <div>
+                <Label>Postal Code {isSameAddress ? '(Auto-filled)' : ''}</Label>
+                <Input
+                  value={formData.mailingPostalCode || ''}
+                  onChange={(e) => setFormData({ ...formData, mailingPostalCode: e.target.value })}
+                  placeholder="Enter postal code"
+                  disabled={mode === 'view' || isSameAddress}
+                  className={isSameAddress ? 'bg-gray-100' : ''}
+                />
+              </div>
+
+              <div>
+                <Label>Postal District {isSameAddress ? '(Auto-filled)' : ''}</Label>
+                <Select 
+                  value={formData.mailingPostalDistrict} 
+                  onValueChange={(value) => setFormData({ ...formData, mailingPostalDistrict: value })}
+                  disabled={mode === 'view' || isSameAddress}
+                >
+                  <SelectTrigger className={`bg-background ${isSameAddress ? 'bg-gray-100' : ''}`}>
+                    <SelectValue placeholder="Select postal district" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                    {postalDistricts.map((district) => (
+                      <SelectItem key={district} value={district}>{district}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {mode !== 'view' && (
@@ -805,17 +869,21 @@ export const RegisterPersonForm = () => {
       id: '1',
       addressType: 'same',
       residentAddress: '123 Main Street, Apt 2B, Basseterre',
-      mailingAddress: '',
-      postalCode: 'KN001',
-      postalDistrict: 'Basseterre Zone 01'
+      mailingAddress: '123 Main Street, Apt 2B, Basseterre',
+      residentPostalCode: 'KN001',
+      residentPostalDistrict: 'Basseterre Zone 01',
+      mailingPostalCode: 'KN001',
+      mailingPostalDistrict: 'Basseterre Zone 01'
     },
     {
       id: '2',
       addressType: 'different',
       residentAddress: '456 Oak Avenue, Suite 5',
       mailingAddress: '789 Pine Street, P.O. Box 123',
-      postalCode: 'KN002',
-      postalDistrict: 'Charlestown'
+      residentPostalCode: 'KN002',
+      residentPostalDistrict: 'Charlestown',
+      mailingPostalCode: 'KN003',
+      mailingPostalDistrict: 'Basseterre Zone 02'
     }
   ];
 
@@ -855,13 +923,13 @@ export const RegisterPersonForm = () => {
   const steps: StepperStep[] = [
     {
       id: 'identity',
-      title: 'Identity Information',
+      title: 'Basic Details',
       icon: <User className="w-5 h-5" />,
       status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'upcoming'
     },
     {
       id: 'address',
-      title: 'Address Information',
+      title: 'Address & Contact',
       icon: <MapPin className="w-5 h-5" />,
       status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'upcoming'
     },
@@ -873,13 +941,13 @@ export const RegisterPersonForm = () => {
     },
     {
       id: 'employment',
-      title: 'Employment Information',
+      title: 'Employment Details',
       icon: <Briefcase className="w-5 h-5" />,
       status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'upcoming'
     },
     {
       id: 'verification',
-      title: 'Verification Section',
+      title: 'Document Verification',
       icon: <Shield className="w-5 h-5" />,
       status: currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'upcoming'
     }
@@ -1202,22 +1270,26 @@ export const RegisterPersonForm = () => {
 
             {/* Fourth Row: Height Feet, Height Inches, Birth Place */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Height (Feet)</Label>
-                <Input 
-                  type="number" 
-                  onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
-                  placeholder="eg; 5" 
-                />
+            <div>
+              <Label>Height</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input 
+                      type="number" 
+                      onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
+                      placeholder="feet" 
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input 
+                      type="number" 
+                      onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
+                      placeholder="inch" 
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label>Height (Inches)</Label>
-                <Input 
-                  type="number" 
-                  onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
-                  placeholder="eg; 8" 
-                />
-              </div>
+              
               <div>
                 <Label>Birth Place *</Label>
                 <Select onValueChange={(value) => form.setValue('birthPlace', value)}>
@@ -1231,10 +1303,6 @@ export const RegisterPersonForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* Fifth Row: Nationality, Eye Color */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Nationality *</Label>
                 <Select onValueChange={(value) => form.setValue('nationality', value)}>
@@ -1248,6 +1316,11 @@ export const RegisterPersonForm = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Fifth Row: Nationality, Eye Color */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
               <div>
                 <Label>Eye Color</Label>
                 <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
@@ -1488,7 +1561,7 @@ export const RegisterPersonForm = () => {
               <div>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    Employment Information
+                  Employment Details
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1534,7 +1607,7 @@ export const RegisterPersonForm = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               
-              Employment Information
+            Employment Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1707,7 +1780,7 @@ export const RegisterPersonForm = () => {
               <div>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    Verification Section
+                  Document Verification
                   </CardTitle>
                 </CardHeader>
                 
@@ -1767,60 +1840,87 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              Verification Section
+              Document Verification
             </CardTitle>
           </CardHeader>
           
           <CardContent className="space-y-6">
           <hr />
-            {Object.entries(verification).map(([key, value]) => (
-              <div key={key} className="space-y-4">
-                <h4 className="font-medium capitalize text-[#6B7280]">
-                  {key.replace(/([A-Z])/g, ' $1').trim()} Verification
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>Verified By</Label>
-                    <Select onValueChange={(val) => setVerification({
-                      ...verification,
-                      [key]: { ...value, verifiedBy: val }
-                    })}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select document type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border max-h-48 overflow-y-auto">
-                        {documentTypes.map((doc) => (
-                          <SelectItem key={doc} value={doc}>{doc}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Date of Verification</Label>
-                    <DatePicker
-                      date={value.dateVerified || undefined}
-                      onSelect={(date) => setVerification({
-                        ...verification,
-                        [key]: { ...value, dateVerified: date || null }
-                      })}
-                      placeholder="Select verification date"
-                    />
-                  </div>
-                  <div>
-                    <Label>Verified By (User)</Label>
-                    <Input 
-                      value={value.verifier}
-                      onChange={(e) => setVerification({
-                        ...verification,
-                        [key]: { ...value, verifier: e.target.value }
-                      })}
-                      placeholder="Enter verifier name" 
-                    />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                <div>
+                  <Label>Marital Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    maritalStatus: { ...verification.maritalStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {key !== 'nameStatus' && <Separator />}
+                
+                <div>
+                  <Label>Death Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    deathStatus: { ...verification.deathStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ))}
+              
+              {/* Right Column */}
+              <div className="space-y-6">
+                <div>
+                  <Label>Birth Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    birthStatus: { ...verification.birthStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Name Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    nameStatus: { ...verification.nameStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </div>
 

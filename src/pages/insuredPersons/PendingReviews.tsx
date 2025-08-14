@@ -4,13 +4,31 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, AlertTriangle, CheckCircle, Eye, Edit, ArrowLeft, Home } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Clock, AlertTriangle, CheckCircle, Eye, Edit, ArrowLeft, Home, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 
 const PendingReviews = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Add state for search filters
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [searchParams, setSearchParams] = useState({
+    ssn: '',
+    name: '',
+    dob: '',
+    status: '',
+    applicationDate: '',
+    assignedOfficer: ''
+  });
+
+  const handleSearch = () => {
+    console.log('Searching with parameters:', searchParams);
+  };
+
   // Replace the pendingItems mock data and table with insuredPersons data and table
   // --- Add insuredPersons mock data (from IPListing) ---
   const insuredPersons = [
@@ -216,6 +234,98 @@ const PendingReviews = () => {
           
         </div>
       )}
+
+      {/* Query by Search Filter */}
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} className='mt-5'>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base lg:text-lg">
+                    Query by
+                  </CardTitle>
+                  <p className='text-[#9D9D9D]'>Filter and search Pending Reviews</p>
+                </div>
+                {isFiltersOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="text-sm font-medium">SSN</label>
+                  <Input
+                    placeholder="Enter SSN"
+                    value={searchParams.ssn}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, ssn: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Name</label>
+                  <Input
+                    placeholder="Enter name"
+                    value={searchParams.name}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Date of Birth</label>
+                  <Input
+                    type="date"
+                    value={searchParams.dob}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Draft">Draft</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="Approved">Approved</SelectItem>
+                      <SelectItem value="Rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Application Date</label>
+                  <Input
+                    type="date"
+                    value={searchParams.applicationDate}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, applicationDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Assigned Officer</label>
+                  <Input
+                    placeholder="Enter officer name"
+                    value={searchParams.assignedOfficer}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, assignedOfficer: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 lg:gap-3">
+                <Button onClick={handleSearch} className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+                <Button variant="outline" onClick={() => setSearchParams({
+                  ssn: '', name: '', dob: '', status: '', applicationDate: '', assignedOfficer: ''
+                })}>
+                  Clear Filters
+                </Button>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Data Table */}
       <DataTable

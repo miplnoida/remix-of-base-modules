@@ -58,8 +58,8 @@ import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
 // New pages for missing routes
 import AddEmployer from '@/pages/employersManagement/AddEmployer';
 import EmployersReports from '@/pages/reports/EmployersReports';
-import ViewEmployer from '@/pages/employersManagement/ViewEmployer';
-import EditEmployer from '@/pages/employersManagement/EditEmployer';
+
+
 import ManageSelfEmployed from '@/pages/selfEmployed/ManageSelfEmployed';
 import AddSelfEmployed from '@/pages/selfEmployed/AddSelfEmployed';
 import SelfEmployedReports from '@/pages/selfEmployed/SelfEmployedReports';
@@ -86,6 +86,8 @@ import C3Verification from '@/pages/c3Management/C3Verification';
 import ElectronicC3Config from '@/pages/c3Management/ElectronicC3Config';
 import ViewC3Record from '@/pages/c3Management/ViewC3Record';
 import EditC3Record from '@/pages/c3Management/EditC3Record';
+import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
+import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
 export const AppRoutes = () => {
   return (

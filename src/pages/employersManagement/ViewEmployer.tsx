@@ -1,159 +1,517 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Edit, Download, Printer, Search, ChevronDown, ChevronUp, FileText, Settings, Users, Plus, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Stepper, StepperStep } from '@/components/ui/stepper';
+import { ArrowLeft, Building2, Users, Phone, Settings, FileText, Printer, Edit, CalendarIcon, User } from 'lucide-react';
+import { format } from 'date-fns';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Badge } from '@/components/ui/badge';
 
-const employerSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  tradeName: z.string().optional(),
-  addressType: z.enum(["mailing", "hq"]),
-  mailingAddress: z.string().optional(),
-  mailingPostalCode: z.string().optional(),
-  hqAddress: z.string().optional(),
-  hqPostalCode: z.string().optional(),
-  telephone: z.string().min(1, "Telephone is required"),
-  fax: z.string().optional(),
-  email: z.string().email("Invalid email").min(1, "Email is required"),
-  parentRegNo: z.string().optional(),
-  officeCode: z.string().optional(),
-  ownershipCode: z.string().optional(),
-  sectorCode: z.string().optional(),
-  industrialCode: z.string().optional(),
-  acquiredCompany: z.boolean().default(false),
-  acquisitionDate: z.date().optional(),
-  incorporatedDate: z.date().optional(),
-  village: z.string().optional(),
-  activityType: z.string().optional(),
-  inspectorCode: z.string().optional(),
-  applicationDate: z.date().optional(),
-  totalEmployees: z.string().optional(),
-  maleEmployees: z.string().optional(),
-  femaleEmployees: z.string().optional(),
-  dateWagesFirstPaid: z.date().optional(),
-  dateOfClosure: z.date().optional(),
-  reregistrationDate: z.date().optional(),
-  computerPayroll: z.boolean().default(false),
-  makeModel: z.string().optional(),
-  dateOfEntry: z.date().optional(),
-  registrationDate: z.date().optional(),
-  enteredBy: z.string().optional(),
-  dateModified: z.date().optional(),
-  userId: z.string().optional(),
-});
+// Sample employer data for view mode
+const sampleEmployerData = {
+  regNo: "EMP001",
+  name: "ABC Construction Ltd",
+  tradeName: "ABC Construction",
+  addressType: "mailing",
+  mailingAddress: "123 Main Street, Basseterre",
+  mailingPostalCode: "KN001",
+  hqAddress: "456 Industrial Road, Cayon",
+  hqPostalCode: "KN002",
+  telephone: "(869) 465-2345",
+  fax: "(869) 465-2346",
+  email: "info@abcconstruction.com",
+  parentRegNo: "PARENT001",
+  officeCode: "BST001",
+  ownershipCode: "OWN001",
+  sectorCode: "SEC001",
+  industrialCode: "Building of Complete Con",
+  village: "Basseterre",
+  activityType: "Construction",
+  inspectorCode: "01 Vincent Sutton",
+  acquiredCompany: true,
+  acquisitionDate: new Date("2022-04-01"),
+  incorporatedDate: new Date("2023-01-01"),
+  applicationDate: new Date("2023-01-01"),
+  totalEmployees: "40",
+  maleEmployees: "25",
+  femaleEmployees: "15",
+  dateWagesFirstPaid: new Date("2023-02-01"),
+  dateOfClosure: null,
+  reregistrationDate: null,
+  computerPayroll: true,
+  makeModel: "Dell Optiplex",
+  dateOfEntry: new Date("2023-01-10"),
+  registrationDate: new Date("2023-01-20"),
+  enteredBy: "John Doe",
+  dateModified: new Date("2024-01-01"),
+  userId: "ADMIN001",
+  previousOwners: [
+    { name: "Previous Corp", address: "789 Old Street, Old Town" }
+  ]
+};
 
-type EmployerFormData = z.infer<typeof employerSchema>;
- 
-export default function ViewEmployer() {
+interface Owner {
+  id: string;
+  name: string;
+  title: string;
+  phoneNumber: string;
+}
+
+interface Location {
+  id: string;
+  tradeName: string;
+  locAddr1: string;
+  locAddr2: string;
+  activityType: string;
+}
+
+interface Note {
+  id: string;
+  noteDate: Date;
+  note: string;
+  userId: string;
+}
+
+export const ViewEmployer = () => {
   const { regNo } = useParams();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("form-detail");
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isGeneralInfoExpanded, setIsGeneralInfoExpanded] = useState(true);
-  const [isContactInfoExpanded, setIsContactInfoExpanded] = useState(true);
-  const [isEmploymentDetailsExpanded, setIsEmploymentDetailsExpanded] = useState(true);
-  const [isPayrollRegistrationExpanded, setIsPayrollRegistrationExpanded] = useState(true);
-  const [employeeSearch, setEmployeeSearch] = useState('');
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-
-  const form = useForm<EmployerFormData>({
-    resolver: zodResolver(employerSchema),
-    defaultValues: {
-      name: "Tech Solutions Ltd",
-      tradeName: "TechSol",
-      addressType: "mailing",
-      mailingAddress: "123 Business Park, Nevis",
-      mailingPostalCode: "12345",
-      telephone: "+1 (869) 555-0123",
-      email: "contact@techsolutions.com",
-      acquiredCompany: false,
-      computerPayroll: true,
-      parentRegNo: "12345",
-      officeCode: "OFF001",
-      ownershipCode: "OWN001",
-      sectorCode: "SEC001",
-      industrialCode: "Account/Book-keep/Audit",
-      village: "Adams Hill",
-      activityType: "Technology Services",
-      inspectorCode: "01 Vincent Sutton",
-      totalEmployees: "25",
-      maleEmployees: "15",
-      femaleEmployees: "10",
-      makeModel: "QuickBooks Pro",
-      enteredBy: "System Administrator",
-      userId: "ADMIN001",
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // Sample data for Owners
+  const [owners] = useState<Owner[]>([
+    {
+      id: "OWN001",
+      name: "John Smith",
+      title: "Chief Executive Officer",
+      phoneNumber: "(869) 465-1234"
+    },
+    {
+      id: "OWN002", 
+      name: "Sarah Johnson",
+      title: "Chief Financial Officer",
+      phoneNumber: "(869) 465-5678"
+    },
+    {
+      id: "OWN003",
+      name: "Michael Brown",
+      title: "Chief Operations Officer", 
+      phoneNumber: "(869) 465-9012"
     }
-  });
+  ]);
 
-  const industrialCodes = ["Account/Book-keep/Audit", "Act of other trans agency", "Admin of Financial Market", "Adult Education", "Gardening"];
-  const villages = ["Adams Hill", "Barnaby", "Barnes Bhaut", "Clifton Estate"];
-  const inspectorCodes = ["00 Nevis", "01 Vincent Sutton", "N04 Sheon Lewis"];
+  // Sample data for Locations
+  const [locations] = useState<Location[]>([
+    {
+      id: "LOC001",
+      tradeName: "ABC Construction - Main Office",
+      locAddr1: "123 Main Street",
+      locAddr2: "Basseterre, Saint Kitts",
+      activityType: "Administrative"
+    },
+    {
+      id: "LOC002",
+      tradeName: "ABC Construction - Site A",
+      locAddr1: "456 Industrial Road",
+      locAddr2: "Cayon, Saint Kitts", 
+      activityType: "Construction Site"
+    },
+    {
+      id: "LOC003",
+      tradeName: "ABC Construction - Warehouse",
+      locAddr1: "789 Storage Lane",
+      locAddr2: "Sandy Point, Saint Kitts",
+      activityType: "Storage & Logistics"
+    }
+  ]);
 
-  const DatePicker = ({ field, placeholder }: any) => (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-gray-50", !field.value && "text-muted-foreground")} disabled>
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {field.value ? format(field.value, "PPP") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className="pointer-events-auto" />
-      </PopoverContent>
-    </Popover>
-  );
+  // Sample data for Notes
+  const [notes] = useState<Note[]>([
+    {
+      id: "NOTE001",
+      noteDate: new Date("2024-01-15"),
+      note: "Initial registration completed. All documents verified and approved. Company is compliant with all regulatory requirements.",
+      userId: "ADMIN001"
+    },
+    {
+      id: "NOTE002", 
+      noteDate: new Date("2024-02-20"),
+      note: "Annual compliance review conducted. No issues found. Company continues to meet all employment and safety standards.",
+      userId: "INSPECTOR001"
+    },
+    {
+      id: "NOTE003",
+      noteDate: new Date("2024-03-10"),
+      note: "Updated employee count: 40 total employees (25 male, 15 female). All new employees properly registered in the system.",
+      userId: "HR001"
+    },
+    {
+      id: "NOTE004",
+      noteDate: new Date("2024-04-05"),
+      note: "Site inspection completed at all three locations. Safety protocols are being followed correctly. No violations found.",
+      userId: "SAFETY001"
+    }
+  ]);
 
-  // Mock data for management tabs
-  const c3Details = [
-    { period: "2024-01", contributionDueSSB: "$2,500", contributionDueLevy: "$500", contributionDueSev: "$300", ssbFinesDue: "$0", levyPenalties: "$0", severancePending: "$0", totalWages: "$25,000" },
-    { period: "2024-02", contributionDueSSB: "$2,700", contributionDueLevy: "$540", contributionDueSev: "$324", ssbFinesDue: "$0", levyPenalties: "$0", severancePending: "$0", totalWages: "$27,000" },
+  const navigate = useNavigate();
+
+  // Define stepper steps
+  const steps: StepperStep[] = [
+    {
+      id: 'entity-overview',
+      title: 'Entity Overview',
+      icon: <Building2 className="w-5 h-5" />,
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'background-info',
+      title: 'Background Info',
+      icon: <Users className="w-5 h-5" />,
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'contact-reach',
+      title: 'Contact & Reach',
+      icon: <Phone className="w-5 h-5" />,
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'upcoming'
+    },
+    {
+      id: 'tech-finance',
+      title: 'Tech & Finance Overview',
+      icon: <Settings className="w-5 h-5" />,
+      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'upcoming'
+    }
   ];
 
-  const employeeList = [
-    { ssn: "111-22-3333", surname: "Johnson", firstName: "Michael", middleName: "A", sex: "M", dob: "1990-05-15", address: "456 Main St", nationality: "Nevisian", maritalStatus: "Single", phone: "+1 869 555-0100", dateVerified: "2024-01-01", status: "Active" },
-    { ssn: "444-55-6666", surname: "Williams", firstName: "Sarah", middleName: "B", sex: "F", dob: "1985-08-22", address: "789 Oak Ave", nationality: "Nevisian", maritalStatus: "Married", phone: "+1 869 555-0200", dateVerified: "2024-01-01", status: "Active" },
-  ].filter(emp => 
-    employeeSearch === '' || 
-    emp.ssn.includes(employeeSearch) || 
-    `${emp.firstName} ${emp.surname}`.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-    emp.phone.includes(employeeSearch)
-  );
+  // Navigation functions
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const goToStep = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
+  };
+
+  // Helper function to format dates
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Not specified";
+    return format(date, "MM/dd/yyyy");
+  };
+
+  // Helper function to format boolean values
+  const formatBoolean = (value: boolean) => {
+    return value ? "Yes" : "No";
+  };
+
+  // Step content components for view mode
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Entity Overview
+        return (
+          <div className="space-y-6">
+            {/* General Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>General Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Name *</Label>
+                    <p className="text-sm font-medium">{sampleEmployerData.name}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Trade Name</Label>
+                    <p className="text-sm">{sampleEmployerData.tradeName}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Address Type</Label>
+                    <p className="text-sm capitalize">{sampleEmployerData.addressType}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Mailing Address</Label>
+                    <p className="text-sm">{sampleEmployerData.mailingAddress}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Postal Code</Label>
+                    <p className="text-sm">{sampleEmployerData.mailingPostalCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">HQ Address</Label>
+                    <p className="text-sm">{sampleEmployerData.hqAddress}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+
+            {/* Organizational Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Organizational Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Parent Reg. No.</Label>
+                    <p className="text-sm">{sampleEmployerData.parentRegNo || "Not specified"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Office Code</Label>
+                    <p className="text-sm">{sampleEmployerData.officeCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Ownership Code</Label>
+                    <p className="text-sm">{sampleEmployerData.ownershipCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Sector Code</Label>
+                    <p className="text-sm">{sampleEmployerData.sectorCode}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Industrial Code</Label>
+                    <p className="text-sm">{sampleEmployerData.industrialCode}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+          </div>
+        );
+
+      case 1: // Background Info
+        return (
+          <div className="space-y-6">
+            {/* Previous Owners */}
+            <div>
+              <CardHeader>
+                <CardTitle>Previous Owners</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sampleEmployerData.previousOwners.length > 0 ? (
+                  <div className="space-y-4">
+                    {sampleEmployerData.previousOwners.map((owner, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-500">Previous Owner Name</Label>
+                          <p className="text-sm">{owner.name}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-500">Previous Owner Address</Label>
+                          <p className="text-sm">{owner.address}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No previous owners recorded.</p>
+                )}
+              </CardContent>
+            </div>
+
+            {/* Acquisition / Incorporation */}
+            <div>
+              <CardHeader>
+                <CardTitle>Acquisition / Incorporation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Acquired Company</Label>
+                    <p className="text-sm">{formatBoolean(sampleEmployerData.acquiredCompany)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Acquisition Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.acquisitionDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Incorporated Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.incorporatedDate)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+          </div>
+        );
+
+      case 2: // Contact & Reach
+        return (
+          <div className="space-y-6">
+            {/* Contact Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Contact Telephone No. *</Label>
+                    <p className="text-sm font-medium">{sampleEmployerData.telephone}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Contact Fax No.</Label>
+                    <p className="text-sm">{sampleEmployerData.fax}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Email *</Label>
+                    <p className="text-sm font-medium">{sampleEmployerData.email}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+
+            {/* Location Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Location Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Village</Label>
+                    <p className="text-sm">{sampleEmployerData.village}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Activity Type</Label>
+                    <p className="text-sm">{sampleEmployerData.activityType}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Inspector Code</Label>
+                    <p className="text-sm">{sampleEmployerData.inspectorCode}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+
+            {/* Dates & Employees */}
+            <div>
+              <CardHeader>
+                <CardTitle>Dates & Employees</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date of Application</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.applicationDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Total Employees</Label>
+                    <p className="text-sm">{sampleEmployerData.totalEmployees}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Male Employees</Label>
+                    <p className="text-sm">{sampleEmployerData.maleEmployees}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Female Employees</Label>
+                    <p className="text-sm">{sampleEmployerData.femaleEmployees}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date Wages First Paid</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateWagesFirstPaid)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date of Closure</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateOfClosure)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Re-registration Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.reregistrationDate)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+          </div>
+        );
+
+      case 3: // Tech & Finance Overview
+        return (
+          <div className="space-y-6">
+            {/* Technical Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Technical Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Computer Payroll</Label>
+                    <p className="text-sm">{formatBoolean(sampleEmployerData.computerPayroll)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Make Model</Label>
+                    <p className="text-sm">{sampleEmployerData.makeModel}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+
+            {/* Transaction Details */}
+            <div>
+              <CardHeader>
+                <CardTitle>Transaction Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date of Entry</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateOfEntry)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Registration Date</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.registrationDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Entered By</Label>
+                    <p className="text-sm">{sampleEmployerData.enteredBy}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Date Modified</Label>
+                    <p className="text-sm">{formatDate(sampleEmployerData.dateModified)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">User ID</Label>
+                    <p className="text-sm">{sampleEmployerData.userId}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/employers-management/manage')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Employers
+    <div className="container mx-auto p-4 space-y-6">
+      
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/employers-management/dashboard')}
+            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sm:hidden">Back</span>
           </Button>
+          <div className="h-6 w-px bg-gray-300" />
+          
           <div>
-            <h1 className="text-3xl font-bold text-government-900">View Employer Details</h1>
-            <p className="text-government-600 mt-2">Complete employer information with detailed data</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">View </h1>
+            
           </div>
         </div>
-        
-        <div className="flex gap-2 justify-end my-4">
-          <Button variant="outline" onClick={() => navigate(`/employers-management/view/${regNo}`)}>
-            <FileText className="h-4 w-4 mr-2" />
-            View
-          </Button>
+        <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
           <Button variant="outline" onClick={() => console.log('Change Status clicked')}>
             <Settings className="h-4 w-4 mr-2" />
             Change Status
@@ -172,873 +530,251 @@ export default function ViewEmployer() {
           </Button>
         </div>
       </div>
-
-      <div className="mb-6">
-        <Form {...form}>
+      <Card className="mb-4">
+        <CardContent className="py-4 px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+            </div>
+            <div className="flex flex-col gap-1 justify-center">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              John Doe
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 text-sm font-medium">Regn No.: TE0001</span>
+                
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="form-detail">Form Detail</TabsTrigger>
-            <TabsTrigger value="owners">Owners</TabsTrigger>
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="commence-date">Commence Date</TabsTrigger>
-            <TabsTrigger value="visits">Visits</TabsTrigger>
-            <TabsTrigger value="suits">Suits</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="form-detail" className="space-y-6">
-            {/* General Information */}
-            <Collapsible open={isGeneralInfoExpanded} onOpenChange={setIsGeneralInfoExpanded}>
-              <CollapsibleTrigger asChild>
-                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      General Information
-                      {isGeneralInfoExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <Card>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name *</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="tradeName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trade Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="addressType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address Type</FormLabel>
-                      <FormControl>
-                        <Select disabled value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full bg-gray-50">
-                            <SelectValue placeholder="Select address type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mailing">Mailing</SelectItem>
-                            <SelectItem value="hq">Headquarters</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mailingAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mailing Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mailingPostalCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mailing Postal Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="hqAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Headquarters Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="hqPostalCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Headquarters Postal Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="fax"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fax</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="parentRegNo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Parent Registration No.</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="officeCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Office Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="ownershipCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ownership Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="sectorCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sector Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="industrialCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industrial Code</FormLabel>
-                      <FormControl>
-                        <Select disabled value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full bg-gray-50">
-                            <SelectValue placeholder="Select industrial code" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {industrialCodes.map(code => (
-                              <SelectItem key={code} value={code}>{code}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="acquiredCompany"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <FormLabel className="mb-0">Acquired Company</FormLabel>
-                      <FormControl>
-                        <Switch disabled checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="acquisitionDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Acquisition Date</FormLabel>
-                      <FormControl>
-                        <DatePicker field={field} placeholder="Select acquisition date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="incorporatedDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Incorporated Date</FormLabel>
-                      <FormControl>
-                        <DatePicker field={field} placeholder="Select incorporated date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="village"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Village</FormLabel>
-                      <FormControl>
-                        <Select disabled value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full bg-gray-50">
-                            <SelectValue placeholder="Select village" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {villages.map(village => (
-                              <SelectItem key={village} value={village}>{village}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="activityType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Activity Type</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="inspectorCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Inspector Code</FormLabel>
-                      <FormControl>
-                        <Select disabled value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full bg-gray-50">
-                            <SelectValue placeholder="Select inspector code" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {inspectorCodes.map(code => (
-                              <SelectItem key={code} value={code}>{code}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-            </CollapsibleContent>
-            </Collapsible>
-
-            {/* Contact Information */}
-            <Collapsible open={isContactInfoExpanded} onOpenChange={setIsContactInfoExpanded}>
-              <CollapsibleTrigger asChild>
-                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Contact Information
-                      {isContactInfoExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <Card>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
-                <FormField
-                  control={form.control}
-                  name="telephone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Telephone No. *</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email *</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-            </CollapsibleContent>
-            </Collapsible>
-
-            {/* Employment Details */}
-            <Collapsible open={isEmploymentDetailsExpanded} onOpenChange={setIsEmploymentDetailsExpanded}>
-              <CollapsibleTrigger asChild>
-                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Employment Details
-                      {isEmploymentDetailsExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <Card>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
-                <FormField
-                  control={form.control}
-                  name="totalEmployees"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Employees</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="maleEmployees"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Male Employees</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="femaleEmployees"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Female Employees</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-            </CollapsibleContent>
-            </Collapsible>
-
-            {/* Payroll and Registration */}
-            <Collapsible open={isPayrollRegistrationExpanded} onOpenChange={setIsPayrollRegistrationExpanded}>
-              <CollapsibleTrigger asChild>
-                <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Payroll and Registration
-                      {isPayrollRegistrationExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <Card>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
-                <FormField
-                  control={form.control}
-                  name="computerPayroll"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <FormLabel className="mb-0">Computer Payroll</FormLabel>
-                      <FormControl>
-                        <Switch disabled checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="makeModel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Make/Model</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly className="bg-gray-50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-            </CollapsibleContent>
-            </Collapsible>
-
-            
-          </TabsContent>
-
-          <TabsContent value="owners" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Owners</span>
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Owner
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Owner ID</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Phone Number</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">1753855774648</TableCell>
-                      <TableCell>
-                        <Input placeholder="Enter name" className="bg-white" disabled />
-                      </TableCell>
-                      <TableCell>
-                        <Input placeholder="Enter title" className="bg-white" disabled />
-                      </TableCell>
-                      <TableCell>
-                        <Input placeholder="+1 (000) 000-0000" className="bg-white" disabled />
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" className="text-destructive" disabled>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="locations" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Locations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Location ID</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Postal Code</TableHead>
-                      <TableHead>Phone</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No locations registered
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="notes" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">No notes available.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="commence-date" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Commence Date</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="applicationDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Application Date</FormLabel>
-                      <FormControl>
-                        <DatePicker field={field} placeholder="Select application date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dateWagesFirstPaid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date Wages First Paid</FormLabel>
-                      <FormControl>
-                        <DatePicker field={field} placeholder="Select date wages first paid" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dateOfClosure"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date of Closure</FormLabel>
-                      <FormControl>
-                        <DatePicker field={field} placeholder="Select date of closure" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="reregistrationDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reregistration Date</FormLabel>
-                      <FormControl>
-                        <DatePicker field={field} placeholder="Select reregistration date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="visits" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Visits</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">No visit records available.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="suits" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Suits</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">No suits recorded.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </Form>
-      </div>
-      <div className="flex gap-2 justify-end my-4">
-          <Button variant="outline" onClick={() => navigate(`/employers-management/view/${regNo}`)}>
-            <FileText className="h-4 w-4 mr-2" />
-            View
-          </Button>
-          <Button variant="outline" onClick={() => console.log('Change Status clicked')}>
-            <Settings className="h-4 w-4 mr-2" />
-            Change Status
-          </Button>
-          <Button variant="outline" onClick={() => console.log('Registration Certificate clicked')}>
-            <FileText className="h-4 w-4 mr-2" />
-            Registration Certificate
-          </Button>
-          <Button variant="outline" onClick={() => console.log('Print clicked')}>
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-          <Button onClick={() => navigate(`/employers-management/edit/${regNo}`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Employer
-          </Button>
-        </div>
-      {/* Expandable Management Sections */}
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <CollapsibleTrigger asChild>
-          <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Employer Management Data
-                {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-0">
-          <Tabs defaultValue="c3-details" className="w-full">
-            <TabsList className="grid w-full grid-cols-9">
-              <TabsTrigger value="c3-details">C3 Details</TabsTrigger>
-              <TabsTrigger value="director-wages">Director Wages</TabsTrigger>
-              <TabsTrigger value="payment-history">Payment History</TabsTrigger>
-              <TabsTrigger value="payment-history-vax">Payment (Vax)</TabsTrigger>
-              <TabsTrigger value="payment-history-c3">Payment (C3)</TabsTrigger>
-              <TabsTrigger value="employee-list">Employee List</TabsTrigger>
-              <TabsTrigger value="arrears-report">Arrears Report</TabsTrigger>
-              <TabsTrigger value="zone-transactions">Zone Transactions</TabsTrigger>
-              <TabsTrigger value="overs-unders">Overs & Unders</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="form-detail">Form Detail</TabsTrigger>
+              <TabsTrigger value="owners">Owners</TabsTrigger>
+              <TabsTrigger value="locations">Locations</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="commence-date">Commence Date</TabsTrigger>
+              <TabsTrigger value="visits">Visits</TabsTrigger>
+              <TabsTrigger value="suits">Suits</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="c3-details" className="space-y-4">
+            <TabsContent value="form-detail" className="space-y-6">
+              {/* Stepper */}
+              <Card className='py-5 mt-5' style={{backgroundColor:"#F9FAFB"}}>
+                <div className='px-5 mb-6'>
+                  <Card className='p-3'>
+                    <Stepper 
+                      steps={steps} 
+                      currentStep={currentStep} 
+                      onStepClick={goToStep}
+                      className=""
+                    />
+                  </Card>
+                </div>
+
+                {/* Step Content */}
+                <div className="px-5">
+                  {renderStepContent()}
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between items-center pt-6 px-5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={prevStep}
+                    disabled={currentStep === 0}
+                    className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+
+                  <div className="flex gap-3">
+                    {currentStep < steps.length - 1 ? (
+                      <Button
+                        type="button"
+                        onClick={nextStep}
+                        className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                      >
+                        Next
+                        <ArrowLeft className="h-4 w-4 rotate-180" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                        View History
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="owners" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    C3 Details
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Printer className="h-4 w-4 mr-2" />
-                        Print
-                      </Button>
-                    </div>
-                  </CardTitle>
+                  <CardTitle>Owners</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Contribution Due (SSB)</TableHead>
-                        <TableHead>Contribution Due (Levy)</TableHead>
-                        <TableHead>Contribution Due (Sev)</TableHead>
-                        <TableHead>SSB Fines Due</TableHead>
-                        <TableHead>Levy Penalties</TableHead>
-                        <TableHead>Severance Pending</TableHead>
-                        <TableHead>Total Wages</TableHead>
+                        <TableHead>Owner ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Phone Number</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {c3Details.map((detail, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{detail.period}</TableCell>
-                          <TableCell>{detail.contributionDueSSB}</TableCell>
-                          <TableCell>{detail.contributionDueLevy}</TableCell>
-                          <TableCell>{detail.contributionDueSev}</TableCell>
-                          <TableCell>{detail.ssbFinesDue}</TableCell>
-                          <TableCell>{detail.levyPenalties}</TableCell>
-                          <TableCell>{detail.severancePending}</TableCell>
-                          <TableCell>{detail.totalWages}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="director-wages" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Director Wages</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">No director wages data available.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="payment-history" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">No payment history available.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="payment-history-vax" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment (Vax)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">No Vax payment data available.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="payment-history-c3" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment (C3)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">No C3 payment data available.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="employee-list" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Employee List
-                    <div className="flex gap-2">
-                      <div className="flex items-center gap-2">
-                        <Search className="h-4 w-4" />
-                        <Input
-                          placeholder="Search by SSN, Name, or Phone"
-                          value={employeeSearch}
-                          onChange={(e) => setEmployeeSearch(e.target.value)}
-                          className="w-64"
-                        />
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>SSN</TableHead>
-                        <TableHead>Surname</TableHead>
-                        <TableHead>First Name</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {employeeList.map((employee, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{employee.ssn}</TableCell>
-                          <TableCell>{employee.surname}</TableCell>
-                          <TableCell>{employee.firstName}</TableCell>
-                          <TableCell>
-                            <Badge variant={employee.status === 'Active' ? 'default' : 'secondary'}>
-                              {employee.status}
-                            </Badge>
+                      {owners.length > 0 ? (
+                        owners.map((owner) => (
+                          <TableRow key={owner.id}>
+                            <TableCell>{owner.id}</TableCell>
+                            <TableCell>{owner.name}</TableCell>
+                            <TableCell>{owner.title}</TableCell>
+                            <TableCell>{owner.phoneNumber}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No owners recorded for this employer.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="arrears-report" className="space-y-4">
+            <TabsContent value="locations" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Arrears Report</CardTitle>
+                  <CardTitle>Locations</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">No arrears report available.</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Location ID</TableHead>
+                        <TableHead>Trade Name</TableHead>
+                        <TableHead>Loc Addr1</TableHead>
+                        <TableHead>Loc Addr2</TableHead>
+                        <TableHead>Activity Type</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {locations.length > 0 ? (
+                        locations.map((location) => (
+                          <TableRow key={location.id}>
+                            <TableCell>{location.id}</TableCell>
+                            <TableCell>{location.tradeName}</TableCell>
+                            <TableCell>{location.locAddr1}</TableCell>
+                            <TableCell>{location.locAddr2}</TableCell>
+                            <TableCell>{location.activityType}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                            No locations recorded for this employer.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="zone-transactions" className="space-y-4">
+            <TabsContent value="notes" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Zone Transactions</CardTitle>
+                  <CardTitle>Notes</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">No zone transactions available.</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Notes ID</TableHead>
+                        <TableHead>Note Date</TableHead>
+                        <TableHead>Note</TableHead>
+                        <TableHead>User's ID</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {notes.length > 0 ? (
+                        notes.map((note) => (
+                          <TableRow key={note.id}>
+                            <TableCell>{note.id}</TableCell>
+                            <TableCell>{format(note.noteDate, "MM/dd/yyyy")}</TableCell>
+                            <TableCell>{note.note}</TableCell>
+                            <TableCell>{note.userId}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No notes recorded for this employer.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="overs-unders" className="space-y-4">
+            <TabsContent value="commence-date" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Overs & Unders</CardTitle>
+                  <CardTitle>Commence Date</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">No overs & unders data available.</p>
+                  <div className="text-center text-muted-foreground py-12">
+                    <p>Commence Date functionality will be implemented here.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="visits" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Visits</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center text-muted-foreground py-12">
+                    <p>Visits functionality will be implemented here.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="suits" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Suits</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center text-muted-foreground py-12">
+                    <p>Suits functionality will be implemented here.</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-        </CollapsibleContent>
-      </Collapsible>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};

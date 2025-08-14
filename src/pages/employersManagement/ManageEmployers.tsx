@@ -14,14 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable } from '@/components/ui/data-table';
 import {
   Search,
   RefreshCw,
@@ -429,7 +422,7 @@ const ManageEmployers = () => {
 
   const filteredEmployers = getFilteredEmployers();
 
-  return (
+  return ( 
     <TooltipProvider>
       <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
@@ -445,7 +438,37 @@ const ManageEmployers = () => {
           </div>
           
           {/* Section 1: Query By (Collapsible Filters Panel) */}
-          <Card className="mb-6 shadow-sm">
+          
+
+          {/* Section 2: Search Result Area */}
+         
+            
+            <div className="p-0 ">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger 
+                    value="pending" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Pending Verification ({sampleEmployers.filter(emp => emp.status === 'Pending').length})
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="registered" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Registered Employers ({sampleEmployers.filter(emp => emp.status === 'Active').length})
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="ceased" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Ceased/Suspended ({sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed').length})
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Pending Verification Tab */}
+                <TabsContent value="pending" className="mt-0">
+                  <Card className="mb-6 mt-5 shadow-sm">
             <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
               <CardHeader className="border-b bg-background">
                 <div className="flex items-center justify-between">
@@ -592,281 +615,383 @@ const ManageEmployers = () => {
               </CollapsibleContent>
             </Collapsible>
           </Card>
-
-          {/* Section 2: Search Result Area */}
-          <Card className="shadow-sm">
-            <CardHeader className="border-b bg-white">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-lg text-gray-800">Search Result ({filteredEmployers.length})</CardTitle>
-                  <CardDescription>Comprehensive employer information and management</CardDescription>
-                </div>
-                <Button variant="outline" className="border-gray-300">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="w-full h-12 grid grid-cols-3 bg-gray-50 p-1 rounded-none">
-                  <TabsTrigger 
-                    value="pending" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Pending Verification ({sampleEmployers.filter(emp => emp.status === 'Pending').length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="registered" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Registered Employers ({sampleEmployers.filter(emp => emp.status === 'Active').length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="ceased" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Ceased/Suspended ({sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed').length})
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Pending Verification Tab */}
-                <TabsContent value="pending" className="p-6 mt-0">
                   {filteredEmployers.length === 0 ? (
                     <EmptyState 
                       title="No pending applications"
                       description="All employer registrations have been processed."
                     />
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table className="app-table">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Application. No</TableHead>
-                            <TableHead>Employer Name</TableHead>
-                            <TableHead>Trade Name</TableHead>
-                            <TableHead>Phone</TableHead>
-                            <TableHead>Activity Type</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-center">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredEmployers.map((employer) => (
-                            <TableRow key={employer.regNo}>
-                              <TableCell className="font-medium">{employer.regNo}</TableCell>
-                              <TableCell>{employer.name}</TableCell>
-                              <TableCell>{employer.tradeName}</TableCell>
-                              <TableCell>{employer.phone}</TableCell>
-                              <TableCell>{employer.activityType}</TableCell>
-                              <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center justify-center gap-2">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="default" 
-                                        size="sm" 
-                                        onClick={() => handleApprove(employer)}
-                                        className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
-                                      >
-                                        <CheckCircle className="h-4 w-4 mr-1" />
-                                        Approve
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Approve Registration</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="destructive" 
-                                        size="sm" 
-                                        onClick={() => handleReject(employer)}
-                                        className="h-8 px-3"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        Reject
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Reject Registration</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handleViewDetails(employer)}
-                                        className="h-8 px-3"
-                                      >
-                                        <Eye className="h-4 w-4 mr-1" />
-                                        View Details
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View Registration Details</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                    <DataTable
+                      data={filteredEmployers}
+                      columns={[
+                        { key: 'regNo', label: 'Application No' },
+                        { key: 'name', label: 'Employer Name' },
+                        { key: 'tradeName', label: 'Trade Name' },
+                        { key: 'phone', label: 'Phone' },
+                        { key: 'activityType', label: 'Activity Type' },
+                        { key: 'status', label: 'Status' }
+                      ]}
+                      title="Pending Verification"
+                      searchPlaceholder="Search pending applications..."
+                      actions={{ view: true, approve: true, reject: true }}
+                      idField="regNo"
+                      statusField="status"
+                      getStatusBadge={getStatusBadge}
+                      onView={handleViewDetails}
+                      onApprove={(id) => {
+                        const employer = filteredEmployers.find(emp => emp.regNo === id);
+                        if (employer) handleApprove(employer);
+                      }}
+                      onReject={(id) => {
+                        const employer = filteredEmployers.find(emp => emp.regNo === id);
+                        if (employer) handleReject(employer);
+                      }}
+                    />
                   )}
                 </TabsContent>
 
                 {/* Registered Employers Tab */}
-                <TabsContent value="registered" className="p-6 mt-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b">
-                          <TableHead className="text-gray-600 font-medium">Reg. No</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
-                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEmployers.map((employer) => (
-                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
-                            <TableCell className="text-gray-700">{employer.name}</TableCell>
-                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
-                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
-                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleView(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Details</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleEdit(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Edit</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleDelete(employer)}
-                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                <TabsContent value="registered" className=" mt-0">
+                  <Card className="mb-6  mt-5  shadow-sm">
+            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
+              <CardHeader className="border-b bg-background">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
                   </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="p-2 h-auto">
+                      {isFilterExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </CardHeader>
+              
+              <CollapsibleContent className="bg-background">
+                <CardContent className="p-6 bg-background">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Number</label>
+                      <Input
+                        placeholder="Enter reg. number"
+                        value={searchParams.registrationNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Employer Name</label>
+                      <Input
+                        placeholder="Enter employer name"
+                        value={searchParams.employerName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name</label>
+                      <Input
+                        placeholder="Enter trade name"
+                        value={searchParams.tradeName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone Number</label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={searchParams.phoneNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date</label>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !fromDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fromDate ? format(fromDate, "MMM dd") : "From"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={fromDate}
+                              onSelect={setFromDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !toDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {toDate ? format(toDate, "MMM dd") : "To"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={toDate}
+                              onSelect={setToDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Inspector Code</label>
+                      <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select inspector" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="00 Nevis">00 Nevis</SelectItem>
+                          <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
+                          <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
+                          <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={handleSearch} 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleReset}
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+                  <DataTable
+                    data={filteredEmployers}
+                    columns={[
+                      { key: 'regNo', label: 'Reg. No' },
+                      { key: 'name', label: 'Employer Name' },
+                      { key: 'tradeName', label: 'Trade Name' },
+                      { key: 'phone', label: 'Phone' },
+                      { key: 'activityType', label: 'Activity Type' },
+                      { key: 'status', label: 'Status' }
+                    ]}
+                    title="Registered Employers"
+                    searchPlaceholder="Search registered employers..."
+                    actions={{ view: true, edit: true, approve: false, reject: false }}
+                    idField="regNo"
+                    statusField="status"
+                    getStatusBadge={getStatusBadge}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                  />
                 </TabsContent>
 
                 {/* Ceased/Suspended Employers Tab */}
-                <TabsContent value="ceased" className="p-6 mt-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b">
-                          <TableHead className="text-gray-600 font-medium">Reg. No</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
-                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEmployers.map((employer) => (
-                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
-                            <TableCell className="text-gray-700">{employer.name}</TableCell>
-                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
-                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
-                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleView(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Details</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleEdit(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Edit</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                <TabsContent value="ceased" className=" mt-0">
+                  <Card className="mb-6  mt-5  shadow-sm">
+            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
+              <CardHeader className="border-b bg-background">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
                   </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="p-2 h-auto">
+                      {isFilterExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </CardHeader>
+              
+              <CollapsibleContent className="bg-background">
+                <CardContent className="p-6 bg-background">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Number</label>
+                      <Input
+                        placeholder="Enter reg. number"
+                        value={searchParams.registrationNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Employer Name</label>
+                      <Input
+                        placeholder="Enter employer name"
+                        value={searchParams.employerName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name</label>
+                      <Input
+                        placeholder="Enter trade name"
+                        value={searchParams.tradeName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone Number</label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={searchParams.phoneNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date</label>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !fromDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fromDate ? format(fromDate, "MMM dd") : "From"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={fromDate}
+                              onSelect={setFromDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !toDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {toDate ? format(toDate, "MMM dd") : "To"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={toDate}
+                              onSelect={setToDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Inspector Code</label>
+                      <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select inspector" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="00 Nevis">00 Nevis</SelectItem>
+                          <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
+                          <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
+                          <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={handleSearch} 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleReset}
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+                  <DataTable
+                    data={filteredEmployers}
+                    columns={[
+                      { key: 'regNo', label: 'Reg. No' },
+                      { key: 'name', label: 'Employer Name' },
+                      { key: 'tradeName', label: 'Trade Name' },
+                      { key: 'phone', label: 'Phone' },
+                      { key: 'activityType', label: 'Activity Type' },
+                      { key: 'status', label: 'Status' }
+                    ]}
+                    title="Ceased/Suspended Employers"
+                    searchPlaceholder="Search ceased/suspended employers..."
+                    actions={{ view: true, edit: true, approve: false, reject: false }}
+                    idField="regNo"
+                    statusField="status"
+                    getStatusBadge={getStatusBadge}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                  />
                 </TabsContent>
               </Tabs>
-            </CardContent>
-          </Card>
+            </div>
+        
         </div>
 
         {/* Approval Dialog */}
@@ -929,5 +1054,9 @@ const ManageEmployers = () => {
     </TooltipProvider>
   );
 };
+
+
+
+
 
 export default ManageEmployers;
