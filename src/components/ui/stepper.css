@@ -15,7 +15,7 @@
   flex: 1;
   background: white;
   border-right: 1px solid #e0e0e0;
-  clip-path: polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%);
+  clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
 }
 
 .step:last-child {

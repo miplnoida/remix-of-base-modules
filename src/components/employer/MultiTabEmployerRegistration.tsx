@@ -19,6 +19,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { ErrorDialog, SuccessDialog } from '../ui/feedback';
 
 const employerSchema = z.object({
   // General Information
@@ -107,6 +109,9 @@ export const MultiTabEmployerRegistration = () => {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+    const [showError, setShowError] = useState(false);
+  const navigate = useNavigate();
 
   const form = useForm<EmployerFormData>({
     resolver: zodResolver(employerSchema),
@@ -261,7 +266,7 @@ export const MultiTabEmployerRegistration = () => {
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-start text-left font-normal mt-0",
             !field.value && "text-muted-foreground"
           )}
         >
@@ -288,7 +293,7 @@ export const MultiTabEmployerRegistration = () => {
         return (
           <div className="space-y-6">
                          {/* General Information */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                    <CardTitle>General Information</CardTitle>
                  </CardHeader>
@@ -373,10 +378,10 @@ export const MultiTabEmployerRegistration = () => {
 
                 
               </CardContent>
-            </Card>
+            </div>
 
                          {/* Organizational Information */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                  <CardTitle>Organizational Information</CardTitle>
                  </CardHeader>
@@ -437,7 +442,7 @@ export const MultiTabEmployerRegistration = () => {
                      )}
                    />
 
-                 <div className="col-span-2">
+                 
                    <FormField
                      control={form.control}
                      name="industrialCode"
@@ -460,9 +465,9 @@ export const MultiTabEmployerRegistration = () => {
                        </FormItem>
                      )}
                    />
-                 </div>
+                 
                  </CardContent>
-               </Card>
+               </div>
           </div>
         );
 
@@ -470,7 +475,7 @@ export const MultiTabEmployerRegistration = () => {
          return (
            <div className="space-y-6">
              {/* Previous Owners */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                  <CardTitle className="flex items-center justify-between">
                    Previous Owners
@@ -529,10 +534,10 @@ export const MultiTabEmployerRegistration = () => {
                    </div>
                  ))}
                </CardContent>
-             </Card>
+             </div>
 
              {/* Acquisition / Incorporation */}
-             <Card style={{backgroundColor:"#F9FAFB"}}>
+             <div>
                <CardHeader>
                  <CardTitle>Acquisition / Incorporation</CardTitle>
                </CardHeader>
@@ -580,7 +585,7 @@ export const MultiTabEmployerRegistration = () => {
                    )}
                  />
                </CardContent>
-             </Card>
+             </div>
            </div>
          );
 
@@ -588,7 +593,7 @@ export const MultiTabEmployerRegistration = () => {
          return (
            <div className="space-y-6">
              {/* Contact Information */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                  <CardTitle>Contact Information</CardTitle>
                  </CardHeader>
@@ -635,10 +640,10 @@ export const MultiTabEmployerRegistration = () => {
                      )}
                    />
                  </CardContent>
-               </Card>
+               </div>
 
                            {/* Location Information */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                    <CardTitle>Location Information</CardTitle>
                  </CardHeader>
@@ -703,10 +708,10 @@ export const MultiTabEmployerRegistration = () => {
                      )}
                    />
                  </CardContent>
-               </Card>
+               </div>
 
                            {/* Dates & Employees */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                    <CardTitle>Dates & Employees</CardTitle>
                  </CardHeader>
@@ -809,7 +814,7 @@ export const MultiTabEmployerRegistration = () => {
                      )}
                    />
                  </CardContent>
-               </Card>
+               </div>
           </div>
         );
 
@@ -817,7 +822,7 @@ export const MultiTabEmployerRegistration = () => {
          return (
            <div className="space-y-6">
                {/* Technical Information */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                    <CardTitle>Technical Information</CardTitle>
                  </CardHeader>
@@ -831,7 +836,7 @@ export const MultiTabEmployerRegistration = () => {
                            <FormLabel className="text-base">Computer Payroll</FormLabel>
                          </div>
                          <FormControl>
-                           <Switch checked={field.value} onCheckedChange={field.onChange} />
+                           <Switch checked={field.value} onCheckedChange={field.onChange}/>
                          </FormControl>
                        </FormItem>
                      )}
@@ -851,10 +856,10 @@ export const MultiTabEmployerRegistration = () => {
                      )}
                    />
                  </CardContent>
-               </Card>
+               </div>
 
                            {/* Transaction Details */}
-               <Card style={{backgroundColor:"#F9FAFB"}}>
+               <div>
                  <CardHeader>
                    <CardTitle>Transaction Details</CardTitle>
                  </CardHeader>
@@ -929,7 +934,7 @@ export const MultiTabEmployerRegistration = () => {
                      )}
                    />
                  </CardContent>
-             </Card>
+             </div>
           </div>
         );
 
@@ -939,23 +944,39 @@ export const MultiTabEmployerRegistration = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-government-900">Add New Employer</h1>
-          <p className="text-government-600 mt-2">Complete employer registration with detailed information</p>
-        </div>
-        <div className="flex space-x-4">
-          <Button type="button" variant="outline">
-            Cancel
-          </Button>
-          <Button type="submit">
-            Submit Registration
-          </Button>
-        </div>
+    <div className="container mx-auto p-4 space-y-6">
+      
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/employers-management/dashboard')}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                 
+                  <span className="sm:hidden">Back</span>
+                </Button>
+                <div className="h-6 w-px bg-gray-300" />
+               
+                <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Add New Employer</h1>
+                
+                </div>
+              </div>
+              <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
+                <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" onClick={() => setShowSuccess(true)}>
+                  Draft
+                </Button>
+                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]" onClick={() => setShowSuccess(true)}>
+                  Submit
+                </Button>
+              </div>
       </div>
 
-      <Form {...form}>
+      <Card>
+        <CardContent className="p-6">
+  <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-7">
@@ -970,7 +991,7 @@ export const MultiTabEmployerRegistration = () => {
 
             <TabsContent value="form-detail" className="space-y-6">
               {/* Stepper */}
-              <Card className='py-5' style={{backgroundColor:"#F9FAFB"}}>
+              <Card className='py-5 mt-5' style={{backgroundColor:"#F9FAFB"}}>
                 <div className='px-5 mb-6'>
                   <Card className='p-3'>
                     <Stepper 
@@ -983,7 +1004,7 @@ export const MultiTabEmployerRegistration = () => {
                 </div>
 
                 {/* Step Content */}
-                <div className="px-5">
+                <div>
                   {renderStepContent()}
                 </div>
 
@@ -1018,7 +1039,7 @@ export const MultiTabEmployerRegistration = () => {
                         className="flex items-center gap-2"
                       >
                         <Save className="h-4 w-4" />
-                        Submit Registration
+                        Submit
                       </Button>
                     )}
                   </div>
@@ -1297,16 +1318,31 @@ export const MultiTabEmployerRegistration = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end space-x-4 mt-8">
+          {/* <div className="flex justify-end space-x-4 mt-8">
             <Button type="button" variant="outline">
               Cancel
             </Button>
             <Button type="submit">
               Submit Registration
             </Button>
-          </div>
+          </div> */}
         </form>
       </Form>
+        </CardContent>
+      
+      </Card>
+      <SuccessDialog
+                open={showSuccess}
+                onOpenChange={setShowSuccess}
+                title="Submission successful"
+                description="The registration has been saved."
+              />
+              <ErrorDialog
+                open={showError}
+                onOpenChange={setShowError}
+                title="Validation error"
+                description="Please fix the highlighted fields and try again."
+              />
     </div>
   );
 };

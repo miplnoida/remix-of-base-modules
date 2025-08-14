@@ -429,7 +429,7 @@ const ManageEmployers = () => {
 
   const filteredEmployers = getFilteredEmployers();
 
-  return (
+  return ( 
     <TooltipProvider>
       <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
@@ -594,22 +594,11 @@ const ManageEmployers = () => {
           </Card>
 
           {/* Section 2: Search Result Area */}
-          <Card className="shadow-sm">
-            <CardHeader className="border-b bg-white">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-lg text-gray-800">Search Result ({filteredEmployers.length})</CardTitle>
-                  <CardDescription>Comprehensive employer information and management</CardDescription>
-                </div>
-                <Button variant="outline" className="border-gray-300">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
+         
+            
+            <div className="p-0 ">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="w-full h-12 grid grid-cols-3 bg-gray-50 p-1 rounded-none">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger 
                     value="pending" 
                     className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
@@ -865,8 +854,8 @@ const ManageEmployers = () => {
                   </div>
                 </TabsContent>
               </Tabs>
-            </CardContent>
-          </Card>
+            </div>
+        
         </div>
 
         {/* Approval Dialog */}
