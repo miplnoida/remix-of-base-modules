@@ -438,7 +438,37 @@ const ManageEmployers = () => {
           </div>
           
           {/* Section 1: Query By (Collapsible Filters Panel) */}
-          <Card className="mb-6 shadow-sm">
+          
+
+          {/* Section 2: Search Result Area */}
+         
+            
+            <div className="p-0 ">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger 
+                    value="pending" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Pending Verification ({sampleEmployers.filter(emp => emp.status === 'Pending').length})
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="registered" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Registered Employers ({sampleEmployers.filter(emp => emp.status === 'Active').length})
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="ceased" 
+                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                  >
+                    Ceased/Suspended ({sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed').length})
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Pending Verification Tab */}
+                <TabsContent value="pending" className="mt-0">
+                  <Card className="mb-6 mt-5 shadow-sm">
             <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
               <CardHeader className="border-b bg-background">
                 <div className="flex items-center justify-between">
@@ -585,35 +615,6 @@ const ManageEmployers = () => {
               </CollapsibleContent>
             </Collapsible>
           </Card>
-
-          {/* Section 2: Search Result Area */}
-         
-            
-            <div className="p-0 ">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger 
-                    value="pending" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Pending Verification ({sampleEmployers.filter(emp => emp.status === 'Pending').length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="registered" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Registered Employers ({sampleEmployers.filter(emp => emp.status === 'Active').length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="ceased" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Ceased/Suspended ({sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed').length})
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Pending Verification Tab */}
-                <TabsContent value="pending" className="p-6 mt-0">
                   {filteredEmployers.length === 0 ? (
                     <EmptyState 
                       title="No pending applications"
@@ -650,7 +651,154 @@ const ManageEmployers = () => {
                 </TabsContent>
 
                 {/* Registered Employers Tab */}
-                <TabsContent value="registered" className="p-6 mt-0">
+                <TabsContent value="registered" className=" mt-0">
+                  <Card className="mb-6  mt-5  shadow-sm">
+            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
+              <CardHeader className="border-b bg-background">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
+                  </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="p-2 h-auto">
+                      {isFilterExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </CardHeader>
+              
+              <CollapsibleContent className="bg-background">
+                <CardContent className="p-6 bg-background">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Number</label>
+                      <Input
+                        placeholder="Enter reg. number"
+                        value={searchParams.registrationNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Employer Name</label>
+                      <Input
+                        placeholder="Enter employer name"
+                        value={searchParams.employerName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name</label>
+                      <Input
+                        placeholder="Enter trade name"
+                        value={searchParams.tradeName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone Number</label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={searchParams.phoneNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date</label>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !fromDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fromDate ? format(fromDate, "MMM dd") : "From"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={fromDate}
+                              onSelect={setFromDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !toDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {toDate ? format(toDate, "MMM dd") : "To"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={toDate}
+                              onSelect={setToDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Inspector Code</label>
+                      <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select inspector" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="00 Nevis">00 Nevis</SelectItem>
+                          <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
+                          <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
+                          <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={handleSearch} 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleReset}
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
                   <DataTable
                     data={filteredEmployers}
                     columns={[
@@ -673,7 +821,154 @@ const ManageEmployers = () => {
                 </TabsContent>
 
                 {/* Ceased/Suspended Employers Tab */}
-                <TabsContent value="ceased" className="p-6 mt-0">
+                <TabsContent value="ceased" className=" mt-0">
+                  <Card className="mb-6  mt-5  shadow-sm">
+            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
+              <CardHeader className="border-b bg-background">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
+                  </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="p-2 h-auto">
+                      {isFilterExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </CardHeader>
+              
+              <CollapsibleContent className="bg-background">
+                <CardContent className="p-6 bg-background">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Number</label>
+                      <Input
+                        placeholder="Enter reg. number"
+                        value={searchParams.registrationNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Employer Name</label>
+                      <Input
+                        placeholder="Enter employer name"
+                        value={searchParams.employerName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name</label>
+                      <Input
+                        placeholder="Enter trade name"
+                        value={searchParams.tradeName}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone Number</label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={searchParams.phoneNumber}
+                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date</label>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !fromDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fromDate ? format(fromDate, "MMM dd") : "From"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={fromDate}
+                              onSelect={setFromDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1 justify-start text-left font-normal bg-background",
+                                !toDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {toDate ? format(toDate, "MMM dd") : "To"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={toDate}
+                              onSelect={setToDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto bg-background"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Inspector Code</label>
+                      <Select value={searchParams.inspectorCode} onValueChange={(value) => setSearchParams(prev => ({ ...prev, inspectorCode: value }))}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select inspector" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="00 Nevis">00 Nevis</SelectItem>
+                          <SelectItem value="01 Vincent Sutton">01 Vincent Sutton</SelectItem>
+                          <SelectItem value="02 Dexter Richardson">02 Dexter Richardson</SelectItem>
+                          <SelectItem value="N04 Sheon Lewis">N04 Sheon Lewis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={handleSearch} 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleReset}
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
                   <DataTable
                     data={filteredEmployers}
                     columns={[
