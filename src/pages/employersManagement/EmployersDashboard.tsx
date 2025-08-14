@@ -38,48 +38,48 @@ const EmployersDashboard = () => {
       value: totalEmployers.toString(),
       description: `${activeEmployers} Active, ${inactiveEmployers} Inactive`,
       icon: Building2,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      color: "from-blue-500 to-blue-600",
+      change: "+8.2%"
     },
     {
       title: "Total Employees",
       value: totalEmployees.toLocaleString(),
       description: "Across all employers",
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-50"
+      color: "from-green-500 to-green-600",
+      change: "+5.1%"
     },
     {
       title: "Total Contributions",
       value: `$${totalContributions.toLocaleString()}`,
       description: "Lifetime contributions",
       icon: DollarSign,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      color: "from-purple-500 to-purple-600",
+      change: "+12.3%"
     },
     {
       title: "Compliance Rate",
       value: `${Math.round((compliantEmployers / totalEmployers) * 100)}%`,
       description: `${compliantEmployers} Compliant, ${nonCompliantEmployers} Non-Compliant`,
       icon: CheckCircle,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50"
+      color: "from-emerald-500 to-emerald-600",
+      change: "+2.1%"
     },
     {
       title: "Pending Contributions",
       value: pendingContributions.toString(),
       description: "Require immediate attention",
       icon: AlertTriangle,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50"
+      color: "from-orange-500 to-orange-600",
+      change: "-15%"
     },
     {
       title: "Growth Rate",
       value: "+12.5%",
       description: "New registrations this quarter",
       icon: TrendingUp,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50"
+      color: "from-indigo-500 to-indigo-600",
+      change: "+23%"
     }
   ];
 
@@ -149,16 +149,17 @@ const EmployersDashboard = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {kpiCards.map((kpi, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">{kpi.title}</CardTitle>
-              <div className={`p-2 rounded-full ${kpi.bgColor}`}>
-                <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+          <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground" style={{color:"#374151"}}>{kpi.title}</CardTitle>
+              <div className={`p-2.5 rounded bg-gradient-to-r ${kpi.color} shadow-lg`}>
+                <kpi.icon className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{kpi.value}</div>
+              <div className="text-2xl lg:text-3xl font-bold text-foreground">{kpi.value}</div>
               <p className="text-xs text-gray-500 mt-1">{kpi.description}</p>
+              
             </CardContent>
           </Card>
         ))}
@@ -168,31 +169,43 @@ const EmployersDashboard = () => {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>
-              Frequently used actions for employer management
-            </CardDescription>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Frequently used actions for employer management</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {quickLinks.map((link, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                className="w-full justify-start h-auto p-4 hover:bg-gray-50"
-                onClick={link.action}
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                className="h-16 lg:h-20 flex flex-col gap-2"
+                onClick={() => navigate('/employer/register')}
               >
-                <div className={`p-2 rounded-md ${link.color} mr-3`}>
-                  <link.icon className="h-4 w-4 text-white" />
-                </div>
-                <div className="text-left">
-                  <div className="font-medium">{link.title}</div>
-                  <div className="text-sm text-gray-500">{link.description}</div>
-                </div>
+                <Plus className="h-5 w-5 lg:h-6 lg:w-6" />
+                <span className="text-xs lg:text-sm">Register New Employer</span>
               </Button>
-            ))}
+              <Button 
+                variant="outline" 
+                className="h-16 lg:h-20 flex flex-col gap-2"
+                onClick={() => navigate('/employers-management/manage')}
+              >
+                <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
+                <span className="text-xs lg:text-sm">Pending Verification</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-16 lg:h-20 flex flex-col gap-2"
+                onClick={() => navigate('/employers-management/manage')}
+              >
+                <Search className="h-5 w-5 lg:h-6 lg:w-6" />
+                <span className="text-xs lg:text-sm">Search Employers</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-16 lg:h-20 flex flex-col gap-2"
+                onClick={() => navigate('/employers-management/reports')}
+              >
+                <FileText className="h-5 w-5 lg:h-6 lg:w-6" />
+                <span className="text-xs lg:text-sm">View Reports</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
