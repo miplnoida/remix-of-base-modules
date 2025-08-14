@@ -14,14 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable } from '@/components/ui/data-table';
 import {
   Search,
   RefreshCw,
@@ -627,231 +620,79 @@ const ManageEmployers = () => {
                       description="All employer registrations have been processed."
                     />
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table className="app-table">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Application. No</TableHead>
-                            <TableHead>Employer Name</TableHead>
-                            <TableHead>Trade Name</TableHead>
-                            <TableHead>Phone</TableHead>
-                            <TableHead>Activity Type</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-center">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredEmployers.map((employer) => (
-                            <TableRow key={employer.regNo}>
-                              <TableCell className="font-medium">{employer.regNo}</TableCell>
-                              <TableCell>{employer.name}</TableCell>
-                              <TableCell>{employer.tradeName}</TableCell>
-                              <TableCell>{employer.phone}</TableCell>
-                              <TableCell>{employer.activityType}</TableCell>
-                              <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center justify-center gap-2">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="default" 
-                                        size="sm" 
-                                        onClick={() => handleApprove(employer)}
-                                        className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
-                                      >
-                                        <CheckCircle className="h-4 w-4 mr-1" />
-                                        Approve
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Approve Registration</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="destructive" 
-                                        size="sm" 
-                                        onClick={() => handleReject(employer)}
-                                        className="h-8 px-3"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        Reject
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Reject Registration</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handleViewDetails(employer)}
-                                        className="h-8 px-3"
-                                      >
-                                        <Eye className="h-4 w-4 mr-1" />
-                                        View Details
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View Registration Details</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                    <DataTable
+                      data={filteredEmployers}
+                      columns={[
+                        { key: 'regNo', label: 'Application No' },
+                        { key: 'name', label: 'Employer Name' },
+                        { key: 'tradeName', label: 'Trade Name' },
+                        { key: 'phone', label: 'Phone' },
+                        { key: 'activityType', label: 'Activity Type' },
+                        { key: 'status', label: 'Status' }
+                      ]}
+                      title="Pending Verification"
+                      searchPlaceholder="Search pending applications..."
+                      actions={{ view: true, approve: true, reject: true }}
+                      idField="regNo"
+                      statusField="status"
+                      getStatusBadge={getStatusBadge}
+                      onView={handleViewDetails}
+                      onApprove={(id) => {
+                        const employer = filteredEmployers.find(emp => emp.regNo === id);
+                        if (employer) handleApprove(employer);
+                      }}
+                      onReject={(id) => {
+                        const employer = filteredEmployers.find(emp => emp.regNo === id);
+                        if (employer) handleReject(employer);
+                      }}
+                    />
                   )}
                 </TabsContent>
 
                 {/* Registered Employers Tab */}
                 <TabsContent value="registered" className="p-6 mt-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b">
-                          <TableHead className="text-gray-600 font-medium">Reg. No</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
-                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEmployers.map((employer) => (
-                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
-                            <TableCell className="text-gray-700">{employer.name}</TableCell>
-                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
-                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
-                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleView(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Details</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleEdit(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Edit</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleDelete(employer)}
-                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <DataTable
+                    data={filteredEmployers}
+                    columns={[
+                      { key: 'regNo', label: 'Reg. No' },
+                      { key: 'name', label: 'Employer Name' },
+                      { key: 'tradeName', label: 'Trade Name' },
+                      { key: 'phone', label: 'Phone' },
+                      { key: 'activityType', label: 'Activity Type' },
+                      { key: 'status', label: 'Status' }
+                    ]}
+                    title="Registered Employers"
+                    searchPlaceholder="Search registered employers..."
+                    actions={{ view: true, edit: true, approve: false, reject: false }}
+                    idField="regNo"
+                    statusField="status"
+                    getStatusBadge={getStatusBadge}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                  />
                 </TabsContent>
 
                 {/* Ceased/Suspended Employers Tab */}
                 <TabsContent value="ceased" className="p-6 mt-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b">
-                          <TableHead className="text-gray-600 font-medium">Reg. No</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Trade Name</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Phone</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Activity Type</TableHead>
-                          <TableHead className="text-gray-600 font-medium">Status</TableHead>
-                          <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEmployers.map((employer) => (
-                          <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{employer.regNo}</TableCell>
-                            <TableCell className="text-gray-700">{employer.name}</TableCell>
-                            <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                            <TableCell className="text-gray-700">{employer.phone}</TableCell>
-                            <TableCell className="text-gray-700">{employer.activityType}</TableCell>
-                            <TableCell>{getStatusBadge(employer.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleView(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Details</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => handleEdit(employer)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Edit</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <DataTable
+                    data={filteredEmployers}
+                    columns={[
+                      { key: 'regNo', label: 'Reg. No' },
+                      { key: 'name', label: 'Employer Name' },
+                      { key: 'tradeName', label: 'Trade Name' },
+                      { key: 'phone', label: 'Phone' },
+                      { key: 'activityType', label: 'Activity Type' },
+                      { key: 'status', label: 'Status' }
+                    ]}
+                    title="Ceased/Suspended Employers"
+                    searchPlaceholder="Search ceased/suspended employers..."
+                    actions={{ view: true, edit: true, approve: false, reject: false }}
+                    idField="regNo"
+                    statusField="status"
+                    getStatusBadge={getStatusBadge}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                  />
                 </TabsContent>
               </Tabs>
             </div>
@@ -918,5 +759,9 @@ const ManageEmployers = () => {
     </TooltipProvider>
   );
 };
+
+
+
+
 
 export default ManageEmployers;
