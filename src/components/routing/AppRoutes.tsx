@@ -59,7 +59,7 @@ import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
 import AddEmployer from '@/pages/employersManagement/AddEmployer';
 import EmployersReports from '@/pages/reports/EmployersReports';
 
-import EditEmployer from '@/pages/employersManagement/EditEmployer';
+
 import ManageSelfEmployed from '@/pages/selfEmployed/ManageSelfEmployed';
 import AddSelfEmployed from '@/pages/selfEmployed/AddSelfEmployed';
 import SelfEmployedReports from '@/pages/selfEmployed/SelfEmployedReports';
@@ -87,6 +87,7 @@ import ElectronicC3Config from '@/pages/c3Management/ElectronicC3Config';
 import ViewC3Record from '@/pages/c3Management/ViewC3Record';
 import EditC3Record from '@/pages/c3Management/EditC3Record';
 import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
+import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
 export const AppRoutes = () => {
   return (
@@ -101,7 +102,7 @@ export const AppRoutes = () => {
       <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
       <Route path="/employers-management/add" element={<ProtectedLayout><AddEmployer /></ProtectedLayout>} />
       <Route path="/employers-management/view/:regNo" element={<ProtectedLayout><ViewEmployer /></ProtectedLayout>} />
-      <Route path="/employers-management/edit/:regNo" element={<ProtectedLayout><EmployerRegistration /></ProtectedLayout>} />
+      <Route path="/employers-management/edit/:regNo" element={<ProtectedLayout><EditEmployer /></ProtectedLayout>} />
       <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />
       <Route path="/employers-management/pending-verification" element={<ProtectedLayout><PendingVerificationPage /></ProtectedLayout>} />
 

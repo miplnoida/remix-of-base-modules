@@ -1048,7 +1048,7 @@ export const MultiTabEmployerRegistration = () => {
             </TabsContent>
 
             <TabsContent value="owners" className="space-y-6">
-              <Card>
+              <Card style={{backgroundColor:"#F9FAFB"}}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Owners
@@ -1058,7 +1058,7 @@ export const MultiTabEmployerRegistration = () => {
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1120,7 +1120,7 @@ export const MultiTabEmployerRegistration = () => {
             </TabsContent>
 
             <TabsContent value="locations" className="space-y-6">
-              <Card>
+              <Card style={{backgroundColor:"#F9FAFB"}}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Locations
@@ -1130,7 +1130,7 @@ export const MultiTabEmployerRegistration = () => {
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                 <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1200,7 +1200,7 @@ export const MultiTabEmployerRegistration = () => {
             </TabsContent>
 
             <TabsContent value="notes" className="space-y-6">
-              <Card>
+              <Card style={{backgroundColor:"#F9FAFB"}}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Notes
@@ -1210,7 +1210,7 @@ export const MultiTabEmployerRegistration = () => {
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1279,11 +1279,11 @@ export const MultiTabEmployerRegistration = () => {
             </TabsContent>
 
             <TabsContent value="commence-date" className="space-y-6">
-              <Card>
+              <Card style={{backgroundColor:"#F9FAFB"}}>
                 <CardHeader>
                   <CardTitle>Commence Date</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
                   <div className="text-center text-muted-foreground py-12">
                     <p>Commence Date functionality will be implemented here.</p>
                   </div>

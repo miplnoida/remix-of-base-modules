@@ -137,10 +137,10 @@ const EmployersDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Building2 className="h-8 w-8 text-blue-600" />
+          
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Employers Dashboard</h1>
-            <p className="text-gray-600">Overview of employer registrations and activities</p>
+          
           </div>
         </div>
         {/* Register button removed from header as requested */}
