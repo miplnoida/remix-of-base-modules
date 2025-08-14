@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, Search, Filter, Calendar, Plus, Building2, ChevronDown } from 'lucide-react';
 import { employerData } from '@/data/employerData';
@@ -21,94 +22,107 @@ const EmployersReports = () => {
   const ceasedEmployers = employerData.filter(emp => emp.employerStatus === 'Inactive');
   const pendingVerification = employerData.filter(emp => emp.complianceStatus === 'Under Audit');
 
-  const filteredRegistered = registeredEmployers.filter(emp =>
-    emp.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employerId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Column definitions for registered employers
+  const registeredColumns: DataTableColumn[] = [
+    { key: 'employerId', label: 'Employer ID', minWidth: '120px' },
+    { key: 'employerName', label: 'Company Name', minWidth: '200px' },
+    { key: 'businessType', label: 'Business Type', minWidth: '120px' },
+    { 
+      key: 'employerStatus', 
+      label: 'Status', 
+      minWidth: '100px',
+      render: (value) => <Badge variant="default">{value}</Badge>
+    },
+    { 
+      key: 'registrationDate', 
+      label: 'Registered Date', 
+      minWidth: '120px',
+      render: (value) => new Date(value).toLocaleDateString()
+    },
+    { 
+      key: 'numberOfEmployees', 
+      label: 'Employees', 
+      minWidth: '100px',
+      render: (value) => value.toLocaleString()
+    }
+  ];
 
-  const filteredCeased = ceasedEmployers.filter(emp =>
-    emp.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employerId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Column definitions for ceased employers
+  const ceasedColumns: DataTableColumn[] = [
+    { key: 'employerId', label: 'Employer ID', minWidth: '120px' },
+    { key: 'employerName', label: 'Company Name', minWidth: '200px' },
+    { key: 'businessType', label: 'Business Type', minWidth: '120px' },
+    { 
+      key: 'employerStatus', 
+      label: 'Status', 
+      minWidth: '100px',
+      render: (value) => <Badge variant="secondary">{value}</Badge>
+    },
+    { 
+      key: 'lastAuditDate', 
+      label: 'Ceased Date', 
+      minWidth: '120px',
+      render: (value) => new Date(value).toLocaleDateString()
+    },
+    { 
+      key: 'employerId', 
+      label: 'Reason', 
+      minWidth: '150px',
+      render: () => 'Business Operations Ceased'
+    }
+  ];
 
-  const filteredPending = pendingVerification.filter(emp =>
-    emp.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employerId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Column definitions for pending verification
+  const pendingColumns: DataTableColumn[] = [
+    { key: 'employerId', label: 'Employer ID', minWidth: '120px' },
+    { key: 'employerName', label: 'Company Name', minWidth: '200px' },
+    { key: 'businessType', label: 'Business Type', minWidth: '120px' },
+    { 
+      key: 'complianceStatus', 
+      label: 'Status', 
+      minWidth: '100px',
+      render: (value) => <Badge variant="outline">{value}</Badge>
+    },
+    { 
+      key: 'lastAuditDate', 
+      label: 'Applied Date', 
+      minWidth: '120px',
+      render: (value) => new Date(value).toLocaleDateString()
+    },
+    { 
+      key: 'authorizedRepresentative', 
+      label: 'Assigned Inspector', 
+      minWidth: '150px'
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/employers-management/manage")}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Employers
-            </Button>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <Building2 className="h-8 w-8 text-blue-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Employers Reports</h1>
-              <p className="text-gray-600">Generate and view reports for registered, ceased, and pending employers</p>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/employers-management/dashboard')}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                 
+                  <span className="sm:hidden">Back</span>
+                </Button>
+                <div className="h-6 w-px bg-gray-300" />
+               
+                <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Employers Reports</h1>
+                
+                </div>
+              </div>
+              
+      </div>
 
-        <div className="mb-6 flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search employers..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Date Range
-          </Button>
-        </div>
-
-        {/* Export Button */}
-        <div className="mb-6 flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <FileText className="h-4 w-4 mr-2" />
-                Export as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Download className="h-4 w-4 mr-2" />
-                Export as Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-5">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="registered">Registered Employers</TabsTrigger>
             <TabsTrigger value="ceased">Ceased/Suspended</TabsTrigger>
@@ -116,116 +130,33 @@ const EmployersReports = () => {
           </TabsList>
 
           <TabsContent value="registered" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Registered Employers Report</CardTitle>
-                <CardDescription>List of all active registered employers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employer ID</TableHead>
-                      <TableHead>Company Name</TableHead>
-                      <TableHead>Business Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Registered Date</TableHead>
-                      <TableHead>Employees</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRegistered.map((employer) => (
-                      <TableRow key={employer.employerId}>
-                        <TableCell className="font-medium">{employer.employerId}</TableCell>
-                        <TableCell>{employer.employerName}</TableCell>
-                        <TableCell>{employer.businessType}</TableCell>
-                        <TableCell>
-                          <Badge variant="default">{employer.employerStatus}</Badge>
-                        </TableCell>
-                        <TableCell>{new Date(employer.registrationDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{employer.numberOfEmployees.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <DataTable
+              data={registeredEmployers}
+              columns={registeredColumns}
+              title="Registered Employers"
+              searchPlaceholder="Search employers..."
+              actions={false}
+            />
           </TabsContent>
 
           <TabsContent value="ceased" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ceased/Suspended Employers</CardTitle>
-                <CardDescription>List of employers that have ceased operations or been suspended</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employer ID</TableHead>
-                      <TableHead>Company Name</TableHead>
-                      <TableHead>Business Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ceased Date</TableHead>
-                      <TableHead>Reason</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCeased.map((employer) => (
-                      <TableRow key={employer.employerId}>
-                        <TableCell className="font-medium">{employer.employerId}</TableCell>
-                        <TableCell>{employer.employerName}</TableCell>
-                        <TableCell>{employer.businessType}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {employer.employerStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(employer.lastAuditDate).toLocaleDateString()}</TableCell>
-                        <TableCell>Business Operations Ceased</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <DataTable
+              data={ceasedEmployers}
+              columns={ceasedColumns}
+              title="Ceased/Suspended Employers"
+              searchPlaceholder="Search employers..."
+              actions={false}
+            />
           </TabsContent>
 
           <TabsContent value="pending" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Verification</CardTitle>
-                <CardDescription>Employers waiting for verification and approval</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employer ID</TableHead>
-                      <TableHead>Company Name</TableHead>
-                      <TableHead>Business Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Applied Date</TableHead>
-                      <TableHead>Assigned Inspector</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPending.map((employer) => (
-                      <TableRow key={employer.employerId}>
-                        <TableCell className="font-medium">{employer.employerId}</TableCell>
-                        <TableCell>{employer.employerName}</TableCell>
-                        <TableCell>{employer.businessType}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{employer.complianceStatus}</Badge>
-                        </TableCell>
-                        <TableCell>{new Date(employer.lastAuditDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{employer.authorizedRepresentative}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <DataTable
+              data={pendingVerification}
+              columns={pendingColumns}
+              title="Pending Verification"
+              searchPlaceholder="Search employers..."
+              actions={false}
+            />
           </TabsContent>
         </Tabs>
       </div>
