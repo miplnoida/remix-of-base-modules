@@ -923,13 +923,13 @@ export const RegisterPersonForm = () => {
   const steps: StepperStep[] = [
     {
       id: 'identity',
-      title: 'Identity Information',
+      title: 'Basic Details',
       icon: <User className="w-5 h-5" />,
       status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'upcoming'
     },
     {
       id: 'address',
-      title: 'Address Information',
+      title: 'Address & Contact',
       icon: <MapPin className="w-5 h-5" />,
       status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'upcoming'
     },
@@ -941,13 +941,13 @@ export const RegisterPersonForm = () => {
     },
     {
       id: 'employment',
-      title: 'Employment Information',
+      title: 'Employment Details',
       icon: <Briefcase className="w-5 h-5" />,
       status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'upcoming'
     },
     {
       id: 'verification',
-      title: 'Verification Section',
+      title: 'Document Verification',
       icon: <Shield className="w-5 h-5" />,
       status: currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'upcoming'
     }
@@ -1270,22 +1270,26 @@ export const RegisterPersonForm = () => {
 
             {/* Fourth Row: Height Feet, Height Inches, Birth Place */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Height (Feet)</Label>
-                <Input 
-                  type="number" 
-                  onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
-                  placeholder="eg; 5" 
-                />
+            <div>
+              <Label>Height</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input 
+                      type="number" 
+                      onChange={(e) => form.setValue('heightFeet', parseInt(e.target.value))}
+                      placeholder="feet" 
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input 
+                      type="number" 
+                      onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
+                      placeholder="inch" 
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label>Height (Inches)</Label>
-                <Input 
-                  type="number" 
-                  onChange={(e) => form.setValue('heightInches', parseInt(e.target.value))}
-                  placeholder="eg; 8" 
-                />
-              </div>
+              
               <div>
                 <Label>Birth Place *</Label>
                 <Select onValueChange={(value) => form.setValue('birthPlace', value)}>
@@ -1299,10 +1303,6 @@ export const RegisterPersonForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* Fifth Row: Nationality, Eye Color */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Nationality *</Label>
                 <Select onValueChange={(value) => form.setValue('nationality', value)}>
@@ -1316,6 +1316,11 @@ export const RegisterPersonForm = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Fifth Row: Nationality, Eye Color */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
               <div>
                 <Label>Eye Color</Label>
                 <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
@@ -1556,7 +1561,7 @@ export const RegisterPersonForm = () => {
               <div>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    Employment Information
+                  Employment Details
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1602,7 +1607,7 @@ export const RegisterPersonForm = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               
-              Employment Information
+            Employment Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1775,7 +1780,7 @@ export const RegisterPersonForm = () => {
               <div>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    Verification Section
+                  Document Verification
                   </CardTitle>
                 </CardHeader>
                 
@@ -1835,60 +1840,87 @@ export const RegisterPersonForm = () => {
         <div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              Verification Section
+              Document Verification
             </CardTitle>
           </CardHeader>
           
           <CardContent className="space-y-6">
           <hr />
-            {Object.entries(verification).map(([key, value]) => (
-              <div key={key} className="space-y-4">
-                <h4 className="font-medium capitalize text-[#6B7280]">
-                  {key.replace(/([A-Z])/g, ' $1').trim()} Verification
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>Verified By</Label>
-                    <Select onValueChange={(val) => setVerification({
-                      ...verification,
-                      [key]: { ...value, verifiedBy: val }
-                    })}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select document type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border max-h-48 overflow-y-auto">
-                        {documentTypes.map((doc) => (
-                          <SelectItem key={doc} value={doc}>{doc}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Date of Verification</Label>
-                    <DatePicker
-                      date={value.dateVerified || undefined}
-                      onSelect={(date) => setVerification({
-                        ...verification,
-                        [key]: { ...value, dateVerified: date || null }
-                      })}
-                      placeholder="Select verification date"
-                    />
-                  </div>
-                  <div>
-                    <Label>Verified By (User)</Label>
-                    <Input 
-                      value={value.verifier}
-                      onChange={(e) => setVerification({
-                        ...verification,
-                        [key]: { ...value, verifier: e.target.value }
-                      })}
-                      placeholder="Enter verifier name" 
-                    />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                <div>
+                  <Label>Marital Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    maritalStatus: { ...verification.maritalStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {key !== 'nameStatus' && <Separator />}
+                
+                <div>
+                  <Label>Death Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    deathStatus: { ...verification.deathStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ))}
+              
+              {/* Right Column */}
+              <div className="space-y-6">
+                <div>
+                  <Label>Birth Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    birthStatus: { ...verification.birthStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Name Status Verification</Label>
+                  <Select onValueChange={(val) => setVerification({
+                    ...verification,
+                    nameStatus: { ...verification.nameStatus, verifiedBy: val }
+                  })}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                      {documentTypes.map((doc) => (
+                        <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </div>
 
