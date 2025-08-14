@@ -213,7 +213,7 @@ const EmployersDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+              
               Recent Activity
             </CardTitle>
             <CardDescription>
