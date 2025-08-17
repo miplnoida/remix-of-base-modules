@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Users, FileText, TrendingUp, Clock, CheckCircle, Plus, Eye, FileBarChart, AlertCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -230,36 +230,35 @@ export default function C3Dashboard() {
       {/* Recent C3 Entries */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent C3 Entries</CardTitle>
+          <CardTitle>C3 Records</CardTitle>
           <CardDescription>Latest C3 records submitted to the system</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>C3 ID</TableHead>
-                  <TableHead>Employer Name</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Date Submitted</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentC3Entries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium">{entry.id}</TableCell>
-                    <TableCell>{entry.employerName}</TableCell>
-                    <TableCell>{entry.period}</TableCell>
-                    <TableCell>{entry.dateSubmitted}</TableCell>
-                    <TableCell>${entry.amount.toLocaleString()}</TableCell>
-                    <TableCell>{getStatusBadge(entry.status)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            data={recentC3Entries}
+            columns={[
+              { key: 'id', label: 'C3 ID', minWidth: '120px' },
+              { key: 'employerName', label: 'Employer Name', minWidth: '150px' },
+              { key: 'period', label: 'Period', minWidth: '100px' },
+              { key: 'dateSubmitted', label: 'Date Submitted', minWidth: '120px' },
+              { 
+                key: 'amount', 
+                label: 'Amount', 
+                minWidth: '120px',
+                render: (amount) => `$${amount.toLocaleString()}`
+              },
+              { 
+                key: 'status', 
+                label: 'Status', 
+                minWidth: '100px',
+                render: (status) => getStatusBadge(status)
+              }
+            ]}
+            title="Recent C3 Entries"
+            searchPlaceholder="Search by C3 ID, Employer Name, or Status"
+            actions={{ view: true }}
+            onView={(record) => handleViewAllRecords()}
+          />
           <div className="mt-4 text-center">
             <Button variant="outline" onClick={handleViewAllRecords}>
               View All C3 Records

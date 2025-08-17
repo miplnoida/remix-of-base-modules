@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, X, Printer, Check } from "lucide-react";
 
 interface VoluntaryC3FormProps {
@@ -18,43 +19,29 @@ export default function VoluntaryC3Form({ data, mode = 'add', onSave, onClose }:
   const isReadOnly = mode === 'view';
   
   const [formData, setFormData] = useState({
-    ssn: data?.ssn || data?.payerId || "",
-    name: data?.name || data?.payerName || "",
-    address: data?.address || "",
-    period: data?.period || "",
-    dateReceived: data?.dateReceived || "",
-    status: data?.status || "pending"
+    ssn: data?.ssn || "",
+    period: data?.period || "June 2028",
+    dateReceived: data?.dateReceived || "06-Jun-2025",
+    name: data?.name || "Flemming, Rodney And Melissa",
+    address: data?.address || "Cades Bay Nevis",
+    numberOfEmployees: data?.numberOfEmployees || "1",
+    status: data?.status || "Pending",
+    payments: data?.payments || "0.00",
+    balance: data?.balance || "0.00"
   });
 
-  const [weeklyDetails, setWeeklyDetails] = useState({
-    weeks: data?.weeklyDetails?.weeks || {
-      w1: false,
-      w2: false,
-      w3: false,
-      w4: false,
-      w5: false
-    },
-    totalWages: data?.weeklyDetails?.totalWages || data?.amount || 0,
-    socialSecurityContribution: data?.weeklyDetails?.socialSecurityContribution || 0
+  const [wagesDetails, setWagesDetails] = useState({
+    weeks: [false, false, false, false, false],
+    totalWages: data?.totalWages || 0,
+    socialSecurityContribution: data?.socialSecurityContribution || 0,
+    isVerified: data?.isVerified || false
   });
 
-  const [transactionInfo, setTransactionInfo] = useState({
-    status: data?.transactionInfo?.status || "PEN",
-    dateEntered: data?.transactionInfo?.dateEntered || data?.dateEntered || "",
-    enteredBy: data?.transactionInfo?.enteredBy || data?.enteredBy || "",
-    dateModified: data?.transactionInfo?.dateModified || "",
-    modifiedBy: data?.transactionInfo?.modifiedBy || "",
-    dateVerified: data?.transactionInfo?.dateVerified || data?.dateVerified || "",
-    verifiedBy: data?.transactionInfo?.verifiedBy || data?.verifiedBy || "",
-    incomeCategory: data?.transactionInfo?.incomeCategory || ""
+  const [totals, setTotals] = useState({
+    socialSecurityDue: 0,
+    payments: 0,
+    balance: 0
   });
-
-  const [paymentInfo, setPaymentInfo] = useState({
-    payments: data?.paymentInfo?.payments || 0,
-    balance: data?.paymentInfo?.balance || 0
-  });
-
-  const [notes, setNotes] = useState(data?.notes || "");
 
   const handleFormChange = (field: string, value: any) => {
     if (isReadOnly) return;
@@ -64,39 +51,37 @@ export default function VoluntaryC3Form({ data, mode = 'add', onSave, onClose }:
     }));
   };
 
-  const handleWeekChange = (week: string, checked: boolean) => {
+  const handleWeekChange = (index: number, checked: boolean) => {
     if (isReadOnly) return;
-    setWeeklyDetails(prev => ({
+    const newWeeks = [...wagesDetails.weeks];
+    newWeeks[index] = checked;
+    setWagesDetails(prev => ({
       ...prev,
-      weeks: {
-        ...prev.weeks,
-        [week]: checked
-      }
+      weeks: newWeeks
     }));
   };
 
-  const handleWeeklyDetailsChange = (field: string, value: any) => {
+  const handleWagesDetailsChange = (field: string, value: any) => {
     if (isReadOnly) return;
-    setWeeklyDetails(prev => ({
+    setWagesDetails(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
   const calculateSocialSecurityDue = () => {
-    // Calculate 3% of total wages for voluntary contribution
-    return weeklyDetails.totalWages * 0.03;
+    return wagesDetails.totalWages * 0.03; // 3% of total wages
   };
 
   const handleSave = () => {
     if (isReadOnly) return;
     const formDataToSave = {
       ...formData,
-      weeklyDetails,
-      transactionInfo,
-      paymentInfo,
-      notes,
-      calculatedSSDue: calculateSocialSecurityDue()
+      wagesDetails,
+      totals: {
+        ...totals,
+        socialSecurityDue: calculateSocialSecurityDue()
+      }
     };
     
     console.log("Saving Voluntary C3 form:", formDataToSave);
@@ -108,18 +93,14 @@ export default function VoluntaryC3Form({ data, mode = 'add', onSave, onClose }:
   };
 
   return (
-    <div className="flex flex-col gap-4 max-w-full overflow-hidden">
-      {/* Header */}
+    <div className="mt-6 space-y-6">
+      {/* Basic Information */}
       <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg md:text-xl">ST CHRISTOPHER AND NEVIS - SOCIAL SECURITY</CardTitle>
-          <CardDescription className="text-sm">
-            Social Security Act, 1978; Social Services Levy Act, 1986; and the Protection of Employment Act, 1996<br/>
-            <strong>VOLUNTARY CONTRIBUTION REMITTANCE FORM</strong>
-          </CardDescription>
+        <CardHeader>
+          <CardTitle>Basic Information</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ssn">SSN</Label>
               <Input
@@ -127,31 +108,22 @@ export default function VoluntaryC3Form({ data, mode = 'add', onSave, onClose }:
                 value={formData.ssn}
                 onChange={(e) => handleFormChange("ssn", e.target.value)}
                 placeholder="Enter SSN"
-                className="bg-green-50"
-                readOnly={isReadOnly}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleFormChange("name", e.target.value)}
-                placeholder="Enter full name"
                 readOnly={isReadOnly}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="period">Period</Label>
-              <Input
-                id="period"
-                value={formData.period}
-                onChange={(e) => handleFormChange("period", e.target.value)}
-                placeholder="Jul-2025"
-                readOnly={isReadOnly}
-              />
+              <Select value={formData.period} onValueChange={(value) => handleFormChange("period", value)} disabled={isReadOnly}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="June 2028">June 2028</SelectItem>
+                  <SelectItem value="July 2028">July 2028</SelectItem>
+                  <SelectItem value="August 2028">August 2028</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -165,189 +137,154 @@ export default function VoluntaryC3Form({ data, mode = 'add', onSave, onClose }:
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Transaction Information */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Transaction Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Input
-                value={transactionInfo.status}
-                onChange={(e) => setTransactionInfo({...transactionInfo, status: e.target.value})}
-                placeholder="PEN"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Date Entered</Label>
-              <Input
-                value={transactionInfo.dateEntered}
-                onChange={(e) => setTransactionInfo({...transactionInfo, dateEntered: e.target.value})}
-                type="date"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Entered By</Label>
-              <Input
-                value={transactionInfo.enteredBy}
-                onChange={(e) => setTransactionInfo({...transactionInfo, enteredBy: e.target.value})}
-                placeholder="Staff name"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Date Modified</Label>
-              <Input
-                value={transactionInfo.dateModified}
-                onChange={(e) => setTransactionInfo({...transactionInfo, dateModified: e.target.value})}
-                type="date"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Modified By</Label>
-              <Input
-                value={transactionInfo.modifiedBy}
-                onChange={(e) => setTransactionInfo({...transactionInfo, modifiedBy: e.target.value})}
-                placeholder="Staff name"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Date Verified</Label>
-              <Input
-                value={transactionInfo.dateVerified}
-                onChange={(e) => setTransactionInfo({...transactionInfo, dateVerified: e.target.value})}
-                type="date"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Verified By</Label>
-              <Input
-                value={transactionInfo.verifiedBy}
-                onChange={(e) => setTransactionInfo({...transactionInfo, verifiedBy: e.target.value})}
-                placeholder="Staff name"
-                readOnly={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Income Category</Label>
-              <Input
-                value={transactionInfo.incomeCategory}
-                onChange={(e) => setTransactionInfo({...transactionInfo, incomeCategory: e.target.value})}
-                placeholder="Income category"
-                readOnly={isReadOnly}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Details Section */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Details</CardTitle>
-          <CardDescription>Select the week(s) worked</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Weekly Selection */}
-            <div>
-              <Label className="text-base font-medium">Week(s)</Label>
-              <div className="flex gap-4 mt-2 flex-wrap">
-                {[1, 2, 3, 4, 5].map((week) => (
-                  <div key={week} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`week${week}`}
-                      checked={weeklyDetails.weeks[`w${week}` as keyof typeof weeklyDetails.weeks]}
-                      onCheckedChange={(checked) => handleWeekChange(`w${week}`, checked as boolean)}
-                      disabled={isReadOnly}
-                    />
-                    <Label htmlFor={`week${week}`} className="text-lg font-medium">{week}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Financial Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="totalWages">Total Wages</Label>
-                <Input
-                  id="totalWages"
-                  type="number"
-                  value={weeklyDetails.totalWages}
-                  onChange={(e) => handleWeeklyDetailsChange("totalWages", parseFloat(e.target.value) || 0)}
-                  placeholder="$0.00"
-                  readOnly={isReadOnly}
-                />
+          {/* Read-only information in gray card */}
+          <div className="mt-6 bg-gray-100 rounded-lg p-4 border-2 border-[#9D9D9D]">
+            <div className="flex justify-between items-center">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">Name</Label>
+                <div className="text-sm text-gray-600">{formData.name}</div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="socialSecurityContribution">Social Security Contribution</Label>
-                <Input
-                  id="socialSecurityContribution"
-                  type="number"
-                  value={weeklyDetails.socialSecurityContribution}
-                  onChange={(e) => handleWeeklyDetailsChange("socialSecurityContribution", parseFloat(e.target.value) || 0)}
-                  placeholder="$0.00"
-                  readOnly={isReadOnly}
-                />
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">Address</Label>
+                <div className="text-sm text-gray-600">{formData.address}</div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">Number Of Employees</Label>
+                <div className="text-sm text-gray-600">{formData.numberOfEmployees}</div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">Status</Label>
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                  {formData.status}
+                </Badge>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">Payments</Label>
+                <div className="text-sm text-gray-600">${formData.payments}</div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">Balance</Label>
+                <div className="text-sm text-gray-600">${formData.balance}</div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Calculation Summary */}
+      {/* Totals */}
+      <div className="space-y-2 flex justify-start">
+        <Label className="text-sm font-medium text-gray-600 mr-4">Totals</Label>
+        <div className="bg-gray-50 rounded-lg p-4 border-2 border-[#9D9D9D] w-full">
+          <div className="flex justify-between items-center">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-gray-900">Social Security Contribution due for this month</Label>
+              <div className="text-sm text-gray-600">${calculateSocialSecurityDue().toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Wages Details */}
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader>
+          <CardTitle>Wages Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* Week checkboxes and Total Wages & Social Security Contribution on same line */}
+            <div className="flex gap-12">
+              {/* Week checkboxes */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Put the "x" in the week(s) worked</Label>
+                <div className="flex gap-4">
+                  {[1, 2, 3, 4, 5].map((week, index) => (
+                    <div key={index} className="flex flex-col items-center space-y-1">
+                      <span className="text-sm">{week}</span>
+                      <Checkbox
+                        checked={wagesDetails.weeks[index]}
+                        onCheckedChange={(checked) => handleWeekChange(index, checked as boolean)}
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Wages & Social Security Contribution */}
+              <div className="flex gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="totalWages">Total Wages</Label>
+                  <Input
+                    id="totalWages"
+                    type="number"
+                    value={wagesDetails.totalWages}
+                    onChange={(e) => handleWagesDetailsChange("totalWages", parseFloat(e.target.value) || 0)}
+                    placeholder="Wage"
+                    readOnly={isReadOnly}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="socialSecurityContribution">Social Security Contribution</Label>
+                  <Input
+                    id="socialSecurityContribution"
+                    type="number"
+                    value={wagesDetails.socialSecurityContribution}
+                    onChange={(e) => handleWagesDetailsChange("socialSecurityContribution", parseFloat(e.target.value) || 0)}
+                    placeholder="Social Security Contribution"
+                    readOnly={isReadOnly}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Verified checkbox and Record Wages button on same line */}
+            <div className="flex gap-8">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={wagesDetails.isVerified}
+                    onCheckedChange={(checked) => handleWagesDetailsChange("isVerified", checked as boolean)}
+                    disabled={isReadOnly}
+                  />
+                  <Label>Verified?</Label>
+                </div>
+                <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly}>
+                  Record Wages
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Total (Automatically calculated totals and contributions) */}
+      <Card>
+        <CardHeader>
           <CardTitle>Total</CardTitle>
+          <CardDescription>(Automatically calculated totals and contributions)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-blue-50 rounded border">
-              <span className="font-medium">Social Security Contribution due for the month →</span>
-              <div className="bg-white border rounded px-3 py-1">
-                <span className="font-mono text-lg font-bold">${calculateSocialSecurityDue().toFixed(0)}</span>
-              </div>
+          <div className="flex justify-between items-center">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-gray-900">Social Security Contribution due for the month</Label>
+              <div className="text-sm text-gray-600">${calculateSocialSecurityDue().toFixed(2)}</div>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Payments:</Label>
-                <div className="text-lg font-mono">${paymentInfo.payments.toFixed(2)}</div>
-              </div>
-              <div className="space-y-2">
-                <Label>Balance:</Label>
-                <div className="text-lg font-mono">${paymentInfo.balance.toFixed(2)}</div>
-              </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-gray-900">Payments</Label>
+              <div className="text-sm text-gray-600">${totals.payments.toFixed(2)}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-gray-900">Balance</Label>
+              <div className="text-sm text-gray-600">${totals.balance.toFixed(2)}</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Notes */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Notes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add any additional notes..."
-            rows={3}
-            readOnly={isReadOnly}
-          />
         </CardContent>
       </Card>
 

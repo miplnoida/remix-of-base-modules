@@ -4,13 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
@@ -260,15 +260,23 @@ export default function C3Management() {
       <div className="flex flex-col gap-6 p-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
-          <div>
+        
+          <div className="flex items-center gap-3">
+          {formMode === 'add' ? <>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/c3-management/dashboard')}
+            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sm:hidden">Back</span>
+          </Button>
+        </> : null}
             <h1 className="text-3xl font-bold tracking-tight">
               {formMode === 'add' ? 'New C3 Submission' : 
                formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
             </h1>
-            <p className="text-muted-foreground">
-              {formMode === 'add' ? 'Create a new C3 contribution record' : 
-               formMode === 'edit' ? 'Edit existing C3 contribution record' : 'View C3 contribution record'}
-            </p>
+            
           </div>
           <Button onClick={() => {
             setShowForm(false);
@@ -283,9 +291,9 @@ export default function C3Management() {
         {/* Tabbed Form Interface */}
         <Tabs value={contributionType} onValueChange={setContributionType} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="employer">🟩 Employer</TabsTrigger>
-            <TabsTrigger value="self-employed">🟨 Self Contributor</TabsTrigger>
-            <TabsTrigger value="voluntary">🟦 Voluntary Contribution</TabsTrigger>
+            <TabsTrigger value="employer">Employer</TabsTrigger>
+            <TabsTrigger value="self-employed">Self Contributor</TabsTrigger>
+            <TabsTrigger value="voluntary">Voluntary Contribution</TabsTrigger>
           </TabsList>
           
           <TabsContent value="employer">
@@ -373,7 +381,7 @@ export default function C3Management() {
           <p className="text-muted-foreground">Manage and view C3 contribution records</p>
         </div>
         <div className="flex gap-2">
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Download className="h-4 w-4" />
@@ -391,10 +399,10 @@ export default function C3Management() {
                 Export to PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
           <Button onClick={handleAddNewC3} className="gap-2">
             <Plus className="h-4 w-4" />
-            Add New C3
+            Add New C3 Submission
           </Button>
         </div>
       </div>
@@ -402,9 +410,9 @@ export default function C3Management() {
       {/* Contribution Type Tabs */}
       <Tabs value={contributionType} onValueChange={setContributionType} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="employer">🟩 Employer</TabsTrigger>
-          <TabsTrigger value="self-employed">🟨 Self Contributor</TabsTrigger>
-          <TabsTrigger value="voluntary">🟦 Voluntary Contribution</TabsTrigger>
+          <TabsTrigger value="employer">Employer</TabsTrigger>
+          <TabsTrigger value="self-employed">Self Contributor</TabsTrigger>
+          <TabsTrigger value="voluntary">Voluntary Contribution</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -533,177 +541,51 @@ export default function C3Management() {
       </Card>
 
       {/* Search Bar and Records Per Page */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search by Payer Name, Reg No, Schedule No, Status..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="recordsPerPage" className="text-sm">Show:</Label>
-          <Select value={recordsPerPage.toString()} onValueChange={(value) => setRecordsPerPage(Number(value))}>
-            <SelectTrigger className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-md z-50">
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                    </SelectContent>
-          </Select>
-          <span className="text-sm text-muted-foreground">records</span>
-        </div>
-      </div>
+    
 
       {/* C3 Data Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>C3 Records</CardTitle>
-              <CardDescription>
-                Showing {startIndex + 1}-{Math.min(endIndex, totalRecords)} of {totalRecords} records
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Payer ID</TableHead>
-                  <TableHead>Schedule No.</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Date Received</TableHead>
-                  <TableHead>Entered By</TableHead>
-                  <TableHead>Verified By</TableHead>
-                  <TableHead>Date Entered</TableHead>
-                  <TableHead>Date Verified</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Payer Name</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>CNC3 Received By</TableHead>
-                  <TableHead>CNC3 Modified Date</TableHead>
-                  <TableHead>CNC3 Modified By</TableHead>
-                  <TableHead className="text-center sticky right-0 bg-background border-l-2 border-border shadow-lg z-10">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentRecords.map((record, index) => (
-                  <TableRow key={index} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{record.payerId}</TableCell>
-                    <TableCell>{record.scheduleNo}</TableCell>
-                    <TableCell>{record.period}</TableCell>
-                    <TableCell>{record.dateReceived}</TableCell>
-                    <TableCell>{record.enteredBy}</TableCell>
-                    <TableCell>{record.verifiedBy || "-"}</TableCell>
-                    <TableCell>{record.dateEntered}</TableCell>
-                    <TableCell>{record.dateVerified || "-"}</TableCell>
-                    <TableCell>{getStatusBadge(record.status)}</TableCell>
-                    <TableCell>{record.type}</TableCell>
-                    <TableCell>{record.payerName}</TableCell>
-                    <TableCell>${record.amount.toLocaleString()}</TableCell>
-                    <TableCell>{record.cnc3ReportedReceivedBy}</TableCell>
-                    <TableCell>{record.cnc3ReportedModifiedDate}</TableCell>
-                    <TableCell>{record.cnc3ReportedModifiedBy}</TableCell>
-                    <TableCell className="sticky right-0 bg-background border-l-2 border-border shadow-lg z-10">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-background border shadow-md z-50" align="end">
-                          <DropdownMenuItem onClick={() => handleView(record)} className="cursor-pointer">
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(record)} className="cursor-pointer">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePrint(record)} className="cursor-pointer">
-                            <Printer className="h-4 w-4 mr-2" />
-                            Print
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(record)} 
-                            className="cursor-pointer text-red-600 focus:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+      <div>
+       
+        
+          <DataTable
+            data={currentRecords}
+            columns={[
+              { key: 'payerId', label: 'Payer ID', minWidth: '100px' },
+              { key: 'scheduleNo', label: 'Schedule No.', minWidth: '120px' },
+              { key: 'period', label: 'Period', minWidth: '100px' },
+              { key: 'dateReceived', label: 'Date Received', minWidth: '120px' },
+              { key: 'enteredBy', label: 'Entered By', minWidth: '120px' },
+              { key: 'verifiedBy', label: 'Verified By', minWidth: '120px', render: (value) => value || "-" },
+              { key: 'dateEntered', label: 'Date Entered', minWidth: '120px' },
+              { key: 'dateVerified', label: 'Date Verified', minWidth: '120px', render: (value) => value || "-" },
+              { 
+                key: 'status', 
+                label: 'Status', 
+                minWidth: '100px',
+                render: (status) => getStatusBadge(status)
+              },
+              { key: 'type', label: 'Type', minWidth: '120px' },
+              { key: 'payerName', label: 'Payer Name', minWidth: '150px' },
+              { 
+                key: 'amount', 
+                label: 'Amount', 
+                minWidth: '120px',
+                render: (amount) => `$${amount.toLocaleString()}`
+              },
+              { key: 'cnc3ReportedReceivedBy', label: 'CNC3 Received By', minWidth: '140px' },
+              { key: 'cnc3ReportedModifiedDate', label: 'CNC3 Modified Date', minWidth: '140px' },
+              { key: 'cnc3ReportedModifiedBy', label: 'CNC3 Modified By', minWidth: '140px' }
+            ]}
+            title="C3 Records"
+            searchPlaceholder="Search by Payer ID, Name, or Type"
+            actions={{ view: true, edit: true }}
+            onView={(record) => handleView(record)}
+            onEdit={(record) => handleEdit(record)}
+          />
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
-              Showing {startIndex + 1} to {Math.min(endIndex, totalRecords)} of {totalRecords} entries
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const page = i + 1;
-                  return (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {page}
-                    </Button>
-                  );
-                })}
-                {totalPages > 5 && (
-                  <>
-                    <span className="text-muted-foreground">...</span>
-                    <Button
-                      variant={currentPage === totalPages ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(totalPages)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {totalPages}
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+         
+        
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
