@@ -465,7 +465,7 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
       </Card>
 
       {/* Action Buttons */}
-      <Card>
+      {/* <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-2">
             {!isReadOnly && (
@@ -490,7 +490,7 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }
