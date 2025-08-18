@@ -265,7 +265,12 @@ export default function C3Management() {
           {formMode === 'add' ? <>
           <Button 
             variant="outline" 
-            onClick={() => navigate('/c3-management/dashboard')}
+            onClick={() => {
+            setShowForm(false);
+            setEditingRecord(null);
+            setViewingRecord(null);
+            setFormMode('add');
+          }}
             className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -278,14 +283,25 @@ export default function C3Management() {
             </h1>
             
           </div>
-          <Button onClick={() => {
+          
+          <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
+            {/* <Button onClick={() => {
             setShowForm(false);
             setEditingRecord(null);
             setViewingRecord(null);
             setFormMode('add');
-          }} variant="outline">
+          }} variant="outline"
+          className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
             Back to Manage C3
-          </Button>
+          </Button> */}
+                          <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" >
+                            Draft
+                          </Button>
+                          <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]" >
+                            Submit
+                          </Button>
+                        </div>
         </div>
 
         {/* Tabbed Form Interface */}

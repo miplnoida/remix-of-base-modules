@@ -188,6 +188,9 @@ export default function VoluntaryC3Form({ data, mode = 'add', onSave, onClose }:
             </div>
           </div>
         </div>
+        <div className="w-full">
+          
+        </div>
       </div>
 
       {/* Wages Details */}
