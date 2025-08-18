@@ -412,7 +412,7 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
             )
           }
         ]}
-        title="Employees (Table View)"
+        title="Employees "
         searchPlaceholder="Search by SSN/Name"
         actions={{ view: true, edit: true }}
         onView={(row) => console.log('View employee:', row)}
