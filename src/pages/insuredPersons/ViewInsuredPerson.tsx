@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog,  DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Printer, 
@@ -51,8 +51,7 @@ import { NPFTab } from '@/components/ip/NPFTab';
 import { PhotoTab } from '@/components/ip/PhotoTab';
 import { CaricomTab } from '@/components/ip/CaricomTab';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from 'recharts';
-import { DialogContent } from '@radix-ui/react-dialog';
+import { Label } from '@/components/ui/label';
 
 const ViewInsuredPerson = () => {
   const navigate = useNavigate();
@@ -143,44 +142,56 @@ const AccountStatusModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Change Account Status</DialogTitle>
+      <DialogContent className="max-w-md bg-white shadow-xl border-0 rounded-lg">
+        <DialogHeader className="pb-4 border-b">
+          <DialogTitle className="text-xl font-semibold text-gray-900">Change Account Status</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Current Status</Label>
-            <span className={`inline-block ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-800`}>
-              {currentStatus}
-            </span>
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Current Status</Label>
+            <div className="flex items-center">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800`}>
+                {currentStatus}
+              </span>
+            </div>
           </div>
-          <div>
-            <Label>Change Status</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Change Status</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger className="bg-background">
+              <SelectTrigger className="w-full bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <SelectValue placeholder="Select new status" />
               </SelectTrigger>
-              <SelectContent className="bg-background border">
+              <SelectContent className="bg-white border border-gray-200 rounded-md shadow-lg">
                 <SelectItem value="Suspend">Suspend</SelectItem>
                 <SelectItem value="Verify">Verify</SelectItem>
                 <SelectItem value="Ceased">Ceased</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Reason</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Reason</Label>
             <Textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="Enter reason for status change"
               rows={3}
+              className="w-full bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-blue-500"
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="destructive">
+            <Button 
+              type="submit" 
+              variant="destructive"
+              className="px-4 py-2 text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500"
+            >
               Change Status
             </Button>
           </div>
