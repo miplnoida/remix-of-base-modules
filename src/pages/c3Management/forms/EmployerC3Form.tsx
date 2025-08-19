@@ -185,7 +185,7 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-gray-900">Status</Label>
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
                   {formData.status}
                 </Badge>
               </div>
@@ -203,21 +203,36 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
           </div>
 
           {/* Totals */}
-          <div className="space-y-2 flex justify-start mt-6">
-            <Label className="text-sm font-medium text-gray-600 mr-4">Totals</Label>
-            <div className="bg-gray-50 rounded-lg p-4 border-2 border-[#9D9D9D] w-full">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-900">Social Security Contribution due for this month</Label>
-                  <div className="text-sm text-gray-600">${totals.totalDue.toFixed(2)}</div>
+          <div className="flex items-start space-x-4 mt-6">
+          {/* Left Label */}
+          <Label className="text-sm font-medium text-gray-600 mt-2 w-20">Totals</Label>
+
+          {/* Right Content Box */}
+          <div className="bg-gray-50 rounded-lg p-4 border-2 border-[#9D9D9D] flex-1">
+            <div className="grid grid-cols-2 gap-x-6">
+              {/* First Column */}
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">
+                  Social Security Contribution due for this month
+                </Label>
+                <div className="text-sm text-gray-600">
+                  ${totals.totalDue.toFixed(2)}
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-900">Total due to Accountant General</Label>
-                  <div className="text-sm text-gray-600">${totals.totalDue.toFixed(2)}</div>
+              </div>
+
+              {/* Second Column */}
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-gray-900">
+                  Total due to Accountant General
+                </Label>
+                <div className="text-sm text-gray-600">
+                  ${totals.totalDue.toFixed(2)}
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
         </CardContent>
       </Card>
 

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog,  DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Printer, 
@@ -49,6 +50,9 @@ import { NotesTab } from '@/components/ip/NotesTab';
 import { NPFTab } from '@/components/ip/NPFTab';
 import { PhotoTab } from '@/components/ip/PhotoTab';
 import { CaricomTab } from '@/components/ip/CaricomTab';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from 'recharts';
+import { DialogContent } from '@radix-ui/react-dialog';
 
 const ViewInsuredPerson = () => {
   const navigate = useNavigate();
@@ -58,6 +62,8 @@ const ViewInsuredPerson = () => {
   const [activeHistoryTab, setActiveHistoryTab] = useState('wages');
   const [isRegisterSectionOpen, setIsRegisterSectionOpen] = useState(true);
   const [isHistorySectionOpen, setIsHistorySectionOpen] = useState(true);
+   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
+    const [accountStatus, setAccountStatus] = useState('Active');
   const [currentStatus, setCurrentStatus] = useState('Active');
   const history = [
     { date: '2025-05-01 10:12', action: 'Created record', user: 'Admin' },
@@ -112,6 +118,80 @@ const ViewInsuredPerson = () => {
 
   const handleEdit = () => {
     navigate(`/person/edit/${ssn}`);
+  };
+
+  // Account Status Modal
+const AccountStatusModal = ({
+  open,
+  onClose,
+  currentStatus,
+  onChangeStatus
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentStatus: string;
+  onChangeStatus: (newStatus: string, reason: string) => void;
+}) => {
+  const [newStatus, setNewStatus] = useState('');
+  const [reason, setReason] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onChangeStatus(newStatus, reason);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Account Status</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Current Status</Label>
+            <span className={`inline-block ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-800`}>
+              {currentStatus}
+            </span>
+          </div>
+          <div>
+            <Label>Change Status</Label>
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border">
+                <SelectItem value="Suspend">Suspend</SelectItem>
+                <SelectItem value="Verify">Verify</SelectItem>
+                <SelectItem value="Ceased">Ceased</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Reason</Label>
+            <Textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Enter reason for status change"
+              rows={3}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="destructive">
+              Change Status
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+ const handleChangeAccountStatus = (newStatus: string, reason: string) => {
+    setAccountStatus(newStatus);
+    // You can handle the reason or API call here
   };
 
   const handleStatusChange = (newStatus: string) => {
@@ -185,9 +265,10 @@ const ViewInsuredPerson = () => {
                 <Printer className="h-4 w-4" />
                 Print
               </Button>
-              <Button type="button" variant="destructive" className="flex items-center gap-2">
+              <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={()=>{setAccountStatusModalOpen(true)}}>
                 Change Account Status
               </Button>
+              
             </>
           )}
         </div>
@@ -890,6 +971,12 @@ const ViewInsuredPerson = () => {
           </CollapsibleContent>
         </Card>
       </Collapsible> */}
+      <AccountStatusModal
+          open={accountStatusModalOpen}
+          onClose={() => setAccountStatusModalOpen(false)}
+          currentStatus={accountStatus}
+          onChangeStatus={handleChangeAccountStatus}
+        />
     </div>
   );
 };
