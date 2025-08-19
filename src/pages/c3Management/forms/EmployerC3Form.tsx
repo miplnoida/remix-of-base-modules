@@ -9,6 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DataTable } from "@/components/ui/data-table";
 import { Plus, Save, X, Trash2, Printer, Check } from "lucide-react";
 
+// PreviewField component for view mode
+const PreviewField = ({ label, value, required = false }: { label: string; value: string | number | null | undefined; required?: boolean }) => (
+  <div>
+    <Label className="text-sm font-medium text-gray-700">
+      {label}{required && <span className="text-red-500 ml-1">*</span>}
+    </Label>
+    <div className="mt-1 text-sm text-gray-600 bg-gray-50 rounded-md">
+      {value || 'Not specified'}
+    </div>
+  </div>
+);
+
 interface Employee {
   ssn: string;
   name: string;
@@ -28,12 +40,13 @@ interface EmployerC3FormProps {
 
 export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: EmployerC3FormProps) {
   const isReadOnly = mode === 'view';
+  const isViewMode = mode === 'view';
 
   const [formData, setFormData] = useState({
-    employerId: data?.employerId || "",
-    period: data?.period || "",
-    dateReceived: data?.dateReceived || "",
-    schedule: data?.schedule || "",
+    employerId: data?.employerId || (isViewMode ? "EMP001" : ""),
+    period: data?.period || (isViewMode ? "June 2028" : ""),
+    dateReceived: data?.dateReceived || (isViewMode ? "2024-01-15" : ""),
+    schedule: data?.schedule || (isViewMode ? "SCH-2024-001" : ""),
     employerName: data?.employerName || "ABC Company Ltd",
     address: data?.address || "123 Main Street, Basseterre, St. Kitts",
     numberOfEmployees: data?.numberOfEmployees || "25",
@@ -44,13 +57,13 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
 
   const [employees, setEmployees] = useState<Employee[]>([
     {
-      ssn: "",
-      name: "",
-      termStartDate: "",
-      payPeriod: "",
-      weeks: [false, false, false, false, false, false, false],
-      wages: [0, 0, 0, 0, 0, 0, 0],
-      isVerified: false
+      ssn: isViewMode ? "123-45-6789" : "",
+      name: isViewMode ? "John Doe" : "",
+      termStartDate: isViewMode ? "2024-01-01" : "",
+      payPeriod: isViewMode ? "Weekly" : "",
+      weeks: isViewMode ? [true, true, true, true, false, false, false] : [false, false, false, false, false, false, false],
+      wages: isViewMode ? [500, 500, 500, 500, 0, 0, 0] : [0, 0, 0, 0, 0, 0, 0],
+      isVerified: isViewMode ? true : false
     }
   ]);
 
@@ -117,53 +130,62 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
           <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="employerId">Employer ID</Label>
-              <Input
-                id="employerId"
-                value={formData.employerId}
-                onChange={(e) => handleFormChange("employerId", e.target.value)}
-                placeholder="Enter Employer ID"
-                readOnly={isReadOnly}
-              />
+          {isViewMode ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <PreviewField label="Employer ID" value={formData.employerId} required />
+              <PreviewField label="Period" value={formData.period} required />
+              <PreviewField label="Date Received" value={formData.dateReceived} required />
+              <PreviewField label="Schedule" value={formData.schedule} required />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employerId">Employer ID</Label>
+                <Input
+                  id="employerId"
+                  value={formData.employerId}
+                  onChange={(e) => handleFormChange("employerId", e.target.value)}
+                  placeholder="Enter Employer ID"
+                  readOnly={isReadOnly}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="period">Period</Label>
-              <Select value={formData.period} onValueChange={(value) => handleFormChange("period", value)} disabled={isReadOnly}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="June 2028">June 2028</SelectItem>
-                  <SelectItem value="July 2028">July 2028</SelectItem>
-                  <SelectItem value="August 2028">August 2028</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="period">Period</Label>
+                <Select value={formData.period} onValueChange={(value) => handleFormChange("period", value)} disabled={isReadOnly}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="June 2028">June 2028</SelectItem>
+                    <SelectItem value="July 2028">July 2028</SelectItem>
+                    <SelectItem value="August 2028">August 2028</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateReceived">Date Received</Label>
-              <Input
-                id="dateReceived"
-                type="date"
-                value={formData.dateReceived}
-                onChange={(e) => handleFormChange("dateReceived", e.target.value)}
-                readOnly={isReadOnly}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateReceived">Date Received</Label>
+                <Input
+                  id="dateReceived"
+                  type="date"
+                  value={formData.dateReceived}
+                  onChange={(e) => handleFormChange("dateReceived", e.target.value)}
+                  readOnly={isReadOnly}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="schedule">Schedule</Label>
-              <Input
-                id="schedule"
-                value={formData.schedule}
-                onChange={(e) => handleFormChange("schedule", e.target.value)}
-                readOnly={isReadOnly}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="schedule">Schedule</Label>
+                <Input
+                  id="schedule"
+                  value={formData.schedule}
+                  onChange={(e) => handleFormChange("schedule", e.target.value)}
+                  readOnly={isReadOnly}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Read-only information in gray card */}
           <div className="mt-6 bg-gray-100 rounded-lg p-4 border-2 border-[#9D9D9D]">
@@ -249,121 +271,172 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
           <CardTitle className="text-sm font-medium text-gray-900">Employee Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {/* First row: SSN, Employee Name, Term Start Date */}
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="ssn">SSN</Label>
-                <Input
-                  id="ssn"
-                  value={employees[0].ssn}
-                  onChange={(e) => handleEmployeeChange(0, "ssn", e.target.value)}
-                  placeholder="Enter SSN Number"
-                  readOnly={isReadOnly}
-                />
+          {isViewMode ? (
+            <div className="space-y-6">
+              {/* First row: SSN, Employee Name, Term Start Date */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <PreviewField label="SSN" value={employees[0].ssn || "123-45-6789"} required />
+                <PreviewField label="Employee Name" value={employees[0].name || "John Doe"} required />
+                <PreviewField label="Term Start Date" value={employees[0].termStartDate || "2024-01-01"} />
               </div>
 
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="employeeName">Employee Name</Label>
-                <Input
-                  id="employeeName"
-                  value={employees[0].name}
-                  onChange={(e) => handleEmployeeChange(0, "name", e.target.value)}
-                  placeholder="Enter employee name"
-                  readOnly={isReadOnly}
-                />
+              {/* Second row: Pay Period and Week checkboxes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <PreviewField label="Pay Period" value={employees[0].payPeriod || "Weekly"} />
+                                 <div className="space-y-2">
+                   <Label className="text-sm font-medium">Weeks Worked</Label>
+                   <div className="flex gap-4">
+                     {[1, 2, 3, 4, 5, 'B/4', 'B'].map((week, index) => (
+                       <div key={index} className="flex flex-col items-center space-y-1">
+                         <span className="text-sm">{week}</span>
+                                                   <div className="text-sm text-gray-900 bg-gray-50 px-2 py-1 rounded border h-6 flex items-center justify-center min-w-[24px]">
+                            {employees[0].weeks[index] ? '✓' : ''}
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
               </div>
 
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="termStartDate">Term Start Date</Label>
-                <Input
-                  id="termStartDate"
-                  type="date"
-                  value={employees[0].termStartDate}
-                  onChange={(e) => handleEmployeeChange(0, "termStartDate", e.target.value)}
-                  placeholder="DD-MM-YYYY"
-                  readOnly={isReadOnly}
-                />
+              {/* Third row: Week wages */}
+              <div>
+                <Label className="text-sm font-medium text-blue-600">Record Wages/ Salaries in respect of the weeks worked or Holiday Pay or Bonuses</Label>
+                <div className="flex gap-9 mt-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((week, index) => (
+                    <div key={index} className="flex flex-col items-center space-y-1">
+                      <span className="text-sm">{week} Week</span>
+                      <div className="text-sm text-gray-900 bg-gray-50 px-2 py-1 rounded border w-20 text-center">
+                        ${employees[0].wages[index]?.toFixed(2) || '0.00'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fourth row: Verified checkbox and Record Wages button */}
+              <div className="flex items-center gap-4 pt-4">
+                <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
+                  {employees[0].isVerified ? '✓ Verified' : 'Not Verified'}
+                </div>
               </div>
             </div>
+          ) : (
+            <div className="space-y-6">
+              {/* First row: SSN, Employee Name, Term Start Date */}
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="ssn">SSN</Label>
+                  <Input
+                    id="ssn"
+                    value={employees[0].ssn}
+                    onChange={(e) => handleEmployeeChange(0, "ssn", e.target.value)}
+                    placeholder="Enter SSN Number"
+                    readOnly={isReadOnly}
+                  />
+                </div>
 
-            {/* Second row: Pay Period and Week checkboxes */}
-            <div className="flex gap-8">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="payPeriod">Pay Period</Label>
-                <Select value={employees[0].payPeriod} onValueChange={(value) => handleEmployeeChange(0, "payPeriod", value)} disabled={isReadOnly}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Pay Period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="2 Monthly">2 Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="employeeName">Employee Name</Label>
+                  <Input
+                    id="employeeName"
+                    value={employees[0].name}
+                    onChange={(e) => handleEmployeeChange(0, "name", e.target.value)}
+                    placeholder="Enter employee name"
+                    readOnly={isReadOnly}
+                  />
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="termStartDate">Term Start Date</Label>
+                  <Input
+                    id="termStartDate"
+                    type="date"
+                    value={employees[0].termStartDate}
+                    onChange={(e) => handleEmployeeChange(0, "termStartDate", e.target.value)}
+                    placeholder="DD-MM-YYYY"
+                    readOnly={isReadOnly}
+                  />
+                </div>
               </div>
 
-              <div className="flex-1">
-                <Label className="text-sm font-medium">Put the "x" in the week(s) worked</Label>
-                <div className="flex gap-4 mt-2">
-                  {[1, 2, 3, 4, 5, 'B/4', 'B'].map((week, index) => (
+              {/* Second row: Pay Period and Week checkboxes */}
+              <div className="flex gap-8">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="payPeriod">Pay Period</Label>
+                  <Select value={employees[0].payPeriod} onValueChange={(value) => handleEmployeeChange(0, "payPeriod", value)} disabled={isReadOnly}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Pay Period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Weekly">Weekly</SelectItem>
+                      <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
+                      <SelectItem value="Monthly">Monthly</SelectItem>
+                      <SelectItem value="2 Monthly">2 Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1">
+                  <Label className="text-sm font-medium">Put the "x" in the week(s) worked</Label>
+                  <div className="flex gap-4 mt-2">
+                    {[1, 2, 3, 4, 5, 'B/4', 'B'].map((week, index) => (
+                      <div key={index} className="flex flex-col items-center space-y-1">
+                        <span className="text-sm">{week}</span>
+                        <Checkbox
+                          checked={employees[0].weeks[index]}
+                          onCheckedChange={(checked) => {
+                            const newWeeks = [...employees[0].weeks];
+                            newWeeks[index] = checked as boolean;
+                            handleEmployeeChange(0, "weeks", newWeeks);
+                          }}
+                          disabled={isReadOnly}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Third row: Week wages */}
+              <div>
+                <Label className="text-sm font-medium text-blue-600">Record Wages/ Salaries in respect of the weeks worked or Holiday Pay or Bonuses</Label>
+                <div className="flex gap-9 mt-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((week, index) => (
                     <div key={index} className="flex flex-col items-center space-y-1">
-                      <span className="text-sm">{week}</span>
-                      <Checkbox
-                        checked={employees[0].weeks[index]}
-                        onCheckedChange={(checked) => {
-                          const newWeeks = [...employees[0].weeks];
-                          newWeeks[index] = checked as boolean;
-                          handleEmployeeChange(0, "weeks", newWeeks);
+                      <span className="text-sm">{week} Week</span>
+                      <Input
+                        type="number"
+                        value={employees[0].wages[index]}
+                        onChange={(e) => {
+                          const newWages = [...employees[0].wages];
+                          newWages[index] = parseFloat(e.target.value) || 0;
+                          handleEmployeeChange(0, "wages", newWages);
                         }}
-                        disabled={isReadOnly}
+                        className="w-20 h-8 text-center"
+                        placeholder="0.00"
+                        readOnly={isReadOnly}
                       />
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Third row: Week wages */}
-            <div>
-              <Label className="text-sm font-medium text-blue-600">Record Wages/ Salaries in respect of the weeks worked or Holiday Pay or Bonuses</Label>
-              <div className="flex gap-9 mt-2">
-                {[1, 2, 3, 4, 5, 6, 7].map((week, index) => (
-                  <div key={index} className="flex flex-col items-center space-y-1">
-                    <span className="text-sm">{week} Week</span>
-                    <Input
-                      type="number"
-                      value={employees[0].wages[index]}
-                      onChange={(e) => {
-                        const newWages = [...employees[0].wages];
-                        newWages[index] = parseFloat(e.target.value) || 0;
-                        handleEmployeeChange(0, "wages", newWages);
-                      }}
-                      className="w-20 h-8 text-center"
-                      placeholder="0.00"
-                      readOnly={isReadOnly}
-                    />
-                  </div>
-                ))}
+              {/* Fourth row: Verified checkbox and Record Wages button */}
+              <div className="flex items-center gap-4 pt-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={employees[0].isVerified}
+                    onCheckedChange={(checked) => handleEmployeeChange(0, "isVerified", checked as boolean)}
+                    disabled={isReadOnly}
+                  />
+                  <Label>Verified?</Label>
+                </div>
+                <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly}>
+                  Record Wages
+                </Button>
               </div>
             </div>
-
-            {/* Fourth row: Verified checkbox and Record Wages button */}
-            <div className="flex items-center gap-4 pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={employees[0].isVerified}
-                  onCheckedChange={(checked) => handleEmployeeChange(0, "isVerified", checked as boolean)}
-                  disabled={isReadOnly}
-                />
-                <Label>Verified?</Label>
-              </div>
-              <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly}>
-                Record Wages
-              </Button>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

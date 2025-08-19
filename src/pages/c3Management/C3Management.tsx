@@ -262,7 +262,7 @@ export default function C3Management() {
         <div className="flex items-center justify-between">
         
           <div className="flex items-center gap-3">
-          {formMode === 'add' ? <>
+          {(formMode === 'add' || formMode === 'view') ? (
           <Button 
             variant="outline" 
             onClick={() => {
@@ -276,7 +276,7 @@ export default function C3Management() {
             <ArrowLeft className="h-4 w-4" />
             <span className="sm:hidden">Back</span>
           </Button>
-        </> : null}
+        ) : null}
             <h1 className="text-3xl font-bold tracking-tight">
               {formMode === 'add' ? 'New C3 Submission' : 
                formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
@@ -285,23 +285,29 @@ export default function C3Management() {
           </div>
           
           <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-            {/* <Button onClick={() => {
-            setShowForm(false);
-            setEditingRecord(null);
-            setViewingRecord(null);
-            setFormMode('add');
-          }} variant="outline"
-          className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
-          >
-            Back to Manage C3
-          </Button> */}
-                          <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" >
-                            Draft
-                          </Button>
-                          <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]" >
-                            Submit
-                          </Button>
-                        </div>
+            {formMode === 'view' ? (
+              <Button 
+                type="button" 
+                onClick={() => {
+                  setFormMode('edit');
+                  setEditingRecord(viewingRecord);
+                }}
+                className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+              >
+                <Edit className="h-4 w-4" />
+                Edit
+              </Button>
+            ) : (
+              <>
+                <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
+                  Draft
+                </Button>
+                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]">
+                  Submit
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Tabbed Form Interface */}
