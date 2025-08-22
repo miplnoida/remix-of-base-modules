@@ -9,7 +9,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -98,6 +99,20 @@ export default function C3Management() {
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(20);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Function to get the appropriate button text based on active tab
+  const getAddButtonText = () => {
+    switch (contributionType) {
+      case "employer":
+        return "Add New Employer";
+      case "self-employed":
+        return "Add New Self Contributor";
+      case "voluntary":
+        return "Add New Voluntary Contribution";
+      default:
+        return "Add New C3 Submission";
+    }
+  };
   const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -278,7 +293,10 @@ export default function C3Management() {
           </Button>
         ) : null}
             <h1 className="text-3xl font-bold tracking-tight">
-              {formMode === 'add' ? 'New C3 Submission' : 
+              {formMode === 'add' ? 
+                (contributionType === 'employer' ? 'Add New C3 Employer' :
+                 contributionType === 'self-employed' ? 'Add New C3 Self Contributor' :
+                 contributionType === 'voluntary' ? 'Add New C3 Voluntary Contribution' : 'New C3 Submission') :
                formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
             </h1>
             
@@ -310,86 +328,78 @@ export default function C3Management() {
           </div>
         </div>
 
-        {/* Tabbed Form Interface */}
-        <Tabs value={contributionType} onValueChange={setContributionType} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="employer">Employer</TabsTrigger>
-            <TabsTrigger value="self-employed">Self Contributor</TabsTrigger>
-            <TabsTrigger value="voluntary">Voluntary Contribution</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="employer">
-            <EmployerC3Form 
-              data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
-              mode={formMode}
-              onClose={() => {
-                setShowForm(false);
-                setEditingRecord(null);
-                setViewingRecord(null);
-                setFormMode('add');
-              }} 
-              onSave={(data) => {
-                console.log('Employer C3 saved:', data);
-                toast({
-                  title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                  description: `Employer C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
-                });
-                setShowForm(false);
-                setEditingRecord(null);
-                setViewingRecord(null);
-                setFormMode('add');
-              }}
-            />
-          </TabsContent>
-          
-          <TabsContent value="self-employed">
-            <SelfEmployedC3Form 
-              data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
-              mode={formMode}
-              onClose={() => {
-                setShowForm(false);
-                setEditingRecord(null);
-                setViewingRecord(null);
-                setFormMode('add');
-              }}
-              onSave={(data) => {
-                console.log('Self-employed C3 saved:', data);
-                toast({
-                  title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                  description: `Self-employed C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
-                });
-                setShowForm(false);
-                setEditingRecord(null);
-                setViewingRecord(null);
-                setFormMode('add');
-              }}
-            />
-          </TabsContent>
-          
-          <TabsContent value="voluntary">
-            <VoluntaryC3Form 
-              data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
-              mode={formMode}
-              onClose={() => {
-                setShowForm(false);
-                setEditingRecord(null);
-                setViewingRecord(null);
-                setFormMode('add');
-              }}
-              onSave={(data) => {
-                console.log('Voluntary C3 saved:', data);
-                toast({
-                  title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                  description: `Voluntary C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
-                });
-                setShowForm(false);
-                setEditingRecord(null);
-                setViewingRecord(null);
-                setFormMode('add');
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+        {/* Form Interface - Show based on active tab */}
+        {contributionType === "employer" && (
+          <EmployerC3Form 
+            data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+            mode={formMode}
+            onClose={() => {
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+            }} 
+            onSave={(data) => {
+              console.log('Employer C3 saved:', data);
+              toast({
+                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                description: `Employer C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
+              });
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+            }}
+          />
+        )}
+        
+        {contributionType === "self-employed" && (
+          <SelfEmployedC3Form 
+            data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+            mode={formMode}
+            onClose={() => {
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+            }}
+            onSave={(data) => {
+              console.log('Self-employed C3 saved:', data);
+              toast({
+                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                description: `Self-employed C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
+              });
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+            }}
+          />
+        )}
+        
+        {contributionType === "voluntary" && (
+          <VoluntaryC3Form 
+            data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+            mode={formMode}
+            onClose={() => {
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+            }}
+            onSave={(data) => {
+              console.log('Voluntary C3 saved:', data);
+              toast({
+                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                description: `Voluntary C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
+              });
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -424,7 +434,7 @@ export default function C3Management() {
           </DropdownMenu> */}
           <Button onClick={handleAddNewC3} className="gap-2">
             <Plus className="h-4 w-4" />
-            Add New C3 Submission
+            {getAddButtonText()}
           </Button>
         </div>
       </div>

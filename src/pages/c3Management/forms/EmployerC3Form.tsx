@@ -740,16 +740,148 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
         </CardContent>
       </Card>
 
+
+      <div className="mt-6">
+        <CardTitle>Employees</CardTitle>
+        <CardDescription>
+          Put the "x" in the week(s) worked and Record Wages/ Salaries in respect of the weeks worked or Holiday Pay or Bonuses.
+        </CardDescription>
+      </div>
+
+      {/* Employees Data Entry Form */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-gray-900">Employee Details</CardTitle>
+            <Button variant="outline" size="sm" onClick={handleAddRow} disabled={isReadOnly}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Row
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* First row: SSN, Employee Name, Term Start Date */}
+            <div className="flex gap-4">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="ssn">SSN</Label>
+                <Input
+                  id="ssn"
+                  value={employees[0]?.ssn || ''}
+                  onChange={(e) => handleEmployeeChange(0, "ssn", e.target.value)}
+                  placeholder="Enter SSN Number"
+                  readOnly={isReadOnly}
+                />
+              </div>
+
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="employeeName">Employee Name</Label>
+                <Input
+                  id="employeeName"
+                  value={employees[0]?.name || ''}
+                  onChange={(e) => handleEmployeeChange(0, "name", e.target.value)}
+                  placeholder="Enter employee name"
+                  readOnly={isReadOnly}
+                />
+              </div>
+
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="termStartDate">Term Start Date</Label>
+                <Input
+                  id="termStartDate"
+                  type="date"
+                  value={employees[0]?.termStartDate || ''}
+                  onChange={(e) => handleEmployeeChange(0, "termStartDate", e.target.value)}
+                  placeholder="DD-MM-YYYY"
+                  readOnly={isReadOnly}
+                />
+              </div>
+            </div>
+
+            {/* Second row: Pay Period and Week checkboxes */}
+            <div className="flex gap-8">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="payPeriod">Pay Period</Label>
+                <Select value={employees[0]?.payPeriod || ''} onValueChange={(value) => handleEmployeeChange(0, "payPeriod", value)} disabled={isReadOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Pay Period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Weekly">Weekly</SelectItem>
+                    <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
+                    <SelectItem value="Monthly">Monthly</SelectItem>
+                    <SelectItem value="2 Monthly">2 Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex-1">
+                <Label className="text-sm font-medium">Put the "x" in the week(s) worked</Label>
+                <div className="flex gap-4 mt-2">
+                  {[1, 2, 3, 4, 5, 'B/4', 'B'].map((week, index) => (
+                    <div key={index} className="flex flex-col items-center space-y-1">
+                      <span className="text-sm">{week}</span>
+                      <Checkbox
+                        checked={employees[0]?.days?.[index] || false}
+                        onCheckedChange={(checked) => {
+                          const newDays = [...(employees[0]?.days || [false, false, false, false, false, false, false])];
+                          newDays[index] = checked as boolean;
+                          handleEmployeeChange(0, "days", newDays);
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Third row: Week wages */}
+            <div>
+              <Label className="text-sm font-medium text-blue-600">Record Wages/ Salaries in respect of the weeks worked or Holiday Pay or Bonuses</Label>
+              <div className="flex gap-9 mt-2">
+                {[1, 2, 3, 4, 5, 6, 7].map((week, index) => (
+                  <div key={index} className="flex flex-col items-center space-y-1">
+                    <span className="text-sm">{week} Week</span>
+                    <Input
+                      type="number"
+                      value={employees[0]?.weeklyWages?.[index] || 0}
+                      onChange={(e) => {
+                        const newWages = [...(employees[0]?.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
+                        newWages[index] = parseFloat(e.target.value) || 0;
+                        handleEmployeeChange(0, "weeklyWages", newWages);
+                      }}
+                      className="w-20 h-8 text-center"
+                      placeholder="0.00"
+                      readOnly={isReadOnly}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Fourth row: Verified checkbox and Record Wages button */}
+            <div className="flex items-center gap-4 pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={employees[0]?.isVerified || false}
+                  onCheckedChange={(checked) => handleEmployeeChange(0, "isVerified", checked as boolean)}
+                  disabled={isReadOnly}
+                />
+                <Label>Verified?</Label>
+              </div>
+              <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly}>
+                Record Wages
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
              {/* Employee Details Section */}
        <Card>
          <CardHeader>
-           <div className="flex items-center justify-between">
-             <CardTitle className="text-lg font-bold text-gray-900">Employee Details</CardTitle>
-             <Button variant="outline" size="sm" onClick={handleAddRow}>
-               <Plus className="h-4 w-4 mr-2" />
-               Add Row
-             </Button>
-           </div>
+           <CardTitle className="text-lg font-bold text-gray-900">Employee Details</CardTitle>
          </CardHeader>
         <CardContent>
           <DataTable
