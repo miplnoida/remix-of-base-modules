@@ -425,6 +425,23 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  
+  // Form state for adding new employee
+  const [formEmployee, setFormEmployee] = useState<Employee>({
+    ssn: '',
+    name: '',
+    days: [false, false, false, false, false, false, false],
+    categories: [false, false, false],
+    wages: 0,
+    bonus: 0,
+    totalWages: 0.00,
+    hssdLevy: 0.00,
+    socialSecurity: 0.00,
+    isVerified: false,
+    weeklyWages: [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+    termStartDate: '',
+    payPeriod: 'Monthly'
+  });
 
   const [formData, setFormData] = useState({
     employerId: data?.employerId || (isViewMode ? "EMP001" : ""),
@@ -577,9 +594,10 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
   };
 
   const handleAddRow = () => {
-    const newEmployee: Employee = {
-      ssn: '', // Generate unique SSN
-      name: "",
+    // Reset the form with empty values
+    setFormEmployee({
+      ssn: '',
+      name: '',
       days: [false, false, false, false, false, false, false],
       categories: [false, false, false],
       wages: 0,
@@ -589,13 +607,52 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
       socialSecurity: 0.00,
       isVerified: false,
       weeklyWages: [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-      termStartDate: "",
-      payPeriod: "Monthly"
+      termStartDate: '',
+      payPeriod: 'Monthly'
+    });
+  };
+
+  const handleRecordWages = () => {
+    // Calculate totals for the new employee
+    const weeklyTotal = (formEmployee.weeklyWages || []).reduce((sum, wage) => sum + wage, 0);
+    const totalWages = weeklyTotal + formEmployee.wages + formEmployee.bonus;
+    const hssdLevy = totalWages * 0.015; // 1.5% HSSD Levy
+    const socialSecurity = totalWages * 0.03; // 3% Social Security
+
+    const newEmployee: Employee = {
+      ...formEmployee,
+      totalWages,
+      hssdLevy,
+      socialSecurity
     };
-    
-    // Open modal with new employee for editing
-    setSelectedEmployee(newEmployee);
-    setIsModalOpen(true);
+
+    // Add the new employee to the employees array
+    setEmployees(prev => [...prev, newEmployee]);
+
+    // Reset the form
+    setFormEmployee({
+      ssn: '',
+      name: '',
+      days: [false, false, false, false, false, false, false],
+      categories: [false, false, false],
+      wages: 0,
+      bonus: 0,
+      totalWages: 0.00,
+      hssdLevy: 0.00,
+      socialSecurity: 0.00,
+      isVerified: false,
+      weeklyWages: [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+      termStartDate: '',
+      payPeriod: 'Monthly'
+    });
+  };
+
+  const handleFormEmployeeChange = (field: keyof Employee, value: any) => {
+    if (isReadOnly) return;
+    setFormEmployee(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
@@ -761,100 +818,128 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* First row: SSN, Employee Name, Term Start Date */}
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="ssn">SSN</Label>
-                <Input
-                  id="ssn"
-                  value={employees[0]?.ssn || ''}
-                  onChange={(e) => handleEmployeeChange(0, "ssn", e.target.value)}
-                  placeholder="Enter SSN Number"
-                  readOnly={isReadOnly}
-                />
-              </div>
+                         {/* First row: SSN, Employee Name, Term Start Date, Pay Period */}
+             <div className="flex gap-4">
+               <div className="flex-1 space-y-2">
+                 <Label htmlFor="ssn">SSN</Label>
+                 <Input
+                   id="ssn"
+                   value={formEmployee.ssn}
+                   onChange={(e) => handleFormEmployeeChange("ssn", e.target.value)}
+                   placeholder="Enter SSN Number"
+                   readOnly={isReadOnly}
+                 />
+               </div>
 
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="employeeName">Employee Name</Label>
-                <Input
-                  id="employeeName"
-                  value={employees[0]?.name || ''}
-                  onChange={(e) => handleEmployeeChange(0, "name", e.target.value)}
-                  placeholder="Enter employee name"
-                  readOnly={isReadOnly}
-                />
-              </div>
+               <div className="flex-1 space-y-2">
+                 <Label htmlFor="employeeName">Employee Name</Label>
+                 <Input
+                   id="employeeName"
+                   value={formEmployee.name}
+                   onChange={(e) => handleFormEmployeeChange("name", e.target.value)}
+                   placeholder="Enter employee name"
+                   readOnly={isReadOnly}
+                 />
+               </div>
 
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="termStartDate">Term Start Date</Label>
-                <Input
-                  id="termStartDate"
-                  type="date"
-                  value={employees[0]?.termStartDate || ''}
-                  onChange={(e) => handleEmployeeChange(0, "termStartDate", e.target.value)}
-                  placeholder="DD-MM-YYYY"
-                  readOnly={isReadOnly}
-                />
-              </div>
-            </div>
+               <div className="flex-1 space-y-2">
+                 <Label htmlFor="termStartDate">Term Start Date</Label>
+                 <Input
+                   id="termStartDate"
+                   type="date"
+                   value={formEmployee.termStartDate || ''}
+                   onChange={(e) => handleFormEmployeeChange("termStartDate", e.target.value)}
+                   placeholder="DD-MM-YYYY"
+                   readOnly={isReadOnly}
+                 />
+               </div>
 
-            {/* Second row: Pay Period and Week checkboxes */}
-            <div className="flex gap-8">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="payPeriod">Pay Period</Label>
-                <Select value={employees[0]?.payPeriod || ''} onValueChange={(value) => handleEmployeeChange(0, "payPeriod", value)} disabled={isReadOnly}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Pay Period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="2 Monthly">2 Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex-1">
-                <Label className="text-sm font-medium">Put the "x" in the week(s) worked</Label>
-                <div className="flex gap-4 mt-2">
-                  {[1, 2, 3, 4, 5, 'B/4', 'B'].map((week, index) => (
-                    <div key={index} className="flex flex-col items-center space-y-1">
-                      <span className="text-sm">{week}</span>
-                      <Checkbox
-                        checked={employees[0]?.days?.[index] || false}
-                        onCheckedChange={(checked) => {
-                          const newDays = [...(employees[0]?.days || [false, false, false, false, false, false, false])];
-                          newDays[index] = checked as boolean;
-                          handleEmployeeChange(0, "days", newDays);
-                        }}
-                        disabled={isReadOnly}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+               <div className="flex-1 space-y-2">
+                 <Label htmlFor="payPeriod">Pay Period</Label>
+                 <Select value={formEmployee.payPeriod || ''} onValueChange={(value) => handleFormEmployeeChange("payPeriod", value)} disabled={isReadOnly}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Select Pay Period" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="Weekly">Weekly</SelectItem>
+                     <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
+                     <SelectItem value="Monthly">Monthly</SelectItem>
+                     <SelectItem value="2 Monthly">2 Monthly</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+             </div>
 
             {/* Third row: Week wages */}
             <div>
               <Label className="text-sm font-medium text-blue-600">Record Wages/ Salaries in respect of the weeks worked or Holiday Pay or Bonuses</Label>
-              <div className="flex gap-9 mt-2">
+              <div className="flex gap-4 mt-2">
                 {[1, 2, 3, 4, 5, 6, 7].map((week, index) => (
-                  <div key={index} className="flex flex-col items-center space-y-1">
-                    <span className="text-sm">{week} Week</span>
-                    <Input
-                      type="number"
-                      value={employees[0]?.weeklyWages?.[index] || 0}
-                      onChange={(e) => {
-                        const newWages = [...(employees[0]?.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
-                        newWages[index] = parseFloat(e.target.value) || 0;
-                        handleEmployeeChange(0, "weeklyWages", newWages);
-                      }}
-                      className="w-20 h-8 text-center"
-                      placeholder="0.00"
-                      readOnly={isReadOnly}
-                    />
+                  <div key={index} className="flex flex-col items-center space-y-2">
+                    <span className="text-sm font-medium">{week} Week</span>
+                                                                                                        <div className="flex items-center gap-0">
+                        <div 
+                          className={`h-8 w-8 border-l border-t border-b rounded-l-md flex items-center justify-center cursor-pointer ${
+                            formEmployee.days?.[index] 
+                              ? 'bg-[#33529c] border-[#33529c]' 
+                              : 'bg-white border-gray-300'
+                          }`}
+                                                     onClick={() => {
+                             if (!isReadOnly) {
+                               const newDays = [...(formEmployee.days || [false, false, false, false, false, false, false])];
+                               const newWages = [...(formEmployee.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
+                               
+                               newDays[index] = !newDays[index];
+                               
+                               // If unchecking, reset the wage to 0.00
+                               if (!newDays[index]) {
+                                 newWages[index] = 0;
+                               }
+                               
+                               handleFormEmployeeChange("days", newDays);
+                               handleFormEmployeeChange("weeklyWages", newWages);
+                             }
+                           }}
+                        >
+                          {formEmployee.days?.[index] && (
+                            <span className="text-white text-sm font-bold">✓</span>
+                          )}
+                        </div>
+                                                                        <Input
+                          type="text"
+                          value={formEmployee.weeklyWages?.[index] ? formEmployee.weeklyWages[index].toFixed(2) : '0.00'}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Remove any non-numeric characters except decimal point
+                            const cleanValue = value.replace(/[^0-9.]/g, '');
+                            
+                            // Check if the value has more than 6 digits before decimal
+                            const parts = cleanValue.split('.');
+                            const integerPart = parts[0];
+                            
+                            if (integerPart.length <= 6) {
+                              const newWages = [...(formEmployee.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
+                              newWages[index] = parseFloat(cleanValue) || 0;
+                              handleFormEmployeeChange("weeklyWages", newWages);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            // Format to 2 decimal places when input loses focus
+                            const value = parseFloat(e.target.value) || 0;
+                            const newWages = [...(formEmployee.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
+                            newWages[index] = value;
+                            handleFormEmployeeChange("weeklyWages", newWages);
+                          }}
+                          className={`w-20 h-8 text-center rounded-l-none ${
+                            formEmployee.days?.[index] 
+                              ? 'border-[#33529c]' 
+                              : 'border-gray-300'
+                          }`}
+                          placeholder="0.00"
+                          readOnly={isReadOnly || !formEmployee.days?.[index]}
+                          disabled={isReadOnly || !formEmployee.days?.[index]}
+                        />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -864,13 +949,13 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
             <div className="flex items-center gap-4 pt-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  checked={employees[0]?.isVerified || false}
-                  onCheckedChange={(checked) => handleEmployeeChange(0, "isVerified", checked as boolean)}
+                  checked={formEmployee.isVerified || false}
+                  onCheckedChange={(checked) => handleFormEmployeeChange("isVerified", checked as boolean)}
                   disabled={isReadOnly}
                 />
                 <Label>Verified?</Label>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly}>
+              <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly} onClick={handleRecordWages}>
                 Record Wages
               </Button>
             </div>
