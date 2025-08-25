@@ -23,39 +23,63 @@ const monthlyData = [
   { month: 'Jun', approved: 115, pending: 5, rejected: 2 },
 ];
 
-// Mock recent C3 entries
+// Dashboard statistics - styled to match IPManagement.tsx exactly
+const dashboardStats = [
+  { label: 'Total C3 Records', value: '1,257', icon: FileText, color: 'from-blue-500 to-blue-600', change: '+12%' },
+  { label: 'Pending Verification', value: '56', icon: Clock, color: 'from-yellow-500 to-yellow-600', change: '-4%' },
+  { label: 'Approved C3s', value: '1,178', icon: CheckCircle, color: 'from-green-500 to-green-600', change: '+3.4%' },
+  { label: 'Rejected C3s', value: '23', icon: XCircle, color: 'from-red-500 to-red-600', change: '-1.1%' },
+];
+
+// Mock recent C3 entries (aligned with list view columns)
 const recentC3Entries = [
   {
-    id: "C3-2024-001",
-    employerName: "ABC Company Ltd",
-    period: "2024-01",
-    dateSubmitted: "2024-01-15",
-    status: "Approved",
-    amount: 15750.00
+    payerId: "500321",
+    scheduleNo: "1",
+    period: "Jan-2025",
+    dateReceived: "25-Jun-2025",
+    enteredBy: "C3svc",
+    verifiedBy: "KwB",
+    dateEntered: "25-Jun-2025",
+    verifiedDate: "11-July-2025",
+    type: "Employer",
+    status: "Pending"
   },
   {
-    id: "C3-2024-002", 
-    employerName: "XYZ Enterprises",
-    period: "2024-01",
-    dateSubmitted: "2024-01-14",
-    status: "Pending",
-    amount: 8420.00
+    payerId: "662892",
+    scheduleNo: "1",
+    period: "Dec-2025",
+    dateReceived: "06-Dec-2023",
+    enteredBy: "TZA",
+    verifiedBy: "BNG",
+    dateEntered: "12-Dec-2023",
+    verifiedDate: "19-Dec-2023",
+    type: "Self Contributor",
+    status: "Verified"
   },
   {
-    id: "C3-2024-003",
-    employerName: "DEF Corporation",
-    period: "2024-01", 
-    dateSubmitted: "2024-01-13",
-    status: "Approved",
-    amount: 22300.00
+    payerId: "662892",
+    scheduleNo: "1",
+    period: "Oct-2025",
+    dateReceived: "06-Dec-2023",
+    enteredBy: "TZA",
+    verifiedBy: "BNG",
+    dateEntered: "12-Dec-2023",
+    verifiedDate: "19-Dec-2023",
+    type: "Voluntary Contribution",
+    status: "Not Verified"
   },
   {
-    id: "C3-2024-004",
-    employerName: "GHI Services",
-    period: "2024-01",
-    dateSubmitted: "2024-01-12",
-    status: "Rejected",
-    amount: 5670.00
+    payerId: "662892",
+    scheduleNo: "1",
+    period: "Sep-2025",
+    dateReceived: "06-Dec-2023",
+    enteredBy: "TZA",
+    verifiedBy: "BNG",
+    dateEntered: "12-Dec-2023",
+    verifiedDate: "19-Dec-2023",
+    type: "Self Contributor",
+    status: "Verified"
   }
 ];
 
@@ -76,12 +100,12 @@ export default function C3Dashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "Approved":
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case "Verified":
+        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
       case "Pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "Rejected":
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      case "Not Verified":
+        return <Badge className="bg-red-100 text-red-800">Not Verified</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
@@ -97,51 +121,24 @@ export default function C3Dashboard() {
         </div>
       </div>
 
-      {/* C3 Summary Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total C3 Records</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,257</div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Verification</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">56</div>
-            <p className="text-xs text-muted-foreground">Requires attention</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved C3s</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">1,178</div>
-            <p className="text-xs text-muted-foreground">93.7% of total records</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rejected C3s</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">23</div>
-            <p className="text-xs text-muted-foreground">1.8% rejection rate</p>
-          </CardContent>
-        </Card>
+      {/* C3 Summary Statistics Cards - matched to IPManagement.tsx */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        {dashboardStats.map((stat, index) => (
+          <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground" style={{color:'#374151'}}>{stat.label}</CardTitle>
+              <div className={`p-2.5 rounded bg-gradient-to-r ${stat.color} shadow-lg`}>
+                <stat.icon className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl lg:text-3xl font-bold text-foreground">{stat.value}</div>
+              <p className={`text-xs font-medium ${String(stat.change).startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                {stat.change} from last month
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Charts Section */}
@@ -237,25 +234,24 @@ export default function C3Dashboard() {
           <DataTable
             data={recentC3Entries}
             columns={[
-              { key: 'id', label: 'C3 ID', minWidth: '120px' },
-              { key: 'employerName', label: 'Employer Name', minWidth: '150px' },
+              { key: 'payerId', label: 'Payer ID', minWidth: '120px' },
+              { key: 'scheduleNo', label: 'Schedule No.', minWidth: '110px' },
               { key: 'period', label: 'Period', minWidth: '100px' },
-              { key: 'dateSubmitted', label: 'Date Submitted', minWidth: '120px' },
-              { 
-                key: 'amount', 
-                label: 'Amount', 
-                minWidth: '120px',
-                render: (amount) => `$${amount.toLocaleString()}`
-              },
+              { key: 'dateReceived', label: 'Date Received', minWidth: '130px' },
+              { key: 'enteredBy', label: 'Entered By', minWidth: '110px' },
+              { key: 'verifiedBy', label: 'Verified By', minWidth: '110px' },
+              { key: 'dateEntered', label: 'Date Entered', minWidth: '130px' },
+              { key: 'verifiedDate', label: 'Verified Date', minWidth: '130px' },
+              { key: 'type', label: 'Type', minWidth: '180px' },
               { 
                 key: 'status', 
                 label: 'Status', 
-                minWidth: '100px',
+                minWidth: '110px',
                 render: (status) => getStatusBadge(status)
               }
             ]}
-            title="Recent C3 Entries"
-            searchPlaceholder="Search by C3 ID, Employer Name, or Status"
+            title="C3 Records"
+            searchPlaceholder="Search by Payer ID, Period, or Status"
             actions={{ view: true }}
             onView={(record) => handleViewAllRecords()}
           />

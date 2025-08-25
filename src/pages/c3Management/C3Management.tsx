@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
 import SelfEmployedC3Form from "./forms/SelfEmployedC3Form";
 import VoluntaryC3Form from "./forms/VoluntaryC3Form";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 // Enhanced mock data for the table with all required columns
 const mockC3Data = [
@@ -242,13 +243,21 @@ export default function C3Management() {
     // Implement PDF export
   };
 
-  // Filter data based on search term
-  const filteredData = mockC3Data.filter(record =>
-    record.payerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.payerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.scheduleNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter data based on active tab (type) and search term
+  const contributionTypeToLabel = (type: string) => {
+    if (type === 'employer') return 'Employer';
+    if (type === 'self-employed') return 'Self-Employed';
+    return 'Voluntary Contribution';
+  };
+
+  const filteredData = mockC3Data
+    .filter(record => record.type === contributionTypeToLabel(contributionType))
+    .filter(record =>
+      record.payerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.payerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.scheduleNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.status.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   // Pagination logic
   const totalRecords = filteredData.length;
@@ -276,8 +285,8 @@ export default function C3Management() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
         
-          <div className="flex items-center gap-3">
-          {(formMode === 'add' || formMode === 'view') ? (
+          <div className="flex items-start gap-3">
+          {(formMode === 'add' || formMode === 'view' || formMode === 'edit') ? (
           <Button 
             variant="outline" 
             onClick={() => {
@@ -292,14 +301,43 @@ export default function C3Management() {
             <span className="sm:hidden">Back</span>
           </Button>
         ) : null}
-            <h1 className="text-3xl font-bold tracking-tight">
-              {formMode === 'add' ? 
-                (contributionType === 'employer' ? 'Add New C3 Employer' :
-                 contributionType === 'self-employed' ? 'Add New C3 Self Contributor' :
-                 contributionType === 'voluntary' ? 'Add New C3 Voluntary Contribution' : 'New C3 Submission') :
-               formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
-            </h1>
-            
+            <div className="flex flex-col">
+              <h1 className="text-3xl font-bold tracking-tight">
+                {formMode === 'add' ? 
+                  (contributionType === 'employer' ? 'Add New C3 Employer' :
+                   contributionType === 'self-employed' ? 'Add New C3 Self Contributor' :
+                   contributionType === 'voluntary' ? 'Add New C3 Voluntary Contribution' : 'New C3 Submission') :
+                 formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
+              </h1>
+              {/* Breadcrumb */}
+              <div className="mt-1">
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>C3 Records</BreadcrumbPage>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>
+                        {contributionType === 'employer' ? 'Employer' : contributionType === 'self-employed' ? 'Self Contributor' : 'Voluntary Contribution'}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="text-[#0284C7]">
+                        {formMode === 'add' ? (
+                          contributionType === 'employer' ? 'Add New Employer' : contributionType === 'self-employed' ? 'Add Self Contributor' : 'Add Voluntary Contribution'
+                        ) : formMode === 'edit' ? (
+                          contributionType === 'employer' ? 'Edit Employer' : contributionType === 'self-employed' ? 'Edit Self Contributor' : 'Edit Voluntary Contribution'
+                        ) : (
+                          contributionType === 'employer' ? 'Employer View' : contributionType === 'self-employed' ? 'Self Contributor View' : 'Voluntary Contribution View'
+                        )}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
+            </div>
           </div>
           
           <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">

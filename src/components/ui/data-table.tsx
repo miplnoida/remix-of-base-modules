@@ -150,8 +150,43 @@ export const DataTable: React.FC<DataTableProps> = ({
 
   // Handle export
   const handleExport = (format: 'csv' | 'pdf') => {
+    if (format === 'csv') {
+      try {
+        const cols = displayColumns;
+        const header = cols.map(c => `"${c.label.replace(/"/g, '""')}"`).join(',');
+        const rows = filteredData.map((row) => {
+          return cols.map((c) => {
+            let cell: any;
+            try {
+              cell = c.render ? c.render(row[c.key], row) : row[c.key];
+            } catch {
+              cell = row[c.key];
+            }
+            if (cell === null || cell === undefined) cell = '';
+            if (typeof cell !== 'string' && typeof cell !== 'number') {
+              // Fallback for React elements or complex types
+              cell = String(row[c.key] ?? '');
+            }
+            const text = String(cell);
+            return `"${text.replace(/"/g, '""')}"`;
+          }).join(',');
+        });
+        const csv = [header, ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${title.replace(/\s+/g, '_').toLowerCase()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('CSV export failed', e);
+      }
+      return;
+    }
     console.log(`Exporting as ${format}...`);
-    // Implement export logic here
   };
 
   // Handle action buttons
