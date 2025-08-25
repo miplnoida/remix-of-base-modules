@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Printer, 
@@ -49,6 +50,8 @@ import { NotesTab } from '@/components/ip/NotesTab';
 import { NPFTab } from '@/components/ip/NPFTab';
 import { PhotoTab } from '@/components/ip/PhotoTab';
 import { CaricomTab } from '@/components/ip/CaricomTab';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 const ViewInsuredPerson = () => {
   const navigate = useNavigate();
@@ -58,6 +61,8 @@ const ViewInsuredPerson = () => {
   const [activeHistoryTab, setActiveHistoryTab] = useState('wages');
   const [isRegisterSectionOpen, setIsRegisterSectionOpen] = useState(true);
   const [isHistorySectionOpen, setIsHistorySectionOpen] = useState(true);
+   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
+    const [accountStatus, setAccountStatus] = useState('Active');
   const [currentStatus, setCurrentStatus] = useState('Active');
   const history = [
     { date: '2025-05-01 10:12', action: 'Created record', user: 'Admin' },
@@ -112,6 +117,92 @@ const ViewInsuredPerson = () => {
 
   const handleEdit = () => {
     navigate(`/person/edit/${ssn}`);
+  };
+
+  // Account Status Modal
+const AccountStatusModal = ({
+  open,
+  onClose,
+  currentStatus,
+  onChangeStatus
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentStatus: string;
+  onChangeStatus: (newStatus: string, reason: string) => void;
+}) => {
+  const [newStatus, setNewStatus] = useState('');
+  const [reason, setReason] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onChangeStatus(newStatus, reason);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md bg-white shadow-xl border-0 rounded-lg">
+        <DialogHeader className="pb-4 border-b">
+          <DialogTitle className="text-xl font-semibold text-gray-900">Change Account Status</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Current Status</Label>
+            <div className="flex items-center">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800`}>
+                {currentStatus}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Change Status</Label>
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger className="w-full bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 rounded-md shadow-lg">
+                <SelectItem value="Suspend">Suspend</SelectItem>
+                <SelectItem value="Verify">Verify</SelectItem>
+                <SelectItem value="Ceased">Ceased</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Reason</Label>
+            <Textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Enter reason for status change"
+              rows={3}
+              className="w-full bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-blue-500"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="destructive"
+              className="px-4 py-2 text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500"
+            >
+              Change Status
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+ const handleChangeAccountStatus = (newStatus: string, reason: string) => {
+    setAccountStatus(newStatus);
+    // You can handle the reason or API call here
   };
 
   const handleStatusChange = (newStatus: string) => {
@@ -185,9 +276,10 @@ const ViewInsuredPerson = () => {
                 <Printer className="h-4 w-4" />
                 Print
               </Button>
-              <Button type="button" variant="destructive" className="flex items-center gap-2">
+              <Button type="button" variant="destructive" className="flex items-center gap-2" onClick={()=>{setAccountStatusModalOpen(true)}}>
                 Change Account Status
               </Button>
+              
             </>
           )}
         </div>
@@ -890,6 +982,12 @@ const ViewInsuredPerson = () => {
           </CollapsibleContent>
         </Card>
       </Collapsible> */}
+      <AccountStatusModal
+          open={accountStatusModalOpen}
+          onClose={() => setAccountStatusModalOpen(false)}
+          currentStatus={accountStatus}
+          onChangeStatus={handleChangeAccountStatus}
+        />
     </div>
   );
 };

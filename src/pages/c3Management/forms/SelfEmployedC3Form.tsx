@@ -8,6 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, X, Printer, Check } from "lucide-react";
 
+// PreviewField component for view mode
+const PreviewField = ({ label, value, required = false }: { label: string; value: string | number | null | undefined; required?: boolean }) => (
+  <div>
+    <Label className="text-sm font-medium text-gray-700">
+      {label}{required && <span className="text-red-500 ml-1">*</span>}
+    </Label>
+    <div className="mt-1 text-sm text-gray-600  rounded-md">
+      {value || 'Not specified'}
+    </div>
+  </div>
+);
+
 interface SelfEmployedC3FormProps {
   data?: any;
   mode?: 'add' | 'edit' | 'view';
@@ -17,11 +29,12 @@ interface SelfEmployedC3FormProps {
 
 export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose }: SelfEmployedC3FormProps) {
   const isReadOnly = mode === 'view';
+  const isViewMode = mode === 'view';
   
   const [formData, setFormData] = useState({
-    ssn: data?.ssn || "",
+    ssn: data?.ssn || (isViewMode ? "123-45-6789" : ""),
     period: data?.period || "June 2028",
-    dateReceived: data?.dateReceived || "06-Jun-2025",
+    dateReceived: data?.dateReceived || (isViewMode ? "2024-01-15" : "06-Jun-2025"),
     name: data?.name || "Flemming, Rodney And Melissa",
     address: data?.address || "Cades Bay Nevis",
     numberOfEmployees: data?.numberOfEmployees || "1",
@@ -31,11 +44,11 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
   });
 
   const [wagesDetails, setWagesDetails] = useState({
-    weeks: [false, false, false, false, false],
-    totalWages: data?.totalWages || 0,
-    socialSecurityContribution: data?.socialSecurityContribution || 0,
-    penalties: data?.penalties || 0,
-    isVerified: data?.isVerified || false
+    weeks: isViewMode ? [true, true, true, false, false] : [false, false, false, false, false],
+    totalWages: data?.totalWages || (isViewMode ? 1500 : ""),
+    socialSecurityContribution: data?.socialSecurityContribution || (isViewMode ? 45 : ""),
+    penalties: data?.penalties || (isViewMode ? 25 : ""),
+    isVerified: data?.isVerified || (isViewMode ? true : false)
   });
 
   const [totals, setTotals] = useState({
@@ -43,6 +56,11 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
     payments: 0,
     balance: 0
   });
+
+  const formatMoney = (amount: number | string) => {
+    const numeric = typeof amount === 'string' ? Number(amount || 0) : amount || 0;
+    return `$${numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   const handleFormChange = (field: string, value: any) => {
     if (isReadOnly) return;
@@ -70,6 +88,17 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
     }));
   };
 
+  const handleClearWagesDetails = () => {
+    if (isReadOnly) return;
+    setWagesDetails({
+      weeks: [false, false, false, false, false],
+      totalWages: 0,
+      socialSecurityContribution: 0,
+      penalties: 0,
+      isVerified: false
+    });
+  };
+
   const calculateSocialSecurityDue = () => {
     return wagesDetails.totalWages * 0.03; // 3% of total wages
   };
@@ -94,50 +123,58 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
   };
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="space-y-6">
       {/* Basic Information */}
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ssn">SSN</Label>
-              <Input
-                id="ssn"
-                value={formData.ssn}
-                onChange={(e) => handleFormChange("ssn", e.target.value)}
-                placeholder="Enter SSN"
-                readOnly={isReadOnly}
-              />
+          {isViewMode ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <PreviewField label="SSN" value={formData.ssn} required />
+              <PreviewField label="Period" value={formData.period} required />
+              <PreviewField label="Date Received" value={formData.dateReceived} required />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ssn">Employer ID</Label>
+                <Input
+                  id="ssn"
+                  value={formData.ssn}
+                  onChange={(e) => handleFormChange("ssn", e.target.value)}
+                  placeholder="Enter Employer ID"
+                  readOnly={isReadOnly}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="period">Period</Label>
-              <Select value={formData.period} onValueChange={(value) => handleFormChange("period", value)} disabled={isReadOnly}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="June 2028">June 2028</SelectItem>
-                  <SelectItem value="July 2028">July 2028</SelectItem>
-                  <SelectItem value="August 2028">August 2028</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="period">Period</Label>
+                <Select value={formData.period} onValueChange={(value) => handleFormChange("period", value)} disabled={isReadOnly}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="June 2028">June 2028</SelectItem>
+                    <SelectItem value="July 2028">July 2028</SelectItem>
+                    <SelectItem value="August 2028">August 2028</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateReceived">Date Received</Label>
-              <Input
-                id="dateReceived"
-                type="date"
-                value={formData.dateReceived}
-                onChange={(e) => handleFormChange("dateReceived", e.target.value)}
-                readOnly={isReadOnly}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="dateReceived">Date Received</Label>
+                <Input
+                  id="dateReceived"
+                  type="date"
+                  value={formData.dateReceived}
+                  onChange={(e) => handleFormChange("dateReceived", e.target.value)}
+                  readOnly={isReadOnly}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Read-only information in gray card */}
           <div className="mt-6 bg-gray-100 rounded-lg p-4 border-2 border-[#9D9D9D]">
@@ -159,9 +196,11 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-gray-900">Status</Label>
+                <div>
                 <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                   {formData.status}
                 </Badge>
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -179,21 +218,24 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
       </Card>
 
       {/* Totals */}
-      <div className="space-y-2 flex justify-start">
-        <Label className="text-sm font-medium text-gray-600 mr-4">Totals</Label>
+      {/* <Card className="p-5">
+      <CardTitle>Totals</CardTitle>
+      <CardContent className="p-0 mt-5">
+
+      
+        
         <div className="bg-gray-50 rounded-lg p-4 border-2 border-[#9D9D9D] w-full">
           <div className="flex justify-between items-center">
             <div className="space-y-1">
-              <Label className="text-sm font-medium text-gray-900">Social Security Contribution due for this month</Label>
-              <div className="text-sm text-gray-600">${calculateSocialSecurityDue().toFixed(2)}</div>
+              <Label className="text-sm font-medium text-gray-900">Social Security Contribution due for the month</Label>
+              <div className="text-sm text-blue-600">${calculateSocialSecurityDue().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
           </div>
         </div>
-        <div className="w-full">
-          
-        </div>
-      </div>
-
+     
+      </CardContent>
+      
+      </Card> */}
       {/* Wages Details */}
       <Card>
         <CardHeader>
@@ -201,33 +243,71 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
          
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {/* Week checkboxes and Total Wages & Social Security Contribution on same line */}
-            <div className="flex gap-12">
-              {/* Week checkboxes */}
+          {isViewMode ? (
+            <div className="space-y-6">
+              {/* Row 1: Totals preview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Total Wages</Label>
+                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
+                    {formatMoney(wagesDetails.totalWages)}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Social Security Contribution</Label>
+                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
+                    {formatMoney(wagesDetails.socialSecurityContribution)}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Penalties</Label>
+                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
+                    {formatMoney(wagesDetails.penalties)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Selected Weeks preview (button-style, non-interactive) */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Put the "x" in the week(s) worked</Label>
-                                <div className="flex gap-4">
+                <Label className="text-sm font-medium">Selected Weeks</Label>
+                <div className="flex gap-8">
                   {[1, 2, 3, 4, 5].map((week, index) => (
-                    <div key={index} className="flex flex-col items-center space-y-1">
-                      <span className="text-sm">{week}</span>
-                      <Checkbox
-                        checked={wagesDetails.weeks[index]}
-                        onCheckedChange={(checked) => handleWeekChange(index, checked as boolean)}
-                        disabled={isReadOnly}
-                      />
+                    <div key={index} className="flex flex-col items-start space-y-2">
+                      <span className="text-sm">{week} Week</span>
+                      <div
+                        className={`h-10 w-10 rounded-md border flex items-center justify-center ${wagesDetails.weeks[index] ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+                        title={`Week ${week}`}
+                      >
+                        {wagesDetails.weeks[index] && <Check className="h-5 w-5 text-white" />}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Total Wages & Social Security Contribution */}
-              <div className="flex gap-4">
+              {/* Row 3: Verified indicator */}
+              <div className="flex items-center justify-between gap-8">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`h-10 w-10 rounded-md border flex items-center justify-center ${wagesDetails.isVerified ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'}`}
+                    title="Verified?"
+                  >
+                    {wagesDetails.isVerified && <Check className="h-5 w-5 text-white" />}
+                  </div>
+                  <Label className="text-base">Verified</Label>
+                </div>
+                <div />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Row 1: Total Wages, Social Security Contribution, Penalties */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="totalWages">Total Wages</Label>
                   <Input
                     id="totalWages"
-                    type="number"
+                    type="text"
                     value={wagesDetails.totalWages}
                     onChange={(e) => handleWagesDetailsChange("totalWages", parseFloat(e.target.value) || 0)}
                     placeholder="Wage"
@@ -239,74 +319,82 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
                   <Label htmlFor="socialSecurityContribution">Social Security Contribution</Label>
                   <Input
                     id="socialSecurityContribution"
-                    type="number"
+                    type="text"
                     value={wagesDetails.socialSecurityContribution}
                     onChange={(e) => handleWagesDetailsChange("socialSecurityContribution", parseFloat(e.target.value) || 0)}
                     placeholder="Social Security Contribution"
                     readOnly={isReadOnly}
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Penalties & Verified checkbox and Record Wages button on same line */}
-            <div className="flex gap-8">
-              <div className="space-y-2">
-                <Label htmlFor="penalties">Penalties</Label>
-                <Input
-                  id="penalties"
-                  type="number"
-                  value={wagesDetails.penalties}
-                  onChange={(e) => handleWagesDetailsChange("penalties", parseFloat(e.target.value) || 0)}
-                  placeholder="Penalties"
-                  readOnly={isReadOnly}
-                />
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={wagesDetails.isVerified}
-                    onCheckedChange={(checked) => handleWagesDetailsChange("isVerified", checked as boolean)}
-                    disabled={isReadOnly}
+                <div className="space-y-2">
+                  <Label htmlFor="penalties">Penalties</Label>
+                  <Input
+                    id="penalties"
+                    type="text"
+                    value={wagesDetails.penalties}
+                    onChange={(e) => handleWagesDetailsChange("penalties", parseFloat(e.target.value) || 0)}
+                    placeholder="Penalties"
+                    readOnly={isReadOnly}
                   />
-                  <Label>Verified?</Label>
                 </div>
-                <Button className="bg-green-600 hover:bg-green-700" disabled={isReadOnly}>
-                  Record Wages
-                </Button>
+              </div>
+
+              {/* Row 2: Selected Weeks with button-style checkboxes */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Selected Weeks</Label>
+                <div className="flex gap-8">
+                  {[1, 2, 3, 4, 5].map((week, index) => (
+                    <div key={index} className="flex flex-col items-start space-y-2">
+                      <span className="text-sm">{week} Week</span>
+                      <button
+                        type="button"
+                        onClick={() => handleWeekChange(index, !wagesDetails.weeks[index])}
+                        className={`h-10 w-10 rounded-md border flex items-center justify-center ${wagesDetails.weeks[index] ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+                        disabled={isReadOnly}
+                        title={`Week ${week}`}
+                      >
+                        {wagesDetails.weeks[index] && <Check className="h-5 w-5 text-white" />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 3: Verified left; Save Changes and Clear right */}
+              <div className="flex items-center justify-between gap-8">
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => !isReadOnly && handleWagesDetailsChange("isVerified", !wagesDetails.isVerified)}
+                    className={`h-10 w-10 rounded-md border flex items-center justify-center ${wagesDetails.isVerified ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'}`}
+                    disabled={isReadOnly}
+                    title="Verified?"
+                  >
+                    {wagesDetails.isVerified && <Check className="h-5 w-5 text-white" />}
+                  </button>
+                  <Label className="text-base">Verified</Label>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 gap-2" disabled={isReadOnly}>
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300" onClick={handleClearWagesDetails} disabled={isReadOnly}>
+                    Clear
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Total (Automatically calculated totals and contributions) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Total</CardTitle>
-          <CardDescription>(Automatically calculated totals and contributions)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-gray-900">Social Security Contribution due for the month</Label>
-              <div className="text-sm text-gray-600">${calculateSocialSecurityDue().toFixed(2)}</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-gray-900">Payments</Label>
-              <div className="text-sm text-gray-600">${totals.payments.toFixed(2)}</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-gray-900">Balance</Label>
-              <div className="text-sm text-gray-600">${totals.balance.toFixed(2)}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Action Buttons */}
-      <Card>
+      {/* <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-2">
             {!isReadOnly && (
@@ -331,7 +419,26 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
+
+      {/* Total */}
+      <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+        <CardTitle>Total</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
+          <div className="space-y-1">
+            <Label className="text-sm font-medium  text-gray-500">Social Security Contribution due for the month</Label>
+            <div className="text-lg font-semibold">{formatMoney(calculateSocialSecurityDue())}</div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-sm font-medium text-gray-500">Payments</Label>
+            <div className="text-lg font-semibold ">{formatMoney(totals.payments)}</div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-sm font-medium text-gray-500">Balance</Label>
+            <div className="text-lg font-semibold ">{formatMoney(totals.balance)}</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -53,6 +53,8 @@ export const routes = {
   C3_MANAGEMENT_MANAGE: '/c3-management/manage',
   C3_MANAGEMENT_ADD: '/c3-management/add',
   
+
+  
   C3_MANAGEMENT_INPUT_FORM: '/c3-management/input-form',
   C3_MANAGEMENT_REPORTS: '/c3-management/reports',
   C3_MANAGEMENT_VERIFICATION: '/c3-management/verification',
