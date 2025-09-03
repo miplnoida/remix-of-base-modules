@@ -597,7 +597,7 @@ const ManageEmployers = () => {
                   <div className="flex gap-3 pt-4 border-t">
                     <Button 
                       onClick={handleSearch} 
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                     // className="bg-primary-foreground text-primary-foreground hover:bg-primary/90"
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Search
@@ -605,7 +605,7 @@ const ManageEmployers = () => {
                     <Button 
                       variant="outline" 
                       onClick={handleReset}
-                      className="border-primary text-primary hover:bg-primary/10"
+                    //  className="border-primary-foreground text-primary hover:bg-primary/10"
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Reset

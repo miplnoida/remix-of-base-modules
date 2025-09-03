@@ -994,7 +994,7 @@ export const RegisterPersonForm = () => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+          {date ? format(date, "dd/MM/yyyy") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 bg-background border">
@@ -1142,7 +1142,7 @@ export const RegisterPersonForm = () => {
                 {/* Third Row: Sex, Date of Birth, Marital Status */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <PreviewField label="Sex" value={previewData.sex} required />
-                  <PreviewField label="Date of Birth" value={previewData.dateOfBirth ? format(previewData.dateOfBirth, 'MM/dd/yyyy') : null} required />
+                  <PreviewField label="Date of Birth" value={previewData.dateOfBirth ? format(previewData.dateOfBirth, 'dd/MM/yyyy') : null} required />
                   <PreviewField label="Marital Status" value={previewData.maritalStatus} required />
                 </div>
 
@@ -1243,7 +1243,7 @@ export const RegisterPersonForm = () => {
                 <DatePicker
                   date={form.watch('dateOfBirth')}
                   onSelect={(date) => form.setValue('dateOfBirth', date!)}
-                  placeholder="mm/dd/yyyy"
+                  placeholder="dd/mm/yyyy"
                 />
                 {form.formState.errors.dateOfBirth && (
                   <p className="text-sm text-destructive">{form.formState.errors.dateOfBirth.message}</p>
@@ -1345,7 +1345,7 @@ export const RegisterPersonForm = () => {
                   <DatePicker
                     date={form.watch('dateMarried')}
                     onSelect={(date) => form.setValue('dateMarried', date)}
-                    placeholder="Select date married"
+                    placeholder="dd/mm/yyyy"
                   />
                 </div>
               </div>
@@ -1660,7 +1660,7 @@ export const RegisterPersonForm = () => {
                 <DatePicker
                   date={form.watch('applicationDate')}
                   onSelect={(date) => form.setValue('applicationDate', date || new Date())}
-                  placeholder="mm/dd/yyyy"
+                  placeholder="dd/mm/yyyy"
                 />
               </div>
               <div>
@@ -1668,7 +1668,7 @@ export const RegisterPersonForm = () => {
                 <DatePicker
                   date={form.watch('dateResident')}
                   onSelect={(date) => form.setValue('dateResident', date)}
-                  placeholder="mm/dd/yyyy"
+                  placeholder="dd/mm/yyyy"
                 />
               </div>
               <div>
