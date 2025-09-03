@@ -271,7 +271,7 @@ export const MultiTabEmployerRegistration = () => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {field.value ? format(field.value, "PPP") : <span>{placeholder}</span>}
+          {field.value ? format(field.value, "dd/MM/yyyy") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -1227,22 +1227,22 @@ export const MultiTabEmployerRegistration = () => {
                           <TableCell>{note.id}</TableCell>
                           <TableCell>
                             <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {format(note.noteDate, "PPP")}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={note.noteDate}
-                                  onSelect={(date) => date && updateNote(note.id, 'noteDate', date)}
-                                  initialFocus
-                                  className="pointer-events-auto"
-                                />
-                              </PopoverContent>
-                            </Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline" className="w-full justify-start text-left font-normal">
+      <CalendarIcon className="mr-2 h-4 w-4" />
+      {format(note.noteDate, "dd/MM/yyyy")}
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-auto p-0" align="start">
+    <Calendar
+      mode="single"
+      selected={note.noteDate}
+      onSelect={(date) => date && updateNote(note.id, 'noteDate', date)}
+      initialFocus
+      className="pointer-events-auto"
+    />
+  </PopoverContent>
+</Popover>
                           </TableCell>
                           <TableCell>
                             <Textarea

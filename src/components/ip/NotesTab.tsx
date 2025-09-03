@@ -80,7 +80,7 @@ export const NotesTab = () => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+          {date ? format(date, "dd/MM/yyyy") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       {!disabled && (
@@ -223,7 +223,7 @@ export const NotesTab = () => {
                         <div className="flex-1">
                         <div className="flex items-center gap-4 mb-2">
                         <span className="font-semibold">
-                              {format(note.noteDate, 'PPP')}
+                              {format(note.noteDate, 'dd/MM/yyyy')}
                             </span>
                         </div>
                           <div className="flex items-center gap-4 mb-2">
@@ -233,7 +233,7 @@ export const NotesTab = () => {
                             </span>
                            
                             <span className="text-sm text-gray-500">
-                              Created: {format(note.createdAt, 'PPP')}
+                              Created: {format(note.createdAt, 'dd/MM/yyyy')}
                             </span>
                           </div>
                           {editNoteId === note.id && !isViewMode ? (

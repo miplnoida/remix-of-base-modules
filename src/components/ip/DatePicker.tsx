@@ -12,9 +12,10 @@ interface DatePickerProps {
   onSelect: (date: Date | undefined) => void;
   placeholder: string;
   className?: string;
+  dateFormat?: string;
 }
 
-export const DatePicker = ({ date, onSelect, placeholder, className }: DatePickerProps) => (
+export const DatePicker = ({ date, onSelect, placeholder, className, dateFormat = "dd/MM/yyyy" }: DatePickerProps) => (
   <Popover>
     <PopoverTrigger asChild>
       <Button
@@ -26,7 +27,7 @@ export const DatePicker = ({ date, onSelect, placeholder, className }: DatePicke
         )}
       >
         <CalendarIcon className="mr-2 h-4 w-4" />
-        {date ? format(date, "PPP") : <span>{placeholder}</span>}
+        {date ? format(date, dateFormat) : <span>{placeholder}</span>}
       </Button>
     </PopoverTrigger>
     <PopoverContent className="w-auto p-0">
