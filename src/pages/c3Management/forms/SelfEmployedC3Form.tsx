@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,11 +23,12 @@ const PreviewField = ({ label, value, required = false }: { label: string; value
 interface SelfEmployedC3FormProps {
   data?: any;
   mode?: 'add' | 'edit' | 'view';
+  resetTrigger?: number;
   onSave?: (data: any) => void;
   onClose?: () => void;
 }
 
-export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose }: SelfEmployedC3FormProps) {
+export default function SelfEmployedC3Form({ data, mode = 'add', resetTrigger, onSave, onClose }: SelfEmployedC3FormProps) {
   const isReadOnly = mode === 'view';
   const isViewMode = mode === 'view';
   
@@ -98,6 +99,42 @@ export default function SelfEmployedC3Form({ data, mode = 'add', onSave, onClose
       isVerified: false
     });
   };
+
+  // Reset form functionality
+  const resetFormToDefaults = () => {
+    setFormData({
+      ssn: "",
+      period: "",
+      dateReceived: "",
+      name: "",
+      address: "",
+      numberOfEmployees: "",
+      status: "Pending",
+      payments: "0.00",
+      balance: "0.00"
+    });
+    
+    setWagesDetails({
+      weeks: [false, false, false, false, false],
+      totalWages: 0,
+      socialSecurityContribution: 0,
+      penalties: 0,
+      isVerified: false
+    });
+    
+    setTotals({
+      socialSecurityDue: 0,
+      payments: 0,
+      balance: 0
+    });
+  };
+
+  // Handle reset trigger from parent component
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0 && mode === 'add') {
+      resetFormToDefaults();
+    }
+  }, [resetTrigger, mode]);
 
   const calculateSocialSecurityDue = () => {
     return wagesDetails.totalWages * 0.03; // 3% of total wages

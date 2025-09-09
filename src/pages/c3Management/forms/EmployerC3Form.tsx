@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -454,11 +454,12 @@ const EmployeeDetailsModal = ({
 interface EmployerC3FormProps {
   data?: any;
   mode?: 'add' | 'edit' | 'view';
+  resetTrigger?: number;
   onSave?: (data: any) => void;
   onClose?: () => void;
 }
 
-export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: EmployerC3FormProps) {
+export default function EmployerC3Form({ data, mode = 'add', resetTrigger, onSave, onClose }: EmployerC3FormProps) {
   const isReadOnly = mode === 'view';
   const isViewMode = mode === 'view';
 
@@ -636,6 +637,47 @@ export default function EmployerC3Form({ data, mode = 'add', onSave, onClose }: 
   const handlePrint = () => {
     window.print();
   };
+
+  // Reset form functionality
+  const resetFormToDefaults = () => {
+    setFormData({
+      employerId: "",
+      period: "",
+      dateReceived: "",
+      schedule: "",
+      employerName: "",
+      address: "",
+      numberOfEmployees: "",
+      status: "Pending",
+      payments: "0.00",
+      balance: "0.00"
+    });
+    
+    setEmployees([]);
+    
+    setFormEmployee({
+      ssn: '',
+      name: '',
+      days: [false, false, false, false, false, false, false],
+      categories: [false, false, false],
+      wages: 0,
+      bonus: 0,
+      totalWages: 0,
+      hssdLevy: 0,
+      socialSecurity: 0,
+      isVerified: false,
+      weeklyWages: [0, 0, 0, 0, 0, 0, 0],
+      termStartDate: "",
+      payPeriod: ""
+    });
+  };
+
+  // Handle reset trigger from parent component
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0 && mode === 'add') {
+      resetFormToDefaults();
+    }
+  }, [resetTrigger, mode]);
 
   // Modal handlers
   const handleViewEmployee = (employee: Employee) => {
