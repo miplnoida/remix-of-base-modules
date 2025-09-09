@@ -111,7 +111,7 @@ const ViewInsuredPerson = () => {
           <AlertCircle className="h-3 w-3" /> Ceased
         </Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge className='bg-orange-100 text-orange-800 flex items-center gap-1' variant="secondary">{status}</Badge>;
     }
   };
 
@@ -379,7 +379,7 @@ const AccountStatusModal = ({
       </Collapsible>
 
       {/* History and Status Management Section - Collapsible */}
-      {/* <Collapsible open={isHistorySectionOpen} onOpenChange={setIsHistorySectionOpen}>
+      <Collapsible open={isHistorySectionOpen} onOpenChange={setIsHistorySectionOpen}>
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
@@ -981,7 +981,7 @@ const AccountStatusModal = ({
             </CardContent>
           </CollapsibleContent>
         </Card>
-      </Collapsible> */}
+      </Collapsible>
       <AccountStatusModal
           open={accountStatusModalOpen}
           onClose={() => setAccountStatusModalOpen(false)}

@@ -9,9 +9,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft } from "lucide-react";
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
@@ -36,7 +38,8 @@ const mockC3Data = [
     cnc3ReportedReceivedBy: "System Admin",
     cnc3ReportedModifiedDate: "2024-01-17",
     cnc3ReportedModifiedBy: "Jane Doe",
-    amount: 15750.00
+    amount: 15750.00,
+    isVerified: true
   },
   {
     payerId: "SE002",
@@ -53,7 +56,8 @@ const mockC3Data = [
     cnc3ReportedReceivedBy: "System Admin",
     cnc3ReportedModifiedDate: "2024-01-15",
     cnc3ReportedModifiedBy: "Mike Johnson",
-    amount: 8420.00
+    amount: 8420.00,
+    isVerified: false
   },
   {
     payerId: "VOL003",
@@ -70,7 +74,8 @@ const mockC3Data = [
     cnc3ReportedReceivedBy: "System Admin",
     cnc3ReportedModifiedDate: "2024-01-16",
     cnc3ReportedModifiedBy: "Robert Brown",
-    amount: 2300.00
+    amount: 2300.00,
+    isVerified: true
   },
   {
     payerId: "EMP004",
@@ -87,7 +92,8 @@ const mockC3Data = [
     cnc3ReportedReceivedBy: "System Admin",
     cnc3ReportedModifiedDate: "2024-01-13",
     cnc3ReportedModifiedBy: "David Lee",
-    amount: 5670.00
+    amount: 5670.00,
+    isVerified: false
   }
 ];
 
@@ -100,6 +106,14 @@ export default function C3Management() {
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(20);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [c3NotesModalOpen, setC3NotesModalOpen] = useState(false);
+  const [c3Notes, setC3Notes] = useState("");
+  const [currentRecordForNotes, setCurrentRecordForNotes] = useState<any>(null);
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [recordToVerify, setRecordToVerify] = useState<any>(null);
+  const [c3Data, setC3Data] = useState(mockC3Data);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetFormTrigger, setResetFormTrigger] = useState(0);
 
   // Function to get the appropriate button text based on active tab
   const getAddButtonText = () => {
@@ -192,6 +206,10 @@ export default function C3Management() {
   };
 
   const handlePrint = (record: any) => {
+    if (!record) {
+      console.error("No record provided for printing");
+      return;
+    }
     // Create a printable version
     const printContent = `
       <html>
@@ -243,6 +261,110 @@ export default function C3Management() {
     // Implement PDF export
   };
 
+  const handleC3Notes = (record: any) => {
+    if (!record) {
+      console.error("No record provided for notes");
+      return;
+    }
+    console.log("Opening C3 Notes for:", record.scheduleNo);
+    setCurrentRecordForNotes(record);
+    setC3Notes(record.notes || ""); // Load existing notes if available
+    setC3NotesModalOpen(true);
+    console.log("Modal state set to true");
+  };
+
+  const handleSaveC3Notes = () => {
+    if (currentRecordForNotes) {
+      // In a real app, this would save to the backend
+      console.log("Saving C3 Notes for:", currentRecordForNotes.scheduleNo, "Notes:", c3Notes);
+      toast({
+        title: "C3 Notes Saved",
+        description: `Notes for C3 record ${currentRecordForNotes.scheduleNo} have been saved successfully.`,
+      });
+      setC3NotesModalOpen(false);
+      setCurrentRecordForNotes(null);
+      setC3Notes("");
+    }
+  };
+
+  const handleCloseC3Notes = () => {
+    setC3NotesModalOpen(false);
+    setCurrentRecordForNotes(null);
+    setC3Notes("");
+  };
+
+  const handleVerify = (record: any) => {
+    if (!record) {
+      console.error("No record provided for verification");
+      return;
+    }
+    
+    // If already verified, show toast and return
+    if (record.isVerified) {
+      toast({
+        title: "Already Verified",
+        description: `C3 record ${record.scheduleNo} is already verified.`,
+        className: "bg-blue-100",
+      });
+      return;
+    }
+    
+    console.log("Requesting verification for C3 record:", record.scheduleNo);
+    setRecordToVerify(record);
+    setVerifyDialogOpen(true);
+  };
+
+  const confirmVerification = () => {
+    if (recordToVerify) {
+      // Update the record's verification status
+      const updatedData = c3Data.map(record => 
+        record.scheduleNo === recordToVerify.scheduleNo 
+          ? {
+              ...record,
+              isVerified: true,
+              status: "Verified",
+              verifiedBy: "Current User", // In real app, get from auth context
+              dateVerified: new Date().toISOString().split('T')[0]
+            }
+          : record
+      );
+      
+      setC3Data(updatedData);
+      
+      toast({
+        title: "Verification Successful",
+        description: `C3 record ${recordToVerify.scheduleNo} has been verified successfully.`,
+      });
+      
+      setVerifyDialogOpen(false);
+      setRecordToVerify(null);
+    }
+  };
+
+  const cancelVerification = () => {
+    setVerifyDialogOpen(false);
+    setRecordToVerify(null);
+  };
+
+  // Reset Form Handlers
+  const handleResetForm = () => {
+    setShowResetDialog(true);
+  };
+
+  const confirmReset = () => {
+    // Trigger form reset by incrementing the reset trigger
+    setResetFormTrigger(prev => prev + 1);
+    setShowResetDialog(false);
+    toast({
+      title: "Form Reset",
+      description: "Form has been reset successfully.",
+    });
+  };
+
+  const cancelReset = () => {
+    setShowResetDialog(false);
+  };
+
   // Filter data based on active tab (type) and search term
   const contributionTypeToLabel = (type: string) => {
     if (type === 'employer') return 'Employer';
@@ -250,7 +372,7 @@ export default function C3Management() {
     return 'Voluntary Contribution';
   };
 
-  const filteredData = mockC3Data
+  const filteredData = c3Data
     .filter(record => record.type === contributionTypeToLabel(contributionType))
     .filter(record =>
       record.payerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -279,9 +401,175 @@ export default function C3Management() {
     }
   };
 
+  // Render modals outside of form context to ensure they're always visible
+  const renderModals = () => (
+    <>
+      {/* C3 Notes Modal */}
+      {c3NotesModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center"
+          style={{ zIndex: 9999 }}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4 border-2 border-gray-200"
+            style={{ 
+              maxHeight: '90vh',
+              overflow: 'auto',
+              position: 'relative'
+            }}
+          >
+            {/* Close button */}
+            <button
+              onClick={handleCloseC3Notes}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl font-bold"
+              style={{ zIndex: 10000 }}
+            >
+              ×
+            </button>
+            
+            <div className="flex items-center gap-2 mb-4 pr-8">
+              <StickyNote className="h-5 w-5 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-800">C3 Notes</h2>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Add or edit notes for C3 record: <span className="font-semibold text-blue-600">{currentRecordForNotes?.scheduleNo}</span>
+            </p>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="c3-notes" className="text-sm font-medium text-gray-700">Notes</Label>
+                <Textarea
+                  id="c3-notes"
+                  placeholder="Enter your notes here..."
+                  value={c3Notes}
+                  onChange={(e) => setC3Notes(e.target.value)}
+                  className="min-h-[200px] resize-none border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={handleCloseC3Notes}
+                className="px-6 py-2 border-2 border-gray-300 hover:border-gray-400"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveC3Notes} 
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <StickyNote className="h-4 w-4" />
+                Save Notes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Verification Confirmation Dialog */}
+      {verifyDialogOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          style={{ zIndex: 9999 }}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md mx-4"
+            style={{ 
+              position: 'relative'
+            }}
+          >
+            {/* Header with large green checkmark icon */}
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-10 w-10 text-green-600" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-green-600">Verify C3 Record</h2>
+            </div>
+            
+            {/* Message */}
+            <div className="text-center mb-8">
+              <p className="text-lg text-gray-700">
+                Are you sure? You want to verify this record
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Record: <span className="font-semibold text-blue-600">{recordToVerify?.scheduleNo}</span>
+              </p>
+            </div>
+            
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={cancelVerification}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg font-medium"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmVerification} 
+                className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+              >
+                Yes, Verify
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirmation Dialog */}
+      {showResetDialog && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          style={{ zIndex: 9999 }}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4"
+            style={{ 
+              position: 'relative'
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <RotateCcw className="h-5 w-5 text-orange-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Reset Form</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to reset all form fields? This action cannot be undone and all entered data will be lost.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={cancelReset}
+                className="px-4 py-2 border-2 border-gray-300 hover:border-gray-400"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmReset}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Reset Form
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   if (showForm) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <>
+        <div className="flex flex-col gap-6 p-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
         
@@ -342,19 +630,153 @@ export default function C3Management() {
           
           <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
             {formMode === 'view' ? (
-              <Button 
-                type="button" 
-                onClick={() => {
-                  setFormMode('edit');
-                  setEditingRecord(viewingRecord);
-                }}
-                className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
-              >
-                <Edit className="h-4 w-4" />
-                Edit
-              </Button>
-            ) : (
               <>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => viewingRecord && handleC3Notes(viewingRecord)}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  disabled={!viewingRecord}
+                >
+                  <StickyNote className="h-4 w-4" />
+                  C3 Notes
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    if (viewingRecord) {
+                      handleVerify(viewingRecord);
+                    }
+                  }}
+                  className={`flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md ${
+                    viewingRecord?.isVerified ? 'bg-green-50 text-green-700 border-l-green-500 hover:bg-green-100' : ''
+                  }`}
+                  disabled={!viewingRecord}
+                >
+                  {viewingRecord?.isVerified ? <BadgeCheck className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                  {viewingRecord?.isVerified ? 'Verified' : 'Verify'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => viewingRecord && handlePrint(viewingRecord)}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  disabled={!viewingRecord}
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    setFormMode('edit');
+                    setEditingRecord(viewingRecord);
+                  }}
+                  className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              </>
+            ) : formMode === 'edit' ? (
+              <>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => editingRecord && handleC3Notes(editingRecord)}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  disabled={!editingRecord}
+                >
+                  <StickyNote className="h-4 w-4" />
+                  C3 Notes
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    if (editingRecord) {
+                      handleVerify(editingRecord);
+                    }
+                  }}
+                  className={`flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md ${
+                    editingRecord?.isVerified ? 'bg-green-50 text-green-700 border-l-green-500 hover:bg-green-100' : ''
+                  }`}
+                  disabled={!editingRecord}
+                >
+                  {editingRecord?.isVerified ? <BadgeCheck className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                  {editingRecord?.isVerified ? 'Verified' : 'Verify'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => editingRecord && handlePrint(editingRecord)}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  disabled={!editingRecord}
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
+                  Draft
+                </Button>
+                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]">
+                  Submit
+                </Button>
+              </>
+            ) : (
+              // Add Mode
+              <>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    // Create a mock record for Add Mode
+                    const mockRecord = {
+                      scheduleNo: "NEW-RECORD",
+                      payerId: "NEW",
+                      payerName: "New Record",
+                      type: contributionTypeToLabel(contributionType),
+                      isVerified: false,
+                      notes: ""
+                    };
+                    handleC3Notes(mockRecord);
+                  }}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                >
+                  <StickyNote className="h-4 w-4" />
+                  C3 Notes
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    // Create a mock record for Add Mode
+                    const mockRecord = {
+                      scheduleNo: "NEW-RECORD",
+                      payerId: "NEW",
+                      payerName: "New Record",
+                      type: contributionTypeToLabel(contributionType),
+                      isVerified: false,
+                      notes: ""
+                    };
+                    handlePrint(mockRecord);
+                  }}
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50" 
+                  onClick={handleResetForm}
+                  title="Reset all form fields"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </Button>
                 <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
                   Draft
                 </Button>
@@ -371,6 +793,7 @@ export default function C3Management() {
           <EmployerC3Form 
             data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
+            resetTrigger={resetFormTrigger}
             onClose={() => {
               setShowForm(false);
               setEditingRecord(null);
@@ -395,6 +818,7 @@ export default function C3Management() {
           <SelfEmployedC3Form 
             data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
+            resetTrigger={resetFormTrigger}
             onClose={() => {
               setShowForm(false);
               setEditingRecord(null);
@@ -419,6 +843,7 @@ export default function C3Management() {
           <VoluntaryC3Form 
             data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
+            resetTrigger={resetFormTrigger}
             onClose={() => {
               setShowForm(false);
               setEditingRecord(null);
@@ -438,12 +863,15 @@ export default function C3Management() {
             }}
           />
         )}
-      </div>
+        </div>
+        {renderModals()}
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <>
+      <div className="flex flex-col gap-6 p-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -675,6 +1103,10 @@ export default function C3Management() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+
+
+      </div>
+      {renderModals()}
+    </>
   );
 }
