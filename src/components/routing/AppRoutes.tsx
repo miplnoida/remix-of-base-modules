@@ -90,6 +90,9 @@ import EditC3Record from '@/pages/c3Management/EditC3Record';
 import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
 import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
+// Test pages
+import TestDataEntry from '@/pages/test/TestDataEntry';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -192,6 +195,9 @@ export const AppRoutes = () => {
       <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+
+      {/* Test Routes */}
+      <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

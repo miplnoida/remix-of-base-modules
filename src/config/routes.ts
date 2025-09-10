@@ -63,4 +63,7 @@ export const routes = {
   C3_MANAGEMENT_EDIT: '/c3-management/edit/:id',
   C3_MANAGEMENT_VIEW_SPECIFIC: (id: string) => `/c3-management/view/${id}`,
   C3_MANAGEMENT_EDIT_SPECIFIC: (id: string) => `/c3-management/edit/${id}`,
+
+  // Test routes
+  TEST_DATA_ENTRY: '/test/data-entry',
 } as const;
