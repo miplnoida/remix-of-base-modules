@@ -1,7 +1,7 @@
-# Implementation Guide: Adding Action Buttons + Notes Modal to Management Modules
+# Implementation Guide: Adding Action Buttons + Notes Modal + Reset Form to Management Modules
 
 ## Overview
-This guide provides step-by-step instructions for adding action buttons (Notes, Verify, Print) and a notes modal popup to any management module in the React application. The implementation supports different button layouts for Add, Edit, and View modes.
+This guide provides step-by-step instructions for adding action buttons (Notes, Verify, Print, Reset), a notes modal popup, verification system, and reset form functionality to any management module in the React application. The implementation supports different button layouts for Add, Edit, and View modes.
 
 ## Table of Contents
 1. [Requirements](#requirements)
@@ -10,28 +10,31 @@ This guide provides step-by-step instructions for adding action buttons (Notes, 
 4. [Handler Functions](#handler-functions)
 5. [Button Implementation](#button-implementation)
 6. [Modal Implementation](#modal-implementation)
-7. [Complete Code Example](#complete-code-example)
-8. [Testing Checklist](#testing-checklist)
-9. [Troubleshooting](#troubleshooting)
+7. [Reset Form Functionality](#reset-form-functionality)
+8. [Form Component Updates](#form-component-updates)
+9. [Complete Code Example](#complete-code-example)
+10. [Testing Checklist](#testing-checklist)
+11. [Troubleshooting](#troubleshooting)
 
 ## Requirements
 
 ### Features to Add
-- **Action Buttons**: Notes, Verify, Print (with icons)
+- **Action Buttons**: Notes, Verify, Print, Reset (with icons)
 - **Notes Modal**: TextArea with Save/Cancel functionality
 - **Verification System**: Confirmation dialog with Yes/No options
+- **Reset Form**: Clears all form fields with confirmation dialog
 - **Consistent Styling**: Matches existing UI design patterns
 - **Cross-View Support**: Works in Add, Edit, and View modes
 
 ### Button Layout by Mode
-- **Add Mode**: `[Notes] [Print] [Draft] [Submit]`
+- **Add Mode**: `[Notes] [Print] [Reset] [Draft] [Submit]`
 - **Edit Mode**: `[Notes] [Verify] [Print] [Draft] [Submit]`
 - **View Mode**: `[Notes] [Verify] [Print] [Edit]`
 
 ## Required Imports
 
 ```javascript
-import { StickyNote, CheckCircle, Printer, Edit } from "lucide-react";
+import { StickyNote, CheckCircle, Printer, Edit, RotateCcw, BadgeCheck } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +51,8 @@ const [currentRecordForNotes, setCurrentRecordForNotes] = useState<any>(null);
 const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
 const [recordToVerify, setRecordToVerify] = useState<any>(null);
 const [data, setData] = useState(mockData); // For managing verification status
+const [showResetDialog, setShowResetDialog] = useState(false);
+const [resetFormTrigger, setResetFormTrigger] = useState(0);
 ```
 
 ## Handler Functions
@@ -75,6 +80,7 @@ const handleVerify = (record: any) => {
     toast({
       title: "Already Verified",
       description: `Record ${record.scheduleNo} is already verified.`,
+      className: "bg-blue-100",
     });
     return;
   }
@@ -179,6 +185,27 @@ const handleCloseNotes = () => {
 };
 ```
 
+### Reset Form Handlers
+```javascript
+const handleResetForm = () => {
+  setShowResetDialog(true);
+};
+
+const confirmReset = () => {
+  // Trigger form reset by incrementing the reset trigger
+  setResetFormTrigger(prev => prev + 1);
+  setShowResetDialog(false);
+  toast({
+    title: "Form Reset",
+    description: "Form has been reset successfully.",
+  });
+};
+
+const cancelReset = () => {
+  setShowResetDialog(false);
+};
+```
+
 ## Button Implementation
 
 ### Complete Button Logic for All Modes
@@ -210,7 +237,7 @@ const handleCloseNotes = () => {
         }`}
         disabled={!viewingRecord}
       >
-        <CheckCircle className="h-4 w-4" />
+        {viewingRecord?.isVerified ? <BadgeCheck className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
         {viewingRecord?.isVerified ? 'Verified' : 'Verify'}
       </Button>
       <Button 
@@ -261,7 +288,7 @@ const handleCloseNotes = () => {
         }`}
         disabled={!editingRecord}
       >
-        <CheckCircle className="h-4 w-4" />
+        {editingRecord?.isVerified ? <BadgeCheck className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
         {editingRecord?.isVerified ? 'Verified' : 'Verify'}
       </Button>
       <Button 
@@ -282,7 +309,7 @@ const handleCloseNotes = () => {
       </Button>
     </>
   ) : (
-    // Add Mode: [Notes] [Print] [Draft] [Submit]
+    // Add Mode: [Notes] [Print] [Reset] [Draft] [Submit]
     <>
       <Button 
         type="button" 
@@ -323,6 +350,16 @@ const handleCloseNotes = () => {
       >
         <Printer className="h-4 w-4" />
         Print
+      </Button>
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50" 
+        onClick={handleResetForm}
+        title="Reset all form fields"
+      >
+        <RotateCcw className="h-4 w-4" />
+        Reset
       </Button>
       <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
         Draft
@@ -464,6 +501,49 @@ const renderModals = () => (
         </div>
       </div>
     )}
+
+    {/* Reset Confirmation Dialog */}
+    {showResetDialog && (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+        style={{ zIndex: 9999 }}
+      >
+        <div 
+          className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4"
+          style={{ 
+            position: 'relative'
+          }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+              <RotateCcw className="h-5 w-5 text-orange-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Reset Form</h2>
+          </div>
+          
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to reset all form fields? This action cannot be undone and all entered data will be lost.
+          </p>
+          
+          <div className="flex gap-3 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={cancelReset}
+              className="px-4 py-2 border-2 border-gray-300 hover:border-gray-400"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmReset}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white"
+            >
+              Reset Form
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
   </>
 );
 ```
@@ -497,6 +577,80 @@ return (
 );
 ```
 
+## Reset Form Functionality
+
+### Parent Component Updates
+Add the reset trigger prop to form components:
+
+```javascript
+// In your main component, pass resetTrigger to form components
+<YourForm 
+  data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+  mode={formMode}
+  resetTrigger={resetFormTrigger}
+  onClose={() => {
+    setShowForm(false);
+    setEditingRecord(null);
+    setViewingRecord(null);
+    setFormMode('add');
+  }}
+  onSave={(data) => {
+    // Handle save logic
+  }}
+/>
+```
+
+## Form Component Updates
+
+### Form Component Interface
+Update your form component interface to accept the reset trigger:
+
+```javascript
+interface YourFormProps {
+  data?: any;
+  mode?: 'add' | 'edit' | 'view';
+  resetTrigger?: number;
+  onSave?: (data: any) => void;
+  onClose?: () => void;
+}
+```
+
+### Form Component Implementation
+Add reset functionality to your form component:
+
+```javascript
+import { useEffect } from "react";
+
+export default function YourForm({ data, mode = 'add', resetTrigger, onSave, onClose }: YourFormProps) {
+  // Your existing state
+  const [formData, setFormData] = useState({
+    // Your form fields
+  });
+
+  // Reset form functionality
+  const resetFormToDefaults = () => {
+    setFormData({
+      // Reset all fields to default values
+      field1: "",
+      field2: "",
+      // ... other fields
+    });
+    
+    // Reset any other state as needed
+    setOtherState(defaultValue);
+  };
+
+  // Handle reset trigger from parent component
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0 && mode === 'add') {
+      resetFormToDefaults();
+    }
+  }, [resetTrigger, mode]);
+
+  // Rest of your component
+}
+```
+
 ## Complete Code Example
 
 ### File Structure
@@ -511,14 +665,16 @@ src/pages/yourModule/
 
 ### Implementation Steps
 
-1. **Add imports** to the top of your component file
-2. **Add state variables** after existing state declarations (including verification system)
-3. **Add handler functions** after existing handlers (including verification handlers)
+1. **Add imports** to the top of your component file (including new icons)
+2. **Add state variables** after existing state declarations (including reset functionality)
+3. **Add handler functions** after existing handlers (including reset handlers)
 4. **Replace button section** with the new button implementation for all modes
-5. **Add renderModals function** before the return statements
+5. **Add renderModals function** before the return statements (including reset dialog)
 6. **Add modal rendering** to both return statements
 7. **Update data structure** to include `isVerified` field
-8. **Test all modes** (Add/Edit/View) to ensure proper functionality
+8. **Update form components** to accept and handle resetTrigger prop
+9. **Add reset functionality** to form components with useEffect
+10. **Test all modes** (Add/Edit/View) to ensure proper functionality
 
 ## Testing Checklist
 
@@ -530,15 +686,20 @@ src/pages/yourModule/
 - [ ] Verify button shows confirmation dialog in View mode
 - [ ] Verify button shows "Already Verified" toast for verified records
 - [ ] Print button opens print dialog in all modes
+- [ ] Reset button appears only in Add mode
+- [ ] Reset button shows confirmation dialog
+- [ ] Reset functionality clears all form fields
 - [ ] Modals appear immediately when clicking buttons
 - [ ] Modals work in all contexts (Add/Edit/View)
 
 ### UI Tests
-- [ ] All buttons have proper icons
+- [ ] All buttons have proper icons (including BadgeCheck for verified state)
 - [ ] Button styling is consistent across modes
 - [ ] Verified button shows green highlight when verified
+- [ ] Reset button has orange styling
 - [ ] Notes modal is properly centered and styled
 - [ ] Verification dialog matches design requirements
+- [ ] Reset confirmation dialog is properly styled
 - [ ] Modals have correct z-index (appears above other content)
 - [ ] TextArea is properly sized and functional
 - [ ] Save and Cancel buttons work correctly
@@ -551,6 +712,9 @@ src/pages/yourModule/
 - [ ] Notes are properly saved/loaded
 - [ ] Verification status updates correctly
 - [ ] Mock records work properly in Add mode
+- [ ] Reset trigger properly propagates to form components
+- [ ] Form fields reset correctly when resetTrigger changes
+- [ ] Reset only works in Add mode
 
 ## Troubleshooting
 
@@ -572,6 +736,14 @@ src/pages/yourModule/
 - **Problem**: Icons are missing from buttons
 - **Solution**: Ensure all required icons are imported from lucide-react
 
+#### Reset Form Not Working
+- **Problem**: Reset button doesn't clear form fields
+- **Solution**: Check that resetTrigger prop is passed to form components and useEffect is properly implemented
+
+#### Form Fields Not Resetting
+- **Problem**: Some form fields don't reset when resetTrigger changes
+- **Solution**: Ensure all form state is included in the resetFormToDefaults function
+
 ### Debug Tips
 1. Add console.log statements to handler functions
 2. Check browser developer tools for CSS conflicts
@@ -589,6 +761,7 @@ src/pages/yourModule/
 - **Print Content**: Modify the HTML template in `handlePrint()`
 - **Verification Logic**: Add actual verification logic in `handleVerify()`
 - **Notes Storage**: Implement backend integration in `handleSaveNotes()`
+- **Reset Logic**: Customize which fields get reset in `resetFormToDefaults()`
 
 ## Support
 
@@ -600,6 +773,7 @@ For additional help or questions about this implementation:
 
 ---
 
-**Last Updated**: [Current Date]
-**Version**: 1.0
+**Last Updated**: December 2024
+**Version**: 2.0
 **Compatible With**: React 18+, TypeScript, Tailwind CSS
+**Features**: Action Buttons, Notes Modal, Verification System, Reset Form Functionality
