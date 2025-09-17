@@ -31,7 +31,7 @@ const EmployersReports = () => {
       key: 'employerStatus', 
       label: 'Status', 
       minWidth: '100px',
-      render: (value) => <Badge variant="default">{value}</Badge>
+      render: (value) => <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">{value}</Badge>
     },
     { 
       key: 'registrationDate', 
@@ -56,7 +56,7 @@ const EmployersReports = () => {
       key: 'employerStatus', 
       label: 'Status', 
       minWidth: '100px',
-      render: (value) => <Badge variant="secondary">{value}</Badge>
+      render: (value) => <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">{value}</Badge>
     },
     { 
       key: 'lastAuditDate', 
@@ -81,7 +81,7 @@ const EmployersReports = () => {
       key: 'complianceStatus', 
       label: 'Status', 
       minWidth: '100px',
-      render: (value) => <Badge variant="outline">{value}</Badge>
+      render: (value) => <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">{value}</Badge>
     },
     { 
       key: 'lastAuditDate', 
