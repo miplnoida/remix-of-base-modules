@@ -787,6 +787,151 @@ const AccountStatusModal = ({
   );
 };
 
+// Full Name Modal
+const FullNameModal = ({
+  open,
+  onClose,
+  onSubmit,
+  initialValues
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+  initialValues?: any;
+}) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    first: '',
+    middle: '',
+    surname: '',
+    maiden: '',
+    suffix: '',
+    alias: '',
+    ...initialValues
+  });
+
+  const titles = ['Dr.', 'Miss.', 'Mr.', 'Mrs.', 'Ms.', 'Prof.'];
+  const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+    onClose();
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5 text-green-600" />
+            <span className="text-green-600">Full Name</span>
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto pr-1">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Name Details</h4>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Title:</Label>
+                  <Select value={formData.title} onValueChange={(value) => handleInputChange('title', value)}>
+                    <SelectTrigger className="bg-white h-8 text-sm">
+                      <SelectValue placeholder="Select title" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border">
+                      {titles.map((title) => (
+                        <SelectItem key={title} value={title} className="text-sm">{title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs">First:</Label>
+                  <Input
+                    value={formData.first}
+                    onChange={(e) => handleInputChange('first', e.target.value)}
+                    className="bg-white h-8 text-sm"
+                    placeholder="Enter first name"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs">Middle:</Label>
+                  <Input
+                    value={formData.middle}
+                    onChange={(e) => handleInputChange('middle', e.target.value)}
+                    className="bg-white h-8 text-sm"
+                    placeholder="Enter middle name"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs">Surname:</Label>
+                  <Input
+                    value={formData.surname}
+                    onChange={(e) => handleInputChange('surname', e.target.value)}
+                    className="bg-white h-8 text-sm"
+                    placeholder="Enter surname"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs">Maiden:</Label>
+                  <Input
+                    value={formData.maiden}
+                    onChange={(e) => handleInputChange('maiden', e.target.value)}
+                    className="bg-white h-8 text-sm"
+                    placeholder="Enter maiden name"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs">Suffix:</Label>
+                  <Select value={formData.suffix} onValueChange={(value) => handleInputChange('suffix', value)}>
+                    <SelectTrigger className="bg-white h-8 text-sm">
+                      <SelectValue placeholder="Select suffix" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border">
+                      {suffixes.map((suffix) => (
+                        <SelectItem key={suffix} value={suffix} className="text-sm">{suffix}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        
+        <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onClose} className="text-sm px-3 py-1">
+            Cancel
+          </Button>
+          <Button 
+            type="button" 
+            onClick={(e) => {
+              e.preventDefault();
+              onSubmit(formData);
+              onClose();
+            }}
+            className="text-sm px-3 py-1"
+          >
+            Apply
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const RegisterPersonForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showNameDialog, setShowNameDialog] = useState(false);
@@ -826,6 +971,16 @@ export const RegisterPersonForm = () => {
   });
   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
   const [accountStatus, setAccountStatus] = useState('Active');
+  const [showFullNameModal, setShowFullNameModal] = useState(false);
+  const [fullNameData, setFullNameData] = useState({
+    title: '',
+    first: '',
+    middle: '',
+    surname: '',
+    maiden: '',
+    suffix: '',
+    alias: ''
+  });
   const location = useLocation();
   
   // Check if we're in view mode (on '/person/view/' path)
@@ -1181,7 +1336,19 @@ export const RegisterPersonForm = () => {
             {/* First Row: Surname, First Name, Middle Name */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="surname" >Surname *</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="surname" >Surname *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFullNameModal(true)}
+                    className="h-8 px-3 flex items-center gap-1 text-xs"
+                  >
+                    <User className="h-3 w-3" />
+                    Full Name
+                  </Button>
+                </div>
                 <Input {...form.register('surname')} placeholder="Enter surname"/>
                 {form.formState.errors.surname && (
                   <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
@@ -2173,6 +2340,21 @@ export const RegisterPersonForm = () => {
           onClose={() => setAccountStatusModalOpen(false)}
           currentStatus={accountStatus}
           onChangeStatus={handleChangeAccountStatus}
+        />
+
+        <FullNameModal
+          open={showFullNameModal}
+          onClose={() => setShowFullNameModal(false)}
+          onSubmit={(data) => {
+            setFullNameData(data);
+            // Update form fields with the full name data
+            form.setValue('surname', data.surname);
+            form.setValue('firstName', data.first);
+            form.setValue('middleName', data.middle);
+            form.setValue('maidenName', data.maiden);
+            form.setValue('alias', data.alias);
+          }}
+          initialValues={fullNameData}
         />
 
 
