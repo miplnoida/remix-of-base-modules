@@ -24,10 +24,12 @@ import { Stepper, StepperStep } from '@/components/ui/stepper';
 
 // Form schema
 const registrationSchema = z.object({
+  title: z.string().optional(),
   surname: z.string().min(1, 'Surname is required'),
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional(),
   maidenName: z.string().optional(),
+  suffix: z.string().optional(),
   alias: z.string().optional(),
   age: z.number().min(1, 'Age is required'),
   sex: z.enum(['Male', 'Female', 'Not Specified']),
@@ -787,151 +789,6 @@ const AccountStatusModal = ({
   );
 };
 
-// Full Name Modal
-const FullNameModal = ({
-  open,
-  onClose,
-  onSubmit,
-  initialValues
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (data: any) => void;
-  initialValues?: any;
-}) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    first: '',
-    middle: '',
-    surname: '',
-    maiden: '',
-    suffix: '',
-    alias: '',
-    ...initialValues
-  });
-
-  const titles = ['Dr.', 'Miss.', 'Mr.', 'Mrs.', 'Ms.', 'Prof.'];
-  const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-    onClose();
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-green-600" />
-            <span className="text-green-600">Full Name</span>
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="flex-1 overflow-y-auto pr-1">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Name Details</h4>
-              
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs">Title:</Label>
-                  <Select value={formData.title} onValueChange={(value) => handleInputChange('title', value)}>
-                    <SelectTrigger className="bg-white h-8 text-sm">
-                      <SelectValue placeholder="Select title" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border">
-                      {titles.map((title) => (
-                        <SelectItem key={title} value={title} className="text-sm">{title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs">First:</Label>
-                  <Input
-                    value={formData.first}
-                    onChange={(e) => handleInputChange('first', e.target.value)}
-                    className="bg-white h-8 text-sm"
-                    placeholder="Enter first name"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs">Middle:</Label>
-                  <Input
-                    value={formData.middle}
-                    onChange={(e) => handleInputChange('middle', e.target.value)}
-                    className="bg-white h-8 text-sm"
-                    placeholder="Enter middle name"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs">Surname:</Label>
-                  <Input
-                    value={formData.surname}
-                    onChange={(e) => handleInputChange('surname', e.target.value)}
-                    className="bg-white h-8 text-sm"
-                    placeholder="Enter surname"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs">Maiden:</Label>
-                  <Input
-                    value={formData.maiden}
-                    onChange={(e) => handleInputChange('maiden', e.target.value)}
-                    className="bg-white h-8 text-sm"
-                    placeholder="Enter maiden name"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs">Suffix:</Label>
-                  <Select value={formData.suffix} onValueChange={(value) => handleInputChange('suffix', value)}>
-                    <SelectTrigger className="bg-white h-8 text-sm">
-                      <SelectValue placeholder="Select suffix" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border">
-                      {suffixes.map((suffix) => (
-                        <SelectItem key={suffix} value={suffix} className="text-sm">{suffix}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
-        
-        <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
-          <Button type="button" variant="outline" onClick={onClose} className="text-sm px-3 py-1">
-            Cancel
-          </Button>
-          <Button 
-            type="button" 
-            onClick={(e) => {
-              e.preventDefault();
-              onSubmit(formData);
-              onClose();
-            }}
-            className="text-sm px-3 py-1"
-          >
-            Apply
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 export const RegisterPersonForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showNameDialog, setShowNameDialog] = useState(false);
@@ -971,16 +828,6 @@ export const RegisterPersonForm = () => {
   });
   const [accountStatusModalOpen, setAccountStatusModalOpen] = useState(false);
   const [accountStatus, setAccountStatus] = useState('Active');
-  const [showFullNameModal, setShowFullNameModal] = useState(false);
-  const [fullNameData, setFullNameData] = useState({
-    title: '',
-    first: '',
-    middle: '',
-    surname: '',
-    maiden: '',
-    suffix: '',
-    alias: ''
-  });
   const location = useLocation();
   
   // Check if we're in view mode (on '/person/view/' path)
@@ -1128,6 +975,8 @@ export const RegisterPersonForm = () => {
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
+      title: '',
+      suffix: '',
       sex: 'Male',
       maritalStatus: 'Single',
       workPermit: 'No',
@@ -1333,55 +1182,63 @@ export const RegisterPersonForm = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* First Row: Surname, First Name, Middle Name */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="surname" >Surname *</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFullNameModal(true)}
-                    className="h-8 px-3 flex items-center gap-1 text-xs"
-                  >
-                    <User className="h-3 w-3" />
-                    Full Name
-                  </Button>
-                </div>
-                <Input {...form.register('surname')} placeholder="Enter surname"/>
-                {form.formState.errors.surname && (
-                  <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
-                )}
+            {/* First Row: Title, First Name, Middle Name, Surname */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div className="md:col-span-2">
+                <Label>Title *</Label>
+                <Select onValueChange={(value) => form.setValue('title', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Dr.">Dr.</SelectItem>
+                    <SelectItem value="Miss.">Miss.</SelectItem>
+                    <SelectItem value="Mr.">Mr.</SelectItem>
+                    <SelectItem value="Mrs.">Mrs.</SelectItem>
+                    <SelectItem value="Ms.">Ms.</SelectItem>
+                    <SelectItem value="Prof.">Prof.</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
+              <div className="md:col-span-3">
                 <Label htmlFor="firstName">First Name *</Label>
                 <Input {...form.register('firstName')} placeholder="Enter first name" />
                 {form.formState.errors.firstName && (
                   <p className="text-sm text-destructive">{form.formState.errors.firstName.message}</p>
                 )}
               </div>
-              <div>
+              <div className="md:col-span-3">
                 <Label htmlFor="middleName">Middle Name</Label>
                 <Input {...form.register('middleName')} placeholder="Enter middle name" />
               </div>
-            </div>
-
-            {/* Second Row: Age, Maiden Name, Alias */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="age">Age *</Label>
-                <Input 
-                  type="number" 
-                  onChange={(e) => form.setValue('age', parseInt(e.target.value))}
-                  placeholder="Enter Age" 
-                />
-                {form.formState.errors.age && (
-                  <p className="text-sm text-destructive">{form.formState.errors.age.message}</p>
+              <div className="md:col-span-4">
+                <Label htmlFor="surname">Surname *</Label>
+                <Input {...form.register('surname')} placeholder="Enter surname"/>
+                {form.formState.errors.surname && (
+                  <p className="text-sm text-destructive">{form.formState.errors.surname.message}</p>
                 )}
               </div>
+            </div>
+
+            {/* Second Row: Suffix, Maiden Name, Alias */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="maidenName">Maiden Name</Label>
+                <Label>Suffix *</Label>
+                <Select onValueChange={(value) => form.setValue('suffix', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select suffix" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Jr.">Jr.</SelectItem>
+                    <SelectItem value="Sr.">Sr.</SelectItem>
+                    <SelectItem value="II">II</SelectItem>
+                    <SelectItem value="III">III</SelectItem>
+                    <SelectItem value="IV">IV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="maidenName">Maiden Name *</Label>
                 <Input {...form.register('maidenName')} placeholder="Enter maiden name" />
               </div>
               <div>
@@ -1389,28 +1246,27 @@ export const RegisterPersonForm = () => {
                 <Input {...form.register('alias')} placeholder="Enter alias" />
               </div>
             </div>
-<hr/>
-                         {/* Third Row: Sex, Date of Birth, Marital Status */}
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <div>
-                 <Label>Sex *</Label>
-                 <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
-                   <SelectTrigger className="bg-background">
-                     <SelectValue placeholder="Select sex" />
-                   </SelectTrigger>
-                   <SelectContent className="bg-background border">
-                     <SelectItem value="Male">Male</SelectItem>
-                     <SelectItem value="Female">Female</SelectItem>
-                     <SelectItem value="Not Specified">Not Specified</SelectItem>
-                   </SelectContent>
-                 </Select>
-               </div>
+            {/* Third Row: Sex, Date of Birth, Marital Status */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Sex *</Label>
+                <Select onValueChange={(value: 'Male' | 'Female' | 'Not Specified') => form.setValue('sex', value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select sex" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Not Specified">Not Specified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label>Date of Birth *</Label>
                 <DatePicker
                   date={form.watch('dateOfBirth')}
                   onSelect={(date) => form.setValue('dateOfBirth', date!)}
-                  placeholder="dd/mm/yyyy"
+                  placeholder="mm/dd/yyyy"
                 />
                 {form.formState.errors.dateOfBirth && (
                   <p className="text-sm text-destructive">{form.formState.errors.dateOfBirth.message}</p>
@@ -1435,10 +1291,10 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            {/* Fourth Row: Height Feet, Height Inches, Birth Place */}
+            {/* Fourth Row: Height, Birth Place, Nationality */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label>Height</Label>
+              <div>
+                <Label>Height</Label>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Input 
@@ -1471,7 +1327,7 @@ export const RegisterPersonForm = () => {
                 </Select>
               </div>
               <div>
-                <Label>Nationality *</Label>
+                <Label>Nationality</Label>
                 <Select onValueChange={(value) => form.setValue('nationality', value)}>
                   <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select Nationality" />
@@ -1485,9 +1341,8 @@ export const RegisterPersonForm = () => {
               </div>
             </div>
 
-            {/* Fifth Row: Nationality, Eye Color */}
+            {/* Fifth Row: Eye Color */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
               <div>
                 <Label>Eye Color</Label>
                 <Select onValueChange={(value: any) => form.setValue('eyeColor', value)}>
@@ -2340,21 +2195,6 @@ export const RegisterPersonForm = () => {
           onClose={() => setAccountStatusModalOpen(false)}
           currentStatus={accountStatus}
           onChangeStatus={handleChangeAccountStatus}
-        />
-
-        <FullNameModal
-          open={showFullNameModal}
-          onClose={() => setShowFullNameModal(false)}
-          onSubmit={(data) => {
-            setFullNameData(data);
-            // Update form fields with the full name data
-            form.setValue('surname', data.surname);
-            form.setValue('firstName', data.first);
-            form.setValue('middleName', data.middle);
-            form.setValue('maidenName', data.maiden);
-            form.setValue('alias', data.alias);
-          }}
-          initialValues={fullNameData}
         />
 
 
