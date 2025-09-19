@@ -52,6 +52,7 @@ const employerSchema = z.object({
   acquiredCompany: z.boolean().default(false),
   acquisitionDate: z.date().optional(),
   incorporatedDate: z.date().optional(),
+  acquiredCode: z.string().optional(),
   
   // Location Information
   village: z.string().optional(),
@@ -305,7 +306,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>Name *</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter surname" />
+                         <Input {...field} placeholder="Enter name" />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -319,7 +320,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>Trade Name</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter first name" />
+                         <Input {...field} placeholder="Enter trade name" />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -328,48 +329,40 @@ export const MultiTabEmployerRegistration = () => {
 
                  <FormField
                    control={form.control}
-                   name="addressType"
+                   name="email"
                    render={({ field }) => (
                      <FormItem>
-                       <FormLabel>Address Type</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                         <FormControl>
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select Nationality" />
-                           </SelectTrigger>
-                         </FormControl>
-                         <SelectContent>
-                           <SelectItem value="mailing">Mailing Address</SelectItem>
-                           <SelectItem value="hq">HQ Address</SelectItem>
-                         </SelectContent>
-                       </Select>
+                       <FormLabel>E-Mail Address</FormLabel>
+                       <FormControl>
+                         <Input {...field} type="email" placeholder="Enter e-mail address" />
+                       </FormControl>
                        <FormMessage />
                      </FormItem>
                    )}
                  />
 
-                                 <FormField
+                 <FormField
+                   control={form.control}
+                   name="hqAddress"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>HQ Address *</FormLabel>
+                       <FormControl>
+                         <Input {...field} placeholder="Enter HQ address name" />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+
+                 <FormField
                    control={form.control}
                    name="mailingAddress"
                    render={({ field }) => (
                      <FormItem>
-                       <FormLabel>Mailing Address</FormLabel>
+                       <FormLabel>Mailing Address *</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter surname" />
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-
-                 <FormField
-                   control={form.control}
-                   name="mailingPostalCode"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Postal Code</FormLabel>
-                       <FormControl>
-                         <Input {...field} placeholder="Enter first name" />
+                         <Input {...field} placeholder="Enter mailing Address" />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -379,6 +372,42 @@ export const MultiTabEmployerRegistration = () => {
                 
               </CardContent>
             </div>
+
+                         {/* Previous Owner Information */}
+               <div>
+                 <CardHeader>
+                   <CardTitle>Previous Owner Information</CardTitle>
+                 </CardHeader>
+                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <FormField
+                     control={form.control}
+                     name="previousOwners.0.name"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Name *</FormLabel>
+                         <FormControl>
+                           <Input {...field} placeholder="Enter name" />
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+
+                   <FormField
+                     control={form.control}
+                     name="previousOwners.0.address"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Address</FormLabel>
+                         <FormControl>
+                           <Input {...field} placeholder="Enter address" />
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+                 </CardContent>
+               </div>
 
                          {/* Organizational Information */}
                <div>
@@ -393,7 +422,7 @@ export const MultiTabEmployerRegistration = () => {
                            <FormItem>
                        <FormLabel>Parent Reg. No.</FormLabel>
                              <FormControl>
-                         <Input {...field} type="number" />
+                         <Input {...field} placeholder="Enter reg. no." />
                              </FormControl>
                              <FormMessage />
                            </FormItem>
@@ -407,7 +436,7 @@ export const MultiTabEmployerRegistration = () => {
                            <FormItem>
                        <FormLabel>Office Code</FormLabel>
                              <FormControl>
-                               <Input {...field} />
+                               <Input {...field} placeholder="Enter office code" />
                              </FormControl>
                              <FormMessage />
                            </FormItem>
@@ -421,7 +450,7 @@ export const MultiTabEmployerRegistration = () => {
                        <FormItem>
                        <FormLabel>Ownership Code</FormLabel>
                          <FormControl>
-                         <Input {...field} />
+                         <Input {...field} placeholder="Enter ownership code" />
                          </FormControl>
                          <FormMessage />
                        </FormItem>
@@ -435,7 +464,7 @@ export const MultiTabEmployerRegistration = () => {
                        <FormItem>
                        <FormLabel>Sector Code</FormLabel>
                          <FormControl>
-                         <Input {...field} />
+                         <Input {...field} placeholder="Enter sector code" />
                          </FormControl>
                          <FormMessage />
                        </FormItem>
@@ -452,7 +481,7 @@ export const MultiTabEmployerRegistration = () => {
                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                          <FormControl>
                              <SelectTrigger>
-                               <SelectValue placeholder="Select Industrial Code" />
+                               <SelectValue placeholder="Enter industrial code" />
                              </SelectTrigger>
                          </FormControl>
                            <SelectContent>
@@ -579,6 +608,42 @@ export const MultiTabEmployerRegistration = () => {
                        <FormLabel>Incorporated Date</FormLabel>
                        <FormControl>
                          <DatePicker field={field} placeholder="Select incorporated date" />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+
+                 <FormField
+                   control={form.control}
+                   name="acquiredCode"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Acquired Code</FormLabel>
+                       <FormControl>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select acquired code" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="yes">Yes</SelectItem>
+                             <SelectItem value="no">No</SelectItem>
+                           </SelectContent>
+                         </Select>
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+
+                 <FormField
+                   control={form.control}
+                   name="activityType"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Activity Type</FormLabel>
+                       <FormControl>
+                         <Input {...field} placeholder="Enter activity type" />
                        </FormControl>
                        <FormMessage />
                      </FormItem>

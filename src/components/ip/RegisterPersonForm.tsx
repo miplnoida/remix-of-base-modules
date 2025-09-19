@@ -61,13 +61,14 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 // Address schema
 const addressSchema = z.object({
   id: z.string(),
-  addressType: z.enum(['same', 'different']),
-  residentAddress: z.string().min(1, 'Resident address is required'),
+  addressType: z.enum(['resident', 'mailing', 'email']),
+  residentAddress: z.string().optional(),
   mailingAddress: z.string().optional(),
   residentPostalCode: z.string().optional(),
-  residentPostalDistrict: z.string().min(1, 'Resident postal district is required'),
+  residentPostalDistrict: z.string().optional(),
   mailingPostalCode: z.string().optional(),
   mailingPostalDistrict: z.string().optional(),
+  emailAddress: z.string().optional(),
 });
 
 type Address = z.infer<typeof addressSchema>;
@@ -142,15 +143,22 @@ const AddressListItem = ({
       <div className="flex items-center gap-2">
         <MapPin className="h-4 w-4 text-muted-foreground" />
         <span className="font-medium">
-          {address.addressType === 'same' ? 'Same Address' : 'Different Addresses'}
+          {address.addressType === 'resident' ? 'Resident Address' : 
+           address.addressType === 'mailing' ? 'Mailing Address' : 
+           address.addressType === 'email' ? 'Email Address' : 'Address'}
         </span>
       </div>
       <div className="text-sm text-muted-foreground mt-1">
-        <div>{address.residentAddress}</div>
-        {address.addressType === 'different' && address.mailingAddress && (
-          <div>Mailing: {address.mailingAddress}</div>
+        {address.addressType === 'email' ? (
+          <div>{address.emailAddress}</div>
+        ) : address.addressType === 'resident' ? (
+          <>
+            <div>{address.residentAddress}</div>
+            <div className="mt-1">{address.residentPostalDistrict}</div>
+          </>
+        ) : (
+          <div>{address.mailingAddress}</div>
         )}
-        <div className="mt-1">{address.residentPostalDistrict}</div>
       </div>
     </div>
     <div className="flex gap-2">
@@ -187,20 +195,38 @@ const AddressFormModal = ({
 }) => {
   const [formData, setFormData] = useState<Address>(initialValues || {
     id: '',
-    addressType: 'same',
+    addressType: 'resident',
     residentAddress: '',
     mailingAddress: '',
     residentPostalCode: '',
     residentPostalDistrict: '',
     mailingPostalCode: '',
-    mailingPostalDistrict: ''
+    mailingPostalDistrict: '',
+    emailAddress: ''
   });
   // Local state for the checkbox only
-  const [isSameAddress, setIsSameAddress] = useState(formData.addressType === 'same');
+  const [isSameAddress, setIsSameAddress] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode !== 'view') {
+      // Validate based on address type
+      if (formData.addressType === 'resident') {
+        if (!formData.residentAddress || !formData.residentPostalDistrict) {
+          alert('Please fill in all required fields for resident address');
+          return;
+        }
+      } else if (formData.addressType === 'mailing') {
+        if (!formData.mailingAddress) {
+          alert('Please enter a mailing address');
+          return;
+        }
+      } else if (formData.addressType === 'email') {
+        if (!formData.emailAddress) {
+          alert('Please enter an email address');
+          return;
+        }
+      }
       onSubmit(formData);
     }
     onClose();
@@ -211,7 +237,6 @@ const AddressFormModal = ({
     setIsSameAddress(checked);
     setFormData({ 
       ...formData, 
-      addressType: checked ? 'same' : 'different',
       // When checked, copy all resident address fields to mailing address fields
       mailingAddress: checked ? formData.residentAddress : formData.mailingAddress,
       mailingPostalCode: checked ? formData.residentPostalCode : formData.mailingPostalCode,
@@ -248,33 +273,35 @@ const AddressFormModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {mode === 'add' ? 'Add New Address' : mode === 'edit' ? 'Edit Address' : 'View Address'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Checkbox for Mailing & Resident Address Same */}
-          <div className="flex items-center gap-2 justify-center">
-            <Checkbox
-              id="mailing-resident-same"
-              checked={isSameAddress}
-              onCheckedChange={handleSameAddressChange}
+          {/* Address Type Selection */}
+          <div>
+            <Label>Address Type</Label>
+            <Select 
+              value={formData.addressType} 
+              onValueChange={(value) => setFormData({ ...formData, addressType: value as any })}
               disabled={mode === 'view'}
-              style={{ borderColor: '#0284c7', color: isSameAddress ? '#0284c7' : undefined }}
-            />
-            <Label htmlFor="mailing-resident-same" style={{ color: '#0284c7', cursor: mode === 'view' ? 'not-allowed' : 'pointer' }}>
-              Is Mailing & Resident Address Same
-            </Label>
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select address type" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border max-h-48 overflow-y-auto">
+                <SelectItem value="resident">Resident Address</SelectItem>
+                <SelectItem value="mailing">Mailing Address</SelectItem>
+                <SelectItem value="email">Email Address</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Two-column layout for addresses */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Left side: Resident Address */}
+          {/* Conditional Fields Based on Address Type */}
+          {formData.addressType === 'resident' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-center">Resident Address</h3>
-              
               <div>
                 <Label>Resident Address *</Label>
                 <Textarea 
@@ -313,52 +340,36 @@ const AddressFormModal = ({
                 </Select>
               </div>
             </div>
+          )}
 
-            {/* Right side: Mailing Address */}
+          {formData.addressType === 'mailing' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-center">Mailing Address</h3>
-              
               <div>
-                <Label>Mailing Address {isSameAddress ? '(Auto-filled)' : ''}</Label>
+                <Label>Mailing Address *</Label>
                 <Textarea 
                   value={formData.mailingAddress}
                   onChange={(e) => setFormData({ ...formData, mailingAddress: e.target.value })}
                   placeholder="Enter mailing address"
-                  disabled={mode === 'view' || isSameAddress}
-                  className={isSameAddress ? 'bg-gray-100' : ''}
+                  disabled={mode === 'view'}
                 />
-              </div>
-
-              <div>
-                <Label>Postal Code {isSameAddress ? '(Auto-filled)' : ''}</Label>
-                <Input
-                  value={formData.mailingPostalCode || ''}
-                  onChange={(e) => setFormData({ ...formData, mailingPostalCode: e.target.value })}
-                  placeholder="Enter postal code"
-                  disabled={mode === 'view' || isSameAddress}
-                  className={isSameAddress ? 'bg-gray-100' : ''}
-                />
-              </div>
-
-              <div>
-                <Label>Postal District {isSameAddress ? '(Auto-filled)' : ''}</Label>
-                <Select 
-                  value={formData.mailingPostalDistrict} 
-                  onValueChange={(value) => setFormData({ ...formData, mailingPostalDistrict: value })}
-                  disabled={mode === 'view' || isSameAddress}
-                >
-                  <SelectTrigger className={`bg-background ${isSameAddress ? 'bg-gray-100' : ''}`}>
-                    <SelectValue placeholder="Select postal district" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border max-h-48 overflow-y-auto">
-                    {postalDistricts.map((district) => (
-                      <SelectItem key={district} value={district}>{district}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
-          </div>
+          )}
+
+          {formData.addressType === 'email' && (
+            <div className="space-y-4">
+              <div>
+                <Label>Email Address *</Label>
+                <Input
+                  type="email"
+                  value={formData.emailAddress || ''}
+                  onChange={(e) => setFormData({ ...formData, emailAddress: e.target.value })}
+                  placeholder="Enter email address"
+                  disabled={mode === 'view'}
+                />
+              </div>
+            </div>
+          )}
 
           {mode !== 'view' && (
             <div className="flex justify-end gap-2">
@@ -835,6 +846,7 @@ export const RegisterPersonForm = () => {
   
   // Mock data for preview - replace with actual data from props or API
   const previewData = {
+    title: 'Mr.',
     surname: 'Sanger',
     firstName: 'Ayush',
     middleName: 'Singh',
@@ -869,23 +881,36 @@ export const RegisterPersonForm = () => {
   const previewAddresses: Address[] = [
     {
       id: '1',
-      addressType: 'same',
+      addressType: 'resident',
       residentAddress: '123 Main Street, Apt 2B, Basseterre',
-      mailingAddress: '123 Main Street, Apt 2B, Basseterre',
+      mailingAddress: '',
       residentPostalCode: 'KN001',
       residentPostalDistrict: 'Basseterre Zone 01',
-      mailingPostalCode: 'KN001',
-      mailingPostalDistrict: 'Basseterre Zone 01'
+      mailingPostalCode: '',
+      mailingPostalDistrict: '',
+      emailAddress: ''
     },
     {
       id: '2',
-      addressType: 'different',
-      residentAddress: '456 Oak Avenue, Suite 5',
+      addressType: 'mailing',
+      residentAddress: '',
       mailingAddress: '789 Pine Street, P.O. Box 123',
-      residentPostalCode: 'KN002',
-      residentPostalDistrict: 'Charlestown',
+      residentPostalCode: '',
+      residentPostalDistrict: '',
       mailingPostalCode: 'KN003',
-      mailingPostalDistrict: 'Basseterre Zone 02'
+      mailingPostalDistrict: 'Basseterre Zone 02',
+      emailAddress: ''
+    },
+    {
+      id: '3',
+      addressType: 'email',
+      residentAddress: '',
+      mailingAddress: '',
+      residentPostalCode: '',
+      residentPostalDistrict: '',
+      mailingPostalCode: '',
+      mailingPostalDistrict: '',
+      emailAddress: 'john.doe@example.com'
     }
   ];
 
@@ -1103,16 +1128,33 @@ export const RegisterPersonForm = () => {
   };
 
   // Preview Field Component
-  const PreviewField = ({ label, value, required = false }: { label: string; value: string | number | null | undefined; required?: boolean }) => (
-    <div>
-      <Label className="text-sm font-medium text-gray-700">
-        {label}{required && <span className="text-red-500 ml-1">*</span>}
-      </Label>
-      <div className="mt-1 text-sm text-gray-600 bg-gray-50  rounded-md">
-        {value || 'Not specified'}
+  const PreviewField = ({ 
+    label, 
+    value, 
+    required = false, 
+    className = "",
+    showEmpty = true 
+  }: { 
+    label: string; 
+    value: string | number | null | undefined; 
+    required?: boolean;
+    className?: string;
+    showEmpty?: boolean;
+  }) => {
+    const displayValue = value || (showEmpty ? 'Not specified' : '');
+    
+    return (
+      <div className={`space-y-1 ${className}`}>
+        <Label className="text-sm font-medium text-gray-700 flex items-center">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+        <div className="mt-1 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 min-h-[2.5rem] flex items-center">
+          {displayValue}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Step content components
   const renderStepContent = () => {
@@ -1127,11 +1169,12 @@ export const RegisterPersonForm = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* First Row: Surname, First Name, Middle Name */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <PreviewField label="Surname" value={previewData.surname} required />
+                {/* First Row: Title, First Name, Middle Name, Surname */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <PreviewField label="Title" value={previewData.title} />
                   <PreviewField label="First Name" value={previewData.firstName} required />
                   <PreviewField label="Middle Name" value={previewData.middleName} />
+                  <PreviewField label="Surname" value={previewData.surname} required />
                 </div>
 
                 {/* Second Row: Age, Maiden Name, Alias */}
@@ -1166,7 +1209,7 @@ export const RegisterPersonForm = () => {
                 {/* Conditional Date Married field */}
                 {(previewData.maritalStatus === 'Married' || previewData.maritalStatus === 'Common Law') && (
                   <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                    <PreviewField label="Date Married" value={previewData.dateMarried ? format(previewData.dateMarried, 'MM/dd/yyyy') : null} />
+                    <PreviewField label="Date Married" value={previewData.dateMarried ? format(previewData.dateMarried, 'dd/MM/yyyy') : null} />
                   </div>
                 )}
               </CardContent>
@@ -1184,7 +1227,7 @@ export const RegisterPersonForm = () => {
           <CardContent className="space-y-4">
             {/* First Row: Title, First Name, Middle Name, Surname */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              <div className="md:col-span-2">
+              <div className="md:col-span-1">
                 <Label>Title *</Label>
                 <Select onValueChange={(value) => form.setValue('title', value)}>
                   <SelectTrigger className="bg-background">
@@ -1207,7 +1250,7 @@ export const RegisterPersonForm = () => {
                   <p className="text-sm text-destructive">{form.formState.errors.firstName.message}</p>
                 )}
               </div>
-              <div className="md:col-span-3">
+              <div className="md:col-span-4">
                 <Label htmlFor="middleName">Middle Name</Label>
                 <Input {...form.register('middleName')} placeholder="Enter middle name" />
               </div>
@@ -1266,7 +1309,7 @@ export const RegisterPersonForm = () => {
                 <DatePicker
                   date={form.watch('dateOfBirth')}
                   onSelect={(date) => form.setValue('dateOfBirth', date!)}
-                  placeholder="mm/dd/yyyy"
+                  placeholder="dd/mm/yyyy"
                 />
                 {form.formState.errors.dateOfBirth && (
                   <p className="text-sm text-destructive">{form.formState.errors.dateOfBirth.message}</p>
@@ -1594,8 +1637,8 @@ export const RegisterPersonForm = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <PreviewField label="Application Date" value={previewData.applicationDate ? format(previewData.applicationDate, 'MM/dd/yyyy') : null} />
-                    <PreviewField label="Date Resident" value={previewData.dateResident ? format(previewData.dateResident, 'MM/dd/yyyy') : null} />
+                    <PreviewField label="Application Date" value={previewData.applicationDate ? format(previewData.applicationDate, 'dd/MM/yyyy') : null} />
+                    <PreviewField label="Date Resident" value={previewData.dateResident ? format(previewData.dateResident, 'dd/MM/yyyy') : null} />
                     <PreviewField label="Place of Residence" value={previewData.plOfResidence} required />
                   </div>
 
@@ -1614,7 +1657,7 @@ export const RegisterPersonForm = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <PreviewField label="Citizenship" value={previewData.citizenship} />
-                    <PreviewField label="Date of Death" value={previewData.dateOfDeath ? format(previewData.dateOfDeath, 'MM/dd/yyyy') : null} />
+                    <PreviewField label="Date of Death" value={previewData.dateOfDeath ? format(previewData.dateOfDeath, 'dd/MM/yyyy') : null} />
                     <PreviewField label="Signature on File" value={previewData.signatureOnFile} />
                   </div>
                 </CardContent>
