@@ -247,7 +247,7 @@ const PendingReviews = () => {
                   <CardTitle className="text-base lg:text-lg">
                     Query by
                   </CardTitle>
-                  <p className='text-[#9D9D9D]'>Filter and search Pending Reviews</p>
+                  <p className='text-[#9D9D9D]'>Filter and search  {location.pathname === '/person/pending-reviews' ? "Pending Reviews" : "IP Management"}</p>
                 </div>
                 {isFiltersOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
               </div>
