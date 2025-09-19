@@ -33,6 +33,7 @@ const sampleEmployerData = {
   acquiredCompany: true,
   acquisitionDate: new Date("2022-04-01"),
   incorporatedDate: new Date("2023-01-01"),
+  acquiredCode: "yes",
   applicationDate: new Date("2023-01-01"),
   totalEmployees: "40",
   maleEmployees: "25",
@@ -234,22 +235,45 @@ export const ViewEmployer = () => {
                     <p className="text-sm">{sampleEmployerData.tradeName}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Address Type</Label>
-                    <p className="text-sm capitalize">{sampleEmployerData.addressType}</p>
+                    <Label className="text-sm font-medium text-gray-500">E-Mail Address</Label>
+                    <p className="text-sm">{sampleEmployerData.email}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Mailing Address</Label>
-                    <p className="text-sm">{sampleEmployerData.mailingAddress}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Postal Code</Label>
-                    <p className="text-sm">{sampleEmployerData.mailingPostalCode}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">HQ Address</Label>
+                    <Label className="text-sm font-medium text-gray-500">HQ Address *</Label>
                     <p className="text-sm">{sampleEmployerData.hqAddress}</p>
                   </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Mailing Address *</Label>
+                    <p className="text-sm">{sampleEmployerData.mailingAddress}</p>
+                  </div>
                 </div>
+              </CardContent>
+            </div>
+
+            {/* Previous Owner Information */}
+            <div>
+              <CardHeader>
+                <CardTitle>Previous Owner Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sampleEmployerData.previousOwners.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {sampleEmployerData.previousOwners.map((owner, index) => (
+                      <div key={index} className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-500">Name *</Label>
+                        <p className="text-sm">{owner.name}</p>
+                      </div>
+                    ))}
+                    {sampleEmployerData.previousOwners.map((owner, index) => (
+                      <div key={`address-${index}`} className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-500">Address</Label>
+                        <p className="text-sm">{owner.address}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No previous owner information recorded.</p>
+                )}
               </CardContent>
             </div>
 
@@ -334,6 +358,14 @@ export const ViewEmployer = () => {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-500">Incorporated Date</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.incorporatedDate)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Acquired Code</Label>
+                    <p className="text-sm capitalize">{sampleEmployerData.acquiredCode || "Not specified"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500">Activity Type</Label>
+                    <p className="text-sm">{sampleEmployerData.activityType || "Not specified"}</p>
                   </div>
                 </div>
               </CardContent>

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 interface Dependent {
   id: string;
+  ssn?: string;
   surname: string;
   firstName: string;
   middleName: string;
@@ -95,7 +96,7 @@ export const DependentTab = () => {
   // Use preview data in view mode, otherwise use actual dependents
   const displayDependents = isViewMode ? previewDependents : dependents;
 
-  const DatePicker = ({ date, onSelect, placeholder, disabled }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string, disabled?: boolean }) => (
+  const DatePicker = ({ date, onSelect, placeholder, disabled, iconPosition = 'left' }: { date?: Date, onSelect: (date: Date | undefined) => void, placeholder: string, disabled?: boolean, iconPosition?: 'left' | 'right' }) => (
     <Popover>
       <PopoverTrigger asChild>
         <Button
@@ -106,8 +107,9 @@ export const DependentTab = () => {
             !date && "text-muted-foreground"
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+          {iconPosition === 'left' && <CalendarIcon className="mr-2 h-4 w-4" />}
+          {date ? format(date, "dd/MM/yyyy") : <span>{placeholder}</span>}
+          {iconPosition === 'right' && <CalendarIcon className="ml-2 h-4 w-4" />}
         </Button>
       </PopoverTrigger>
       {!disabled && (
@@ -130,12 +132,13 @@ export const DependentTab = () => {
   };
 
   const handleAddDependent = () => {
-    if (newDependent.surname && newDependent.firstName && newDependent.dob) {
+    if (newDependent.surname && newDependent.firstName && newDependent.middleName && newDependent.dob) {
       const dependent: Dependent = {
         id: Date.now().toString(),
+        ssn: newDependent.ssn || '',
         surname: newDependent.surname!,
         firstName: newDependent.firstName!,
-        middleName: newDependent.middleName || '',
+        middleName: newDependent.middleName!,
         address: newDependent.address || '',
         sex: newDependent.sex || 'Male',
         dob: newDependent.dob!,
@@ -169,7 +172,7 @@ export const DependentTab = () => {
             </Button>
           )}
         </CardHeader>
-        <CardContent className="space-y-5 m-5" style={{backgroundColor:"#fff"}}>
+        <CardContent className="space-y-5 m-5 pt-5" style={{backgroundColor:"#fff"}}>
           {/* Add/Edit Dependent Form */}
           {showAddForm && !isViewMode && (
             <Card className="border-2 border-dashed">
@@ -177,6 +180,25 @@ export const DependentTab = () => {
                 <CardTitle className="text-base">{newDependent.id ? 'Edit Dependent' : 'Add New Dependent'}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* ID and SSN Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-lg font-semibold">ID</Label>
+                    <span className="text-lg">-</span>
+                  </div>
+                  <div className="col-span-2">
+                    <Label>SSN *</Label>
+                    <Input 
+                      value={newDependent.ssn || ''}
+                      onChange={(e) => setNewDependent({...newDependent, ssn: e.target.value})}
+                      placeholder="Enter SSN" 
+                    />
+                  </div>
+                </div>
+
+                {/* Horizontal line separator */}
+                <hr className="border-gray-300" />
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Surname *</Label>
@@ -195,7 +217,7 @@ export const DependentTab = () => {
                     />
                   </div>
                   <div>
-                    <Label>Middle Name</Label>
+                    <Label>Middle Name *</Label>
                     <Input 
                       value={newDependent.middleName || ''}
                       onChange={(e) => setNewDependent({...newDependent, middleName: e.target.value})}
@@ -212,13 +234,15 @@ export const DependentTab = () => {
                     placeholder="Enter address" 
                   />
                 </div>
+                {/* Horizontal line separator */}
+                <hr className="border-gray-300" />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Sex *</Label>
                     <Select value={newDependent.sex} onValueChange={(value) => setNewDependent({...newDependent, sex: value})}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select sex" />
+                        <SelectValue placeholder="Select Sex" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Male">Male</SelectItem>
@@ -226,13 +250,32 @@ export const DependentTab = () => {
                         <SelectItem value="Not Specified">Not Specified</SelectItem>
                       </SelectContent>
                     </Select>
+                    {/* Checkboxes positioned below Sex field */}
+                    <div className="flex gap-6 mt-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="schoolChild" 
+                          checked={newDependent.schoolChild}
+                          onCheckedChange={(checked) => setNewDependent({...newDependent, schoolChild: checked as boolean})}
+                        />
+                        <Label htmlFor="schoolChild">School Child</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="invalid" 
+                          checked={newDependent.invalid}
+                          onCheckedChange={(checked) => setNewDependent({...newDependent, invalid: checked as boolean})}
+                        />
+                        <Label htmlFor="invalid">Invalid</Label>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <Label>Date of Birth *</Label>
                     <DatePicker
                       date={newDependent.dob}
                       onSelect={(date) => setNewDependent({...newDependent, dob: date})}
-                      placeholder="Select date of birth"
+                      placeholder="dd/mm/yyyy"
                     />
                   </div>
                   <div>
@@ -252,52 +295,37 @@ export const DependentTab = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-6">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="schoolChild" 
-                      checked={newDependent.schoolChild}
-                      onCheckedChange={(checked) => setNewDependent({...newDependent, schoolChild: checked as boolean})}
-                    />
-                    <Label htmlFor="schoolChild">School Child</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="invalid" 
-                      checked={newDependent.invalid}
-                      onCheckedChange={(checked) => setNewDependent({...newDependent, invalid: checked as boolean})}
-                    />
-                    <Label htmlFor="invalid">Invalid</Label>
-                  </div>
-                </div>
-
                 <div>
                   <Label>Date of Death (if applicable)</Label>
                   <DatePicker
                     date={newDependent.dateOfDeath}
                     onSelect={(date) => setNewDependent({...newDependent, dateOfDeath: date})}
                     placeholder="Select date of death"
+                    iconPosition="left"
                   />
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={() => {
-                    if (newDependent.surname && newDependent.firstName && newDependent.dob) {
-                      if (newDependent.id) {
-                        // Edit mode: update existing
-                        setDependents(dependents.map(d => d.id === newDependent.id ? {
-                          ...d,
-                          ...newDependent,
-                          dob: newDependent.dob!,
-                          dateModified: new Date(),
-                        } as Dependent : d));
-                      } else {
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => {
+                      if (newDependent.surname && newDependent.firstName && newDependent.middleName && newDependent.dob) {
+                        if (newDependent.id) {
+                          // Edit mode: update existing
+                          setDependents(dependents.map(d => d.id === newDependent.id ? {
+                            ...d,
+                            ...newDependent,
+                            dob: newDependent.dob!,
+                            dateModified: new Date(),
+                          } as Dependent : d));
+                        } else {
                         // Add mode: add new
                         const dependent: Dependent = {
                           id: Date.now().toString(),
+                          ssn: newDependent.ssn || '',
                           surname: newDependent.surname!,
                           firstName: newDependent.firstName!,
-                          middleName: newDependent.middleName || '',
+                          middleName: newDependent.middleName!,
                           address: newDependent.address || '',
                           sex: newDependent.sex || 'Male',
                           dob: newDependent.dob!,
@@ -309,13 +337,22 @@ export const DependentTab = () => {
                           userId: 'current-user',
                           dateOfDeath: newDependent.dateOfDeath
                         };
-                        setDependents([...dependents, dependent]);
+                          setDependents([...dependents, dependent]);
+                        }
+                        setNewDependent({ schoolChild: false, invalid: false, status: 'Active' });
+                        setShowAddForm(false);
                       }
-                      setNewDependent({ schoolChild: false, invalid: false, status: 'Active' });
-                      setShowAddForm(false);
-                    }
-                  }}>{newDependent.id ? 'Update Dependent' : 'Add Dependent'}</Button>
-                  <Button variant="outline" onClick={() => { setShowAddForm(false); setNewDependent({ schoolChild: false, invalid: false, status: 'Active' }); }}>Cancel</Button>
+                    }}
+                  >
+                    {newDependent.id ? 'Update Dependent' : 'Add Dependent'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    onClick={() => { setShowAddForm(false); setNewDependent({ schoolChild: false, invalid: false, status: 'Active' }); }}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -359,22 +396,48 @@ export const DependentTab = () => {
                           )}
                         </div>
                       </div>
-                      {/* Details Row - Sex/Relation and Status/Modified in a single row at the bottom */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
-                      <div>
-                          <p className="text-sm text-gray-600"><strong>DOB:</strong> {format(dependent.dob, 'PPP')}</p>
+                      <hr className="border-gray-300 my-5" />
+                      {/* Details Grid - Row and Column Structure */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                        {/* Row 1 - DOB and User ID */}
+                        <div className="col-span-1">
+                          <p className="text-sm "><strong>DOB:</strong> {format(dependent.dob, 'dd/MM/yyyy')}</p>
                         </div>
-                      </div>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-end mt-2">
-                        <div className="flex-1 mb-2 md:mb-0">
+                        <div className="col-span-1">
+                          <p className="text-sm "><strong>User ID:</strong> {dependent.userId}</p>
+                        </div>
+                        <div className="col-span-1"></div>
+                        
+                        {/* Row 2 - Sex and Status */}
+                        <div className="col-span-1">
                           <p className="text-sm"><strong>Sex:</strong> {dependent.sex}</p>
+                        </div>
+                        <div className="col-span-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">Status:</span>
+                            <span className={`inline-block text-xs px-2 py-1 rounded ${
+                              dependent.status === 'Active' 
+                                ? 'bg-green-100 text-green-800' 
+                                : dependent.status === 'Inactive'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {dependent.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="col-span-1"></div>
+                        
+                        {/* Row 3 - Relation and Modified */}
+                        <div className="col-span-1">
                           <p className="text-sm"><strong>Relation:</strong> {dependent.relation}</p>
                         </div>
-                        <div className="flex-1 mb-2 md:mb-0">
-                          <p className="text-sm"><strong>Status:</strong> {dependent.status}</p>
-                          <p className="text-sm"><strong>Modified:</strong> {format(dependent.dateModified, 'PPP')}</p>
+                        <div className="col-span-1">
+                          <p className="text-sm"><strong>Modified:</strong> {format(dependent.dateModified, 'dd/MM/yyyy')}</p>
                         </div>
-                        <div className="flex flex-wrap gap-2 items-center md:ml-4">
+                     
+                     
+                        <div className="col-span-1 flex flex-wrap gap-2 items-center justify-end">
                           {dependent.schoolChild && <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">School Child</span>}
                           {dependent.invalid && <span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Invalid</span>}
                           {dependent.dateOfDeath && <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Deceased</span>}

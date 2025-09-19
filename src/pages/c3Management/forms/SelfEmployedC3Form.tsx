@@ -176,12 +176,12 @@ export default function SelfEmployedC3Form({ data, mode = 'add', resetTrigger, o
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="ssn">Employer ID</Label>
+                <Label htmlFor="ssn">SSN</Label>
                 <Input
                   id="ssn"
                   value={formData.ssn}
                   onChange={(e) => handleFormChange("ssn", e.target.value)}
-                  placeholder="Enter Employer ID"
+                  placeholder="Enter SSN"
                   readOnly={isReadOnly}
                 />
               </div>
