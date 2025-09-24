@@ -117,7 +117,7 @@
   }
 
   .status-pending {
-    @apply bg-yellow-100 text-yellow-800;
+    @apply bg-orange-100 text-orange-800;
   }
 
   .status-inactive {
