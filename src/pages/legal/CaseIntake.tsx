@@ -16,11 +16,15 @@ const CaseIntake = () => {
   const [formData, setFormData] = useState({
     caseId: `LC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
     caseType: '',
+    status: 'Open',
     linkedParty: '',
     partyType: '',
     caseDescription: '',
     assignedOfficer: '',
     priority: 'Medium',
+    evidence: '',
+    actionsTaken: '',
+    nextSteps: '',
     dateCreated: new Date().toISOString().split('T')[0]
   });
 
@@ -68,7 +72,7 @@ const CaseIntake = () => {
   };
 
   const handleSubmit = () => {
-    if (!formData.caseType || !formData.linkedParty || !formData.caseDescription || !formData.assignedOfficer) {
+    if (!formData.caseType || !formData.linkedParty || !formData.caseDescription || !formData.assignedOfficer || !formData.nextSteps) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -252,6 +256,23 @@ const CaseIntake = () => {
               </Select>
             </div>
 
+            {/* Status */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Open">Open</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Under Review">Under Review</SelectItem>
+                  <SelectItem value="Resolved">Resolved</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Priority */}
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
@@ -273,6 +294,42 @@ const CaseIntake = () => {
                   {formData.priority} Priority
                 </Badge>
               </div>
+            </div>
+
+            {/* Evidence */}
+            <div className="space-y-2">
+              <Label htmlFor="evidence">Evidence & Documentation</Label>
+              <Textarea
+                id="evidence"
+                placeholder="List any evidence, documents, or supporting materials..."
+                value={formData.evidence}
+                onChange={(e) => handleInputChange('evidence', e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Actions Taken */}
+            <div className="space-y-2">
+              <Label htmlFor="actionsTaken">Actions Taken</Label>
+              <Textarea
+                id="actionsTaken"
+                placeholder="Describe any actions already taken or immediate steps..."
+                value={formData.actionsTaken}
+                onChange={(e) => handleInputChange('actionsTaken', e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Next Steps */}
+            <div className="space-y-2">
+              <Label htmlFor="nextSteps">Next Steps *</Label>
+              <Textarea
+                id="nextSteps"
+                placeholder="Outline the planned next steps and actions required..."
+                value={formData.nextSteps}
+                onChange={(e) => handleInputChange('nextSteps', e.target.value)}
+                rows={3}
+              />
             </div>
 
             <div className="pt-4 border-t">
