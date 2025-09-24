@@ -66,4 +66,18 @@ export const routes = {
 
   // Test routes
   TEST_DATA_ENTRY: '/test/data-entry',
+
+  // Legal Module routes
+  LEGAL_MODULE: '/legal',
+  LEGAL_CASE_INTAKE: '/legal/case-intake',
+  LEGAL_CASE_TRACKING: '/legal/case-tracking',
+  LEGAL_CASE_DETAIL: '/legal/case-detail/:id',
+  LEGAL_CASE_EDIT: '/legal/case-edit/:id',
+  LEGAL_NOTICES: '/legal/notices',
+  LEGAL_APPEALS: '/legal/appeals',
+  LEGAL_ENFORCEMENT: '/legal/enforcement',
+  LEGAL_EVIDENCE: '/legal/evidence',
+  LEGAL_REPORTS: '/legal/reports',
+  LEGAL_CASE_DETAIL_SPECIFIC: (id: string) => `/legal/case-detail/${id}`,
+  LEGAL_CASE_EDIT_SPECIFIC: (id: string) => `/legal/case-edit/${id}`,
 } as const;
