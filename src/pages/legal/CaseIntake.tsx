@@ -45,13 +45,13 @@ const CaseIntake = () => {
     { id: 'EMP-001', name: 'ABC Manufacturing Ltd', registrationNumber: 'REG-12345' },
     { id: 'EMP-002', name: 'XYZ Services Corp', registrationNumber: 'REG-23456' },
     { id: 'EMP-003', name: 'Tech Solutions Inc', registrationNumber: 'REG-34567' }
-  ];
+  ].filter(emp => emp.name && emp.registrationNumber);
 
   const mockInsuredPersons = [
     { id: 'IP-001', name: 'John Smith', ssn: '123-45-6789' },
     { id: 'IP-002', name: 'Jane Doe', ssn: '234-56-7890' },
     { id: 'IP-003', name: 'Robert Johnson', ssn: '345-67-8901' }
-  ];
+  ].filter(person => person.name && person.ssn);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -199,13 +199,19 @@ const CaseIntake = () => {
                     <SelectContent>
                       {formData.partyType === 'employer' ? (
                         mockEmployers.map((employer) => (
-                          <SelectItem key={employer.id} value={`${employer.name} (${employer.registrationNumber})`}>
+                          <SelectItem 
+                            key={employer.id} 
+                            value={`${employer.name} (${employer.registrationNumber})`}
+                          >
                             {employer.name} ({employer.registrationNumber})
                           </SelectItem>
                         ))
                       ) : (
                         mockInsuredPersons.map((person) => (
-                          <SelectItem key={person.id} value={`${person.name} (${person.ssn})`}>
+                          <SelectItem 
+                            key={person.id} 
+                            value={`${person.name} (${person.ssn})`}
+                          >
                             {person.name} ({person.ssn})
                           </SelectItem>
                         ))
