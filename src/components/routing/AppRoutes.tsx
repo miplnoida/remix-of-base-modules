@@ -93,6 +93,16 @@ import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 // Test pages
 import TestDataEntry from '@/pages/test/TestDataEntry';
 
+// Legal Module pages
+import NewLegalModule from '@/pages/legal/NewLegalModule';
+import CaseIntake from '@/pages/legal/CaseIntake';
+import CaseTracking from '@/pages/legal/CaseTracking';
+import NoticeGeneration from '@/pages/legal/NoticeGeneration';
+import AppealSubmission from '@/pages/legal/AppealSubmission';
+import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
+import EvidenceManagement from '@/pages/legal/EvidenceManagement';
+import LegalReports from '@/pages/legal/LegalReports';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -195,6 +205,16 @@ export const AppRoutes = () => {
       <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+
+      {/* Legal Module Routes */}
+      <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
+      <Route path="/legal/case-intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
+      <Route path="/legal/case-tracking" element={<ProtectedLayout><CaseTracking /></ProtectedLayout>} />
+      <Route path="/legal/notices" element={<ProtectedLayout><NoticeGeneration /></ProtectedLayout>} />
+      <Route path="/legal/appeals" element={<ProtectedLayout><AppealSubmission /></ProtectedLayout>} />
+      <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
+      <Route path="/legal/evidence" element={<ProtectedLayout><EvidenceManagement /></ProtectedLayout>} />
+      <Route path="/legal/reports" element={<ProtectedLayout><LegalReports /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
