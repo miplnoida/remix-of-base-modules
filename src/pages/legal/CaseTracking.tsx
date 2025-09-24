@@ -187,24 +187,24 @@ const CaseTracking = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="ALL">All Status</SelectItem>
                     <SelectItem value="Filed">Filed</SelectItem>
                     <SelectItem value="Under Review">Under Review</SelectItem>
                     <SelectItem value="In Legal Action">In Legal Action</SelectItem>
                     <SelectItem value="Resolved">Resolved</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v === 'ALL' ? '' : v)}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="ALL">All Types</SelectItem>
                     <SelectItem value="Non-Compliance">Non-Compliance</SelectItem>
                     <SelectItem value="Benefit Dispute">Benefit Dispute</SelectItem>
                     <SelectItem value="Appeal">Appeal</SelectItem>

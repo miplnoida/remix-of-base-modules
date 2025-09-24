@@ -285,12 +285,12 @@ const LegalReports = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Case Type</Label>
-                    <Select value={filters.caseType} onValueChange={(value) => setFilters(prev => ({ ...prev, caseType: value }))}>
+                    <Select value={filters.caseType} onValueChange={(value) => setFilters(prev => ({ ...prev, caseType: value === 'ALL' ? '' : value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Types" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Types</SelectItem>
+                        <SelectItem value="ALL">All Types</SelectItem>
                         <SelectItem value="Non-Compliance">Non-Compliance</SelectItem>
                         <SelectItem value="Benefit Dispute">Benefit Dispute</SelectItem>
                         <SelectItem value="Appeal">Appeal</SelectItem>
@@ -301,12 +301,12 @@ const LegalReports = () => {
 
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+                    <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value === 'ALL' ? '' : value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Status</SelectItem>
+                        <SelectItem value="ALL">All Status</SelectItem>
                         <SelectItem value="Filed">Filed</SelectItem>
                         <SelectItem value="Under Review">Under Review</SelectItem>
                         <SelectItem value="In Legal Action">In Legal Action</SelectItem>
@@ -317,12 +317,12 @@ const LegalReports = () => {
 
                   <div className="space-y-2">
                     <Label>Assigned Officer</Label>
-                    <Select value={filters.officer} onValueChange={(value) => setFilters(prev => ({ ...prev, officer: value }))}>
+                    <Select value={filters.officer} onValueChange={(value) => setFilters(prev => ({ ...prev, officer: value === 'ALL' ? '' : value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Officers" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Officers</SelectItem>
+                        <SelectItem value="ALL">All Officers</SelectItem>
                         <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
                         <SelectItem value="Michael Chen">Michael Chen</SelectItem>
                         <SelectItem value="Lisa Wang">Lisa Wang</SelectItem>
@@ -333,12 +333,12 @@ const LegalReports = () => {
 
                   <div className="space-y-2">
                     <Label>Priority</Label>
-                    <Select value={filters.priority} onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}>
+                    <Select value={filters.priority} onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value === 'ALL' ? '' : value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Priorities" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Priorities</SelectItem>
+                        <SelectItem value="ALL">All Priorities</SelectItem>
                         <SelectItem value="High">High</SelectItem>
                         <SelectItem value="Medium">Medium</SelectItem>
                         <SelectItem value="Low">Low</SelectItem>

@@ -296,23 +296,23 @@ const EvidenceManagement = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v === 'ALL' ? '' : v)}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="ALL">All Types</SelectItem>
                     {documentTypes.map((type) => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={caseFilter} onValueChange={setCaseFilter}>
+                <Select value={caseFilter} onValueChange={(v) => setCaseFilter(v === 'ALL' ? '' : v)}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="All Cases" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Cases</SelectItem>
+                    <SelectItem value="ALL">All Cases</SelectItem>
                     {mockCases.map((case_) => (
                       <SelectItem key={case_.id} value={case_.id}>{case_.id}</SelectItem>
                     ))}
