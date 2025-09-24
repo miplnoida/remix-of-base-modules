@@ -2,54 +2,54 @@ import { Scale, FileText, Gavel, AlertTriangle, Search, BarChart3 } from 'lucide
 
 export const legalMenuItems = [
   {
-    title: "Legal Module",
+    title: "NewLegal Module",
     icon: Scale,
-    items: [
+    subItems: [
       {
         title: "Legal Dashboard",
-        href: "/legal",
+        url: "/legal",
         icon: Scale,
         description: "Overview of legal cases and enforcement"
       },
       {
         title: "Case Intake",
-        href: "/legal/case-intake",
+        url: "/legal/case-intake",
         icon: FileText,
         description: "Register new legal cases"
       },
       {
         title: "Case Tracking",
-        href: "/legal/case-tracking",
+        url: "/legal/case-tracking",
         icon: Search,
         description: "Monitor case progress and status"
       },
       {
         title: "Notice Generation",
-        href: "/legal/notices",
+        url: "/legal/notices",
         icon: FileText,
         description: "Generate legal notices and documents"
       },
       {
         title: "Appeal Submission",
-        href: "/legal/appeals",
+        url: "/legal/appeals",
         icon: AlertTriangle,
         description: "Manage appeals and reviews"
       },
       {
         title: "Enforcement & Penalty",
-        href: "/legal/enforcement",
+        url: "/legal/enforcement",
         icon: Gavel,
         description: "Track enforcement actions and penalties"
       },
       {
         title: "Evidence Management",
-        href: "/legal/evidence",
+        url: "/legal/evidence",
         icon: FileText,
         description: "Manage documents and evidence"
       },
       {
         title: "Reports & Analytics",
-        href: "/legal/reports",
+        url: "/legal/reports",
         icon: BarChart3,
         description: "Generate legal reports and analytics"
       }
