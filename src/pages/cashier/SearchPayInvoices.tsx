@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Search, CreditCard, Receipt, DollarSign, Plus, Trash2 } from 'lucide-react';
 import { mockInvoices } from '@/data/mockInvoices';
 import { Invoice } from '@/types/invoice';
+import { getActiveBanks } from '@/data/bankData';
 
 interface PaymentSplit {
   id: string;
@@ -30,6 +31,8 @@ const SearchPayInvoices: React.FC = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  
+  const banks = getActiveBanks();
 
   const filteredInvoices = useMemo(() => {
     return mockInvoices.filter(invoice => {
@@ -388,11 +391,21 @@ const SearchPayInvoices: React.FC = () => {
                               </div>
                               <div className="space-y-2">
                                 <Label>Bank Name</Label>
-                                <Input
-                                  value={split.bankName || ''}
-                                  onChange={(e) => updatePaymentSplit(split.id, 'bankName', e.target.value)}
-                                  placeholder="Enter bank name"
-                                />
+                                  <Select
+                                    value={split.bankName || ''}
+                                    onValueChange={(value) => updatePaymentSplit(split.id, 'bankName', value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select bank" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {banks.map(bank => (
+                                        <SelectItem key={bank.id} value={bank.name}>
+                                          {bank.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                               </div>
                             </div>
                           )}

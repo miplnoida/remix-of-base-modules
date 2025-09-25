@@ -102,6 +102,7 @@ import CaseEditView from '@/pages/legal/CaseEditView';
 
 import MiscellaneousPayments from '@/pages/cashier/MiscellaneousPayments';
 import C3Payments from '@/pages/cashier/C3Payments';
+import EFTEntry from '@/pages/cashier/EFTEntry';
 import CashDetails from '@/pages/cashier/CashDetails';
 import FundsTransfer from '@/pages/cashier/FundsTransfer';
 import Receipt from '@/pages/cashier/Receipt';
@@ -242,6 +243,7 @@ export const AppRoutes = () => {
       {/* Traditional Payment Processing */}
       <Route path="/cashier/misc-payments" element={<ProtectedLayout><MiscellaneousPayments /></ProtectedLayout>} />
       <Route path="/cashier/c3-payments" element={<ProtectedLayout><C3Payments /></ProtectedLayout>} />
+      <Route path="/cashier/eft-entry" element={<ProtectedLayout><EFTEntry /></ProtectedLayout>} />
       <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
       <Route path="/cashier/funds-transfer" element={<ProtectedLayout><FundsTransfer /></ProtectedLayout>} />
       <Route path="/cashier/check-management" element={<ProtectedLayout><CheckManagement /></ProtectedLayout>} />

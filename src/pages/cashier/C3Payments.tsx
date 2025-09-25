@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { 
   CreditCard, 
@@ -20,9 +21,12 @@ import {
   Calculator,
   AlertTriangle,
   Banknote,
-  CheckSquare
+  CheckSquare,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getActiveBanks } from '@/data/bankData';
+import { getActivePaymentHeads, type PaymentHead } from '@/data/c3PaymentHeads';
 
 interface PaymentSplit {
   id: string;
@@ -34,12 +38,23 @@ interface PaymentSplit {
   cardReference?: string;
 }
 
+interface C3PaymentDetail {
+  paymentHeadId: string;
+  paymentHeadName: string;
+  amount: number;
+  period: string;
+  glAccount?: string;
+}
+
 interface C3Payment {
   id: string;
   employerName: string;
   employerId: string;
   period: string;
+  month: number;
+  year: number;
   totalAmount: number;
+  paymentDetails: C3PaymentDetail[];
   paymentSplits: PaymentSplit[];
   receiptNumber: string;
   batchId: string;
@@ -68,6 +83,14 @@ const C3Payments: React.FC = () => {
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [payments, setPayments] = useState<C3Payment[]>([]);
   const [isEmployerDialogOpen, setIsEmployerDialogOpen] = useState(false);
+  
+  // C3 Period and Payment Heads
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedPaymentHeads, setSelectedPaymentHeads] = useState<{[key: string]: number}>({});
+  
+  const banks = getActiveBanks();
+  const paymentHeads = getActivePaymentHeads();
 
   // Mock employers data
   const mockEmployers = [
@@ -158,16 +181,17 @@ const C3Payments: React.FC = () => {
       return;
     }
 
-    if (!c3Amount || parseFloat(c3Amount) <= 0) {
-      toast.error('Please enter a valid C3 amount');
+    const totalC3Amount = Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0);
+    
+    if (totalC3Amount <= 0) {
+      toast.error('Please select payment heads and enter valid amounts');
       return;
     }
 
     const totalSplitAmount = getTotalAmount();
-    const expectedAmount = parseFloat(c3Amount);
 
-    if (Math.abs(totalSplitAmount - expectedAmount) > 0.01) {
-      toast.error(`Payment splits (${totalSplitAmount.toFixed(2)}) must equal C3 amount (${expectedAmount.toFixed(2)})`);
+    if (Math.abs(totalSplitAmount - totalC3Amount) > 0.01) {
+      toast.error(`Payment splits (${totalSplitAmount.toFixed(2)}) must equal C3 amount (${totalC3Amount.toFixed(2)})`);
       return;
     }
 
@@ -183,12 +207,31 @@ const C3Payments: React.FC = () => {
       }
     }
 
+    // Create payment details from selected payment heads
+    const paymentDetails: C3PaymentDetail[] = Object.entries(selectedPaymentHeads)
+      .filter(([_, amount]) => amount > 0)
+      .map(([headId, amount]) => {
+        const head = paymentHeads.find(h => h.id === headId);
+        return {
+          paymentHeadId: headId,
+          paymentHeadName: head?.name || '',
+          amount,
+          period: `${selectedMonth.toString().padStart(2, '0')}/${selectedYear}`,
+          glAccount: head?.glAccount
+        };
+      });
+
+    const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
+    
     const newPayment: C3Payment = {
       id: Date.now().toString(),
       employerName: selectedEmployer.name,
       employerId: selectedEmployer.id,
-      period: 'September 2024', // This would come from form
-      totalAmount: expectedAmount,
+      period: `${monthName} ${selectedYear}`,
+      month: selectedMonth,
+      year: selectedYear,
+      totalAmount: totalC3Amount,
+      paymentDetails,
       paymentSplits: [...paymentSplits],
       receiptNumber: generateReceiptNumber(),
       batchId: activeBatch.id,
@@ -200,7 +243,7 @@ const C3Payments: React.FC = () => {
     
     // Reset form
     setSelectedEmployer(null);
-    setC3Amount('');
+    setSelectedPaymentHeads({});
     setPaymentSplits([]);
     addPaymentSplit();
     setIsEmployerDialogOpen(false);
@@ -210,7 +253,10 @@ const C3Payments: React.FC = () => {
 
   const selectEmployer = (employer: any) => {
     setSelectedEmployer(employer);
-    setC3Amount(employer.c3Outstanding.toString());
+    // Auto-select Social Security if outstanding amount exists
+    if (employer.c3Outstanding > 0) {
+      setSelectedPaymentHeads({ 'SS_REGULAR': employer.c3Outstanding });
+    }
     setIsEmployerDialogOpen(false);
   };
 
@@ -342,17 +388,103 @@ const C3Payments: React.FC = () => {
                 </div>
               </div>
 
-              {/* C3 Amount */}
-              <div className="space-y-2">
-                <Label htmlFor="c3Amount">C3 Amount</Label>
-                <Input
-                  id="c3Amount"
-                  type="number"
-                  step="0.01"
-                  value={c3Amount}
-                  onChange={(e) => setC3Amount(e.target.value)}
-                  placeholder="0.00"
-                />
+              {/* C3 Period Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Month</Label>
+                  <Select
+                    value={selectedMonth.toString()}
+                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          {new Date(2024, i).toLocaleString('default', { month: 'long' })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Year</Label>
+                  <Select
+                    value={selectedYear.toString()}
+                    onValueChange={(value) => setSelectedYear(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => (
+                        <SelectItem key={i} value={(new Date().getFullYear() - 5 + i).toString()}>
+                          {new Date().getFullYear() - 5 + i}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Payment Heads Selection */}
+              <div className="space-y-4">
+                <Label className="text-base font-medium">C3 Payment Components</Label>
+                <div className="grid grid-cols-1 gap-3">
+                  {paymentHeads.map(head => (
+                    <div key={head.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={!!selectedPaymentHeads[head.id]}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedPaymentHeads(prev => ({ ...prev, [head.id]: 0 }));
+                            } else {
+                              setSelectedPaymentHeads(prev => {
+                                const newHeads = { ...prev };
+                                delete newHeads[head.id];
+                                return newHeads;
+                              });
+                            }
+                          }}
+                        />
+                        <div>
+                          <div className="font-medium text-sm">{head.name}</div>
+                          <div className="text-xs text-muted-foreground">{head.description}</div>
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {head.category}
+                          </Badge>
+                        </div>
+                      </div>
+                      {selectedPaymentHeads[head.id] !== undefined && (
+                        <div className="w-32">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={selectedPaymentHeads[head.id] || ''}
+                            onChange={(e) => setSelectedPaymentHeads(prev => ({
+                              ...prev,
+                              [head.id]: parseFloat(e.target.value) || 0
+                            }))}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total C3 Amount Display */}
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <Label className="text-base font-medium">Total C3 Amount</Label>
+                  <div className="text-xl font-bold">
+                    EC$ {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}
+                  </div>
+                </div>
               </div>
 
               <Separator />
@@ -441,11 +573,21 @@ const C3Payments: React.FC = () => {
                         </div>
                         <div className="space-y-2">
                           <Label>Bank Name</Label>
-                          <Input
+                          <Select
                             value={split.bankName || ''}
-                            onChange={(e) => updatePaymentSplit(split.id, 'bankName', e.target.value)}
-                            placeholder="Enter bank name"
-                          />
+                            onValueChange={(value) => updatePaymentSplit(split.id, 'bankName', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select bank" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {banks.map(bank => (
+                                <SelectItem key={bank.id} value={bank.name}>
+                                  {bank.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     )}

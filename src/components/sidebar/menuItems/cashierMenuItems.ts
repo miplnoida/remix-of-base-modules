@@ -35,6 +35,12 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_operations"
       },
       {
+        title: "EFT Entry",
+        url: "/cashier/eft-entry",
+        icon: Archive,
+        requiresPermission: "cashier_operations"
+      },
+      {
         title: "Cash Details Entry",
         url: "/cashier/cash-details",
         icon: Calculator,
