@@ -164,11 +164,11 @@ const SearchPayInvoices: React.FC = () => {
         workstation: 'WS-MAIN-01'
       },
       organizationDetails: {
-        name: 'DOMINICA SOCIAL SECURITY',
-        address: 'Bay Front, Roseau, Commonwealth of Dominica',
-        phone: '(767) 266-3608',
-        email: 'info@socialsecurity.dm',
-        website: 'www.socialsecurity.dm'
+        name: 'ST KITTS AND NEVIS SOCIAL SECURITY DEPARTMENT',
+        address: 'P.O. Box 96, Social Security Building, Cayon Street, Basseterre, St. Kitts',
+        phone: '(869) 465-5000',
+        email: 'info@socialsecurity.kn',
+        website: 'www.socialsecurity.kn'
       },
       fees: selectedInvoiceDetails.map(inv => ({
         description: `Invoice ${inv.invoiceNumber} - ${inv.description}`,

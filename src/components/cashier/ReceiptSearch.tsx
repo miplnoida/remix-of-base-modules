@@ -45,7 +45,7 @@ const ReceiptSearch: React.FC = () => {
       registrationNumber: 'EMP-2023-001',
       paymentType: 'C3 Contribution',
       amount: 15750.00,
-      currency: 'EC$',
+      currency: 'XCD',
       paymentDate: new Date('2024-01-15'),
       cashierName: 'Maria Rodriguez',
       status: 'Active',
@@ -59,7 +59,7 @@ const ReceiptSearch: React.FC = () => {
       ssn: '123-45-6789',
       paymentType: 'Voluntary Contribution',
       amount: 850.00,
-      currency: 'EC$',
+      currency: 'XCD',
       paymentDate: new Date('2024-01-15'),
       cashierName: 'Sandra Williams',
       status: 'Active',
@@ -73,7 +73,7 @@ const ReceiptSearch: React.FC = () => {
       registrationNumber: 'ORG-2020-045',
       paymentType: 'Service Fee',
       amount: 2500.00,
-      currency: 'EC$',
+      currency: 'XCD',
       paymentDate: new Date('2024-01-16'),
       cashierName: 'David Clarke',
       status: 'Active',
@@ -87,7 +87,7 @@ const ReceiptSearch: React.FC = () => {
       registrationNumber: 'EMP-2023-089',
       paymentType: 'C3 Contribution',
       amount: 12300.00,
-      currency: 'EC$',
+      currency: 'XCD',
       paymentDate: new Date('2024-01-16'),
       cashierName: 'Maria Rodriguez',
       status: 'Active',
@@ -161,11 +161,11 @@ const ReceiptSearch: React.FC = () => {
         workstation: 'WS-MAIN-01'
       },
       organizationDetails: {
-        name: 'DOMINICA SOCIAL SECURITY',
-        address: 'Bay Front, Roseau, Commonwealth of Dominica',
-        phone: '(767) 266-3608',
-        email: 'info@socialsecurity.dm',
-        website: 'www.socialsecurity.dm'
+        name: 'ST KITTS AND NEVIS SOCIAL SECURITY DEPARTMENT',
+        address: 'P.O. Box 96, Social Security Building, Cayon Street, Basseterre, St. Kitts',
+        phone: '(869) 465-5000',
+        email: 'info@socialsecurity.kn',
+        website: 'www.socialsecurity.kn'
       },
       contributionDetails: receiptRecord.paymentType.includes('Contribution') ? {
         period: 'January 2024',

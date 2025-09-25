@@ -87,7 +87,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({
   const handleCopyReceipt = () => {
     // Generate receipt text and copy to clipboard
     const receiptText = `
-DOMINICA SOCIAL SECURITY
+ST KITTS AND NEVIS SOCIAL SECURITY DEPARTMENT
 ${receiptData.organizationDetails.address}
 ${receiptData.organizationDetails.phone}
 

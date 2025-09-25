@@ -6,7 +6,7 @@ export interface Invoice {
   payerType: 'employer' | 'individual' | 'contributor';
   payerId: string;
   amount: number;
-  currency: 'EC$' | 'US$';
+  currency: 'XCD' | 'USD';
   status: 'pending' | 'partial' | 'paid' | 'overdue';
   createdDate: string;
   dueDate: string;
@@ -27,7 +27,7 @@ export interface Payment {
   invoiceIds: string[];
   payerName: string;
   totalAmount: number;
-  currency: 'EC$' | 'US$';
+  currency: 'XCD' | 'USD';
   paymentMode: 'cash' | 'check' | 'card' | 'eft';
   paymentDate: string;
   batchId: string;
@@ -57,12 +57,12 @@ export interface DailyBatch {
   status: 'open' | 'closed' | 'balanced' | 'posted';
   
   // Opening balances
-  openingCashEC: number;
-  openingCashUS: number;
+  openingCashXCD: number;
+  openingCashUSD: number;
   
   // Closing balances
-  closingCashEC?: number;
-  closingCashUS?: number;
+  closingCashXCD?: number;
+  closingCashUSD?: number;
   
   // Payment totals
   totalCash: number;
@@ -72,8 +72,8 @@ export interface DailyBatch {
   grandTotal: number;
   
   // Denomination breakdown
-  denominationsEC?: { [key: string]: number };
-  denominationsUS?: { [key: string]: number };
+  denominationsXCD?: { [key: string]: number };
+  denominationsUSD?: { [key: string]: number };
   
   // Variance
   systemTotal: number;
@@ -95,7 +95,7 @@ export interface CheckRegisterEntry {
   payerName: string;
   bankName: string;
   amount: number;
-  currency: 'EC$' | 'US$';
+  currency: 'XCD' | 'USD';
   invoiceNumber: string;
   receiptNumber: string;
   date: string;
@@ -112,7 +112,7 @@ export interface GLPostingEntry {
   accountName: string;
   debit: number;
   credit: number;
-  currency: 'EC$' | 'US$';
+  currency: 'XCD' | 'USD';
   description: string;
   reference: string;
   postingDate: string;
@@ -125,8 +125,8 @@ export interface SageSettings {
   lastSyncDate?: string;
   autoSync: boolean;
   syncFrequency: 'manual' | 'daily' | 'weekly';
-  defaultBankAccountEC: string;
-  defaultBankAccountUS: string;
+  defaultBankAccountXCD: string;
+  defaultBankAccountUSD: string;
   chartOfAccounts: { [key: string]: string };
   testConnection: boolean;
 }

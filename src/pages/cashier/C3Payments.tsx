@@ -27,7 +27,7 @@ import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview
 
 interface PaymentSplit {
   id: string;
-  currency: 'EC$' | 'US$';
+  currency: 'XCD' | 'USD';
   paymentMode: 'cash' | 'check' | 'card' | 'eft';
   amount: number;
   checkNumber?: string;
@@ -150,7 +150,7 @@ const C3Payments: React.FC = () => {
   const addPaymentSplit = () => {
     const newSplit: PaymentSplit = {
       id: Date.now().toString(),
-      currency: 'EC$',
+      currency: 'XCD',
       paymentMode: 'cash',
       amount: 0
     };
@@ -372,7 +372,7 @@ const C3Payments: React.FC = () => {
                                   {payer.businessName && ` | Business: ${payer.businessName}`}
                                 </div>
                                 <div className="text-sm text-green-600">
-                                  Outstanding: EC$ {(payer.c3Outstanding || payer.outstandingAmount || 0).toFixed(2)}
+                                  Outstanding: XCD {(payer.c3Outstanding || payer.outstandingAmount || 0).toFixed(2)}
                                 </div>
                               </div>
                             ))}
@@ -489,7 +489,7 @@ const C3Payments: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <Label className="text-base font-medium">Total Amount</Label>
                     <div className="text-xl font-bold">
-                      EC$ {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}
+                      XCD {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -552,8 +552,8 @@ const C3Payments: React.FC = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="EC$">EC$</SelectItem>
-                          <SelectItem value="US$">US$</SelectItem>
+                          <SelectItem value="XCD">XCD</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -625,16 +625,16 @@ const C3Payments: React.FC = () => {
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <div>
                   <div className="text-sm text-muted-foreground">Total Payment Splits</div>
-                  <div className="font-semibold">EC$ {getTotalAmount().toFixed(2)}</div>
+                  <div className="font-semibold">XCD {getTotalAmount().toFixed(2)}</div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">C3 Amount</div>
-                  <div className="font-semibold">EC$ {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}</div>
+                  <div className="font-semibold">XCD {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}</div>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Difference</div>
                   <div className={`font-semibold ${Math.abs(getTotalAmount() - Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0)) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
-                    EC$ {(getTotalAmount() - Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0)).toFixed(2)}
+                    XCD {(getTotalAmount() - Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0)).toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -666,7 +666,7 @@ const C3Payments: React.FC = () => {
                       <Badge variant="outline" className="text-xs">{payment.receiptNumber}</Badge>
                     </div>
                     <div className="text-sm text-muted-foreground mb-2">
-                      Total: EC$ {payment.totalAmount.toFixed(2)} | Period: {payment.period}
+                      Total: XCD {payment.totalAmount.toFixed(2)} | Period: {payment.period}
                     </div>
                     <div className="space-y-1">
                       {payment.paymentSplits.map(split => (
