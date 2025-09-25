@@ -246,6 +246,61 @@ const C3Payments: React.FC = () => {
 
     setPayments(prev => [...prev, newPayment]);
     
+    // Create receipt data for preview
+    const receiptData: ReceiptData = {
+      receiptNumber: newPayment.receiptNumber,
+      batchId: newPayment.batchId,
+      paymentDate: new Date(),
+      status: 'Active',
+      payerDetails: {
+        name: selectedPayer.name,
+        payerType: payerType === 'employer' ? 'Employer' : 
+                  payerType === 'insured_person' ? 'Insured Person' :
+                  payerType === 'self_employed' ? 'Individual' : 'Individual',
+        registrationNumber: selectedPayer.id,
+        ssn: selectedPayer.nationalId
+      },
+      paymentDetails: {
+        paymentType: 'C3 Contribution',
+        paymentMethod: paymentSplits.map(split => split.paymentMode).join(', '),
+        currency: paymentSplits[0]?.currency || 'XCD',
+        amount: totalC3Amount,
+        checkNumber: paymentSplits.find(s => s.paymentMode === 'check')?.checkNumber,
+        bankName: paymentSplits.find(s => s.paymentMode === 'check')?.bankName,
+        referenceNumber: referenceNumber,
+        invoiceReference: `C3-${monthName}-${selectedYear}`
+      },
+      contributionDetails: {
+        period: `${monthName} ${selectedYear}`,
+        employeeContribution: paymentDetails.find(p => p.paymentHeadName.includes('Employee'))?.amount || 0,
+        employerContribution: paymentDetails.find(p => p.paymentHeadName.includes('Employer'))?.amount || totalC3Amount,
+        totalContribution: totalC3Amount,
+        contributorType: payerType === 'employer' ? 'employer' : 'insured'
+      },
+      cashierDetails: {
+        cashierId: 'CASH001',
+        cashierName: user?.email || 'Current User',
+        terminalId: 'TERM-01',
+        workstation: 'WS-MAIN-01'
+      },
+      organizationDetails: {
+        name: 'ST KITTS AND NEVIS SOCIAL SECURITY DEPARTMENT',
+        address: 'P.O. Box 96, Social Security Building, Cayon Street, Basseterre, St. Kitts',
+        phone: '(869) 465-5000',
+        email: 'info@socialsecurity.kn',
+        website: 'www.socialsecurity.kn'
+      },
+      fees: paymentDetails.map(detail => ({
+        description: `${detail.paymentHeadName} - ${detail.period}`,
+        amount: detail.amount
+      })),
+      notes: referenceNumber ? `Reference: ${referenceNumber}` : undefined
+    };
+
+    // Show receipt preview
+    setCurrentReceiptData(receiptData);
+    setIsReceiptPreviewOpen(true);
+    
     // Reset form
     setSelectedPayer(null);
     setSelectedPaymentHeads({});
