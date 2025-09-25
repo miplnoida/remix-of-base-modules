@@ -294,7 +294,7 @@ const C3Payments: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              C3 Payment Processing
+              Payment Processing
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
