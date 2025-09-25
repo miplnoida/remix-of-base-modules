@@ -87,7 +87,13 @@ export const cashierMenuItems = [
         url: "/cashier/gl-posting",
         icon: TrendingUp,
         requiresPermission: "cashier_supervisor"
-      },
+      }
+    ]
+  },
+  {
+    title: "Sage Integrations Settings",
+    icon: Settings,
+    subItems: [
       {
         title: "Chart of Accounts Mapping",
         url: "/cashier/chart-accounts-mapping",
