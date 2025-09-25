@@ -99,6 +99,11 @@ import CaseIntake from '@/pages/legal/CaseIntake';
 import CaseTracking from '@/pages/legal/CaseTracking';
 import CaseDetailView from '@/pages/legal/CaseDetailView';
 import CaseEditView from '@/pages/legal/CaseEditView';
+
+// Cashier & Payments
+import PaymentCollection from '@/pages/cashier/PaymentCollection';
+import BatchManagement from '@/pages/cashier/BatchManagement';
+import CashierReports from '@/pages/cashier/CashierReports';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
 import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
@@ -219,6 +224,11 @@ export const AppRoutes = () => {
       <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
       <Route path="/legal/evidence" element={<ProtectedLayout><EvidenceManagement /></ProtectedLayout>} />
       <Route path="/legal/reports" element={<ProtectedLayout><LegalReports /></ProtectedLayout>} />
+
+      {/* Cashier & Payments Routes */}
+      <Route path="/cashier/payment-collection" element={<ProtectedLayout><PaymentCollection /></ProtectedLayout>} />
+      <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
+      <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
