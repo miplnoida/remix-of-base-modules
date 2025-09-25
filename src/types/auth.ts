@@ -17,7 +17,10 @@ export type UserRole =
   | 'employer_liaison'
   | 'field_inspector'
   | 'data_entry_clerk'
-  | 'legal_officer';
+  | 'legal_officer'
+  | 'accounts_manager'
+  | 'cashier'
+  | 'cashier_supervisor';
 
 export type Department = 
   | 'administration'
@@ -28,7 +31,8 @@ export type Department =
   | 'employer_relations'
   | 'field_operations'
   | 'data_management'
-  | 'legal';
+  | 'legal'
+  | 'accounts';
 
 export type Permission = 
   | 'view_dashboard'
@@ -45,4 +49,8 @@ export type Permission =
   | 'manage_documents'
   | 'system_administration'
   | 'benefits_management'
-  | 'reports_analytics';
+  | 'reports_analytics'
+  | 'cashier_operations'
+  | 'cashier_supervisor'
+  | 'cashier_reports'
+  | 'system_admin';

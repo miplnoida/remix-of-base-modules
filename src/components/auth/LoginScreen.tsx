@@ -54,6 +54,9 @@ export const LoginScreen = () => {
 
   const demoCredentials = [
     { email: 'admin@secureserve.gov', role: 'System Administrator' },
+    { email: 'accounts@secureserve.gov', role: 'Accounts Manager' },
+    { email: 'cashier@secureserve.gov', role: 'Cashier Officer' },
+    { email: 'supervisor@secureserve.gov', role: 'Cashier Supervisor' },
     { email: 'hr@secureserve.gov', role: 'HR Manager' },
     { email: 'compliance@secureserve.gov', role: 'Compliance Officer' },
     { email: 'benefits@secureserve.gov', role: 'Benefits Manager' },

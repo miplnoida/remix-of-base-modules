@@ -110,10 +110,14 @@ import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
 import EvidenceManagement from '@/pages/legal/EvidenceManagement';
 import LegalReports from '@/pages/legal/LegalReports';
 
+// Authentication
+import DummyLoginPage from '@/pages/auth/DummyLoginPage';
+
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
+      <Route path="/demo-login" element={<DummyLoginPage />} />
       
       {/* Dashboard */}
       <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />

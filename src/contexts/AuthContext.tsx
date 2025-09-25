@@ -42,7 +42,11 @@ const mockUsers: User[] = [
       'manage_documents',
       'system_administration',
       'benefits_management',
-      'reports_analytics'
+      'reports_analytics',
+      'cashier_operations',
+      'cashier_supervisor',
+      'cashier_reports',
+      'system_admin'
     ]
   },
   {
@@ -76,6 +80,49 @@ const mockUsers: User[] = [
     role: 'legal_officer',
     department: 'legal',
     permissions: ['view_dashboard', 'manage_compliance', 'conduct_inspections', 'generate_reports', 'manage_legal_proceedings']
+  },
+  {
+    id: '6',
+    email: 'accounts@secureserve.gov',
+    name: 'Accounts Manager',
+    role: 'accounts_manager',
+    department: 'accounts',
+    permissions: [
+      'view_dashboard', 
+      'view_financial_data', 
+      'generate_reports', 
+      'cashier_operations',
+      'cashier_supervisor',
+      'cashier_reports',
+      'reports_analytics'
+    ]
+  },
+  {
+    id: '7',
+    email: 'cashier@secureserve.gov',
+    name: 'Cashier Officer',
+    role: 'cashier',
+    department: 'accounts',
+    permissions: [
+      'view_dashboard', 
+      'cashier_operations',
+      'cashier_reports'
+    ]
+  },
+  {
+    id: '8',
+    email: 'supervisor@secureserve.gov',
+    name: 'Cashier Supervisor',
+    role: 'cashier_supervisor',
+    department: 'accounts',
+    permissions: [
+      'view_dashboard', 
+      'cashier_operations',
+      'cashier_supervisor',
+      'cashier_reports',
+      'view_financial_data',
+      'reports_analytics'
+    ]
   }
 ];
 
