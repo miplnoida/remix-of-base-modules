@@ -31,6 +31,14 @@ export interface ReceiptData {
     referenceNumber?: string;
     invoiceReference?: string;
   };
+  paymentSplits?: Array<{
+    paymentMode: string;
+    currency: string;
+    amount: number;
+    checkNumber?: string;
+    bankName?: string;
+    checkDate?: string;
+  }>;
   contributionDetails?: {
     period: string;
     employeeContribution: number;
@@ -222,36 +230,54 @@ Terminal: ${receiptData.cashierDetails.terminalId || 'N/A'}
               {/* Payment Details */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Payment Details</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
                     <div className="mb-2">
                       <strong>Payment Type:</strong> {receiptData.paymentDetails.paymentType}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Payment Method:</strong> {receiptData.paymentDetails.paymentMethod}
                     </div>
                     <div className="mb-2">
                       <strong>Currency:</strong> {receiptData.paymentDetails.currency}
                     </div>
                   </div>
                   <div>
-                    {receiptData.paymentDetails.checkNumber && (
-                      <div className="mb-2">
-                        <strong>Check Number:</strong> {receiptData.paymentDetails.checkNumber}
-                      </div>
-                    )}
-                    {receiptData.paymentDetails.bankName && (
-                      <div className="mb-2">
-                        <strong>Bank:</strong> {receiptData.paymentDetails.bankName}
-                      </div>
-                    )}
                     {receiptData.paymentDetails.referenceNumber && (
                       <div className="mb-2">
                         <strong>Reference:</strong> {receiptData.paymentDetails.referenceNumber}
                       </div>
                     )}
+                    {receiptData.paymentDetails.invoiceReference && (
+                      <div className="mb-2">
+                        <strong>Invoice Reference:</strong> {receiptData.paymentDetails.invoiceReference}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Payment Splits */}
+                {receiptData.paymentSplits && receiptData.paymentSplits.length > 0 && (
+                  <div className="bg-gray-50 p-3 rounded">
+                    <h4 className="text-md font-semibold mb-2">Payment Methods Used</h4>
+                    <div className="space-y-2">
+                      {receiptData.paymentSplits.map((split, index) => (
+                        <div key={index} className="flex justify-between items-start border-b border-gray-200 pb-2 last:border-b-0">
+                          <div className="flex-1">
+                            <div className="font-medium capitalize">{split.paymentMode}</div>
+                            <div className="text-xs text-gray-600">
+                              {split.currency} {split.amount.toFixed(2)}
+                            </div>
+                            {split.checkNumber && (
+                              <div className="text-xs text-gray-600 mt-1">
+                                Check: {split.checkNumber}
+                                {split.bankName && ` (${split.bankName})`}
+                                {split.checkDate && ` - ${split.checkDate}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Contribution Details (if applicable) */}

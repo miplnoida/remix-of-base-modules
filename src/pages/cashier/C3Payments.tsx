@@ -262,7 +262,8 @@ const C3Payments: React.FC = () => {
       },
       paymentDetails: {
         paymentType: 'C3 Contribution',
-        paymentMethod: paymentSplits.map(split => split.paymentMode).join(', '),
+        paymentMethod: paymentSplits.length > 1 ? `${paymentSplits.length} Payment Methods` : 
+                      paymentSplits[0]?.paymentMode || 'Cash',
         currency: paymentSplits[0]?.currency || 'XCD',
         amount: totalC3Amount,
         checkNumber: paymentSplits.find(s => s.paymentMode === 'check')?.checkNumber,
@@ -270,6 +271,14 @@ const C3Payments: React.FC = () => {
         referenceNumber: referenceNumber,
         invoiceReference: `C3-${monthName}-${selectedYear}`
       },
+      paymentSplits: paymentSplits.map(split => ({
+        paymentMode: split.paymentMode,
+        currency: split.currency,
+        amount: split.amount,
+        checkNumber: split.checkNumber,
+        bankName: split.bankName,
+        checkDate: split.checkDate
+      })),
       contributionDetails: {
         period: `${monthName} ${selectedYear}`,
         employeeContribution: paymentDetails.find(p => p.paymentHeadName.includes('Employee'))?.amount || 0,
