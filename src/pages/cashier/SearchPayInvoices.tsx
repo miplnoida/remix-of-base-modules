@@ -146,8 +146,8 @@ const SearchPayInvoices: React.FC = () => {
         payerType: firstInvoice.payerType === 'employer' ? 'Employer' : 
                    firstInvoice.payerType === 'individual' ? 'Individual' : 
                    firstInvoice.payerType === 'contributor' ? 'Insured Person' : 'Organization',
-        address: '123 Main Street, Roseau, Dominica',
-        contact: '(767) 123-4567'
+        address: '123 Main Street, Basseterre, St. Kitts',
+        contact: '(869) 123-4567'
       },
       paymentDetails: {
         paymentType: 'Invoice Payment',
@@ -157,6 +157,14 @@ const SearchPayInvoices: React.FC = () => {
         invoiceReference: selectedInvoices.join(', '),
         referenceNumber: `INV-${receiptNumber}`
       },
+      paymentSplits: paymentSplits.map(split => ({
+        paymentMode: split.paymentMode,
+        currency: split.currency,
+        amount: split.amount,
+        checkNumber: split.checkNumber,
+        bankName: split.bankName,
+        cardReference: split.cardReference
+      })),
       cashierDetails: {
         cashierId: 'CASH001',
         cashierName: 'Current User',
