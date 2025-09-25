@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,21 +9,26 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Search, CreditCard, Receipt, DollarSign } from 'lucide-react';
+import { Search, CreditCard, Receipt, DollarSign, Plus, Trash2 } from 'lucide-react';
 import { mockInvoices } from '@/data/mockInvoices';
 import { Invoice } from '@/types/invoice';
+
+interface PaymentSplit {
+  id: string;
+  currency: 'EC$' | 'US$';
+  paymentMode: 'cash' | 'check' | 'card' | 'eft';
+  amount: number;
+  checkNumber?: string;
+  bankName?: string;
+  cardReference?: string;
+}
 
 const SearchPayInvoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'invoice' | 'payer'>('invoice');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-  const [paymentMode, setPaymentMode] = useState<'cash' | 'check' | 'card' | 'eft'>('cash');
-  const [checkDetails, setCheckDetails] = useState({
-    checkNumber: '',
-    bankName: '',
-    checkDate: ''
-  });
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   const filteredInvoices = useMemo(() => {
@@ -46,6 +51,37 @@ const SearchPayInvoices: React.FC = () => {
     return selectedInvoiceDetails.reduce((sum, inv) => sum + inv.balanceAmount, 0);
   }, [selectedInvoiceDetails]);
 
+  useEffect(() => {
+    // Initialize with one payment split
+    addPaymentSplit();
+  }, []);
+
+  const addPaymentSplit = () => {
+    const newSplit: PaymentSplit = {
+      id: Date.now().toString(),
+      currency: 'EC$',
+      paymentMode: 'cash',
+      amount: 0
+    };
+    setPaymentSplits(prev => [...prev, newSplit]);
+  };
+
+  const updatePaymentSplit = (id: string, field: keyof PaymentSplit, value: any) => {
+    setPaymentSplits(prev => prev.map(split => 
+      split.id === id ? { ...split, [field]: value } : split
+    ));
+  };
+
+  const removePaymentSplit = (id: string) => {
+    if (paymentSplits.length > 1) {
+      setPaymentSplits(prev => prev.filter(split => split.id !== id));
+    }
+  };
+
+  const getTotalPaymentAmount = () => {
+    return paymentSplits.reduce((sum, split) => sum + (split.amount || 0), 0);
+  };
+
   const handleInvoiceSelection = (invoiceId: string, checked: boolean) => {
     if (checked) {
       setSelectedInvoices(prev => [...prev, invoiceId]);
@@ -67,9 +103,22 @@ const SearchPayInvoices: React.FC = () => {
       return;
     }
 
-    if (paymentMode === 'check' && (!checkDetails.checkNumber || !checkDetails.bankName)) {
-      toast.error('Please provide check number and bank name');
+    const totalPaymentAmount = getTotalPaymentAmount();
+    if (totalPaymentAmount !== totalAmount || totalPaymentAmount <= 0) {
+      toast.error(`Payment splits (${totalPaymentAmount.toFixed(2)}) must equal invoice total (${totalAmount.toFixed(2)})`);
       return;
+    }
+
+    // Validate payment splits
+    for (const split of paymentSplits) {
+      if (!split.amount || split.amount <= 0) {
+        toast.error('All payment splits must have valid amounts');
+        return;
+      }
+      if (split.paymentMode === 'check' && (!split.checkNumber || !split.bankName)) {
+        toast.error('Check payments require check number and bank name');
+        return;
+      }
     }
 
     const receiptNumber = generateReceiptNumber();
@@ -79,7 +128,8 @@ const SearchPayInvoices: React.FC = () => {
     
     // Reset selections
     setSelectedInvoices([]);
-    setCheckDetails({ checkNumber: '', bankName: '', checkDate: '' });
+    setPaymentSplits([]);
+    addPaymentSplit();
     setIsPaymentDialogOpen(false);
   };
 
@@ -255,53 +305,135 @@ const SearchPayInvoices: React.FC = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Payment Mode</Label>
-                      <Select value={paymentMode} onValueChange={(value: any) => setPaymentMode(value)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="check">Check</SelectItem>
-                          <SelectItem value="card">Card</SelectItem>
-                          <SelectItem value="eft">EFT</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-medium">Payment Methods</Label>
+                        <Button onClick={addPaymentSplit} variant="outline" size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Payment
+                        </Button>
+                      </div>
+
+                      {paymentSplits.map((split, index) => (
+                        <Card key={split.id} className="p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-medium">Payment {index + 1}</h4>
+                            {paymentSplits.length > 1 && (
+                              <Button
+                                onClick={() => removePaymentSplit(split.id)}
+                                variant="ghost"
+                                size="sm"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label>Currency</Label>
+                              <Select
+                                value={split.currency}
+                                onValueChange={(value) => updatePaymentSplit(split.id, 'currency', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="EC$">EC$</SelectItem>
+                                  <SelectItem value="US$">US$</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Payment Mode</Label>
+                              <Select
+                                value={split.paymentMode}
+                                onValueChange={(value) => updatePaymentSplit(split.id, 'paymentMode', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="cash">Cash</SelectItem>
+                                  <SelectItem value="check">Check</SelectItem>
+                                  <SelectItem value="card">Card</SelectItem>
+                                  <SelectItem value="eft">EFT</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Amount</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={split.amount || ''}
+                                onChange={(e) => updatePaymentSplit(split.id, 'amount', parseFloat(e.target.value) || 0)}
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+
+                          {split.paymentMode === 'check' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                              <div className="space-y-2">
+                                <Label>Check Number</Label>
+                                <Input
+                                  value={split.checkNumber || ''}
+                                  onChange={(e) => updatePaymentSplit(split.id, 'checkNumber', e.target.value)}
+                                  placeholder="Enter check number"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Bank Name</Label>
+                                <Input
+                                  value={split.bankName || ''}
+                                  onChange={(e) => updatePaymentSplit(split.id, 'bankName', e.target.value)}
+                                  placeholder="Enter bank name"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {(split.paymentMode === 'card' || split.paymentMode === 'eft') && (
+                            <div className="mt-4">
+                              <div className="space-y-2">
+                                <Label>Transaction Reference</Label>
+                                <Input
+                                  value={split.cardReference || ''}
+                                  onChange={(e) => updatePaymentSplit(split.id, 'cardReference', e.target.value)}
+                                  placeholder="Enter transaction reference"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+
+                      {/* Payment Summary */}
+                      <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="text-sm text-muted-foreground">Total Payment Splits</div>
+                          <div className="font-semibold">EC$ {getTotalPaymentAmount().toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Invoice Total</div>
+                          <div className="font-semibold">EC$ {totalAmount.toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Difference</div>
+                          <div className={`font-semibold ${Math.abs(getTotalPaymentAmount() - totalAmount) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                            EC$ {(getTotalPaymentAmount() - totalAmount).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    {paymentMode === 'check' && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Check Number</Label>
-                          <Input
-                            value={checkDetails.checkNumber}
-                            onChange={(e) => setCheckDetails(prev => ({ ...prev, checkNumber: e.target.value }))}
-                            placeholder="Enter check number"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Bank Name</Label>
-                          <Input
-                            value={checkDetails.bankName}
-                            onChange={(e) => setCheckDetails(prev => ({ ...prev, bankName: e.target.value }))}
-                            placeholder="Enter bank name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Check Date</Label>
-                          <Input
-                            type="date"
-                            value={checkDetails.checkDate}
-                            onChange={(e) => setCheckDetails(prev => ({ ...prev, checkDate: e.target.value }))}
-                          />
-                        </div>
-                      </>
-                    )}
                     
                     <div className="border-t pt-4">
                       <div className="flex justify-between text-lg font-semibold">
-                        <span>Total Amount:</span>
+                        <span>Final Total Amount:</span>
                         <span>EC$ {totalAmount.toFixed(2)}</span>
                       </div>
                     </div>

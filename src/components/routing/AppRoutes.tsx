@@ -113,6 +113,7 @@ import CashierReports from '@/pages/cashier/CashierReports';
 import CreateInvoice from '@/pages/cashier/CreateInvoice';
 import SearchPayInvoices from '@/pages/cashier/SearchPayInvoices';
 import BatchClosing from '@/pages/cashier/BatchClosing';
+import DailyInvoiceReport from '@/pages/cashier/DailyInvoiceReport';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
 import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
@@ -241,6 +242,7 @@ export const AppRoutes = () => {
       {/* Cashier & Payments Routes */}
       <Route path="/cashier/create-invoice" element={<ProtectedLayout><CreateInvoice /></ProtectedLayout>} />
       <Route path="/cashier/search-pay-invoices" element={<ProtectedLayout><SearchPayInvoices /></ProtectedLayout>} />
+      <Route path="/cashier/daily-invoice-report" element={<ProtectedLayout><DailyInvoiceReport /></ProtectedLayout>} />
       <Route path="/cashier/batch-closing" element={<ProtectedLayout><BatchClosing /></ProtectedLayout>} />
       <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
       <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
