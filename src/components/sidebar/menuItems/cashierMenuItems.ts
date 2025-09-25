@@ -69,6 +69,54 @@ export const cashierMenuItems = [
         url: "/cashier/receipt",
         icon: Receipt,
         requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Batch Management",
+        url: "/cashier/batch-management",
+        icon: Calculator,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Cashier Batch Closing",
+        url: "/cashier/batch-closing",
+        icon: CheckSquare,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "GL Posting Summary",
+        url: "/cashier/gl-posting",
+        icon: TrendingUp,
+        requiresPermission: "cashier_supervisor"
+      },
+      {
+        title: "Chart of Accounts Mapping",
+        url: "/cashier/chart-accounts-mapping",
+        icon: FileText,
+        requiresPermission: "admin"
+      },
+      {
+        title: "Payment Types Mapping",
+        url: "/cashier/payment-types-mapping",
+        icon: Calculator,
+        requiresPermission: "admin"
+      },
+      {
+        title: "Sage Synchronization",
+        url: "/cashier/sage-sync",
+        icon: Settings,
+        requiresPermission: "admin"
+      },
+      {
+        title: "Current Accounts Setup",
+        url: "/cashier/current-accounts",
+        icon: Banknote,
+        requiresPermission: "admin"
+      },
+      {
+        title: "Bank Reconciliation Accounts",
+        url: "/cashier/reconciliation-accounts",
+        icon: CheckSquare,
+        requiresPermission: "admin"
       }
     ]
   },
@@ -87,60 +135,6 @@ export const cashierMenuItems = [
         url: "/cashier/daily-invoice-report",
         icon: ClipboardList,
         requiresPermission: "cashier_operations"
-      }
-    ]
-  },
-  {
-    title: "Collections",
-    icon: DollarSign,
-    subItems: [
-      {
-        title: "Contribution Receipts",
-        url: "/cashier/contribution-receipts",
-        icon: Receipt,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Rent Receipts",
-        url: "/cashier/rent-receipts",
-        icon: Building,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Loan Receipts",
-        url: "/cashier/loan-receipts",
-        icon: Banknote,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Service Receipts",
-        url: "/cashier/service-receipts",
-        icon: Users,
-        requiresPermission: "cashier_operations"
-      }
-    ]
-  },
-  {
-    title: "Day-End Processing",
-    icon: Archive,
-    subItems: [
-      {
-        title: "Batch Management",
-        url: "/cashier/batch-management",
-        icon: Calculator,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Cashier Batch Closing",
-        url: "/cashier/batch-closing",
-        icon: CheckSquare,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "GL Posting Summary",
-        url: "/cashier/gl-posting",
-        icon: TrendingUp,
-        requiresPermission: "cashier_supervisor"
       }
     ]
   },
@@ -180,46 +174,4 @@ export const cashierMenuItems = [
       }
     ]
   },
-  {
-    title: "Sage Integrations",
-    icon: Settings,
-    subItems: [
-      {
-        title: "Chart of Accounts Mapping",
-        url: "/cashier/chart-accounts-mapping",
-        icon: FileText,
-        requiresPermission: "admin"
-      },
-      {
-        title: "Payment Types Mapping",
-        url: "/cashier/payment-types-mapping",
-        icon: Calculator,
-        requiresPermission: "admin"
-      },
-      {
-        title: "Sage Synchronization",
-        url: "/cashier/sage-sync",
-        icon: Settings,
-        requiresPermission: "admin"
-      }
-    ]
-  },
-  {
-    title: "Bank Account Mapping",
-    icon: Building,
-    subItems: [
-      {
-        title: "Current Accounts Setup",
-        url: "/cashier/current-accounts",
-        icon: Banknote,
-        requiresPermission: "admin"
-      },
-      {
-        title: "Bank Reconciliation Accounts",
-        url: "/cashier/reconciliation-accounts",
-        icon: CheckSquare,
-        requiresPermission: "admin"
-      }
-    ]
-  }
 ];

@@ -119,6 +119,7 @@ import PaymentTypesMapping from '@/pages/cashier/PaymentTypesMapping';
 import SageSynchronization from '@/pages/cashier/SageSynchronization';
 import CurrentAccountsSetup from '@/pages/cashier/CurrentAccountsSetup';
 import BankReconciliationAccounts from '@/pages/cashier/BankReconciliationAccounts';
+import GLPostingSummary from '@/pages/cashier/GLPostingSummary';
 import ContributionReceipts from '@/pages/cashier/ContributionReceipts';
 import RentReceipts from '@/pages/cashier/RentReceipts';
 import LoanReceipts from '@/pages/cashier/LoanReceipts';
@@ -266,6 +267,7 @@ export const AppRoutes = () => {
       {/* Day-End and Management */}
       <Route path="/cashier/batch-closing" element={<ProtectedLayout><BatchClosing /></ProtectedLayout>} />
       <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
+      <Route path="/cashier/gl-posting" element={<ProtectedLayout><GLPostingSummary /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
       
