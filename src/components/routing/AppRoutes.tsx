@@ -110,6 +110,9 @@ import CheckManagement from '@/pages/cashier/CheckManagement';
 import PaymentAnalytics from '@/pages/cashier/PaymentAnalytics';
 import BatchManagement from '@/pages/cashier/BatchManagement';
 import CashierReports from '@/pages/cashier/CashierReports';
+import CreateInvoice from '@/pages/cashier/CreateInvoice';
+import SearchPayInvoices from '@/pages/cashier/SearchPayInvoices';
+import BatchClosing from '@/pages/cashier/BatchClosing';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
 import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
@@ -236,14 +239,15 @@ export const AppRoutes = () => {
       <Route path="/legal/reports" element={<ProtectedLayout><LegalReports /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
-      <Route path="/cashier/misc-payments" element={<ProtectedLayout><MiscellaneousPayments /></ProtectedLayout>} />
-      <Route path="/cashier/c3-payments" element={<ProtectedLayout><C3Payments /></ProtectedLayout>} />
+      <Route path="/cashier/create-invoice" element={<ProtectedLayout><CreateInvoice /></ProtectedLayout>} />
+      <Route path="/cashier/search-pay-invoices" element={<ProtectedLayout><SearchPayInvoices /></ProtectedLayout>} />
+      <Route path="/cashier/batch-closing" element={<ProtectedLayout><BatchClosing /></ProtectedLayout>} />
+      <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
       <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
       <Route path="/cashier/funds-transfer" element={<ProtectedLayout><FundsTransfer /></ProtectedLayout>} />
       <Route path="/cashier/receipt" element={<ProtectedLayout><Receipt /></ProtectedLayout>} />
       <Route path="/cashier/check-management" element={<ProtectedLayout><CheckManagement /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
-      <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
 
       {/* Test Routes */}
