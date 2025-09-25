@@ -94,7 +94,8 @@ const mockUsers: User[] = [
       'cashier_operations',
       'cashier_supervisor',
       'cashier_reports',
-      'reports_analytics'
+      'reports_analytics',
+      'admin'
     ]
   },
   {
@@ -121,7 +122,8 @@ const mockUsers: User[] = [
       'cashier_supervisor',
       'cashier_reports',
       'view_financial_data',
-      'reports_analytics'
+      'reports_analytics',
+      'admin'
     ]
   }
 ];

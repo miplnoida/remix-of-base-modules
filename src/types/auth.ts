@@ -53,4 +53,5 @@ export type Permission =
   | 'cashier_operations'
   | 'cashier_supervisor'
   | 'cashier_reports'
-  | 'system_admin';
+  | 'system_admin'
+  | 'admin';
