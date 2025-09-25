@@ -101,7 +101,13 @@ import CaseDetailView from '@/pages/legal/CaseDetailView';
 import CaseEditView from '@/pages/legal/CaseEditView';
 
 // Cashier & Payments
-import PaymentCollection from '@/pages/cashier/PaymentCollection';
+import MiscellaneousPayments from '@/pages/cashier/MiscellaneousPayments';
+import C3Payments from '@/pages/cashier/C3Payments';
+import CashDetails from '@/pages/cashier/CashDetails';
+import FundsTransfer from '@/pages/cashier/FundsTransfer';
+import Receipt from '@/pages/cashier/Receipt';
+import CheckManagement from '@/pages/cashier/CheckManagement';
+import PaymentAnalytics from '@/pages/cashier/PaymentAnalytics';
 import BatchManagement from '@/pages/cashier/BatchManagement';
 import CashierReports from '@/pages/cashier/CashierReports';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
@@ -230,7 +236,13 @@ export const AppRoutes = () => {
       <Route path="/legal/reports" element={<ProtectedLayout><LegalReports /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
-      <Route path="/cashier/payment-collection" element={<ProtectedLayout><PaymentCollection /></ProtectedLayout>} />
+      <Route path="/cashier/misc-payments" element={<ProtectedLayout><MiscellaneousPayments /></ProtectedLayout>} />
+      <Route path="/cashier/c3-payments" element={<ProtectedLayout><C3Payments /></ProtectedLayout>} />
+      <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
+      <Route path="/cashier/funds-transfer" element={<ProtectedLayout><FundsTransfer /></ProtectedLayout>} />
+      <Route path="/cashier/receipt" element={<ProtectedLayout><Receipt /></ProtectedLayout>} />
+      <Route path="/cashier/check-management" element={<ProtectedLayout><CheckManagement /></ProtectedLayout>} />
+      <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
 

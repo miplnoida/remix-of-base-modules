@@ -26,9 +26,27 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_operations"
       },
       {
+        title: "Cash Details Entry",
+        url: "/cashier/cash-details",
+        icon: Calculator,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Funds Transfer",
+        url: "/cashier/funds-transfer",
+        icon: Settings,
+        requiresPermission: "cashier_operations"
+      },
+      {
         title: "Batch Management",
         url: "/cashier/batch-management",
         icon: Calculator,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Check Management",
+        url: "/cashier/check-management",
+        icon: FileText,
         requiresPermission: "cashier_operations"
       },
       {
@@ -38,16 +56,16 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_reports"
       },
       {
-        title: "Check Management",
-        url: "/cashier/check-management",
-        icon: FileText,
-        requiresPermission: "cashier_operations"
-      },
-      {
         title: "Payment Analytics",
         url: "/cashier/analytics",
         icon: BarChart3,
         requiresPermission: "cashier_reports"
+      },
+      {
+        title: "Receipt Preview",
+        url: "/cashier/receipt",
+        icon: Receipt,
+        requiresPermission: "cashier_operations"
       }
     ]
   }
