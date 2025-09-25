@@ -1,545 +1,538 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { Receipt, Search, Users, Building2, AlertCircle, Calculator } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { 
+  CreditCard, 
+  Search, 
+  Plus, 
+  Trash2, 
+  Receipt, 
+  DollarSign, 
+  Calculator,
+  AlertTriangle,
+  Banknote,
+  CheckSquare
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface PaymentSplit {
+  id: string;
+  currency: 'EC$' | 'US$';
+  paymentMode: 'cash' | 'check' | 'card' | 'eft';
+  amount: number;
+  checkNumber?: string;
+  bankName?: string;
+  cardReference?: string;
+}
 
 interface C3Payment {
   id: string;
-  receiptNumber: string;
-  contributorType: 'employer' | 'insured';
-  contributorId: string;
-  contributorName: string;
-  employerName?: string;
+  employerName: string;
+  employerId: string;
   period: string;
-  employeeContribution: number;
-  employerContribution: number;
-  totalContribution: number;
-  currency: string;
-  paymentMode: string;
-  checkNumber?: string;
-  bankName?: string;
-  referenceNumber?: string;
-  timestamp: Date;
-  cashierId: string;
-  batchId?: string;
+  totalAmount: number;
+  paymentSplits: PaymentSplit[];
+  receiptNumber: string;
+  batchId: string;
+  processedAt: string;
+  processedBy: string;
+}
+
+interface BatchSummary {
+  cashEC: number;
+  cashUS: number;
+  checksEC: number;
+  checksUS: number;
+  cardsEC: number;
+  cardsUS: number;
+  eftEC: number;
+  eftUS: number;
+  totalTransactions: number;
 }
 
 const C3Payments: React.FC = () => {
-  const { toast } = useToast();
-  const [activeBatch, setActiveBatch] = useState<string | null>("BATCH-001-20241225");
+  const { user } = useAuth();
+  const [activeBatch, setActiveBatch] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEmployer, setSelectedEmployer] = useState<any>(null);
+  const [c3Amount, setC3Amount] = useState('');
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [payments, setPayments] = useState<C3Payment[]>([]);
-  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-  const [contributorSearchType, setContributorSearchType] = useState<'employer' | 'insured'>('employer');
-  
-  const [paymentForm, setPaymentForm] = useState({
-    contributorType: 'employer' as 'employer' | 'insured',
-    contributorId: '',
-    contributorName: '',
-    employerName: '',
-    period: new Date().toISOString().slice(0, 7), // Current month
-    employeeContribution: '',
-    employerContribution: '',
-    currency: 'EC$',
-    paymentMode: 'cash',
-    checkNumber: '',
-    bankName: '',
-    referenceNumber: ''
-  });
+  const [isEmployerDialogOpen, setIsEmployerDialogOpen] = useState(false);
+
+  // Mock employers data
+  const mockEmployers = [
+    { id: 'EMP001', name: 'ABC Manufacturing Ltd', c3Outstanding: 5000.00 },
+    { id: 'EMP002', name: 'XYZ Hotel Group', c3Outstanding: 12000.00 },
+    { id: 'EMP003', name: 'Caribbean Foods Inc', c3Outstanding: 3500.00 },
+    { id: 'EMP004', name: 'Island Transport Co', c3Outstanding: 7500.00 },
+    { id: 'EMP005', name: 'Tech Solutions Ltd', c3Outstanding: 2800.00 }
+  ];
+
+  const filteredEmployers = useMemo(() => {
+    return mockEmployers.filter(emp => 
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
 
   useEffect(() => {
-    if (!activeBatch) {
-      toast({
-        title: "No Active Batch",
-        description: "Please open a batch before processing C3 payments.",
-        variant: "destructive"
+    // Initialize active batch
+    setActiveBatch({
+      id: 'BATCH-2024-001',
+      batchNumber: `BATCH-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001`,
+      cashierId: user?.email?.split('@')[0] || 'cashier',
+      cashierName: user?.name || 'Current User',
+      date: new Date().toISOString().slice(0, 10),
+      status: 'open'
+    });
+
+    // Initialize with one payment split
+    addPaymentSplit();
+  }, [user]);
+
+  const batchSummary = useMemo(() => {
+    const summary: BatchSummary = {
+      cashEC: 0, cashUS: 0, checksEC: 0, checksUS: 0,
+      cardsEC: 0, cardsUS: 0, eftEC: 0, eftUS: 0,
+      totalTransactions: payments.length
+    };
+
+    payments.forEach(payment => {
+      payment.paymentSplits.forEach(split => {
+        const key = `${split.paymentMode}${split.currency.replace('$', '')}` as keyof BatchSummary;
+        if (typeof summary[key] === 'number') {
+          summary[key] += split.amount;
+        }
       });
+    });
+
+    return summary;
+  }, [payments]);
+
+  const addPaymentSplit = () => {
+    const newSplit: PaymentSplit = {
+      id: Date.now().toString(),
+      currency: 'EC$',
+      paymentMode: 'cash',
+      amount: 0
+    };
+    setPaymentSplits(prev => [...prev, newSplit]);
+  };
+
+  const updatePaymentSplit = (id: string, field: keyof PaymentSplit, value: any) => {
+    setPaymentSplits(prev => prev.map(split => 
+      split.id === id ? { ...split, [field]: value } : split
+    ));
+  };
+
+  const removePaymentSplit = (id: string) => {
+    if (paymentSplits.length > 1) {
+      setPaymentSplits(prev => prev.filter(split => split.id !== id));
     }
-  }, [activeBatch, toast]);
-
-  const handleInputChange = (field: string, value: string) => {
-    setPaymentForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const calculateTotalContribution = () => {
-    const employee = parseFloat(paymentForm.employeeContribution) || 0;
-    const employer = parseFloat(paymentForm.employerContribution) || 0;
-    return employee + employer;
+  const getTotalAmount = () => {
+    return paymentSplits.reduce((sum, split) => sum + (split.amount || 0), 0);
   };
 
-  const generateReceiptNumber = (): string => {
-    const today = new Date();
-    const dateString = today.toISOString().slice(0, 10).replace(/-/g, '');
-    const sequence = (payments.length + 1).toString().padStart(4, '0');
-    return `C3-${dateString}-${sequence}`;
+  const generateReceiptNumber = () => {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const sequence = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `C3-${dateStr}-${sequence}`;
   };
 
-  const processC3Payment = () => {
-    if (!activeBatch) {
-      toast({
-        title: "No Active Batch",
-        description: "Please open a batch before processing payments.",
-        variant: "destructive"
-      });
+  const processPayment = () => {
+    if (!selectedEmployer) {
+      toast.error('Please select an employer');
       return;
     }
 
-    if (!paymentForm.contributorId || !paymentForm.contributorName || !paymentForm.period) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
+    if (!c3Amount || parseFloat(c3Amount) <= 0) {
+      toast.error('Please enter a valid C3 amount');
       return;
     }
 
-    const totalContribution = calculateTotalContribution();
-    if (totalContribution <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Total contribution must be greater than 0.",
-        variant: "destructive"
-      });
+    const totalSplitAmount = getTotalAmount();
+    const expectedAmount = parseFloat(c3Amount);
+
+    if (Math.abs(totalSplitAmount - expectedAmount) > 0.01) {
+      toast.error(`Payment splits (${totalSplitAmount.toFixed(2)}) must equal C3 amount (${expectedAmount.toFixed(2)})`);
       return;
+    }
+
+    // Validate splits
+    for (const split of paymentSplits) {
+      if (!split.amount || split.amount <= 0) {
+        toast.error('All payment splits must have valid amounts');
+        return;
+      }
+      if (split.paymentMode === 'check' && (!split.checkNumber || !split.bankName)) {
+        toast.error('Check payments require check number and bank name');
+        return;
+      }
     }
 
     const newPayment: C3Payment = {
       id: Date.now().toString(),
+      employerName: selectedEmployer.name,
+      employerId: selectedEmployer.id,
+      period: 'September 2024', // This would come from form
+      totalAmount: expectedAmount,
+      paymentSplits: [...paymentSplits],
       receiptNumber: generateReceiptNumber(),
-      contributorType: paymentForm.contributorType,
-      contributorId: paymentForm.contributorId,
-      contributorName: paymentForm.contributorName,
-      employerName: paymentForm.employerName,
-      period: paymentForm.period,
-      employeeContribution: parseFloat(paymentForm.employeeContribution) || 0,
-      employerContribution: parseFloat(paymentForm.employerContribution) || 0,
-      totalContribution: totalContribution,
-      currency: paymentForm.currency,
-      paymentMode: paymentForm.paymentMode,
-      checkNumber: paymentForm.checkNumber,
-      bankName: paymentForm.bankName,
-      referenceNumber: paymentForm.referenceNumber,
-      timestamp: new Date(),
-      cashierId: "current-user",
-      batchId: activeBatch
+      batchId: activeBatch.id,
+      processedAt: new Date().toISOString(),
+      processedBy: user?.email || 'current-user'
     };
 
-    setPayments(prev => [newPayment, ...prev]);
+    setPayments(prev => [...prev, newPayment]);
     
     // Reset form
-    setPaymentForm({
-      contributorType: 'employer',
-      contributorId: '',
-      contributorName: '',
-      employerName: '',
-      period: new Date().toISOString().slice(0, 7),
-      employeeContribution: '',
-      employerContribution: '',
-      currency: 'EC$',
-      paymentMode: 'cash',
-      checkNumber: '',
-      bankName: '',
-      referenceNumber: ''
-    });
+    setSelectedEmployer(null);
+    setC3Amount('');
+    setPaymentSplits([]);
+    addPaymentSplit();
+    setIsEmployerDialogOpen(false);
 
-    toast({
-      title: "C3 Payment Processed",
-      description: `Receipt ${newPayment.receiptNumber} generated successfully.`,
-    });
+    toast.success(`C3 payment processed. Receipt: ${newPayment.receiptNumber}`);
   };
 
-  // Mock data for search
-  const mockEmployers = [
-    { id: "EMP001", name: "Government of St. Kitts and Nevis", registrationNumber: "REG001" },
-    { id: "EMP002", name: "Royal Bank of Canada", registrationNumber: "REG002" },
-    { id: "EMP003", name: "Marriott Resort", registrationNumber: "REG003" }
-  ];
-
-  const mockInsuredPersons = [
-    { id: "IP001", name: "John Smith", ssn: "123-45-6789", employer: "Government of St. Kitts and Nevis" },
-    { id: "IP002", name: "Mary Johnson", ssn: "987-65-4321", employer: "Royal Bank of Canada" },
-    { id: "IP003", name: "Robert Davis", ssn: "456-78-9123", employer: "Marriott Resort" }
-  ];
-
-  const selectContributor = (contributor: any) => {
-    if (contributorSearchType === 'employer') {
-      setPaymentForm(prev => ({
-        ...prev,
-        contributorType: 'employer',
-        contributorId: contributor.id,
-        contributorName: contributor.name,
-        employerName: contributor.name
-      }));
-    } else {
-      setPaymentForm(prev => ({
-        ...prev,
-        contributorType: 'insured',
-        contributorId: contributor.id,
-        contributorName: contributor.name,
-        employerName: contributor.employer
-      }));
-    }
-    setSearchDialogOpen(false);
+  const selectEmployer = (employer: any) => {
+    setSelectedEmployer(employer);
+    setC3Amount(employer.c3Outstanding.toString());
+    setIsEmployerDialogOpen(false);
   };
 
   if (!activeBatch) {
     return (
       <div className="p-6">
-        <Alert className="mb-6">
-          <AlertCircle className="h-4 w-4" />
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>No Active Batch</AlertTitle>
           <AlertDescription>
-            You must open a batch before processing any C3 payments. Please contact your supervisor or open a new batch.
+            No active batch found for today. Please open a batch before processing payments.
           </AlertDescription>
         </Alert>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              C3 Social Security Contributions - Batch Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">No active batch found. Payment processing is disabled.</p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">C3 Social Security Contributions</h1>
-          <p className="text-muted-foreground">Process employer and insured person contribution payments</p>
+          <h1 className="text-3xl font-bold text-foreground">C3 Contributions</h1>
+          <p className="text-muted-foreground">Process C3 contribution payments with multi-currency and payment mode support</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">Batch: {activeBatch}</Badge>
-          <Button variant="outline" size="sm">
-            <Receipt className="h-4 w-4 mr-2" />
-            Print Receipt
-          </Button>
-        </div>
+        <Badge variant="outline" className="text-sm">
+          Batch: {activeBatch.batchNumber}
+        </Badge>
       </div>
 
+      {/* Batch Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            Batch Summary
+          </CardTitle>
+          <CardDescription>Real-time summary of all payments in this batch</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-sm text-muted-foreground">Cash EC$</div>
+              <div className="text-lg font-semibold text-green-600">EC$ {batchSummary.cashEC.toFixed(2)}</div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-sm text-muted-foreground">Cash US$</div>
+              <div className="text-lg font-semibold text-green-600">US$ {batchSummary.cashUS.toFixed(2)}</div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-sm text-muted-foreground">Checks</div>
+              <div className="text-lg font-semibold text-blue-600">
+                EC$ {batchSummary.checksEC.toFixed(2)}<br/>
+                <span className="text-sm">US$ {batchSummary.checksUS.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-sm text-muted-foreground">Cards/EFT</div>
+              <div className="text-lg font-semibold text-purple-600">
+                EC$ {batchSummary.cardsEC.toFixed(2)}<br/>
+                <span className="text-sm">US$ {batchSummary.cardsUS.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <div className="text-sm text-muted-foreground">Total Transactions</div>
+            <div className="text-2xl font-bold">{batchSummary.totalTransactions}</div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* Payment Processing Form */}
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>C3 Payment Details</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                C3 Payment Processing
+              </CardTitle>
+              <CardDescription>
+                Select employer and configure multiple payment modes and currencies
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="contributorType">Contributor Type</Label>
-                  <Select value={paymentForm.contributorType} onValueChange={(value: 'employer' | 'insured') => handleInputChange('contributorType', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="employer">Employer Payment</SelectItem>
-                      <SelectItem value="insured">Insured Person Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="period">Contribution Period *</Label>
-                  <Input
-                    id="period"
-                    type="month"
-                    value={paymentForm.period}
-                    onChange={(e) => handleInputChange('period', e.target.value)}
-                  />
-                </div>
-              </div>
-
+            <CardContent className="space-y-6">
+              {/* Employer Selection */}
               <div className="space-y-2">
-                <Label>Contributor Information *</Label>
+                <Label>Employer</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder={paymentForm.contributorType === 'employer' ? "Search employer..." : "Search insured person..."}
-                    value={paymentForm.contributorName}
-                    onChange={(e) => handleInputChange('contributorName', e.target.value)}
+                    readOnly
+                    value={selectedEmployer ? `${selectedEmployer.name} (${selectedEmployer.id})` : ''}
+                    placeholder="Select an employer"
                     className="flex-1"
                   />
-                  <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
+                  <Dialog open={isEmployerDialogOpen} onOpenChange={setIsEmployerDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" onClick={() => setContributorSearchType(paymentForm.contributorType)}>
+                      <Button variant="outline">
                         <Search className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
+                    <DialogContent className="sm:max-w-md">
                       <DialogHeader>
-                        <DialogTitle>
-                          Search {paymentForm.contributorType === 'employer' ? 'Employers' : 'Insured Persons'}
-                        </DialogTitle>
+                        <DialogTitle>Select Employer</DialogTitle>
+                        <DialogDescription>Search and select an employer for C3 payment</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <Input placeholder={`Search ${paymentForm.contributorType}...`} />
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>ID</TableHead>
-                              <TableHead>Name</TableHead>
-                              <TableHead>{paymentForm.contributorType === 'employer' ? 'Registration' : 'SSN'}</TableHead>
-                              {paymentForm.contributorType === 'insured' && <TableHead>Employer</TableHead>}
-                              <TableHead>Action</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(paymentForm.contributorType === 'employer' ? mockEmployers : mockInsuredPersons).map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell>{item.id}</TableCell>
-                                <TableCell>{item.name}</TableCell>
-                                <TableCell>
-                                  {'registrationNumber' in item ? item.registrationNumber : item.ssn}
-                                </TableCell>
-                                {paymentForm.contributorType === 'insured' && (
-                                  <TableCell>{'employer' in item ? item.employer : ''}</TableCell>
-                                )}
-                                <TableCell>
-                                  <Button size="sm" onClick={() => selectContributor(item)}>
-                                    Select
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                        <Input
+                          placeholder="Search by name or ID"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {filteredEmployers.map(employer => (
+                            <div
+                              key={employer.id}
+                              className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                              onClick={() => selectEmployer(employer)}
+                            >
+                              <div className="font-medium">{employer.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                ID: {employer.id} | Outstanding: EC$ {employer.c3Outstanding.toFixed(2)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </DialogContent>
                   </Dialog>
                 </div>
-                {paymentForm.contributorId && (
-                  <div className="text-sm text-muted-foreground">
-                    ID: {paymentForm.contributorId}
-                    {paymentForm.employerName && paymentForm.contributorType === 'insured' && 
-                      ` | Employer: ${paymentForm.employerName}`
-                    }
-                  </div>
-                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="employeeContribution">Employee Contribution</Label>
-                  <Input
-                    id="employeeContribution"
-                    type="number"
-                    step="0.01"
-                    value={paymentForm.employeeContribution}
-                    onChange={(e) => handleInputChange('employeeContribution', e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="employerContribution">Employer Contribution</Label>
-                  <Input
-                    id="employerContribution"
-                    type="number"
-                    step="0.01"
-                    value={paymentForm.employerContribution}
-                    onChange={(e) => handleInputChange('employerContribution', e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="totalContribution">Total Amount</Label>
-                  <Input
-                    id="totalContribution"
-                    type="number"
-                    value={calculateTotalContribution().toFixed(2)}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
+              {/* C3 Amount */}
+              <div className="space-y-2">
+                <Label htmlFor="c3Amount">C3 Amount</Label>
+                <Input
+                  id="c3Amount"
+                  type="number"
+                  step="0.01"
+                  value={c3Amount}
+                  onChange={(e) => setC3Amount(e.target.value)}
+                  placeholder="0.00"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select value={paymentForm.currency} onValueChange={(value) => handleInputChange('currency', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EC$">EC$</SelectItem>
-                      <SelectItem value="US$">US$</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="paymentMode">Payment Mode</Label>
-                  <Select value={paymentForm.paymentMode} onValueChange={(value) => handleInputChange('paymentMode', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="check">Check</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="online">Online/EFT</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <Separator />
 
-              {paymentForm.paymentMode === 'check' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Payment Splits */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Payment Methods</Label>
+                  <Button onClick={addPaymentSplit} variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Payment
+                  </Button>
+                </div>
+
+                {paymentSplits.map((split, index) => (
+                  <Card key={split.id} className="p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium">Payment {index + 1}</h4>
+                      {paymentSplits.length > 1 && (
+                        <Button
+                          onClick={() => removePaymentSplit(split.id)}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Currency</Label>
+                        <Select
+                          value={split.currency}
+                          onValueChange={(value) => updatePaymentSplit(split.id, 'currency', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="EC$">EC$</SelectItem>
+                            <SelectItem value="US$">US$</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Payment Mode</Label>
+                        <Select
+                          value={split.paymentMode}
+                          onValueChange={(value) => updatePaymentSplit(split.id, 'paymentMode', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="check">Check</SelectItem>
+                            <SelectItem value="card">Card</SelectItem>
+                            <SelectItem value="eft">EFT</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Amount</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={split.amount || ''}
+                          onChange={(e) => updatePaymentSplit(split.id, 'amount', parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    {split.paymentMode === 'check' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="space-y-2">
+                          <Label>Check Number</Label>
+                          <Input
+                            value={split.checkNumber || ''}
+                            onChange={(e) => updatePaymentSplit(split.id, 'checkNumber', e.target.value)}
+                            placeholder="Enter check number"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Bank Name</Label>
+                          <Input
+                            value={split.bankName || ''}
+                            onChange={(e) => updatePaymentSplit(split.id, 'bankName', e.target.value)}
+                            placeholder="Enter bank name"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {(split.paymentMode === 'card' || split.paymentMode === 'eft') && (
+                      <div className="mt-4">
+                        <div className="space-y-2">
+                          <Label>Transaction Reference</Label>
+                          <Input
+                            value={split.cardReference || ''}
+                            onChange={(e) => updatePaymentSplit(split.id, 'cardReference', e.target.value)}
+                            placeholder="Enter transaction reference"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+
+                {/* Payment Summary */}
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <Label htmlFor="checkNumber">Check Number</Label>
-                    <Input
-                      id="checkNumber"
-                      value={paymentForm.checkNumber}
-                      onChange={(e) => handleInputChange('checkNumber', e.target.value)}
-                      placeholder="Check number"
-                    />
+                    <div className="text-sm text-muted-foreground">Total Payment Splits</div>
+                    <div className="font-semibold">EC$ {getTotalAmount().toFixed(2)}</div>
                   </div>
                   <div>
-                    <Label htmlFor="bankName">Bank Name</Label>
-                    <Input
-                      id="bankName"
-                      value={paymentForm.bankName}
-                      onChange={(e) => handleInputChange('bankName', e.target.value)}
-                      placeholder="Bank name"
-                    />
+                    <div className="text-sm text-muted-foreground">C3 Amount</div>
+                    <div className="font-semibold">EC$ {(parseFloat(c3Amount) || 0).toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Difference</div>
+                    <div className={`font-semibold ${Math.abs(getTotalAmount() - (parseFloat(c3Amount) || 0)) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                      EC$ {(getTotalAmount() - (parseFloat(c3Amount) || 0)).toFixed(2)}
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {(paymentForm.paymentMode === 'online' || paymentForm.paymentMode === 'card') && (
-                <div>
-                  <Label htmlFor="referenceNumber">Reference Number</Label>
-                  <Input
-                    id="referenceNumber"
-                    value={paymentForm.referenceNumber}
-                    onChange={(e) => handleInputChange('referenceNumber', e.target.value)}
-                    placeholder="Transaction reference"
-                  />
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-4">
-                <Button onClick={processC3Payment} className="flex-1">
-                  <Receipt className="h-4 w-4 mr-2" />
-                  Process C3 Payment
-                </Button>
-                <Button variant="outline" onClick={() => setPaymentForm({
-                  contributorType: 'employer', contributorId: '', contributorName: '', employerName: '',
-                  period: new Date().toISOString().slice(0, 7), employeeContribution: '', employerContribution: '',
-                  currency: 'EC$', paymentMode: 'cash', checkNumber: '', bankName: '', referenceNumber: ''
-                })}>
-                  Clear Form
-                </Button>
               </div>
+
+              <Button onClick={processPayment} className="w-full" size="lg">
+                <Receipt className="h-4 w-4 mr-2" />
+                Process C3 Payment
+              </Button>
             </CardContent>
           </Card>
         </div>
 
+        {/* Recent Transactions */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Today's C3 Summary</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Banknote className="h-5 w-5" />
+                Recent C3 Payments
+              </CardTitle>
+              <CardDescription>Today's processed payments</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Total EC$:</span>
-                  <span className="font-semibold">
-                    {payments.filter(p => p.currency === 'EC$').reduce((sum, p) => sum + p.totalContribution, 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total US$:</span>
-                  <span className="font-semibold">
-                    {payments.filter(p => p.currency === 'US$').reduce((sum, p) => sum + p.totalContribution, 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Transactions:</span>
-                  <span className="font-semibold">{payments.length}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Contribution Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Employee:</span>
-                  <span>{payments.reduce((sum, p) => sum + p.employeeContribution, 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Employer:</span>
-                  <span>{payments.reduce((sum, p) => sum + p.employerContribution, 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-semibold border-t pt-2">
-                  <span>Total:</span>
-                  <span>{payments.reduce((sum, p) => sum + p.totalContribution, 0).toFixed(2)}</span>
-                </div>
+              <div className="space-y-4">
+                {payments.slice(-5).reverse().map(payment => (
+                  <div key={payment.id} className="border rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-medium text-sm">{payment.employerName}</div>
+                      <Badge variant="outline" className="text-xs">{payment.receiptNumber}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Total: EC$ {payment.totalAmount.toFixed(2)}
+                    </div>
+                    <div className="space-y-1">
+                      {payment.paymentSplits.map(split => (
+                        <div key={split.id} className="text-xs flex justify-between">
+                          <span className="capitalize">{split.paymentMode} ({split.currency})</span>
+                          <span>{split.currency} {split.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {payments.length === 0 && (
+                  <div className="text-center text-muted-foreground py-4">
+                    No payments processed today
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent C3 Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Receipt #</TableHead>
-                <TableHead>Contributor</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Period</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Employer</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Mode</TableHead>
-                <TableHead>Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.slice(0, 10).map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-mono">{payment.receiptNumber}</TableCell>
-                  <TableCell>{payment.contributorName}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {payment.contributorType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{payment.period}</TableCell>
-                  <TableCell>{payment.currency} {payment.employeeContribution.toFixed(2)}</TableCell>
-                  <TableCell>{payment.currency} {payment.employerContribution.toFixed(2)}</TableCell>
-                  <TableCell className="font-semibold">{payment.currency} {payment.totalContribution.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {payment.paymentMode}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{payment.timestamp.toLocaleTimeString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 };
