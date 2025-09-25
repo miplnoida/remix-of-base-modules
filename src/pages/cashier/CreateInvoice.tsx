@@ -8,18 +8,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { PlusCircle, Save, RefreshCw } from 'lucide-react';
+import { PlusCircle, Save, RefreshCw, X, Plus } from 'lucide-react';
+
+interface PaymentHead {
+  id: string;
+  type: string;
+  amount: string;
+  description: string;
+}
 
 interface InvoiceFormData {
   type: 'contribution' | 'rent' | 'loan' | 'service' | '';
   payerType: 'employer' | 'individual' | 'contributor' | '';
   payerName: string;
   payerId: string;
-  amount: string;
+  paymentHeads: PaymentHead[];
+  totalAmount: string;
   currency: 'EC$' | 'US$';
   dueDate: string;
   description: string;
-  category: string;
   reference: string;
   isRecurring: boolean;
   recurringFrequency: 'monthly' | 'quarterly' | 'annually' | '';
@@ -31,18 +38,92 @@ const CreateInvoice: React.FC = () => {
     payerType: '',
     payerName: '',
     payerId: '',
-    amount: '',
+    paymentHeads: [{ id: '1', type: '', amount: '', description: '' }],
+    totalAmount: '0.00',
     currency: 'EC$',
     dueDate: '',
     description: '',
-    category: '',
     reference: '',
     isRecurring: false,
     recurringFrequency: ''
   });
 
-  const handleInputChange = (field: keyof InvoiceFormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof InvoiceFormData, value: string | boolean | PaymentHead[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const getPaymentHeadOptions = () => {
+    switch (formData.type) {
+      case 'loan':
+        return [
+          'Loan Repayment - Principal',
+          'Loan Repayment - Interest',
+          'Loan Repayment - Penalty',
+          'Late Payment Fee'
+        ];
+      case 'service':
+        return [
+          'Card Reissuance',
+          'ID Card Replacement',
+          'Pension Letter',
+          'Certificate Fee',
+          'Processing Fee'
+        ];
+      case 'contribution':
+        return [
+          'Social Security Contribution',
+          'Levy Payment',
+          'Pension Fund Contribution',
+          'Late Payment Penalty'
+        ];
+      case 'rent':
+        return [
+          'Office Rent',
+          'Equipment Rental',
+          'Facility Rental',
+          'Utility Charges'
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const addPaymentHead = () => {
+    const newId = (formData.paymentHeads.length + 1).toString();
+    const newPaymentHead: PaymentHead = {
+      id: newId,
+      type: '',
+      amount: '',
+      description: ''
+    };
+    handleInputChange('paymentHeads', [...formData.paymentHeads, newPaymentHead]);
+  };
+
+  const removePaymentHead = (id: string) => {
+    if (formData.paymentHeads.length > 1) {
+      const updatedHeads = formData.paymentHeads.filter(head => head.id !== id);
+      handleInputChange('paymentHeads', updatedHeads);
+      calculateTotal(updatedHeads);
+    }
+  };
+
+  const updatePaymentHead = (id: string, field: keyof PaymentHead, value: string) => {
+    const updatedHeads = formData.paymentHeads.map(head =>
+      head.id === id ? { ...head, [field]: value } : head
+    );
+    handleInputChange('paymentHeads', updatedHeads);
+    
+    if (field === 'amount') {
+      calculateTotal(updatedHeads);
+    }
+  };
+
+  const calculateTotal = (paymentHeads: PaymentHead[]) => {
+    const total = paymentHeads.reduce((sum, head) => {
+      const amount = parseFloat(head.amount) || 0;
+      return sum + amount;
+    }, 0);
+    handleInputChange('totalAmount', total.toFixed(2));
   };
 
   const generateInvoiceNumber = () => {
@@ -54,15 +135,15 @@ const CreateInvoice: React.FC = () => {
   };
 
   const handleCreateInvoice = () => {
-    if (!formData.type || !formData.payerName || !formData.amount || !formData.dueDate) {
-      toast.error('Please fill in all required fields');
+    if (!formData.type || !formData.payerName || !formData.dueDate || formData.paymentHeads.some(head => !head.type || !head.amount)) {
+      toast.error('Please fill in all required fields including payment heads');
       return;
     }
 
     const invoiceNumber = generateInvoiceNumber();
     
     // Here you would normally save to your data store
-    toast.success(`Invoice ${invoiceNumber} created successfully`);
+    toast.success(`Invoice ${invoiceNumber} created successfully with ${formData.paymentHeads.length} payment head(s)`);
     
     // Reset form
     setFormData({
@@ -70,30 +151,15 @@ const CreateInvoice: React.FC = () => {
       payerType: '',
       payerName: '',
       payerId: '',
-      amount: '',
+      paymentHeads: [{ id: '1', type: '', amount: '', description: '' }],
+      totalAmount: '0.00',
       currency: 'EC$',
       dueDate: '',
       description: '',
-      category: '',
       reference: '',
       isRecurring: false,
       recurringFrequency: ''
     });
-  };
-
-  const getCategoryOptions = () => {
-    switch (formData.type) {
-      case 'contribution':
-        return ['Social Security', 'Levy', 'Pension Fund'];
-      case 'rent':
-        return ['Office Rent', 'Equipment Rental', 'Facility Rental'];
-      case 'loan':
-        return ['Personal Loan', 'Housing Loan', 'Emergency Loan'];
-      case 'service':
-        return ['ID Card Replacement', 'Pension Letter', 'Certificate Fee', 'Processing Fee'];
-      default:
-        return [];
-    }
   };
 
   return (
@@ -101,7 +167,7 @@ const CreateInvoice: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Create Invoice</h1>
-          <p className="text-muted-foreground">Create new invoices for various payment types</p>
+          <p className="text-muted-foreground">Create new invoices with multiple payment heads</p>
         </div>
         <Badge variant="outline" className="text-sm">
           New Invoice
@@ -115,7 +181,7 @@ const CreateInvoice: React.FC = () => {
             Invoice Details
           </CardTitle>
           <CardDescription>
-            Enter the invoice information. All invoices must be created before payments can be processed.
+            Enter the invoice information with multiple payment heads for different charge types.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -173,31 +239,6 @@ const CreateInvoice: React.FC = () => {
               />
             </div>
 
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount *</Label>
-              <div className="flex gap-2">
-                <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EC$">EC$</SelectItem>
-                    <SelectItem value="US$">US$</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => handleInputChange('amount', e.target.value)}
-                  placeholder="0.00"
-                  className="flex-1"
-                />
-              </div>
-            </div>
-
             {/* Due Date */}
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due Date *</Label>
@@ -208,23 +249,6 @@ const CreateInvoice: React.FC = () => {
                 onChange={(e) => handleInputChange('dueDate', e.target.value)}
               />
             </div>
-
-            {/* Category */}
-            {formData.type && (
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getCategoryOptions().map(option => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* Reference */}
             <div className="space-y-2">
@@ -238,14 +262,120 @@ const CreateInvoice: React.FC = () => {
             </div>
           </div>
 
+          {/* Payment Heads Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-lg font-semibold">Payment Heads *</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={addPaymentHead}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Payment Head
+              </Button>
+            </div>
+
+            {formData.paymentHeads.map((head, index) => (
+              <Card key={head.id} className="border-l-4 border-l-primary">
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label>Payment Type *</Label>
+                      <Select 
+                        value={head.type} 
+                        onValueChange={(value) => updatePaymentHead(head.id, 'type', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getPaymentHeadOptions().map(option => (
+                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Amount *</Label>
+                      <div className="flex gap-2">
+                        <span className="flex items-center px-3 border border-r-0 rounded-l-md bg-muted text-sm">
+                          {formData.currency}
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={head.amount}
+                          onChange={(e) => updatePaymentHead(head.id, 'amount', e.target.value)}
+                          placeholder="0.00"
+                          className="rounded-l-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Input
+                        value={head.description}
+                        onChange={(e) => updatePaymentHead(head.id, 'description', e.target.value)}
+                        placeholder="Enter description"
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      {formData.paymentHeads.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removePaymentHead(head.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Total Amount Display */}
+            <div className="flex justify-end">
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="text-sm text-muted-foreground">Total Amount</div>
+                <div className="text-2xl font-bold text-primary">
+                  {formData.currency} {formData.totalAmount}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Currency Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EC$">EC$</SelectItem>
+                <SelectItem value="US$">US$</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Additional Notes</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Enter invoice description"
+              placeholder="Enter additional notes or comments"
               rows={3}
             />
           </div>

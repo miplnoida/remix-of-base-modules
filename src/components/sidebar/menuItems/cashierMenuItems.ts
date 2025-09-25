@@ -23,9 +23,15 @@ export const cashierMenuItems = [
     icon: CreditCard,
     subItems: [
       {
-        title: "Miscellaneous Payments",
+        title: "Miscellaneous Payments (TBR)",
         url: "/cashier/misc-payments",
         icon: Receipt,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Search & Pay Invoices",
+        url: "/cashier/search-pay-invoices",
+        icon: Search,
         requiresPermission: "cashier_operations"
       },
       {
@@ -35,7 +41,7 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_operations"
       },
       {
-        title: "EFT Entry",
+        title: "EFT Entry (TBR)",
         url: "/cashier/eft-entry",
         icon: Archive,
         requiresPermission: "cashier_operations"
@@ -74,12 +80,6 @@ export const cashierMenuItems = [
         title: "Create Invoice",
         url: "/cashier/create-invoice",
         icon: PlusCircle,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Search & Pay Invoices",
-        url: "/cashier/search-pay-invoices",
-        icon: Search,
         requiresPermission: "cashier_operations"
       },
       {
@@ -181,13 +181,43 @@ export const cashierMenuItems = [
     ]
   },
   {
-    title: "Settings",
+    title: "Sage Integrations",
     icon: Settings,
     subItems: [
+      {
+        title: "Chart of Accounts Mapping",
+        url: "/cashier/chart-accounts-mapping",
+        icon: FileText,
+        requiresPermission: "admin"
+      },
+      {
+        title: "Payment Types Mapping",
+        url: "/cashier/payment-types-mapping",
+        icon: Calculator,
+        requiresPermission: "admin"
+      },
       {
         title: "Sage Synchronization",
         url: "/cashier/sage-sync",
         icon: Settings,
+        requiresPermission: "admin"
+      }
+    ]
+  },
+  {
+    title: "Bank Account Mapping",
+    icon: Building,
+    subItems: [
+      {
+        title: "Current Accounts Setup",
+        url: "/cashier/current-accounts",
+        icon: Banknote,
+        requiresPermission: "admin"
+      },
+      {
+        title: "Bank Reconciliation Accounts",
+        url: "/cashier/reconciliation-accounts",
+        icon: CheckSquare,
         requiresPermission: "admin"
       }
     ]
