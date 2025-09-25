@@ -119,6 +119,10 @@ import PaymentTypesMapping from '@/pages/cashier/PaymentTypesMapping';
 import SageSynchronization from '@/pages/cashier/SageSynchronization';
 import CurrentAccountsSetup from '@/pages/cashier/CurrentAccountsSetup';
 import BankReconciliationAccounts from '@/pages/cashier/BankReconciliationAccounts';
+import ContributionReceipts from '@/pages/cashier/ContributionReceipts';
+import RentReceipts from '@/pages/cashier/RentReceipts';
+import LoanReceipts from '@/pages/cashier/LoanReceipts';
+import ServiceReceipts from '@/pages/cashier/ServiceReceipts';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
 import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
@@ -273,6 +277,12 @@ export const AppRoutes = () => {
       {/* Bank Account Mapping Routes */}
       <Route path="/cashier/current-accounts" element={<ProtectedLayout><CurrentAccountsSetup /></ProtectedLayout>} />
       <Route path="/cashier/reconciliation-accounts" element={<ProtectedLayout><BankReconciliationAccounts /></ProtectedLayout>} />
+      
+      {/* Collections Routes */}
+      <Route path="/cashier/contribution-receipts" element={<ProtectedLayout><ContributionReceipts /></ProtectedLayout>} />
+      <Route path="/cashier/rent-receipts" element={<ProtectedLayout><RentReceipts /></ProtectedLayout>} />
+      <Route path="/cashier/loan-receipts" element={<ProtectedLayout><LoanReceipts /></ProtectedLayout>} />
+      <Route path="/cashier/service-receipts" element={<ProtectedLayout><ServiceReceipts /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
