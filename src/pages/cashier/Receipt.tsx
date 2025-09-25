@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Download, Printer, Receipt as ReceiptIcon, Building2 } from "lucide-react";
+import { Download, Printer, Receipt as ReceiptIcon } from "lucide-react";
+import { SocialSecurityIcon } from "@/components/icons/SocialSecurityIcon";
 
 interface ReceiptData {
   receiptNumber: string;
@@ -151,13 +152,13 @@ const Receipt: React.FC = () => {
           {/* Header Section */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <Building2 className="h-12 w-12 text-blue-600 mr-3" />
+              <SocialSecurityIcon size={48} className="text-primary mr-3" />
               <div>
-                <h1 className="text-2xl font-bold text-blue-900">{receiptData.organizationDetails.name}</h1>
-                <p className="text-sm text-gray-600">St. Kitts and Nevis</p>
+                <h1 className="text-2xl font-bold text-primary">{receiptData.organizationDetails.name}</h1>
+                <p className="text-sm text-muted-foreground">St. Kitts and Nevis</p>
               </div>
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className="text-sm text-muted-foreground space-y-1">
               <p>{receiptData.organizationDetails.address}</p>
               <p>Tel: {receiptData.organizationDetails.phone} | Email: {receiptData.organizationDetails.email}</p>
               <p>{receiptData.organizationDetails.website}</p>
@@ -316,7 +317,7 @@ const Receipt: React.FC = () => {
               <Separator className="my-6" />
               <div className="mb-8">
                 <h2 className="text-lg font-semibold mb-4">Contribution Breakdown</h2>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-muted/50 p-4 rounded-lg">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between">
                       <span className="font-medium">Contribution Period:</span>
@@ -343,13 +344,13 @@ const Receipt: React.FC = () => {
           <Separator className="my-6" />
 
           {/* Amount Section */}
-          <div className="bg-blue-50 p-6 rounded-lg mb-8">
+          <div className="bg-primary/10 p-6 rounded-lg mb-8">
             <div className="text-center">
               <h2 className="text-lg font-semibold mb-2">Total Amount</h2>
-              <div className="text-3xl font-bold text-blue-900">
+              <div className="text-3xl font-bold text-primary">
                 {formatCurrency(receiptData.paymentDetails.amount, receiptData.paymentDetails.currency)}
               </div>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-muted-foreground mt-2">
                 ({receiptData.paymentDetails.paymentMethod} Payment)
               </p>
             </div>
@@ -363,13 +364,13 @@ const Receipt: React.FC = () => {
                 {receiptData.remarks && (
                   <div>
                     <h3 className="font-semibold mb-2">Remarks:</h3>
-                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{receiptData.remarks}</p>
+                    <p className="text-sm text-foreground bg-muted/50 p-3 rounded">{receiptData.remarks}</p>
                   </div>
                 )}
                 {receiptData.nextSteps && (
                   <div>
                     <h3 className="font-semibold mb-2">Next Steps:</h3>
-                    <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">{receiptData.nextSteps}</p>
+                    <p className="text-sm text-foreground bg-primary/10 p-3 rounded">{receiptData.nextSteps}</p>
                   </div>
                 )}
               </div>
@@ -379,7 +380,7 @@ const Receipt: React.FC = () => {
           <Separator className="my-6" />
 
           {/* Footer */}
-          <div className="text-center text-xs text-gray-500 space-y-2">
+          <div className="text-center text-xs text-muted-foreground space-y-2">
             <p>This is an official receipt from the Social Security Board of St. Kitts and Nevis</p>
             <p>Please retain this receipt for your records</p>
             <p>For inquiries, contact us at {receiptData.organizationDetails.phone} or {receiptData.organizationDetails.email}</p>

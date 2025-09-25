@@ -5,17 +5,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { TrendingUp, DollarSign, Receipt, Users, Download, Calendar } from "lucide-react";
+import { TrendingUp, DollarSign, Receipt, Users, Download, Calendar, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const PaymentAnalytics: React.FC = () => {
+  const { user, hasPermission } = useAuth();
   const [dateRange, setDateRange] = useState({
     from: '2024-12-01',
     to: '2024-12-31'
   });
   
-  const [selectedCashier, setSelectedCashier] = useState('all');
+  const [selectedCashier, setSelectedCashier] = useState(
+    hasPermission('cashier_supervisor') || hasPermission('system_admin') ? 'all' : user?.email?.split('@')[0] || 'current'
+  );
   const [selectedPaymentType, setSelectedPaymentType] = useState('all');
+
+  // Check if user has supervisor/admin permissions
+  const isSupervisor = hasPermission('cashier_supervisor') || hasPermission('system_admin');
+  
+  // If user is not supervisor/admin and not cashier, show access denied
+  if (!isSupervisor && !hasPermission('cashier_operations')) {
+    return (
+      <div className="p-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You don't have permission to access payment analytics. Please contact your administrator.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   // Mock analytics data
   const dailyCollections = [
@@ -108,18 +130,22 @@ const PaymentAnalytics: React.FC = () => {
             </div>
             <div>
               <Label>Cashier</Label>
-              <Select value={selectedCashier} onValueChange={setSelectedCashier}>
+              <Select value={selectedCashier} onValueChange={setSelectedCashier} disabled={!isSupervisor}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Cashiers</SelectItem>
+                  {isSupervisor && <SelectItem value="all">All Cashiers</SelectItem>}
                   <SelectItem value="sarah">Sarah Johnson</SelectItem>
                   <SelectItem value="michael">Michael Brown</SelectItem>
                   <SelectItem value="lisa">Lisa Williams</SelectItem>
                   <SelectItem value="david">David Davis</SelectItem>
+                  {!isSupervisor && <SelectItem value="current">My Batches Only</SelectItem>}
                 </SelectContent>
               </Select>
+              {!isSupervisor && (
+                <p className="text-xs text-muted-foreground mt-1">Limited to your own batches</p>
+              )}
             </div>
             <div>
               <Label>Payment Type</Label>

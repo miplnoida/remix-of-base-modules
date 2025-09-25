@@ -59,7 +59,7 @@ export const cashierMenuItems = [
         title: "Payment Analytics",
         url: "/cashier/analytics",
         icon: BarChart3,
-        requiresPermission: "cashier_reports"
+        requiresPermission: "cashier_supervisor"
       },
       {
         title: "Receipt Preview",
