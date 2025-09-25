@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
 
 interface MiscellaneousPayment {
   id: string;
@@ -36,6 +37,10 @@ const MiscellaneousPayments: React.FC = () => {
   const [activeBatch, setActiveBatch] = useState<string | null>("BATCH-001-20241225");
   const [payments, setPayments] = useState<MiscellaneousPayment[]>([]);
   const [searchInvoiceOpen, setSearchInvoiceOpen] = useState(false);
+  
+  // Receipt Preview State
+  const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
+  const [currentReceiptData, setCurrentReceiptData] = useState<ReceiptData | null>(null);
   
   const [paymentForm, setPaymentForm] = useState({
     payerName: '',
@@ -450,6 +455,19 @@ const MiscellaneousPayments: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+      {/* Receipt Preview Dialog */}
+      {currentReceiptData && (
+        <ReceiptPreview
+          receiptData={currentReceiptData}
+          isOpen={isReceiptPreviewOpen}
+          onClose={() => {
+            setIsReceiptPreviewOpen(false);
+            setCurrentReceiptData(null);
+          }}
+          title="Miscellaneous Payment Receipt"
+          allowReprint={true}
+        />
+      )}
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { Search, CreditCard, Receipt, DollarSign, Plus, Trash2 } from 'lucide-re
 import { mockInvoices } from '@/data/mockInvoices';
 import { Invoice } from '@/types/invoice';
 import { getActiveBanks } from '@/data/bankData';
+import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
 
 interface PaymentSplit {
   id: string;
@@ -31,6 +32,10 @@ const SearchPayInvoices: React.FC = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  
+  // Receipt Preview State
+  const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
+  const [currentReceiptData, setCurrentReceiptData] = useState<ReceiptData | null>(null);
   
   const banks = getActiveBanks();
 
@@ -125,6 +130,55 @@ const SearchPayInvoices: React.FC = () => {
     }
 
     const receiptNumber = generateReceiptNumber();
+    const now = new Date();
+
+    // Get the first invoice for payer details
+    const firstInvoice = selectedInvoiceDetails[0];
+    
+    // Generate receipt data for preview
+    const receiptData: ReceiptData = {
+      receiptNumber,
+      batchId: 'BATCH-2024-001',
+      paymentDate: now,
+      status: 'Completed',
+      payerDetails: {
+        name: firstInvoice.payerName,
+        payerType: firstInvoice.payerType === 'employer' ? 'Employer' : 
+                   firstInvoice.payerType === 'individual' ? 'Individual' : 
+                   firstInvoice.payerType === 'contributor' ? 'Insured Person' : 'Organization',
+        address: '123 Main Street, Roseau, Dominica',
+        contact: '(767) 123-4567'
+      },
+      paymentDetails: {
+        paymentType: 'Invoice Payment',
+        paymentMethod: paymentSplits.map(s => s.paymentMode).join(', '),
+        currency: 'EC$',
+        amount: totalPaymentAmount,
+        invoiceReference: selectedInvoices.join(', '),
+        referenceNumber: `INV-${receiptNumber}`
+      },
+      cashierDetails: {
+        cashierId: 'CASH001',
+        cashierName: 'Current User',
+        terminalId: 'TERM-01',
+        workstation: 'WS-MAIN-01'
+      },
+      organizationDetails: {
+        name: 'DOMINICA SOCIAL SECURITY',
+        address: 'Bay Front, Roseau, Commonwealth of Dominica',
+        phone: '(767) 266-3608',
+        email: 'info@socialsecurity.dm',
+        website: 'www.socialsecurity.dm'
+      },
+      fees: selectedInvoiceDetails.map(inv => ({
+        description: `Invoice ${inv.invoiceNumber} - ${inv.description}`,
+        amount: inv.amount
+      })),
+      notes: `Payment for invoices: ${selectedInvoices.join(', ')}. Total amount: EC$ ${totalPaymentAmount.toFixed(2)}`
+    };
+
+    setCurrentReceiptData(receiptData);
+    setIsReceiptPreviewOpen(true);
     
     // Process payment logic here
     toast.success(`Payment processed successfully. Receipt: ${receiptNumber}`);
@@ -463,9 +517,23 @@ const SearchPayInvoices: React.FC = () => {
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
+             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Receipt Preview Dialog */}
+      {currentReceiptData && (
+        <ReceiptPreview
+          receiptData={currentReceiptData}
+          isOpen={isReceiptPreviewOpen}
+          onClose={() => {
+            setIsReceiptPreviewOpen(false);
+            setCurrentReceiptData(null);
+          }}
+          title="Invoice Payment Receipt"
+          allowReprint={true}
+        />
       )}
     </div>
   );

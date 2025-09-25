@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { getActiveBanks } from '@/data/bankData';
 import { getActivePaymentHeads, type PaymentHead } from '@/data/c3PaymentHeads';
+import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
 
 interface PaymentSplit {
   id: string;
@@ -73,6 +74,10 @@ const C3Payments: React.FC = () => {
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [payments, setPayments] = useState<C3Payment[]>([]);
   const [referenceNumber, setReferenceNumber] = useState('');
+  
+  // Receipt Preview State
+  const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
+  const [currentReceiptData, setCurrentReceiptData] = useState<ReceiptData | null>(null);
   
   // C3 Period and Payment Heads
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -678,6 +683,20 @@ const C3Payments: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Receipt Preview Dialog */}
+      {currentReceiptData && (
+        <ReceiptPreview
+          receiptData={currentReceiptData}
+          isOpen={isReceiptPreviewOpen}
+          onClose={() => {
+            setIsReceiptPreviewOpen(false);
+            setCurrentReceiptData(null);
+          }}
+          title="C3 Payment Receipt"
+          allowReprint={true}
+        />
+      )}
     </div>
   );
 };
