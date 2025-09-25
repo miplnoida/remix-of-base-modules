@@ -19,6 +19,72 @@ import {
 
 export const cashierMenuItems = [
   {
+    title: "Cashier & Payments",
+    icon: CreditCard,
+    subItems: [
+      {
+        title: "Miscellaneous Payments",
+        url: "/cashier/misc-payments",
+        icon: Receipt,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "C3 Contributions",
+        url: "/cashier/c3-payments",
+        icon: Banknote,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Cash Details Entry",
+        url: "/cashier/cash-details",
+        icon: Calculator,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Funds Transfer",
+        url: "/cashier/funds-transfer",
+        icon: Settings,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Check Management",
+        url: "/cashier/check-management",
+        icon: FileText,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Receipt Preview",
+        url: "/cashier/receipt",
+        icon: Receipt,
+        requiresPermission: "cashier_operations"
+      }
+    ]
+  },
+  {
+    title: "Invoice-Based Payments",
+    icon: FileText,
+    subItems: [
+      {
+        title: "Create Invoice",
+        url: "/cashier/create-invoice",
+        icon: PlusCircle,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Search & Pay Invoices",
+        url: "/cashier/search-pay-invoices",
+        icon: Search,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Daily Invoice Report",
+        url: "/cashier/daily-invoice-report",
+        icon: ClipboardList,
+        requiresPermission: "cashier_operations"
+      }
+    ]
+  },
+  {
     title: "Collections",
     icon: DollarSign,
     subItems: [
@@ -49,30 +115,6 @@ export const cashierMenuItems = [
     ]
   },
   {
-    title: "Invoicing & Receipts",
-    icon: FileText,
-    subItems: [
-      {
-        title: "Create Invoice",
-        url: "/cashier/create-invoice",
-        icon: PlusCircle,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Search & Pay Invoices",
-        url: "/cashier/search-pay-invoices",
-        icon: Search,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Daily Invoice Report",
-        url: "/cashier/daily-invoice-report",
-        icon: ClipboardList,
-        requiresPermission: "cashier_operations"
-      }
-    ]
-  },
-  {
     title: "Day-End Processing",
     icon: Archive,
     subItems: [
@@ -86,12 +128,6 @@ export const cashierMenuItems = [
         title: "Cashier Batch Closing",
         url: "/cashier/batch-closing",
         icon: CheckSquare,
-        requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Cash Details Entry",
-        url: "/cashier/cash-details",
-        icon: Calculator,
         requiresPermission: "cashier_operations"
       },
       {
