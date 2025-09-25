@@ -14,9 +14,15 @@ export const cashierMenuItems = [
     icon: CreditCard,
     subItems: [
       {
-        title: "Payment Collection",
-        url: "/cashier/payment-collection",
+        title: "Miscellaneous Payments",
+        url: "/cashier/misc-payments",
         icon: Receipt,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "C3 Contributions",
+        url: "/cashier/c3-payments",
+        icon: Banknote,
         requiresPermission: "cashier_operations"
       },
       {
@@ -32,22 +38,10 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_reports"
       },
       {
-        title: "Day-End Balancing",
-        url: "/cashier/balancing",
-        icon: Banknote,
-        requiresPermission: "cashier_supervisor"
-      },
-      {
         title: "Check Management",
         url: "/cashier/check-management",
         icon: FileText,
         requiresPermission: "cashier_operations"
-      },
-      {
-        title: "Sage Integration",
-        url: "/cashier/sage-integration",
-        icon: Settings,
-        requiresPermission: "system_admin"
       },
       {
         title: "Payment Analytics",
