@@ -114,6 +114,11 @@ import CreateInvoice from '@/pages/cashier/CreateInvoice';
 import SearchPayInvoices from '@/pages/cashier/SearchPayInvoices';
 import BatchClosing from '@/pages/cashier/BatchClosing';
 import DailyInvoiceReport from '@/pages/cashier/DailyInvoiceReport';
+import ChartAccountsMapping from '@/pages/cashier/ChartAccountsMapping';
+import PaymentTypesMapping from '@/pages/cashier/PaymentTypesMapping';
+import SageSynchronization from '@/pages/cashier/SageSynchronization';
+import CurrentAccountsSetup from '@/pages/cashier/CurrentAccountsSetup';
+import BankReconciliationAccounts from '@/pages/cashier/BankReconciliationAccounts';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
 import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
@@ -259,6 +264,15 @@ export const AppRoutes = () => {
       <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
+      
+      {/* Sage Integration Routes */}
+      <Route path="/cashier/chart-accounts-mapping" element={<ProtectedLayout><ChartAccountsMapping /></ProtectedLayout>} />
+      <Route path="/cashier/payment-types-mapping" element={<ProtectedLayout><PaymentTypesMapping /></ProtectedLayout>} />
+      <Route path="/cashier/sage-sync" element={<ProtectedLayout><SageSynchronization /></ProtectedLayout>} />
+      
+      {/* Bank Account Mapping Routes */}
+      <Route path="/cashier/current-accounts" element={<ProtectedLayout><CurrentAccountsSetup /></ProtectedLayout>} />
+      <Route path="/cashier/reconciliation-accounts" element={<ProtectedLayout><BankReconciliationAccounts /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
