@@ -18,7 +18,6 @@ import {
   Trash2, 
   Receipt, 
   DollarSign, 
-  Calculator,
   AlertTriangle,
   Banknote,
   CheckSquare,
@@ -62,17 +61,6 @@ interface C3Payment {
   processedBy: string;
 }
 
-interface BatchSummary {
-  cashEC: number;
-  cashUS: number;
-  checksEC: number;
-  checksUS: number;
-  cardsEC: number;
-  cardsUS: number;
-  eftEC: number;
-  eftUS: number;
-  totalTransactions: number;
-}
 
 const C3Payments: React.FC = () => {
   const { user } = useAuth();
@@ -123,24 +111,6 @@ const C3Payments: React.FC = () => {
     addPaymentSplit();
   }, [user]);
 
-  const batchSummary = useMemo(() => {
-    const summary: BatchSummary = {
-      cashEC: 0, cashUS: 0, checksEC: 0, checksUS: 0,
-      cardsEC: 0, cardsUS: 0, eftEC: 0, eftUS: 0,
-      totalTransactions: payments.length
-    };
-
-    payments.forEach(payment => {
-      payment.paymentSplits.forEach(split => {
-        const key = `${split.paymentMode}${split.currency.replace('$', '')}` as keyof BatchSummary;
-        if (typeof summary[key] === 'number') {
-          summary[key] += split.amount;
-        }
-      });
-    });
-
-    return summary;
-  }, [payments]);
 
   const addPaymentSplit = () => {
     const newSplit: PaymentSplit = {
@@ -275,70 +245,27 @@ const C3Payments: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">C3 Contributions</h1>
-          <p className="text-muted-foreground">Process C3 contribution payments with multi-currency and payment mode support</p>
+          <h1 className="text-2xl font-bold text-foreground">C3 Contributions Payment</h1>
+          <p className="text-muted-foreground">Process employer C3 contribution payments</p>
         </div>
         <Badge variant="outline" className="text-sm">
           Batch: {activeBatch.batchNumber}
         </Badge>
       </div>
 
-      {/* Batch Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Batch Summary
-          </CardTitle>
-          <CardDescription>Real-time summary of all payments in this batch</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-sm text-muted-foreground">Cash EC$</div>
-              <div className="text-lg font-semibold text-green-600">EC$ {batchSummary.cashEC.toFixed(2)}</div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-sm text-muted-foreground">Cash US$</div>
-              <div className="text-lg font-semibold text-green-600">US$ {batchSummary.cashUS.toFixed(2)}</div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-sm text-muted-foreground">Checks</div>
-              <div className="text-lg font-semibold text-blue-600">
-                EC$ {batchSummary.checksEC.toFixed(2)}<br/>
-                <span className="text-sm">US$ {batchSummary.checksUS.toFixed(2)}</span>
-              </div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-sm text-muted-foreground">Cards/EFT</div>
-              <div className="text-lg font-semibold text-purple-600">
-                EC$ {batchSummary.cardsEC.toFixed(2)}<br/>
-                <span className="text-sm">US$ {batchSummary.cardsUS.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 text-center">
-            <div className="text-sm text-muted-foreground">Total Transactions</div>
-            <div className="text-2xl font-bold">{batchSummary.totalTransactions}</div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Payment Processing Form */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-3 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
                 C3 Payment Processing
               </CardTitle>
-              <CardDescription>
-                Select employer and configure multiple payment modes and currencies
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Employer Selection */}
