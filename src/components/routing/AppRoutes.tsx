@@ -142,6 +142,16 @@ import { EnforcementForm } from '@/pages/legalFinal/EnforcementForm';
 import { HearingSchedule } from '@/pages/legalFinal/HearingSchedule';
 import { EnforcementManagement } from '@/pages/legalFinal/EnforcementManagement';
 
+// Notification Pages
+import NotificationDashboard from '@/pages/notifications/NotificationDashboard';
+import TemplateManagement from '@/pages/notifications/TemplateManagement';
+import ActionMapping from '@/pages/notifications/ActionMapping';
+import DeliveryManagement from '@/pages/notifications/DeliveryManagement';
+import UserPreferences from '@/pages/notifications/UserPreferences';
+import NotificationCenter from '@/pages/notifications/NotificationCenter';
+import ReportsAnalytics from '@/pages/notifications/ReportsAnalytics';
+import Administration from '@/pages/notifications/Administration';
+
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
@@ -272,6 +282,16 @@ export const AppRoutes = () => {
       <Route path="/legal-final/hearings" element={<ProtectedLayout><HearingSchedule /></ProtectedLayout>} />
       <Route path="/legal-final/enforcement" element={<ProtectedLayout><EnforcementManagement /></ProtectedLayout>} />
       <Route path="/legal-final/reports" element={<ProtectedLayout><LegalFinalReports /></ProtectedLayout>} />
+
+      {/* Notification Routes */}
+      <Route path="/notifications/dashboard" element={<ProtectedLayout><NotificationDashboard /></ProtectedLayout>} />
+      <Route path="/notifications/templates" element={<ProtectedLayout><TemplateManagement /></ProtectedLayout>} />
+      <Route path="/notifications/actions" element={<ProtectedLayout><ActionMapping /></ProtectedLayout>} />
+      <Route path="/notifications/delivery" element={<ProtectedLayout><DeliveryManagement /></ProtectedLayout>} />
+      <Route path="/notifications/preferences" element={<ProtectedLayout><UserPreferences /></ProtectedLayout>} />
+      <Route path="/notifications/center" element={<ProtectedLayout><NotificationCenter /></ProtectedLayout>} />
+      <Route path="/notifications/reports" element={<ProtectedLayout><ReportsAnalytics /></ProtectedLayout>} />
+      <Route path="/notifications/admin" element={<ProtectedLayout><Administration /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
