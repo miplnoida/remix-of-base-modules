@@ -130,6 +130,18 @@ import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
 import EvidenceManagement from '@/pages/legal/EvidenceManagement';
 import LegalReports from '@/pages/legal/LegalReports';
 
+// LegalFinal Module pages
+import { LegalFinalDashboard } from '@/pages/legalFinal/LegalFinalDashboard';
+import { NewCaseForm } from '@/pages/legalFinal/NewCaseForm';
+import { CaseManagement } from '@/pages/legalFinal/CaseManagement';
+import { LegalReports as LegalFinalReports } from '@/pages/legalFinal/LegalReports';
+import { CaseStatusUpdateForm } from '@/pages/legalFinal/CaseStatusUpdateForm';
+import { DocumentUploadForm } from '@/pages/legalFinal/DocumentUploadForm';
+import { HearingJudgmentForm } from '@/pages/legalFinal/HearingJudgmentForm';
+import { EnforcementForm } from '@/pages/legalFinal/EnforcementForm';
+import { HearingSchedule } from '@/pages/legalFinal/HearingSchedule';
+import { EnforcementManagement } from '@/pages/legalFinal/EnforcementManagement';
+
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
@@ -248,6 +260,18 @@ export const AppRoutes = () => {
       <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
       <Route path="/legal/evidence" element={<ProtectedLayout><EvidenceManagement /></ProtectedLayout>} />
       <Route path="/legal/reports" element={<ProtectedLayout><LegalReports /></ProtectedLayout>} />
+
+      {/* LegalFinal Module Routes */}
+      <Route path="/legal-final" element={<ProtectedLayout><LegalFinalDashboard /></ProtectedLayout>} />
+      <Route path="/legal-final/new-case" element={<ProtectedLayout><NewCaseForm /></ProtectedLayout>} />
+      <Route path="/legal-final/cases" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
+      <Route path="/legal-final/cases/:caseId/edit" element={<ProtectedLayout><CaseStatusUpdateForm /></ProtectedLayout>} />
+      <Route path="/legal-final/cases/:caseId/documents" element={<ProtectedLayout><DocumentUploadForm /></ProtectedLayout>} />
+      <Route path="/legal-final/cases/:caseId/hearing" element={<ProtectedLayout><HearingJudgmentForm /></ProtectedLayout>} />
+      <Route path="/legal-final/cases/:caseId/enforcement" element={<ProtectedLayout><EnforcementForm /></ProtectedLayout>} />
+      <Route path="/legal-final/hearings" element={<ProtectedLayout><HearingSchedule /></ProtectedLayout>} />
+      <Route path="/legal-final/enforcement" element={<ProtectedLayout><EnforcementManagement /></ProtectedLayout>} />
+      <Route path="/legal-final/reports" element={<ProtectedLayout><LegalFinalReports /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
