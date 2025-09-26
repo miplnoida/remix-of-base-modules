@@ -14,6 +14,7 @@ import { testMenuItems } from './menuItems/testMenuItems';
 import { legalMenuItems } from './menuItems/legalMenuItems';
 import { legalFinalMenuItems } from './menuItems/legalFinalMenuItems';
 import { cashierMenuItems } from './menuItems/cashierMenuItems';
+import { notificationMenuItems } from './menuItems/notificationMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -26,6 +27,7 @@ export const menuItems = [
   ...legalMenuItems,
   ...legalFinalMenuItems,
   ...cashierMenuItems,
+  ...notificationMenuItems,
   ...documentMenuItems,
   ...reportsMenuItems,
   ...userMenuItems,
