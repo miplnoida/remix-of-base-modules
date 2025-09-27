@@ -161,6 +161,11 @@ import { ContributorReports } from '@/pages/newBenefit/ContributorReports';
 import { ContributorInbox } from '@/pages/newBenefit/ContributorInbox';
 import { WorklistsHome } from '@/pages/newBenefit/WorklistsHome';
 import { Claim360View } from '@/pages/newBenefit/Claim360View';
+import { IntakeConsole } from '@/pages/newBenefit/IntakeConsole';
+import { MedicalBoardHub } from '@/pages/newBenefit/MedicalBoardHub';
+import { EmployerHub } from '@/pages/newBenefit/EmployerHub';
+import { PensionAdministration } from '@/pages/newBenefit/PensionAdministration';
+import { PaymentsModule } from '@/pages/newBenefit/PaymentsModule';
 
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
@@ -312,6 +317,11 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/inbox" element={<ProtectedLayout><ContributorInbox /></ProtectedLayout>} />
           <Route path="/newbenefit/worklists" element={<ProtectedLayout><WorklistsHome /></ProtectedLayout>} />
           <Route path="/newbenefit/claim-360/:claimId" element={<ProtectedLayout><Claim360View /></ProtectedLayout>} />
+          <Route path="/newbenefit/intake" element={<ProtectedLayout><IntakeConsole /></ProtectedLayout>} />
+          <Route path="/newbenefit/medical-board" element={<ProtectedLayout><MedicalBoardHub /></ProtectedLayout>} />
+          <Route path="/newbenefit/employer-hub" element={<ProtectedLayout><EmployerHub /></ProtectedLayout>} />
+          <Route path="/newbenefit/pension-admin" element={<ProtectedLayout><PensionAdministration /></ProtectedLayout>} />
+          <Route path="/newbenefit/payments" element={<ProtectedLayout><PaymentsModule /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
