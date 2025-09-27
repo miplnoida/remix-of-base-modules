@@ -152,6 +152,16 @@ import NotificationCenter from '@/pages/notifications/NotificationCenter';
 import ReportsAnalytics from '@/pages/notifications/ReportsAnalytics';
 import Administration from '@/pages/notifications/Administration';
 
+// NewBenefit Pages
+import { ContributorDashboard } from '@/pages/newBenefit/ContributorDashboard';
+import { ApplyForBenefits } from '@/pages/newBenefit/ApplyForBenefits';
+import { BenefitApplicationForm } from '@/pages/newBenefit/BenefitApplicationForm';
+import { MyClaims } from '@/pages/newBenefit/MyClaims';
+import { ContributorReports } from '@/pages/newBenefit/ContributorReports';
+import { ContributorInbox } from '@/pages/newBenefit/ContributorInbox';
+import { WorklistsHome } from '@/pages/newBenefit/WorklistsHome';
+import { Claim360View } from '@/pages/newBenefit/Claim360View';
+
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
@@ -291,7 +301,17 @@ export const AppRoutes = () => {
       <Route path="/notifications/preferences" element={<ProtectedLayout><UserPreferences /></ProtectedLayout>} />
       <Route path="/notifications/center" element={<ProtectedLayout><NotificationCenter /></ProtectedLayout>} />
       <Route path="/notifications/reports" element={<ProtectedLayout><ReportsAnalytics /></ProtectedLayout>} />
-      <Route path="/notifications/admin" element={<ProtectedLayout><Administration /></ProtectedLayout>} />
+          <Route path="/notifications/admin" element={<ProtectedLayout><Administration /></ProtectedLayout>} />
+
+          {/* NewBenefit Routes */}
+          <Route path="/newbenefit/dashboard" element={<ProtectedLayout><ContributorDashboard /></ProtectedLayout>} />
+          <Route path="/newbenefit/apply" element={<ProtectedLayout><ApplyForBenefits /></ProtectedLayout>} />
+          <Route path="/newbenefit/apply/:benefitType" element={<ProtectedLayout><BenefitApplicationForm /></ProtectedLayout>} />
+          <Route path="/newbenefit/my-claims" element={<ProtectedLayout><MyClaims /></ProtectedLayout>} />
+          <Route path="/newbenefit/reports" element={<ProtectedLayout><ContributorReports /></ProtectedLayout>} />
+          <Route path="/newbenefit/inbox" element={<ProtectedLayout><ContributorInbox /></ProtectedLayout>} />
+          <Route path="/newbenefit/worklists" element={<ProtectedLayout><WorklistsHome /></ProtectedLayout>} />
+          <Route path="/newbenefit/claim-360/:claimId" element={<ProtectedLayout><Claim360View /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
