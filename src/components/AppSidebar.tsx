@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNewBenefitAuth } from "@/contexts/NewBenefitAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -56,6 +57,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [openGroups, setOpenGroups] = useState<string[]>(['Dashboard']);
   const { hasPermission, user } = useAuth();
+  const newBenefitAuth = useNewBenefitAuth();
   const { currentTheme } = useTheme();
 
   // Auto-expand groups containing active routes
@@ -85,6 +87,19 @@ export function AppSidebar() {
   };
   const isGroupActive = (subItems: any[]) =>
     subItems?.some(item => isActive(item.url));
+
+  // Combined permission checker for both old and new benefit systems
+  const checkPermission = (permission?: string) => {
+    if (!permission) return true;
+    
+    // Check new benefit permissions first
+    if (newBenefitAuth.currentUser && newBenefitAuth.hasPermission(permission)) {
+      return true;
+    }
+    
+    // Fallback to old permission system
+    return hasPermission(permission);
+  };
 
   return (
     <Sidebar 
@@ -141,7 +156,7 @@ export function AppSidebar() {
                         open={openGroups.includes(item.title)}
                         toggle={() => toggleGroup(item.title)}
                         isGroupActive={isGroupActive(item.subItems)}
-                        hasPermission={hasPermission}
+                        hasPermission={checkPermission}
                         currentPath={currentPath}
                       />
                     ) : hasUrl(item) ? (

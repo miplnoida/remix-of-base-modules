@@ -70,6 +70,12 @@ export const newBenefitMenuItems = [
         requiresPermission: "process_claims"
       },
       {
+        title: "Application Form",
+        url: "/newbenefit/application/:benefitType",
+        icon: FileText,
+        requiresPermission: "apply_for_benefits"
+      },
+      {
         title: "Claim 360 View",
         url: "/newbenefit/claim-360",
         icon: Eye,
