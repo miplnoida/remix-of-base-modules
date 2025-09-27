@@ -166,6 +166,9 @@ import { MedicalBoardHub } from '@/pages/newBenefit/MedicalBoardHub';
 import { EmployerHub } from '@/pages/newBenefit/EmployerHub';
 import { PensionAdministration } from '@/pages/newBenefit/PensionAdministration';
 import { PaymentsModule } from '@/pages/newBenefit/PaymentsModule';
+import LettersCommunications from '@/pages/newBenefit/LettersCommunications';
+import AdminConfig from '@/pages/newBenefit/AdminConfig';
+import AuditorView from '@/pages/newBenefit/AuditorView';
 
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
@@ -322,6 +325,9 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/employer-hub" element={<ProtectedLayout><EmployerHub /></ProtectedLayout>} />
           <Route path="/newbenefit/pension-admin" element={<ProtectedLayout><PensionAdministration /></ProtectedLayout>} />
           <Route path="/newbenefit/payments" element={<ProtectedLayout><PaymentsModule /></ProtectedLayout>} />
+          <Route path="/newbenefit/communications" element={<ProtectedLayout><LettersCommunications /></ProtectedLayout>} />
+          <Route path="/newbenefit/admin" element={<ProtectedLayout><AdminConfig /></ProtectedLayout>} />
+          <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
