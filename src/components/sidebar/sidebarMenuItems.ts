@@ -5,6 +5,7 @@ import { employersManagementMenuItems } from './menuItems/employersManagementMen
 import { c3MenuItems } from './menuItems/c3MenuItems';
 import { selfEmployedMenuItems } from './menuItems/selfEmployedMenuItems';
 import { benefitsMenuItems } from './menuItems/benefitsMenuItems';
+import { newBenefitMenuItems } from './menuItems/newBenefitMenuItems';
 import { complianceMenuItems } from './menuItems/complianceMenuItems';
 import { documentMenuItems } from './menuItems/documentMenuItems';
 import { reportsMenuItems } from './menuItems/reportsMenuItems';
@@ -23,6 +24,7 @@ export const menuItems = [
   ...c3MenuItems,
   ...selfEmployedMenuItems,
   ...benefitsMenuItems,
+  ...newBenefitMenuItems,
   ...complianceMenuItems,
   ...legalMenuItems,
   ...legalFinalMenuItems,
