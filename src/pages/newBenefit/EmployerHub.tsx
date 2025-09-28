@@ -154,7 +154,7 @@ export const EmployerHub: React.FC = () => {
           <h1 className="text-2xl font-bold">Employer Hub</h1>
           <p className="text-muted-foreground">Manage employer verification, compliance, and incident confirmations</p>
         </div>
-        <Button>
+        <Button onClick={() => window.location.href = '/newbenefit/new-verification'}>
           <FileText className="h-4 w-4 mr-2" />
           New Verification Request
         </Button>
@@ -195,7 +195,11 @@ export const EmployerHub: React.FC = () => {
                         <Badge variant={getVerificationStatusBadgeVariant(request.status)}>
                           {request.status}
                         </Badge>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => window.location.href = `/newbenefit/verification/${request.id}`}
+                        >
                           <Eye className="h-4 w-4 mr-1" />
                           View
                         </Button>

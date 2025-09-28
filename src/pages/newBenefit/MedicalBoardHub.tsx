@@ -127,7 +127,7 @@ export const MedicalBoardHub: React.FC = () => {
           <h1 className="text-2xl font-bold">Medical Board Hub</h1>
           <p className="text-muted-foreground">Manage medical board referrals, appointments, and decisions</p>
         </div>
-        <Button>
+        <Button onClick={() => window.location.href = '/newbenefit/new-referral'}>
           <Plus className="h-4 w-4 mr-2" />
           New Referral
         </Button>

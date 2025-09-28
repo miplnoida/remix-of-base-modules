@@ -19,10 +19,25 @@ import {
   Upload, 
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Search,
+  User
 } from 'lucide-react';
 
+// Mock insured persons data
+const mockInsuredPersons = [
+  { ssn: '123-45-6789', name: 'John Contributor', status: 'ACTIVE' },
+  { ssn: '987-65-4321', name: 'Sarah Johnson', status: 'ACTIVE' },
+  { ssn: '456-78-9123', name: 'Robert Wilson', status: 'ACTIVE' },
+  { ssn: '321-65-9874', name: 'Maria Garcia', status: 'ACTIVE' },
+  { ssn: '654-32-1987', name: 'David Brown', status: 'ACTIVE' }
+];
+
 interface FormData {
+  // Selected Insured Person
+  selectedSSN: string;
+  selectedPersonName: string;
+  
   // Common fields
   contactPhone: string;
   contactEmail: string;
@@ -127,8 +142,10 @@ export const BenefitApplicationForm: React.FC = () => {
   const config = benefitType ? benefitConfigs[benefitType] : null;
   
   const [formData, setFormData] = useState<FormData>({
+    selectedSSN: '',
+    selectedPersonName: '',
     contactPhone: '',
-    contactEmail: currentUser?.email || '',
+    contactEmail: '',
     bankAccount: '',
     bankRoutingNumber: '',
     declaration: false,
@@ -161,36 +178,119 @@ export const BenefitApplicationForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+  const [ssnSearch, setSsnSearch] = useState('');
 
   const handleInputChange = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePersonSelect = (ssn: string) => {
+    const person = mockInsuredPersons.find(p => p.ssn === ssn);
+    if (person) {
+      setFormData(prev => ({
+        ...prev,
+        selectedSSN: ssn,
+        selectedPersonName: person.name,
+        contactEmail: `${person.name.toLowerCase().replace(' ', '.')}@example.com`
+      }));
+    }
+  };
+
   const handleSaveDraft = async () => {
+    if (!formData.selectedSSN) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an insured person first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     toast({
       title: "Draft Saved",
       description: "Your application has been saved as a draft.",
     });
   };
 
+  const validateForm = () => {
+    if (!formData.selectedSSN) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an insured person.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.contactPhone || !formData.contactEmail) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide contact information.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.bankAccount || !formData.bankRoutingNumber) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide banking information.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.declaration) {
+      toast({
+        title: "Validation Error",
+        description: "Please accept the declaration.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Benefit-specific validation
+    if (config?.type === 'SICKNESS' && (!formData.lastDayWorked || !formData.employerId)) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide last day worked and employer information.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (config?.type === 'EMPLOYMENT_INJURY' && (!formData.incidentDate || !formData.incidentDescription)) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide incident details.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
-    if (!config || !currentUser?.ssn) return;
+    if (!config || !validateForm()) return;
     
     setIsSubmitting(true);
     
     try {
       // Prepare claim data based on benefit type
       const claimData: any = {
-        ssn: currentUser.ssn,
+        ssn: formData.selectedSSN,
         benefitType: config.type,
-        status: 'DRAFT' as const,
+        status: 'SUBMITTED' as const,
+        submissionDate: new Date().toISOString().split('T')[0],
+        lastUpdated: new Date().toISOString().split('T')[0],
         priority: 'NORMAL' as const,
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
         bankAccount: formData.bankAccount,
         bankRoutingNumber: formData.bankRoutingNumber,
         declaration: formData.declaration,
-        digitalSignature: formData.digitalSignature
+        digitalSignature: currentUser?.username || 'SYSTEM'
       };
 
       // Add specific benefit data
@@ -216,17 +316,39 @@ export const BenefitApplicationForm: React.FC = () => {
             incidentId: 'INC_PLACEHOLDER'
           };
           break;
-        // Add other benefit types as needed
+        case 'FUNERAL_GRANT':
+          claimData.funeralGrantData = {
+            deceasedSSN: formData.deceasedSSN,
+            relationship: formData.relationship,
+            deathCertificateId: 'DOC_PLACEHOLDER',
+            funeralInvoiceId: 'DOC_PLACEHOLDER'
+          };
+          break;
+        case 'AGE_PENSION':
+          claimData.agePensionData = {
+            age: 65,
+            contributionWeeks: 520,
+            residenceConfirmed: true
+          };
+          break;
+        case 'INVALIDITY':
+          claimData.invalidityData = {
+            medicalBoardCertificateId: 'DOC_PLACEHOLDER',
+            doctorReportId: 'DOC_PLACEHOLDER',
+            disabilityStartDate: formData.disabilityStartDate,
+            impairmentPercentage: 0
+          };
+          break;
       }
 
       const newClaim = await newBenefitService.submitClaim(claimData);
       
       toast({
         title: "Application Submitted",
-        description: `Your application ${newClaim.id} has been submitted successfully.`,
+        description: `Application ${newClaim.id} submitted successfully for ${formData.selectedPersonName}.`,
       });
       
-      navigate('/newbenefit/my-claims');
+      navigate('/newbenefit/worklists');
     } catch (error) {
       toast({
         title: "Submission Failed",
@@ -238,28 +360,96 @@ export const BenefitApplicationForm: React.FC = () => {
     }
   };
 
-  const renderStepContent = () => {
-    if (!config) return null;
+  const filteredPersons = mockInsuredPersons.filter(person => 
+    person.ssn.includes(ssnSearch) || 
+    person.name.toLowerCase().includes(ssnSearch.toLowerCase())
+  );
 
+  if (!config) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Invalid Benefit Type</h1>
+        <p className="text-muted-foreground mb-4">The requested benefit type is not supported.</p>
+        <Button onClick={() => navigate('/newbenefit/apply')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Benefit Selection
+        </Button>
+      </div>
+    );
+  }
+
+  const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Verify and update your contact details</CardDescription>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>Select Insured Person</span>
+                </CardTitle>
+                <CardDescription>Choose the insured person for this {config.title.toLowerCase()}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="ssnSearch">Search by SSN or Name</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="ssnSearch"
+                      placeholder="Search for an insured person..."
+                      value={ssnSearch}
+                      onChange={(e) => setSsnSearch(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {filteredPersons.map((person) => (
+                    <div
+                      key={person.ssn}
+                      className={`p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                        formData.selectedSSN === person.ssn ? 'bg-primary/10 border-primary' : ''
+                      }`}
+                      onClick={() => handlePersonSelect(person.ssn)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{person.name}</p>
+                          <p className="text-sm text-muted-foreground">SSN: {person.ssn}</p>
+                        </div>
+                        <Badge variant={person.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                          {person.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {formData.selectedSSN && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="font-medium text-green-900">Selected Person:</p>
+                    <p className="text-green-700">{formData.selectedPersonName} ({formData.selectedSSN})</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+                <CardDescription>Verify and update contact details for {formData.selectedPersonName}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="ssn">Social Security Number</Label>
-                    <Input id="ssn" value={currentUser?.ssn || ''} disabled />
-                  </div>
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" value={`${currentUser?.firstName} ${currentUser?.lastName}`} disabled />
-                  </div>
                   <div>
                     <Label htmlFor="contactPhone">Contact Phone *</Label>
                     <Input 
@@ -287,7 +477,7 @@ export const BenefitApplicationForm: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Banking Information</CardTitle>
-                <CardDescription>Where should we send your benefit payments?</CardDescription>
+                <CardDescription>Where should benefit payments be sent?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -315,13 +505,13 @@ export const BenefitApplicationForm: React.FC = () => {
           </div>
         );
 
-      case 2:
+      case 3:
         return (
           <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Benefit-Specific Information</CardTitle>
-                <CardDescription>Please provide details specific to your {config.title.toLowerCase()}</CardDescription>
+                <CardDescription>Provide details specific to {config.title.toLowerCase()}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {config.type === 'SICKNESS' && (
@@ -351,11 +541,12 @@ export const BenefitApplicationForm: React.FC = () => {
                       <Label htmlFor="employerId">Employer *</Label>
                       <Select value={formData.employerId} onValueChange={(value) => handleInputChange('employerId', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select your employer" />
+                          <SelectValue placeholder="Select employer" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="EMP001">Government of St. Kitts & Nevis</SelectItem>
                           <SelectItem value="EMP002">Royal Bank of Canada</SelectItem>
+                          <SelectItem value="EMP003">Four Seasons Resort</SelectItem>
                           <SelectItem value="OTHER">Other (will specify)</SelectItem>
                         </SelectContent>
                       </Select>
@@ -366,34 +557,8 @@ export const BenefitApplicationForm: React.FC = () => {
                         id="symptoms"
                         value={formData.symptoms}
                         onChange={(e) => handleInputChange('symptoms', e.target.value)}
-                        placeholder="Briefly describe your condition..."
+                        placeholder="Briefly describe the condition..."
                       />
-                    </div>
-                  </>
-                )}
-
-                {config.type === 'MATERNITY' && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="expectedDeliveryDate">Expected Delivery Date *</Label>
-                        <Input 
-                          id="expectedDeliveryDate" 
-                          type="date"
-                          value={formData.expectedDeliveryDate}
-                          onChange={(e) => handleInputChange('expectedDeliveryDate', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="confinementDate">Actual Confinement Date (if delivered)</Label>
-                        <Input 
-                          id="confinementDate" 
-                          type="date"
-                          value={formData.confinementDate}
-                          onChange={(e) => handleInputChange('confinementDate', e.target.value)}
-                        />
-                      </div>
                     </div>
                   </>
                 )}
@@ -454,90 +619,11 @@ export const BenefitApplicationForm: React.FC = () => {
                         required
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="witnesses">Witnesses (Names and Contact Information)</Label>
-                      <Textarea 
-                        id="witnesses"
-                        value={formData.witnesses}
-                        onChange={(e) => handleInputChange('witnesses', e.target.value)}
-                        placeholder="List any witnesses to the incident..."
-                      />
-                    </div>
                   </>
                 )}
 
-                {/* Add other benefit type forms similarly */}
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Required Documents</CardTitle>
-                <CardDescription>Upload the necessary supporting documents</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                  <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg font-medium mb-2">Upload Documents</p>
-                  <p className="text-muted-foreground mb-4">
-                    Drag and drop files here, or click to browse
-                  </p>
-                  <Button variant="outline">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Choose Files
-                  </Button>
-                </div>
+                {/* Add other benefit type forms here */}
                 
-                {/* Required documents list */}
-                <div className="mt-6">
-                  <h4 className="font-medium mb-3">Required Documents for {config.title}:</h4>
-                  <div className="space-y-2">
-                    {config.type === 'SICKNESS' && (
-                      <>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Medical Certificate from Licensed Physician</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <AlertCircle className="h-4 w-4 text-orange-500" />
-                          <span className="text-sm">Employer's Confirmation of Last Day Worked</span>
-                        </div>
-                      </>
-                    )}
-                    {config.type === 'MATERNITY' && (
-                      <>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Medical Certificate of Pregnancy</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <AlertCircle className="h-4 w-4 text-orange-500" />
-                          <span className="text-sm">Birth Certificate (after delivery)</span>
-                        </div>
-                      </>
-                    )}
-                    {/* Add other document requirements */}
-                  </div>
-                </div>
-
-                {uploadedDocs.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="font-medium mb-3">Uploaded Documents:</h4>
-                    <div className="space-y-2">
-                      {uploadedDocs.map((doc, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <span className="text-sm">{doc}</span>
-                          <Button variant="outline" size="sm">Remove</Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -548,140 +634,99 @@ export const BenefitApplicationForm: React.FC = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Declaration and Signature</CardTitle>
+                <CardTitle>Declaration & Submission</CardTitle>
                 <CardDescription>Review and confirm your application</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-blue-900">Declaration</p>
-                      <p className="text-sm text-blue-700 mt-1">
-                        I declare that the information provided in this application is true and complete to the best of my knowledge. 
-                        I understand that providing false information may result in denial of benefits and potential legal action.
-                      </p>
-                    </div>
-                  </div>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">Application Summary:</h4>
+                  <ul className="text-sm space-y-1">
+                    <li>Insured Person: {formData.selectedPersonName} ({formData.selectedSSN})</li>
+                    <li>Benefit Type: {config.title}</li>
+                    <li>Contact: {formData.contactPhone} / {formData.contactEmail}</li>
+                    <li>Bank Account: {formData.bankAccount}</li>
+                  </ul>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-start space-x-2">
                   <Checkbox 
-                    id="declaration" 
+                    id="declaration"
                     checked={formData.declaration}
                     onCheckedChange={(checked) => handleInputChange('declaration', checked as boolean)}
                   />
                   <Label htmlFor="declaration" className="text-sm">
-                    I agree to the declaration above and authorize the Social Security Board to verify the information provided.
+                    I declare that the information provided is true and accurate to the best of my knowledge. 
+                    I understand that providing false information may result in the denial of benefits or legal consequences.
                   </Label>
-                </div>
-
-                <div>
-                  <Label htmlFor="digitalSignature">Digital Signature *</Label>
-                  <Input 
-                    id="digitalSignature"
-                    value={formData.digitalSignature}
-                    onChange={(e) => handleInputChange('digitalSignature', e.target.value)}
-                    placeholder="Type your full name as digital signature"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    By typing your name, you are electronically signing this application.
-                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
         );
+
+      default:
+        return null;
     }
   };
 
-  if (!config) {
-    return (
-      <div className="text-center py-12">
-        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Invalid Benefit Type</h1>
-        <p className="text-muted-foreground mb-4">The requested benefit type was not found.</p>
-        <Button asChild>
-          <a href="/newbenefit/apply">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Benefits
-          </a>
-        </Button>
-      </div>
-    );
-  }
-
-  const totalSteps = 4;
-  const isLastStep = currentStep === totalSteps;
-  const canProceed = currentStep === 1 ? formData.contactPhone && formData.contactEmail && formData.bankAccount : true;
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center space-x-4">
+        <Button variant="ghost" onClick={() => navigate('/newbenefit/apply')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
         <div>
-          <Button variant="ghost" onClick={() => navigate('/newbenefit/apply')} className="mb-2">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Benefits
-          </Button>
           <h1 className="text-2xl font-bold">{config.title}</h1>
           <p className="text-muted-foreground">{config.description}</p>
         </div>
-        <Badge variant="outline">
-          Step {currentStep} of {totalSteps}
-        </Badge>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-muted rounded-full h-2">
-        <div 
-          className="bg-primary h-2 rounded-full transition-all duration-300"
-          style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-        />
+      {/* Progress Indicator */}
+      <div className="flex items-center space-x-2">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              step <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+            }`}>
+              {step < currentStep ? <CheckCircle className="h-4 w-4" /> : step}
+            </div>
+            {step < 4 && <div className={`h-1 w-8 ${step < currentStep ? 'bg-primary' : 'bg-muted'}`} />}
+          </div>
+        ))}
       </div>
 
-      {/* Form Content */}
       {renderStepContent()}
 
       {/* Navigation Buttons */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              {currentStep > 1 && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setCurrentStep(prev => prev - 1)}
-                >
-                  Previous
-                </Button>
-              )}
-            </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={handleSaveDraft}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Draft
-              </Button>
-              {isLastStep ? (
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={!formData.declaration || !formData.digitalSignature || isSubmitting}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => setCurrentStep(prev => prev + 1)}
-                  disabled={!canProceed}
-                >
-                  Next
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-between">
+        <div>
+          {currentStep > 1 && (
+            <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>
+              Previous
+            </Button>
+          )}
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleSaveDraft}>
+            <Save className="h-4 w-4 mr-2" />
+            Save Draft
+          </Button>
+          {currentStep < 4 ? (
+            <Button 
+              onClick={() => setCurrentStep(currentStep + 1)}
+              disabled={currentStep === 1 && !formData.selectedSSN}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              <Send className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Submitting...' : 'Submit Application'}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

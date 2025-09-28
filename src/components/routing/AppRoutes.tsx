@@ -156,6 +156,9 @@ import Administration from '@/pages/notifications/Administration';
 import { ContributorDashboard } from '@/pages/newBenefit/ContributorDashboard';
 import { ApplyForBenefits } from '@/pages/newBenefit/ApplyForBenefits';
 import { BenefitApplicationForm } from '@/pages/newBenefit/BenefitApplicationForm';
+import { NewReferralForm } from '@/pages/newBenefit/NewReferralForm';
+import { NewVerificationRequest } from '@/pages/newBenefit/NewVerificationRequest';
+import { EmploymentVerificationDetail } from '@/pages/newBenefit/EmploymentVerificationDetail';
 import { MyClaims } from '@/pages/newBenefit/MyClaims';
 import { ContributorReports } from '@/pages/newBenefit/ContributorReports';
 import { ContributorInbox } from '@/pages/newBenefit/ContributorInbox';
@@ -315,6 +318,9 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/dashboard" element={<ProtectedLayout><ContributorDashboard /></ProtectedLayout>} />
           <Route path="/newbenefit/apply" element={<ProtectedLayout><ApplyForBenefits /></ProtectedLayout>} />
           <Route path="/newbenefit/apply/:benefitType" element={<ProtectedLayout><BenefitApplicationForm /></ProtectedLayout>} />
+          <Route path="/newbenefit/new-referral" element={<ProtectedLayout><NewReferralForm /></ProtectedLayout>} />
+          <Route path="/newbenefit/new-verification" element={<ProtectedLayout><NewVerificationRequest /></ProtectedLayout>} />
+          <Route path="/newbenefit/verification/:verificationId" element={<ProtectedLayout><EmploymentVerificationDetail /></ProtectedLayout>} />
           <Route path="/newbenefit/my-claims" element={<ProtectedLayout><MyClaims /></ProtectedLayout>} />
           <Route path="/newbenefit/reports" element={<ProtectedLayout><ContributorReports /></ProtectedLayout>} />
           <Route path="/newbenefit/inbox" element={<ProtectedLayout><ContributorInbox /></ProtectedLayout>} />
