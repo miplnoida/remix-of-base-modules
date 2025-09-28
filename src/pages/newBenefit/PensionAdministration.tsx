@@ -104,18 +104,34 @@ export const PensionAdministration: React.FC = () => {
 
   const handleCreateAward = () => {
     console.log('Creating new pension award...');
+    alert('Pension award created successfully!');
   };
 
   const handleApplyCOLA = () => {
+    if (!colaPercentage || !effectiveDate) {
+      alert('Please enter COLA percentage and effective date');
+      return;
+    }
     console.log('Applying COLA adjustment...', { colaPercentage, effectiveDate });
+    alert(`COLA adjustment of ${colaPercentage}% applied to all active pensions`);
+    setColaPercentage('');
+    setEffectiveDate('');
   };
 
   const handleSuspendPension = () => {
+    if (!suspensionReason) {
+      alert('Please select a suspension reason');
+      return;
+    }
     console.log('Suspending pension...', { suspensionReason, notes });
+    alert('Pension suspended successfully');
+    setSuspensionReason('');
+    setNotes('');
   };
 
   const handleProcessPayroll = () => {
     console.log('Processing monthly payroll...');
+    alert(`Processing payroll for ${mockPensions.filter(p => p.status === 'ACTIVE').length} active pensions totaling $${getTotalMonthlyPayroll().toLocaleString()}`);
   };
 
   const getStatusBadgeVariant = (status: string) => {

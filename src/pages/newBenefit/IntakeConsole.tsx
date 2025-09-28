@@ -64,15 +64,22 @@ export const IntakeConsole: React.FC = () => {
   const [notes, setNotes] = useState('');
 
   const handleStartScan = () => {
-    console.log('Starting document scan...');
+    console.log('Starting document scan for batch:', batchNumber);
+    // In real implementation, this would interface with scanning hardware
   };
 
   const handleIndexDocument = () => {
-    console.log('Indexing document...');
+    if (!ssn || !benefitType || !documentType) {
+      alert('Please fill in all required fields for indexing');
+      return;
+    }
+    console.log('Indexing document:', { ssn, benefitType, documentType, notes });
+    // In real implementation, this would save the document metadata
   };
 
   const handleRunPreCheck = () => {
-    console.log('Running pre-check wizard...');
+    console.log('Running pre-check wizard for selected item...');
+    // In real implementation, this would run automated validation checks
   };
 
   const getStatusBadgeVariant = (status: string) => {

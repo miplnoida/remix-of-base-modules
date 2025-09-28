@@ -100,11 +100,18 @@ export const EmployerHub: React.FC = () => {
   const [verificationNotes, setVerificationNotes] = useState('');
 
   const handleSendVerificationRequest = () => {
-    console.log('Sending verification request...');
+    console.log('Sending verification request reminder...');
+    alert('Verification request reminder sent to employer');
   };
 
   const handleRecordResponse = () => {
+    if (!verificationNotes.trim()) {
+      alert('Please enter the employer response or notes');
+      return;
+    }
     console.log('Recording employer response...', verificationNotes);
+    alert('Employer response recorded successfully');
+    setVerificationNotes('');
   };
 
   const getComplianceStatusBadgeVariant = (status: string) => {

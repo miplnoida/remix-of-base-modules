@@ -24,38 +24,6 @@ export const newBenefitMenuItems = [
     title: "NewBenefit System",
     icon: Heart,
     subItems: [
-      // Contributor Side
-      {
-        title: "Dashboard",
-        url: "/newbenefit/dashboard",
-        icon: BarChart3,
-        requiresPermission: "view_own_profile"
-      },
-      {
-        title: "Apply for Benefits",
-        url: "/newbenefit/apply",
-        icon: FileText,
-        requiresPermission: "apply_for_benefits"
-      },
-      {
-        title: "My Claims",
-        url: "/newbenefit/my-claims",
-        icon: CreditCard,
-        requiresPermission: "view_own_claims"
-      },
-      {
-        title: "Reports",
-        url: "/newbenefit/reports",
-        icon: BarChart3,
-        requiresPermission: "view_own_claims"
-      },
-      {
-        title: "Inbox",
-        url: "/newbenefit/inbox",
-        icon: Mail,
-        requiresPermission: "view_inbox"
-      },
-      
       // Staff Side - Claims Processing
       {
         title: "Home/Worklists",
@@ -71,7 +39,7 @@ export const newBenefitMenuItems = [
       },
       {
         title: "Application Form",
-        url: "/newbenefit/application/:benefitType",
+        url: "/newbenefit/application/sickness",
         icon: FileText,
         requiresPermission: "apply_for_benefits"
       },

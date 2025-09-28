@@ -122,18 +122,32 @@ export const PaymentsModule: React.FC = () => {
 
   const handleCreateBatch = () => {
     console.log('Creating payment batch...');
+    alert('Payment batch created successfully! Ready for export.');
   };
 
   const handleExportBankFile = () => {
+    if (!selectedBatch) {
+      alert('Please select a batch to export');
+      return;
+    }
     console.log('Exporting bank file...');
+    alert('Bank file exported successfully! File ready for upload to banking system.');
   };
 
   const handleProcessReturns = () => {
+    const returnedCount = mockPayments.filter(p => p.status === 'RETURNED').length;
     console.log('Processing returned payments...');
+    alert(`Processing ${returnedCount} returned payments. Recipients will be notified to update banking information.`);
   };
 
   const handleSetupRecovery = () => {
+    if (!recoveryAmount) {
+      alert('Please enter monthly recovery amount');
+      return;
+    }
     console.log('Setting up overpayment recovery...', recoveryAmount);
+    alert('Overpayment recovery plan established successfully!');
+    setRecoveryAmount('');
   };
 
   const getStatusBadgeVariant = (status: string) => {

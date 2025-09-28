@@ -367,7 +367,7 @@ export const WorklistsHome: React.FC = () => {
                           <Badge variant={getPriorityBadgeVariant(claim.priority)}>
                             {claim.priority}
                           </Badge>
-                          <Button size="sm">
+                          <Button size="sm" onClick={() => console.log('Assigning claim', claim.id, 'to', currentUser?.username)}>
                             Assign to Me
                           </Button>
                           <Button variant="outline" size="sm" asChild>

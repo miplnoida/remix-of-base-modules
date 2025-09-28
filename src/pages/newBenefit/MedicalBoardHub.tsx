@@ -78,15 +78,33 @@ export const MedicalBoardHub: React.FC = () => {
   const [medicalNotes, setMedicalNotes] = useState('');
 
   const handleScheduleAppointment = () => {
-    console.log('Scheduling appointment...', { appointmentDate, selectedMembers });
+    if (!appointmentDate || selectedMembers.length === 0) {
+      alert('Please select an appointment date and at least one board member');
+      return;
+    }
+    console.log('Scheduling appointment...', { appointmentDate, selectedMembers, medicalNotes });
+    alert('Appointment scheduled successfully!');
+    // Reset form
+    setAppointmentDate(undefined);
+    setSelectedMembers([]);
+    setMedicalNotes('');
   };
 
   const handleRecordDecision = () => {
+    if (!decision) {
+      alert('Please select a medical board decision');
+      return;
+    }
     console.log('Recording medical board decision...', {
       decision,
       impairmentPercentage,
       medicalNotes
     });
+    alert('Medical board decision recorded successfully!');
+    // Reset form
+    setDecision('');
+    setImpairmentPercentage('');
+    setMedicalNotes('');
   };
 
   const getStatusBadgeVariant = (status: string) => {
