@@ -7,6 +7,7 @@ import { selfEmployedMenuItems } from './menuItems/selfEmployedMenuItems';
 import { benefitsMenuItems } from './menuItems/benefitsMenuItems';
 import { newBenefitMenuItems } from './menuItems/newBenefitMenuItems';
 import { complianceMenuItems } from './menuItems/complianceMenuItems';
+import { auditMenuItems } from './menuItems/auditMenuItems';
 import { documentMenuItems } from './menuItems/documentMenuItems';
 import { reportsMenuItems } from './menuItems/reportsMenuItems';
 import { userMenuItems } from './menuItems/userMenuItems';
@@ -26,6 +27,7 @@ export const menuItems = [
   ...benefitsMenuItems,
   ...newBenefitMenuItems,
   ...complianceMenuItems,
+  ...auditMenuItems,
   ...legalMenuItems,
   ...legalFinalMenuItems,
   ...cashierMenuItems,

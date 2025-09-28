@@ -44,6 +44,16 @@ import LegalProceedings from '@/pages/compliance/LegalProceedings';
 import AuditManagement from '@/pages/compliance/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
 
+// Audit Module
+import AuditPlans from '@/pages/audit/AuditPlans';
+import PlanApproval from '@/pages/audit/PlanApproval';
+import ActivityCalendar from '@/pages/audit/ActivityCalendar';
+import ActivityWorkbench from '@/pages/audit/ActivityWorkbench';
+import FollowUpTracker from '@/pages/audit/FollowUpTracker';
+import PlanCloseout from '@/pages/audit/PlanCloseout';
+import AuditReports from '@/pages/audit/AuditReports';
+import AuditConfig from '@/pages/audit/AuditConfig';
+
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
 import EmployerStatement from '@/pages/reports/EmployerStatement';

@@ -20,7 +20,12 @@ export type UserRole =
   | 'legal_officer'
   | 'accounts_manager'
   | 'cashier'
-  | 'cashier_supervisor';
+  | 'cashier_supervisor'
+  // Audit roles
+  | 'audit_officer'
+  | 'auditor'
+  | 'audit_manager'
+  | 'compliance_reader';
 
 export type Department = 
   | 'administration'
@@ -32,7 +37,8 @@ export type Department =
   | 'field_operations'
   | 'data_management'
   | 'legal'
-  | 'accounts';
+  | 'accounts'
+  | 'audit';
 
 export type Permission = 
   | 'view_dashboard'
@@ -88,4 +94,17 @@ export type Permission =
   | 'view_audit_logs'
   | 'view_all_claims'
   | 'view_all_payments'
-  | 'generate_audit_reports';
+  | 'generate_audit_reports'
+  // Audit permissions
+  | 'create_audit_plans'
+  | 'edit_audit_plans'
+  | 'assign_auditors'
+  | 'approve_audit_plans'
+  | 'reject_audit_plans'
+  | 'execute_audit_activities'
+  | 'enter_audit_findings'
+  | 'view_audit_assignments'
+  | 'manage_audit_followups'
+  | 'view_audit_readonly'
+  | 'approve_audit_closeouts'
+  | 'configure_audit_system';

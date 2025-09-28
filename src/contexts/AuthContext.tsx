@@ -81,7 +81,20 @@ const mockUsers: User[] = [
       'view_audit_logs',
       'view_all_claims',
       'view_all_payments',
-      'generate_audit_reports'
+      'generate_audit_reports',
+      // Audit permissions for admin
+      'create_audit_plans',
+      'edit_audit_plans',
+      'assign_auditors',
+      'approve_audit_plans',
+      'reject_audit_plans',
+      'execute_audit_activities',
+      'enter_audit_findings',
+      'view_audit_assignments',
+      'manage_audit_followups',
+      'view_audit_readonly',
+      'approve_audit_closeouts',
+      'configure_audit_system'
     ]
   },
   {
@@ -158,6 +171,92 @@ const mockUsers: User[] = [
       'cashier_reports',
       'view_financial_data',
       'reports_analytics',
+      'admin'
+    ]
+  },
+  // Audit Module Users
+  {
+    id: '9',
+    email: 'audit.officer1@secureserve.gov',
+    name: 'Maria Rodriguez',
+    role: 'audit_officer',
+    department: 'audit',
+    permissions: [
+      'view_dashboard',
+      'create_audit_plans',
+      'edit_audit_plans',
+      'assign_auditors',
+      'view_audit_assignments',
+      'manage_audit_followups',
+      'generate_reports'
+    ]
+  },
+  {
+    id: '10',
+    email: 'auditor.jdoe@secureserve.gov',
+    name: 'John Doe',
+    role: 'auditor',
+    department: 'audit',
+    permissions: [
+      'view_dashboard',
+      'view_audit_assignments',
+      'execute_audit_activities',
+      'enter_audit_findings',
+      'manage_audit_followups'
+    ]
+  },
+  {
+    id: '11',
+    email: 'auditor.asmith@secureserve.gov',
+    name: 'Alice Smith',
+    role: 'auditor',
+    department: 'audit',
+    permissions: [
+      'view_dashboard',
+      'view_audit_assignments',
+      'execute_audit_activities',
+      'enter_audit_findings',
+      'manage_audit_followups'
+    ]
+  },
+  {
+    id: '12',
+    email: 'audit.manager1@secureserve.gov',
+    name: 'David Thompson',
+    role: 'audit_manager',
+    department: 'audit',
+    permissions: [
+      'view_dashboard',
+      'approve_audit_plans',
+      'reject_audit_plans',
+      'approve_audit_closeouts',
+      'view_audit_assignments',
+      'manage_audit_followups',
+      'generate_reports'
+    ]
+  },
+  {
+    id: '13',
+    email: 'compliance.reader1@secureserve.gov',
+    name: 'Sarah Wilson',
+    role: 'compliance_reader',
+    department: 'compliance',
+    permissions: [
+      'view_dashboard',
+      'view_audit_readonly',
+      'generate_reports'
+    ]
+  },
+  {
+    id: '14',
+    email: 'sys.admin1@secureserve.gov',
+    name: 'Robert Taylor',
+    role: 'admin',
+    department: 'administration',
+    permissions: [
+      'view_dashboard',
+      'configure_audit_system',
+      'system_administration',
       'admin'
     ]
   }
