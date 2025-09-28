@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { auditPlans, zones } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { AuditPlanForm } from '@/components/audit/AuditPlanForm';
+import { Link } from 'react-router-dom';
 
 export default function AuditPlans() {
   const { hasPermission } = useAuth();
@@ -73,7 +74,11 @@ export default function AuditPlans() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Audit Plans</h1>
-          <p className="text-muted-foreground">Create and manage audit plans</p>
+          <p className="text-muted-foreground">
+            Create and manage audit plans | 
+            <Link to="/" className="text-blue-600 hover:underline ml-1">← Back to Dashboard</Link> | 
+            <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link>
+          </p>
         </div>
         {hasPermission('create_audit_plans') && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

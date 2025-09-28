@@ -12,6 +12,7 @@ import { Clock, FileText, Upload, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auditActivities, auditActivityResults } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 export default function ActivityWorkbench() {
   const { user, hasPermission } = useAuth();
@@ -91,7 +92,11 @@ export default function ActivityWorkbench() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Activity Workbench</h1>
-        <p className="text-muted-foreground">Execute audit activities and enter findings</p>
+        <p className="text-muted-foreground">
+          Execute audit activities and enter findings | 
+          <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link> | 
+          <Link to="/audit/followups" className="text-blue-600 hover:underline ml-1">Follow-ups</Link>
+        </p>
       </div>
 
       {!selectedActivity ? (

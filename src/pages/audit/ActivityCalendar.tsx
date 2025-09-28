@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { auditActivities, calendarEvents } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
+import { Link } from 'react-router-dom';
 
 export default function ActivityCalendar() {
   const { user, hasPermission } = useAuth();
@@ -82,7 +83,11 @@ export default function ActivityCalendar() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Activity Calendar</h1>
-          <p className="text-muted-foreground">Schedule and manage audit activities</p>
+          <p className="text-muted-foreground">
+            Schedule and manage audit activities | 
+            <Link to="/audit/plans" className="text-blue-600 hover:underline ml-1">View Plans</Link> | 
+            <Link to="/audit/workbench" className="text-blue-600 hover:underline ml-1">Activity Workbench</Link>
+          </p>
         </div>
         {hasPermission('execute_audit_activities') && (
           <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>

@@ -2,6 +2,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Page imports
 import Index from '@/pages/dashboard/Index';
@@ -230,6 +231,16 @@ export const AppRoutes = () => {
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
+
+      {/* Audit Module Routes */}
+      <Route path="/audit/plans" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
+      <Route path="/audit/approvals" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
+      <Route path="/audit/calendar" element={<ProtectedLayout><ActivityCalendar /></ProtectedLayout>} />
+      <Route path="/audit/workbench" element={<ProtectedLayout><ActivityWorkbench /></ProtectedLayout>} />
+      <Route path="/audit/followups" element={<ProtectedLayout><FollowUpTracker /></ProtectedLayout>} />
+      <Route path="/audit/closeout" element={<ProtectedLayout><PlanCloseout /></ProtectedLayout>} />
+      <Route path="/audit/reports" element={<ProtectedLayout><AuditReports /></ProtectedLayout>} />
+      <Route path="/audit/config" element={<ProtectedLayout><AuditConfig /></ProtectedLayout>} />
 
       {/* Registration Rules & Process Routes */}
       <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
