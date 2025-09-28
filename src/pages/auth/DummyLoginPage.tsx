@@ -17,6 +17,7 @@ const DummyLoginPage = () => {
   const [password, setPassword] = useState('password123');
 
   const dummyUsers = [
+    // Main System Users
     {
       email: 'admin@secureserve.gov',
       name: 'System Administrator',
@@ -72,6 +73,70 @@ const DummyLoginPage = () => {
       role: 'Legal Officer',
       department: 'Legal',
       permissions: 'Legal Proceedings & Cases'
+    },
+    // NewBenefit System Users (for reference)
+    {
+      email: 'contributor1@example.com',
+      name: 'John Contributor (NewBenefit)',
+      role: 'Contributor',
+      department: 'NewBenefit System',
+      permissions: 'Apply for Benefits, View Claims'
+    },
+    {
+      email: 'contributor2@example.com',
+      name: 'Jane Smith (NewBenefit)',
+      role: 'Contributor',
+      department: 'NewBenefit System',
+      permissions: 'Apply for Benefits, View Claims'
+    },
+    {
+      email: 'claims.officer@ssb.gov.kn',
+      name: 'Mary Officer (NewBenefit)',
+      role: 'Claims Officer',
+      department: 'NewBenefit System',
+      permissions: 'Process Claims, Make Decisions'
+    },
+    {
+      email: 'supervisor@ssb.gov.kn',
+      name: 'Robert Supervisor (NewBenefit)',
+      role: 'Supervisor',
+      department: 'NewBenefit System',
+      permissions: 'Approve Claims, Team Management'
+    },
+    {
+      email: 'payments@ssb.gov.kn',
+      name: 'Linda Payments (NewBenefit)',
+      role: 'Payments Officer',
+      department: 'NewBenefit System',
+      permissions: 'Process Payments, Manage Overpayments'
+    },
+    {
+      email: 'medical@ssb.gov.kn',
+      name: 'Dr. James Medical (NewBenefit)',
+      role: 'Medical Coordinator',
+      department: 'NewBenefit System',
+      permissions: 'Medical Reviews, Board Scheduling'
+    },
+    {
+      email: 'employer@ssb.gov.kn',
+      name: 'Sarah Employer (NewBenefit)',
+      role: 'Employer Liaison',
+      department: 'NewBenefit System',
+      permissions: 'Verify Employment, Compliance'
+    },
+    {
+      email: 'newbenefit.admin@ssb.gov.kn',
+      name: 'Michael Admin (NewBenefit)',
+      role: 'NewBenefit Admin',
+      department: 'NewBenefit System',
+      permissions: 'All NewBenefit Access'
+    },
+    {
+      email: 'auditor@ssb.gov.kn',
+      name: 'Patricia Auditor (NewBenefit)',
+      role: 'Auditor',
+      department: 'NewBenefit System',
+      permissions: 'Audit Reports, System Review'
     }
   ];
 
