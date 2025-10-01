@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Eye, Edit, Send, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auditPlans, zones } from '@/data/auditData';
+import { auditPlans, departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { AuditPlanForm } from '@/components/audit/AuditPlanForm';
 import { Link } from 'react-router-dom';
@@ -17,7 +17,7 @@ export default function AuditPlans() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedZone, setSelectedZone] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -25,10 +25,12 @@ export default function AuditPlans() {
 
   const filteredPlans = auditPlans.filter(plan => {
     const matchesSearch = plan.monthYear.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         zones.find(z => z.id === plan.zone)?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesZone = selectedZone === 'all' || plan.zone === selectedZone;
+                         plan.departments?.some((deptId: string) => 
+                           departments.find(d => d.id === deptId)?.name.toLowerCase().includes(searchTerm.toLowerCase())
+                         );
+    const matchesDepartment = selectedDepartment === 'all' || plan.departments?.includes(selectedDepartment);
     const matchesStatus = selectedStatus === 'all' || plan.status === selectedStatus;
-    return matchesSearch && matchesZone && matchesStatus;
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   const getStatusBadge = (status: string) => {
@@ -106,21 +108,21 @@ export default function AuditPlans() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by period or zone..."
+                  placeholder="Search by period or department..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={selectedZone} onValueChange={setSelectedZone}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select zone" />
+            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Zones</SelectItem>
-                {zones.map(zone => (
-                  <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map(dept => (
+                  <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -153,9 +155,9 @@ export default function AuditPlans() {
             <TableHeader>
               <TableRow>
                 <TableHead>Period</TableHead>
-                <TableHead>Zone</TableHead>
+                <TableHead>Departments</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Employers</TableHead>
+                <TableHead>Objective</TableHead>
                 <TableHead>Created Date</TableHead>
                 <TableHead>Created By</TableHead>
                 <TableHead>Actions</TableHead>
@@ -165,9 +167,20 @@ export default function AuditPlans() {
               {filteredPlans.map((plan) => (
                 <TableRow key={plan.id}>
                   <TableCell className="font-medium">{plan.monthYear}</TableCell>
-                  <TableCell>{zones.find(z => z.id === plan.zone)?.name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {plan.departments?.map((deptId: string) => {
+                        const dept = departments.find(d => d.id === deptId);
+                        return dept ? (
+                          <Badge key={deptId} variant="outline" className="text-xs">
+                            {dept.name.replace('Department of ', '')}
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </TableCell>
                   <TableCell>{getStatusBadge(plan.status)}</TableCell>
-                  <TableCell>{plan.assignedEmployers}/{plan.totalEmployers}</TableCell>
+                  <TableCell className="max-w-xs truncate">{plan.objective}</TableCell>
                   <TableCell>{new Date(plan.createdDate).toLocaleDateString()}</TableCell>
                   <TableCell>{plan.createdBy}</TableCell>
                   <TableCell>

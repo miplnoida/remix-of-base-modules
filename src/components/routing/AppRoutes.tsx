@@ -56,7 +56,8 @@ import AuditReports from '@/pages/audit/AuditReports';
 import AuditConfig from '@/pages/audit/AuditConfig';
 import AuditorProfiles from '@/pages/audit/AuditorProfiles';
 import WorkloadCapacity from '@/pages/audit/WorkloadCapacity';
-import LeaveManagement from '@/pages/audit/LeaveManagement';
+import LeaveAndVacationManagement from '@/pages/audit/LeaveManagement';
+import HolidayManagement from '@/pages/audit/HolidayManagement';
 import EvidenceManagement from '@/pages/audit/EvidenceManagement';
 import FindingsManagement from '@/pages/audit/FindingsManagement';
 import ManagementResponses from '@/pages/audit/ManagementResponses';
@@ -245,7 +246,8 @@ export const AppRoutes = () => {
       {/* Audit Module Routes */}
       <Route path="/audit/auditors" element={<ProtectedLayout><AuditorProfiles /></ProtectedLayout>} />
       <Route path="/audit/workload" element={<ProtectedLayout><WorkloadCapacity /></ProtectedLayout>} />
-      <Route path="/audit/leave" element={<ProtectedLayout><LeaveManagement /></ProtectedLayout>} />
+      <Route path="/audit/leave" element={<ProtectedLayout><LeaveAndVacationManagement /></ProtectedLayout>} />
+      <Route path="/audit/holidays" element={<ProtectedLayout><HolidayManagement /></ProtectedLayout>} />
       <Route path="/audit/plans" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
       <Route path="/audit/approvals" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/calendar" element={<ProtectedLayout><ActivityCalendar /></ProtectedLayout>} />

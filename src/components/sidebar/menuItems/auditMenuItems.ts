@@ -37,11 +37,18 @@ export const auditMenuItems = [
         description: "View auditor capacity and assignments"
       },
       {
-        title: "Leave Management",
+        title: "Leave and Vacation Management",
         url: "/audit/leave",
         icon: CalendarDays,
         requiresPermission: "assign_auditors",
-        description: "Manage leave requests and approvals"
+        description: "Manage leave requests, vacation, and time off"
+      },
+      {
+        title: "Holiday Management",
+        url: "/audit/holidays",
+        icon: CalendarDays,
+        requiresPermission: "assign_auditors",
+        description: "Manage public and SSB-specific holidays"
       },
       // Audit Planning
       {

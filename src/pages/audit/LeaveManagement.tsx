@@ -13,7 +13,7 @@ import { leaveRequests, auditors } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 
-export default function LeaveManagement() {
+export default function LeaveAndVacationManagement() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -60,9 +60,9 @@ export default function LeaveManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Leave Management</h1>
+          <h1 className="text-3xl font-bold">Leave and Vacation Management</h1>
           <p className="text-muted-foreground">
-            Manage auditor leave requests and calendar |
+            Manage leave requests, vacation approvals, and time off for auditors |
             <Link to="/" className="text-blue-600 hover:underline ml-1">← Back to Dashboard</Link> |
             <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link>
           </p>

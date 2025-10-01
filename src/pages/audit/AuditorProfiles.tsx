@@ -7,15 +7,22 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Edit, Eye, Award } from 'lucide-react';
+import { Plus, Search, Edit, Eye, Award, X } from 'lucide-react';
 import { auditors } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import { Auditor } from '@/types/audit';
+
+const AVAILABLE_SKILLS = ['Payroll Audit', 'Compliance Testing', 'IT Audit', 'Financial Analysis', 'Risk Assessment', 'Fraud Investigation', 'Data Analytics'];
+const AVAILABLE_CERTIFICATIONS = ['CIA', 'CISA', 'CFE', 'CPA', 'ACCA', 'CGAP', 'CRMA'];
 
 export default function AuditorProfiles() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
+  const [viewAuditor, setViewAuditor] = useState<Auditor | null>(null);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedCertifications, setSelectedCertifications] = useState<string[]>([]);
 
   const filteredAuditors = auditors.filter(auditor => {
     const matchesSearch = auditor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,12 +124,58 @@ export default function AuditorProfiles() {
                 <Input placeholder="SSB Head Office" />
               </div>
               <div>
-                <Label>Skills (comma-separated)</Label>
-                <Input placeholder="Payroll Audit, Compliance Testing, IT Audit" />
+                <Label>Skills</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={(skill) => {
+                    if (!selectedSkills.includes(skill)) {
+                      setSelectedSkills([...selectedSkills, skill]);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select skills" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_SKILLS.map(skill => (
+                        <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSkills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="gap-1">
+                        {skill}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedSkills(selectedSkills.filter(s => s !== skill))} />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div>
-                <Label>Certifications (comma-separated)</Label>
-                <Input placeholder="CIA, CISA, CFE" />
+                <Label>Certifications</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={(cert) => {
+                    if (!selectedCertifications.includes(cert)) {
+                      setSelectedCertifications([...selectedCertifications, cert]);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select certifications" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_CERTIFICATIONS.map(cert => (
+                        <SelectItem key={cert} value={cert}>{cert}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCertifications.map((cert) => (
+                      <Badge key={cert} variant="secondary" className="gap-1">
+                        {cert}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCertifications(selectedCertifications.filter(c => c !== cert))} />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline">Cancel</Button>
@@ -206,7 +259,7 @@ export default function AuditorProfiles() {
                   <TableCell>{getStatusBadge(auditor.employmentStatus)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => setViewAuditor(auditor)}>
                         <Eye className="w-4 h-4" />
                       </Button>
                       <Button variant="outline" size="sm">
@@ -220,6 +273,81 @@ export default function AuditorProfiles() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Auditor Dialog */}
+      <Dialog open={viewAuditor !== null} onOpenChange={() => setViewAuditor(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Auditor Profile Details</DialogTitle>
+          </DialogHeader>
+          {viewAuditor && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Employee Number</Label>
+                  <p className="text-lg font-medium">{viewAuditor.employeeNo}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Name</Label>
+                  <p className="text-lg font-medium">{viewAuditor.name}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Email</Label>
+                  <p className="text-lg">{viewAuditor.email}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Phone</Label>
+                  <p className="text-lg">{viewAuditor.phone}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Role</Label>
+                  <div className="mt-2">{getRoleBadge(viewAuditor.role)}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Seniority Level</Label>
+                  <p className="text-lg">{viewAuditor.seniorityLevel}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Employment Status</Label>
+                  <div className="mt-2">{getStatusBadge(viewAuditor.employmentStatus)}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Work Location</Label>
+                  <p className="text-lg">{viewAuditor.workLocation}</p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Skills</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {viewAuditor.skills.map((skill, idx) => (
+                    <Badge key={idx} variant="secondary">{skill}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Certifications</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {viewAuditor.certifications.map((cert, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      <Award className="w-3 h-3 mr-1" />
+                      {cert}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setViewAuditor(null)}>Close</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
