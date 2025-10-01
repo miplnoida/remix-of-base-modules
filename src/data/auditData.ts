@@ -609,6 +609,7 @@ export const documentTemplates: DocumentTemplate[] = [
     id: 'tmpl-001',
     name: 'Notice of Audit (Engagement Letter)',
     type: 'Notice of Audit',
+    category: 'Planning',
     content: `[SSB Letterhead & Logo]\nDate: {{today_date}}\n\nTo: {{dept_head_name}}, {{department_name}}\nSubject: Notice of Internal Audit – {{plan_title}} ({{fiscal_year}})\n\nDear {{dept_head_name}},\n\nThis is to inform you that the Internal Audit Department will conduct an audit of {{department_name}} covering the period {{period_text}}.\n\nScope & Objectives:\n{{scope}}\n\nProposed Schedule:\nStart: {{planned_start}}   End: {{planned_end}}\nAuditors: {{auditor_names}}\n\nPlease nominate a focal point and ensure records listed in the attached PBC are available by {{pbc_due_date}}.\n\nRegards,\n{{audit_manager_name}}\nInternal Audit Department\nSocial Security Board, St. Kitts & Nevis`,
     mergeFields: ['today_date', 'dept_head_name', 'department_name', 'plan_title', 'fiscal_year', 'period_text', 'scope', 'planned_start', 'planned_end', 'auditor_names', 'pbc_due_date', 'audit_manager_name'],
     active: true

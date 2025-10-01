@@ -361,6 +361,7 @@ export interface DocumentTemplate {
   id: string;
   name: string;
   type: 'Notice of Audit' | 'PBC Request' | 'Reminder/Escalation' | 'Exit Meeting Invite' | 'Draft Report Transmittal' | 'Final Report Transmittal' | 'Follow-up Notice' | 'Management Response Request';
+  category?: string;
   content: string;
   mergeFields: string[];
   active: boolean;

@@ -64,6 +64,7 @@ import FindingsManagement from '@/pages/audit/FindingsManagement';
 import ManagementResponses from '@/pages/audit/ManagementResponses';
 import ActionTracking from '@/pages/audit/ActionTracking';
 import LetterGeneration from '@/pages/audit/LetterGeneration';
+import CommunicationCenter from '@/pages/audit/CommunicationCenter';
 import ReportBuilder from '@/pages/audit/ReportBuilder';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 
@@ -263,6 +264,7 @@ export const AppRoutes = () => {
       <Route path="/audit/reports" element={<ProtectedLayout><AuditReports /></ProtectedLayout>} />
       <Route path="/audit/letters" element={<ProtectedLayout><LetterGeneration /></ProtectedLayout>} />
       <Route path="/audit/report-builder" element={<ProtectedLayout><ReportBuilder /></ProtectedLayout>} />
+      <Route path="/audit/communication-center" element={<ProtectedLayout><CommunicationCenter /></ProtectedLayout>} />
       <Route path="/audit/config" element={<ProtectedLayout><AuditConfig /></ProtectedLayout>} />
       <Route path="/audit/departments" element={<ProtectedLayout><DepartmentMaster /></ProtectedLayout>} />
 

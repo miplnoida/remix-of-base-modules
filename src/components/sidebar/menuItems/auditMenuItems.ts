@@ -13,7 +13,8 @@ import {
   MessageSquare,
   FileText as FileTextIcon,
   TrendingUp,
-  Shield
+  Shield,
+  Mail
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -144,6 +145,13 @@ export const auditMenuItems = [
         icon: FileTextIcon,
         requiresPermission: "enter_audit_findings",
         description: "Build and finalize audit reports"
+      },
+      {
+        title: "Communication Center",
+        url: "/audit/communication-center",
+        icon: Mail,
+        requiresPermission: "create_audit_plans",
+        description: "Send official audit communications"
       },
       // Administration
       {
