@@ -148,7 +148,7 @@ import ServiceReceipts from '@/pages/cashier/ServiceReceipts';
 import NoticeGeneration from '@/pages/legal/NoticeGeneration';
 import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
-import EvidenceManagement from '@/pages/legal/EvidenceManagement';
+import { default as LegalEvidenceManagement } from '@/pages/legal/EvidenceManagement';
 import LegalReports from '@/pages/legal/LegalReports';
 
 // LegalFinal Module pages
@@ -330,7 +330,7 @@ export const AppRoutes = () => {
       <Route path="/legal/notices" element={<ProtectedLayout><NoticeGeneration /></ProtectedLayout>} />
       <Route path="/legal/appeals" element={<ProtectedLayout><AppealSubmission /></ProtectedLayout>} />
       <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
-      <Route path="/legal/evidence" element={<ProtectedLayout><EvidenceManagement /></ProtectedLayout>} />
+      <Route path="/legal/evidence" element={<ProtectedLayout><LegalEvidenceManagement /></ProtectedLayout>} />
       <Route path="/legal/reports" element={<ProtectedLayout><LegalReports /></ProtectedLayout>} />
 
       {/* LegalFinal Module Routes */}
