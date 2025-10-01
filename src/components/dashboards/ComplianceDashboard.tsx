@@ -41,7 +41,7 @@ export const ComplianceDashboard = () => {
               <metric.icon className={`h-4 w-4 ${
                 metric.status === 'danger' ? 'text-red-500' :
                 metric.status === 'success' ? 'text-green-500' :
-                metric.status === 'warning' ? 'text-yellow-500' : 'text-blue-500'
+                metric.status === 'warning' ? 'text-orange-600' : 'text-blue-500'
               }`} />
             </CardHeader>
             <CardContent>

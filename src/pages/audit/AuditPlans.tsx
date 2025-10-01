@@ -38,7 +38,7 @@ export default function AuditPlans() {
       'Draft': 'bg-gray-500',
       'Submitted': 'bg-blue-500',
       'Approved': 'bg-green-500',
-      'In Progress': 'bg-yellow-500',
+      'In Progress': 'bg-orange-600',
       'Completed': 'bg-purple-500',
       'Rejected': 'bg-red-500',
       'Cancelled': 'bg-gray-400'

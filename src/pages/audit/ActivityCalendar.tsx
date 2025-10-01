@@ -33,7 +33,7 @@ export default function ActivityCalendar() {
   const getStatusBadge = (status: string) => {
     const colors = {
       'Planned': 'bg-blue-500',
-      'In Progress': 'bg-yellow-500',
+      'In Progress': 'bg-orange-600',
       'Completed': 'bg-green-500',
       'Cancelled': 'bg-red-500',
       'Rescheduled': 'bg-purple-500'
@@ -44,7 +44,7 @@ export default function ActivityCalendar() {
   const getPriorityBadge = (priority: string) => {
     const colors = {
       'Low': 'bg-green-500',
-      'Medium': 'bg-yellow-500',
+      'Medium': 'bg-orange-600',
       'High': 'bg-red-500'
     };
     return <Badge variant="outline" className={colors[priority as keyof typeof colors]}>{priority}</Badge>;

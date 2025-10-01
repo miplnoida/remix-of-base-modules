@@ -19,7 +19,7 @@ export default function ManagementResponses() {
     const colors = {
       'Draft': 'bg-gray-500',
       'Submitted': 'bg-blue-500',
-      'Under Review': 'bg-yellow-500',
+      'Under Review': 'bg-orange-600',
       'Accepted': 'bg-green-500'
     };
     return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-500'}>{status}</Badge>;
@@ -43,7 +43,7 @@ export default function ManagementResponses() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Awaiting Response</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <Clock className="h-4 w-4 text-orange-700" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -205,7 +205,7 @@ export default function ManagementResponses() {
                       <TableCell>
                         <Badge className={
                           finding.riskRating === 'High' ? 'bg-red-500' :
-                          finding.riskRating === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                          finding.riskRating === 'Medium' ? 'bg-orange-600' : 'bg-green-500'
                         }>
                           {finding.riskRating}
                         </Badge>

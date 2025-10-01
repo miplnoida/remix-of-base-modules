@@ -61,7 +61,7 @@ const ModulePermissions: React.FC<ModulePermissionsProps> = ({ modules }) => {
 
   const securityLevels = [
     { id: 'low', name: 'Low', color: 'bg-green-100 text-green-800', description: 'Basic security measures' },
-    { id: 'medium', name: 'Medium', color: 'bg-yellow-100 text-yellow-800', description: 'Standard security protocols' },
+    { id: 'medium', name: 'Medium', color: 'bg-amber-100 text-amber-900', description: 'Standard security protocols' },
     { id: 'high', name: 'High', color: 'bg-red-100 text-red-800', description: 'Enhanced security requirements' }
   ];
 

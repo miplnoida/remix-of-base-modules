@@ -245,7 +245,7 @@ export const ActiveInactiveIPListing = () => {
       case 'Active':
         return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-900">Pending</Badge>;
       case 'Inactive':
         return <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>;
       default:

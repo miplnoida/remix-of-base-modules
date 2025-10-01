@@ -153,7 +153,7 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           features: [
             { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
             { id: 'add', name: 'Add', icon: Plus, color: 'text-green-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-yellow-600' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-orange-600' },
             { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
             { id: 'approval', name: 'Approval', icon: CheckCircle, color: 'text-purple-600' },
             { id: 'export', name: 'Export', icon: Download, color: 'text-indigo-600' },
@@ -167,7 +167,7 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           features: [
             { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
             { id: 'add', name: 'Add', icon: Plus, color: 'text-green-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-yellow-600' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-orange-600' },
             { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
             { id: 'import', name: 'Import Bulk', icon: Upload, color: 'text-cyan-600' },
             { id: 'export', name: 'Export', icon: Download, color: 'text-indigo-600' },

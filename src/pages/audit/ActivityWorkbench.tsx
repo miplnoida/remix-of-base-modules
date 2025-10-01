@@ -74,7 +74,7 @@ export default function ActivityWorkbench() {
   const getStatusBadge = (status: string) => {
     const colors = {
       'Planned': 'bg-blue-500',
-      'In Progress': 'bg-yellow-500',
+      'In Progress': 'bg-orange-600',
       'Completed': 'bg-green-500'
     };
     return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-500'}>{status}</Badge>;

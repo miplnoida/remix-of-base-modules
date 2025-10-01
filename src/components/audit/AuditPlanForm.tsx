@@ -118,7 +118,7 @@ export function AuditPlanForm({ plan, onClose }: AuditPlanFormProps) {
   const getRiskBadge = (risk: string) => {
     const colors = {
       'Low': 'bg-green-500',
-      'Medium': 'bg-yellow-500',
+      'Medium': 'bg-orange-600',
       'High': 'bg-red-500'
     };
     return <Badge className={colors[risk as keyof typeof colors]}>{risk}</Badge>;
@@ -216,7 +216,7 @@ export function AuditPlanForm({ plan, onClose }: AuditPlanFormProps) {
                       {dept.riskRating && (
                         <Badge className={`mt-2 ${
                           dept.riskRating === 'High' ? 'bg-red-500' : 
-                          dept.riskRating === 'Medium' ? 'bg-yellow-500' : 
+                          dept.riskRating === 'Medium' ? 'bg-orange-600' : 
                           'bg-green-500'
                         }`}>
                           {dept.riskRating} Risk

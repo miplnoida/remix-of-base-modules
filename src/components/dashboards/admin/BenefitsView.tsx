@@ -9,7 +9,7 @@ export const BenefitsView = () => {
   const benefitsStats = [
     { label: 'Total Claims', value: '8,456', change: '+12%', icon: Heart, color: 'text-blue-600' },
     { label: 'Approved Benefits', value: '$2.4M', change: '+8%', icon: CheckCircle, color: 'text-green-600' },
-    { label: 'Pending Claims', value: '342', change: '-5%', icon: Clock, color: 'text-yellow-600' },
+    { label: 'Pending Claims', value: '342', change: '-5%', icon: Clock, color: 'text-orange-600' },
     { label: 'Rejected Claims', value: '89', change: '-15%', icon: XCircle, color: 'text-red-600' },
   ];
 

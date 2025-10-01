@@ -28,7 +28,7 @@ export default function FindingsManagement() {
   const getRiskBadge = (risk: string) => {
     const colors = {
       'High': 'bg-red-500',
-      'Medium': 'bg-yellow-500',
+      'Medium': 'bg-orange-600',
       'Low': 'bg-green-500'
     };
     return <Badge className={colors[risk as keyof typeof colors] || 'bg-gray-500'}>{risk}</Badge>;
@@ -38,7 +38,7 @@ export default function FindingsManagement() {
     const colors = {
       'Draft': 'bg-gray-500',
       'For Mgmt Response': 'bg-blue-500',
-      'Under Review': 'bg-yellow-500',
+      'Under Review': 'bg-orange-600',
       'Agreed': 'bg-green-500',
       'Not Agreed': 'bg-red-500',
       'Finalized': 'bg-purple-500'
@@ -230,7 +230,7 @@ export default function FindingsManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Awaiting Response</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTriangle className="h-4 w-4 text-orange-700" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">

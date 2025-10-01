@@ -99,10 +99,10 @@ export const SystemOverview = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Security Score</span>
-                <span className="text-sm font-medium text-yellow-600">85%</span>
+                <span className="text-sm font-medium text-orange-700">85%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                <div className="bg-orange-600 h-2 rounded-full" style={{ width: '85%' }}></div>
               </div>
             </div>
           </CardContent>

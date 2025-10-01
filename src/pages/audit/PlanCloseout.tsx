@@ -61,7 +61,7 @@ export default function PlanCloseout() {
 
   const getStatusBadge = (status: string) => {
     const colors = {
-      'In Progress': 'bg-yellow-500',
+      'In Progress': 'bg-orange-600',
       'Completed': 'bg-green-500'
     };
     return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-500'}>{status}</Badge>;
@@ -70,7 +70,7 @@ export default function PlanCloseout() {
   const getComplianceBadge = (status: string) => {
     const colors = {
       'Compliant': 'bg-green-500',
-      'Partially Compliant': 'bg-yellow-500',
+      'Partially Compliant': 'bg-orange-600',
       'Non-Compliant': 'bg-red-500'
     };
     return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-500'}>{status}</Badge>;

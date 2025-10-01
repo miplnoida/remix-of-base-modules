@@ -1071,9 +1071,9 @@ export const AddIPForm = () => {
         </Button>
       </div>
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h4 className="font-medium text-yellow-800 mb-2">Cross-Verification Notice</h4>
-        <p className="text-sm text-yellow-700">
+      <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+        <h4 className="font-medium text-amber-900 mb-2">Cross-Verification Notice</h4>
+        <p className="text-sm text-amber-800">
           After entering the IP details, verification must be done by another Customer Relationship Representative, 
           Supervisor, or Manager. The same person cannot verify their own entry. Upon verification, Transaction Details, 
           Status, and SSN number will be generated.

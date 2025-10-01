@@ -157,7 +157,7 @@ export default function PlanApproval() {
                                             <TableCell>
                                               <Badge className={
                                                 pe.riskRating === 'High' ? 'bg-red-500' :
-                                                pe.riskRating === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                                pe.riskRating === 'Medium' ? 'bg-orange-600' : 'bg-green-500'
                                               }>
                                                 {pe.riskRating}
                                               </Badge>

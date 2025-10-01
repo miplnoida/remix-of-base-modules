@@ -36,7 +36,7 @@ export default function FollowUpTracker() {
   const getStatusBadge = (status: string) => {
     const colors = {
       'Open': 'bg-blue-500',
-      'In Progress': 'bg-yellow-500',
+      'In Progress': 'bg-orange-600',
       'Resolved': 'bg-green-500',
       'Overdue': 'bg-red-500'
     };
@@ -46,7 +46,7 @@ export default function FollowUpTracker() {
   const getPriorityBadge = (priority: string) => {
     const colors = {
       'Low': 'bg-green-500',
-      'Medium': 'bg-yellow-500',
+      'Medium': 'bg-orange-600',
       'High': 'bg-red-500'
     };
     return <Badge variant="outline" className={colors[priority as keyof typeof colors]}>{priority}</Badge>;
@@ -110,7 +110,7 @@ export default function FollowUpTracker() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Clock className="h-4 w-4 text-yellow-500" />
+              <Clock className="h-4 w-4 text-orange-700" />
               <div className="ml-2">
                 <p className="text-sm font-medium">High Priority</p>
                 <p className="text-2xl font-bold">{highPriorityTasks.length}</p>

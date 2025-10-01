@@ -7,7 +7,7 @@ export const HRView = () => {
   const hrStats = [
     { label: 'Total Employees', value: '1.2M', icon: Users, color: 'bg-green-500' },
     { label: 'New Registrations', value: '156', icon: Building2, color: 'bg-blue-500' },
-    { label: 'Pending Applications', value: '45', icon: FileText, color: 'bg-yellow-500' },
+    { label: 'Pending Applications', value: '45', icon: FileText, color: 'bg-orange-600' },
     { label: 'ID Cards Generated', value: '89', icon: Shield, color: 'bg-purple-500' },
   ];
 

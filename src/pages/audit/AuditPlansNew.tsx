@@ -82,7 +82,7 @@ export default function AuditPlansNew() {
       'Draft': 'bg-gray-500',
       'Submitted': 'bg-blue-500',
       'Approved': 'bg-green-500',
-      'In Progress': 'bg-yellow-500',
+      'In Progress': 'bg-orange-600',
       'Completed': 'bg-purple-500',
       'Cancelled': 'bg-red-500'
     };
@@ -92,7 +92,7 @@ export default function AuditPlansNew() {
   const getRiskBadge = (risk: string) => {
     const colors = {
       'Low': 'bg-green-500',
-      'Medium': 'bg-yellow-500',
+      'Medium': 'bg-orange-600',
       'High': 'bg-red-500'
     };
     return <Badge className={colors[risk as keyof typeof colors]}>{risk}</Badge>;

@@ -318,7 +318,7 @@ export default function AuditConfig() {
                       <TableCell>
                         <Badge className={
                           criteria.weight === 'High' ? 'bg-red-500' :
-                          criteria.weight === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                          criteria.weight === 'Medium' ? 'bg-orange-600' : 'bg-green-500'
                         }>
                           {criteria.weight}
                         </Badge>
