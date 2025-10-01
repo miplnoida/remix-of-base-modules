@@ -89,6 +89,13 @@ export const auditMenuItems = [
         description: "Upload and manage audit evidence"
       },
       {
+        title: "Working Papers",
+        url: "/audit/working-papers",
+        icon: FileText,
+        requiresPermission: "enter_audit_findings",
+        description: "Create and manage working papers with traceability"
+      },
+      {
         title: "Findings & Recommendations",
         url: "/audit/findings",
         icon: AlertCircle,

@@ -316,17 +316,34 @@ export interface WorkingPaper {
   annualPlanId?: string;
   departmentAuditId?: string;
   activityId?: string;
-  findingId?: string;
-  evidenceIds: string[];
   title: string;
   description: string;
-  content: string;
+  objective: string;
+  auditArea: string;
+  procedure: string;
+  testPerformed: string;
+  evidenceIds: string[];
+  results: string;
+  observations: string;
+  conclusion: string;
+  linkedFindingIds: string[];
   preparedBy: string;
+  preparedDate: string;
   reviewedBy?: string;
+  reviewedDate?: string;
+  approvedBy?: string;
+  approvedDate?: string;
   status: 'Draft' | 'Under Review' | 'Approved';
+  version: number;
   createdDate: string;
   lastModifiedDate: string;
   tags?: string[];
+  auditTrail: {
+    action: 'Created' | 'Modified' | 'Reviewed' | 'Approved';
+    performedBy: string;
+    performedDate: string;
+    notes?: string;
+  }[];
 }
 
 export interface ManagementResponse {

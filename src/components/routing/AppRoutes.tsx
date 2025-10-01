@@ -60,6 +60,7 @@ import WorkloadCapacity from '@/pages/audit/WorkloadCapacity';
 import LeaveAndVacationManagement from '@/pages/audit/LeaveManagement';
 import HolidayManagement from '@/pages/audit/HolidayManagement';
 import EvidenceManagement from '@/pages/audit/EvidenceManagement';
+import WorkingPapers from '@/pages/audit/WorkingPapers';
 import FindingsManagement from '@/pages/audit/FindingsManagement';
 import ManagementResponses from '@/pages/audit/ManagementResponses';
 import ActionTracking from '@/pages/audit/ActionTracking';
@@ -258,6 +259,7 @@ export const AppRoutes = () => {
       <Route path="/audit/calendar" element={<ProtectedLayout><ActivityCalendar /></ProtectedLayout>} />
       <Route path="/audit/workbench" element={<ProtectedLayout><ActivityWorkbench /></ProtectedLayout>} />
       <Route path="/audit/evidence" element={<ProtectedLayout><EvidenceManagement /></ProtectedLayout>} />
+      <Route path="/audit/working-papers" element={<ProtectedLayout><WorkingPapers /></ProtectedLayout>} />
       <Route path="/audit/findings" element={<ProtectedLayout><FindingsManagement /></ProtectedLayout>} />
       <Route path="/audit/responses" element={<ProtectedLayout><ManagementResponses /></ProtectedLayout>} />
       <Route path="/audit/actions" element={<ProtectedLayout><ActionTracking /></ProtectedLayout>} />

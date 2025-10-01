@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Download, Eye, Search } from 'lucide-react';
-import { evidence, auditActivities } from '@/data/auditData';
-import { useToast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { ArrowLeft, Plus, Eye, Download, FileText, Link as LinkIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { evidence, workingPapers } from "@/data/auditData";
 
 export default function EvidenceManagement() {
   const { toast } = useToast();
@@ -190,17 +189,20 @@ export default function EvidenceManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Evidence ID</TableHead>
-                <TableHead>Reference No.</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>File</TableHead>
-                <TableHead>Upload Date</TableHead>
-                <TableHead>Uploaded By</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableHead>Evidence ID</TableHead>
+              <TableHead>Reference No.</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Working Papers</TableHead>
+              <TableHead>File</TableHead>
+              <TableHead>Upload Date</TableHead>
+              <TableHead>Uploaded By</TableHead>
+              <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEvidence.map((ev) => (
+            {filteredEvidence.map((ev) => {
+              const linkedWPs = workingPapers.filter((wp) => wp.evidenceIds.includes(ev.id));
+              return (
                 <TableRow key={ev.id}>
                   <TableCell className="font-medium">{ev.evidenceId}</TableCell>
                   <TableCell>
@@ -208,6 +210,16 @@ export default function EvidenceManagement() {
                   </TableCell>
                   <TableCell className="max-w-md truncate">
                     {ev.description}
+                  </TableCell>
+                  <TableCell>
+                    {linkedWPs.length > 0 ? (
+                      <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                        <LinkIcon className="h-3 w-3" />
+                        {linkedWPs.length} WP{linkedWPs.length !== 1 ? "s" : ""}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">None</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -230,7 +242,8 @@ export default function EvidenceManagement() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+            })}
             </TableBody>
           </Table>
         </CardContent>
