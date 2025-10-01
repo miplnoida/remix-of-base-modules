@@ -174,90 +174,77 @@ const mockUsers: User[] = [
       'admin'
     ]
   },
-  // Audit Module Users
+  // SSB St. Kitts Internal Audit Users
   {
     id: '9',
-    email: 'audit.officer1@secureserve.gov',
-    name: 'Maria Rodriguez',
-    role: 'audit_officer',
+    email: 'director@ssb.kn',
+    name: 'Director Audit Services',
+    role: 'audit_manager',
     department: 'audit',
     permissions: [
-      'view_dashboard',
-      'create_audit_plans',
-      'edit_audit_plans',
-      'assign_auditors',
-      'view_audit_assignments',
-      'manage_audit_followups',
-      'generate_reports'
+      'view_dashboard', 'create_audit_plans', 'edit_audit_plans', 'assign_auditors',
+      'approve_audit_plans', 'reject_audit_plans', 'execute_audit_activities',
+      'enter_audit_findings', 'view_audit_assignments', 'manage_audit_followups',
+      'view_audit_readonly', 'approve_audit_closeouts', 'configure_audit_system',
+      'generate_reports', 'view_all_claims', 'manage_users', 'admin'
     ]
   },
   {
     id: '10',
-    email: 'auditor.jdoe@secureserve.gov',
-    name: 'John Doe',
-    role: 'auditor',
+    email: 'manager@ssb.kn',
+    name: 'Manager Internal Audit',
+    role: 'audit_manager',
     department: 'audit',
     permissions: [
-      'view_dashboard',
-      'view_audit_assignments',
-      'execute_audit_activities',
-      'enter_audit_findings',
-      'manage_audit_followups'
+      'view_dashboard', 'create_audit_plans', 'edit_audit_plans', 'assign_auditors',
+      'execute_audit_activities', 'enter_audit_findings', 'view_audit_assignments',
+      'manage_audit_followups', 'approve_audit_closeouts', 'configure_audit_system',
+      'generate_reports'
     ]
   },
   {
     id: '11',
-    email: 'auditor.asmith@secureserve.gov',
-    name: 'Alice Smith',
+    email: 'auditor1@ssb.kn',
+    name: 'John Doe',
     role: 'auditor',
     department: 'audit',
     permissions: [
-      'view_dashboard',
-      'view_audit_assignments',
-      'execute_audit_activities',
-      'enter_audit_findings',
-      'manage_audit_followups'
+      'view_dashboard', 'view_audit_assignments', 'execute_audit_activities',
+      'enter_audit_findings', 'manage_audit_followups', 'generate_reports'
     ]
   },
   {
     id: '12',
-    email: 'audit.manager1@secureserve.gov',
-    name: 'David Thompson',
-    role: 'audit_manager',
+    email: 'auditor2@ssb.kn',
+    name: 'Alice Smith',
+    role: 'auditor',
     department: 'audit',
     permissions: [
-      'view_dashboard',
-      'approve_audit_plans',
-      'reject_audit_plans',
-      'approve_audit_closeouts',
-      'view_audit_assignments',
-      'manage_audit_followups',
-      'generate_reports'
+      'view_dashboard', 'view_audit_assignments', 'execute_audit_activities',
+      'enter_audit_findings', 'manage_audit_followups', 'generate_reports'
     ]
   },
   {
     id: '13',
-    email: 'compliance.reader1@secureserve.gov',
-    name: 'Sarah Wilson',
-    role: 'compliance_reader',
-    department: 'compliance',
+    email: 'depthead.benefits@ssb.kn',
+    name: 'Sarah Williams',
+    role: 'benefits_manager',
+    department: 'benefits',
     permissions: [
-      'view_dashboard',
-      'view_audit_readonly',
-      'generate_reports'
+      'view_dashboard', 'view_audit_readonly', 'process_claims',
+      'approve_benefits', 'generate_reports'
     ]
   },
   {
     id: '14',
-    email: 'sys.admin1@secureserve.gov',
-    name: 'Robert Taylor',
+    email: 'admin@ssb.kn',
+    name: 'System Administrator',
     role: 'admin',
     department: 'administration',
     permissions: [
-      'view_dashboard',
-      'configure_audit_system',
-      'system_administration',
-      'admin'
+      'view_dashboard', 'configure_audit_system', 'system_administration',
+      'admin', 'manage_users', 'create_audit_plans', 'approve_audit_plans',
+      'view_all_claims', 'view_all_payments'
     ]
   }
 ];
