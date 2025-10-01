@@ -67,6 +67,8 @@ import LetterGeneration from '@/pages/audit/LetterGeneration';
 import CommunicationCenter from '@/pages/audit/CommunicationCenter';
 import ReportBuilder from '@/pages/audit/ReportBuilder';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
+import FunctionMaster from '@/pages/audit/FunctionMaster';
+import DepartmentView from '@/pages/audit/DepartmentView';
 
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
@@ -267,6 +269,8 @@ export const AppRoutes = () => {
       <Route path="/audit/communication-center" element={<ProtectedLayout><CommunicationCenter /></ProtectedLayout>} />
       <Route path="/audit/config" element={<ProtectedLayout><AuditConfig /></ProtectedLayout>} />
       <Route path="/audit/departments" element={<ProtectedLayout><DepartmentMaster /></ProtectedLayout>} />
+      <Route path="/audit/functions" element={<ProtectedLayout><FunctionMaster /></ProtectedLayout>} />
+      <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
 
       {/* Registration Rules & Process Routes */}
       <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
