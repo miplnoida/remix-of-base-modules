@@ -12,14 +12,16 @@ import {
   FileSearch,
   MessageSquare,
   FileText as FileTextIcon,
-  TrendingUp
+  TrendingUp,
+  Shield
 } from "lucide-react";
 
 export const auditMenuItems = [
   {
-    title: "Auditor Management",
-    icon: Users,
+    title: "Internal Audit",
+    icon: Shield,
     subItems: [
+      // Auditor Management
       {
         title: "Auditor Profiles",
         url: "/audit/auditors",
@@ -40,13 +42,8 @@ export const auditMenuItems = [
         icon: CalendarDays,
         requiresPermission: "assign_auditors",
         description: "Manage leave requests and approvals"
-      }
-    ]
-  },
-  {
-    title: "Audit Planning",
-    icon: Clipboard,
-    subItems: [
+      },
+      // Audit Planning
       {
         title: "Audit Plans",
         url: "/audit/plans",
@@ -60,13 +57,8 @@ export const auditMenuItems = [
         icon: CheckSquare,
         requiresPermission: "approve_audit_plans",
         description: "Approve or reject audit plans"
-      }
-    ]
-  },
-  {
-    title: "Audit Execution",
-    icon: FileSearch,
-    subItems: [
+      },
+      // Audit Execution
       {
         title: "Activity Calendar",
         url: "/audit/calendar",
@@ -94,13 +86,8 @@ export const auditMenuItems = [
         icon: AlertCircle,
         requiresPermission: "enter_audit_findings",
         description: "Document audit findings and recommendations"
-      }
-    ]
-  },
-  {
-    title: "Follow-up & Closure",
-    icon: CheckSquare,
-    subItems: [
+      },
+      // Follow-up & Closure
       {
         title: "Management Responses",
         url: "/audit/responses",
@@ -128,13 +115,8 @@ export const auditMenuItems = [
         icon: CheckSquare,
         requiresPermission: "approve_audit_closeouts",
         description: "Review and approve plan closeouts"
-      }
-    ]
-  },
-  {
-    title: "Reports & Communications",
-    icon: BarChart3,
-    subItems: [
+      },
+      // Reports & Communications
       {
         title: "Audit Reports",
         url: "/audit/reports",
@@ -155,13 +137,8 @@ export const auditMenuItems = [
         icon: FileTextIcon,
         requiresPermission: "enter_audit_findings",
         description: "Build and finalize audit reports"
-      }
-    ]
-  },
-  {
-    title: "Administration",
-    icon: Settings,
-    subItems: [
+      },
+      // Administration
       {
         title: "System Configuration",
         url: "/audit/config",
