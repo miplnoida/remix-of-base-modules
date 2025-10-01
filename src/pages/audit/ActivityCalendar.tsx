@@ -8,10 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarDays, Clock, MapPin, User, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auditActivities, calendarEvents, departments } from '@/data/auditData';
+import { auditActivities, calendarEvents, departments, departmentAuditPlans } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
+import { ActivityRescheduleDialog } from '@/components/audit/ActivityRescheduleDialog';
 import { Link } from 'react-router-dom';
+import { AuditActivity } from '@/types/audit';
 
 export default function ActivityCalendar() {
   const { user, hasPermission } = useAuth();
@@ -22,6 +24,8 @@ export default function ActivityCalendar() {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [calendarView, setCalendarView] = useState<'calendar' | 'list'>('list');
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<AuditActivity | null>(null);
 
   const filteredActivities = auditActivities.filter(activity => {
     const matchesAuditor = selectedAuditor === 'all' || activity.auditor === selectedAuditor;
@@ -50,11 +54,9 @@ export default function ActivityCalendar() {
     return <Badge variant="outline" className={colors[priority as keyof typeof colors]}>{priority}</Badge>;
   };
 
-  const handleReschedule = (activityId: string) => {
-    toast({
-      title: "Activity Rescheduled",
-      description: "Audit activity has been rescheduled successfully."
-    });
+  const handleReschedule = (activity: AuditActivity) => {
+    setSelectedActivity(activity);
+    setIsRescheduleDialogOpen(true);
   };
 
   const getActivityTypeIcon = (type: string) => {
@@ -277,7 +279,7 @@ export default function ActivityCalendar() {
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  onClick={() => handleReschedule(activity.id)}
+                                  onClick={() => handleReschedule(activity)}
                                 >
                                   Reschedule
                                 </Button>
@@ -359,7 +361,7 @@ export default function ActivityCalendar() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleReschedule(activity.id)}
+                            onClick={() => handleReschedule(activity)}
                           >
                             Reschedule
                           </Button>
@@ -373,6 +375,13 @@ export default function ActivityCalendar() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reschedule Dialog */}
+      <ActivityRescheduleDialog
+        activity={selectedActivity}
+        open={isRescheduleDialogOpen}
+        onOpenChange={setIsRescheduleDialogOpen}
+      />
     </div>
   );
 }

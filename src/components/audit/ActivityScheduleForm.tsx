@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { departments } from '@/data/auditData';
+import { departments, departmentAuditPlans } from '@/data/auditData';
 
 interface ActivityScheduleFormProps {
   onClose: () => void;
@@ -16,6 +16,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
   const [formData, setFormData] = useState({
     title: '',
     type: '',
+    departmentAuditId: '',
     departmentId: '',
     functionArea: '',
     startDate: '',
@@ -31,7 +32,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.type || !formData.departmentId || !formData.startDate || !formData.auditor) {
+    if (!formData.title || !formData.type || !formData.departmentAuditId || !formData.startDate || !formData.auditor) {
       toast({
         title: "Validation Error",
         description: "Please fill all required fields.",
@@ -78,19 +79,40 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="departmentAuditId">Department Audit Plan *</Label>
+        <Select value={formData.departmentAuditId} onValueChange={(value) => {
+          const plan = departmentAuditPlans.find(p => p.id === value);
+          setFormData({ 
+            ...formData, 
+            departmentAuditId: value,
+            departmentId: plan?.departmentId || ''
+          });
+        }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select department audit plan" />
+          </SelectTrigger>
+          <SelectContent>
+            {departmentAuditPlans.map(plan => {
+              const dept = departments.find(d => d.id === plan.departmentId);
+              return (
+                <SelectItem key={plan.id} value={plan.id}>
+                  {dept?.name} - {plan.objective.substring(0, 50)}... ({plan.monthYear})
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="departmentId">Department *</Label>
-          <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select department" />
-            </SelectTrigger>
-            <SelectContent>
-              {departments.map(dept => (
-                <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="departmentId">Department</Label>
+          <Input
+            id="departmentId"
+            value={departments.find(d => d.id === formData.departmentId)?.name || 'Select audit plan first'}
+            disabled
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="functionArea">Function Area</Label>

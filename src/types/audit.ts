@@ -11,8 +11,40 @@ export interface Department {
   name: string;
   head: string;
   email: string;
+  phone?: string;
   location: string;
   riskRating?: 'Low' | 'Medium' | 'High';
+  functions?: DepartmentFunction[];
+}
+
+export interface DepartmentFunction {
+  id: string;
+  departmentId: string;
+  functionName: string;
+  description: string;
+  riskRating: 'Low' | 'Medium' | 'High';
+  likelihood: 'Low' | 'Medium' | 'High';
+  impact: 'Low' | 'Medium' | 'High';
+  controlEffectiveness: 'Effective' | 'Partially Effective' | 'Ineffective';
+  lastAuditDate?: string;
+  nextAuditDate?: string;
+  responsiblePerson?: string;
+  notes?: string;
+}
+
+export interface ActivityReschedule {
+  id: string;
+  activityId: string;
+  previousStartDate: string;
+  previousEndDate: string;
+  newStartDate: string;
+  newEndDate: string;
+  reason: string;
+  requestedBy: string;
+  requestedDate: string;
+  approvedBy?: string;
+  approvedDate?: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export interface Employer {
