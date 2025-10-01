@@ -31,7 +31,7 @@ export default function ManagementResponses() {
         <div>
           <h1 className="text-3xl font-bold">Management Responses</h1>
           <p className="text-muted-foreground">
-            Review and track management responses to audit findings |
+            Department heads respond to internal audit findings |
             <Link to="/" className="text-blue-600 hover:underline ml-1">← Back to Dashboard</Link> |
             <Link to="/audit/findings" className="text-blue-600 hover:underline ml-1">View Findings</Link>
           </p>

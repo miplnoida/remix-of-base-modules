@@ -12,6 +12,7 @@ import { AlertTriangle, Clock, CheckCircle, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auditFollowUps } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 export default function FollowUpTracker() {
   const { hasPermission } = useAuth();
@@ -87,7 +88,10 @@ export default function FollowUpTracker() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Follow-Up Tracker</h1>
-        <p className="text-muted-foreground">Track corrective actions and follow-ups</p>
+        <p className="text-muted-foreground">
+          Track department audit corrective actions and follow-ups | 
+          <Link to="/audit/plans" className="text-blue-600 hover:underline ml-1">View Plans</Link>
+        </p>
       </div>
 
       {/* Summary Cards */}

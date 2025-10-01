@@ -101,34 +101,68 @@ export interface LeaveRequest {
 
 // ============= AUDIT PLANNING =============
 
-export interface AuditPlan {
+// Annual Master Plan
+export interface AnnualAuditPlan {
   id: string;
-  title: string;
   fiscalYear: string;
-  period: string;
-  monthYear: string;
-  zone?: string;
-  departments: string[];
+  title: string;
   objective: string;
   scope: string;
   methodology: string;
+  status: 'Draft' | 'Submitted' | 'Approved' | 'In Progress' | 'Completed' | 'Closed';
+  createdBy: string;
+  createdDate: string;
+  submittedDate?: string;
+  reviewedBy?: string;
+  reviewedDate?: string;
+  approvedBy?: string;
+  approvedDate?: string;
+  approvalComments?: string;
+  totalDepartmentAudits: number;
+}
+
+// Department-specific audit within annual plan
+export interface DepartmentAuditPlan {
+  id: string;
+  annualPlanId: string;
+  departmentId: string;
+  departmentName: string;
+  period: 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Monthly' | 'Quarterly' | 'Annual';
+  monthYear: string;
+  functions: string[]; // Specific functions to audit
+  objective: string;
+  scope: string;
+  riskRating: 'Low' | 'Medium' | 'High';
+  leadAuditor?: string;
+  leadAuditorName?: string;
+  teamMembers: string[];
+  status: 'Draft' | 'Planned' | 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled' | 'Submitted' | 'Approved';
+  plannedStart?: string;
+  plannedEnd?: string;
+  actualStart?: string;
+  actualEnd?: string;
+}
+
+// Legacy interface maintained for backward compatibility
+export interface AuditPlan extends DepartmentAuditPlan {
+  title: string;
+  fiscalYear: string;
+  zone?: string;
+  departments: string[];
+  methodology: string;
   riskBasis: string;
-  status: 'Draft' | 'Submitted' | 'Approved' | 'Scheduled' | 'In Progress' | 'Completed' | 'Closed' | 'Rejected' | 'Cancelled';
   createdBy: string;
   createdDate: string;
   submittedDate?: string;
   approvedDate?: string;
   approver?: string;
   approvalComments?: string;
-  plannedStart?: string;
-  plannedEnd?: string;
-  actualStart?: string;
-  actualEnd?: string;
   totalEmployers: number;
   assignedEmployers: number;
   attachments: string[];
 }
 
+// Legacy employer assignment interface
 export interface AuditPlanEmployer {
   id: string;
   planId: string;
@@ -145,17 +179,18 @@ export interface AuditPlanEmployer {
 
 export interface AuditActivity {
   id: string;
-  planId: string;
-  deptId?: string;
-  employerId?: string;
+  departmentAuditId?: string; // Links to DepartmentAuditPlan
+  annualPlanId?: string; // Links to AnnualAuditPlan
+  departmentId?: string;
+  functionArea?: string; // The specific function being audited
   name: string;
+  title: string;
   description: string;
-  controlArea: 'Contributions' | 'Benefits' | 'Finance/AP' | 'IT' | 'HR' | 'Compliance' | 'Other';
-  type: 'Compliance Check' | 'Records Review' | 'Site Visit' | 'Contribution Verification' | 'Payroll Sampling';
+  controlArea: 'Contributions' | 'Benefits' | 'Finance/AP' | 'IT' | 'HR' | 'Compliance' | 'Operations' | 'Other';
+  type: 'Compliance Check' | 'Records Review' | 'Process Review' | 'Document Verification' | 'System Testing' | 'Interview' | 'Site Visit' | 'Contribution Verification' | 'Payroll Sampling' | 'Other';
   checklistTemplateId?: string;
   evidenceExpected: string[];
   assignedAuditors: string[];
-  title: string;
   auditor: string;
   auditorName: string;
   startDate: string;
@@ -167,6 +202,10 @@ export interface AuditActivity {
   location: string;
   status: 'Planned' | 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled' | 'Rescheduled';
   priority: 'Low' | 'Medium' | 'High';
+  // Legacy fields
+  planId?: string;
+  deptId?: string;
+  employerId?: string;
 }
 
 export interface ProcedureStep {
@@ -183,14 +222,20 @@ export interface ProcedureStep {
 export interface Evidence {
   id: string;
   evidenceId: string;
+  annualPlanId?: string;
+  departmentAuditId?: string;
   activityId?: string;
   findingId?: string;
   file: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
   description: string;
   referenceNo: string;
   hash: string;
   uploadedBy: string;
   uploadDate: string;
+  tags?: string[];
 }
 
 // ============= FINDINGS & RESPONSES =============
@@ -198,9 +243,12 @@ export interface Evidence {
 export interface Finding {
   id: string;
   findingId: string;
-  planId: string;
+  annualPlanId?: string;
+  departmentAuditId?: string;
   activityId: string;
-  deptId?: string;
+  departmentId?: string;
+  departmentName?: string;
+  functionArea?: string;
   title: string;
   condition: string;
   criteria: string;
@@ -210,9 +258,14 @@ export interface Finding {
   riskRating: 'High' | 'Medium' | 'Low';
   impactArea: 'Financial' | 'Compliance' | 'Operational' | 'IT' | 'Other';
   ownerRole: string;
+  departmentHeadName?: string;
   status: 'Draft' | 'For Mgmt Response' | 'Under Review' | 'Agreed' | 'Not Agreed' | 'Finalized';
   createdBy: string;
   createdDate: string;
+  submittedForResponseDate?: string;
+  // Legacy fields
+  planId?: string;
+  deptId?: string;
 }
 
 export interface ManagementResponse {
@@ -253,18 +306,24 @@ export interface AuditActivityResult {
 
 export interface AuditFollowUp {
   id: string;
-  activityResultId: string;
+  annualPlanId?: string;
+  departmentAuditId?: string;
   activityId: string;
-  planId: string;
+  findingId?: string;
+  departmentId?: string;
+  departmentName?: string;
   actionRequired: string;
   dueDate: string;
-  responsibleParty: 'Employer' | 'Audit Department' | 'Department Head' | 'Other';
+  responsibleParty: 'Department Head' | 'Audit Team' | 'Management' | 'Employer' | 'Audit Department' | 'Other';
   responsibleName: string;
   status: 'Open' | 'In Progress' | 'Resolved' | 'Overdue';
   priority: 'Low' | 'Medium' | 'High';
   description: string;
   resolution?: string;
   resolvedDate?: string;
+  // Legacy fields
+  activityResultId?: string;
+  planId?: string;
 }
 
 // ============= DOCUMENTS & TEMPLATES =============

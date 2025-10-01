@@ -1,0 +1,294 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Search, Eye, FileText, Calendar } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { departments } from '@/data/auditData';
+import { useToast } from '@/hooks/use-toast';
+import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
+import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
+import { Link } from 'react-router-dom';
+
+// Mock data - replace with actual data later
+const annualPlans = [
+  {
+    id: '1',
+    fiscalYear: '2025-2026',
+    title: 'Annual Internal Audit Plan 2025-2026',
+    objective: 'To provide independent assurance and insights on the effectiveness of governance, risk management, and control processes.',
+    status: 'Approved',
+    createdBy: 'director@ssb.kn',
+    createdDate: '2025-01-05',
+    approvedBy: 'director@ssb.kn',
+    approvedDate: '2025-01-15',
+    totalDepartmentAudits: 8
+  }
+];
+
+const departmentAudits = [
+  {
+    id: '1',
+    annualPlanId: '1',
+    departmentId: 'dept-001',
+    departmentName: 'Department of Benefits',
+    period: 'Q1',
+    monthYear: '2025-02',
+    functions: ['Claims Processing', 'Payment Authorization'],
+    riskRating: 'High',
+    leadAuditor: 'auditor-001',
+    leadAuditorName: 'Maria Rodriguez',
+    status: 'In Progress',
+    plannedStart: '2025-02-01',
+    plannedEnd: '2025-02-28'
+  },
+  {
+    id: '2',
+    annualPlanId: '1',
+    departmentId: 'dept-002',
+    departmentName: 'Department of Contributions',
+    period: 'Q1',
+    monthYear: '2025-03',
+    functions: ['Employer Compliance', 'Payment Processing'],
+    riskRating: 'Medium',
+    leadAuditor: 'auditor-002',
+    leadAuditorName: 'James Thompson',
+    status: 'Planned',
+    plannedStart: '2025-03-01',
+    plannedEnd: '2025-03-31'
+  }
+];
+
+export default function AuditPlansNew() {
+  const { hasPermission } = useAuth();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [isAnnualPlanDialogOpen, setIsAnnualPlanDialogOpen] = useState(false);
+  const [isDeptAuditDialogOpen, setIsDeptAuditDialogOpen] = useState(false);
+  const [selectedAnnualPlan, setSelectedAnnualPlan] = useState<any>(null);
+
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      'Draft': 'bg-gray-500',
+      'Submitted': 'bg-blue-500',
+      'Approved': 'bg-green-500',
+      'In Progress': 'bg-yellow-500',
+      'Completed': 'bg-purple-500',
+      'Cancelled': 'bg-red-500'
+    };
+    return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-500'}>{status}</Badge>;
+  };
+
+  const getRiskBadge = (risk: string) => {
+    const colors = {
+      'Low': 'bg-green-500',
+      'Medium': 'bg-yellow-500',
+      'High': 'bg-red-500'
+    };
+    return <Badge className={colors[risk as keyof typeof colors]}>{risk}</Badge>;
+  };
+
+  const filteredDeptAudits = departmentAudits.filter(audit => {
+    const matchesSearch = audit.departmentName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPeriod = selectedPeriod === 'all' || audit.period === selectedPeriod;
+    return matchesSearch && matchesPeriod;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Internal Audit Plans</h1>
+          <p className="text-muted-foreground">
+            Manage annual and department-specific audit plans | 
+            <Link to="/" className="text-blue-600 hover:underline ml-1">← Back to Dashboard</Link> | 
+            <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link>
+          </p>
+        </div>
+        {hasPermission('create_audit_plans') && (
+          <Dialog open={isAnnualPlanDialogOpen} onOpenChange={setIsAnnualPlanDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Annual Plan
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create Annual Audit Plan</DialogTitle>
+              </DialogHeader>
+              <AnnualPlanForm onClose={() => setIsAnnualPlanDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {/* Annual Plans */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Annual Audit Plans</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fiscal Year</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Department Audits</TableHead>
+                <TableHead>Approved Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {annualPlans.map((plan) => (
+                <TableRow key={plan.id}>
+                  <TableCell className="font-medium">{plan.fiscalYear}</TableCell>
+                  <TableCell>{plan.title}</TableCell>
+                  <TableCell>{getStatusBadge(plan.status)}</TableCell>
+                  <TableCell>{plan.totalDepartmentAudits} planned</TableCell>
+                  <TableCell>
+                    {plan.approvedDate ? new Date(plan.approvedDate).toLocaleDateString() : 'Pending'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                      {plan.status === 'Approved' && (
+                        <Dialog open={isDeptAuditDialogOpen} onOpenChange={setIsDeptAuditDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              size="sm"
+                              onClick={() => setSelectedAnnualPlan(plan)}
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add Dept Audit
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Add Department Audit to {plan.fiscalYear}</DialogTitle>
+                            </DialogHeader>
+                            {selectedAnnualPlan && (
+                              <DepartmentAuditForm 
+                                annualPlanId={selectedAnnualPlan.id}
+                                onClose={() => setIsDeptAuditDialogOpen(false)} 
+                              />
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Department Audits */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Department Audit Plans</CardTitle>
+            <div className="flex gap-4">
+              <div className="relative w-80">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="All Periods" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Periods</SelectItem>
+                  <SelectItem value="Q1">Quarter 1</SelectItem>
+                  <SelectItem value="Q2">Quarter 2</SelectItem>
+                  <SelectItem value="Q3">Quarter 3</SelectItem>
+                  <SelectItem value="Q4">Quarter 4</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Department</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead>Functions</TableHead>
+                <TableHead>Risk</TableHead>
+                <TableHead>Lead Auditor</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDeptAudits.map((audit) => (
+                <TableRow key={audit.id}>
+                  <TableCell className="font-medium">{audit.departmentName}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {audit.period} - {new Date(audit.monthYear).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {audit.functions.slice(0, 2).map(func => (
+                        <Badge key={func} variant="outline" className="text-xs">
+                          {func}
+                        </Badge>
+                      ))}
+                      {audit.functions.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{audit.functions.length - 2} more
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{getRiskBadge(audit.riskRating)}</TableCell>
+                  <TableCell>{audit.leadAuditorName}</TableCell>
+                  <TableCell className="text-sm">
+                    {new Date(audit.plannedStart!).toLocaleDateString()} - {new Date(audit.plannedEnd!).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(audit.status)}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Link to="/audit/calendar">
+                        <Button variant="outline" size="sm">
+                          <Calendar className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -38,7 +38,7 @@ export default function ActionTracking() {
         <div>
           <h1 className="text-3xl font-bold">Action Tracking</h1>
           <p className="text-muted-foreground">
-            Track implementation of corrective actions |
+            Track implementation of corrective actions from internal audits |
             <Link to="/" className="text-blue-600 hover:underline ml-1">← Back to Dashboard</Link> |
             <Link to="/audit/followups" className="text-blue-600 hover:underline ml-1">View Follow-ups</Link>
           </p>

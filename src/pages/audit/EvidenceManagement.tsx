@@ -46,6 +46,18 @@ export default function EvidenceManagement() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
+                <Label>Department Audit</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department audit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dept-audit-1">Benefits - Q1 2025 Audit</SelectItem>
+                    <SelectItem value="dept-audit-2">Contributions - Q1 2025 Audit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Related Activity</Label>
                 <Select>
                   <SelectTrigger>

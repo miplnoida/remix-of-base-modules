@@ -74,36 +74,47 @@ export default function FindingsManagement() {
                   <Input placeholder="F-2025-001" />
                 </div>
                 <div>
-                  <Label>Audit Plan</Label>
+                  <Label>Department</Label>
                   <Select>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select plan" />
+                      <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      {auditPlans.map(plan => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.title}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="dept-001">Department of Benefits</SelectItem>
+                      <SelectItem value="dept-002">Department of Contributions</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div>
-                <Label>Activity</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select activity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {auditActivities.map(activity => (
-                      <SelectItem key={activity.id} value={activity.id}>
-                        {activity.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Department Audit</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select dept audit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="audit-1">Benefits Q1 2025</SelectItem>
+                      <SelectItem value="audit-2">Contributions Q1 2025</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Activity</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select activity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {auditActivities.map(activity => (
+                        <SelectItem key={activity.id} value={activity.id}>
+                          {activity.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div>

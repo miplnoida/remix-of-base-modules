@@ -47,6 +47,7 @@ import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
 
 // Audit Module
 import AuditPlans from '@/pages/audit/AuditPlans';
+import AuditPlansNew from '@/pages/audit/AuditPlansNew';
 import PlanApproval from '@/pages/audit/PlanApproval';
 import ActivityCalendar from '@/pages/audit/ActivityCalendar';
 import ActivityWorkbench from '@/pages/audit/ActivityWorkbench';
@@ -248,7 +249,8 @@ export const AppRoutes = () => {
       <Route path="/audit/workload" element={<ProtectedLayout><WorkloadCapacity /></ProtectedLayout>} />
       <Route path="/audit/leave" element={<ProtectedLayout><LeaveAndVacationManagement /></ProtectedLayout>} />
       <Route path="/audit/holidays" element={<ProtectedLayout><HolidayManagement /></ProtectedLayout>} />
-      <Route path="/audit/plans" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
+      <Route path="/audit/plans" element={<ProtectedLayout><AuditPlansNew /></ProtectedLayout>} />
+      <Route path="/audit/plans-old" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
       <Route path="/audit/approvals" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/calendar" element={<ProtectedLayout><ActivityCalendar /></ProtectedLayout>} />
       <Route path="/audit/workbench" element={<ProtectedLayout><ActivityWorkbench /></ProtectedLayout>} />

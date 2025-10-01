@@ -178,7 +178,7 @@ export const leaveRequests: LeaveRequest[] = [
 
 // ============= AUDIT PLANS =============
 
-export const auditPlans: AuditPlan[] = [
+export const auditPlans: any[] = [
   {
     id: 'plan-001',
     title: 'FY2025 Q3 Employer Compliance Audit - Zone A',
