@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Eye, Download, FileText, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Plus, Eye, Download, FileText, Link as LinkIcon, Upload, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { evidence, workingPapers } from "@/data/auditData";
+import { evidence, workingPapers, auditActivities } from "@/data/auditData";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EvidenceManagement() {
   const { toast } = useToast();
