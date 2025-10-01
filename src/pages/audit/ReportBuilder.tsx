@@ -213,7 +213,6 @@ export default function ReportBuilder() {
                           <div><strong>Criteria:</strong> {finding.criteria}</div>
                           <div><strong>Cause:</strong> {finding.cause}</div>
                           <div><strong>Effect:</strong> {finding.effect}</div>
-                          <div><strong>Recommendation:</strong> {finding.recommendation}</div>
                         </div>
                       </CardContent>
                     </Card>

@@ -86,7 +86,7 @@ export default function ActivityCalendar() {
         <div>
           <h1 className="text-3xl font-bold">Activity Calendar</h1>
           <p className="text-muted-foreground">
-            Schedule and manage internal department audit activities | 
+            Schedule and manage department audit activities | 
             <Link to="/audit/plans" className="text-blue-600 hover:underline ml-1">View Plans</Link> | 
             <Link to="/audit/workbench" className="text-blue-600 hover:underline ml-1">Activity Workbench</Link>
           </p>

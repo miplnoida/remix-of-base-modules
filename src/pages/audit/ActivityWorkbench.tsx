@@ -93,7 +93,7 @@ export default function ActivityWorkbench() {
       <div>
         <h1 className="text-3xl font-bold">Activity Workbench</h1>
         <p className="text-muted-foreground">
-          Execute internal department audit activities and enter findings | 
+          Execute department audit activities and enter findings | 
           <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link> | 
           <Link to="/audit/followups" className="text-blue-600 hover:underline ml-1">Follow-ups</Link>
         </p>

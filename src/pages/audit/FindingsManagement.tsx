@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, AlertTriangle, Eye, Edit } from 'lucide-react';
-import { findings, auditPlans, auditActivities } from '@/data/auditData';
+import { Plus, Search, AlertTriangle, Eye, Edit, ChevronDown, ChevronRight } from 'lucide-react';
+import { findings, auditPlans, auditActivities, recommendations } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ export default function FindingsManagement() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
+  const [expandedFindings, setExpandedFindings] = useState<string[]>([]);
 
   const filteredFindings = findings.filter(finding => {
     const matchesSearch = finding.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -144,10 +145,36 @@ export default function FindingsManagement() {
                   <Label>Effect (What is the impact?)</Label>
                   <Textarea placeholder="Describe the consequences..." rows={2} />
                 </div>
+              </div>
 
-                <div>
-                  <Label>Recommendation (Corrective Action)</Label>
-                  <Textarea placeholder="Suggest corrective actions..." rows={2} />
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold">Recommendations</h3>
+                <p className="text-sm text-muted-foreground">Add one or more recommendations for this finding</p>
+                
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label>Recommendation 1</Label>
+                      <Textarea placeholder="Suggest corrective action..." rows={2} />
+                    </div>
+                    <div className="w-32">
+                      <Label>Priority</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="High">High</SelectItem>
+                          <SelectItem value="Medium">Medium</SelectItem>
+                          <SelectItem value="Low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Another Recommendation
+                  </Button>
                 </div>
               </div>
 
@@ -304,29 +331,86 @@ export default function FindingsManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFindings.map((finding) => (
-                <TableRow key={finding.id}>
-                  <TableCell className="font-medium">{finding.findingId}</TableCell>
-                  <TableCell className="max-w-md">{finding.title}</TableCell>
-                  <TableCell>{getRiskBadge(finding.riskRating)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{finding.impactArea}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{finding.ownerRole}</TableCell>
-                  <TableCell>{getStatusBadge(finding.status)}</TableCell>
-                  <TableCell>{new Date(finding.createdDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredFindings.map((finding) => {
+                const findingRecs = recommendations.filter(r => r.findingId === finding.id);
+                const isExpanded = expandedFindings.includes(finding.id);
+                
+                return (
+                  <React.Fragment key={finding.id}>
+                    <TableRow>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              setExpandedFindings(prev => 
+                                isExpanded ? prev.filter(id => id !== finding.id) : [...prev, finding.id]
+                              );
+                            }}
+                          >
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </Button>
+                          {finding.findingId}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-md">{finding.title}</TableCell>
+                      <TableCell>{getRiskBadge(finding.riskRating)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{finding.impactArea}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{finding.ownerRole}</TableCell>
+                      <TableCell>{getStatusBadge(finding.status)}</TableCell>
+                      <TableCell>{new Date(finding.createdDate).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && findingRecs.length > 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="bg-muted/50">
+                          <div className="py-4 px-8">
+                            <h4 className="font-semibold mb-3 flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4" />
+                              Recommendations ({findingRecs.length})
+                            </h4>
+                            <div className="space-y-3">
+                              {findingRecs.map((rec, idx) => (
+                                <div key={rec.id} className="border-l-2 border-primary pl-4">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <span className="font-medium text-sm">Recommendation #{idx + 1}</span>
+                                    <Badge variant="outline" className={
+                                      rec.priority === 'High' ? 'border-red-500 text-red-500' :
+                                      rec.priority === 'Medium' ? 'border-orange-500 text-orange-500' :
+                                      'border-green-500 text-green-500'
+                                    }>
+                                      {rec.priority} Priority
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm">{rec.recommendationText}</p>
+                                  {rec.responsibleParty && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Responsible: {rec.responsibleParty} | Target: {new Date(rec.targetDate).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

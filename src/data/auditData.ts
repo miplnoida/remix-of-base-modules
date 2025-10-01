@@ -415,7 +415,6 @@ export const findings: Finding[] = [
     criteria: 'Social Security Act requires contributions to be paid by the 15th of the following month',
     cause: 'Inadequate monitoring of payment deadlines by HR department',
     effect: 'Potential penalties and interest charges; non-compliance with legislation',
-    recommendation: 'Implement automated payment reminders and calendar alerts for contribution deadlines',
     riskRating: 'Medium',
     impactArea: 'Compliance',
     ownerRole: 'HR Manager - Caribbean Bank Ltd',
@@ -433,7 +432,6 @@ export const findings: Finding[] = [
     criteria: 'Contributions must be calculated on gross earnings including overtime, bonuses, and allowances',
     cause: 'Payroll system configuration error not capturing all earning components',
     effect: 'Under-remittance of contributions by approximately $1,240; reduced employee benefits coverage',
-    recommendation: 'Review and update payroll system configuration; process adjustment for affected employees',
     riskRating: 'High',
     impactArea: 'Financial',
     ownerRole: 'Payroll Manager - Caribbean Bank Ltd',
@@ -451,13 +449,99 @@ export const findings: Finding[] = [
     criteria: 'Employers must maintain complete employment records for all contributors',
     cause: 'Incomplete transition to new document management system',
     effect: 'Difficulty verifying employment status and contribution accuracy',
-    recommendation: 'Complete digitization of employee records and implement document retention policy',
     riskRating: 'Low',
     impactArea: 'Operational',
     ownerRole: 'HR Director - Tech Solutions Inc',
     status: 'Under Review',
     createdBy: 'auditor1@ssb.kn',
     createdDate: '2025-09-10'
+  }
+];
+
+export const recommendations: any[] = [
+  {
+    id: 'rec-001',
+    findingId: 'find-001',
+    recommendationText: 'Implement automated payment reminders and calendar alerts for contribution deadlines',
+    priority: 'High',
+    targetDate: '2025-10-01',
+    responsibleParty: 'HR Manager',
+    status: 'Pending',
+    createdDate: '2025-09-15'
+  },
+  {
+    id: 'rec-002',
+    findingId: 'find-001',
+    recommendationText: 'Establish monthly reconciliation process for contribution payments',
+    priority: 'Medium',
+    targetDate: '2025-10-15',
+    responsibleParty: 'Finance Manager',
+    status: 'Pending',
+    createdDate: '2025-09-15'
+  },
+  {
+    id: 'rec-003',
+    findingId: 'find-002',
+    recommendationText: 'Review and update payroll system configuration to capture all earning components',
+    priority: 'High',
+    targetDate: '2025-09-25',
+    responsibleParty: 'Payroll Manager',
+    status: 'Accepted',
+    createdDate: '2025-09-15'
+  },
+  {
+    id: 'rec-004',
+    findingId: 'find-002',
+    recommendationText: 'Process retrospective adjustments for affected employees',
+    priority: 'High',
+    targetDate: '2025-10-15',
+    responsibleParty: 'Payroll Manager',
+    status: 'Accepted',
+    createdDate: '2025-09-15'
+  },
+  {
+    id: 'rec-005',
+    findingId: 'find-003',
+    recommendationText: 'Complete digitization of employee records',
+    priority: 'Medium',
+    targetDate: '2025-11-30',
+    responsibleParty: 'HR Director',
+    status: 'Pending',
+    createdDate: '2025-09-10'
+  }
+];
+
+export const workingPapers: any[] = [
+  {
+    id: 'wp-001',
+    workingPaperId: 'WP-2025-001',
+    activityId: 'act-001',
+    findingId: 'find-001',
+    evidenceIds: ['ev-002'],
+    title: 'Late Payment Analysis',
+    description: 'Analysis of late contribution payments for Caribbean Bank Ltd',
+    content: 'Reviewed payment history for Q2 2025. Identified three instances where payments were submitted after the 15th deadline...',
+    preparedBy: 'auditor1@ssb.kn',
+    reviewedBy: 'manager@ssb.kn',
+    status: 'Approved',
+    createdDate: '2025-09-15',
+    lastModifiedDate: '2025-09-16',
+    tags: ['compliance', 'payments']
+  },
+  {
+    id: 'wp-002',
+    workingPaperId: 'WP-2025-002',
+    activityId: 'act-001',
+    findingId: 'find-002',
+    evidenceIds: ['ev-001'],
+    title: 'Payroll Calculation Review',
+    description: 'Analysis of payroll calculations and contribution computation',
+    content: 'Tested sample of 20 employees. Found 2 employees with calculation errors...',
+    preparedBy: 'auditor1@ssb.kn',
+    status: 'Under Review',
+    createdDate: '2025-09-15',
+    lastModifiedDate: '2025-09-15',
+    tags: ['payroll', 'calculations']
   }
 ];
 

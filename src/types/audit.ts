@@ -254,7 +254,6 @@ export interface Finding {
   criteria: string;
   cause: string;
   effect: string;
-  recommendation: string;
   riskRating: 'High' | 'Medium' | 'Low';
   impactArea: 'Financial' | 'Compliance' | 'Operational' | 'IT' | 'Other';
   ownerRole: string;
@@ -266,6 +265,36 @@ export interface Finding {
   // Legacy fields
   planId?: string;
   deptId?: string;
+}
+
+export interface Recommendation {
+  id: string;
+  findingId: string;
+  recommendationText: string;
+  priority: 'High' | 'Medium' | 'Low';
+  targetDate?: string;
+  responsibleParty?: string;
+  status: 'Pending' | 'Accepted' | 'Rejected' | 'Implemented';
+  createdDate: string;
+}
+
+export interface WorkingPaper {
+  id: string;
+  workingPaperId: string;
+  annualPlanId?: string;
+  departmentAuditId?: string;
+  activityId?: string;
+  findingId?: string;
+  evidenceIds: string[];
+  title: string;
+  description: string;
+  content: string;
+  preparedBy: string;
+  reviewedBy?: string;
+  status: 'Draft' | 'Under Review' | 'Approved';
+  createdDate: string;
+  lastModifiedDate: string;
+  tags?: string[];
 }
 
 export interface ManagementResponse {
@@ -331,10 +360,27 @@ export interface AuditFollowUp {
 export interface DocumentTemplate {
   id: string;
   name: string;
-  type: 'Notice of Audit' | 'PBC Request' | 'Reminder/Escalation' | 'Exit Meeting Invite' | 'Draft Report Transmittal' | 'Final Report Transmittal' | 'Follow-up Notice';
+  type: 'Notice of Audit' | 'PBC Request' | 'Reminder/Escalation' | 'Exit Meeting Invite' | 'Draft Report Transmittal' | 'Final Report Transmittal' | 'Follow-up Notice' | 'Management Response Request';
   content: string;
   mergeFields: string[];
   active: boolean;
+}
+
+export interface AuditCommunication {
+  id: string;
+  departmentAuditId: string;
+  annualPlanId?: string;
+  templateId: string;
+  templateType: string;
+  recipientName: string;
+  recipientEmail: string;
+  subject: string;
+  content: string;
+  status: 'Draft' | 'Sent' | 'Acknowledged';
+  sentDate?: string;
+  acknowledgedDate?: string;
+  createdBy: string;
+  createdDate: string;
 }
 
 export interface DocumentInstance {

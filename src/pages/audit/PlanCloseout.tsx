@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CheckCircle, FileText, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auditPlans, auditPlanEmployers, auditActivities, auditActivityResults, zones } from '@/data/auditData';
+import { auditPlans, departments, auditActivities, auditActivityResults, managementResponses, findings } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 
 export default function PlanCloseout() {
@@ -18,14 +18,23 @@ export default function PlanCloseout() {
   const [closeoutComments, setCloseoutComments] = useState('');
   const [isCloseoutDialogOpen, setIsCloseoutDialogOpen] = useState(false);
 
-  const completedPlans = auditPlans.filter(plan => plan.status === 'In Progress');
+  // Filter plans that are department audits and in progress
+  const completedPlans = auditPlans.filter(plan => 
+    plan.departments && plan.departments.length > 0 && plan.status === 'In Progress'
+  );
 
   const getPlanSummary = (planId: string) => {
-    const planEmployers = auditPlanEmployers.filter(pe => pe.planId === planId);
+    const plan = auditPlans.find(p => p.id === planId);
     const planActivities = auditActivities.filter(a => a.planId === planId);
     const completedActivities = planActivities.filter(a => a.status === 'Completed');
     const results = auditActivityResults.filter(r => 
       planActivities.some(a => a.id === r.activityId)
+    );
+    
+    // Get findings and management responses
+    const planFindings = findings.filter(f => f.planId === planId);
+    const respondedFindings = planFindings.filter(f => 
+      managementResponses.some(r => r.findingId === f.id && r.status === 'Accepted')
     );
     
     const complianceStats = results.reduce((acc, result) => {
@@ -36,9 +45,11 @@ export default function PlanCloseout() {
     const totalVariance = results.reduce((sum, result) => sum + result.monetaryVariance, 0);
 
     return {
-      totalEmployers: planEmployers.length,
+      departmentName: plan?.departments?.[0] ? departments.find(d => d.id === plan.departments[0])?.name : 'N/A',
       totalActivities: planActivities.length,
       completedActivities: completedActivities.length,
+      totalFindings: planFindings.length,
+      respondedFindings: respondedFindings.length,
       complianceStats,
       totalVariance,
       results
@@ -87,8 +98,8 @@ export default function PlanCloseout() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Plan Closeout</h1>
-        <p className="text-muted-foreground">Review and approve plan closeouts</p>
+        <h1 className="text-3xl font-bold">Department Audit Closeout</h1>
+        <p className="text-muted-foreground">Review and close completed department audits after management responses</p>
       </div>
 
       {/* Plans Ready for Closeout */}
@@ -103,7 +114,6 @@ export default function PlanCloseout() {
             <div className="space-y-4">
               {completedPlans.map((plan) => {
                 const summary = getPlanSummary(plan.id);
-                const zoneName = zones.find(z => z.id === plan.zone)?.name;
                 
                 return (
                   <Card key={plan.id}>
@@ -111,23 +121,23 @@ export default function PlanCloseout() {
                       <div className="flex justify-between items-start">
                         <div className="space-y-4 flex-1">
                           <div className="flex items-center gap-4">
-                            <h3 className="text-lg font-semibold">{plan.monthYear} - {zoneName}</h3>
+                            <h3 className="text-lg font-semibold">{plan.title} - {summary.departmentName}</h3>
                             {getStatusBadge(plan.status)}
                           </div>
                           
                           {/* Summary Statistics */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="text-center p-3 bg-muted rounded-lg">
-                              <div className="text-2xl font-bold">{summary.totalEmployers}</div>
-                              <div className="text-sm text-muted-foreground">Employers</div>
-                            </div>
-                            <div className="text-center p-3 bg-muted rounded-lg">
                               <div className="text-2xl font-bold">{summary.completedActivities}/{summary.totalActivities}</div>
-                              <div className="text-sm text-muted-foreground">Activities</div>
+                              <div className="text-sm text-muted-foreground">Activities Completed</div>
                             </div>
                             <div className="text-center p-3 bg-muted rounded-lg">
-                              <div className="text-2xl font-bold">${summary.totalVariance.toLocaleString()}</div>
-                              <div className="text-sm text-muted-foreground">Total Variance</div>
+                              <div className="text-2xl font-bold">{summary.totalFindings}</div>
+                              <div className="text-sm text-muted-foreground">Total Findings</div>
+                            </div>
+                            <div className="text-center p-3 bg-muted rounded-lg">
+                              <div className="text-2xl font-bold">{summary.respondedFindings}/{summary.totalFindings}</div>
+                              <div className="text-sm text-muted-foreground">Mgmt Responses</div>
                             </div>
                             <div className="text-center p-3 bg-muted rounded-lg">
                               <div className="text-2xl font-bold">
@@ -161,50 +171,47 @@ export default function PlanCloseout() {
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>Plan Summary - {plan.monthYear} ({zoneName})</DialogTitle>
+                                <DialogTitle>Audit Summary - {plan.title}</DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Employer</TableHead>
-                                      <TableHead>Activities</TableHead>
-                                      <TableHead>Compliance Status</TableHead>
-                                      <TableHead>Variance</TableHead>
-                                      <TableHead>Findings</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {auditPlanEmployers
-                                      .filter(pe => pe.planId === plan.id)
-                                      .map((pe) => {
-                                        const employerActivities = auditActivities.filter(a => 
-                                          a.planId === plan.id && a.employerId === pe.employerId
-                                        );
-                                        const employerResults = summary.results.filter(r =>
-                                          employerActivities.some(a => a.id === r.activityId)
-                                        );
-                                        const avgCompliance = employerResults.length > 0 ? 
-                                          employerResults[0]?.complianceStatus : 'Not Started';
-                                        const totalVariance = employerResults.reduce((sum, r) => sum + r.monetaryVariance, 0);
-                                        
-                                        return (
-                                          <TableRow key={pe.id}>
-                                            <TableCell>{pe.employer.name}</TableCell>
-                                            <TableCell>{employerActivities.length}</TableCell>
-                                            <TableCell>{getComplianceBadge(avgCompliance)}</TableCell>
-                                            <TableCell>${totalVariance.toLocaleString()}</TableCell>
-                                            <TableCell>
-                                              {employerResults.length > 0 ? 
-                                                employerResults[0]?.findings.substring(0, 50) + '...' : 
-                                                'No findings'
-                                              }
-                                            </TableCell>
-                                          </TableRow>
-                                        );
-                                      })}
-                                  </TableBody>
-                                </Table>
+                                <div>
+                                  <h4 className="font-semibold mb-2">Department</h4>
+                                  <p>{summary.departmentName}</p>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold mb-2">Activities</h4>
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Activity</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Compliance</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {auditActivities
+                                        .filter(a => a.planId === plan.id)
+                                        .map((activity) => {
+                                          const result = summary.results.find(r => r.activityId === activity.id);
+                                          return (
+                                            <TableRow key={activity.id}>
+                                              <TableCell>{activity.title}</TableCell>
+                                              <TableCell>{activity.status}</TableCell>
+                                              <TableCell>
+                                                {result ? getComplianceBadge(result.complianceStatus) : 'Pending'}
+                                              </TableCell>
+                                            </TableRow>
+                                          );
+                                        })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold mb-2">Management Responses</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {summary.respondedFindings} of {summary.totalFindings} findings have received management responses
+                                  </p>
+                                </div>
                               </div>
                             </DialogContent>
                           </Dialog>
@@ -236,8 +243,8 @@ export default function PlanCloseout() {
           <div className="space-y-4">
             {selectedPlan && (
               <div>
-                <p><strong>Plan:</strong> {selectedPlan.monthYear}</p>
-                <p><strong>Zone:</strong> {zones.find(z => z.id === selectedPlan.zone)?.name}</p>
+                <p><strong>Audit:</strong> {selectedPlan.title}</p>
+                <p><strong>Department:</strong> {getPlanSummary(selectedPlan.id).departmentName}</p>
                 <p><strong>Status:</strong> Ready for closeout</p>
               </div>
             )}

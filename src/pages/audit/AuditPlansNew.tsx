@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Eye, FileText, Calendar, Users } from 'lucide-react';
+import { Plus, Search, Eye, FileText, Calendar, Users, Mail, Send, Bell, MessageSquare, FileEdit } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
@@ -285,7 +285,7 @@ export default function AuditPlansNew() {
                   </TableCell>
                   <TableCell>{getStatusBadge(audit.status)}</TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
+                    <div className="flex items-center gap-2">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -299,8 +299,103 @@ export default function AuditPlansNew() {
                         onClick={() => setEditDeptAudit(audit)}
                         disabled={audit.status === 'Completed'}
                       >
-                        <FileText className="w-4 h-4" />
+                        <FileEdit className="w-4 h-4" />
                       </Button>
+                      
+                      {/* Communication Actions */}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" title="Generate Letters & Communications">
+                            <Mail className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Generate Communications - {audit.departmentName}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              Select the type of communication to generate for this department audit
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Letter Generated", description: "Notice of Audit letter has been generated" })}
+                              >
+                                <Bell className="w-5 h-5" />
+                                <span className="text-sm">Notice of Audit</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "PBC Request Generated", description: "Provided By Client request has been sent" })}
+                              >
+                                <FileText className="w-5 h-5" />
+                                <span className="text-sm">PBC Request</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Reminder Sent", description: "Reminder/Escalation has been sent" })}
+                              >
+                                <Send className="w-5 h-5" />
+                                <span className="text-sm">Reminder/Escalation</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Invitation Sent", description: "Exit meeting invitation has been sent" })}
+                              >
+                                <Calendar className="w-5 h-5" />
+                                <span className="text-sm">Exit Meeting Invite</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Report Sent", description: "Draft report transmittal has been sent" })}
+                              >
+                                <FileText className="w-5 h-5" />
+                                <span className="text-sm">Draft Report</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Final Report Sent", description: "Final report transmittal has been sent" })}
+                              >
+                                <FileText className="w-5 h-5" />
+                                <span className="text-sm">Final Report</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Response Requested", description: "Management response request has been sent" })}
+                              >
+                                <MessageSquare className="w-5 h-5" />
+                                <span className="text-sm">Mgmt Response Request</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="h-20 flex flex-col gap-2"
+                                onClick={() => toast({ title: "Follow-up Sent", description: "Follow-up notice has been sent" })}
+                              >
+                                <Bell className="w-5 h-5" />
+                                <span className="text-sm">Follow-up Notice</span>
+                              </Button>
+                            </div>
+                            <div className="border-t pt-4">
+                              <Button 
+                                className="w-full"
+                                onClick={() => toast({ title: "Email Composer Opened", description: "Opening email client..." })}
+                              >
+                                <Mail className="w-4 h-4 mr-2" />
+                                Compose Custom Email
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      
                       <Link to="/audit/calendar">
                         <Button variant="outline" size="sm">
                           <Calendar className="w-4 h-4" />
