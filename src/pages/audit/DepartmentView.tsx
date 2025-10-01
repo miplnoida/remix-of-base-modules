@@ -10,54 +10,13 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Building2, Mail, Phone, MapPin, Edit, Plus, Shield, Calendar } from 'lucide-react';
+import { ArrowLeft, Building2, Mail, Phone, MapPin, Edit, Plus, Shield, Calendar, Trash2 } from 'lucide-react';
 import { departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { DepartmentFunction } from '@/types/audit';
 
-// Mock function data for departments
-const departmentFunctions: DepartmentFunction[] = [
-  {
-    id: 'func-001',
-    departmentId: 'dept-benefits',
-    functionName: 'Claims Processing',
-    description: 'Processing and adjudication of benefit claims',
-    riskRating: 'High',
-    likelihood: 'High',
-    impact: 'High',
-    controlEffectiveness: 'Effective',
-    lastAuditDate: '2024-06-15',
-    nextAuditDate: '2025-10-01',
-    responsiblePerson: 'Sarah Williams'
-  },
-  {
-    id: 'func-002',
-    departmentId: 'dept-benefits',
-    functionName: 'Eligibility Verification',
-    description: 'Verification of claimant eligibility for benefits',
-    riskRating: 'High',
-    likelihood: 'Medium',
-    impact: 'High',
-    controlEffectiveness: 'Partially Effective',
-    lastAuditDate: '2024-06-15',
-    nextAuditDate: '2025-10-01',
-    responsiblePerson: 'Sarah Williams'
-  },
-  {
-    id: 'func-003',
-    departmentId: 'dept-contributions',
-    functionName: 'Contribution Collection',
-    description: 'Collection and recording of employer contributions',
-    riskRating: 'High',
-    likelihood: 'Medium',
-    impact: 'High',
-    controlEffectiveness: 'Effective',
-    responsiblePerson: 'Michael Brown'
-  }
-];
-
 export default function DepartmentView() {
-  const { departmentId } = useParams<{ departmentId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditingDept, setIsEditingDept] = useState(false);
@@ -65,8 +24,8 @@ export default function DepartmentView() {
   const [isEditFunctionOpen, setIsEditFunctionOpen] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState<DepartmentFunction | null>(null);
 
-  const department = departments.find(d => d.id === departmentId);
-  const functions = departmentFunctions.filter(f => f.departmentId === departmentId);
+  const department = departments.find(d => d.id === id);
+  const functions = department?.functions || [];
 
   const [functionForm, setFunctionForm] = useState({
     functionName: '',
@@ -165,6 +124,16 @@ export default function DepartmentView() {
     });
     setIsEditFunctionOpen(false);
     setSelectedFunction(null);
+  };
+
+  const handleDeleteFunction = (func: DepartmentFunction) => {
+    if (window.confirm(`Are you sure you want to delete the function "${func.functionName}"?`)) {
+      toast({
+        title: "Function Deleted",
+        description: `${func.functionName} has been removed from ${department.name}.`,
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -374,9 +343,14 @@ export default function DepartmentView() {
                       {func.lastAuditDate ? new Date(func.lastAuditDate).toLocaleDateString() : 'Not audited'}
                     </TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => handleEditFunction(func)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEditFunction(func)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteFunction(func)}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

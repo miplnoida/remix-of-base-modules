@@ -103,7 +103,10 @@ const mockUsers: User[] = [
     name: 'HR Manager',
     role: 'hr_manager',
     department: 'human_resources',
-    permissions: ['view_dashboard', 'manage_insured_persons', 'generate_reports']
+    permissions: [
+      'view_dashboard', 'manage_insured_persons', 'generate_reports',
+      'view_audit_assignments', 'configure_audit_system'
+    ]
   },
   {
     id: '3',
@@ -111,7 +114,10 @@ const mockUsers: User[] = [
     name: 'Compliance Officer',
     role: 'compliance_officer',
     department: 'compliance',
-    permissions: ['view_dashboard', 'manage_compliance', 'conduct_inspections', 'generate_reports']
+    permissions: [
+      'view_dashboard', 'manage_compliance', 'conduct_inspections', 'generate_reports',
+      'view_audit_assignments', 'configure_audit_system'
+    ]
   },
   {
     id: '4',
@@ -119,7 +125,10 @@ const mockUsers: User[] = [
     name: 'Benefits Manager',
     role: 'benefits_manager',
     department: 'benefits',
-    permissions: ['view_dashboard', 'process_claims', 'approve_benefits', 'generate_reports']
+    permissions: [
+      'view_dashboard', 'process_claims', 'approve_benefits', 'generate_reports',
+      'view_audit_assignments', 'configure_audit_system'
+    ]
   },
   {
     id: '5',
@@ -127,7 +136,10 @@ const mockUsers: User[] = [
     name: 'Legal Officer',
     role: 'legal_officer',
     department: 'legal',
-    permissions: ['view_dashboard', 'manage_compliance', 'conduct_inspections', 'generate_reports', 'manage_legal_proceedings']
+    permissions: [
+      'view_dashboard', 'manage_compliance', 'conduct_inspections', 'generate_reports', 
+      'manage_legal_proceedings', 'view_audit_assignments', 'configure_audit_system'
+    ]
   },
   {
     id: '6',
@@ -143,7 +155,9 @@ const mockUsers: User[] = [
       'cashier_supervisor',
       'cashier_reports',
       'reports_analytics',
-      'admin'
+      'admin',
+      'view_audit_assignments',
+      'configure_audit_system'
     ]
   },
   {
@@ -155,7 +169,9 @@ const mockUsers: User[] = [
     permissions: [
       'view_dashboard', 
       'cashier_operations',
-      'cashier_reports'
+      'cashier_reports',
+      'view_audit_assignments',
+      'configure_audit_system'
     ]
   },
   {
@@ -171,7 +187,9 @@ const mockUsers: User[] = [
       'cashier_reports',
       'view_financial_data',
       'reports_analytics',
-      'admin'
+      'admin',
+      'view_audit_assignments',
+      'configure_audit_system'
     ]
   },
   // SSB St. Kitts Internal Audit Users
