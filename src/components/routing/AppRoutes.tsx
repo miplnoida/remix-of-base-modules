@@ -54,6 +54,16 @@ import FollowUpTracker from '@/pages/audit/FollowUpTracker';
 import PlanCloseout from '@/pages/audit/PlanCloseout';
 import AuditReports from '@/pages/audit/AuditReports';
 import AuditConfig from '@/pages/audit/AuditConfig';
+import AuditorProfiles from '@/pages/audit/AuditorProfiles';
+import WorkloadCapacity from '@/pages/audit/WorkloadCapacity';
+import LeaveManagement from '@/pages/audit/LeaveManagement';
+import EvidenceManagement from '@/pages/audit/EvidenceManagement';
+import FindingsManagement from '@/pages/audit/FindingsManagement';
+import ManagementResponses from '@/pages/audit/ManagementResponses';
+import ActionTracking from '@/pages/audit/ActionTracking';
+import LetterGeneration from '@/pages/audit/LetterGeneration';
+import ReportBuilder from '@/pages/audit/ReportBuilder';
+import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
@@ -233,14 +243,24 @@ export const AppRoutes = () => {
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
 
       {/* Audit Module Routes */}
+      <Route path="/audit/auditors" element={<ProtectedLayout><AuditorProfiles /></ProtectedLayout>} />
+      <Route path="/audit/workload" element={<ProtectedLayout><WorkloadCapacity /></ProtectedLayout>} />
+      <Route path="/audit/leave" element={<ProtectedLayout><LeaveManagement /></ProtectedLayout>} />
       <Route path="/audit/plans" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
       <Route path="/audit/approvals" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/calendar" element={<ProtectedLayout><ActivityCalendar /></ProtectedLayout>} />
       <Route path="/audit/workbench" element={<ProtectedLayout><ActivityWorkbench /></ProtectedLayout>} />
+      <Route path="/audit/evidence" element={<ProtectedLayout><EvidenceManagement /></ProtectedLayout>} />
+      <Route path="/audit/findings" element={<ProtectedLayout><FindingsManagement /></ProtectedLayout>} />
+      <Route path="/audit/responses" element={<ProtectedLayout><ManagementResponses /></ProtectedLayout>} />
+      <Route path="/audit/actions" element={<ProtectedLayout><ActionTracking /></ProtectedLayout>} />
       <Route path="/audit/followups" element={<ProtectedLayout><FollowUpTracker /></ProtectedLayout>} />
       <Route path="/audit/closeout" element={<ProtectedLayout><PlanCloseout /></ProtectedLayout>} />
       <Route path="/audit/reports" element={<ProtectedLayout><AuditReports /></ProtectedLayout>} />
+      <Route path="/audit/letters" element={<ProtectedLayout><LetterGeneration /></ProtectedLayout>} />
+      <Route path="/audit/report-builder" element={<ProtectedLayout><ReportBuilder /></ProtectedLayout>} />
       <Route path="/audit/config" element={<ProtectedLayout><AuditConfig /></ProtectedLayout>} />
+      <Route path="/audit/departments" element={<ProtectedLayout><DepartmentMaster /></ProtectedLayout>} />
 
       {/* Registration Rules & Process Routes */}
       <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
