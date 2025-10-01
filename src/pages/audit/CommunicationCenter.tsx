@@ -14,6 +14,8 @@ import { documentTemplates, auditPlans, departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import logo from '@/assets/stkitts-logo.png';
+import { TemplateCommunicationDialog } from '@/components/audit/TemplateCommunicationDialog';
+import { DocumentTemplate } from '@/types/audit';
 
 export default function CommunicationCenter() {
   const { toast } = useToast();
@@ -25,6 +27,8 @@ export default function CommunicationCenter() {
   const [additionalRecipients, setAdditionalRecipients] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTemplateObj, setSelectedTemplateObj] = useState<DocumentTemplate | null>(null);
 
   const generatePreview = (templateId: string, auditId?: string, deptId?: string) => {
     const template = documentTemplates.find(t => t.id === templateId);
@@ -407,6 +411,17 @@ export default function CommunicationCenter() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedTemplateObj(template);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Generate & Send
+                    </Button>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Merge Fields:</p>
                       <div className="flex flex-wrap gap-1">
@@ -540,6 +555,13 @@ export default function CommunicationCenter() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Template Communication Dialog */}
+      <TemplateCommunicationDialog
+        template={selectedTemplateObj}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }
