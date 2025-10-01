@@ -97,6 +97,9 @@ export default function FunctionMaster() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [selectedFunction, setSelectedFunction] = useState<DepartmentFunction | null>(null);
   const [formData, setFormData] = useState({
     departmentId: '',
     functionName: '',
@@ -169,6 +172,46 @@ export default function FunctionMaster() {
       responsiblePerson: '',
       notes: ''
     });
+  };
+
+  const handleEdit = (func: DepartmentFunction) => {
+    setSelectedFunction(func);
+    setFormData({
+      departmentId: func.departmentId,
+      functionName: func.functionName,
+      description: func.description || '',
+      riskRating: func.riskRating,
+      likelihood: func.likelihood,
+      impact: func.impact,
+      controlEffectiveness: func.controlEffectiveness,
+      responsiblePerson: func.responsiblePerson || '',
+      notes: func.notes || ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handlePreview = (func: DepartmentFunction) => {
+    setSelectedFunction(func);
+    setIsPreviewDialogOpen(true);
+  };
+
+  const handleUpdate = () => {
+    if (!formData.departmentId || !formData.functionName) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Function Updated",
+      description: `${formData.functionName} has been updated successfully.`
+    });
+    
+    setIsEditDialogOpen(false);
+    setSelectedFunction(null);
   };
 
   return (
@@ -422,10 +465,10 @@ export default function FunctionMaster() {
                     <TableCell className="text-sm">{func.responsiblePerson}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handlePreview(func)}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(func)}>
                           <Edit className="w-4 h-4" />
                         </Button>
                       </div>
@@ -472,6 +515,216 @@ export default function FunctionMaster() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Function</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-departmentId">Department *</Label>
+              <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-functionName">Function Name *</Label>
+              <Input
+                id="edit-functionName"
+                value={formData.functionName}
+                onChange={(e) => setFormData({ ...formData, functionName: e.target.value })}
+                placeholder="e.g., Claims Processing"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the function's purpose and activities"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-likelihood">Likelihood</Label>
+                <Select value={formData.likelihood} onValueChange={(value: any) => setFormData({ ...formData, likelihood: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-impact">Impact</Label>
+                <Select value={formData.impact} onValueChange={(value: any) => setFormData({ ...formData, impact: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Inherent Risk (Calculated)</Label>
+                <div className="p-2 border rounded-md bg-muted">
+                  {getRiskBadge(calculateInherentRisk(formData.likelihood, formData.impact))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-controlEffectiveness">Control Effectiveness</Label>
+                <Select value={formData.controlEffectiveness} onValueChange={(value: any) => setFormData({ ...formData, controlEffectiveness: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Effective">Effective</SelectItem>
+                    <SelectItem value="Partially Effective">Partially Effective</SelectItem>
+                    <SelectItem value="Ineffective">Ineffective</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-responsiblePerson">Responsible Person</Label>
+              <Input
+                id="edit-responsiblePerson"
+                value={formData.responsiblePerson}
+                onChange={(e) => setFormData({ ...formData, responsiblePerson: e.target.value })}
+                placeholder="Name of responsible person"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional notes or observations"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleUpdate}>Update Function</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Function Details</DialogTitle>
+          </DialogHeader>
+          {selectedFunction && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Function Name</Label>
+                  <p className="text-lg font-semibold mt-1">{selectedFunction.functionName}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Department</Label>
+                  <p className="text-lg font-semibold mt-1">
+                    {departments.find(d => d.id === selectedFunction.departmentId)?.name}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Description</Label>
+                <p className="mt-1">{selectedFunction.description || 'No description provided'}</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Risk Rating</Label>
+                  <div className="mt-2">{getRiskBadge(selectedFunction.riskRating)}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Likelihood</Label>
+                  <div className="mt-2">{getRiskBadge(selectedFunction.likelihood)}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Impact</Label>
+                  <div className="mt-2">{getRiskBadge(selectedFunction.impact)}</div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Control Effectiveness</Label>
+                <div className="mt-2">{getControlBadge(selectedFunction.controlEffectiveness)}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Responsible Person</Label>
+                  <p className="mt-1">{selectedFunction.responsiblePerson || 'Not assigned'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Last Audit Date</Label>
+                  <p className="mt-1">{selectedFunction.lastAuditDate || 'N/A'}</p>
+                </div>
+              </div>
+
+              {selectedFunction.nextAuditDate && (
+                <div>
+                  <Label className="text-muted-foreground">Next Audit Date</Label>
+                  <p className="mt-1">{selectedFunction.nextAuditDate}</p>
+                </div>
+              )}
+
+              {selectedFunction.notes && (
+                <div>
+                  <Label className="text-muted-foreground">Notes</Label>
+                  <p className="mt-1 text-sm">{selectedFunction.notes}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>Close</Button>
+                <Button onClick={() => {
+                  setIsPreviewDialogOpen(false);
+                  handleEdit(selectedFunction);
+                }}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Function
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
