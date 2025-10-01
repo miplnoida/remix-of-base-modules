@@ -167,6 +167,13 @@ export const auditMenuItems = [
         icon: Users,
         requiresPermission: "configure_audit_system",
         description: "Manage department information"
+      },
+      {
+        title: "Function Master",
+        url: "/audit/functions",
+        icon: FileSearch,
+        requiresPermission: "configure_audit_system",
+        description: "Manage department functions and risk assessment"
       }
     ]
   }

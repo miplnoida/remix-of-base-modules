@@ -193,9 +193,12 @@ export default function DepartmentMaster() {
                   <TableCell>{getRiskBadge(dept.riskRating)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <Link to={`/audit/department-view/${dept.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </Link>
                       <Button variant="outline" size="sm">
                         <Edit className="w-4 h-4" />
                       </Button>

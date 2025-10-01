@@ -15,12 +15,324 @@ export const zones: Zone[] = [
 ];
 
 export const departments: Department[] = [
-  { id: 'dept-benefits', name: 'Benefits Department', head: 'Sarah Williams', email: 'depthead.benefits@ssb.kn', phone: '(869) 465-2001', location: 'Main Building - Floor 2', riskRating: 'High' },
-  { id: 'dept-contributions', name: 'Contributions Department', head: 'Michael Brown', email: 'michael.brown@ssb.kn', phone: '(869) 465-2002', location: 'Main Building - Floor 3', riskRating: 'High' },
-  { id: 'dept-finance', name: 'Finance & Accounts Payable', head: 'Jennifer Davis', email: 'jennifer.davis@ssb.kn', phone: '(869) 465-2003', location: 'Main Building - Floor 1', riskRating: 'High' },
-  { id: 'dept-it', name: 'IT Department', head: 'Robert Johnson', email: 'robert.johnson@ssb.kn', phone: '(869) 465-2004', location: 'Annex Building', riskRating: 'Medium' },
-  { id: 'dept-hr', name: 'Human Resources', head: 'Lisa Martinez', email: 'lisa.martinez@ssb.kn', phone: '(869) 465-2005', location: 'Main Building - Floor 4', riskRating: 'Low' },
-  { id: 'dept-compliance', name: 'Compliance & Legal', head: 'David Thompson', email: 'david.thompson@ssb.kn', phone: '(869) 465-2006', location: 'Main Building - Floor 5', riskRating: 'Medium' }
+  { 
+    id: 'dept-benefits', 
+    name: 'Benefits Department', 
+    head: 'Sarah Williams', 
+    email: 'depthead.benefits@ssb.kn', 
+    phone: '(869) 465-2001', 
+    location: 'Main Building - Floor 2', 
+    riskRating: 'High',
+    functions: [
+      {
+        id: 'func-ben-001',
+        departmentId: 'dept-benefits',
+        functionName: 'Benefit Claims Processing',
+        description: 'Processing and approval of all benefit claims including sickness, maternity, and unemployment benefits',
+        riskRating: 'High',
+        likelihood: 'High',
+        impact: 'High',
+        controlEffectiveness: 'Partially Effective',
+        lastAuditDate: '2024-01-15',
+        nextAuditDate: '2025-01-15',
+        responsiblePerson: 'Sarah Williams',
+        notes: 'High transaction volume requires frequent monitoring'
+      },
+      {
+        id: 'func-ben-002',
+        departmentId: 'dept-benefits',
+        functionName: 'Eligibility Verification',
+        description: 'Verification of contributor eligibility for various benefit programs',
+        riskRating: 'High',
+        likelihood: 'Medium',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-02-20',
+        nextAuditDate: '2025-02-20',
+        responsiblePerson: 'Sarah Williams',
+        notes: 'Critical control point for benefit disbursements'
+      },
+      {
+        id: 'func-ben-003',
+        departmentId: 'dept-benefits',
+        functionName: 'Payment Processing',
+        description: 'Processing of benefit payments to approved claimants',
+        riskRating: 'High',
+        likelihood: 'Medium',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-01-10',
+        nextAuditDate: '2025-01-10',
+        responsiblePerson: 'Sarah Williams',
+        notes: 'Automated payments with segregation of duties'
+      }
+    ]
+  },
+  { 
+    id: 'dept-contributions', 
+    name: 'Contributions Department', 
+    head: 'Michael Brown', 
+    email: 'michael.brown@ssb.kn', 
+    phone: '(869) 465-2002', 
+    location: 'Main Building - Floor 3', 
+    riskRating: 'High',
+    functions: [
+      {
+        id: 'func-con-001',
+        departmentId: 'dept-contributions',
+        functionName: 'Contribution Collection',
+        description: 'Collection and processing of monthly employer contributions',
+        riskRating: 'High',
+        likelihood: 'High',
+        impact: 'High',
+        controlEffectiveness: 'Partially Effective',
+        lastAuditDate: '2024-01-20',
+        nextAuditDate: '2025-01-20',
+        responsiblePerson: 'Michael Brown',
+        notes: 'Revenue collection is critical to fund operations'
+      },
+      {
+        id: 'func-con-002',
+        departmentId: 'dept-contributions',
+        functionName: 'C3 Form Processing',
+        description: 'Processing and validation of monthly C3 contribution forms',
+        riskRating: 'Medium',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-03-05',
+        nextAuditDate: '2025-03-05',
+        responsiblePerson: 'Michael Brown',
+        notes: 'Electronic submissions improving accuracy'
+      },
+      {
+        id: 'func-con-003',
+        departmentId: 'dept-contributions',
+        functionName: 'Employer Compliance',
+        description: 'Monitoring employer compliance with contribution requirements',
+        riskRating: 'High',
+        likelihood: 'High',
+        impact: 'Medium',
+        controlEffectiveness: 'Partially Effective',
+        lastAuditDate: '2024-02-10',
+        nextAuditDate: '2025-02-10',
+        responsiblePerson: 'Michael Brown',
+        notes: 'High delinquency rate requires intensive follow-up'
+      }
+    ]
+  },
+  { 
+    id: 'dept-finance', 
+    name: 'Finance & Accounts Payable', 
+    head: 'Jennifer Davis', 
+    email: 'jennifer.davis@ssb.kn', 
+    phone: '(869) 465-2003', 
+    location: 'Main Building - Floor 1', 
+    riskRating: 'High',
+    functions: [
+      {
+        id: 'func-fin-001',
+        departmentId: 'dept-finance',
+        functionName: 'Accounts Payable',
+        description: 'Processing vendor payments and expense reimbursements',
+        riskRating: 'Medium',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-02-15',
+        nextAuditDate: '2025-02-15',
+        responsiblePerson: 'Jennifer Davis',
+        notes: 'Three-way match controls in place'
+      },
+      {
+        id: 'func-fin-002',
+        departmentId: 'dept-finance',
+        functionName: 'Cash Management',
+        description: 'Management of cash receipts, disbursements, and bank reconciliations',
+        riskRating: 'High',
+        likelihood: 'Medium',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-01-25',
+        nextAuditDate: '2025-01-25',
+        responsiblePerson: 'Jennifer Davis',
+        notes: 'Daily reconciliations and segregation of duties'
+      },
+      {
+        id: 'func-fin-003',
+        departmentId: 'dept-finance',
+        functionName: 'Financial Reporting',
+        description: 'Preparation of monthly and annual financial statements',
+        riskRating: 'High',
+        likelihood: 'Low',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-03-01',
+        nextAuditDate: '2025-03-01',
+        responsiblePerson: 'Jennifer Davis',
+        notes: 'External audit annually'
+      }
+    ]
+  },
+  { 
+    id: 'dept-it', 
+    name: 'IT Department', 
+    head: 'Robert Johnson', 
+    email: 'robert.johnson@ssb.kn', 
+    phone: '(869) 465-2004', 
+    location: 'Annex Building', 
+    riskRating: 'Medium',
+    functions: [
+      {
+        id: 'func-it-001',
+        departmentId: 'dept-it',
+        functionName: 'System Security & Access Control',
+        description: 'Management of user access rights and system security',
+        riskRating: 'High',
+        likelihood: 'High',
+        impact: 'High',
+        controlEffectiveness: 'Partially Effective',
+        lastAuditDate: '2024-01-30',
+        nextAuditDate: '2025-01-30',
+        responsiblePerson: 'Robert Johnson',
+        notes: 'Need to implement multi-factor authentication'
+      },
+      {
+        id: 'func-it-002',
+        departmentId: 'dept-it',
+        functionName: 'Data Backup & Recovery',
+        description: 'Backup procedures and disaster recovery planning',
+        riskRating: 'High',
+        likelihood: 'Low',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-02-28',
+        nextAuditDate: '2025-02-28',
+        responsiblePerson: 'Robert Johnson',
+        notes: 'Regular backup testing conducted'
+      },
+      {
+        id: 'func-it-003',
+        departmentId: 'dept-it',
+        functionName: 'Application Development',
+        description: 'Development and maintenance of SSB applications',
+        riskRating: 'Medium',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-03-10',
+        nextAuditDate: '2025-03-10',
+        responsiblePerson: 'Robert Johnson',
+        notes: 'Change management controls in place'
+      }
+    ]
+  },
+  { 
+    id: 'dept-hr', 
+    name: 'Human Resources', 
+    head: 'Lisa Martinez', 
+    email: 'lisa.martinez@ssb.kn', 
+    phone: '(869) 465-2005', 
+    location: 'Main Building - Floor 4', 
+    riskRating: 'Low',
+    functions: [
+      {
+        id: 'func-hr-001',
+        departmentId: 'dept-hr',
+        functionName: 'Recruitment & Hiring',
+        description: 'Staff recruitment, selection, and onboarding',
+        riskRating: 'Low',
+        likelihood: 'Low',
+        impact: 'Medium',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-03-15',
+        nextAuditDate: '2025-03-15',
+        responsiblePerson: 'Lisa Martinez',
+        notes: 'Structured hiring process with Board approval'
+      },
+      {
+        id: 'func-hr-002',
+        departmentId: 'dept-hr',
+        functionName: 'Payroll Processing',
+        description: 'Monthly payroll processing and related tax filings',
+        riskRating: 'Medium',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-02-25',
+        nextAuditDate: '2025-02-25',
+        responsiblePerson: 'Lisa Martinez',
+        notes: 'Automated system with supervisory review'
+      },
+      {
+        id: 'func-hr-003',
+        departmentId: 'dept-hr',
+        functionName: 'Performance Management',
+        description: 'Employee performance evaluation and development',
+        riskRating: 'Low',
+        likelihood: 'Low',
+        impact: 'Low',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-04-01',
+        nextAuditDate: '2025-04-01',
+        responsiblePerson: 'Lisa Martinez',
+        notes: 'Annual performance reviews conducted'
+      }
+    ]
+  },
+  { 
+    id: 'dept-compliance', 
+    name: 'Compliance & Legal', 
+    head: 'David Thompson', 
+    email: 'david.thompson@ssb.kn', 
+    phone: '(869) 465-2006', 
+    location: 'Main Building - Floor 5', 
+    riskRating: 'Medium',
+    functions: [
+      {
+        id: 'func-comp-001',
+        departmentId: 'dept-compliance',
+        functionName: 'Regulatory Compliance',
+        description: 'Monitoring compliance with SSB Act and regulations',
+        riskRating: 'Medium',
+        likelihood: 'Medium',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-02-05',
+        nextAuditDate: '2025-02-05',
+        responsiblePerson: 'David Thompson',
+        notes: 'Regular compliance reviews conducted'
+      },
+      {
+        id: 'func-comp-002',
+        departmentId: 'dept-compliance',
+        functionName: 'Legal Case Management',
+        description: 'Management of legal cases and proceedings',
+        riskRating: 'Medium',
+        likelihood: 'Low',
+        impact: 'High',
+        controlEffectiveness: 'Effective',
+        lastAuditDate: '2024-03-20',
+        nextAuditDate: '2025-03-20',
+        responsiblePerson: 'David Thompson',
+        notes: 'External legal counsel engaged as needed'
+      },
+      {
+        id: 'func-comp-003',
+        departmentId: 'dept-compliance',
+        functionName: 'Enforcement Actions',
+        description: 'Enforcement of contribution requirements and penalties',
+        riskRating: 'Medium',
+        likelihood: 'Medium',
+        impact: 'Medium',
+        controlEffectiveness: 'Partially Effective',
+        lastAuditDate: '2024-01-18',
+        nextAuditDate: '2025-01-18',
+        responsiblePerson: 'David Thompson',
+        notes: 'Need to improve follow-up on outstanding penalties'
+      }
+    ]
+  }
 ];
 
 // ============= ANNUAL AUDIT PLANS =============
