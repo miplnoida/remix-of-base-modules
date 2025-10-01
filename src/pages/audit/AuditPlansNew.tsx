@@ -485,7 +485,7 @@ export default function AuditPlansNew() {
                             ) : (
                               <div className="flex flex-wrap gap-2">
                                 {quarterAudits.map(audit => (
-                                  <Badge key={audit.id} variant="secondary">
+                                  <Badge key={audit.id} className="bg-orange-600 text-white hover:bg-orange-700">
                                     {audit.departmentName}
                                   </Badge>
                                 ))}
