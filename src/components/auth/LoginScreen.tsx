@@ -53,14 +53,21 @@ export const LoginScreen = () => {
   };
 
   const demoCredentials = [
-    { email: 'admin@secureserve.gov', role: 'System Administrator' },
-    { email: 'accounts@secureserve.gov', role: 'Accounts Manager' },
-    { email: 'cashier@secureserve.gov', role: 'Cashier Officer' },
-    { email: 'supervisor@secureserve.gov', role: 'Cashier Supervisor' },
-    { email: 'hr@secureserve.gov', role: 'HR Manager' },
-    { email: 'compliance@secureserve.gov', role: 'Compliance Officer' },
-    { email: 'benefits@secureserve.gov', role: 'Benefits Manager' },
-    { email: 'legal@secureserve.gov', role: 'Legal Officer' }
+    { email: 'admin@secureserve.gov', role: 'System Administrator', system: 'SecureServe' },
+    { email: 'accounts@secureserve.gov', role: 'Accounts Manager', system: 'SecureServe' },
+    { email: 'cashier@secureserve.gov', role: 'Cashier Officer', system: 'SecureServe' },
+    { email: 'supervisor@secureserve.gov', role: 'Cashier Supervisor', system: 'SecureServe' },
+    { email: 'hr@secureserve.gov', role: 'HR Manager', system: 'SecureServe' },
+    { email: 'compliance@secureserve.gov', role: 'Compliance Officer', system: 'SecureServe' },
+    { email: 'benefits@secureserve.gov', role: 'Benefits Manager', system: 'SecureServe' },
+    { email: 'legal@secureserve.gov', role: 'Legal Officer', system: 'SecureServe' },
+    // SSB Internal Audit Users
+    { email: 'director@ssb.kn', role: 'Audit Director', system: 'SSB Audit' },
+    { email: 'manager@ssb.kn', role: 'Audit Manager', system: 'SSB Audit' },
+    { email: 'auditor1@ssb.kn', role: 'Senior Auditor (John Doe)', system: 'SSB Audit' },
+    { email: 'auditor2@ssb.kn', role: 'Auditor (Alice Smith)', system: 'SSB Audit' },
+    { email: 'depthead.benefits@ssb.kn', role: 'Benefits Dept Head', system: 'SSB Audit' },
+    { email: 'admin@ssb.kn', role: 'System Administrator', system: 'SSB Audit' }
   ];
 
   // Don't render login form if user is already authenticated
@@ -152,12 +159,19 @@ export const LoginScreen = () => {
 
             <div className="mt-6 pt-6 border-t">
               <p className="text-sm text-gray-600 mb-3">Demo Credentials (password: password123):</p>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-64 overflow-y-auto">
                 {demoCredentials.map((cred, index) => (
                   <div key={index} className="text-xs bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100" 
                        onClick={() => setEmail(cred.email)}>
-                    <div className="font-medium">{cred.role}</div>
-                    <div className="text-gray-600">{cred.email}</div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{cred.role}</div>
+                        <div className="text-gray-600">{cred.email}</div>
+                      </div>
+                      <div className="text-[10px] text-gray-500 font-semibold">
+                        {cred.system}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
