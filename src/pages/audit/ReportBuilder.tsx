@@ -11,14 +11,74 @@ import { FileText, Download, Send, Eye, Lock, Unlock } from 'lucide-react';
 import { auditPlans, findings, managementResponses } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import { ReportPreviewDialog } from '@/components/audit/ReportPreviewDialog';
 
 export default function ReportBuilder() {
   const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState('plan-002');
   const [isLocked, setIsLocked] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [reportData, setReportData] = useState({
+    background: '',
+    keyHighlights: '',
+    overallAssessment: '',
+    limitations: '',
+    conclusion: '',
+    followUpActions: '',
+    distributionList: ''
+  });
   
   const plan = auditPlans.find(p => p.id === selectedPlan);
   const planFindings = findings.filter(f => f.planId === selectedPlan);
+
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+
+  const handleSubmit = () => {
+    toast({
+      title: "Report Submitted Successfully",
+      description: "The audit report has been submitted to the Director of Social Security for approval. A copy has been sent to the audited department.",
+    });
+    setShowPreview(false);
+    setIsLocked(true);
+  };
+
+  const getReportDataForPreview = () => {
+    const planResponses = managementResponses
+      .filter(mr => planFindings.some(f => f.id === mr.findingId))
+      .map(response => {
+        const finding = findings.find(f => f.id === response.findingId);
+        return {
+          findingTitle: finding ? `${finding.findingId} - ${finding.title}` : '',
+          responseText: response.responseText,
+          actionPlan: response.actionPlan,
+          responsiblePerson: response.responsiblePerson,
+          targetDate: new Date(response.targetDate).toLocaleDateString()
+        };
+      });
+
+    return {
+      title: plan?.title || '',
+      fiscalYear: plan?.fiscalYear || '',
+      reportDate: new Date().toLocaleDateString(),
+      auditPeriod: `${plan?.plannedStart} to ${plan?.plannedEnd}`,
+      preparedBy: 'John Doe, Senior Auditor',
+      background: reportData.background,
+      keyHighlights: reportData.keyHighlights,
+      overallAssessment: reportData.overallAssessment,
+      objective: plan?.objective || '',
+      scope: plan?.scope || '',
+      methodology: plan?.methodology || '',
+      limitations: reportData.limitations,
+      findings: planFindings,
+      responses: planResponses,
+      conclusion: reportData.conclusion,
+      followUpActions: reportData.followUpActions,
+      reviewedBy: 'Manager Internal Audit',
+      distributionList: reportData.distributionList
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -35,17 +95,9 @@ export default function ReportBuilder() {
             {isLocked ? <Lock className="w-4 h-4 mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
             {isLocked ? 'Locked' : 'Unlock'}
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handlePreview}>
             <Eye className="w-4 h-4 mr-2" />
-            Preview
-          </Button>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export PDF
-          </Button>
-          <Button>
-            <Send className="w-4 h-4 mr-2" />
-            Submit for Review
+            Preview Report
           </Button>
         </div>
       </div>
@@ -113,6 +165,8 @@ export default function ReportBuilder() {
                   rows={4}
                   placeholder="Provide background information about the audit..."
                   disabled={isLocked}
+                  value={reportData.background}
+                  onChange={(e) => setReportData({...reportData, background: e.target.value})}
                 />
               </div>
               <div>
@@ -121,6 +175,8 @@ export default function ReportBuilder() {
                   rows={4}
                   placeholder="Summarize key findings and observations..."
                   disabled={isLocked}
+                  value={reportData.keyHighlights}
+                  onChange={(e) => setReportData({...reportData, keyHighlights: e.target.value})}
                 />
               </div>
               <div>
@@ -129,6 +185,8 @@ export default function ReportBuilder() {
                   rows={3}
                   placeholder="Provide an overall assessment of the audited area..."
                   disabled={isLocked}
+                  value={reportData.overallAssessment}
+                  onChange={(e) => setReportData({...reportData, overallAssessment: e.target.value})}
                 />
               </div>
             </CardContent>
@@ -172,6 +230,8 @@ export default function ReportBuilder() {
                   rows={2}
                   placeholder="Describe any limitations encountered during the audit..."
                   disabled={isLocked}
+                  value={reportData.limitations}
+                  onChange={(e) => setReportData({...reportData, limitations: e.target.value})}
                 />
               </div>
             </CardContent>
@@ -279,6 +339,8 @@ export default function ReportBuilder() {
                   rows={4}
                   placeholder="Provide concluding remarks..."
                   disabled={isLocked}
+                  value={reportData.conclusion}
+                  onChange={(e) => setReportData({...reportData, conclusion: e.target.value})}
                 />
               </div>
               <div>
@@ -287,6 +349,8 @@ export default function ReportBuilder() {
                   rows={3}
                   placeholder="Outline next steps and follow-up schedule..."
                   disabled={isLocked}
+                  value={reportData.followUpActions}
+                  onChange={(e) => setReportData({...reportData, followUpActions: e.target.value})}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -305,6 +369,8 @@ export default function ReportBuilder() {
                   rows={2}
                   placeholder="List recipients who will receive this report..."
                   disabled={isLocked}
+                  value={reportData.distributionList}
+                  onChange={(e) => setReportData({...reportData, distributionList: e.target.value})}
                 />
               </div>
             </CardContent>
@@ -338,6 +404,14 @@ export default function ReportBuilder() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Report Preview Dialog */}
+      <ReportPreviewDialog 
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        reportData={getReportDataForPreview()}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }
