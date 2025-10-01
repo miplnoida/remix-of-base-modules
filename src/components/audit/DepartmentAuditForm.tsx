@@ -20,25 +20,26 @@ const DEPARTMENT_FUNCTIONS = {
 
 interface DepartmentAuditFormProps {
   annualPlanId: string;
+  departmentAudit?: any;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function DepartmentAuditForm({ annualPlanId, onClose, onSuccess }: DepartmentAuditFormProps) {
+export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, onSuccess }: DepartmentAuditFormProps) {
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    departmentId: '',
-    period: 'Q1' as 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Monthly',
-    monthYear: '',
-    selectedFunctions: [] as string[],
-    objective: '',
-    scope: '',
-    riskRating: 'Medium' as 'Low' | 'Medium' | 'High',
-    leadAuditor: '',
-    teamMembers: [] as string[],
-    plannedStart: '',
-    plannedEnd: ''
+    departmentId: departmentAudit?.departmentId || '',
+    period: (departmentAudit?.period || 'Q1') as 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Monthly',
+    monthYear: departmentAudit?.monthYear || '',
+    selectedFunctions: departmentAudit?.functions || [] as string[],
+    objective: departmentAudit?.objective || '',
+    scope: departmentAudit?.scope || '',
+    riskRating: (departmentAudit?.riskRating || 'Medium') as 'Low' | 'Medium' | 'High',
+    leadAuditor: departmentAudit?.leadAuditor || '',
+    teamMembers: departmentAudit?.teamMembers || [] as string[],
+    plannedStart: departmentAudit?.plannedStart || '',
+    plannedEnd: departmentAudit?.plannedEnd || ''
   });
 
   const selectedDepartment = departments.find(d => d.id === formData.departmentId);
@@ -74,8 +75,8 @@ export function DepartmentAuditForm({ annualPlanId, onClose, onSuccess }: Depart
     }
 
     toast({
-      title: "Department Audit Saved",
-      description: "Department audit plan has been added to the annual plan."
+      title: departmentAudit ? "Audit Updated" : "Department Audit Saved",
+      description: departmentAudit ? "Department audit plan has been updated successfully." : "Department audit plan has been added to the annual plan."
     });
     onSuccess?.();
     onClose();

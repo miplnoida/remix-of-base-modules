@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarDays, Clock, MapPin, User, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auditActivities, calendarEvents } from '@/data/auditData';
+import { auditActivities, calendarEvents, departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
 import { Link } from 'react-router-dom';
@@ -19,13 +19,15 @@ export default function ActivityCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedAuditor, setSelectedAuditor] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [calendarView, setCalendarView] = useState<'calendar' | 'list'>('list');
 
   const filteredActivities = auditActivities.filter(activity => {
     const matchesAuditor = selectedAuditor === 'all' || activity.auditor === selectedAuditor;
     const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
-    return matchesAuditor && matchesStatus;
+    const matchesDepartment = selectedDepartment === 'all' || activity.departmentId === selectedDepartment;
+    return matchesAuditor && matchesStatus && matchesDepartment;
   });
 
   const getStatusBadge = (status: string) => {
@@ -84,7 +86,7 @@ export default function ActivityCalendar() {
         <div>
           <h1 className="text-3xl font-bold">Activity Calendar</h1>
           <p className="text-muted-foreground">
-            Schedule and manage audit activities | 
+            Schedule and manage internal department audit activities | 
             <Link to="/audit/plans" className="text-blue-600 hover:underline ml-1">View Plans</Link> | 
             <Link to="/audit/workbench" className="text-blue-600 hover:underline ml-1">Activity Workbench</Link>
           </p>
@@ -174,6 +176,17 @@ export default function ActivityCalendar() {
               </Button>
             </div>
             <div className="flex gap-4 flex-1">
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={selectedAuditor} onValueChange={setSelectedAuditor}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select auditor" />
@@ -295,6 +308,8 @@ export default function ActivityCalendar() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Activity</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Function</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Auditor</TableHead>
@@ -312,6 +327,12 @@ export default function ActivityCalendar() {
                         <div className="font-medium">{activity.title}</div>
                         <div className="text-sm text-muted-foreground">{activity.description}</div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {departments.find(d => d.id === activity.departmentId)?.name || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{activity.functionArea || '-'}</div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

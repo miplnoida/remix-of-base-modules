@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { departments } from '@/data/auditData';
 
 interface ActivityScheduleFormProps {
   onClose: () => void;
@@ -15,12 +16,13 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
   const [formData, setFormData] = useState({
     title: '',
     type: '',
+    departmentId: '',
+    functionArea: '',
     startDate: '',
     startTime: '',
     endDate: '',
     endTime: '',
     auditor: '',
-    employer: '',
     location: '',
     description: '',
     priority: 'Medium'
@@ -29,7 +31,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.type || !formData.startDate || !formData.auditor) {
+    if (!formData.title || !formData.type || !formData.departmentId || !formData.startDate || !formData.auditor) {
       toast({
         title: "Validation Error",
         description: "Please fill all required fields.",
@@ -40,7 +42,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
 
     toast({
       title: "Activity Scheduled",
-      description: "Audit activity has been scheduled successfully."
+      description: "Internal audit activity has been scheduled successfully."
     });
     onClose();
   };
@@ -66,11 +68,38 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
             <SelectContent>
               <SelectItem value="Compliance Check">Compliance Check</SelectItem>
               <SelectItem value="Records Review">Records Review</SelectItem>
-              <SelectItem value="Site Visit">Site Visit</SelectItem>
-              <SelectItem value="Contribution Verification">Contribution Verification</SelectItem>
-              <SelectItem value="Payroll Sampling">Payroll Sampling</SelectItem>
+              <SelectItem value="Process Review">Process Review</SelectItem>
+              <SelectItem value="Document Verification">Document Verification</SelectItem>
+              <SelectItem value="System Testing">System Testing</SelectItem>
+              <SelectItem value="Interview">Interview</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="departmentId">Department *</Label>
+          <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select department" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map(dept => (
+                <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="functionArea">Function Area</Label>
+          <Input
+            id="functionArea"
+            value={formData.functionArea}
+            onChange={(e) => setFormData({ ...formData, functionArea: e.target.value })}
+            placeholder="Enter function area"
+          />
         </div>
       </div>
 
@@ -142,16 +171,6 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="employer">Employer</Label>
-        <Input
-          id="employer"
-          value={formData.employer}
-          onChange={(e) => setFormData({ ...formData, employer: e.target.value })}
-          placeholder="Enter employer name"
-        />
       </div>
 
       <div className="space-y-2">

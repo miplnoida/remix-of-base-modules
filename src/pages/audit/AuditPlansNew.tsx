@@ -72,6 +72,10 @@ export default function AuditPlansNew() {
   const [isAnnualPlanDialogOpen, setIsAnnualPlanDialogOpen] = useState(false);
   const [isDeptAuditDialogOpen, setIsDeptAuditDialogOpen] = useState(false);
   const [selectedAnnualPlan, setSelectedAnnualPlan] = useState<any>(null);
+  const [viewAnnualPlan, setViewAnnualPlan] = useState<any>(null);
+  const [editAnnualPlan, setEditAnnualPlan] = useState<any>(null);
+  const [viewDeptAudit, setViewDeptAudit] = useState<any>(null);
+  const [editDeptAudit, setEditDeptAudit] = useState<any>(null);
 
   const getStatusBadge = (status: string) => {
     const colors = {
@@ -158,10 +162,19 @@ export default function AuditPlansNew() {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setViewAnnualPlan(plan)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setEditAnnualPlan(plan)}
+                        disabled={plan.status === 'Approved'}
+                      >
                         <FileText className="w-4 h-4" />
                       </Button>
                       {plan.status === 'Approved' && (
@@ -273,8 +286,20 @@ export default function AuditPlansNew() {
                   <TableCell>{getStatusBadge(audit.status)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setViewDeptAudit(audit)}
+                      >
                         <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setEditDeptAudit(audit)}
+                        disabled={audit.status === 'Completed'}
+                      >
+                        <FileText className="w-4 h-4" />
                       </Button>
                       <Link to="/audit/calendar">
                         <Button variant="outline" size="sm">
@@ -289,6 +314,141 @@ export default function AuditPlansNew() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Annual Plan Dialog */}
+      <Dialog open={!!viewAnnualPlan} onOpenChange={() => setViewAnnualPlan(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Annual Audit Plan Details</DialogTitle>
+          </DialogHeader>
+          {viewAnnualPlan && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Fiscal Year</p>
+                  <p className="text-lg font-semibold">{viewAnnualPlan.fiscalYear}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  <div className="mt-1">{getStatusBadge(viewAnnualPlan.status)}</div>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Title</p>
+                <p className="mt-1">{viewAnnualPlan.title}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Objective</p>
+                <p className="mt-1">{viewAnnualPlan.objective}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Created By</p>
+                  <p className="mt-1">{viewAnnualPlan.createdBy}</p>
+                  <p className="text-sm text-muted-foreground">{new Date(viewAnnualPlan.createdDate).toLocaleDateString()}</p>
+                </div>
+                {viewAnnualPlan.approvedBy && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Approved By</p>
+                    <p className="mt-1">{viewAnnualPlan.approvedBy}</p>
+                    <p className="text-sm text-muted-foreground">{new Date(viewAnnualPlan.approvedDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Department Audits</p>
+                <p className="mt-1 text-2xl font-bold">{viewAnnualPlan.totalDepartmentAudits}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Annual Plan Dialog */}
+      <Dialog open={!!editAnnualPlan} onOpenChange={() => setEditAnnualPlan(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Annual Audit Plan</DialogTitle>
+          </DialogHeader>
+          {editAnnualPlan && (
+            <AnnualPlanForm 
+              plan={editAnnualPlan}
+              onClose={() => setEditAnnualPlan(null)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Department Audit Dialog */}
+      <Dialog open={!!viewDeptAudit} onOpenChange={() => setViewDeptAudit(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Department Audit Details</DialogTitle>
+          </DialogHeader>
+          {viewDeptAudit && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Department</p>
+                  <p className="text-lg font-semibold">{viewDeptAudit.departmentName}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  <div className="mt-1">{getStatusBadge(viewDeptAudit.status)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Period</p>
+                  <Badge variant="outline">{viewDeptAudit.period}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Risk Rating</p>
+                  <div className="mt-1">{getRiskBadge(viewDeptAudit.riskRating)}</div>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Functions to Audit</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {viewDeptAudit.functions.map((func: string) => (
+                    <Badge key={func} variant="outline">{func}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Lead Auditor</p>
+                <p className="mt-1">{viewDeptAudit.leadAuditorName}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Planned Start</p>
+                  <p className="mt-1">{new Date(viewDeptAudit.plannedStart).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Planned End</p>
+                  <p className="mt-1">{new Date(viewDeptAudit.plannedEnd).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Department Audit Dialog */}
+      <Dialog open={!!editDeptAudit} onOpenChange={() => setEditDeptAudit(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Department Audit</DialogTitle>
+          </DialogHeader>
+          {editDeptAudit && (
+            <DepartmentAuditForm 
+              annualPlanId={editDeptAudit.annualPlanId}
+              departmentAudit={editDeptAudit}
+              onClose={() => setEditDeptAudit(null)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

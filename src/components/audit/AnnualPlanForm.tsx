@@ -8,26 +8,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 
 interface AnnualPlanFormProps {
+  plan?: any;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function AnnualPlanForm({ onClose, onSuccess }: AnnualPlanFormProps) {
+export function AnnualPlanForm({ plan, onClose, onSuccess }: AnnualPlanFormProps) {
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
   
   const [formData, setFormData] = useState({
-    fiscalYear: `${currentYear}-${currentYear + 1}`,
-    title: `Annual Internal Audit Plan ${currentYear}-${currentYear + 1}`,
-    objective: '',
-    scope: '',
-    methodology: ''
+    fiscalYear: plan?.fiscalYear || `${currentYear}-${currentYear + 1}`,
+    title: plan?.title || `Annual Internal Audit Plan ${currentYear}-${currentYear + 1}`,
+    objective: plan?.objective || '',
+    scope: plan?.scope || '',
+    methodology: plan?.methodology || ''
   });
 
   const handleSaveDraft = () => {
     toast({
       title: "Draft Saved",
-      description: "Annual audit plan has been saved as draft."
+      description: plan ? "Annual audit plan has been updated." : "Annual audit plan has been saved as draft."
     });
     onSuccess?.();
     onClose();
@@ -44,8 +45,8 @@ export function AnnualPlanForm({ onClose, onSuccess }: AnnualPlanFormProps) {
     }
 
     toast({
-      title: "Plan Submitted",
-      description: "Annual audit plan has been submitted for review."
+      title: plan ? "Plan Updated" : "Plan Submitted",
+      description: plan ? "Annual audit plan has been updated successfully." : "Annual audit plan has been submitted for review."
     });
     onSuccess?.();
     onClose();

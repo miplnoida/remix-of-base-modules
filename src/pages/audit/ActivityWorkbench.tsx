@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, FileText, Upload, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auditActivities, auditActivityResults } from '@/data/auditData';
+import { auditActivities, auditActivityResults, departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 
@@ -93,7 +93,7 @@ export default function ActivityWorkbench() {
       <div>
         <h1 className="text-3xl font-bold">Activity Workbench</h1>
         <p className="text-muted-foreground">
-          Execute audit activities and enter findings | 
+          Execute internal department audit activities and enter findings | 
           <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link> | 
           <Link to="/audit/followups" className="text-blue-600 hover:underline ml-1">Follow-ups</Link>
         </p>
@@ -109,7 +109,8 @@ export default function ActivityWorkbench() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Activity</TableHead>
-                  <TableHead>Employer</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Function</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -124,7 +125,8 @@ export default function ActivityWorkbench() {
                         <div className="text-sm text-muted-foreground">{activity.type}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{activity.employerId}</TableCell>
+                    <TableCell>{departments.find(d => d.id === activity.departmentId)?.name || '-'}</TableCell>
+                    <TableCell>{activity.functionArea || '-'}</TableCell>
                     <TableCell>{new Date(activity.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{getStatusBadge(activity.status)}</TableCell>
                     <TableCell>
