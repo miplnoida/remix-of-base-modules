@@ -39,7 +39,6 @@ const WorkingPapers = () => {
     departmentAuditId: "",
     activityId: "",
     evidenceIds: [] as string[],
-    linkedFindingIds: [] as string[],
   });
 
   const filteredWPs = workingPapers.filter((wp) => {
@@ -95,7 +94,6 @@ const WorkingPapers = () => {
       departmentAuditId: wp.departmentAuditId || "",
       activityId: wp.activityId || "",
       evidenceIds: wp.evidenceIds,
-      linkedFindingIds: wp.linkedFindingIds,
     });
     setIsEditOpen(true);
   };
@@ -139,7 +137,6 @@ const WorkingPapers = () => {
       departmentAuditId: "",
       activityId: "",
       evidenceIds: [],
-      linkedFindingIds: [],
     });
     setSelectedWP(null);
   };
@@ -314,49 +311,6 @@ const WorkingPapers = () => {
           value={formData.conclusion}
           onChange={(e) => setFormData({ ...formData, conclusion: e.target.value })}
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Link Findings (Optional)</Label>
-        <Select
-          onValueChange={(value) => {
-            if (!formData.linkedFindingIds.includes(value)) {
-              setFormData({ ...formData, linkedFindingIds: [...formData.linkedFindingIds, value] });
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select findings to link" />
-          </SelectTrigger>
-          <SelectContent>
-            {findings.map((finding) => (
-              <SelectItem key={finding.id} value={finding.id}>
-                {finding.findingId} - {finding.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {formData.linkedFindingIds.map((fId) => {
-            const finding = findings.find((f) => f.id === fId);
-            return (
-              <Badge key={fId} variant="secondary" className="flex items-center gap-1">
-                {finding?.findingId}
-                <button
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      linkedFindingIds: formData.linkedFindingIds.filter((id) => id !== fId),
-                    })
-                  }
-                  className="ml-1 hover:text-destructive"
-                >
-                  ×
-                </button>
-              </Badge>
-            );
-          })}
-        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4 border-t">
