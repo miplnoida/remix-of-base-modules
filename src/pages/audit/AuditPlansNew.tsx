@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Eye, FileText, Calendar } from 'lucide-react';
+import { Plus, Search, Eye, FileText, Calendar, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
@@ -317,48 +317,190 @@ export default function AuditPlansNew() {
 
       {/* View Annual Plan Dialog */}
       <Dialog open={!!viewAnnualPlan} onOpenChange={() => setViewAnnualPlan(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Annual Audit Plan Details</DialogTitle>
           </DialogHeader>
           {viewAnnualPlan && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fiscal Year</p>
-                  <p className="text-lg font-semibold">{viewAnnualPlan.fiscalYear}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <div className="mt-1">{getStatusBadge(viewAnnualPlan.status)}</div>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Title</p>
-                <p className="mt-1">{viewAnnualPlan.title}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Objective</p>
-                <p className="mt-1">{viewAnnualPlan.objective}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Created By</p>
-                  <p className="mt-1">{viewAnnualPlan.createdBy}</p>
-                  <p className="text-sm text-muted-foreground">{new Date(viewAnnualPlan.createdDate).toLocaleDateString()}</p>
-                </div>
-                {viewAnnualPlan.approvedBy && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Approved By</p>
-                    <p className="mt-1">{viewAnnualPlan.approvedBy}</p>
-                    <p className="text-sm text-muted-foreground">{new Date(viewAnnualPlan.approvedDate).toLocaleDateString()}</p>
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Plan Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Fiscal Year</p>
+                      <p className="text-lg font-semibold">{viewAnnualPlan.fiscalYear}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Status</p>
+                      <div className="mt-1">{getStatusBadge(viewAnnualPlan.status)}</div>
+                    </div>
                   </div>
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Department Audits</p>
-                <p className="mt-1 text-2xl font-bold">{viewAnnualPlan.totalDepartmentAudits}</p>
-              </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Title</p>
+                    <p className="mt-1">{viewAnnualPlan.title}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Objective</p>
+                    <p className="mt-1">{viewAnnualPlan.objective}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Created By</p>
+                      <p className="mt-1">{viewAnnualPlan.createdBy}</p>
+                      <p className="text-sm text-muted-foreground">{new Date(viewAnnualPlan.createdDate).toLocaleDateString()}</p>
+                    </div>
+                    {viewAnnualPlan.approvedBy && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Approved By</p>
+                        <p className="mt-1">{viewAnnualPlan.approvedBy}</p>
+                        <p className="text-sm text-muted-foreground">{new Date(viewAnnualPlan.approvedDate).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                  </div>
+                  {viewAnnualPlan.status === 'Approved' && (
+                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                      <p className="text-sm text-blue-900 dark:text-blue-100">
+                        ℹ️ This is the approved annual plan for {viewAnnualPlan.fiscalYear}. Only one plan can be approved at a time.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Department Audits Summary */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Department Audit Plans ({viewAnnualPlan.totalDepartmentAudits})</CardTitle>
+                    <Link to="/audit/workload-capacity">
+                      <Button variant="outline" size="sm">
+                        <Users className="w-4 h-4 mr-2" />
+                        View Workload Capacity
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {departmentAudits.filter(da => da.annualPlanId === viewAnnualPlan.id).length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No department audits added to this plan yet.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {departmentAudits
+                        .filter(da => da.annualPlanId === viewAnnualPlan.id)
+                        .map((deptAudit) => (
+                          <Card key={deptAudit.id} className="border-2">
+                            <CardContent className="pt-6">
+                              <div className="space-y-4">
+                                {/* Header Row */}
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h4 className="text-lg font-semibold">{deptAudit.departmentName}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Badge variant="outline">
+                                        {deptAudit.period} - {new Date(deptAudit.monthYear).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                      </Badge>
+                                      {getRiskBadge(deptAudit.riskRating)}
+                                      {getStatusBadge(deptAudit.status)}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Functions */}
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground mb-2">Functions to Audit</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {deptAudit.functions.map((func) => (
+                                      <Badge key={func} variant="outline">{func}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Team & Schedule */}
+                                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Lead Auditor</p>
+                                    <p className="mt-1 font-medium">{deptAudit.leadAuditorName}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Schedule</p>
+                                    <p className="mt-1 text-sm">
+                                      {new Date(deptAudit.plannedStart!).toLocaleDateString()} - {new Date(deptAudit.plannedEnd!).toLocaleDateString()}
+                                      <span className="text-muted-foreground ml-2">
+                                        ({Math.ceil((new Date(deptAudit.plannedEnd!).getTime() - new Date(deptAudit.plannedStart!).getTime()) / (1000 * 60 * 60 * 24))} days)
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Resource Allocation */}
+                                <div className="bg-muted/50 p-3 rounded-lg">
+                                  <p className="text-sm font-medium mb-2">Resource Allocation</p>
+                                  <div className="grid grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Estimated Hours</p>
+                                      <p className="font-semibold">40-60 hrs</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Team Size</p>
+                                      <p className="font-semibold">2-3 auditors</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Priority</p>
+                                      <p className="font-semibold">{deptAudit.riskRating === 'High' ? 'High' : deptAudit.riskRating === 'Medium' ? 'Medium' : 'Normal'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Timeline Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Audit Timeline Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {['Q1', 'Q2', 'Q3', 'Q4'].map(quarter => {
+                      const quarterAudits = departmentAudits.filter(
+                        da => da.annualPlanId === viewAnnualPlan.id && da.period === quarter
+                      );
+                      return (
+                        <div key={quarter} className="flex items-center gap-4">
+                          <div className="min-w-[80px]">
+                            <Badge variant="outline" className="font-semibold">{quarter}</Badge>
+                          </div>
+                          <div className="flex-1">
+                            {quarterAudits.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No audits scheduled</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {quarterAudits.map(audit => (
+                                  <Badge key={audit.id} variant="secondary">
+                                    {audit.departmentName}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {quarterAudits.length} audit{quarterAudits.length !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </DialogContent>
