@@ -353,12 +353,7 @@ export const AppRoutes = () => {
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
-      {/* Legal Module Routes - New SSB Legal */}
-      <Route path="/legal/cases" element={<ProtectedLayout><CaseList /></ProtectedLayout>} />
-      <Route path="/legal/cases/new" element={<ProtectedLayout><IntakeWizard /></ProtectedLayout>} />
-      <Route path="/legal/cases/:id" element={<ProtectedLayout><CaseView /></ProtectedLayout>} />
-      
-      {/* SSB Legal Module Routes - Preview v2 */}
+      {/* SSB Legal Module Routes - Preview v2 (Primary) */}
       <Route path="/legal/cases" element={<ProtectedLayout><SSBCaseList /></ProtectedLayout>} />
       <Route path="/legal/cases/:id" element={<ProtectedLayout><SSBCaseView /></ProtectedLayout>} />
       
@@ -461,9 +456,32 @@ export const AppRoutes = () => {
       <Route path="/legal/cases" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseList /></ProtectedLegalRoute></Suspense>} />
       <Route path="/legal/cases/new" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalIntakeWizard /></ProtectedLegalRoute></Suspense>} />
       <Route path="/legal/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseView /></ProtectedLegalRoute></Suspense>} />
-      <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalHearingCalendar /></ProtectedLegalRoute></Suspense>} />
-      <Route path="/legal/orders" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalOrderRegistry /></ProtectedLegalRoute></Suspense>} />
-      <Route path="/legal/documents" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><DocumentCenter /></ProtectedLegalRoute></Suspense>} />
+      <Route path="/legal/hearings" element={
+        <ProtectedLayout>
+          <Suspense fallback={<div>Loading...</div>}>
+            <LegalHearingCalendar />
+          </Suspense>
+        </ProtectedLayout>
+      } />
+      <Route path="/legal/orders" element={
+        <ProtectedLayout>
+          <Suspense fallback={<div>Loading...</div>}>
+            <LegalOrderRegistry />
+          </Suspense>
+        </ProtectedLayout>
+      } />
+      <Route path="/legal/documents" element={
+        <ProtectedLayout>
+          <Suspense fallback={<div>Loading...</div>}>
+            <DocumentCenter />
+          </Suspense>
+        </ProtectedLayout>
+      } />
+      <Route path="/legal/reports" element={
+        <ProtectedLayout>
+          <LegalReports />
+        </ProtectedLayout>
+      } />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />

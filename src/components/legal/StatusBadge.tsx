@@ -6,18 +6,18 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, string> = {
-  'Draft': 'bg-gray-900 text-white',
-  'Filed': 'bg-blue-700 text-white',
-  'Under Review': 'bg-indigo-700 text-white',
-  'Hearing Scheduled': 'bg-teal-700 text-white',
-  'Hearing Held': 'bg-teal-800 text-white',
-  'Decision Pending': 'bg-amber-700 text-white',
-  'Order Issued': 'bg-purple-700 text-white',
-  'Closed – Compliant': 'bg-green-700 text-white',
-  'Closed – Non-Compliant': 'bg-red-700 text-white',
-  'Withdrawn': 'bg-zinc-700 text-white',
-  'Appealed': 'bg-pink-700 text-white',
-  'Reopened': 'bg-indigo-800 text-white',
+  'Draft': 'bg-slate-800 text-white border border-slate-700',
+  'Filed': 'bg-blue-700 text-white border border-blue-600',
+  'Under Review': 'bg-indigo-700 text-white border border-indigo-600',
+  'Hearing Scheduled': 'bg-teal-700 text-white border border-teal-600',
+  'Hearing Held': 'bg-teal-800 text-white border border-teal-700',
+  'Decision Pending': 'bg-amber-700 text-white border border-amber-600',
+  'Order Issued': 'bg-purple-700 text-white border border-purple-600',
+  'Closed – Compliant': 'bg-green-700 text-white border border-green-600',
+  'Closed – Non-Compliant': 'bg-red-700 text-white border border-red-600',
+  'Withdrawn': 'bg-zinc-700 text-white border border-zinc-600',
+  'Appealed': 'bg-pink-700 text-white border border-pink-600',
+  'Reopened': 'bg-indigo-800 text-white border border-indigo-700',
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

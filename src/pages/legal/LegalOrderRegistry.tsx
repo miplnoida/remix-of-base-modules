@@ -113,32 +113,17 @@ export default function LegalOrderRegistry() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate('/legal/cases')} className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Cases
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/')} className="gap-2">
-              <Home className="h-4 w-4" />
-              Main Menu
-            </Button>
-            <h1 className="text-3xl font-bold">Order Registry</h1>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setIsDraftOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Draft Order
-            </Button>
-            <Button variant="outline" onClick={signOut} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Order Registry</h1>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsDraftOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Draft Order
+          </Button>
         </div>
+      </div>
 
         {/* Filters */}
         <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -381,7 +366,6 @@ export default function LegalOrderRegistry() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
     </div>
   );
 }

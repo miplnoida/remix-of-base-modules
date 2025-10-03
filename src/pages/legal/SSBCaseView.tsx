@@ -25,8 +25,8 @@ export default function SSBCaseView() {
 
   if (!caseData) {
     return (
-      <div className="container mx-auto py-6 px-4">
-        <Button onClick={() => navigate('/legal/cases')} variant="outline" className="mb-4">
+      <div className="space-y-6">
+        <Button onClick={() => navigate('/legal/cases')} variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Cases
         </Button>
@@ -40,9 +40,9 @@ export default function SSBCaseView() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b mb-6 -mx-4 px-4 pb-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
         <Button 
           onClick={() => navigate('/legal/cases')} 
           variant="ghost" 
