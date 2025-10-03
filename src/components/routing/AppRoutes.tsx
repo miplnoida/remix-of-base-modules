@@ -170,6 +170,7 @@ import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
 import { default as LegalEvidenceManagement } from '@/pages/legal/EvidenceManagement';
 import LegalReports from '@/pages/legal/LegalReports';
 import DocumentCenter from '@/pages/legal/DocumentCenter';
+import ReportsAnalytics from '@/pages/legal/ReportsAnalytics';
 
 // LegalFinal Module pages
 import { LegalFinalDashboard } from '@/pages/legalFinal/LegalFinalDashboard';
