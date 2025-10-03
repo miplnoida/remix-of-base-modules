@@ -53,6 +53,7 @@ const LegalCaseList = lazy(() => import('@/pages/legal/LegalCaseList'));
 const LegalIntakeWizard = lazy(() => import('@/pages/legal/LegalIntakeWizard'));
 const LegalCaseView = lazy(() => import('@/pages/legal/LegalCaseView'));
 const LegalHearingCalendar = lazy(() => import('@/pages/legal/LegalHearingCalendar'));
+const LegalOrderRegistry = lazy(() => import('@/pages/legal/LegalOrderRegistry'));
 import { CaseList } from '@/pages/legal/CaseList';
 import { IntakeWizard } from '@/pages/legal/IntakeWizard';
 import { CaseView } from '@/pages/legal/CaseView';
@@ -448,6 +449,7 @@ export const AppRoutes = () => {
       <Route path="/legal/cases/new" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalIntakeWizard /></ProtectedLegalRoute></Suspense>} />
       <Route path="/legal/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseView /></ProtectedLegalRoute></Suspense>} />
       <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalHearingCalendar /></ProtectedLegalRoute></Suspense>} />
+      <Route path="/legal/orders" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalOrderRegistry /></ProtectedLegalRoute></Suspense>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
