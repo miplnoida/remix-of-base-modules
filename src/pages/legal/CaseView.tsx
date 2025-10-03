@@ -352,7 +352,7 @@ export const CaseView = () => {
                           <TableCell>{new Date(doc.uploadedOn).toLocaleDateString()}</TableCell>
                           <TableCell>{doc.size}</TableCell>
                         </TableRow>
-                      )))}
+                      ))}
                     </TableBody>
                   </Table>
                 )}
@@ -400,7 +400,7 @@ export const CaseView = () => {
                             </Badge>
                           </TableCell>
                         </TableRow>
-                      )))}
+                      ))}
                     </TableBody>
                   </Table>
                 )}

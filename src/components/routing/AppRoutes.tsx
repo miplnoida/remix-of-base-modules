@@ -45,6 +45,11 @@ import LegalProceedings from '@/pages/compliance/LegalProceedings';
 import AuditManagement from '@/pages/compliance/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
 
+// Legal Module
+import { CaseList } from '@/pages/legal/CaseList';
+import { IntakeWizard } from '@/pages/legal/IntakeWizard';
+import { CaseView } from '@/pages/legal/CaseView';
+
 // Audit Module
 import AuditPlans from '@/pages/audit/AuditPlans';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
@@ -333,7 +338,12 @@ export const AppRoutes = () => {
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
-      {/* Legal Module Routes */}
+      {/* Legal Module Routes - New SSB Legal */}
+      <Route path="/legal/cases" element={<ProtectedLayout><CaseList /></ProtectedLayout>} />
+      <Route path="/legal/cases/new" element={<ProtectedLayout><IntakeWizard /></ProtectedLayout>} />
+      <Route path="/legal/cases/:id" element={<ProtectedLayout><CaseView /></ProtectedLayout>} />
+      
+      {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
       <Route path="/legal/case-intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
       <Route path="/legal/case-tracking" element={<ProtectedLayout><CaseTracking /></ProtectedLayout>} />
