@@ -171,6 +171,7 @@ import { default as LegalEvidenceManagement } from '@/pages/legal/EvidenceManage
 import LegalReports from '@/pages/legal/LegalReports';
 import DocumentCenter from '@/pages/legal/DocumentCenter';
 import LegalReportsAnalytics from '@/pages/legal/ReportsAnalytics';
+import LegalAdminConfig from '@/pages/legal/AdminConfig';
 
 // LegalFinal Module pages
 import { LegalFinalDashboard } from '@/pages/legalFinal/LegalFinalDashboard';
@@ -364,6 +365,8 @@ export const AppRoutes = () => {
       <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
       <Route path="/legal/evidence" element={<ProtectedLayout><LegalEvidenceManagement /></ProtectedLayout>} />
       <Route path="/legal/reports" element={<ProtectedLayout><LegalReportsAnalytics /></ProtectedLayout>} />
+      <Route path="/legal/admin" element={<ProtectedLayout><LegalAdminConfig /></ProtectedLayout>} />
+      <Route path="/legal/documents" element={<ProtectedLayout><DocumentCenter /></ProtectedLayout>} />
 
       {/* LegalFinal Module Routes */}
       <Route path="/legal-final" element={<ProtectedLayout><LegalFinalDashboard /></ProtectedLayout>} />

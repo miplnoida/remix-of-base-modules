@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      legal_admin_audit: {
+        Row: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          changes: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          timestamp: string | null
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          action: string
+          after_data?: Json | null
+          before_data?: Json | null
+          changes?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          action?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          changes?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_admin_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_audit_log: {
         Row: {
           action: string
@@ -129,6 +179,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      legal_code_sets: {
+        Row: {
+          category: string
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          label: string
+          metadata: Json | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          metadata?: Json | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          metadata?: Json | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_code_sets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legal_document_saved_searches: {
         Row: {
@@ -336,6 +439,50 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "legal_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_integrations: {
+        Row: {
+          config: Json
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          last_sync: string | null
+          name: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          config: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync?: string | null
+          name: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync?: string | null
+          name?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_integrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -581,6 +728,95 @@ export type Database = {
           },
         ]
       }
+      legal_sla_rules: {
+        Row: {
+          auto_assign_rule: string | null
+          case_type: string | null
+          created_at: string | null
+          created_by: string | null
+          escalation_queue: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notification_email: boolean | null
+          notification_sms: boolean | null
+          sla_days: number
+          stage: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_assign_rule?: string | null
+          case_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          escalation_queue?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notification_email?: boolean | null
+          notification_sms?: boolean | null
+          sla_days: number
+          stage?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_assign_rule?: string | null
+          case_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          escalation_queue?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notification_email?: boolean | null
+          notification_sms?: boolean | null
+          sla_days?: number
+          stage?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_sla_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_status_transitions: {
+        Row: {
+          allowed_roles: string[]
+          conditions: Json | null
+          created_at: string | null
+          from_status: string
+          id: string
+          requires_approval: boolean | null
+          to_status: string
+        }
+        Insert: {
+          allowed_roles: string[]
+          conditions?: Json | null
+          created_at?: string | null
+          from_status: string
+          id?: string
+          requires_approval?: boolean | null
+          to_status: string
+        }
+        Update: {
+          allowed_roles?: string[]
+          conditions?: Json | null
+          created_at?: string | null
+          from_status?: string
+          id?: string
+          requires_approval?: boolean | null
+          to_status?: string
+        }
+        Relationships: []
+      }
       legal_tasks: {
         Row: {
           case_id: string
@@ -633,6 +869,82 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "legal_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          merge_fields: Json | null
+          name: string
+          parent_template_id: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string | null
+          type: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          merge_fields?: Json | null
+          name: string
+          parent_template_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string | null
+          type: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          merge_fields?: Json | null
+          name?: string
+          parent_template_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string | null
+          type?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_templates_parent_template_id_fkey"
+            columns: ["parent_template_id"]
+            isOneToOne: false
+            referencedRelation: "legal_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_templates_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

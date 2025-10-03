@@ -1,4 +1,4 @@
-import { Scale, FileText, Gavel, AlertTriangle, Search, BarChart3 } from 'lucide-react';
+import { Scale, FileText, Gavel, AlertTriangle, Search, BarChart3, Settings, FolderOpen } from 'lucide-react';
 
 export const legalMenuItems = [
   {
@@ -22,6 +22,12 @@ export const legalMenuItems = [
         url: "/legal/case-tracking",
         icon: Search,
         description: "Monitor case progress and status"
+      },
+      {
+        title: "Document Center",
+        url: "/legal/documents",
+        icon: FolderOpen,
+        description: "Manage legal documents and evidence"
       },
       {
         title: "Notice Generation",
@@ -52,6 +58,12 @@ export const legalMenuItems = [
         url: "/legal/reports",
         icon: BarChart3,
         description: "Generate legal reports and analytics"
+      },
+      {
+        title: "Admin Configuration",
+        url: "/legal/admin",
+        icon: Settings,
+        description: "Configure code sets, templates, and integrations"
       }
     ]
   }
