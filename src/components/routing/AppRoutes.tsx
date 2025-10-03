@@ -216,6 +216,10 @@ import LettersCommunications from '@/pages/newBenefit/LettersCommunications';
 import AdminConfig from '@/pages/newBenefit/AdminConfig';
 import AuditorView from '@/pages/newBenefit/AuditorView';
 
+// SSB Legal Module
+import SSBCaseList from '@/pages/legal/SSBCaseList';
+import SSBCaseView from '@/pages/legal/SSBCaseView';
+
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
@@ -353,6 +357,10 @@ export const AppRoutes = () => {
       <Route path="/legal/cases" element={<ProtectedLayout><CaseList /></ProtectedLayout>} />
       <Route path="/legal/cases/new" element={<ProtectedLayout><IntakeWizard /></ProtectedLayout>} />
       <Route path="/legal/cases/:id" element={<ProtectedLayout><CaseView /></ProtectedLayout>} />
+      
+      {/* SSB Legal Module Routes - Preview v2 */}
+      <Route path="/legal/cases" element={<ProtectedLayout><SSBCaseList /></ProtectedLayout>} />
+      <Route path="/legal/cases/:id" element={<ProtectedLayout><SSBCaseView /></ProtectedLayout>} />
       
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
