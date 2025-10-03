@@ -6,7 +6,7 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, string> = {
-  'Draft': 'bg-slate-800 text-white border border-slate-700',
+  'Draft': 'bg-gray-900 text-white border border-gray-800',
   'Filed': 'bg-blue-700 text-white border border-blue-600',
   'Under Review': 'bg-indigo-700 text-white border border-indigo-600',
   'Hearing Scheduled': 'bg-teal-700 text-white border border-teal-600',

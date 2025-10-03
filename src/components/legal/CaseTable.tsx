@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
+import { TypeBadge } from "./TypeBadge";
 import { MockCase } from "@/data/mockLegalCases";
 
 interface CaseTableProps {
@@ -48,9 +49,7 @@ export function CaseTable({ cases, onCaseClick }: CaseTableProps) {
                 <div className="line-clamp-2 text-sm">{caseData.title}</div>
               </TableCell>
               <TableCell>
-                <Badge variant="secondary" className="text-xs">
-                  {caseData.type}
-                </Badge>
+                <TypeBadge type={caseData.type} />
               </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">

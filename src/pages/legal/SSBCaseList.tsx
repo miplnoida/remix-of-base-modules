@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CaseTable } from "@/components/legal/CaseTable";
 import { CaseCard } from "@/components/legal/CaseCard";
-import { mockCases, savedViews, MockCase } from "@/data/mockLegalCases";
+import { savedViews, MockCase } from "@/data/mockLegalCases";
+import { useLegalCases } from "@/contexts/LegalCaseContext";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ type SavedView = 'all' | 'myActive' | 'hearingThisWeek' | 'awaitingDecision';
 
 export default function SSBCaseList() {
   const navigate = useNavigate();
+  const { cases: mockCases } = useLegalCases();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeView, setActiveView] = useState<SavedView>('all');
@@ -58,7 +60,7 @@ export default function SSBCaseList() {
   };
 
   const handleNewCase = () => {
-    toast.info("Preview mode: New case creation not available");
+    navigate('/legal/cases/new');
   };
 
   return (

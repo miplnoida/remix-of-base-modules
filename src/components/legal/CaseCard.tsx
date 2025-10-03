@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
+import { TypeBadge } from "./TypeBadge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Calendar, User, Clock } from "lucide-react";
 
@@ -45,9 +46,7 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
       <CardContent>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Badge variant="secondary" className="text-xs">
-              {caseData.type}
-            </Badge>
+            <TypeBadge type={caseData.type} />
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground justify-end">
             <User className="h-3.5 w-3.5" aria-hidden="true" />

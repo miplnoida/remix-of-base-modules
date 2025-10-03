@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { NewBenefitAuthProvider } from '@/contexts/NewBenefitAuthContext';
 import { LegalAuthProvider } from '@/contexts/LegalAuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { LegalCaseProvider } from '@/contexts/LegalCaseContext';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import './App.css';
 
@@ -18,12 +19,14 @@ function App() {
         <AuthProvider>
           <NewBenefitAuthProvider>
             <LegalAuthProvider>
-              <Router>
-                <div className="min-h-screen bg-background">
-                  <AppRoutes />
-                  <Toaster />
-                </div>
-              </Router>
+              <LegalCaseProvider>
+                <Router>
+                  <div className="min-h-screen bg-background">
+                    <AppRoutes />
+                    <Toaster />
+                  </div>
+                </Router>
+              </LegalCaseProvider>
             </LegalAuthProvider>
           </NewBenefitAuthProvider>
         </AuthProvider>
