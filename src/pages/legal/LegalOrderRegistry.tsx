@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLegalOrders, useCreateOrder, useUpdateOrder, useApproveOrder, usePublishOrder } from '@/hooks/useLegalOrders';
-import { useLegalAuth } from '@/contexts/LegalAuthContext';
+import { useLegalOrders, useCreateOrder, usePublishOrder, useApproveOrder } from '@/hooks/useLegalOrders';
 import { useLegalCases } from '@/hooks/useLegalCases';
+import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,23 +18,22 @@ import {
   Home,
   LogOut,
   Plus,
+  Search,
   Filter,
-  ChevronDown,
-  ChevronUp,
   FileText,
   Download,
-  CheckCircle,
-  Send,
   Eye,
-  Edit,
-  XCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Send,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-const STATUS_COLORS: Record<string, string> = {
+const ORDER_STATUS_COLORS: Record<string, string> = {
   'Draft': 'bg-neutral-100 text-neutral-800',
-  'Under Review': 'bg-indigo-100 text-indigo-800',
-  'Approved': 'bg-teal-100 text-teal-800',
+  'Under Review': 'bg-yellow-100 text-yellow-800',
+  'Approved': 'bg-blue-100 text-blue-800',
   'Published': 'bg-green-100 text-green-800',
 };
 
@@ -43,19 +42,17 @@ export default function LegalOrderRegistry() {
   const { signOut, hasAnyRole } = useLegalAuth();
   const [filters, setFilters] = useState({});
   const [isFilterOpen, setIsFilterOpen] = useState(true);
-  const [isDraftOpen, setIsDraftOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
 
   const { data: orders, isLoading } = useLegalOrders(filters);
   const { data: cases } = useLegalCases();
   const createOrder = useCreateOrder();
-  const updateOrder = useUpdateOrder();
-  const approveOrder = useApproveOrder();
   const publishOrder = usePublishOrder();
+  const approveOrder = useApproveOrder();
 
-  const canPublish = hasAnyRole(['Supervisor', 'Admin']);
-  const canDraft = hasAnyRole(['LegalOfficer', 'Supervisor', 'Admin']);
-
-  // Draft form state
+  const [isDraftOpen, setIsDraftOpen] = useState(false);
   const [draftForm, setDraftForm] = useState({
     case_id: '',
     findings: '',
@@ -63,22 +60,20 @@ export default function LegalOrderRegistry() {
     compliance_due: '',
   });
 
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const canPublish = hasAnyRole(['Supervisor', 'Admin']);
+  const canApprove = hasAnyRole(['Supervisor', 'Admin']);
 
   const handleApplyFilters = () => {
-    const newFilters: any = {};
-    if (statusFilter) newFilters.status = [statusFilter];
-    if (caseTypeFilter) newFilters.case_type = caseTypeFilter;
-    if (searchQuery) newFilters.search = searchQuery;
+    const newFilters: any = { search: searchTerm };
+    if (statusFilter && statusFilter !== 'all') newFilters.status = [statusFilter];
+    if (caseTypeFilter && caseTypeFilter !== 'all') newFilters.caseType = [caseTypeFilter];
     setFilters(newFilters);
   };
 
   const handleClearFilters = () => {
+    setSearchTerm('');
     setStatusFilter('');
     setCaseTypeFilter('');
-    setSearchQuery('');
     setFilters({});
   };
 
@@ -86,7 +81,7 @@ export default function LegalOrderRegistry() {
     setDraftForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCreateDraft = async () => {
+  const handleDraftOrder = async () => {
     if (!draftForm.case_id || !draftForm.findings || !draftForm.directives) {
       return;
     }
@@ -105,16 +100,16 @@ export default function LegalOrderRegistry() {
     }
   };
 
-  const handleApprove = async (id: string) => {
-    if (confirm('Approve this order for publication?')) {
-      await approveOrder.mutateAsync(id);
+  const handlePublish = async (orderId: string) => {
+    if (!canPublish) return;
+    if (confirm('Are you sure you want to publish this order? This action cannot be undone.')) {
+      await publishOrder.mutateAsync(orderId);
     }
   };
 
-  const handlePublish = async (id: string) => {
-    if (confirm('Publish this order? This action will assign an order number and cannot be undone.')) {
-      await publishOrder.mutateAsync(id);
-    }
+  const handleApprove = async (orderId: string) => {
+    if (!canApprove) return;
+    await approveOrder.mutateAsync(orderId);
   };
 
   return (
@@ -134,12 +129,10 @@ export default function LegalOrderRegistry() {
             <h1 className="text-3xl font-bold">Order Registry</h1>
           </div>
           <div className="flex gap-2">
-            {canDraft && (
-              <Button onClick={() => setIsDraftOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Draft Order
-              </Button>
-            )}
+            <Button onClick={() => setIsDraftOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Draft Order
+            </Button>
             <Button variant="outline" onClick={signOut} className="gap-2">
               <LogOut className="h-4 w-4" />
               Sign Out
@@ -168,11 +161,15 @@ export default function LegalOrderRegistry() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Search</label>
-                    <Input
-                      placeholder="Order number, findings..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Order number, findings..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">Status</label>
@@ -205,7 +202,7 @@ export default function LegalOrderRegistry() {
                     </Select>
                   </div>
                   <div className="flex items-end gap-2">
-                    <Button onClick={handleApplyFilters} className="flex-1">Apply Filters</Button>
+                    <Button onClick={handleApplyFilters} className="flex-1">Apply</Button>
                     <Button variant="outline" onClick={handleClearFilters}>Clear</Button>
                   </div>
                 </div>
@@ -217,7 +214,7 @@ export default function LegalOrderRegistry() {
         {/* Orders Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Orders</CardTitle>
+            <CardTitle>Orders & Judgments</CardTitle>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="h-4 w-4" />
               Export CSV
@@ -232,9 +229,9 @@ export default function LegalOrderRegistry() {
                   <TableRow>
                     <TableHead>Order Number</TableHead>
                     <TableHead>Case Number</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Case Type</TableHead>
-                    <TableHead>Published On</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Published</TableHead>
                     <TableHead>Created By</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -250,66 +247,51 @@ export default function LegalOrderRegistry() {
                           onClick={() => navigate(`/legal/cases/${order.case_id}`)}
                           className="text-primary hover:underline"
                         >
-                          {order.legal_cases?.number || 'N/A'}
+                          {order.legal_cases?.number}
                         </button>
                       </TableCell>
+                      <TableCell>{order.legal_cases?.case_type}</TableCell>
                       <TableCell>
-                        <Badge className={STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800'}>
+                        <Badge className={ORDER_STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800'}>
                           {order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{order.legal_cases?.case_type || 'N/A'}</TableCell>
                       <TableCell>
-                        {order.published_at ? format(new Date(order.published_at), 'MMM d, yyyy') : '-'}
+                        {order.published_at ? format(new Date(order.published_at), 'PPP') : '-'}
                       </TableCell>
-                      <TableCell>-</TableCell>
+                      <TableCell>{order.created_by ? 'User' : 'N/A'}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          {order.status === 'Draft' && canDraft && (
+                          {order.status === 'Draft' && canApprove && (
                             <Button
-                              variant="outline"
                               size="sm"
-                              onClick={() => {
-                                // Edit functionality
-                              }}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {order.status === 'Under Review' && canPublish && (
-                            <Button
                               variant="outline"
-                              size="sm"
                               onClick={() => handleApprove(order.id)}
+                              className="gap-1"
                             >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Approve
+                              <Send className="h-3 w-3" />
+                              Review
                             </Button>
                           )}
                           {order.status === 'Approved' && canPublish && (
                             <Button
-                              variant="default"
                               size="sm"
                               onClick={() => handlePublish(order.id)}
+                              className="gap-1"
                             >
-                              <Send className="h-3 w-3 mr-1" />
+                              <CheckCircle className="h-3 w-3" />
                               Publish
                             </Button>
                           )}
                           {order.status === 'Published' && (
-                            <Button variant="outline" size="sm">
-                              <Download className="h-3 w-3 mr-1" />
+                            <Button size="sm" variant="outline" className="gap-1">
+                              <Download className="h-3 w-3" />
                               PDF
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              // View details
-                            }}
-                          >
+                          <Button size="sm" variant="ghost" className="gap-1">
                             <Eye className="h-3 w-3" />
+                            View
                           </Button>
                         </div>
                       </TableCell>
@@ -320,12 +302,10 @@ export default function LegalOrderRegistry() {
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">No orders found</p>
-                {canDraft && (
-                  <Button onClick={() => setIsDraftOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Order
-                  </Button>
-                )}
+                <Button onClick={() => setIsDraftOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Draft First Order
+                </Button>
               </div>
             )}
           </CardContent>
@@ -336,7 +316,7 @@ export default function LegalOrderRegistry() {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Draft Order</DialogTitle>
-              <DialogDescription>Create a new order draft for a case</DialogDescription>
+              <DialogDescription>Create a new order for a case</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -364,26 +344,26 @@ export default function LegalOrderRegistry() {
                   id="findings"
                   value={draftForm.findings}
                   onChange={(e) => handleDraftFormChange('findings', e.target.value)}
-                  placeholder="Enter the findings of the tribunal"
-                  rows={6}
+                  placeholder="Enter case findings and analysis"
+                  rows={5}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="directives">Directives *</Label>
+                <Label htmlFor="directives">Directives/Orders *</Label>
                 <Textarea
                   id="directives"
                   value={draftForm.directives}
                   onChange={(e) => handleDraftFormChange('directives', e.target.value)}
-                  placeholder="Enter the directives and remedies ordered"
-                  rows={6}
+                  placeholder="Enter the court's directives and orders"
+                  rows={5}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="compliance_due">Compliance Due Date</Label>
+                <Label htmlFor="compliance">Compliance Due Date</Label>
                 <Input
-                  id="compliance_due"
+                  id="compliance"
                   type="date"
                   value={draftForm.compliance_due}
                   onChange={(e) => handleDraftFormChange('compliance_due', e.target.value)}
@@ -394,8 +374,8 @@ export default function LegalOrderRegistry() {
                 <Button variant="outline" onClick={() => setIsDraftOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateDraft} disabled={createOrder.isPending}>
-                  {createOrder.isPending ? 'Creating...' : 'Create Draft'}
+                <Button onClick={handleDraftOrder} disabled={createOrder.isPending}>
+                  {createOrder.isPending ? 'Saving...' : 'Save Draft'}
                 </Button>
               </div>
             </div>

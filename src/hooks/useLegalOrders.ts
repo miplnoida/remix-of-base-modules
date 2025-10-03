@@ -42,9 +42,16 @@ export const useLegalOrders = (filters?: Record<string, any>) => {
         query = query.in('status', filters.status);
       }
 
-      if (filters?.case_type) {
-        // This requires joining through legal_cases
-        // For now, we'll filter client-side
+      if (filters?.caseType?.length > 0 && filters.caseType[0] !== 'all') {
+        // Filter by case type through join
+        const { data: caseIds } = await supabase
+          .from('legal_cases')
+          .select('id')
+          .in('case_type', filters.caseType);
+        
+        if (caseIds) {
+          query = query.in('case_id', caseIds.map(c => c.id));
+        }
       }
 
       if (filters?.search) {
@@ -54,16 +61,7 @@ export const useLegalOrders = (filters?: Record<string, any>) => {
       const { data, error } = await query;
 
       if (error) throw error;
-
-      // Client-side filtering for case_type if needed
-      let filteredData = data as LegalOrder[];
-      if (filters?.case_type) {
-        filteredData = filteredData.filter(
-          (order) => order.legal_cases?.case_type === filters.case_type
-        );
-      }
-
-      return filteredData;
+      return data as LegalOrder[];
     },
   });
 };
@@ -103,9 +101,13 @@ export const useCreateOrder = () => {
       const { data, error } = await supabase
         .from('legal_orders')
         .insert({
-          ...orderData,
-          created_by: user.id,
+          case_id: orderData.case_id,
+          draft_html: orderData.draft_html,
+          findings: orderData.findings,
+          directives: orderData.directives,
+          compliance_due: orderData.compliance_due,
           status: 'Draft',
+          created_by: user.id,
         })
         .select()
         .single();
@@ -115,7 +117,7 @@ export const useCreateOrder = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['legal-orders'] });
-      toast.success('Order draft created successfully');
+      toast.success('Order drafted successfully');
     },
     onError: (error: any) => {
       toast.error('Failed to create order: ' + error.message);
@@ -148,36 +150,12 @@ export const useUpdateOrder = () => {
   });
 };
 
-export const useApproveOrder = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from('legal_orders')
-        .update({ status: 'Approved' })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legal-orders'] });
-      toast.success('Order approved successfully');
-    },
-    onError: (error: any) => {
-      toast.error('Failed to approve order: ' + error.message);
-    },
-  });
-};
-
 export const usePublishOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (orderId: string) => {
+      // Generate order number
       const { data: existingOrders } = await supabase
         .from('legal_orders')
         .select('number')
@@ -192,11 +170,11 @@ export const usePublishOrder = () => {
       const { data, error } = await supabase
         .from('legal_orders')
         .update({
-          status: 'Published',
           number: newNumber,
+          status: 'Published',
           published_at: new Date().toISOString(),
         })
-        .eq('id', id)
+        .eq('id', orderId)
         .select()
         .single();
 
@@ -209,6 +187,31 @@ export const usePublishOrder = () => {
     },
     onError: (error: any) => {
       toast.error('Failed to publish order: ' + error.message);
+    },
+  });
+};
+
+export const useApproveOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase
+        .from('legal_orders')
+        .update({ status: 'Approved' })
+        .eq('id', orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legal-orders'] });
+      toast.success('Order approved successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to approve order: ' + error.message);
     },
   });
 };
