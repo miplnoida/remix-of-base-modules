@@ -15,6 +15,7 @@ import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
 import { testMenuItems } from './menuItems/testMenuItems';
 import { legalMenuItems } from './menuItems/legalMenuItems';
 import { legalFinalMenuItems } from './menuItems/legalFinalMenuItems';
+import { ssbLegalMenuItems } from './menuItems/ssbLegalMenuItems';
 import { cashierMenuItems } from './menuItems/cashierMenuItems';
 import { notificationMenuItems } from './menuItems/notificationMenuItems';
 
@@ -30,6 +31,7 @@ export const menuItems = [
   ...auditMenuItems,
   ...legalMenuItems,
   ...legalFinalMenuItems,
+  ...ssbLegalMenuItems,
   ...cashierMenuItems,
   ...notificationMenuItems,
   ...documentMenuItems,
