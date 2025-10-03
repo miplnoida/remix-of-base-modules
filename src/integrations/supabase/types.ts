@@ -130,16 +130,97 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_document_saved_searches: {
+        Row: {
+          created_at: string | null
+          filters: Json
+          id: string
+          is_default: boolean | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          filters: Json
+          id?: string
+          is_default?: boolean | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      legal_document_shares: {
+        Row: {
+          access_count: number | null
+          access_token: string
+          created_at: string | null
+          created_by: string
+          document_id: string
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          max_access_count: number | null
+          watermark_text: string | null
+        }
+        Insert: {
+          access_count?: number | null
+          access_token: string
+          created_at?: string | null
+          created_by: string
+          document_id: string
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          max_access_count?: number | null
+          watermark_text?: string | null
+        }
+        Update: {
+          access_count?: number | null
+          access_token?: string
+          created_at?: string | null
+          created_by?: string
+          document_id?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_access_count?: number | null
+          watermark_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_document_shares_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_documents: {
         Row: {
           case_id: string
           checksum: string | null
           confidential: boolean | null
+          esign_envelope_id: string | null
+          esign_provider: string | null
+          esign_status: string | null
           file_path: string | null
           id: string
           linked_entities: string[] | null
+          marked_as_evidence: boolean | null
           name: string
+          ocr_text: string | null
           size: string | null
+          tags: string[] | null
+          template_id: string | null
           type: Database["public"]["Enums"]["document_type"]
           uploaded_at: string
           uploaded_by: string
@@ -150,11 +231,18 @@ export type Database = {
           case_id: string
           checksum?: string | null
           confidential?: boolean | null
+          esign_envelope_id?: string | null
+          esign_provider?: string | null
+          esign_status?: string | null
           file_path?: string | null
           id?: string
           linked_entities?: string[] | null
+          marked_as_evidence?: boolean | null
           name: string
+          ocr_text?: string | null
           size?: string | null
+          tags?: string[] | null
+          template_id?: string | null
           type: Database["public"]["Enums"]["document_type"]
           uploaded_at?: string
           uploaded_by: string
@@ -165,11 +253,18 @@ export type Database = {
           case_id?: string
           checksum?: string | null
           confidential?: boolean | null
+          esign_envelope_id?: string | null
+          esign_provider?: string | null
+          esign_status?: string | null
           file_path?: string | null
           id?: string
           linked_entities?: string[] | null
+          marked_as_evidence?: boolean | null
           name?: string
+          ocr_text?: string | null
           size?: string | null
+          tags?: string[] | null
+          template_id?: string | null
           type?: Database["public"]["Enums"]["document_type"]
           uploaded_at?: string
           uploaded_by?: string
