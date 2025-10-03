@@ -12,10 +12,10 @@ export const ssbLegalMenuItems = [
         description: "Manage legal cases"
       },
       {
-        title: "Hearings Calendar",
+        title: "Hearing Calendar",
         url: "/legal/hearings",
         icon: Calendar,
-        description: "Schedule and view hearings"
+        description: "Schedule and manage hearings"
       },
       {
         title: "Orders Registry",
