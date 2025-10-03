@@ -409,7 +409,7 @@ export default function DocumentCenter() {
                   </TableCell>
                   <TableCell>v{doc.version}</TableCell>
                   <TableCell>{doc.size}</TableCell>
-                  <TableCell>{(doc.uploader as any)?.full_name || 'Unknown'}</TableCell>
+                  <TableCell>Uploaded</TableCell>
                   <TableCell>{format(new Date(doc.uploaded_at), 'MMM d, yyyy')}</TableCell>
                   <TableCell>
                     <Badge variant={getESignColor(doc.esign_status || 'Not Sent') as any}>

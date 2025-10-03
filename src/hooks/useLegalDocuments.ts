@@ -29,8 +29,7 @@ export const useLegalDocuments = (filters?: DocumentFilters) => {
         .from('legal_documents')
         .select(`
           *,
-          case:legal_cases(number, title, case_type),
-          uploader:profiles!legal_documents_uploaded_by_fkey(full_name)
+          case:legal_cases(number, title, case_type)
         `)
         .order('uploaded_at', { ascending: false });
 
