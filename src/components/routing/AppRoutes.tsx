@@ -169,6 +169,7 @@ import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
 import { default as LegalEvidenceManagement } from '@/pages/legal/EvidenceManagement';
 import LegalReports from '@/pages/legal/LegalReports';
+import DocumentCenter from '@/pages/legal/DocumentCenter';
 
 // LegalFinal Module pages
 import { LegalFinalDashboard } from '@/pages/legalFinal/LegalFinalDashboard';
@@ -450,6 +451,7 @@ export const AppRoutes = () => {
       <Route path="/legal/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseView /></ProtectedLegalRoute></Suspense>} />
       <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalHearingCalendar /></ProtectedLegalRoute></Suspense>} />
       <Route path="/legal/orders" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalOrderRegistry /></ProtectedLegalRoute></Suspense>} />
+      <Route path="/legal/documents" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><DocumentCenter /></ProtectedLegalRoute></Suspense>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
