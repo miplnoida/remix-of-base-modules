@@ -1,8 +1,10 @@
 
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useLegalAuth } from '@/contexts/LegalAuthContext';
+import React, { Suspense, lazy } from 'react';
 
 // Page imports
 import Index from '@/pages/dashboard/Index';
@@ -46,6 +48,10 @@ import AuditManagement from '@/pages/compliance/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
 
 // Legal Module
+const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
+const LegalCaseList = lazy(() => import('@/pages/legal/LegalCaseList'));
+const LegalIntakeWizard = lazy(() => import('@/pages/legal/LegalIntakeWizard'));
+const LegalCaseView = lazy(() => import('@/pages/legal/LegalCaseView'));
 import { CaseList } from '@/pages/legal/CaseList';
 import { IntakeWizard } from '@/pages/legal/IntakeWizard';
 import { CaseView } from '@/pages/legal/CaseView';
@@ -435,10 +441,30 @@ export const AppRoutes = () => {
       <Route path="/cashier/loan-receipts" element={<ProtectedLayout><LoanReceipts /></ProtectedLayout>} />
       <Route path="/cashier/service-receipts" element={<ProtectedLayout><ServiceReceipts /></ProtectedLayout>} />
 
+      {/* Legal Module Routes - NEW */}
+      <Route path="/legal/auth" element={<Suspense fallback={<div>Loading...</div>}><LegalAuth /></Suspense>} />
+      <Route path="/legal/cases" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseList /></ProtectedLegalRoute></Suspense>} />
+      <Route path="/legal/cases/new" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalIntakeWizard /></ProtectedLegalRoute></Suspense>} />
+      <Route path="/legal/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseView /></ProtectedLegalRoute></Suspense>} />
+
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
+};
+
+const ProtectedLegalRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useLegalAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/legal/auth" replace />;
+  }
+  
+  return <>{children}</>;
 };
