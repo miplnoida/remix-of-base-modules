@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -17,7 +18,13 @@ import {
   Download,
   UserPlus,
   RefreshCw,
-  Tag
+  Tag,
+  ArrowLeft,
+  Home,
+  Scale,
+  ChevronDown,
+  ChevronUp,
+  X
 } from 'lucide-react';
 import { LegalCase, STATUS_COLOR_MAP, SavedView } from '@/types/legal';
 import { LegalService } from '@/services/legalService';
@@ -47,6 +54,7 @@ export const CaseList = () => {
   const [selectedCases, setSelectedCases] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [caseTypeFilter, setCaseTypeFilter] = useState<string[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -98,18 +106,53 @@ export const CaseList = () => {
     setSelectedCases(new Set());
   };
 
+  const handleClose = () => {
+    navigate('/');
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter([]);
+    setCaseTypeFilter([]);
+  };
+
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
-      {/* Header */}
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Navigation Panel */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Legal Cases</h1>
-          <p className="text-muted-foreground">Manage and track all legal cases</p>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+          <div className="h-6 w-px bg-border" />
+          <Scale className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold">Legal Cases</h1>
+            <p className="text-muted-foreground">Search and manage all legal cases</p>
+          </div>
         </div>
-        <Button onClick={() => navigate('/legal/cases/new')} size="lg">
-          <Plus className="h-4 w-4 mr-2" />
-          New Case
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => navigate('/legal/cases/new')}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Case
+          </Button>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <Home className="h-4 w-4" />
+            Main Menu
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -154,47 +197,102 @@ export const CaseList = () => {
         </Card>
       </div>
 
-      {/* Filters & Search */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <div className="flex gap-2">
-              <Select value={selectedView} onValueChange={setSelectedView}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Saved Views" />
-                </SelectTrigger>
-                <SelectContent>
-                  {savedViews.map(view => (
-                    <SelectItem key={view.id} value={view.id}>
-                      {view.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search cases by number or title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+      {/* Search and Filter Section - Collapsible */}
+      <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Search & Filter Cases</CardTitle>
+                  <CardDescription>Query by: Case Number, Title, Status, Type, Assignee, Flags, etc.</CardDescription>
+                </div>
+                {isSearchOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
-            </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Advanced Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Saved Views</label>
+                    <Select value={selectedView} onValueChange={setSelectedView}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select view" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {savedViews.map(view => (
+                          <SelectItem key={view.id} value={view.id}>
+                            {view.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by number or title..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={statusFilter[0]} onValueChange={(value) => setStatusFilter([value])}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="Filed">Filed</SelectItem>
+                        <SelectItem value="Under Review">Under Review</SelectItem>
+                        <SelectItem value="Hearing Scheduled">Hearing Scheduled</SelectItem>
+                        <SelectItem value="Decision Pending">Decision Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Case Type</label>
+                    <Select value={caseTypeFilter[0]} onValueChange={(value) => setCaseTypeFilter([value])}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All types" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="Prosecution">Prosecution</SelectItem>
+                        <SelectItem value="Compliance">Compliance</SelectItem>
+                        <SelectItem value="Appeal">Appeal</SelectItem>
+                        <SelectItem value="Recovery">Recovery</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={handleClearFilters}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                  <Button variant="outline">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Advanced Filters
+                  </Button>
+                  <Button variant="outline" onClick={handleClose}>
+                    <X className="h-4 w-4 mr-2" />
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Bulk Actions */}
       {selectedCases.size > 0 && (
@@ -228,7 +326,13 @@ export const CaseList = () => {
       {/* Cases Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Cases ({filteredCases.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Legal Cases ({filteredCases.length})</CardTitle>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -308,7 +412,7 @@ export const CaseList = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="bg-popover">
                           <DropdownMenuItem onClick={() => navigate(`/legal/cases/${case_.id}`)}>
                             Open
                           </DropdownMenuItem>

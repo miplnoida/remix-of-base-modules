@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft,
@@ -17,6 +18,12 @@ import {
   AlertTriangle,
   Clock,
   MoreVertical,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Plus,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { LegalCase, STATUS_COLOR_MAP, Party, Hearing, LegalTask, LegalDocument, TimelineEvent } from '@/types/legal';
 import { LegalService } from '@/services/legalService';
@@ -39,6 +46,8 @@ export const CaseView = () => {
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCaseInfoOpen, setIsCaseInfoOpen] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
 
   useEffect(() => {
     if (id) {

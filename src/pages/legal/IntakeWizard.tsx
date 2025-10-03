@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Save, Send, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Send, X, Scale, Home, FileText } from 'lucide-react';
 import { LegalService } from '@/services/legalService';
 import { CaseType, CaseSource, Priority } from '@/types/legal';
 
