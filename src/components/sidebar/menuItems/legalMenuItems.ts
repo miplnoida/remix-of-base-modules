@@ -1,58 +1,48 @@
-import { Scale, FileText, Gavel, AlertTriangle, Search, BarChart3 } from 'lucide-react';
+import { 
+  Scale, 
+  FileText, 
+  Calendar, 
+  Folder, 
+  BarChart3, 
+  Settings,
+  Gavel
+} from 'lucide-react';
 
 export const legalMenuItems = [
   {
-    title: "NewLegal Module",
+    title: 'SSB Legal',
     icon: Scale,
-    subItems: [
+    items: [
       {
-        title: "Legal Dashboard",
-        url: "/legal",
-        icon: Scale,
-        description: "Overview of legal cases and enforcement"
-      },
-      {
-        title: "Case Intake",
-        url: "/legal/case-intake",
-        icon: FileText,
-        description: "Register new legal cases"
-      },
-      {
-        title: "Case Tracking",
-        url: "/legal/case-tracking",
-        icon: Search,
-        description: "Monitor case progress and status"
-      },
-      {
-        title: "Notice Generation",
-        url: "/legal/notices",
-        icon: FileText,
-        description: "Generate legal notices and documents"
-      },
-      {
-        title: "Appeal Submission",
-        url: "/legal/appeals",
-        icon: AlertTriangle,
-        description: "Manage appeals and reviews"
-      },
-      {
-        title: "Enforcement & Penalty",
-        url: "/legal/enforcement",
+        title: 'Cases',
         icon: Gavel,
-        description: "Track enforcement actions and penalties"
+        url: '/legal/cases',
       },
       {
-        title: "Evidence Management",
-        url: "/legal/evidence",
+        title: 'Hearings Calendar',
+        icon: Calendar,
+        url: '/legal/hearings',
+      },
+      {
+        title: 'Orders Registry',
         icon: FileText,
-        description: "Manage documents and evidence"
+        url: '/legal/orders',
       },
       {
-        title: "Reports & Analytics",
-        url: "/legal/reports",
+        title: 'Documents Center',
+        icon: Folder,
+        url: '/legal/documents',
+      },
+      {
+        title: 'Reports & Analytics',
         icon: BarChart3,
-        description: "Generate legal reports and analytics"
-      }
-    ]
-  }
+        url: '/legal/reports',
+      },
+      {
+        title: 'Admin',
+        icon: Settings,
+        url: '/legal/admin',
+      },
+    ],
+  },
 ];
