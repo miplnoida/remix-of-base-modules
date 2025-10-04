@@ -7,6 +7,7 @@ import { NewBenefitAuthProvider } from '@/contexts/NewBenefitAuthContext';
 import { LegalAuthProvider } from '@/contexts/LegalAuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LegalCaseProvider } from '@/contexts/LegalCaseContext';
+import { LegalRoleProvider } from '@/contexts/LegalRoleContext';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import './App.css';
 
