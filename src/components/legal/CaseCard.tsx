@@ -45,7 +45,7 @@ export function CaseCard({ case: caseData, onClick }: CaseCardProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div>
             <TypeBadge type={caseData.type} />
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground justify-end">
