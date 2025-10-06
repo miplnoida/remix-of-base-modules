@@ -1,18 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stepper } from "@/components/ui/stepper";
-import { ArrowLeft, ArrowRight, Save, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Send, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLegalCases } from "@/contexts/LegalCaseContext";
+import { peopleAdapter } from "@/adapters/peopleAdapter";
+import { employersAdapter } from "@/adapters/employersAdapter";
 
-const CASE_TYPES = ['Non-Payment', 'Non-Compliance', 'Fraud', 'Appeal', 'Other'];
+const CASE_TYPES = ['Employer Arrears', 'Overpayment Recovery', 'Insured Appeal', 'Compliance/Recovery', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
+const SOURCES = ['Compliance', 'Benefits', 'Other'];
 
 export default function SSBCaseIntake() {
   const navigate = useNavigate();
@@ -21,13 +25,19 @@ export default function SSBCaseIntake() {
   
   const [formData, setFormData] = useState({
     type: '',
+    source: 'Compliance',
     priority: 'Medium',
+    confidential: false,
     title: '',
     summary: '',
     relief_sought: '',
-    parties: [{ role: 'Applicant', name: 'Social Security Board' }],
+    relatedCases: [],
+    parties: [] as Array<{ role: string; type: 'employer' | 'insured' | 'manual'; id?: string; name: string; contact?: string; regNo?: string; ssn?: string }>,
     attachments: []
   });
+
+  const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupType, setLookupType] = useState<'employer' | 'insured'>('employer');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -38,10 +48,61 @@ export default function SSBCaseIntake() {
     }
   };
 
-  const addParty = () => {
+  const handleLookup = async () => {
+    if (!lookupQuery.trim()) {
+      toast.error('Please enter a registration number or SSN');
+      return;
+    }
+
+    try {
+      if (lookupType === 'employer') {
+        const employer = await employersAdapter.getEmployer(lookupQuery);
+        if (employer) {
+          setFormData(prev => ({
+            ...prev,
+            parties: [...prev.parties, { 
+              role: 'Respondent', 
+              type: 'employer', 
+              id: employer.regNo,
+              name: employer.name,
+              contact: employer.contact?.phone || employer.contact?.email || '',
+              regNo: employer.regNo
+            }]
+          }));
+          setLookupQuery('');
+          toast.success(`Employer ${employer.name} added`);
+        } else {
+          toast.error('Employer not found');
+        }
+      } else {
+        const person = await peopleAdapter.getPerson(lookupQuery);
+        if (person) {
+          setFormData(prev => ({
+            ...prev,
+            parties: [...prev.parties, { 
+              role: 'Respondent', 
+              type: 'insured', 
+              id: person.ssn,
+              name: person.name,
+              contact: person.contact?.phone || person.contact?.email || '',
+              ssn: person.ssn
+            }]
+          }));
+          setLookupQuery('');
+          toast.success(`Insured person ${person.name} added`);
+        } else {
+          toast.error('Person not found');
+        }
+      }
+    } catch (error) {
+      toast.error('Lookup failed. Please try manual entry.');
+    }
+  };
+
+  const addManualParty = () => {
     setFormData(prev => ({
       ...prev,
-      parties: [...prev.parties, { role: formData.parties.length === 0 ? 'Applicant' : 'Respondent', name: '' }]
+      parties: [...prev.parties, { role: 'Respondent', type: 'manual', name: '', contact: '' }]
     }));
   };
 
@@ -53,7 +114,6 @@ export default function SSBCaseIntake() {
   };
 
   const removeParty = (index: number) => {
-    if (index === 0) return; // Don't remove SSB
     setFormData(prev => ({
       ...prev,
       parties: prev.parties.filter((_, i) => i !== index)
@@ -69,9 +129,9 @@ export default function SSBCaseIntake() {
     }
     
     if (step === 1) {
-      if (formData.parties.length < 2) newErrors.parties = 'At least one respondent is required';
+      if (formData.parties.length < 1) newErrors.parties = 'At least one party is required';
       formData.parties.forEach((p, i) => {
-        if (!p.name && i > 0) newErrors[`party_${i}`] = 'Party name is required';
+        if (!p.name) newErrors[`party_${i}`] = 'Party name is required';
       });
     }
     
@@ -218,17 +278,46 @@ export default function SSBCaseIntake() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={formData.priority} onValueChange={(v) => updateField('priority', v)}>
-                  <SelectTrigger id="priority">
+                <Label htmlFor="source">Source</Label>
+                <Select value={formData.source} onValueChange={(v) => updateField('source', v)}>
+                  <SelectTrigger id="source">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map(p => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    {SOURCES.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={formData.priority} onValueChange={(v) => updateField('priority', v)}>
+                    <SelectTrigger id="priority">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITIES.map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="confidential"
+                      checked={formData.confidential}
+                      onChange={(e) => updateField('confidential', e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="confidential">Confidential</Label>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -246,49 +335,115 @@ export default function SSBCaseIntake() {
 
           {/* Step 1: Parties */}
           {currentStep === 1 && (
-            <div className="space-y-4">
-              {formData.parties.map((party, index) => (
-                <Card key={index}>
-                  <CardContent className="pt-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Role</Label>
-                        <Select 
-                          value={party.role} 
-                          onValueChange={(v) => updateParty(index, 'role', v)}
-                          disabled={index === 0}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Applicant">Applicant</SelectItem>
-                            <SelectItem value="Respondent">Respondent</SelectItem>
-                            <SelectItem value="Third Party">Third Party</SelectItem>
-                          </SelectContent>
-                        </Select>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Lookup Employer or Insured Person</CardTitle>
+                  <CardDescription>Search by Registration Number (Employer) or SSN (Insured)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={lookupType === 'employer' ? 'default' : 'outline'}
+                        onClick={() => setLookupType('employer')}
+                        className="flex-1"
+                      >
+                        Employer
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={lookupType === 'insured' ? 'default' : 'outline'}
+                        onClick={() => setLookupType('insured')}
+                        className="flex-1"
+                      >
+                        Insured Person
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={lookupQuery}
+                        onChange={(e) => setLookupQuery(e.target.value)}
+                        placeholder={lookupType === 'employer' ? 'Enter Registration Number' : 'Enter SSN'}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                      />
+                      <Button onClick={handleLookup}>
+                        <Search className="h-4 w-4 mr-2" />
+                        Lookup
+                      </Button>
+                    </div>
+                    <div className="text-center text-sm text-muted-foreground">or</div>
+                    <Button onClick={addManualParty} variant="outline" className="w-full">
+                      Add Party Manually
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Parties ({formData.parties.length})</Label>
+                {formData.parties.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No parties added yet. Use lookup or manual entry above.</p>
+                )}
+                {formData.parties.map((party, index) => (
+                  <Card key={index}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={party.type === 'employer' ? 'default' : party.type === 'insured' ? 'secondary' : 'outline'}>
+                            {party.type === 'employer' ? 'Employer' : party.type === 'insured' ? 'Insured' : 'Manual'}
+                          </Badge>
+                          {party.regNo && <span className="text-xs text-muted-foreground">Reg: {party.regNo}</span>}
+                          {party.ssn && <span className="text-xs text-muted-foreground">SSN: {party.ssn}</span>}
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => removeParty(index)}>
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Name *</Label>
-                        <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Role</Label>
+                          <Select 
+                            value={party.role} 
+                            onValueChange={(v) => updateParty(index, 'role', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Respondent">Respondent</SelectItem>
+                              <SelectItem value="Complainant">Complainant</SelectItem>
+                              <SelectItem value="Third Party">Third Party</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Name *</Label>
                           <Input
                             value={party.name}
                             onChange={(e) => updateParty(index, 'name', e.target.value)}
                             placeholder="Party name"
-                            disabled={index === 0}
+                            disabled={party.type !== 'manual'}
                           />
-                          {index > 0 && (
-                            <Button variant="outline" size="icon" onClick={() => removeParty(index)}>×</Button>
-                          )}
+                          {errors[`party_${index}`] && <p className="text-sm text-destructive">{errors[`party_${index}`]}</p>}
                         </div>
-                        {errors[`party_${index}`] && <p className="text-sm text-destructive">{errors[`party_${index}`]}</p>}
+                        {party.type === 'manual' && (
+                          <div className="col-span-2 space-y-2">
+                            <Label>Contact</Label>
+                            <Input
+                              value={party.contact || ''}
+                              onChange={(e) => updateParty(index, 'contact', e.target.value)}
+                              placeholder="Phone or email"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
               {errors.parties && <p className="text-sm text-destructive">{errors.parties}</p>}
-              <Button onClick={addParty} variant="outline">Add Party</Button>
             </div>
           )}
 

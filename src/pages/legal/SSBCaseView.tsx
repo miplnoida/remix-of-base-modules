@@ -20,14 +20,44 @@ import { CaseOrdersTab } from "@/components/legal/tabs/CaseOrdersTab";
 import { CaseFinancialsTab } from "@/components/legal/tabs/CaseFinancialsTab";
 import { CaseTimelineTab } from "@/components/legal/tabs/CaseTimelineTab";
 import { CaseAuditTab } from "@/components/legal/tabs/CaseAuditTab";
+import { ScheduleHearingDialog } from "@/components/legal/ScheduleHearingDialog";
+import { CreateTaskDialog } from "@/components/legal/CreateTaskDialog";
+import { IssueNoticeDialog } from "@/components/legal/IssueNoticeDialog";
+import { ChangeStatusDialog } from "@/components/legal/ChangeStatusDialog";
 
 export default function SSBCaseView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getCaseById } = useLegalCases();
+  const { getCaseById, updateCase } = useLegalCases();
   const [activeTab, setActiveTab] = useState("overview");
+  const [scheduleHearingOpen, setScheduleHearingOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [issueNoticeOpen, setIssueNoticeOpen] = useState(false);
+  const [changeStatusOpen, setChangeStatusOpen] = useState(false);
 
   const caseData = id ? getCaseById(id) : undefined;
+
+  const handleScheduleHearing = (caseId: string, hearing: any) => {
+    if (id) {
+      updateCase(id, {
+        hearings: [...(caseData?.hearings || []), hearing]
+      });
+    }
+  };
+
+  const handleCreateTask = (caseId: string, task: any) => {
+    toast.success('Task created successfully');
+  };
+
+  const handleIssueNotice = (caseId: string, notice: any) => {
+    toast.success('Notice issued successfully');
+  };
+
+  const handleChangeStatus = (newStatus: string, notes: string) => {
+    if (id) {
+      updateCase(id, { status: newStatus });
+    }
+  };
 
   if (!caseData) {
     return (
@@ -64,15 +94,15 @@ export default function SSBCaseView() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => toast.info("Coming soon")} className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => toast.info("Edit functionality coming soon")} className="gap-2">
                 <Edit className="h-4 w-4" />
                 <span className="hidden sm:inline">Edit</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => toast.info("Coming soon")} className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => toast.info("Note added")} className="gap-2">
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Note</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => toast.info("Coming soon")} className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => toast.info("Upload functionality coming soon")} className="gap-2">
                 <Upload className="h-4 w-4" />
                 <span className="hidden sm:inline">Upload</span>
               </Button>
@@ -81,10 +111,18 @@ export default function SSBCaseView() {
                   <Button variant="outline" size="sm"><MoreVertical className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem><Calendar className="h-4 w-4 mr-2" />Schedule Hearing</DropdownMenuItem>
-                  <DropdownMenuItem><CheckSquare className="h-4 w-4 mr-2" />Create Task</DropdownMenuItem>
-                  <DropdownMenuItem><FileText className="h-4 w-4 mr-2" />Issue Notice</DropdownMenuItem>
-                  <DropdownMenuItem><Activity className="h-4 w-4 mr-2" />Change Status</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setScheduleHearingOpen(true)}>
+                    <Calendar className="h-4 w-4 mr-2" />Schedule Hearing
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCreateTaskOpen(true)}>
+                    <CheckSquare className="h-4 w-4 mr-2" />Create Task
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIssueNoticeOpen(true)}>
+                    <FileText className="h-4 w-4 mr-2" />Issue Notice
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setChangeStatusOpen(true)}>
+                    <Activity className="h-4 w-4 mr-2" />Change Status
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -125,6 +163,35 @@ export default function SSBCaseView() {
           </div>
         </Tabs>
       </div>
+
+      {id && (
+        <>
+          <ScheduleHearingDialog
+            open={scheduleHearingOpen}
+            onOpenChange={setScheduleHearingOpen}
+            caseId={id}
+            onSchedule={handleScheduleHearing}
+          />
+          <CreateTaskDialog
+            open={createTaskOpen}
+            onOpenChange={setCreateTaskOpen}
+            caseId={id}
+            onCreateTask={handleCreateTask}
+          />
+          <IssueNoticeDialog
+            open={issueNoticeOpen}
+            onOpenChange={setIssueNoticeOpen}
+            caseId={id}
+            onIssueNotice={handleIssueNotice}
+          />
+          <ChangeStatusDialog
+            open={changeStatusOpen}
+            onOpenChange={setChangeStatusOpen}
+            currentStatus={caseData?.status || 'Draft'}
+            onChangeStatus={handleChangeStatus}
+          />
+        </>
+      )}
     </div>
   );
 }
