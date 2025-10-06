@@ -5,9 +5,9 @@ export const mockLegalCases: MockCase[] = [
   {
     id: 'case-001',
     number: 'SSB/LGL/2024/001',
-    title: 'SSB vs. Caribbean Construction Ltd.',
-    type: 'Non-Payment',
-    status: 'Hearing Scheduled',
+    title: 'SSB vs. Caribbean Construction Ltd. - Employer Arrears',
+    type: 'Employer Arrears',
+    status: 'Pending Hearing',
     stage: 'Summons Issued',
     parties: ['Social Security Board', 'Caribbean Construction Ltd.', 'John Williams (Director)'],
     assignee: 'Maria Rodriguez',

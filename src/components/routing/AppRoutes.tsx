@@ -49,14 +49,13 @@ import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
 
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
-const LegalCaseList = lazy(() => import('@/pages/legal/LegalCaseList'));
-const LegalIntakeWizard = lazy(() => import('@/pages/legal/LegalIntakeWizard'));
-const LegalCaseView = lazy(() => import('@/pages/legal/LegalCaseView'));
 const LegalHearingCalendar = lazy(() => import('@/pages/legal/LegalHearingCalendar'));
 const LegalOrderRegistry = lazy(() => import('@/pages/legal/LegalOrderRegistry'));
-import { CaseList } from '@/pages/legal/CaseList';
-import { IntakeWizard } from '@/pages/legal/IntakeWizard';
-import { CaseView } from '@/pages/legal/CaseView';
+const LegalDocumentCenter = lazy(() => import('@/pages/legal/DocumentCenter'));
+import SSBCaseListPage from '@/pages/legal/SSBCaseList';
+import SSBCaseIntake from '@/pages/legal/SSBCaseIntake';
+import SSBCaseViewPage from '@/pages/legal/SSBCaseView';
+import SSBLegalReports from '@/pages/legal/SSBLegalReports';
 
 // Audit Module
 import AuditPlans from '@/pages/audit/AuditPlans';
@@ -169,7 +168,6 @@ import AppealSubmission from '@/pages/legal/AppealSubmission';
 import EnforcementPenalty from '@/pages/legal/EnforcementPenalty';
 import { default as LegalEvidenceManagement } from '@/pages/legal/EvidenceManagement';
 import LegalReports from '@/pages/legal/LegalReports';
-import DocumentCenter from '@/pages/legal/DocumentCenter';
 import LegalReportsAnalytics from '@/pages/legal/ReportsAnalytics';
 import LegalAdminConfig from '@/pages/legal/AdminConfig';
 
@@ -216,9 +214,7 @@ import LettersCommunications from '@/pages/newBenefit/LettersCommunications';
 import AdminConfig from '@/pages/newBenefit/AdminConfig';
 import AuditorView from '@/pages/newBenefit/AuditorView';
 
-// SSB Legal Module
-import SSBCaseList from '@/pages/legal/SSBCaseList';
-import SSBCaseView from '@/pages/legal/SSBCaseView';
+// SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
 
 // Authentication
@@ -354,11 +350,6 @@ export const AppRoutes = () => {
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
-      {/* SSB Legal Module Routes - Preview v2 (Primary) */}
-          <Route path="/legal/cases" element={<ProtectedLayout><SSBCaseList /></ProtectedLayout>} />
-          <Route path="/legal/cases/new" element={<ProtectedLayout><CaseIntakeWizard /></ProtectedLayout>} />
-          <Route path="/legal/cases/:id" element={<ProtectedLayout><SSBCaseView /></ProtectedLayout>} />
-      
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
       <Route path="/legal/case-intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
@@ -369,9 +360,7 @@ export const AppRoutes = () => {
       <Route path="/legal/appeals" element={<ProtectedLayout><AppealSubmission /></ProtectedLayout>} />
       <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
       <Route path="/legal/evidence" element={<ProtectedLayout><LegalEvidenceManagement /></ProtectedLayout>} />
-      <Route path="/legal/reports" element={<ProtectedLayout><LegalReportsAnalytics /></ProtectedLayout>} />
       <Route path="/legal/admin" element={<ProtectedLayout><LegalAdminConfig /></ProtectedLayout>} />
-      <Route path="/legal/documents" element={<ProtectedLayout><DocumentCenter /></ProtectedLayout>} />
 
       {/* LegalFinal Module Routes */}
       <Route path="/legal-final" element={<ProtectedLayout><LegalFinalDashboard /></ProtectedLayout>} />
@@ -453,11 +442,11 @@ export const AppRoutes = () => {
       <Route path="/cashier/loan-receipts" element={<ProtectedLayout><LoanReceipts /></ProtectedLayout>} />
       <Route path="/cashier/service-receipts" element={<ProtectedLayout><ServiceReceipts /></ProtectedLayout>} />
 
-      {/* Legal Module Routes - NEW */}
+      {/* Legal Module Routes - SSB Legal */}
       <Route path="/legal/auth" element={<Suspense fallback={<div>Loading...</div>}><LegalAuth /></Suspense>} />
-      <Route path="/legal/cases" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseList /></ProtectedLegalRoute></Suspense>} />
-      <Route path="/legal/cases/new" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalIntakeWizard /></ProtectedLegalRoute></Suspense>} />
-      <Route path="/legal/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><ProtectedLegalRoute><LegalCaseView /></ProtectedLegalRoute></Suspense>} />
+      <Route path="/legal/cases" element={<ProtectedLayout><SSBCaseListPage /></ProtectedLayout>} />
+      <Route path="/legal/cases/new" element={<ProtectedLayout><SSBCaseIntake /></ProtectedLayout>} />
+      <Route path="/legal/cases/:id" element={<ProtectedLayout><SSBCaseViewPage /></ProtectedLayout>} />
       <Route path="/legal/hearings" element={
         <ProtectedLayout>
           <Suspense fallback={<div>Loading...</div>}>
@@ -475,13 +464,13 @@ export const AppRoutes = () => {
       <Route path="/legal/documents" element={
         <ProtectedLayout>
           <Suspense fallback={<div>Loading...</div>}>
-            <DocumentCenter />
+            <LegalDocumentCenter />
           </Suspense>
         </ProtectedLayout>
       } />
       <Route path="/legal/reports" element={
         <ProtectedLayout>
-          <LegalReports />
+          <SSBLegalReports />
         </ProtectedLayout>
       } />
 

@@ -10,13 +10,14 @@ import { useLegalCases } from "@/contexts/LegalCaseContext";
 import { BackNavigation } from "@/components/ui/back-navigation";
 import { Badge } from "@/components/ui/badge";
 
-const CASE_TYPES = ['Non-Payment', 'Non-Compliance', 'Fraud', 'Appeal', 'Prosecution', 'Recovery', 'Employer Dispute', 'IP Dispute'];
-const STATUSES = ['Draft', 'Filed', 'Under Review', 'Hearing Scheduled', 'Hearing Held', 'Decision Pending', 'Order Issued', 'Closed – Compliant', 'Closed – Non-Compliant', 'Withdrawn', 'Appealed', 'Reopened'];
+const CASE_TYPES = ['Employer Arrears', 'Overpayment Recovery', 'Insured Appeal', 'Compliance/Recovery', 'Other'];
+const STATUSES = ['Draft', 'Filed', 'Pending Hearing', 'In Court', 'Judgment Delivered', 'Enforcement Ongoing', 'Closed – Compliant', 'Closed – Non-Compliant', 'Settled', 'Withdrawn', 'On Appeal', 'Reopened'];
 
 const SAVED_VIEWS = [
-  { id: 'my-active', label: 'My Active' },
-  { id: 'hearing-week', label: 'Hearing this week' },
-  { id: 'awaiting-decision', label: 'Awaiting Decision' }
+  { id: 'employers-arrears', label: 'Employers in Arrears' },
+  { id: 'in-court', label: 'In Court' },
+  { id: 'judgment-window', label: 'Judgment (14-day window)' },
+  { id: 'enforcement-ongoing', label: 'Enforcement Ongoing' }
 ];
 
 export default function SSBCaseList() {
