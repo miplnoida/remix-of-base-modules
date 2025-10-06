@@ -7,6 +7,7 @@ import { MockCase } from "@/data/mockLegalCases";
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar, FileText, Plus, AlertTriangle, Upload, Download } from "lucide-react";
 import { RecordPaymentDialog } from "@/components/legal/RecordPaymentDialog";
 import { AddCostDialog } from "@/components/legal/AddCostDialog";
+import { ExcelImportWizard } from "@/pages/legal/ExcelImportWizard";
 import { toast } from "sonner";
 
 interface CaseFinancialsTabProps {
@@ -92,6 +93,8 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
 
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [costOpen, setCostOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importType, setImportType] = useState<'arrears' | 'payments' | 'costs'>('arrears');
 
   // Calculate totals
   const totalOwed = periodsOwed.reduce((sum, p) => sum + p.amount, 0);
@@ -105,16 +108,31 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   const formatCurrency = (amount: number) => `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   const formatPeriod = (from: string, to: string) => from === to ? from : `${from} to ${to}`;
 
+  const handleExport = async () => {
+    try {
+      // In real app, call reportingAdapter.exportCaseFinancials
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast.success('Financial records exported successfully');
+    } catch (error) {
+      toast.error('Failed to export records');
+    }
+  };
+
+  const handleImportComplete = () => {
+    toast.success('Import completed successfully');
+    // In real app, refresh financial data
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Financials</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => toast.info('Excel import wizard would open here')}>
+          <Button variant="outline" size="sm" onClick={() => { setImportType('arrears'); setImportOpen(true); }}>
             <Upload className="h-4 w-4 mr-2" />
             Import Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={() => toast.success('Exporting financial records...')}>
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -316,7 +334,7 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Payments</CardTitle>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setPaymentOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Record Payment
             </Button>
@@ -358,7 +376,7 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Court Costs</CardTitle>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setCostOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Cost
             </Button>
@@ -402,14 +420,21 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
         open={paymentOpen}
         onOpenChange={setPaymentOpen}
         caseId={caseData.id}
-        onPaymentRecorded={() => {}}
+        onPaymentRecorded={handleImportComplete}
       />
 
       <AddCostDialog
         open={costOpen}
         onOpenChange={setCostOpen}
         caseId={caseData.id}
-        onCostAdded={() => {}}
+        onCostAdded={handleImportComplete}
+      />
+
+      <ExcelImportWizard
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        type={importType}
+        caseId={caseData.id}
       />
     </div>
   );

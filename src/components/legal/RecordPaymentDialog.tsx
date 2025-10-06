@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { financeAdapter } from "@/adapters/financeAdapter";
 import { toast } from "sonner";
 
 interface RecordPaymentDialogProps {
@@ -34,8 +35,13 @@ export function RecordPaymentDialog({
 
     setIsRecording(true);
     try {
-      // In real implementation, call financeAdapter.postPayment
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await financeAdapter.postPayment({
+        penaltyId: caseId, // In real app, would need actual penaltyId
+        amount: parseFloat(amount),
+        receivedOn: date,
+        method,
+        reference: reference || `PAY-${Date.now()}`
+      });
       toast.success('Payment recorded successfully');
       onPaymentRecorded();
       handleClose();

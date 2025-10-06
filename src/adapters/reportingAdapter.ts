@@ -74,5 +74,18 @@ export const reportingAdapter = {
         body: JSON.stringify({ event: eventName, data: payload })
       }).catch(console.error);
     }
+  },
+
+  async exportCaseFinancials(caseId: string, format: 'csv' | 'xlsx' = 'xlsx'): Promise<Blob> {
+    if (legalConfig.dataMode === "mock") {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Mock CSV export
+      const csvContent = `Period,Type,Amount,Paid,Outstanding\n2023-01 to 2023-03,Arrears,15000.00,8000.00,7000.00\n2023-04 to 2023-06,Arrears,12000.00,0.00,12000.00`;
+      return new Blob([csvContent], { type: 'text/csv' });
+    }
+    
+    const response = await fetch(`/api/reports/cases/${caseId}/financials/export?format=${format}`);
+    if (!response.ok) throw new Error('Failed to export financials');
+    return response.blob();
   }
 };
