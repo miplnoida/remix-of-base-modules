@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, Upload, FileText, Download, Share2, Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { UploadDocumentDialog } from "@/components/legal/UploadDocumentDialog";
+import { GenerateTemplateDialog } from "@/components/legal/GenerateTemplateDialog";
+import { toast } from "sonner";
 
 interface CaseDocumentsTabProps {
   caseData: MockCase;
@@ -22,21 +25,35 @@ const mockDocuments = [
 
 export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
   const [activeFolder, setActiveFolder] = useState('All');
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
 
   const filteredDocuments = activeFolder === 'All'
     ? mockDocuments
     : mockDocuments.filter(doc => doc.folder === activeFolder);
+
+  const handleView = (docName: string) => {
+    toast.info(`Opening ${docName}...`);
+  };
+
+  const handleDownload = (docName: string) => {
+    toast.success(`Downloading ${docName}...`);
+  };
+
+  const handleShare = (docName: string) => {
+    toast.info(`Share dialog for ${docName} would open here`);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Documents</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setUploadOpen(true)}>
             <Upload className="h-4 w-4" />
             Upload
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setGenerateOpen(true)}>
             <FileText className="h-4 w-4" />
             Generate from Template
           </Button>
@@ -98,13 +115,13 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleView(doc.name)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleDownload(doc.name)}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleShare(doc.name)}>
                         <Share2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -115,6 +132,21 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
           </Table>
         </CardContent>
       </Card>
+
+      <UploadDocumentDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        caseId={caseData.id}
+        onDocumentUploaded={() => {}}
+      />
+
+      <GenerateTemplateDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
+        caseId={caseData.id}
+        caseNumber={caseData.number}
+        onDocumentGenerated={() => {}}
+      />
     </div>
   );
 }

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, UserPlus, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AddPartyDialog } from "@/components/legal/AddPartyDialog";
+import { RecordServiceDialog } from "@/components/legal/RecordServiceDialog";
 
 interface CasePartiesTabProps {
   caseData: MockCase;
@@ -23,16 +26,26 @@ const getServiceStatusBadge = (status: string) => {
 };
 
 export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
+  const [addPartyOpen, setAddPartyOpen] = useState(false);
+  const [addRepOpen, setAddRepOpen] = useState(false);
+  const [serviceOpen, setServiceOpen] = useState(false);
+  const [selectedParty, setSelectedParty] = useState<string | null>(null);
+
+  const handleRecordService = (partyName: string) => {
+    setSelectedParty(partyName);
+    setServiceOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Parties & Representatives</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setAddPartyOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Party
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setAddRepOpen(true)}>
             <UserPlus className="h-4 w-4" />
             Add Representative
           </Button>
@@ -78,7 +91,18 @@ export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
                     {getServiceStatusBadge(idx === 0 ? 'N/A' : idx % 2 === 0 ? 'Served' : 'Attempted')}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">Link to Registry</Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm">Link to Registry</Button>
+                      {idx > 0 && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleRecordService(party)}
+                        >
+                          Record Service
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -97,13 +121,35 @@ export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
             <p className="text-sm text-muted-foreground">
               Record service attempts and confirmations for all parties.
             </p>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setServiceOpen(true)}>
               <Plus className="h-4 w-4" />
               Record Service Attempt
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <AddPartyDialog
+        open={addPartyOpen}
+        onOpenChange={setAddPartyOpen}
+        caseId={caseData.id}
+        onPartyAdded={() => {}}
+      />
+
+      <AddPartyDialog
+        open={addRepOpen}
+        onOpenChange={setAddRepOpen}
+        caseId={caseData.id}
+        onPartyAdded={() => {}}
+      />
+
+      <RecordServiceDialog
+        open={serviceOpen}
+        onOpenChange={setServiceOpen}
+        caseId={caseData.id}
+        partyName={selectedParty || undefined}
+        onServiceRecorded={() => {}}
+      />
     </div>
   );
 }

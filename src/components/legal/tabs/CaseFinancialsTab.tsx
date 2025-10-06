@@ -4,7 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MockCase } from "@/data/mockLegalCases";
-import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar, FileText, Plus, AlertTriangle } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar, FileText, Plus, AlertTriangle, Upload, Download } from "lucide-react";
+import { RecordPaymentDialog } from "@/components/legal/RecordPaymentDialog";
+import { AddCostDialog } from "@/components/legal/AddCostDialog";
+import { toast } from "sonner";
 
 interface CaseFinancialsTabProps {
   caseData: MockCase;
@@ -87,6 +90,9 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
     date: '2024-03-15'
   });
 
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [costOpen, setCostOpen] = useState(false);
+
   // Calculate totals
   const totalOwed = periodsOwed.reduce((sum, p) => sum + p.amount, 0);
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -104,12 +110,12 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Financials</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={() => toast.info('Excel import wizard would open here')}>
+            <Upload className="h-4 w-4 mr-2" />
             Import Excel
           </Button>
-          <Button variant="outline" size="sm">
-            <FileText className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={() => toast.success('Exporting financial records...')}>
+            <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
         </div>
@@ -391,6 +397,20 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
           </Table>
         </CardContent>
       </Card>
+
+      <RecordPaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        caseId={caseData.id}
+        onPaymentRecorded={() => {}}
+      />
+
+      <AddCostDialog
+        open={costOpen}
+        onOpenChange={setCostOpen}
+        caseId={caseData.id}
+        onCostAdded={() => {}}
+      />
     </div>
   );
 }

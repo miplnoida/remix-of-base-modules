@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CreateTaskDialog } from "@/components/legal/CreateTaskDialog";
 
 interface CaseTasksTabProps {
   caseData: MockCase;
@@ -28,6 +30,8 @@ const getPriorityBadge = (priority: string) => {
 };
 
 export function CaseTasksTab({ caseData }: CaseTasksTabProps) {
+  const [createOpen, setCreateOpen] = useState(false);
+
   const groupedTasks = {
     'To Do': mockTasks.filter(t => t.status === 'To Do'),
     'Doing': mockTasks.filter(t => t.status === 'Doing'),
@@ -38,7 +42,7 @@ export function CaseTasksTab({ caseData }: CaseTasksTabProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Tasks</h2>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" />
           Create Task
         </Button>
@@ -84,6 +88,13 @@ export function CaseTasksTab({ caseData }: CaseTasksTabProps) {
           </Card>
         ))}
       </div>
+
+      <CreateTaskDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        caseId={caseData.id}
+        onTaskCreated={() => {}}
+      />
     </div>
   );
 }

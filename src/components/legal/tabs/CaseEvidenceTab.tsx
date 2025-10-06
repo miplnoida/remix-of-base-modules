@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, Shield, Lock, Unlock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AddEvidenceDialog } from "@/components/legal/AddEvidenceDialog";
+import { toast } from "sonner";
 
 interface CaseEvidenceTabProps {
   caseData: MockCase;
@@ -15,11 +18,17 @@ const mockEvidence = [
 ];
 
 export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
+  const [addOpen, setAddOpen] = useState(false);
+
+  const handleToggleSeal = (id: number, sealed: boolean) => {
+    toast.success(`Evidence ${sealed ? 'unsealed' : 'sealed'} successfully`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Evidence</h2>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setAddOpen(true)}>
           <Plus className="h-4 w-4" />
           Add Evidence
         </Button>
@@ -69,7 +78,11 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleToggleSeal(item.id, item.sealed)}
+                    >
                       {item.sealed ? 'Unseal' : 'Seal'}
                     </Button>
                   </TableCell>
@@ -79,6 +92,13 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
           </Table>
         </CardContent>
       </Card>
+
+      <AddEvidenceDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        caseId={caseData.id}
+        onEvidenceAdded={() => {}}
+      />
     </div>
   );
 }

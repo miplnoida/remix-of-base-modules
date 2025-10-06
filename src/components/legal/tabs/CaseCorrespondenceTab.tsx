@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, Mail, Send, Download, ArrowDown, ArrowUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { NewCorrespondenceDialog } from "@/components/legal/NewCorrespondenceDialog";
+import { toast } from "sonner";
 
 interface CaseCorrespondenceTabProps {
   caseData: MockCase;
@@ -15,11 +18,17 @@ const mockCorrespondence = [
 ];
 
 export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) {
+  const [newCorrOpen, setNewCorrOpen] = useState(false);
+
+  const handleDownload = (subject: string) => {
+    toast.success(`Downloading ${subject}...`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Correspondence</h2>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setNewCorrOpen(true)}>
           <Plus className="h-4 w-4" />
           New Correspondence
         </Button>
@@ -69,7 +78,7 @@ export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleDownload(item.subject)}>
                       <Download className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -79,6 +88,14 @@ export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) 
           </Table>
         </CardContent>
       </Card>
+
+      <NewCorrespondenceDialog
+        open={newCorrOpen}
+        onOpenChange={setNewCorrOpen}
+        caseId={caseData.id}
+        caseNumber={caseData.number}
+        onCorrespondenceSent={() => {}}
+      />
     </div>
   );
 }

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, Gavel, FileText, Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DraftOrderDialog } from "@/components/legal/DraftOrderDialog";
+import { toast } from "sonner";
 
 interface CaseOrdersTabProps {
   caseData: MockCase;
@@ -15,11 +18,21 @@ const mockOrders = [
 ];
 
 export function CaseOrdersTab({ caseData }: CaseOrdersTabProps) {
+  const [draftOpen, setDraftOpen] = useState(false);
+
+  const handleView = (orderNumber: string) => {
+    toast.info(`Opening order ${orderNumber}...`);
+  };
+
+  const handlePublish = (orderNumber: string) => {
+    toast.success(`Order ${orderNumber} published successfully`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Orders & Judgments</h2>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setDraftOpen(true)}>
           <Plus className="h-4 w-4" />
           Draft Order
         </Button>
@@ -62,11 +75,17 @@ export function CaseOrdersTab({ caseData }: CaseOrdersTabProps) {
                   <TableCell className="text-sm">{order.outcome}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleView(order.number)}>
                         <Eye className="h-4 w-4" />
                       </Button>
                       {order.status === 'Draft' && (
-                        <Button variant="ghost" size="sm">Publish</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handlePublish(order.number)}
+                        >
+                          Publish
+                        </Button>
                       )}
                     </div>
                   </TableCell>
@@ -76,6 +95,14 @@ export function CaseOrdersTab({ caseData }: CaseOrdersTabProps) {
           </Table>
         </CardContent>
       </Card>
+
+      <DraftOrderDialog
+        open={draftOpen}
+        onOpenChange={setDraftOpen}
+        caseId={caseData.id}
+        caseNumber={caseData.number}
+        onOrderDrafted={() => {}}
+      />
     </div>
   );
 }

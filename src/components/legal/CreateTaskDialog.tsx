@@ -11,10 +11,11 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   caseId: string;
-  onCreateTask: (caseId: string, task: any) => void;
+  onTaskCreated?: () => void;
+  onCreateTask?: (caseId: string, task: any) => void;
 }
 
-export function CreateTaskDialog({ open, onOpenChange, caseId, onCreateTask }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ open, onOpenChange, caseId, onTaskCreated, onCreateTask }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("");
   const [owner, setOwner] = useState("");
   const [dueOn, setDueOn] = useState("");
@@ -34,15 +35,18 @@ export function CreateTaskDialog({ open, onOpenChange, caseId, onCreateTask }: C
   const handleSubmit = () => {
     if (!validate()) return;
 
-    onCreateTask(caseId, {
-      title: title.trim(),
-      owner,
-      dueOn: dueOn || undefined,
-      priority,
-      status: "To Do" as const,
-      description: description.trim() || undefined
-    });
-
+    if (onCreateTask) {
+      onCreateTask(caseId, {
+        title: title.trim(),
+        owner,
+        dueOn: dueOn || undefined,
+        priority,
+        status: "To Do" as const,
+        description: description.trim() || undefined
+      });
+    }
+    
+    onTaskCreated?.();
     toast.success("Task created successfully");
     onOpenChange(false);
     
