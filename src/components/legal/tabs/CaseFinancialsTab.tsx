@@ -3,13 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MockCase } from "@/data/mockLegalCases";
-import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar, FileText, Plus, AlertTriangle, Upload, Download } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertCircle, AlertTriangle, Calendar, Plus, Upload, Download, Edit, Receipt } from "lucide-react";
 import { RecordPaymentDialog } from "@/components/legal/RecordPaymentDialog";
 import { AddCostDialog } from "@/components/legal/AddCostDialog";
 import { ExcelImportWizard } from "@/pages/legal/ExcelImportWizard";
 import { PaymentPlanDialog } from "@/components/legal/PaymentPlanDialog";
 import { DebtSummaryCard } from "@/components/legal/DebtSummaryCard";
+import { FinancialDashboard } from "@/components/legal/FinancialDashboard";
+import { CreateDebtDialog } from "@/components/legal/CreateDebtDialog";
+import { WagePeriodsDialog } from "@/components/legal/WagePeriodsDialog";
+import { useFinancialTracking, useFinancialSummary } from "@/hooks/useFinancialTracking";
 import { useLegalDebtTracking, useDebtSummary } from "@/hooks/useLegalDebtTracking";
 import { useLegalPaymentPlans } from "@/hooks/useLegalPaymentPlans";
 import { toast } from "sonner";
@@ -100,8 +105,15 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [importType, setImportType] = useState<'arrears' | 'payments' | 'costs'>('arrears');
   const [paymentPlanOpen, setPaymentPlanOpen] = useState(false);
+  const [createDebtOpen, setCreateDebtOpen] = useState(false);
+  const [wagePeriodsOpen, setWagePeriodsOpen] = useState(false);
+  const [selectedDebtId, setSelectedDebtId] = useState<string>('');
 
-  // Fetch real debt data
+  // Fetch enhanced financial data
+  const { data: detailedDebts, isLoading: financialLoading } = useFinancialTracking(caseData.id);
+  const financialSummary = useFinancialSummary(caseData.id);
+  
+  // Legacy debt tracking
   const { data: debtRecords, isLoading: debtLoading } = useLegalDebtTracking(caseData.id);
   const debtSummary = useDebtSummary(caseData.id);
   const { data: paymentPlan } = useLegalPaymentPlans(caseData.id);
@@ -136,8 +148,12 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Financials</h2>
+        <h2 className="text-lg font-semibold">Financial Management</h2>
         <div className="flex gap-2">
+          <Button size="sm" onClick={() => setCreateDebtOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Debt Record
+          </Button>
           <Button variant="outline" size="sm" onClick={() => { setImportType('arrears'); setImportOpen(true); }}>
             <Upload className="h-4 w-4 mr-2" />
             Import Excel
@@ -153,8 +169,142 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
         </div>
       </div>
 
-      {/* Debt Summary from real data */}
-      <DebtSummaryCard caseId={caseData.id} />
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="detailed">Detailed Records</TabsTrigger>
+          <TabsTrigger value="legacy">Legacy View</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <FinancialDashboard caseId={caseData.id} />
+        </TabsContent>
+
+        <TabsContent value="detailed" className="space-y-6">
+          {/* Detailed Debt Records with Payer Info and Wage Periods */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Debt Records by Payer</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {financialLoading ? (
+                <p className="text-sm text-muted-foreground">Loading financial data...</p>
+              ) : detailedDebts && detailedDebts.length > 0 ? (
+                <div className="space-y-4">
+                  {detailedDebts.map(debt => (
+                    <Card key={debt.id} className="border-2">
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          {/* Payer Header */}
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-lg">{debt.payer_info.payer_name}</h3>
+                                <Badge variant="outline">{debt.payer_info.payer_type}</Badge>
+                                <Badge variant={debt.status === 'Paid' ? 'default' : debt.status === 'Overdue' ? 'destructive' : 'secondary'}>
+                                  {debt.status}
+                                </Badge>
+                              </div>
+                              {debt.payer_info.registry_ref && (
+                                <p className="text-sm text-muted-foreground">
+                                  Registry: {debt.payer_info.registry_ref}
+                                </p>
+                              )}
+                              {debt.payer_info.payer_id && (
+                                <p className="text-sm text-muted-foreground">
+                                  ID: {debt.payer_info.payer_id}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold">${debt.total_debt.toFixed(2)}</p>
+                              <p className="text-sm text-muted-foreground">Total Debt</p>
+                            </div>
+                          </div>
+
+                          {/* Financial Breakdown */}
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-muted rounded-lg">
+                            <div>
+                              <p className="text-xs text-muted-foreground">SS Insured</p>
+                              <p className="font-semibold">${debt.base_debt.ss_insured.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">SS Employer</p>
+                              <p className="font-semibold">${debt.base_debt.ss_employer.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Levy</p>
+                              <p className="font-semibold">${debt.base_debt.levy.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">EI</p>
+                              <p className="font-semibold">${debt.base_debt.ei.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Penalties</p>
+                              <p className="font-semibold text-amber-600">${(debt.penalties?.amount || 0).toFixed(2)}</p>
+                            </div>
+                          </div>
+
+                          {/* Payment Status */}
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="p-3 bg-green-50 dark:bg-green-950 rounded-md">
+                              <p className="text-xs text-muted-foreground">Paid</p>
+                              <p className="text-lg font-semibold text-green-600">${debt.total_paid.toFixed(2)}</p>
+                            </div>
+                            <div className="p-3 bg-red-50 dark:bg-red-950 rounded-md">
+                              <p className="text-xs text-muted-foreground">Outstanding</p>
+                              <p className="text-lg font-semibold text-red-600">${debt.outstanding_balance.toFixed(2)}</p>
+                            </div>
+                            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-md">
+                              <p className="text-xs text-muted-foreground">Wage Periods</p>
+                              <p className="text-lg font-semibold text-blue-600">{debt.wage_periods.length}</p>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedDebtId(debt.id);
+                                setWagePeriodsOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Manage Wage Periods
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => setPaymentOpen(true)}
+                            >
+                              <Receipt className="h-4 w-4 mr-2" />
+                              Record Payment
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No debt records found</p>
+                  <Button size="sm" variant="outline" className="mt-4" onClick={() => setCreateDebtOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Debt Record
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="legacy" className="space-y-6">
+          {/* Legacy Debt Summary */}
+          <DebtSummaryCard caseId={caseData.id} />
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -432,6 +582,24 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
           </Table>
         </CardContent>
       </Card>
+
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs */}
+      <CreateDebtDialog
+        open={createDebtOpen}
+        onOpenChange={setCreateDebtOpen}
+        caseId={caseData.id}
+      />
+
+      <WagePeriodsDialog
+        open={wagePeriodsOpen}
+        onOpenChange={setWagePeriodsOpen}
+        caseId={caseData.id}
+        debtId={selectedDebtId}
+        existingPeriods={detailedDebts?.find(d => d.id === selectedDebtId)?.wage_periods || []}
+      />
 
       <RecordPaymentDialog
         open={paymentOpen}
