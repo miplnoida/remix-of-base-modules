@@ -8,6 +8,10 @@ import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar, FileText, 
 import { RecordPaymentDialog } from "@/components/legal/RecordPaymentDialog";
 import { AddCostDialog } from "@/components/legal/AddCostDialog";
 import { ExcelImportWizard } from "@/pages/legal/ExcelImportWizard";
+import { PaymentPlanDialog } from "@/components/legal/PaymentPlanDialog";
+import { DebtSummaryCard } from "@/components/legal/DebtSummaryCard";
+import { useLegalDebtTracking, useDebtSummary } from "@/hooks/useLegalDebtTracking";
+import { useLegalPaymentPlans } from "@/hooks/useLegalPaymentPlans";
 import { toast } from "sonner";
 
 interface CaseFinancialsTabProps {
@@ -95,6 +99,12 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   const [costOpen, setCostOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importType, setImportType] = useState<'arrears' | 'payments' | 'costs'>('arrears');
+  const [paymentPlanOpen, setPaymentPlanOpen] = useState(false);
+
+  // Fetch real debt data
+  const { data: debtRecords, isLoading: debtLoading } = useLegalDebtTracking(caseData.id);
+  const debtSummary = useDebtSummary(caseData.id);
+  const { data: paymentPlan } = useLegalPaymentPlans(caseData.id);
 
   // Calculate totals
   const totalOwed = periodsOwed.reduce((sum, p) => sum + p.amount, 0);
@@ -136,8 +146,15 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setPaymentPlanOpen(true)}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Payment Plan
+          </Button>
         </div>
       </div>
+
+      {/* Debt Summary from real data */}
+      <DebtSummaryCard caseId={caseData.id} />
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -428,6 +445,13 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
         onOpenChange={setCostOpen}
         caseId={caseData.id}
         onCostAdded={handleImportComplete}
+      />
+
+      <PaymentPlanDialog
+        open={paymentPlanOpen}
+        onOpenChange={setPaymentPlanOpen}
+        caseId={caseData.id}
+        totalAmount={debtSummary.totalBalance}
       />
 
       <ExcelImportWizard
