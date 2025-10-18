@@ -217,6 +217,18 @@ import AuditorView from '@/pages/newBenefit/AuditorView';
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
 
+// BeMA Compliance
+const BemaDashboard = lazy(() => import("@/pages/bema/Dashboard"));
+const BemaRegistrations = lazy(() => import("@/pages/bema/Registrations"));
+const BemaC3Filing = lazy(() => import("@/pages/bema/C3Filing"));
+const BemaArrears = lazy(() => import("@/pages/bema/Arrears"));
+const BemaAudits = lazy(() => import("@/pages/bema/Audits"));
+const BemaInspectorMobile = lazy(() => import("@/pages/bema/InspectorMobile"));
+const BemaContributors = lazy(() => import("@/pages/bema/Contributors"));
+const BemaWaivers = lazy(() => import("@/pages/bema/Waivers"));
+const BemaReports = lazy(() => import("@/pages/bema/Reports"));
+const BemaZones = lazy(() => import("@/pages/bema/Zones"));
+
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
@@ -473,6 +485,18 @@ export const AppRoutes = () => {
           <SSBLegalReports />
         </ProtectedLayout>
       } />
+
+      {/* BeMA Compliance */}
+      <Route path="/bema/dashboard" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaDashboard /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/registrations" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRegistrations /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/c3-filing" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaC3Filing /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/arrears" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaArrears /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/audits" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaAudits /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/inspector-mobile" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaInspectorMobile /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/contributors" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaContributors /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/waivers" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWaivers /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/reports" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaReports /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/zones" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaZones /></Suspense></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />

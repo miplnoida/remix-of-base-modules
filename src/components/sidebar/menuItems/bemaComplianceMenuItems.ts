@@ -18,6 +18,12 @@ export const bemaComplianceMenuItems = [
     icon: Shield,
     subItems: [
       {
+        title: "Dashboard",
+        url: "/bema/dashboard",
+        icon: BarChart3,
+        description: "Overview & KPIs"
+      },
+      {
         title: "Registration & Onboarding",
         url: "/bema/registrations",
         icon: UserPlus,

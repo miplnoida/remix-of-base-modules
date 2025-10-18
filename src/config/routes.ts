@@ -82,6 +82,7 @@ export const routes = {
   LEGAL_CASE_EDIT_SPECIFIC: (id: string) => `/legal/case-edit/${id}`,
 
   // BeMA Compliance routes
+  BEMA_DASHBOARD: '/bema/dashboard',
   BEMA_REGISTRATIONS: '/bema/registrations',
   BEMA_C3_FILING: '/bema/c3-filing',
   BEMA_ARREARS: '/bema/arrears',
