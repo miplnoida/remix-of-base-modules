@@ -18,6 +18,7 @@ import { legalFinalMenuItems } from './menuItems/legalFinalMenuItems';
 import { ssbLegalMenuItems } from './menuItems/ssbLegalMenuItems';
 import { cashierMenuItems } from './menuItems/cashierMenuItems';
 import { notificationMenuItems } from './menuItems/notificationMenuItems';
+import { bemaComplianceMenuItems } from './menuItems/bemaComplianceMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -34,6 +35,7 @@ export const menuItems = [
   ...ssbLegalMenuItems,
   ...cashierMenuItems,
   ...notificationMenuItems,
+  ...bemaComplianceMenuItems,
   ...documentMenuItems,
   ...reportsMenuItems,
   ...userMenuItems,

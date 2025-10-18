@@ -80,4 +80,15 @@ export const routes = {
   LEGAL_REPORTS: '/legal/reports',
   LEGAL_CASE_DETAIL_SPECIFIC: (id: string) => `/legal/case-detail/${id}`,
   LEGAL_CASE_EDIT_SPECIFIC: (id: string) => `/legal/case-edit/${id}`,
+
+  // BeMA Compliance routes
+  BEMA_REGISTRATIONS: '/bema/registrations',
+  BEMA_C3_FILING: '/bema/c3-filing',
+  BEMA_ARREARS: '/bema/arrears',
+  BEMA_AUDITS: '/bema/audits',
+  BEMA_INSPECTOR_MOBILE: '/bema/inspector-mobile',
+  BEMA_CONTRIBUTORS: '/bema/contributors',
+  BEMA_WAIVERS: '/bema/waivers',
+  BEMA_REPORTS: '/bema/reports',
+  BEMA_ZONES: '/bema/zones',
 } as const;

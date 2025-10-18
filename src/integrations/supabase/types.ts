@@ -70,6 +70,1122 @@ export type Database = {
           },
         ]
       }
+      bema_activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          description: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          timestamp: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          description?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          description?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      bema_arrears_ledger: {
+        Row: {
+          amount_paid: number | null
+          created_at: string | null
+          due_date: string | null
+          ei_owed: number | null
+          employer_id: string
+          escalated_to_legal: boolean | null
+          escalation_date: string | null
+          id: string
+          interest: number | null
+          is_estimated: boolean | null
+          last_payment_date: string | null
+          levy_owed: number | null
+          outstanding_balance: number | null
+          payment_plan_id: string | null
+          penalties: number | null
+          period: string
+          period_type: string | null
+          ss_owed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string | null
+          due_date?: string | null
+          ei_owed?: number | null
+          employer_id: string
+          escalated_to_legal?: boolean | null
+          escalation_date?: string | null
+          id?: string
+          interest?: number | null
+          is_estimated?: boolean | null
+          last_payment_date?: string | null
+          levy_owed?: number | null
+          outstanding_balance?: number | null
+          payment_plan_id?: string | null
+          penalties?: number | null
+          period: string
+          period_type?: string | null
+          ss_owed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string | null
+          due_date?: string | null
+          ei_owed?: number | null
+          employer_id?: string
+          escalated_to_legal?: boolean | null
+          escalation_date?: string | null
+          id?: string
+          interest?: number | null
+          is_estimated?: boolean | null
+          last_payment_date?: string | null
+          levy_owed?: number | null
+          outstanding_balance?: number | null
+          payment_plan_id?: string | null
+          penalties?: number | null
+          period?: string
+          period_type?: string | null
+          ss_owed?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bema_audit_cases: {
+        Row: {
+          assigned_at: string | null
+          assigned_inspector_id: string | null
+          audit_type: Database["public"]["Enums"]["bema_audit_type"]
+          case_number: string | null
+          closed_at: string | null
+          complaint_details: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          due_date: string | null
+          employees_interviewed: number | null
+          employer_id: string
+          employer_name: string | null
+          escalated_to_legal: boolean | null
+          escalation_date: string | null
+          evidence_documents: Json | null
+          findings: string | null
+          id: string
+          interview_notes: Json | null
+          outcome: string | null
+          penalty_approved: number | null
+          penalty_recommended: number | null
+          referral_source: string | null
+          source_description: string | null
+          status: Database["public"]["Enums"]["bema_audit_status"] | null
+          updated_at: string | null
+          wage_book_images: Json | null
+          wage_books_reviewed: boolean | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_inspector_id?: string | null
+          audit_type: Database["public"]["Enums"]["bema_audit_type"]
+          case_number?: string | null
+          closed_at?: string | null
+          complaint_details?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          employees_interviewed?: number | null
+          employer_id: string
+          employer_name?: string | null
+          escalated_to_legal?: boolean | null
+          escalation_date?: string | null
+          evidence_documents?: Json | null
+          findings?: string | null
+          id?: string
+          interview_notes?: Json | null
+          outcome?: string | null
+          penalty_approved?: number | null
+          penalty_recommended?: number | null
+          referral_source?: string | null
+          source_description?: string | null
+          status?: Database["public"]["Enums"]["bema_audit_status"] | null
+          updated_at?: string | null
+          wage_book_images?: Json | null
+          wage_books_reviewed?: boolean | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_inspector_id?: string | null
+          audit_type?: Database["public"]["Enums"]["bema_audit_type"]
+          case_number?: string | null
+          closed_at?: string | null
+          complaint_details?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          employees_interviewed?: number | null
+          employer_id?: string
+          employer_name?: string | null
+          escalated_to_legal?: boolean | null
+          escalation_date?: string | null
+          evidence_documents?: Json | null
+          findings?: string | null
+          id?: string
+          interview_notes?: Json | null
+          outcome?: string | null
+          penalty_approved?: number | null
+          penalty_recommended?: number | null
+          referral_source?: string | null
+          source_description?: string | null
+          status?: Database["public"]["Enums"]["bema_audit_status"] | null
+          updated_at?: string | null
+          wage_book_images?: Json | null
+          wage_books_reviewed?: boolean | null
+        }
+        Relationships: []
+      }
+      bema_c3_line_items: {
+        Row: {
+          c3_id: string | null
+          created_at: string | null
+          ei_contribution: number | null
+          employee_name: string | null
+          employee_ssn: string | null
+          holidays: number | null
+          id: string
+          invalid_ssn: boolean | null
+          levy_contribution: number | null
+          line_number: number | null
+          over_age: boolean | null
+          overtime: number | null
+          ss_contribution: number | null
+          under_age: boolean | null
+          wages_paid: number | null
+          weeks_worked: number | null
+        }
+        Insert: {
+          c3_id?: string | null
+          created_at?: string | null
+          ei_contribution?: number | null
+          employee_name?: string | null
+          employee_ssn?: string | null
+          holidays?: number | null
+          id?: string
+          invalid_ssn?: boolean | null
+          levy_contribution?: number | null
+          line_number?: number | null
+          over_age?: boolean | null
+          overtime?: number | null
+          ss_contribution?: number | null
+          under_age?: boolean | null
+          wages_paid?: number | null
+          weeks_worked?: number | null
+        }
+        Update: {
+          c3_id?: string | null
+          created_at?: string | null
+          ei_contribution?: number | null
+          employee_name?: string | null
+          employee_ssn?: string | null
+          holidays?: number | null
+          id?: string
+          invalid_ssn?: boolean | null
+          levy_contribution?: number | null
+          line_number?: number | null
+          over_age?: boolean | null
+          overtime?: number | null
+          ss_contribution?: number | null
+          under_age?: boolean | null
+          wages_paid?: number | null
+          weeks_worked?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_c3_line_items_c3_id_fkey"
+            columns: ["c3_id"]
+            isOneToOne: false
+            referencedRelation: "bema_c3_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_c3_submissions: {
+        Row: {
+          attachments: Json | null
+          c3_number: string | null
+          created_at: string | null
+          employer_id: string
+          filing_period: string
+          id: string
+          payment_amount: number | null
+          payment_date: string | null
+          payment_received: boolean | null
+          payment_reference: string | null
+          posted_at: string | null
+          query_raised: boolean | null
+          query_resolved_at: string | null
+          query_response: string | null
+          query_text: string | null
+          scanned_document_url: string | null
+          status: Database["public"]["Enums"]["bema_c3_status"] | null
+          submission_method: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          total_ei_contribution: number | null
+          total_employees: number | null
+          total_levy_contribution: number | null
+          total_ss_contribution: number | null
+          total_wages: number | null
+          updated_at: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_errors: Json | null
+          validation_warnings: Json | null
+        }
+        Insert: {
+          attachments?: Json | null
+          c3_number?: string | null
+          created_at?: string | null
+          employer_id: string
+          filing_period: string
+          id?: string
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_received?: boolean | null
+          payment_reference?: string | null
+          posted_at?: string | null
+          query_raised?: boolean | null
+          query_resolved_at?: string | null
+          query_response?: string | null
+          query_text?: string | null
+          scanned_document_url?: string | null
+          status?: Database["public"]["Enums"]["bema_c3_status"] | null
+          submission_method?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          total_ei_contribution?: number | null
+          total_employees?: number | null
+          total_levy_contribution?: number | null
+          total_ss_contribution?: number | null
+          total_wages?: number | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_errors?: Json | null
+          validation_warnings?: Json | null
+        }
+        Update: {
+          attachments?: Json | null
+          c3_number?: string | null
+          created_at?: string | null
+          employer_id?: string
+          filing_period?: string
+          id?: string
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_received?: boolean | null
+          payment_reference?: string | null
+          posted_at?: string | null
+          query_raised?: boolean | null
+          query_resolved_at?: string | null
+          query_response?: string | null
+          query_text?: string | null
+          scanned_document_url?: string | null
+          status?: Database["public"]["Enums"]["bema_c3_status"] | null
+          submission_method?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          total_ei_contribution?: number | null
+          total_employees?: number | null
+          total_levy_contribution?: number | null
+          total_ss_contribution?: number | null
+          total_wages?: number | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_errors?: Json | null
+          validation_warnings?: Json | null
+        }
+        Relationships: []
+      }
+      bema_contributors: {
+        Row: {
+          active: boolean | null
+          address: string | null
+          category_change_count: number | null
+          category_effective_date: string | null
+          cessation_date: string | null
+          contribution_category: Database["public"]["Enums"]["bema_category"]
+          contributor_type: Database["public"]["Enums"]["bema_registration_type"]
+          created_at: string | null
+          date_of_birth: string | null
+          email: string | null
+          enrollment_date: string | null
+          full_name: string
+          id: string
+          last_category_change: string | null
+          phone: string | null
+          registration_id: string | null
+          ssn: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          address?: string | null
+          category_change_count?: number | null
+          category_effective_date?: string | null
+          cessation_date?: string | null
+          contribution_category: Database["public"]["Enums"]["bema_category"]
+          contributor_type: Database["public"]["Enums"]["bema_registration_type"]
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          enrollment_date?: string | null
+          full_name: string
+          id?: string
+          last_category_change?: string | null
+          phone?: string | null
+          registration_id?: string | null
+          ssn?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          address?: string | null
+          category_change_count?: number | null
+          category_effective_date?: string | null
+          cessation_date?: string | null
+          contribution_category?: Database["public"]["Enums"]["bema_category"]
+          contributor_type?: Database["public"]["Enums"]["bema_registration_type"]
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          enrollment_date?: string | null
+          full_name?: string
+          id?: string
+          last_category_change?: string | null
+          phone?: string | null
+          registration_id?: string | null
+          ssn?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_contributors_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "bema_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_employee_interviews: {
+        Row: {
+          audit_id: string | null
+          created_at: string | null
+          discrepancies: string | null
+          employee_name: string | null
+          employee_ssn: string | null
+          id: string
+          interview_date: string | null
+          interviewer_id: string | null
+          notes: string | null
+          position: string | null
+          signature_data: string | null
+          wages_claimed: number | null
+          weeks_worked: number | null
+        }
+        Insert: {
+          audit_id?: string | null
+          created_at?: string | null
+          discrepancies?: string | null
+          employee_name?: string | null
+          employee_ssn?: string | null
+          id?: string
+          interview_date?: string | null
+          interviewer_id?: string | null
+          notes?: string | null
+          position?: string | null
+          signature_data?: string | null
+          wages_claimed?: number | null
+          weeks_worked?: number | null
+        }
+        Update: {
+          audit_id?: string | null
+          created_at?: string | null
+          discrepancies?: string | null
+          employee_name?: string | null
+          employee_ssn?: string | null
+          id?: string
+          interview_date?: string | null
+          interviewer_id?: string | null
+          notes?: string | null
+          position?: string | null
+          signature_data?: string | null
+          wages_claimed?: number | null
+          weeks_worked?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_employee_interviews_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "bema_audit_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_field_activities: {
+        Row: {
+          action_taken: string | null
+          activity_date: string
+          activity_type: Database["public"]["Enums"]["bema_inspector_activity"]
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string | null
+          documents: Json | null
+          employer_id: string | null
+          employer_name: string | null
+          employer_signature_data: string | null
+          findings: string | null
+          follow_up_date: string | null
+          follow_up_required: boolean | null
+          id: string
+          inspector_id: string
+          location_lat: number | null
+          location_lng: number | null
+          notice_served: boolean | null
+          notice_type: string | null
+          photos: Json | null
+          purpose: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          activity_date: string
+          activity_type: Database["public"]["Enums"]["bema_inspector_activity"]
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          documents?: Json | null
+          employer_id?: string | null
+          employer_name?: string | null
+          employer_signature_data?: string | null
+          findings?: string | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          inspector_id: string
+          location_lat?: number | null
+          location_lng?: number | null
+          notice_served?: boolean | null
+          notice_type?: string | null
+          photos?: Json | null
+          purpose?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          activity_date?: string
+          activity_type?: Database["public"]["Enums"]["bema_inspector_activity"]
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          documents?: Json | null
+          employer_id?: string | null
+          employer_name?: string | null
+          employer_signature_data?: string | null
+          findings?: string | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          inspector_id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          notice_served?: boolean | null
+          notice_type?: string | null
+          photos?: Json | null
+          purpose?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bema_inspector_assignments: {
+        Row: {
+          assigned_at: string | null
+          created_at: string | null
+          id: string
+          inspector_id: string
+          is_primary: boolean | null
+          zone_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          created_at?: string | null
+          id?: string
+          inspector_id: string
+          is_primary?: boolean | null
+          zone_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          created_at?: string | null
+          id?: string
+          inspector_id?: string
+          is_primary?: boolean | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_inspector_assignments_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "bema_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_installments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string
+          id: string
+          installment_number: number
+          overdue: boolean | null
+          paid: boolean | null
+          paid_amount: number | null
+          paid_date: string | null
+          payment_plan_id: string | null
+          payment_reference: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          due_date: string
+          id?: string
+          installment_number: number
+          overdue?: boolean | null
+          paid?: boolean | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_plan_id?: string | null
+          payment_reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          overdue?: boolean | null
+          paid?: boolean | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_plan_id?: string | null
+          payment_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_installments_payment_plan_id_fkey"
+            columns: ["payment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "bema_payment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_payment_plans: {
+        Row: {
+          agreement_document_url: string | null
+          agreement_signed: boolean | null
+          broken_date: string | null
+          broken_reason: string | null
+          conditions: Json | null
+          created_at: string | null
+          created_by: string | null
+          employer_id: string
+          escalated_at: string | null
+          frequency: string
+          id: string
+          installment_amount: number
+          installments_paid: number | null
+          next_due_date: string | null
+          number_of_installments: number
+          signature_data: string | null
+          signed_at: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["bema_plan_status"] | null
+          terms: string | null
+          total_debt: number
+          total_paid: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          agreement_document_url?: string | null
+          agreement_signed?: boolean | null
+          broken_date?: string | null
+          broken_reason?: string | null
+          conditions?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          employer_id: string
+          escalated_at?: string | null
+          frequency: string
+          id?: string
+          installment_amount: number
+          installments_paid?: number | null
+          next_due_date?: string | null
+          number_of_installments: number
+          signature_data?: string | null
+          signed_at?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["bema_plan_status"] | null
+          terms?: string | null
+          total_debt: number
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          agreement_document_url?: string | null
+          agreement_signed?: boolean | null
+          broken_date?: string | null
+          broken_reason?: string | null
+          conditions?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          employer_id?: string
+          escalated_at?: string | null
+          frequency?: string
+          id?: string
+          installment_amount?: number
+          installments_paid?: number | null
+          next_due_date?: string | null
+          number_of_installments?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["bema_plan_status"] | null
+          terms?: string | null
+          total_debt?: number
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bema_registrations: {
+        Row: {
+          address: string | null
+          approved_at: string | null
+          approved_by: string | null
+          assigned_at: string | null
+          assigned_inspector_id: string | null
+          business_type: string | null
+          created_at: string | null
+          created_by: string | null
+          date_of_birth: string | null
+          documents: Json | null
+          education_completed: boolean | null
+          education_date: string | null
+          email: string | null
+          employer_name: string | null
+          id: string
+          notes: string | null
+          person_name: string | null
+          phone: string | null
+          registration_number: string | null
+          registration_type: Database["public"]["Enums"]["bema_registration_type"]
+          ssn: string | null
+          status: Database["public"]["Enums"]["bema_registration_status"] | null
+          tax_id: string | null
+          updated_at: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_at?: string | null
+          assigned_inspector_id?: string | null
+          business_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          documents?: Json | null
+          education_completed?: boolean | null
+          education_date?: string | null
+          email?: string | null
+          employer_name?: string | null
+          id?: string
+          notes?: string | null
+          person_name?: string | null
+          phone?: string | null
+          registration_number?: string | null
+          registration_type: Database["public"]["Enums"]["bema_registration_type"]
+          ssn?: string | null
+          status?:
+            | Database["public"]["Enums"]["bema_registration_status"]
+            | null
+          tax_id?: string | null
+          updated_at?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_at?: string | null
+          assigned_inspector_id?: string | null
+          business_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          documents?: Json | null
+          education_completed?: boolean | null
+          education_date?: string | null
+          email?: string | null
+          employer_name?: string | null
+          id?: string
+          notes?: string | null
+          person_name?: string | null
+          phone?: string | null
+          registration_number?: string | null
+          registration_type?: Database["public"]["Enums"]["bema_registration_type"]
+          ssn?: string | null
+          status?:
+            | Database["public"]["Enums"]["bema_registration_status"]
+            | null
+          tax_id?: string | null
+          updated_at?: string | null
+          zone_id?: string | null
+        }
+        Relationships: []
+      }
+      bema_remittance_calendar: {
+        Row: {
+          auto_generate_voucher: boolean | null
+          contributor_id: string | null
+          created_at: string | null
+          frequency: string
+          id: string
+          next_due_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_generate_voucher?: boolean | null
+          contributor_id?: string | null
+          created_at?: string | null
+          frequency: string
+          id?: string
+          next_due_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_generate_voucher?: boolean | null
+          contributor_id?: string | null
+          created_at?: string | null
+          frequency?: string
+          id?: string
+          next_due_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_remittance_calendar_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "bema_contributors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_vouchers: {
+        Row: {
+          amount_due: number
+          contribution_category: Database["public"]["Enums"]["bema_category"]
+          contributor_id: string | null
+          created_at: string | null
+          generated_by: string | null
+          id: string
+          is_prorated: boolean | null
+          overdue: boolean | null
+          paid: boolean | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          proration_details: string | null
+          reminder_date: string | null
+          reminder_sent: boolean | null
+          updated_at: string | null
+          voucher_number: string | null
+        }
+        Insert: {
+          amount_due: number
+          contribution_category: Database["public"]["Enums"]["bema_category"]
+          contributor_id?: string | null
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          is_prorated?: boolean | null
+          overdue?: boolean | null
+          paid?: boolean | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          proration_details?: string | null
+          reminder_date?: string | null
+          reminder_sent?: boolean | null
+          updated_at?: string | null
+          voucher_number?: string | null
+        }
+        Update: {
+          amount_due?: number
+          contribution_category?: Database["public"]["Enums"]["bema_category"]
+          contributor_id?: string | null
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          is_prorated?: boolean | null
+          overdue?: boolean | null
+          paid?: boolean | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          proration_details?: string | null
+          reminder_date?: string | null
+          reminder_sent?: boolean | null
+          updated_at?: string | null
+          voucher_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bema_vouchers_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "bema_contributors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bema_waivers: {
+        Row: {
+          agreement_document_url: string | null
+          agreement_signed: boolean | null
+          amount_requested: number
+          approved_amount: number | null
+          case_reference: string | null
+          conditions: string | null
+          created_at: string | null
+          director_approved: boolean | null
+          director_approved_at: string | null
+          director_comments: string | null
+          director_decision: string | null
+          director_id: string | null
+          employer_id: string | null
+          id: string
+          interest_to_waive: number | null
+          justification: string
+          legal_comments: string | null
+          legal_decision: string | null
+          legal_officer_id: string | null
+          legal_reviewed: boolean | null
+          legal_reviewed_at: string | null
+          manager_comments: string | null
+          manager_decision: string | null
+          manager_id: string | null
+          manager_reviewed: boolean | null
+          manager_reviewed_at: string | null
+          penalties_to_waive: number | null
+          requested_at: string | null
+          requested_by: string | null
+          signature_data: string | null
+          status: Database["public"]["Enums"]["bema_waiver_status"] | null
+          supporting_documents: Json | null
+          updated_at: string | null
+          waiver_number: string | null
+        }
+        Insert: {
+          agreement_document_url?: string | null
+          agreement_signed?: boolean | null
+          amount_requested: number
+          approved_amount?: number | null
+          case_reference?: string | null
+          conditions?: string | null
+          created_at?: string | null
+          director_approved?: boolean | null
+          director_approved_at?: string | null
+          director_comments?: string | null
+          director_decision?: string | null
+          director_id?: string | null
+          employer_id?: string | null
+          id?: string
+          interest_to_waive?: number | null
+          justification: string
+          legal_comments?: string | null
+          legal_decision?: string | null
+          legal_officer_id?: string | null
+          legal_reviewed?: boolean | null
+          legal_reviewed_at?: string | null
+          manager_comments?: string | null
+          manager_decision?: string | null
+          manager_id?: string | null
+          manager_reviewed?: boolean | null
+          manager_reviewed_at?: string | null
+          penalties_to_waive?: number | null
+          requested_at?: string | null
+          requested_by?: string | null
+          signature_data?: string | null
+          status?: Database["public"]["Enums"]["bema_waiver_status"] | null
+          supporting_documents?: Json | null
+          updated_at?: string | null
+          waiver_number?: string | null
+        }
+        Update: {
+          agreement_document_url?: string | null
+          agreement_signed?: boolean | null
+          amount_requested?: number
+          approved_amount?: number | null
+          case_reference?: string | null
+          conditions?: string | null
+          created_at?: string | null
+          director_approved?: boolean | null
+          director_approved_at?: string | null
+          director_comments?: string | null
+          director_decision?: string | null
+          director_id?: string | null
+          employer_id?: string | null
+          id?: string
+          interest_to_waive?: number | null
+          justification?: string
+          legal_comments?: string | null
+          legal_decision?: string | null
+          legal_officer_id?: string | null
+          legal_reviewed?: boolean | null
+          legal_reviewed_at?: string | null
+          manager_comments?: string | null
+          manager_decision?: string | null
+          manager_id?: string | null
+          manager_reviewed?: boolean | null
+          manager_reviewed_at?: string | null
+          penalties_to_waive?: number | null
+          requested_at?: string | null
+          requested_by?: string | null
+          signature_data?: string | null
+          status?: Database["public"]["Enums"]["bema_waiver_status"] | null
+          supporting_documents?: Json | null
+          updated_at?: string | null
+          waiver_number?: string | null
+        }
+        Relationships: []
+      }
+      bema_weekly_plans: {
+        Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          id: string
+          inspector_id: string
+          planned_activities: Json | null
+          submitted: boolean | null
+          submitted_at: string | null
+          updated_at: string | null
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          inspector_id: string
+          planned_activities?: Json | null
+          submitted?: boolean | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          inspector_id?: string
+          planned_activities?: Json | null
+          submitted?: boolean | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: []
+      }
+      bema_zones: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          parishes: string[] | null
+          updated_at: string | null
+          zone_code: string | null
+          zone_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          parishes?: string[] | null
+          updated_at?: string | null
+          zone_code?: string | null
+          zone_name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          parishes?: string[] | null
+          updated_at?: string | null
+          zone_code?: string | null
+          zone_name?: string
+        }
+        Relationships: []
+      }
       c3_line_items: {
         Row: {
           c3_id: string | null
@@ -2194,6 +3310,44 @@ export type Database = {
         | "follow_up"
         | "scouting"
         | "investigation"
+      bema_audit_status:
+        | "assigned"
+        | "in_progress"
+        | "completed"
+        | "escalated"
+        | "closed"
+      bema_audit_type:
+        | "random"
+        | "complaint"
+        | "referral"
+        | "follow_up"
+        | "scouting"
+        | "investigation"
+      bema_c3_status:
+        | "draft"
+        | "submitted"
+        | "validated"
+        | "posted"
+        | "rejected"
+        | "query_raised"
+      bema_category: "cat_a" | "cat_b" | "cat_c" | "cat_d" | "cat_e"
+      bema_inspector_activity:
+        | "inspection"
+        | "audit"
+        | "investigation"
+        | "scouting"
+        | "education"
+        | "notice_service"
+      bema_plan_status: "active" | "completed" | "broken" | "escalated"
+      bema_registration_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "active"
+        | "inactive"
+        | "suspended"
+      bema_registration_type: "employer" | "self_employed" | "voluntary"
+      bema_waiver_status: "pending" | "approved" | "rejected"
       c3_filing_status:
         | "draft"
         | "submitted"
@@ -2416,6 +3570,49 @@ export const Constants = {
         "scouting",
         "investigation",
       ],
+      bema_audit_status: [
+        "assigned",
+        "in_progress",
+        "completed",
+        "escalated",
+        "closed",
+      ],
+      bema_audit_type: [
+        "random",
+        "complaint",
+        "referral",
+        "follow_up",
+        "scouting",
+        "investigation",
+      ],
+      bema_c3_status: [
+        "draft",
+        "submitted",
+        "validated",
+        "posted",
+        "rejected",
+        "query_raised",
+      ],
+      bema_category: ["cat_a", "cat_b", "cat_c", "cat_d", "cat_e"],
+      bema_inspector_activity: [
+        "inspection",
+        "audit",
+        "investigation",
+        "scouting",
+        "education",
+        "notice_service",
+      ],
+      bema_plan_status: ["active", "completed", "broken", "escalated"],
+      bema_registration_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "active",
+        "inactive",
+        "suspended",
+      ],
+      bema_registration_type: ["employer", "self_employed", "voluntary"],
+      bema_waiver_status: ["pending", "approved", "rejected"],
       c3_filing_status: [
         "draft",
         "submitted",
