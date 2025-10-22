@@ -372,6 +372,8 @@ export const AppRoutes = () => {
 
       {/* BeMA Compliance Routes - Additional */}
       <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/c3-filing" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaC3Filing /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/registrations" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRegistrations /></Suspense></ProtectedLayout>} />
       <Route path="/bema/scouting" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaScoutingReview /></Suspense></ProtectedLayout>} />
       <Route path="/bema/admin/rules" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaAdminRules /></Suspense></ProtectedLayout>} />
       <Route path="/bema/admin/templates" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaTemplateManagement /></Suspense></ProtectedLayout>} />
