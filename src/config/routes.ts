@@ -93,4 +93,9 @@ export const routes = {
   BEMA_REPORTS: '/bema/reports',
   BEMA_ZONES: '/bema/zones',
   BEMA_WORKPLAN: '/bema/workplan',
+  BEMA_SCOUTING: '/bema/scouting',
+  BEMA_ADMIN_RULES: '/bema/admin/rules',
+  BEMA_ADMIN_TEMPLATES: '/bema/admin/templates',
+  BEMA_ADMIN_ROLES: '/bema/admin/roles',
+  BEMA_ADMIN_LOGS: '/bema/admin/logs',
 } as const;

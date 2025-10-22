@@ -183,6 +183,14 @@ import { EnforcementForm } from '@/pages/legalFinal/EnforcementForm';
 import { HearingSchedule } from '@/pages/legalFinal/HearingSchedule';
 import { EnforcementManagement } from '@/pages/legalFinal/EnforcementManagement';
 
+// BeMA Compliance Pages (lazy loaded)
+const BemaWorkplanManagement = lazy(() => import("@/pages/bema/WorkplanManagement"));
+const BemaScoutingReview = lazy(() => import("@/pages/bema/ScoutingReview"));
+const BemaAdminRules = lazy(() => import("@/pages/bema/AdminRules"));
+const BemaTemplateManagement = lazy(() => import("@/pages/bema/TemplateManagement"));
+const BemaRoleManagement = lazy(() => import("@/pages/bema/RoleManagement"));
+const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
+
 // Notification Pages
 import NotificationDashboard from '@/pages/notifications/NotificationDashboard';
 import TemplateManagement from '@/pages/notifications/TemplateManagement';
@@ -362,6 +370,14 @@ export const AppRoutes = () => {
       <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+
+      {/* BeMA Compliance Routes */}
+      <Route path="/bema/workplan" element={<BemaWorkplanManagement />} />
+      <Route path="/bema/scouting" element={<BemaScoutingReview />} />
+      <Route path="/bema/admin/rules" element={<BemaAdminRules />} />
+      <Route path="/bema/admin/templates" element={<BemaTemplateManagement />} />
+      <Route path="/bema/admin/roles" element={<BemaRoleManagement />} />
+      <Route path="/bema/admin/logs" element={<BemaSystemLogs />} />
 
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />

@@ -9,7 +9,8 @@ import {
   BarChart3,
   UserPlus,
   Calendar,
-  Map
+  Map,
+  Settings
 } from "lucide-react";
 
 export const bemaComplianceMenuItems = [
@@ -82,6 +83,18 @@ export const bemaComplianceMenuItems = [
         url: "/bema/zones",
         icon: Map,
         description: "Inspector zones & assignments"
+      },
+      {
+        title: "Scouting Review",
+        url: "/bema/scouting",
+        icon: Search,
+        description: "Unregistered employer detection"
+      },
+      {
+        title: "Admin & Config",
+        url: "/bema/admin/rules",
+        icon: Settings,
+        description: "Rules, templates, roles & logs"
       }
     ]
   }
