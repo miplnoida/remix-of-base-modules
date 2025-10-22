@@ -184,12 +184,6 @@ import { HearingSchedule } from '@/pages/legalFinal/HearingSchedule';
 import { EnforcementManagement } from '@/pages/legalFinal/EnforcementManagement';
 
 // BeMA Compliance Pages (lazy loaded)
-const BemaWorkplanManagement = lazy(() => import("@/pages/bema/WorkplanManagement"));
-const BemaScoutingReview = lazy(() => import("@/pages/bema/ScoutingReview"));
-const BemaAdminRules = lazy(() => import("@/pages/bema/AdminRules"));
-const BemaTemplateManagement = lazy(() => import("@/pages/bema/TemplateManagement"));
-const BemaRoleManagement = lazy(() => import("@/pages/bema/RoleManagement"));
-const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
 
 // Notification Pages
 import NotificationDashboard from '@/pages/notifications/NotificationDashboard';
@@ -237,6 +231,11 @@ const BemaWaivers = lazy(() => import("@/pages/bema/Waivers"));
 const BemaReports = lazy(() => import("@/pages/bema/Reports"));
 const BemaZones = lazy(() => import("@/pages/bema/Zones"));
 const BemaWorkplan = lazy(() => import("@/pages/bema/WorkplanManagement"));
+const BemaScoutingReview = lazy(() => import("@/pages/bema/ScoutingReview"));
+const BemaAdminRules = lazy(() => import("@/pages/bema/AdminRules"));
+const BemaTemplateManagement = lazy(() => import("@/pages/bema/TemplateManagement"));
+const BemaRoleManagement = lazy(() => import("@/pages/bema/RoleManagement"));
+const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
 
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
@@ -371,13 +370,13 @@ export const AppRoutes = () => {
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
-      {/* BeMA Compliance Routes */}
-      <Route path="/bema/workplan" element={<BemaWorkplanManagement />} />
-      <Route path="/bema/scouting" element={<BemaScoutingReview />} />
-      <Route path="/bema/admin/rules" element={<BemaAdminRules />} />
-      <Route path="/bema/admin/templates" element={<BemaTemplateManagement />} />
-      <Route path="/bema/admin/roles" element={<BemaRoleManagement />} />
-      <Route path="/bema/admin/logs" element={<BemaSystemLogs />} />
+      {/* BeMA Compliance Routes - Additional */}
+      <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/scouting" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaScoutingReview /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/admin/rules" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaAdminRules /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/admin/templates" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaTemplateManagement /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/admin/roles" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRoleManagement /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/admin/logs" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaSystemLogs /></Suspense></ProtectedLayout>} />
 
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
