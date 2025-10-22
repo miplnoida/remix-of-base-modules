@@ -24,6 +24,12 @@ export const bemaComplianceMenuItems = [
         description: "Overview & KPIs"
       },
       {
+        title: "Workplan Management",
+        url: "/bema/workplan",
+        icon: Calendar,
+        description: "Monitor & approve inspector workplans"
+      },
+      {
         title: "Registration & Onboarding",
         url: "/bema/registrations",
         icon: UserPlus,

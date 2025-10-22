@@ -228,6 +228,7 @@ const BemaContributors = lazy(() => import("@/pages/bema/Contributors"));
 const BemaWaivers = lazy(() => import("@/pages/bema/Waivers"));
 const BemaReports = lazy(() => import("@/pages/bema/Reports"));
 const BemaZones = lazy(() => import("@/pages/bema/Zones"));
+const BemaWorkplan = lazy(() => import("@/pages/bema/WorkplanManagement"));
 
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
@@ -497,6 +498,7 @@ export const AppRoutes = () => {
       <Route path="/bema/waivers" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWaivers /></Suspense></ProtectedLayout>} />
       <Route path="/bema/reports" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaReports /></Suspense></ProtectedLayout>} />
       <Route path="/bema/zones" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaZones /></Suspense></ProtectedLayout>} />
+      <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />

@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Building2, 
   FileText, 
@@ -8,7 +10,13 @@ import {
   Users, 
   TrendingUp,
   AlertTriangle,
-  CheckCircle 
+  CheckCircle,
+  Clock,
+  MapPin,
+  Calendar,
+  Filter,
+  Download,
+  Plus
 } from "lucide-react";
 import { useBemaDashboardStats } from "@/hooks/useBemaData";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +24,10 @@ import {
   LineChart, 
   Line, 
   BarChart, 
-  Bar, 
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -24,6 +35,14 @@ import {
   Legend, 
   ResponsiveContainer 
 } from "recharts";
+import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const filingTrendData = [
   { month: 'Jan', filed: 245, expected: 300 },
@@ -43,8 +62,24 @@ const arrearsRecoveryData = [
   { month: 'Jun', recovered: 72000, outstanding: 89000 },
 ];
 
+const zonePerformanceData = [
+  { zone: 'Zone A', value: 92, color: 'hsl(var(--chart-1))' },
+  { zone: 'Zone B', value: 87, color: 'hsl(var(--chart-2))' },
+  { zone: 'Zone C', value: 78, color: 'hsl(var(--chart-3))' },
+  { zone: 'Zone D', value: 95, color: 'hsl(var(--chart-4))' },
+];
+
+const inspectorActivityData = [
+  { name: 'Inspector A', visits: 28, audits: 12, notices: 8 },
+  { name: 'Inspector B', visits: 32, audits: 15, notices: 10 },
+  { name: 'Inspector C', visits: 24, audits: 9, notices: 6 },
+  { name: 'Inspector D', visits: 30, audits: 14, notices: 9 },
+];
+
 export default function BemaDashboard() {
   const { data: stats, isLoading } = useBemaDashboardStats();
+  const [dateRange, setDateRange] = useState("30");
+  const [selectedZone, setSelectedZone] = useState("all");
 
   const kpiCards = [
     {
@@ -93,9 +128,39 @@ export default function BemaDashboard() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">BeMA Compliance Dashboard</h1>
-        <p className="text-muted-foreground">Real-time overview of compliance activities</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">BeMA Compliance Dashboard</h1>
+          <p className="text-muted-foreground">Real-time overview of compliance activities</p>
+        </div>
+        <div className="flex gap-2">
+          <Select value={selectedZone} onValueChange={setSelectedZone}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Zones" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Zones</SelectItem>
+              <SelectItem value="zone-a">Zone A</SelectItem>
+              <SelectItem value="zone-b">Zone B</SelectItem>
+              <SelectItem value="zone-c">Zone C</SelectItem>
+              <SelectItem value="zone-d">Zone D</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 Days</SelectItem>
+              <SelectItem value="30">Last 30 Days</SelectItem>
+              <SelectItem value="90">Last 90 Days</SelectItem>
+              <SelectItem value="365">Last Year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="icon">
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -171,37 +236,106 @@ export default function BemaDashboard() {
         </TabsContent>
 
         <TabsContent value="audits">
-          <Card>
-            <CardHeader>
-              <CardTitle>Audit Completion Rate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { inspector: "Zone A", completed: 12, target: 15, rate: 80 },
-                  { inspector: "Zone B", completed: 18, target: 20, rate: 90 },
-                  { inspector: "Zone C", completed: 9, target: 12, rate: 75 },
-                ].map((zone, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{zone.inspector}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {zone.completed}/{zone.target} ({zone.rate}%)
-                      </span>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Audit Completion Rate by Zone</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { inspector: "Zone A", completed: 12, target: 15, rate: 80 },
+                    { inspector: "Zone B", completed: 18, target: 20, rate: 90 },
+                    { inspector: "Zone C", completed: 9, target: 12, rate: 75 },
+                    { inspector: "Zone D", completed: 14, target: 15, rate: 93 },
+                  ].map((zone, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{zone.inspector}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {zone.completed}/{zone.target} ({zone.rate}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full" 
+                          style={{ width: `${zone.rate}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full" 
-                        style={{ width: `${zone.rate}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Inspector Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={inspectorActivityData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="visits" fill="hsl(var(--chart-1))" name="Field Visits" />
+                    <Bar dataKey="audits" fill="hsl(var(--chart-2))" name="Audits" />
+                    <Bar dataKey="notices" fill="hsl(var(--chart-3))" name="Notices Served" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
+
+      {/* Zone Performance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Zone Compliance Performance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={zonePerformanceData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ zone, value }) => `${zone}: ${value}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {zonePerformanceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-4">
+              {zonePerformanceData.map((zone, i) => (
+                <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-4 h-4 rounded" 
+                      style={{ backgroundColor: zone.color }}
+                    />
+                    <span className="font-medium">{zone.zone}</span>
+                  </div>
+                  <Badge variant={zone.value >= 90 ? "default" : zone.value >= 80 ? "secondary" : "destructive"}>
+                    {zone.value}% Compliant
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <Card>

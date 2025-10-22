@@ -92,4 +92,5 @@ export const routes = {
   BEMA_WAIVERS: '/bema/waivers',
   BEMA_REPORTS: '/bema/reports',
   BEMA_ZONES: '/bema/zones',
+  BEMA_WORKPLAN: '/bema/workplan',
 } as const;
