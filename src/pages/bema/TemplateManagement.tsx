@@ -56,7 +56,10 @@ export default function BemaTemplateManagement() {
             Create and manage document templates for letters, notices, and statements
           </p>
         </div>
-        <Button className="gap-2">
+        <Button 
+          className="gap-2"
+          onClick={() => toast.success("New template creation form will appear here")}
+        >
           <Plus className="h-4 w-4" />
           New Template
         </Button>
@@ -122,15 +125,27 @@ export default function BemaTemplateManagement() {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.info("Template preview will appear here")}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         Preview
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.success("Template duplicated")}
+                      >
                         <Copy className="h-4 w-4 mr-2" />
                         Duplicate
                       </Button>
-                      <Button variant="destructive" size="sm">
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => toast.error("Cannot delete template")}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

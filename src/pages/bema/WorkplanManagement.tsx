@@ -14,6 +14,7 @@ import {
   Filter
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface WorkplanEntry {
   id: string;
@@ -209,11 +210,32 @@ export default function WorkplanManagement() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">View Details</Button>
-                      <Button variant="destructive" size="sm">Reject</Button>
-                      <Button size="sm">Approve</Button>
-                    </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toast.info(`Viewing details for ${workplan.id}`)}
+                >
+                  View Details
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => {
+                    toast.success(`Workplan ${workplan.id} rejected`);
+                  }}
+                >
+                  Reject
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    toast.success(`Workplan ${workplan.id} approved`);
+                  }}
+                >
+                  Approve
+                </Button>
+              </div>
                   </div>
                 </CardContent>
               </Card>

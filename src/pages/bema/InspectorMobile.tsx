@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smartphone, Calendar, MapPin, Camera, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function BemaInspectorMobile() {
   return (
@@ -102,10 +103,18 @@ export default function BemaInspectorMobile() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={activity.status === "in_progress" ? "default" : "secondary"}>
+                      <Badge variant={activity.status === "in_progress" ? "default" : "outline"}
+                        className={activity.status === "pending" ? "border-blue-600 text-blue-700 bg-blue-50" : ""}
+                      >
                         {activity.status.replace("_", " ")}
                       </Badge>
-                      <Button variant="outline" size="sm">Check In</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.success(`Checked in at ${activity.employer}`)}
+                      >
+                        Check In
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -129,7 +138,9 @@ export default function BemaInspectorMobile() {
                   and notice services for approval by your supervisor.
                 </p>
               </div>
-              <Button>Create Weekly Plan</Button>
+              <Button onClick={() => toast.success("Weekly plan creation form will appear here")}>
+                Create Weekly Plan
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

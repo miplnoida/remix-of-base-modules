@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Users, Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 export default function BemaRoleManagement() {
   const roles = [
@@ -54,7 +55,10 @@ export default function BemaRoleManagement() {
             Configure user roles and access permissions (RBAC)
           </p>
         </div>
-        <Button className="gap-2">
+        <Button 
+          className="gap-2"
+          onClick={() => toast.success("New role creation form will appear here")}
+        >
           <Plus className="h-4 w-4" />
           New Role
         </Button>
@@ -90,11 +94,19 @@ export default function BemaRoleManagement() {
                     </div>
                     <div className="flex items-center gap-4">
                       <Badge variant="secondary">{role.users} users</Badge>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.info(`Editing role: ${role.name}`)}
+                      >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="destructive" size="sm">
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => toast.error(`Cannot delete role: ${role.name}`)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -165,7 +177,11 @@ export default function BemaRoleManagement() {
                     </div>
                     <div className="flex items-center gap-4">
                       <Badge>{user.role}</Badge>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.info(`Changing role for ${user.name}`)}
+                      >
                         Change Role
                       </Button>
                     </div>

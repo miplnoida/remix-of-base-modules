@@ -146,11 +146,14 @@ export default function BemaScoutingReview() {
                           <span className="text-muted-foreground">Date: {report.date}</span>
                         </div>
                       </div>
-                      <Badge variant={
-                        report.status === "verified" ? "default" :
-                        report.status === "invalid" ? "destructive" :
-                        "secondary"
-                      }>
+                      <Badge 
+                        variant={
+                          report.status === "verified" ? "default" :
+                          report.status === "invalid" ? "destructive" :
+                          "outline"
+                        }
+                        className={report.status === "pending" ? "border-blue-600 text-blue-700 bg-blue-50" : ""}
+                      >
                         {report.status}
                       </Badge>
                     </div>
@@ -171,12 +174,20 @@ export default function BemaScoutingReview() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.info(`Viewing photos for ${report.businessName}`)}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         View Photos
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast.info(`Viewing location for ${report.businessName}`)}
+                      >
                         <MapPin className="h-4 w-4 mr-2" />
                         View Location
                       </Button>
@@ -217,7 +228,13 @@ export default function BemaScoutingReview() {
                       <p className="font-medium">{report.businessName}</p>
                       <p className="text-sm text-muted-foreground">{report.location}</p>
                     </div>
-                    <Button variant="outline" size="sm">View Details</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast.info(`Viewing details for ${report.businessName}`)}
+                    >
+                      View Details
+                    </Button>
                   </div>
                 ))}
               </div>
