@@ -1,141 +1,102 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, UserCog, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { 
+  UserPlus, 
+  Clock,
+  CheckCircle,
+  XCircle,
+  Search,
+  Download,
+  Filter
+} from "lucide-react";
+import { useState } from "react";
+import { useBemaRegistrations } from "@/hooks/useBemaData";
 
-export default function BemaRegistrations() {
-  const [activeTab, setActiveTab] = useState("all");
+export default function Registrations() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: registrationsData } = useBemaRegistrations();
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Registration & Onboarding</h1>
-          <p className="text-muted-foreground">
-            Manage employer, self-employed, and voluntary contributor registrations
-          </p>
+          <h1 className="text-2xl md:text-3xl font-bold">Registration Management</h1>
+          <p className="text-muted-foreground">Review and approve new employer registrations</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Registration
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Filter</span>
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting inspector assignment
-            </p>
+            <div className="text-2xl font-bold">23</div>
+            <p className="text-xs text-muted-foreground">Awaiting approval</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Employers</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Approved (MTD)</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">87</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">5</div>
+            <p className="text-xs text-muted-foreground">Requires resubmission</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Registered</CardTitle>
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">1,284</div>
-            <p className="text-xs text-muted-foreground">
-              +12 this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contributors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">387</div>
-            <p className="text-xs text-muted-foreground">
-              Self-employed & voluntary
-            </p>
+            <p className="text-xs text-muted-foreground">All employers</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All Registrations</TabsTrigger>
-          <TabsTrigger value="employers">Employers</TabsTrigger>
-          <TabsTrigger value="self-employed">Self-Employed</TabsTrigger>
-          <TabsTrigger value="voluntary">Voluntary</TabsTrigger>
-        </TabsList>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search registrations..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
-        <TabsContent value="all" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Registrations</CardTitle>
-              <CardDescription>
-                All pending and approved registrations across all types
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <Building2 className="h-8 w-8 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Caribbean Construction Ltd.</p>
-                        <p className="text-sm text-muted-foreground">REG-2025-{1000 + i}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="secondary">Employer</Badge>
-                      <Badge>Pending</Badge>
-                      <Button variant="outline" size="sm">View Details</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="employers">
-          <Card>
-            <CardHeader>
-              <CardTitle>Employer Registrations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Employer registration list will appear here</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="self-employed">
-          <Card>
-            <CardHeader>
-              <CardTitle>Self-Employed Registrations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Self-employed registration list will appear here</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="voluntary">
-          <Card>
-            <CardHeader>
-              <CardTitle>Voluntary Contributor Registrations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Voluntary contributor list will appear here</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-muted-foreground text-center py-8">Registration list will appear here</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -87,42 +87,42 @@ export default function BemaDashboard() {
       value: "1,284",
       change: "+12 this month",
       icon: Building2,
-      color: "text-blue-600",
+      color: "text-primary",
     },
     {
       title: "C3 Filed (MTD)",
       value: stats?.c3Filed || "0",
       change: "98% compliance",
       icon: FileText,
-      color: "text-green-600",
+      color: "text-primary",
     },
     {
       title: "Total Arrears",
       value: `$${(stats?.totalArrears || 0).toLocaleString()}`,
       change: "-8% vs last month",
       icon: DollarSign,
-      color: "text-red-600",
+      color: "text-destructive",
     },
     {
       title: "Open Audits",
       value: stats?.openAudits || "0",
       change: "15 due this week",
       icon: Search,
-      color: "text-amber-600",
+      color: "text-primary",
     },
     {
       title: "Pending Registrations",
       value: stats?.pendingRegistrations || "0",
       change: "Awaiting assignment",
       icon: Users,
-      color: "text-purple-600",
+      color: "text-primary",
     },
     {
       title: "Broken Plans",
       value: "7",
       change: "Require escalation",
       icon: AlertTriangle,
-      color: "text-orange-600",
+      color: "text-destructive",
     },
   ];
 
@@ -164,7 +164,7 @@ export default function BemaDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-32" />
@@ -346,7 +346,7 @@ export default function BemaDashboard() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="p-4 border rounded-lg space-y-2">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <AlertTriangle className="h-5 w-5 text-primary" />
                 <h3 className="font-medium">Inspections Due This Week</h3>
               </div>
               <p className="text-sm text-muted-foreground">15 employers scheduled for inspection</p>
@@ -354,7 +354,7 @@ export default function BemaDashboard() {
             
             <div className="p-4 border rounded-lg space-y-2">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-primary" />
                 <h3 className="font-medium">Payment Plans Active</h3>
               </div>
               <p className="text-sm text-muted-foreground">43 plans currently in progress</p>
@@ -362,7 +362,7 @@ export default function BemaDashboard() {
 
             <div className="p-4 border rounded-lg space-y-2">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
+                <TrendingUp className="h-5 w-5 text-primary" />
                 <h3 className="font-medium">Recovery This Month</h3>
               </div>
               <p className="text-sm text-muted-foreground">$187K recovered (+23% vs last month)</p>
@@ -370,7 +370,7 @@ export default function BemaDashboard() {
 
             <div className="p-4 border rounded-lg space-y-2">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-purple-600" />
+                <FileText className="h-5 w-5 text-primary" />
                 <h3 className="font-medium">C3 Queries Pending</h3>
               </div>
               <p className="text-sm text-muted-foreground">8 submissions awaiting clarification</p>
