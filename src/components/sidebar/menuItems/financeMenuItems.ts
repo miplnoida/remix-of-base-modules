@@ -1,4 +1,4 @@
-import { DollarSign, CreditCard, FileText, Database, TrendingUp, Shield, BarChart3, Receipt, Upload, Settings, History, AlertCircle, Users2, Book, Lock, FileBox } from 'lucide-react';
+import { DollarSign, BarChart3, Receipt, Search, FileText, Database, TrendingUp, Settings, Users2, AlertCircle } from 'lucide-react';
 
 export const financeMenuItems = [
   {
@@ -11,104 +11,49 @@ export const financeMenuItems = [
         icon: BarChart3,
       },
       {
-        title: 'Open Batch',
-        url: '/finance/cashier/open-batch',
+        title: 'Batch Management',
+        url: '/finance/batch-management',
         icon: Receipt,
       },
       {
         title: 'Payment Entry',
-        url: '/finance/cashier/payment-entry',
-        icon: CreditCard,
-      },
-      {
-        title: 'Receipt Generation',
-        url: '/finance/cashier/receipts',
-        icon: FileText,
-      },
-      {
-        title: 'Close Batch',
-        url: '/finance/cashier/close-batch',
-        icon: Lock,
-      },
-      {
-        title: 'Batch Management',
-        url: '/finance/cashier/batch-management',
-        icon: FileBox,
-      },
-      {
-        title: 'Create Invoice',
-        url: '/finance/invoice/create',
-        icon: Upload,
-      },
-      {
-        title: 'Invoice Payment',
-        url: '/finance/invoice/payment',
+        url: '/finance/payment-entry',
         icon: DollarSign,
       },
       {
-        title: 'Invoice Registry',
-        url: '/finance/invoice/registry',
-        icon: Book,
+        title: 'Receipt Search',
+        url: '/finance/receipt-search',
+        icon: Search,
       },
       {
-        title: 'Fund to GL Mapping',
-        url: '/finance/gl/mapping',
+        title: 'Invoice Management',
+        url: '/finance/invoices',
+        icon: FileText,
+      },
+      {
+        title: 'GL & SAGE Export',
+        url: '/finance/gl-export',
         icon: Database,
       },
       {
-        title: 'SAGE Export',
-        url: '/finance/gl/sage-export',
-        icon: Upload,
-      },
-      {
-        title: 'Bank Routing Setup',
-        url: '/finance/gl/bank-routing',
-        icon: Settings,
-      },
-      {
         title: 'Daily Reports',
-        url: '/finance/reports/daily',
-        icon: BarChart3,
-      },
-      {
-        title: 'Reversal Dashboard',
-        url: '/finance/reports/reversals',
-        icon: History,
-      },
-      {
-        title: 'Penalty Registry',
-        url: '/finance/reports/penalties',
-        icon: AlertCircle,
-      },
-      {
-        title: 'MIS/Inspector View',
-        url: '/finance/reports/mis',
+        url: '/finance/daily-reports',
         icon: TrendingUp,
       },
       {
-        title: 'User Role Management',
-        url: '/finance/admin/roles',
-        icon: Users2,
+        title: 'Reversal & Penalties',
+        url: '/finance/reversals',
+        icon: AlertCircle,
       },
       {
-        title: 'Head/Service Config',
-        url: '/finance/admin/heads',
+        title: 'Admin Configuration',
+        url: '/finance/admin-config',
         icon: Settings,
       },
       {
-        title: 'Lookup Management',
-        url: '/finance/admin/lookups',
-        icon: Book,
-      },
-      {
-        title: 'Batch Locking',
-        url: '/finance/admin/batch-locking',
-        icon: Lock,
-      },
-      {
-        title: 'System Logging',
-        url: '/finance/admin/logs',
-        icon: FileText,
+        title: 'User Management',
+        url: '/finance/user-management',
+        icon: Users2,
       },
     ],
   },
