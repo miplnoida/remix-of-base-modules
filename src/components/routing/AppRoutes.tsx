@@ -147,7 +147,6 @@ import FundsTransfer from '@/pages/cashier/FundsTransfer';
 import Receipt from '@/pages/cashier/Receipt';
 import CheckManagement from '@/pages/cashier/CheckManagement';
 import PaymentAnalytics from '@/pages/cashier/PaymentAnalytics';
-import BatchManagement from '@/pages/cashier/BatchManagement';
 import CashierReports from '@/pages/cashier/CashierReports';
 import CreateInvoice from '@/pages/cashier/CreateInvoice';
 import SearchPayInvoices from '@/pages/cashier/SearchPayInvoices';
@@ -242,14 +241,15 @@ import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
 // SSB Finance Module
 import FinanceDashboard from '@/pages/finance/FinanceDashboard';
-import OpenBatch from '@/pages/finance/cashier/OpenBatch';
-import PaymentEntry from '@/pages/finance/cashier/PaymentEntry';
-import CloseBatch from '@/pages/finance/cashier/CloseBatch';
-import InvoiceRegistry from '@/pages/finance/invoice/InvoiceRegistry';
-import FundGLMapping from '@/pages/finance/gl/FundGLMapping';
-import HeadServiceConfig from '@/pages/finance/admin/HeadServiceConfig';
-import DailyReports from '@/pages/finance/reports/DailyReports';
-import UserRoleManagement from '@/pages/finance/admin/UserRoleManagement';
+import BatchManagement from '@/pages/finance/BatchManagement';
+import PaymentEntry from '@/pages/finance/PaymentEntry';
+import ReceiptSearch from '@/pages/finance/ReceiptSearch';
+import InvoiceManagement from '@/pages/finance/InvoiceManagement';
+import GLExport from '@/pages/finance/GLExport';
+import DailyReports from '@/pages/finance/DailyReports';
+import ReversalsAndPenalties from '@/pages/finance/ReversalsAndPenalties';
+import AdminConfiguration from '@/pages/finance/AdminConfiguration';
+import UserManagement from '@/pages/finance/UserManagement';
 
 export const AppRoutes = () => {
   return (
@@ -530,26 +530,15 @@ export const AppRoutes = () => {
 
       {/* SSB Finance Module */}
       <Route path="/finance/dashboard" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/cashier/open-batch" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
-      <Route path="/finance/cashier/payment-entry" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
-      <Route path="/finance/cashier/receipts" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
-      <Route path="/finance/cashier/close-batch" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
-      <Route path="/finance/cashier/batch-management" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
-      <Route path="/finance/invoice/create" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/invoice/payment" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/invoice/registry" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/gl/mapping" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/gl/sage-export" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/gl/bank-routing" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/reports/daily" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/reports/reversals" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/reports/penalties" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/reports/mis" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/admin/roles" element={<ProtectedLayout><UserRoleManagement /></ProtectedLayout>} />
-      <Route path="/finance/admin/heads" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/admin/lookups" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/admin/batch-locking" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/admin/logs" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
+      <Route path="/finance/payment-entry" element={<ProtectedLayout><PaymentEntry /></ProtectedLayout>} />
+      <Route path="/finance/receipt-search" element={<ProtectedLayout><ReceiptSearch /></ProtectedLayout>} />
+      <Route path="/finance/invoices" element={<ProtectedLayout><InvoiceManagement /></ProtectedLayout>} />
+      <Route path="/finance/gl-export" element={<ProtectedLayout><GLExport /></ProtectedLayout>} />
+      <Route path="/finance/daily-reports" element={<ProtectedLayout><DailyReports /></ProtectedLayout>} />
+      <Route path="/finance/reversals" element={<ProtectedLayout><ReversalsAndPenalties /></ProtectedLayout>} />
+      <Route path="/finance/admin-config" element={<ProtectedLayout><AdminConfiguration /></ProtectedLayout>} />
+      <Route path="/finance/user-management" element={<ProtectedLayout><UserManagement /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
