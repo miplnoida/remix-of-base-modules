@@ -243,6 +243,12 @@ import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 // SSB Finance Module
 import FinanceDashboard from '@/pages/finance/FinanceDashboard';
 import OpenBatch from '@/pages/finance/cashier/OpenBatch';
+import PaymentEntry from '@/pages/finance/cashier/PaymentEntry';
+import CloseBatch from '@/pages/finance/cashier/CloseBatch';
+import InvoiceRegistry from '@/pages/finance/invoice/InvoiceRegistry';
+import FundGLMapping from '@/pages/finance/gl/FundGLMapping';
+import HeadServiceConfig from '@/pages/finance/admin/HeadServiceConfig';
+import DailyReports from '@/pages/finance/reports/DailyReports';
 import UserRoleManagement from '@/pages/finance/admin/UserRoleManagement';
 
 export const AppRoutes = () => {
