@@ -19,6 +19,7 @@ import { ssbLegalMenuItems } from './menuItems/ssbLegalMenuItems';
 import { cashierMenuItems } from './menuItems/cashierMenuItems';
 import { notificationMenuItems } from './menuItems/notificationMenuItems';
 import { bemaComplianceMenuItems } from './menuItems/bemaComplianceMenuItems';
+import { financeMenuItems } from './menuItems/financeMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -36,6 +37,7 @@ export const menuItems = [
   ...cashierMenuItems,
   ...notificationMenuItems,
   ...bemaComplianceMenuItems,
+  ...financeMenuItems,
   ...documentMenuItems,
   ...reportsMenuItems,
   ...userMenuItems,
