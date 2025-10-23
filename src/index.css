@@ -1,5 +1,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,6 +47,17 @@
     --color-government-700: 29 54 122;
     --color-government-800: 26 48 108;
     --color-government-900: 23 42 95;
+
+    /* BeMA Finance Colors */
+    --bema-primary: 142 100% 27%;  /* #078A00 */
+    --bema-primary-light: 142 100% 34%;  /* #0ABC01 */
+    --bema-secondary: 148 83% 86%;  /* #D3F4DD */
+    --bema-warning: 0 79% 57%;  /* #E74C3C */
+    --bema-success: 145 45% 46%;  /* #27AE60 */
+    --bema-accent: 38 94% 37%;  /* #B77407 */
+    --bema-text-primary: 0 0% 0%;  /* #000000 */
+    --bema-text-secondary: 0 0% 53%;  /* #868686 */
+    --bema-text-tertiary: 0 0% 80%;  /* #CCCCCC */
   }
 
   .dark {
@@ -86,11 +98,17 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Fira Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* BeMA Finance Typography */
+  .bema-h1 { font-size: 40px; font-weight: 700; font-family: 'Fira Sans', sans-serif; }
+  .bema-h2 { font-size: 26px; font-weight: 600; font-family: 'Fira Sans', sans-serif; }
+  .bema-t1 { font-size: 14px; font-weight: 400; font-family: 'Fira Sans', sans-serif; }
+  .bema-t2 { font-size: 12px; font-weight: 400; font-family: 'Fira Sans', sans-serif; }
 
   /* Theme-specific body backgrounds */
   body.theme-government { background-color: #f8fafc; }
@@ -309,6 +327,74 @@
   }
   .app-table .numeric {
     @apply text-right;
+  }
+
+  /* BeMA Finance Styles */
+  .bema-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 transition-all;
+  }
+  
+  .bema-card:hover {
+    @apply shadow-md;
+  }
+
+  .bema-btn-primary {
+    background-color: hsl(var(--bema-primary));
+    color: white;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .bema-btn-primary:hover {
+    background-color: hsl(var(--bema-primary-light));
+  }
+
+  .bema-badge-success {
+    background-color: hsl(var(--bema-success) / 0.1);
+    color: hsl(var(--bema-success));
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .bema-badge-warning {
+    background-color: hsl(var(--bema-warning) / 0.1);
+    color: hsl(var(--bema-warning));
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .bema-table {
+    @apply w-full border-collapse;
+  }
+
+  .bema-table thead tr {
+    background-color: hsl(var(--bema-secondary));
+  }
+
+  .bema-table thead th {
+    @apply px-4 py-3 text-left font-semibold;
+    color: hsl(var(--bema-text-primary));
+    font-size: 14px;
+  }
+
+  .bema-table tbody tr {
+    @apply border-b border-gray-100;
+  }
+
+  .bema-table tbody tr:hover {
+    background-color: hsl(var(--bema-secondary) / 0.3);
+  }
+
+  .bema-table tbody td {
+    @apply px-4 py-3;
+    color: hsl(var(--bema-text-primary));
+    font-size: 14px;
   }
 }
 
