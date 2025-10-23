@@ -240,6 +240,11 @@ const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
+// SSB Finance Module
+import FinanceDashboard from '@/pages/finance/FinanceDashboard';
+import OpenBatch from '@/pages/finance/cashier/OpenBatch';
+import UserRoleManagement from '@/pages/finance/admin/UserRoleManagement';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -516,6 +521,29 @@ export const AppRoutes = () => {
       <Route path="/bema/reports" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaReports /></Suspense></ProtectedLayout>} />
       <Route path="/bema/zones" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaZones /></Suspense></ProtectedLayout>} />
       <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
+
+      {/* SSB Finance Module */}
+      <Route path="/finance/dashboard" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/cashier/open-batch" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
+      <Route path="/finance/cashier/payment-entry" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
+      <Route path="/finance/cashier/receipts" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
+      <Route path="/finance/cashier/close-batch" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
+      <Route path="/finance/cashier/batch-management" element={<ProtectedLayout><OpenBatch /></ProtectedLayout>} />
+      <Route path="/finance/invoice/create" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/invoice/payment" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/invoice/registry" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/gl/mapping" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/gl/sage-export" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/gl/bank-routing" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/reports/daily" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/reports/reversals" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/reports/penalties" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/reports/mis" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/admin/roles" element={<ProtectedLayout><UserRoleManagement /></ProtectedLayout>} />
+      <Route path="/finance/admin/heads" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/admin/lookups" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/admin/batch-locking" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
+      <Route path="/finance/admin/logs" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
