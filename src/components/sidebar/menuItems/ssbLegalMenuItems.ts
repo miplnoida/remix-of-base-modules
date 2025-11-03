@@ -6,6 +6,12 @@ export const ssbLegalMenuItems = [
     icon: Scale,
     subItems: [
       {
+        title: "Dashboard",
+        url: "/legal/dashboard",
+        icon: BarChart3,
+        description: "Legal dashboard overview"
+      },
+      {
         title: "Cases",
         url: "/legal/cases",
         icon: Scale,

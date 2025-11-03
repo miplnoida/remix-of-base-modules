@@ -56,6 +56,7 @@ import SSBCaseListPage from '@/pages/legal/SSBCaseList';
 import SSBCaseIntake from '@/pages/legal/SSBCaseIntake';
 import SSBCaseViewPage from '@/pages/legal/SSBCaseView';
 import SSBLegalReports from '@/pages/legal/SSBLegalReports';
+import SSBLegalDashboard from '@/pages/legal/SSBLegalDashboard';
 
 // Audit Module
 import AuditPlans from '@/pages/audit/AuditPlans';
