@@ -8,9 +8,12 @@ import { useNavigate } from 'react-router-dom';
 interface KPICardsProps {
   data: KPIData | null;
   loading: boolean;
+  onActiveCasesClick?: () => void;
+  onRiskAlertClick?: () => void;
+  onHearingsClick?: () => void;
 }
 
-export function KPICards({ data, loading }: KPICardsProps) {
+export function KPICards({ data, loading, onActiveCasesClick, onRiskAlertClick, onHearingsClick }: KPICardsProps) {
   const navigate = useNavigate();
 
   if (loading || !data) {
@@ -48,7 +51,7 @@ export function KPICards({ data, loading }: KPICardsProps) {
       {/* Active Cases - Enhanced */}
       <Card
         className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800"
-        onClick={() => navigate('/legal/cases')}
+        onClick={onActiveCasesClick || (() => navigate('/legal/cases'))}
         role="button"
         tabIndex={0}
         aria-label="View active cases"
@@ -156,7 +159,7 @@ export function KPICards({ data, loading }: KPICardsProps) {
             ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 border-red-300 dark:border-red-800' 
             : 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 border-gray-200 dark:border-gray-800'
         }`}
-        onClick={() => navigate('/legal/cases')}
+        onClick={onRiskAlertClick || (() => navigate('/legal/cases'))}
         role="button"
         tabIndex={0}
         aria-label="View post-judgment cases at risk"
@@ -197,7 +200,7 @@ export function KPICards({ data, loading }: KPICardsProps) {
       {/* Hearings This Month - Enhanced */}
       <Card
         className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/50 border-amber-200 dark:border-amber-800"
-        onClick={() => navigate('/legal/hearings')}
+        onClick={onHearingsClick || (() => navigate('/legal/hearings'))}
         role="button"
         tabIndex={0}
         aria-label="View hearings this month"

@@ -7,9 +7,10 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 interface EnforcementFunnelProps {
   data: EnforcementFunnelData[] | null;
   loading: boolean;
+  onStageClick?: (stage: string) => void;
 }
 
-export function EnforcementFunnel({ data, loading }: EnforcementFunnelProps) {
+export function EnforcementFunnel({ data, loading, onStageClick }: EnforcementFunnelProps) {
   if (loading || !data) {
     return (
       <Card>
@@ -58,7 +59,12 @@ export function EnforcementFunnel({ data, loading }: EnforcementFunnelProps) {
                   
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="relative h-10 bg-muted rounded-lg overflow-hidden">
+                      <div 
+                        className="relative h-10 bg-muted rounded-lg overflow-hidden cursor-pointer"
+                        onClick={() => onStageClick?.(stage.stage)}
+                        role="button"
+                        tabIndex={0}
+                      >
                         <div
                           className={`h-full transition-all duration-500 flex items-center justify-center text-sm font-medium text-white ${
                             index === 0 ? 'bg-blue-500' :

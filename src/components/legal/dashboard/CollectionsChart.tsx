@@ -6,9 +6,10 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 interface CollectionsChartProps {
   data: CollectionsData[] | null;
   loading: boolean;
+  onClick?: () => void;
 }
 
-export function CollectionsChart({ data, loading }: CollectionsChartProps) {
+export function CollectionsChart({ data, loading, onClick }: CollectionsChartProps) {
   if (loading || !data) {
     return (
       <Card>
@@ -40,7 +41,7 @@ export function CollectionsChart({ data, loading }: CollectionsChartProps) {
     : '0';
 
   return (
-    <Card>
+    <Card className={onClick ? "cursor-pointer hover:shadow-lg transition-all" : ""} onClick={onClick}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>

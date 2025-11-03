@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardFilters, legalDashboardAdapter, KPIData, CollectionsData, ArrearsHeatmapCell, EnforcementFunnelData, HearingCalendarDay, PostJudgmentCase, ActivityItem } from '@/adapters/legalDashboardAdapter';
 import { KPICards } from '@/components/legal/dashboard/KPICards';
 import { CollectionsChart } from '@/components/legal/dashboard/CollectionsChart';
@@ -10,6 +11,7 @@ import { RecentActivity } from '@/components/legal/dashboard/RecentActivity';
 import { toast } from '@/hooks/use-toast';
 
 export default function SSBLegalDashboard() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: {
       start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -82,16 +84,34 @@ export default function SSBLegalDashboard() {
       {/* Dashboard Content */}
       <div className="p-6 space-y-6">
         {/* KPI Strip */}
-        <KPICards data={kpiData} loading={loading} />
+        <KPICards 
+          data={kpiData} 
+          loading={loading}
+          onActiveCasesClick={() => navigate('/legal/cases')}
+          onRiskAlertClick={() => navigate('/legal/cases?filter=highrisk')}
+          onHearingsClick={() => navigate('/legal/hearings')}
+        />
 
         {/* Row A: Collections & Arrears */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CollectionsChart data={collectionsData} loading={loading} />
-          <ArrearsHeatmap data={arrearsData} loading={loading} />
+          <CollectionsChart 
+            data={collectionsData} 
+            loading={loading}
+            onClick={() => navigate('/legal/reports')}
+          />
+          <ArrearsHeatmap 
+            data={arrearsData} 
+            loading={loading}
+            onClick={() => navigate('/legal/reports')}
+          />
         </div>
 
         {/* Row B: Enforcement */}
-        <EnforcementFunnel data={funnelData} loading={loading} />
+        <EnforcementFunnel 
+          data={funnelData} 
+          loading={loading}
+          onStageClick={(stage) => navigate(`/legal/cases?enforcement=${stage.toLowerCase()}`)}
+        />
 
         {/* Row C: Hearings & Calendar */}
         <HearingCalendarWidget
@@ -101,12 +121,25 @@ export default function SSBLegalDashboard() {
           month={filters.month}
           onYearChange={(year) => setFilters({ ...filters, year })}
           onMonthChange={(month) => setFilters({ ...filters, month })}
+          onDateClick={(date) => navigate(`/legal/hearings?date=${date}`)}
         />
 
         {/* Row D: Risk & Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PostJudgmentTracker data={postJudgmentData} loading={loading} />
-          <RecentActivity data={activityData} loading={loading} />
+          <PostJudgmentTracker 
+            data={postJudgmentData} 
+            loading={loading}
+            onCaseClick={(caseId) => navigate(`/legal/cases/${caseId}`)}
+          />
+          <RecentActivity 
+            data={activityData} 
+            loading={loading}
+            onActivityClick={(activity) => {
+              if (activity.caseId) {
+                navigate(`/legal/cases/${activity.caseId}`);
+              }
+            }}
+          />
         </div>
       </div>
     </div>

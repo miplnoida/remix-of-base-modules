@@ -8,9 +8,10 @@ import { useNavigate } from 'react-router-dom';
 interface PostJudgmentTrackerProps {
   data: PostJudgmentCase[] | null;
   loading: boolean;
+  onCaseClick?: (caseId: string) => void;
 }
 
-export function PostJudgmentTracker({ data, loading }: PostJudgmentTrackerProps) {
+export function PostJudgmentTracker({ data, loading, onCaseClick }: PostJudgmentTrackerProps) {
   const navigate = useNavigate();
 
   if (loading || !data) {
@@ -67,7 +68,13 @@ export function PostJudgmentTracker({ data, loading }: PostJudgmentTrackerProps)
                   <tr
                     key={caseItem.caseNumber}
                     className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/legal/cases/${caseItem.caseNumber.toLowerCase()}`)}
+                    onClick={() => {
+                      if (onCaseClick) {
+                        onCaseClick(caseItem.caseNumber);
+                      } else {
+                        navigate(`/legal/cases/${caseItem.caseNumber.toLowerCase()}`);
+                      }
+                    }}
                     role="button"
                     tabIndex={0}
                   >

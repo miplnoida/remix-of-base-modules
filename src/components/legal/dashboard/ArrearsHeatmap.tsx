@@ -7,9 +7,10 @@ import { useNavigate } from 'react-router-dom';
 interface ArrearsHeatmapProps {
   data: ArrearsHeatmapCell[] | null;
   loading: boolean;
+  onClick?: () => void;
 }
 
-export function ArrearsHeatmap({ data, loading }: ArrearsHeatmapProps) {
+export function ArrearsHeatmap({ data, loading, onClick }: ArrearsHeatmapProps) {
   const navigate = useNavigate();
 
   if (loading || !data) {

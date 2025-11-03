@@ -13,6 +13,7 @@ interface HearingCalendarWidgetProps {
   month: number;
   onYearChange: (year: number) => void;
   onMonthChange: (month: number) => void;
+  onDateClick?: (date: string) => void;
 }
 
 export function HearingCalendarWidget({
@@ -21,7 +22,8 @@ export function HearingCalendarWidget({
   year,
   month,
   onYearChange,
-  onMonthChange
+  onMonthChange,
+  onDateClick
 }: HearingCalendarWidgetProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const navigate = useNavigate();

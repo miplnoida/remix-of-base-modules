@@ -10,9 +10,10 @@ import { formatDistanceToNow } from 'date-fns';
 interface RecentActivityProps {
   data: ActivityItem[] | null;
   loading: boolean;
+  onActivityClick?: (activity: ActivityItem) => void;
 }
 
-export function RecentActivity({ data, loading }: RecentActivityProps) {
+export function RecentActivity({ data, loading, onActivityClick }: RecentActivityProps) {
   const [filter, setFilter] = useState<ActivityItem['type'] | 'all'>('all');
   const navigate = useNavigate();
 
@@ -129,7 +130,13 @@ export function RecentActivity({ data, loading }: RecentActivityProps) {
               <div
                 key={item.id}
                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors border border-border"
-                onClick={() => navigate(`/legal/cases/${item.caseId}`)}
+                onClick={() => {
+                  if (onActivityClick) {
+                    onActivityClick(item);
+                  } else {
+                    navigate(`/legal/cases/${item.caseId}`);
+                  }
+                }}
                 role="button"
                 tabIndex={0}
               >
