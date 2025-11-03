@@ -1,54 +1,74 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Plus, Calendar, MapPin, Users } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScheduleHearingDialog } from "@/components/legal/ScheduleHearingDialog";
+import { toast } from "sonner";
 
 interface CaseHearingsTabProps {
   caseData: MockCase;
 }
 
+const mockHearings = [
+  {
+    id: '1',
+    type: 'Preliminary Hearing',
+    date: '2025-11-10T09:00:00',
+    venue: 'SSB Hearing Room A',
+    panel: ['Judge Sarah Johnson', 'Member David Lee'],
+    description: 'Initial hearing to address procedural matters'
+  },
+  {
+    id: '2',
+    type: 'Full Hearing',
+    date: '2025-11-15T14:00:00',
+    venue: 'SSB Hearing Room B',
+    panel: ['Judge Michael Chen', 'Member Lisa Wang', 'Member John Smith'],
+    description: 'Main hearing to review evidence and testimonies'
+  }
+];
+
 export function CaseHearingsTab({ caseData }: CaseHearingsTabProps) {
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
+  const handleSchedule = (caseId: string, hearing: any) => {
+    toast.success("Hearing scheduled successfully");
+    setScheduleOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Hearings</h2>
-        <Button variant="outline" size="sm" className="gap-2">
+        <h2 className="text-lg font-semibold">Scheduled Hearings</h2>
+        <Button onClick={() => setScheduleOpen(true)} size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
           Schedule Hearing
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Scheduled Hearings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {caseData.hearings.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Venue</TableHead>
-                  <TableHead>Panel</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {caseData.hearings.map((hearing, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>
-                      <Badge variant="outline">{hearing.type}</Badge>
-                    </TableCell>
-                    <TableCell>
+      {mockHearings.length > 0 ? (
+        <div className="grid gap-4">
+          {mockHearings.map((hearing) => (
+            <Card key={hearing.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-sm font-medium">
+                        {hearing.type}
+                      </Badge>
+                      <Badge variant="default">Scheduled</Badge>
+                    </div>
+                    
+                    <div className="grid gap-2">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
+                        <Calendar className="h-4 w-4 text-foreground" />
+                        <span className="text-sm font-medium text-foreground">
                           {new Date(hearing.date).toLocaleDateString('en-US', {
-                            month: 'short',
+                            weekday: 'long',
+                            month: 'long',
                             day: 'numeric',
                             year: 'numeric',
                             hour: '2-digit',
@@ -56,44 +76,55 @@ export function CaseHearingsTab({ caseData }: CaseHearingsTabProps) {
                           })}
                         </span>
                       </div>
-                    </TableCell>
-                    <TableCell>
+                      
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{hearing.venue}</span>
+                        <MapPin className="h-4 w-4 text-foreground" />
+                        <span className="text-sm font-medium text-foreground">{hearing.venue}</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
+                      
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">3 members</span>
+                        <Users className="h-4 w-4 text-foreground" />
+                        <span className="text-sm font-medium text-foreground">
+                          {hearing.panel.join(', ')}
+                        </span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="default">Scheduled</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">View</Button>
-                        <Button variant="ghost" size="sm">Reschedule</Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No hearings scheduled yet</p>
-              <Button variant="outline" size="sm" className="mt-4 gap-2">
-                <Plus className="h-4 w-4" />
-                Schedule First Hearing
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+
+                    {hearing.description && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {hearing.description}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" size="sm">Details</Button>
+                    <Button variant="ghost" size="sm">Reschedule</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Calendar className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">No hearings scheduled yet</p>
+            <Button onClick={() => setScheduleOpen(true)} variant="outline" size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Schedule First Hearing
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <ScheduleHearingDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        caseId={caseData.id}
+        onSchedule={handleSchedule}
+      />
     </div>
   );
 }

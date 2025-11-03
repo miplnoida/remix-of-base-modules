@@ -43,35 +43,55 @@ export function CaseTimelineTab({ caseData }: CaseTimelineTabProps) {
           <CardTitle>Case Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative space-y-6 before:absolute before:left-[11px] before:top-3 before:bottom-0 before:w-px before:bg-border">
+          <div className="relative space-y-4">
+            {/* Timeline line */}
+            <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-border" />
+            
             {timelineEvents.map((event, idx) => (
-              <div key={idx} className="relative pl-8">
-                <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                  {getEventIcon(event.type)}
-                </div>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-xs">
-                        {event.type}
-                      </Badge>
-                    </div>
-                    <p className="font-medium text-sm">{event.action}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">{event.user}</span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(event.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
+              <div key={idx} className="relative pl-12">
+                {/* Event icon */}
+                <div className="absolute left-0 top-2 w-8 h-8 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+                  <div className="text-primary">
+                    {getEventIcon(event.type)}
                   </div>
                 </div>
+                
+                {/* Event content card */}
+                <Card className="border-l-4 border-l-primary">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="default" className="text-xs font-medium">
+                            {event.type}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(event.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        
+                        <p className="text-sm font-medium text-foreground leading-relaxed">
+                          {event.action}
+                        </p>
+                        
+                        <div className="flex items-center gap-2 pt-1">
+                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                            {event.user.charAt(0)}
+                          </div>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {event.user}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             ))}
           </div>

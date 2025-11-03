@@ -12,13 +12,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CaseOverviewTab } from "@/components/legal/tabs/CaseOverviewTab";
 import { CasePartiesTab } from "@/components/legal/tabs/CasePartiesTab";
 import { CaseDocumentsTab } from "@/components/legal/tabs/CaseDocumentsTab";
-import { CaseTasksTab } from "@/components/legal/tabs/CaseTasksTab";
 import { CaseHearingsTab } from "@/components/legal/tabs/CaseHearingsTab";
 import { CaseCorrespondenceTab } from "@/components/legal/tabs/CaseCorrespondenceTab";
 import { CaseEvidenceTab } from "@/components/legal/tabs/CaseEvidenceTab";
 import { CaseOrdersTab } from "@/components/legal/tabs/CaseOrdersTab";
 import { CaseFinancialsTab } from "@/components/legal/tabs/CaseFinancialsTab";
 import { CaseTimelineTab } from "@/components/legal/tabs/CaseTimelineTab";
+import { CaseNotesTab } from "@/components/legal/tabs/CaseNotesTab";
 import { CaseAuditTab } from "@/components/legal/tabs/CaseAuditTab";
 import { ScheduleHearingDialog } from "@/components/legal/ScheduleHearingDialog";
 import { CreateTaskDialog } from "@/components/legal/CreateTaskDialog";
@@ -120,13 +120,13 @@ export default function SSBCaseView() {
               <TabsTrigger value="overview" className="gap-2"><FileText className="h-4 w-4" />Overview</TabsTrigger>
               <TabsTrigger value="parties" className="gap-2"><Users className="h-4 w-4" />Parties</TabsTrigger>
               <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" />Documents</TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-2"><CheckSquare className="h-4 w-4" />Tasks</TabsTrigger>
               <TabsTrigger value="hearings" className="gap-2"><Calendar className="h-4 w-4" />Hearings</TabsTrigger>
               <TabsTrigger value="correspondence" className="gap-2"><MessageSquare className="h-4 w-4" />Correspondence</TabsTrigger>
               <TabsTrigger value="evidence" className="gap-2"><Shield className="h-4 w-4" />Evidence</TabsTrigger>
               <TabsTrigger value="orders" className="gap-2"><Gavel className="h-4 w-4" />Orders</TabsTrigger>
               <TabsTrigger value="financials" className="gap-2"><DollarSign className="h-4 w-4" />Financials</TabsTrigger>
               <TabsTrigger value="timeline" className="gap-2"><Clock className="h-4 w-4" />Timeline</TabsTrigger>
+              <TabsTrigger value="notes" className="gap-2"><FileText className="h-4 w-4" />Notes</TabsTrigger>
               <TabsTrigger value="audit" className="gap-2"><Scale className="h-4 w-4" />Audit</TabsTrigger>
             </TabsList>
           </div>
@@ -135,13 +135,13 @@ export default function SSBCaseView() {
             <TabsContent value="overview" className="mt-0"><CaseOverviewTab caseData={caseData} /></TabsContent>
             <TabsContent value="parties" className="mt-0"><CasePartiesTab caseData={caseData} /></TabsContent>
             <TabsContent value="documents" className="mt-0"><CaseDocumentsTab caseData={caseData} /></TabsContent>
-            <TabsContent value="tasks" className="mt-0"><CaseTasksTab caseData={caseData} /></TabsContent>
             <TabsContent value="hearings" className="mt-0"><CaseHearingsTab caseData={caseData} /></TabsContent>
             <TabsContent value="correspondence" className="mt-0"><CaseCorrespondenceTab caseData={caseData} /></TabsContent>
             <TabsContent value="evidence" className="mt-0"><CaseEvidenceTab caseData={caseData} /></TabsContent>
             <TabsContent value="orders" className="mt-0"><CaseOrdersTab caseData={caseData} /></TabsContent>
             <TabsContent value="financials" className="mt-0"><CaseFinancialsTab caseData={caseData} /></TabsContent>
             <TabsContent value="timeline" className="mt-0"><CaseTimelineTab caseData={caseData} /></TabsContent>
+            <TabsContent value="notes" className="mt-0"><CaseNotesTab caseData={caseData} /></TabsContent>
             <TabsContent value="audit" className="mt-0"><CaseAuditTab caseData={caseData} /></TabsContent>
           </div>
         </Tabs>

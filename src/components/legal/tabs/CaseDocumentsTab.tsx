@@ -14,7 +14,7 @@ interface CaseDocumentsTabProps {
 }
 
 const DOCUMENT_FOLDERS = [
-  'All', 'Filings', 'Evidence', 'Notices', 'Orders', 'Correspondence', 'Internal'
+  'All', 'Filings', 'Notices', 'Internal'
 ];
 
 const mockDocuments = [
@@ -47,7 +47,7 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Documents</h2>
+        <h2 className="text-lg font-semibold">Other Documents</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setUploadOpen(true)}>
             <Upload className="h-4 w-4" />

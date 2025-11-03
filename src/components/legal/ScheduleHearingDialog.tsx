@@ -17,20 +17,17 @@ interface ScheduleHearingDialogProps {
 export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }: ScheduleHearingDialogProps) {
   const [type, setType] = useState("");
   const [venue, setVenue] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
-  const [agenda, setAgenda] = useState("");
+  const [hearingDate, setHearingDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [panelName, setPanelName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!type) newErrors.type = "Hearing type is required";
     if (!venue) newErrors.venue = "Venue is required";
-    if (!startAt) newErrors.startAt = "Start time is required";
-    if (!endAt) newErrors.endAt = "End time is required";
-    if (startAt && endAt && new Date(endAt) <= new Date(startAt)) {
-      newErrors.endAt = "End time must be after start time";
-    }
+    if (!hearingDate) newErrors.hearingDate = "Hearing date is required";
+    if (!panelName) newErrors.panelName = "Panel name is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -41,10 +38,9 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
     onSchedule(caseId, {
       type,
       venue,
-      startAt,
-      endAt,
-      agenda,
-      panel: ["Panel Member 1", "Panel Member 2"]
+      date: hearingDate,
+      description,
+      panel: panelName.split(',').map(name => name.trim())
     });
 
     toast.success("Hearing scheduled successfully");
@@ -53,9 +49,9 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
     // Reset form
     setType("");
     setVenue("");
-    setStartAt("");
-    setEndAt("");
-    setAgenda("");
+    setHearingDate("");
+    setDescription("");
+    setPanelName("");
     setErrors({});
   };
 
@@ -74,13 +70,26 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Initial Hearing">Initial Hearing</SelectItem>
-                <SelectItem value="Preliminary">Preliminary</SelectItem>
-                <SelectItem value="Full Board">Full Board</SelectItem>
-                <SelectItem value="Appeals">Appeals</SelectItem>
-                <SelectItem value="Follow-up">Follow-up</SelectItem>
+                <SelectItem value="Preliminary Hearing">Preliminary Hearing</SelectItem>
+                <SelectItem value="Full Hearing">Full Hearing</SelectItem>
+                <SelectItem value="Appeals Hearing">Appeals Hearing</SelectItem>
+                <SelectItem value="Follow-up Hearing">Follow-up Hearing</SelectItem>
+                <SelectItem value="Mediation">Mediation</SelectItem>
               </SelectContent>
             </Select>
             {errors.type && <p className="text-xs text-red-500 mt-1">{errors.type}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="hearingDate">Hearing Date *</Label>
+            <Input
+              id="hearingDate"
+              type="datetime-local"
+              value={hearingDate}
+              onChange={(e) => setHearingDate(e.target.value)}
+              className={errors.hearingDate ? "border-red-500" : ""}
+            />
+            {errors.hearingDate && <p className="text-xs text-red-500 mt-1">{errors.hearingDate}</p>}
           </div>
 
           <div>
@@ -89,44 +98,32 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
               id="venue"
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
-              placeholder="e.g., Board Room A, Virtual Meeting"
+              placeholder="e.g., SSB Hearing Room A"
               className={errors.venue ? "border-red-500" : ""}
             />
             {errors.venue && <p className="text-xs text-red-500 mt-1">{errors.venue}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="startAt">Start Time *</Label>
-              <Input
-                id="startAt"
-                type="datetime-local"
-                value={startAt}
-                onChange={(e) => setStartAt(e.target.value)}
-                className={errors.startAt ? "border-red-500" : ""}
-              />
-              {errors.startAt && <p className="text-xs text-red-500 mt-1">{errors.startAt}</p>}
-            </div>
-            <div>
-              <Label htmlFor="endAt">End Time *</Label>
-              <Input
-                id="endAt"
-                type="datetime-local"
-                value={endAt}
-                onChange={(e) => setEndAt(e.target.value)}
-                className={errors.endAt ? "border-red-500" : ""}
-              />
-              {errors.endAt && <p className="text-xs text-red-500 mt-1">{errors.endAt}</p>}
-            </div>
+          <div>
+            <Label htmlFor="panelName">Panel Name *</Label>
+            <Input
+              id="panelName"
+              value={panelName}
+              onChange={(e) => setPanelName(e.target.value)}
+              placeholder="e.g., Judge Sarah Johnson, Member David Lee"
+              className={errors.panelName ? "border-red-500" : ""}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Separate multiple panel members with commas</p>
+            {errors.panelName && <p className="text-xs text-red-500 mt-1">{errors.panelName}</p>}
           </div>
 
           <div>
-            <Label htmlFor="agenda">Agenda (Optional)</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
-              id="agenda"
-              value={agenda}
-              onChange={(e) => setAgenda(e.target.value)}
-              placeholder="Enter hearing agenda or notes"
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter hearing description or notes"
               rows={3}
             />
           </div>
