@@ -51,7 +51,15 @@ const SAMPLE_HEARINGS = [
     start_at: new Date(2025, 10, 10, 9, 0).toISOString(),
     end_at: new Date(2025, 10, 10, 11, 0).toISOString(),
     panel: ['Judge Sarah Johnson', 'Member David Lee'],
-    legal_cases: { number: 'SSB-2025-001', title: 'Non-Compliance Case' }
+    description: 'Initial hearing to address non-compliance issues and establish procedural framework for case progression.',
+    agenda: null,
+    attendance: null,
+    outcome: null,
+    minutes_doc_id: null,
+    recording_link: null,
+    created_at: new Date().toISOString(),
+    created_by: null,
+    legal_cases: { number: 'SSB-2025-001', title: 'Non-Compliance Case', case_type: 'Non-Compliance' }
   },
   {
     id: '2',
@@ -61,7 +69,15 @@ const SAMPLE_HEARINGS = [
     start_at: new Date(2025, 10, 12, 14, 0).toISOString(),
     end_at: new Date(2025, 10, 12, 16, 30).toISOString(),
     panel: ['Judge Michael Chen', 'Member Lisa Wang'],
-    legal_cases: { number: 'SSB-2025-002', title: 'Benefit Dispute' }
+    description: 'Full hearing to determine the merits of the benefit dispute claim and review all submitted evidence.',
+    agenda: null,
+    attendance: null,
+    outcome: null,
+    minutes_doc_id: null,
+    recording_link: null,
+    created_at: new Date().toISOString(),
+    created_by: null,
+    legal_cases: { number: 'SSB-2025-002', title: 'Benefit Dispute', case_type: 'Benefit Dispute' }
   },
   {
     id: '3',
@@ -71,7 +87,15 @@ const SAMPLE_HEARINGS = [
     start_at: new Date(2025, 10, 15, 10, 0).toISOString(),
     end_at: new Date(2025, 10, 15, 12, 0).toISOString(),
     panel: ['Mediator John Smith'],
-    legal_cases: { number: 'SSB-2025-003', title: 'Appeal Case' }
+    description: 'Mediation session to facilitate settlement discussions between parties in the appeal case.',
+    agenda: null,
+    attendance: null,
+    outcome: null,
+    minutes_doc_id: null,
+    recording_link: null,
+    created_at: new Date().toISOString(),
+    created_by: null,
+    legal_cases: { number: 'SSB-2025-003', title: 'Appeal Case', case_type: 'Appeal' }
   },
   {
     id: '4',
@@ -81,7 +105,15 @@ const SAMPLE_HEARINGS = [
     start_at: new Date(2025, 10, 18, 9, 30).toISOString(),
     end_at: new Date(2025, 10, 18, 10, 30).toISOString(),
     panel: ['Judge Sarah Johnson'],
-    legal_cases: { number: 'SSB-2025-004', title: 'Recovery Action' }
+    description: 'Directions hearing to establish timelines, deadlines, and procedural matters for recovery action.',
+    agenda: null,
+    attendance: null,
+    outcome: null,
+    minutes_doc_id: null,
+    recording_link: null,
+    created_at: new Date().toISOString(),
+    created_by: null,
+    legal_cases: { number: 'SSB-2025-004', title: 'Recovery Action', case_type: 'Recovery' }
   },
   {
     id: '5',
@@ -91,7 +123,15 @@ const SAMPLE_HEARINGS = [
     start_at: new Date(2025, 10, 20, 13, 0).toISOString(),
     end_at: new Date(2025, 10, 20, 15, 0).toISOString(),
     panel: ['Judge Michael Chen', 'Member David Lee', 'Member Lisa Wang'],
-    legal_cases: { number: 'SSB-2025-005', title: 'Fraud Investigation' }
+    description: 'Preliminary hearing to review fraud investigation findings and determine next steps in the proceedings.',
+    agenda: null,
+    attendance: null,
+    outcome: null,
+    minutes_doc_id: null,
+    recording_link: null,
+    created_at: new Date().toISOString(),
+    created_by: null,
+    legal_cases: { number: 'SSB-2025-005', title: 'Fraud Investigation', case_type: 'Fraud' }
   }
 ];
 
@@ -620,6 +660,13 @@ export default function LegalHearingCalendar() {
                       ))}
                     </div>
                   </div>
+
+                  {selectedHearing.description && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Hearing Description</h4>
+                      <p className="text-sm text-muted-foreground">{selectedHearing.description}</p>
+                    </div>
+                  )}
 
                   {selectedHearing.agenda && (
                     <div>

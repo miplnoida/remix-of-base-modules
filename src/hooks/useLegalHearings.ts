@@ -11,6 +11,7 @@ export interface LegalHearing {
   end_at: string;
   panel: string[];
   agenda: string | null;
+  description: string | null;
   attendance: any;
   outcome: string | null;
   minutes_doc_id: string | null;
