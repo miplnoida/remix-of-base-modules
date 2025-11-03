@@ -266,8 +266,8 @@ export default function SSBCaseList() {
                         <TableHead>Priority</TableHead>
                         <TableHead>Stage</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Next Event</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>Next Hearing</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -296,29 +296,32 @@ export default function SSBCaseList() {
                             {legalCase.next_event_at ? format(new Date(legalCase.next_event_at), 'MMM d, yyyy') : '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-center gap-2">
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-[#2563EB] hover:text-[#1D4ED8] hover:bg-[#DBEAFE]"
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-[#2563EB] border-[#2563EB] hover:bg-[#2563EB] hover:text-white"
                                 onClick={() => navigate(`/legal/cases/${legalCase.id}`)}
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3 w-3" />
+                                View
                               </Button>
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-[#2563EB] hover:text-[#1D4ED8] hover:bg-[#DBEAFE]"
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-[#2563EB] border-[#2563EB] hover:bg-[#2563EB] hover:text-white"
                                 onClick={() => navigate(`/legal/cases/${legalCase.id}/edit`)}
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-3 w-3" />
+                                Edit
                               </Button>
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#FEE2E2]"
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-[#DC2626] border-[#DC2626] hover:bg-[#DC2626] hover:text-white"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3" />
+                                Delete
                               </Button>
                             </div>
                           </TableCell>
