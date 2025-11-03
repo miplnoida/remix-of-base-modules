@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Search, Filter, ChevronDown, Home, Eye, Edit, Trash2, Download, Columns } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown, Home, Eye, Edit, Check, AlertTriangle, Download, Columns } from 'lucide-react';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -256,7 +256,7 @@ export default function SSBCaseList() {
           <CardContent>
             {filteredCases.length > 0 ? (
               <>
-                <div className="border rounded-lg">
+                <div className="border rounded-lg overflow-x-auto relative">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -267,7 +267,7 @@ export default function SSBCaseList() {
                         <TableHead>Stage</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Next Hearing</TableHead>
-                        <TableHead className="text-center">Actions</TableHead>
+                        <TableHead className="text-center sticky right-0 bg-muted/50 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -295,33 +295,35 @@ export default function SSBCaseList() {
                           <TableCell>
                             {legalCase.next_event_at ? format(new Date(legalCase.next_event_at), 'MMM d, yyyy') : '-'}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)]">
                             <div className="flex items-center justify-center gap-2">
                               <Button
                                 variant="outline"
-                                size="sm"
-                                className="gap-1 text-[#2563EB] border-[#2563EB] hover:bg-[#2563EB] hover:text-white"
+                                size="icon"
+                                className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
                                 onClick={() => navigate(`/legal/cases/${legalCase.id}`)}
                               >
-                                <Eye className="h-3 w-3" />
-                                View
+                                <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="outline"
-                                size="sm"
-                                className="gap-1 text-[#2563EB] border-[#2563EB] hover:bg-[#2563EB] hover:text-white"
+                                size="icon"
+                                className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
                                 onClick={() => navigate(`/legal/cases/${legalCase.id}/edit`)}
                               >
-                                <Edit className="h-3 w-3" />
-                                Edit
+                                <Edit className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1 text-[#DC2626] border-[#DC2626] hover:bg-[#DC2626] hover:text-white"
+                                size="icon"
+                                className="h-9 w-9 bg-[#16A34A] hover:bg-[#15803D] text-white border-0"
                               >
-                                <Trash2 className="h-3 w-3" />
-                                Delete
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                className="h-9 w-9 bg-[#DC2626] hover:bg-[#B91C1C] text-white border-0"
+                              >
+                                <AlertTriangle className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
