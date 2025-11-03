@@ -13,14 +13,22 @@ import { Plus, Search, Filter, ChevronDown, ChevronUp, ArrowLeft, Home, LogOut, 
 import { format } from 'date-fns';
 
 const STATUS_COLORS: Record<string, string> = {
-  'Draft': 'bg-neutral-100 text-neutral-800',
-  'Filed': 'bg-blue-100 text-blue-800',
-  'Under Review': 'bg-indigo-100 text-indigo-800',
-  'Hearing Scheduled': 'bg-teal-100 text-teal-800',
-  'Decision Pending': 'bg-amber-100 text-amber-800',
-  'Order Issued': 'bg-purple-100 text-purple-800',
-  'Closed – Compliant': 'bg-green-100 text-green-800',
-  'Closed – Non-Compliant': 'bg-red-100 text-red-800',
+  'Draft': 'bg-[#111827] text-white border border-[#1f2937]',
+  'Filed': 'bg-[#B45309] text-white border border-[#C2410C]',
+  'Under Review': 'bg-[#B45309] text-white border border-[#C2410C]',
+  'Hearing Scheduled': 'bg-[#0F766E] text-white border border-[#0D9488]',
+  'Decision Pending': 'bg-[#B45309] text-white border border-[#C2410C]',
+  'Order Issued': 'bg-[#6D28D9] text-white border border-[#7C3AED]',
+  'Closed – Compliant': 'bg-[#166534] text-white border border-[#15803D]',
+  'Closed – Non-Compliant': 'bg-[#B91C1C] text-white border border-[#DC2626]',
+  'Resolved': 'bg-[#047857] text-white border border-[#059669]',
+  'Completed': 'bg-[#047857] text-white border border-[#059669]',
+  'Within SLA': 'bg-[#047857] text-white border border-[#059669]',
+  'At Risk': 'bg-[#DC2626] text-white border border-[#B91C1C]',
+  'Overdue': 'bg-[#B91C1C] text-white border border-[#DC2626]',
+  'Medium': 'bg-[#B45309] text-white border border-[#C2410C]',
+  'Low': 'bg-[#0F766E] text-white border border-[#0D9488]',
+  'High': 'bg-[#B91C1C] text-white border border-[#DC2626]',
 };
 
 export default function LegalCaseList() {

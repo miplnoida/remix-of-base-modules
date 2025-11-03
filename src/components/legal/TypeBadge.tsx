@@ -10,7 +10,7 @@ export function TypeBadge({ type, className }: TypeBadgeProps) {
     <span 
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-        "bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB]",
+        "bg-[#1E40AF] text-white border border-[#1D4ED8]",
         className
       )}
       role="status"
