@@ -56,37 +56,37 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   return (
     <div className="space-y-6">
       {/* Summary Header */}
-      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-2 border-primary/30 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <DollarSign className="h-6 w-6 text-primary" />
             Financial Summary
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Total Owed</p>
-              <p className="text-2xl font-bold text-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-2 p-4 rounded-lg bg-background/50 border">
+              <p className="text-sm font-medium text-muted-foreground">Total Owed</p>
+              <p className="text-3xl font-bold text-foreground">
                 ${totalOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Total Collected</p>
-              <p className="text-2xl font-bold text-green-600">
+            <div className="space-y-2 p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+              <p className="text-sm font-medium text-green-700 dark:text-green-400">Total Collected</p>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-500">
                 ${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Total Outstanding</p>
-              <p className="text-2xl font-bold text-destructive">
+            <div className="space-y-2 p-4 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+              <p className="text-sm font-medium text-red-700 dark:text-red-400">Total Outstanding</p>
+              <p className="text-3xl font-bold text-red-600 dark:text-red-500">
                 ${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Next Payment Due</p>
+            <div className="space-y-2 p-4 rounded-lg bg-background/50 border">
+              <p className="text-sm font-medium text-muted-foreground">Next Payment Due</p>
               {nextPaymentDue ? (
-                <p className="text-lg font-semibold text-foreground">{nextPaymentDue}</p>
+                <p className="text-xl font-semibold text-foreground">{nextPaymentDue}</p>
               ) : (
                 <p className="text-lg text-muted-foreground">No payment plan</p>
               )}

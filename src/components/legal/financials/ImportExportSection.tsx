@@ -21,11 +21,11 @@ export function ImportExportSection({ caseId, isOpen, onToggle }: ImportExportSe
   };
 
   return (
-    <Card>
+    <Card className="border-2 shadow-md">
       <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
+            <Upload className="h-5 w-5 text-blue-600" />
             Import/Export
           </CardTitle>
           {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}

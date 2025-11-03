@@ -31,13 +31,13 @@ export function PaymentsLogSection({ caseId, payments, periods, isOpen, onToggle
 
   return (
     <>
-      <Card>
+      <Card className="border-2 shadow-md">
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
+              <DollarSign className="h-5 w-5 text-green-600" />
               Payments Log
-              <Badge variant="secondary">{payments.length} payments</Badge>
+              <Badge className="bg-green-600/10 text-green-700 hover:bg-green-600/20 font-semibold">{payments.length} Payments</Badge>
             </CardTitle>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>

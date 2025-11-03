@@ -41,16 +41,16 @@ interface WaiversArrangementsSectionProps {
 
 export function WaiversArrangementsSection({ caseId, waivers, arrangements, isOpen, onToggle }: WaiversArrangementsSectionProps) {
   return (
-    <Card>
+    <Card className="border-2 shadow-lg border-purple-200 bg-gradient-to-br from-purple-50/50 to-background">
       <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileCheck className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-3 text-lg">
+            <FileCheck className="h-6 w-6 text-purple-600" />
             Waivers & Arrangements
-            <Badge variant="secondary">{waivers.length} waivers</Badge>
-            <Badge variant="secondary">{arrangements.length} plans</Badge>
+            <Badge className="bg-purple-600/10 text-purple-700 hover:bg-purple-600/20 font-semibold px-3 py-1">{waivers.length} Waivers</Badge>
+            <Badge className="bg-blue-600/10 text-blue-700 hover:bg-blue-600/20 font-semibold px-3 py-1">{arrangements.length} APYTS</Badge>
           </CardTitle>
-          {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          {isOpen ? <ChevronUp className="h-5 w-5 text-purple-600" /> : <ChevronDown className="h-5 w-5 text-purple-600" />}
         </div>
       </CardHeader>
 
