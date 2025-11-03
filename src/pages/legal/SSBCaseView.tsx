@@ -91,7 +91,7 @@ export default function SSBCaseView() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => toast.info("Edit functionality coming soon")} className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate(`/legal/cases/${id}/edit`)} className="gap-2">
                 <Edit className="h-4 w-4" />
                 <span className="hidden sm:inline">Edit</span>
               </Button>

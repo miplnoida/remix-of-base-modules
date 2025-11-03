@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,11 +20,14 @@ const SOURCES = ['Compliance', 'Benefits', 'Other'];
 const STATUSES = ['Draft', 'Filed', 'Under Review', 'Active'];
 const DOCUMENT_TYPES = ['Evidence', 'Order', 'Correspondence', 'Other'];
 const COUNTRY_CODES = ['+1-869', '+1', '+44', '+91', '+86'];
+const ASSIGNED_OFFICES = ['Legal Office', 'Compliance Office', 'Benefits Office', 'Enforcement Office'];
 
 export default function SSBCaseIntake() {
   const navigate = useNavigate();
-  const { addCase } = useLegalCases();
+  const { id } = useParams<{ id: string }>();
+  const { addCase, getCaseById, updateCase } = useLegalCases();
   const [currentStep, setCurrentStep] = useState(0);
+  const isEditMode = !!id;
   
   const [formData, setFormData] = useState({
     caseId: `SSB-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
@@ -34,6 +37,8 @@ export default function SSBCaseIntake() {
     priority: 'Medium',
     status: 'Draft',
     assignedOfficer: '',
+    assignedOffice: '',
+    courtReferenceNumber: '',
     confidential: false,
     title: '',
     summary: '',
@@ -55,6 +60,36 @@ export default function SSBCaseIntake() {
     }>,
     attachments: [] as Array<{ name: string; type: string; documentType: string }>
   });
+
+  // Load existing case data in edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      const existingCase = getCaseById(id);
+      if (existingCase) {
+        setFormData({
+          caseId: existingCase.number,
+          date: existingCase.filed_at,
+          type: existingCase.type,
+          source: 'Compliance',
+          priority: existingCase.priority,
+          status: existingCase.status,
+          assignedOfficer: existingCase.assignee,
+          assignedOffice: '',
+          courtReferenceNumber: '',
+          confidential: false,
+          title: existingCase.title,
+          summary: existingCase.summary,
+          relatedCases: [],
+          parties: existingCase.parties.map(name => ({
+            role: 'Respondent',
+            type: 'manual' as const,
+            name
+          })),
+          attachments: []
+        });
+      }
+    }
+  }, [isEditMode, id, getCaseById]);
 
   const [lookupQuery, setLookupQuery] = useState('');
   const [lookupType, setLookupType] = useState<'employer' | 'insured'>('employer');
@@ -168,6 +203,7 @@ export default function SSBCaseIntake() {
       if (!formData.type) newErrors.type = 'Case type is required';
       if (!formData.source) newErrors.source = 'Source is required';
       if (!formData.assignedOfficer) newErrors.assignedOfficer = 'Assigned officer is required';
+      if (!formData.assignedOffice) newErrors.assignedOffice = 'Assigned office is required';
       if (!formData.status) newErrors.status = 'Status is required';
     }
     
@@ -203,26 +239,38 @@ export default function SSBCaseIntake() {
   };
 
   const handleSaveDraft = () => {
-    const caseId = addCase({
-      number: `SSB/LGL/${new Date().getFullYear()}/${String(Date.now()).slice(-3)}`,
-      title: formData.title || 'Draft Case',
-      type: formData.type || 'Non-Payment',
-      status: 'Draft',
-      stage: 'Draft',
-      priority: formData.priority,
-      parties: formData.parties.map(p => p.name).filter(Boolean),
-      assignee: formData.assignedOfficer || 'Unassigned',
-      filed_at: formData.date,
-      next_event_at: null,
-      summary: formData.summary || '',
-      relief_sought: '',
-      flags: [],
-      activities: [],
-      hearings: []
-    });
-    
-    toast.success('Draft saved successfully');
-    navigate(`/legal/cases/${caseId}`);
+    if (isEditMode && id) {
+      updateCase(id, {
+        title: formData.title || 'Draft Case',
+        type: formData.type || 'Non-Payment',
+        priority: formData.priority,
+        assignee: formData.assignedOfficer || 'Unassigned',
+        summary: formData.summary || ''
+      });
+      toast.success('Case updated successfully');
+      navigate(`/legal/cases/${id}`);
+    } else {
+      const caseId = addCase({
+        number: `SSB/LGL/${new Date().getFullYear()}/${String(Date.now()).slice(-3)}`,
+        title: formData.title || 'Draft Case',
+        type: formData.type || 'Non-Payment',
+        status: 'Draft',
+        stage: 'Draft',
+        priority: formData.priority,
+        parties: formData.parties.map(p => p.name).filter(Boolean),
+        assignee: formData.assignedOfficer || 'Unassigned',
+        filed_at: formData.date,
+        next_event_at: null,
+        summary: formData.summary || '',
+        relief_sought: '',
+        flags: [],
+        activities: [],
+        hearings: []
+      });
+      
+      toast.success('Draft saved successfully');
+      navigate(`/legal/cases/${caseId}`);
+    }
   };
 
   const handleSubmit = () => {
@@ -231,26 +279,39 @@ export default function SSBCaseIntake() {
       return;
     }
     
-    const caseId = addCase({
-      number: formData.caseId,
-      title: formData.title || `${formData.type} - ${formData.caseId}`,
-      type: formData.type,
-      status: formData.status,
-      stage: 'Pre-Filing',
-      priority: formData.priority,
-      parties: formData.parties.map(p => p.name).filter(Boolean),
-      assignee: formData.assignedOfficer,
-      filed_at: formData.date,
-      next_event_at: null,
-      summary: formData.summary,
-      relief_sought: '',
-      flags: [],
-      activities: [],
-      hearings: []
-    });
-    
-    toast.success('Case filed successfully');
-    navigate(`/legal/cases/${caseId}`);
+    if (isEditMode && id) {
+      updateCase(id, {
+        title: formData.title || `${formData.type} - ${formData.caseId}`,
+        type: formData.type,
+        status: formData.status,
+        priority: formData.priority,
+        assignee: formData.assignedOfficer,
+        summary: formData.summary
+      });
+      toast.success('Case updated successfully');
+      navigate(`/legal/cases/${id}`);
+    } else {
+      const caseId = addCase({
+        number: formData.caseId,
+        title: formData.title || `${formData.type} - ${formData.caseId}`,
+        type: formData.type,
+        status: formData.status,
+        stage: 'Pre-Filing',
+        priority: formData.priority,
+        parties: formData.parties.map(p => p.name).filter(Boolean),
+        assignee: formData.assignedOfficer,
+        filed_at: formData.date,
+        next_event_at: null,
+        summary: formData.summary,
+        relief_sought: '',
+        flags: [],
+        activities: [],
+        hearings: []
+      });
+      
+      toast.success('Case filed successfully');
+      navigate(`/legal/cases/${caseId}`);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,8 +352,10 @@ export default function SSBCaseIntake() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Cases
         </Button>
-        <h1 className="text-3xl font-bold">New Case Intake</h1>
-        <p className="text-muted-foreground mt-2">File a new legal case against an employer or entity</p>
+        <h1 className="text-3xl font-bold">{isEditMode ? 'Edit Case' : 'New Case Intake'}</h1>
+        <p className="text-muted-foreground mt-2">
+          {isEditMode ? 'Update case information' : 'File a new legal case against an employer or entity'}
+        </p>
       </div>
 
       <div className="flex items-center justify-between mb-8">
@@ -422,6 +485,33 @@ export default function SSBCaseIntake() {
                   placeholder="Enter officer name"
                 />
                 {errors.assignedOfficer && <p className="text-sm text-destructive">{errors.assignedOfficer}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assignedOffice">Assigned Office *</Label>
+                <Select value={formData.assignedOffice} onValueChange={(v) => updateField('assignedOffice', v)}>
+                  <SelectTrigger id="assignedOffice">
+                    <SelectValue placeholder="Select assigned office" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSIGNED_OFFICES.map(office => (
+                      <SelectItem key={office} value={office}>{office}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.assignedOffice && <p className="text-sm text-destructive">{errors.assignedOffice}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="courtReferenceNumber">Court Reference Number</Label>
+                <Input
+                  id="courtReferenceNumber"
+                  value={formData.courtReferenceNumber}
+                  onChange={(e) => updateField('courtReferenceNumber', e.target.value.toUpperCase())}
+                  placeholder="Enter alphanumeric reference (e.g., CR-2025-001)"
+                  maxLength={50}
+                />
+                <p className="text-xs text-muted-foreground">Optional alphanumeric court reference number</p>
               </div>
 
               <div className="space-y-2">

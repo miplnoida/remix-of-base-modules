@@ -486,9 +486,11 @@ export const AppRoutes = () => {
 
       {/* Legal Module Routes - SSB Legal */}
       <Route path="/legal/auth" element={<Suspense fallback={<div>Loading...</div>}><LegalAuth /></Suspense>} />
+      <Route path="/legal/dashboard" element={<ProtectedLayout><SSBLegalDashboard /></ProtectedLayout>} />
       <Route path="/legal/cases" element={<ProtectedLayout><SSBCaseListPage /></ProtectedLayout>} />
       <Route path="/legal/cases/new" element={<ProtectedLayout><SSBCaseIntake /></ProtectedLayout>} />
       <Route path="/legal/cases/:id" element={<ProtectedLayout><SSBCaseViewPage /></ProtectedLayout>} />
+      <Route path="/legal/cases/:id/edit" element={<ProtectedLayout><SSBCaseIntake /></ProtectedLayout>} />
       <Route path="/legal/hearings" element={
         <ProtectedLayout>
           <Suspense fallback={<div>Loading...</div>}>
