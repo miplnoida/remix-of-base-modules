@@ -17,6 +17,9 @@ import { employersAdapter } from "@/adapters/employersAdapter";
 const CASE_TYPES = ['Employer Arrears', 'Overpayment Recovery', 'Insured Appeal', 'Compliance/Recovery', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 const SOURCES = ['Compliance', 'Benefits', 'Other'];
+const STATUSES = ['Draft', 'Filed', 'Under Review', 'Active'];
+const DOCUMENT_TYPES = ['Evidence', 'Order', 'Correspondence', 'Other'];
+const COUNTRY_CODES = ['+1-869', '+1', '+44', '+91', '+86'];
 
 export default function SSBCaseIntake() {
   const navigate = useNavigate();
@@ -24,20 +27,40 @@ export default function SSBCaseIntake() {
   const [currentStep, setCurrentStep] = useState(0);
   
   const [formData, setFormData] = useState({
+    caseId: `SSB-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
+    date: new Date().toISOString().split('T')[0],
     type: '',
     source: 'Compliance',
     priority: 'Medium',
+    status: 'Draft',
+    assignedOfficer: '',
     confidential: false,
     title: '',
     summary: '',
-    relief_sought: '',
     relatedCases: [],
-    parties: [] as Array<{ role: string; type: 'employer' | 'insured' | 'manual'; id?: string; name: string; contact?: string; regNo?: string; ssn?: string }>,
-    attachments: []
+    parties: [] as Array<{ 
+      role: string; 
+      type: 'employer' | 'insured' | 'manual'; 
+      id?: string; 
+      name: string; 
+      email?: string;
+      phone?: string;
+      countryCode?: string;
+      address?: string;
+      gender?: string;
+      dob?: string;
+      contact?: string; 
+      regNo?: string; 
+      ssn?: string 
+    }>,
+    attachments: [] as Array<{ name: string; type: string; documentType: string }>
   });
 
   const [lookupQuery, setLookupQuery] = useState('');
   const [lookupType, setLookupType] = useState<'employer' | 'insured'>('employer');
+  const [editingPartyIndex, setEditingPartyIndex] = useState<number | null>(null);
+  const [documentType, setDocumentType] = useState<string>('');
+  const [showDocumentTypeDialog, setShowDocumentTypeDialog] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -102,8 +125,26 @@ export default function SSBCaseIntake() {
   const addManualParty = () => {
     setFormData(prev => ({
       ...prev,
-      parties: [...prev.parties, { role: 'Respondent', type: 'manual', name: '', contact: '' }]
+      parties: [...prev.parties, { 
+        role: 'Respondent', 
+        type: 'manual', 
+        name: '', 
+        email: '',
+        phone: '',
+        countryCode: '+1-869',
+        address: '',
+        gender: '',
+        dob: ''
+      }]
     }));
+  };
+
+  const editParty = (index: number) => {
+    setEditingPartyIndex(index);
+  };
+
+  const savePartyEdit = () => {
+    setEditingPartyIndex(null);
   };
 
   const updateParty = (index: number, field: string, value: string) => {
@@ -125,22 +166,25 @@ export default function SSBCaseIntake() {
     
     if (step === 0) {
       if (!formData.type) newErrors.type = 'Case type is required';
-      if (!formData.title || formData.title.length < 10) newErrors.title = 'Title must be at least 10 characters';
+      if (!formData.source) newErrors.source = 'Source is required';
+      if (!formData.assignedOfficer) newErrors.assignedOfficer = 'Assigned officer is required';
+      if (!formData.status) newErrors.status = 'Status is required';
     }
     
     if (step === 1) {
       if (formData.parties.length < 1) newErrors.parties = 'At least one party is required';
       formData.parties.forEach((p, i) => {
-        if (!p.name) newErrors[`party_${i}`] = 'Party name is required';
+        if (!p.name) newErrors[`party_${i}_name`] = 'Party name is required';
+        if (p.type === 'manual') {
+          if (!p.email) newErrors[`party_${i}_email`] = 'Email is required';
+          if (!p.phone) newErrors[`party_${i}_phone`] = 'Phone is required';
+        }
       });
     }
     
     if (step === 2) {
       if (!formData.summary || formData.summary.length < 20) {
         newErrors.summary = 'Summary must be at least 20 characters';
-      }
-      if (!formData.relief_sought || formData.relief_sought.length < 10) {
-        newErrors.relief_sought = 'Relief sought must be at least 10 characters';
       }
     }
     
@@ -167,11 +211,11 @@ export default function SSBCaseIntake() {
       stage: 'Draft',
       priority: formData.priority,
       parties: formData.parties.map(p => p.name).filter(Boolean),
-      assignee: 'Current User',
-      filed_at: new Date().toISOString(),
+      assignee: formData.assignedOfficer || 'Unassigned',
+      filed_at: formData.date,
       next_event_at: null,
       summary: formData.summary || '',
-      relief_sought: formData.relief_sought || '',
+      relief_sought: '',
       flags: [],
       activities: [],
       hearings: []
@@ -188,18 +232,18 @@ export default function SSBCaseIntake() {
     }
     
     const caseId = addCase({
-      number: `SSB/LGL/${new Date().getFullYear()}/${String(Date.now()).slice(-3)}`,
-      title: formData.title,
+      number: formData.caseId,
+      title: formData.title || `${formData.type} - ${formData.caseId}`,
       type: formData.type,
-      status: 'Filed',
+      status: formData.status,
       stage: 'Pre-Filing',
       priority: formData.priority,
       parties: formData.parties.map(p => p.name).filter(Boolean),
-      assignee: 'Current User',
-      filed_at: new Date().toISOString(),
+      assignee: formData.assignedOfficer,
+      filed_at: formData.date,
       next_event_at: null,
       summary: formData.summary,
-      relief_sought: formData.relief_sought,
+      relief_sought: '',
       flags: [],
       activities: [],
       hearings: []
@@ -207,6 +251,30 @@ export default function SSBCaseIntake() {
     
     toast.success('Case filed successfully');
     navigate(`/legal/cases/${caseId}`);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!documentType) {
+      setShowDocumentTypeDialog(true);
+      return;
+    }
+    
+    const files = e.target.files;
+    if (files) {
+      const newAttachments = Array.from(files).map(file => ({
+        name: file.name,
+        type: file.type,
+        documentType: documentType
+      }));
+      
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...newAttachments]
+      }));
+      
+      toast.success(`${files.length} file(s) uploaded as ${documentType}`);
+      setDocumentType('');
+    }
   };
 
   const steps = ['Basics', 'Parties', 'Subject', 'Attachments', 'Review'];
@@ -253,7 +321,7 @@ export default function SSBCaseIntake() {
           <CardDescription>
             {currentStep === 0 && 'Provide basic case information'}
             {currentStep === 1 && 'Add parties involved in the case'}
-            {currentStep === 2 && 'Describe the case subject and relief sought'}
+            {currentStep === 2 && 'Describe the case subject and summary'}
             {currentStep === 3 && 'Upload supporting documents'}
             {currentStep === 4 && 'Review and submit your case'}
           </CardDescription>
@@ -262,6 +330,28 @@ export default function SSBCaseIntake() {
           {/* Step 0: Basics */}
           {currentStep === 0 && (
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="caseId">Case ID</Label>
+                  <Input
+                    id="caseId"
+                    value={formData.caseId}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="type">Case Type *</Label>
                 <Select value={formData.type} onValueChange={(v) => updateField('type', v)}>
@@ -278,7 +368,7 @@ export default function SSBCaseIntake() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="source">Source</Label>
+                <Label htmlFor="source">Source *</Label>
                 <Select value={formData.source} onValueChange={(v) => updateField('source', v)}>
                   <SelectTrigger id="source">
                     <SelectValue />
@@ -289,11 +379,12 @@ export default function SSBCaseIntake() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.source && <p className="text-sm text-destructive">{errors.source}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority">Priority *</Label>
                   <Select value={formData.priority} onValueChange={(v) => updateField('priority', v)}>
                     <SelectTrigger id="priority">
                       <SelectValue />
@@ -306,29 +397,44 @@ export default function SSBCaseIntake() {
                   </Select>
                 </div>
 
-                <div className="flex items-end space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="confidential"
-                      checked={formData.confidential}
-                      onChange={(e) => updateField('confidential', e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                    <Label htmlFor="confidential">Confidential</Label>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status *</Label>
+                  <Select value={formData.status} onValueChange={(v) => updateField('status', v)}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title">Case Title *</Label>
+                <Label htmlFor="assignedOfficer">Assigned Officer *</Label>
+                <Input
+                  id="assignedOfficer"
+                  value={formData.assignedOfficer}
+                  onChange={(e) => updateField('assignedOfficer', e.target.value)}
+                  placeholder="Enter officer name"
+                />
+                {errors.assignedOfficer && <p className="text-sm text-destructive">{errors.assignedOfficer}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Case Title (Optional - Auto-generated if empty)</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => updateField('title', e.target.value)}
                   placeholder="e.g., SSB vs. ABC Company Ltd."
+                  disabled
+                  className="bg-muted"
                 />
-                {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
+                <p className="text-xs text-muted-foreground">Title will be auto-generated during intake</p>
               </div>
             </div>
           )}
@@ -397,16 +503,29 @@ export default function SSBCaseIntake() {
                           {party.regNo && <span className="text-xs text-muted-foreground">Reg: {party.regNo}</span>}
                           {party.ssn && <span className="text-xs text-muted-foreground">SSN: {party.ssn}</span>}
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => removeParty(index)}>
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          {party.type === 'manual' && editingPartyIndex !== index && (
+                            <Button variant="ghost" size="sm" onClick={() => editParty(index)}>
+                              Edit
+                            </Button>
+                          )}
+                          {editingPartyIndex === index && (
+                            <Button variant="ghost" size="sm" onClick={savePartyEdit}>
+                              Save
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => removeParty(index)}>
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Role</Label>
+                          <Label>Role *</Label>
                           <Select 
                             value={party.role} 
                             onValueChange={(v) => updateParty(index, 'role', v)}
+                            disabled={party.type !== 'manual' || editingPartyIndex !== index}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -424,19 +543,86 @@ export default function SSBCaseIntake() {
                             value={party.name}
                             onChange={(e) => updateParty(index, 'name', e.target.value)}
                             placeholder="Party name"
-                            disabled={party.type !== 'manual'}
+                            disabled={party.type !== 'manual' || editingPartyIndex !== index}
                           />
-                          {errors[`party_${index}`] && <p className="text-sm text-destructive">{errors[`party_${index}`]}</p>}
+                          {errors[`party_${index}_name`] && <p className="text-sm text-destructive">{errors[`party_${index}_name`]}</p>}
                         </div>
                         {party.type === 'manual' && (
-                          <div className="col-span-2 space-y-2">
-                            <Label>Contact</Label>
-                            <Input
-                              value={party.contact || ''}
-                              onChange={(e) => updateParty(index, 'contact', e.target.value)}
-                              placeholder="Phone or email"
-                            />
-                          </div>
+                          <>
+                            <div className="space-y-2">
+                              <Label>Email *</Label>
+                              <Input
+                                type="email"
+                                value={party.email || ''}
+                                onChange={(e) => updateParty(index, 'email', e.target.value)}
+                                placeholder="email@example.com"
+                                disabled={editingPartyIndex !== index}
+                              />
+                              {errors[`party_${index}_email`] && <p className="text-sm text-destructive">{errors[`party_${index}_email`]}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Phone Number *</Label>
+                              <div className="flex gap-2">
+                                <Select 
+                                  value={party.countryCode || '+1-869'} 
+                                  onValueChange={(v) => updateParty(index, 'countryCode', v)}
+                                  disabled={editingPartyIndex !== index}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {COUNTRY_CODES.map(code => (
+                                      <SelectItem key={code} value={code}>{code}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  value={party.phone || ''}
+                                  onChange={(e) => updateParty(index, 'phone', e.target.value)}
+                                  placeholder="123-4567"
+                                  disabled={editingPartyIndex !== index}
+                                  className="flex-1"
+                                />
+                              </div>
+                              {errors[`party_${index}_phone`] && <p className="text-sm text-destructive">{errors[`party_${index}_phone`]}</p>}
+                            </div>
+                            <div className="col-span-2 space-y-2">
+                              <Label>Address</Label>
+                              <Input
+                                value={party.address || ''}
+                                onChange={(e) => updateParty(index, 'address', e.target.value)}
+                                placeholder="Full address"
+                                disabled={editingPartyIndex !== index}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Gender</Label>
+                              <Select 
+                                value={party.gender || ''} 
+                                onValueChange={(v) => updateParty(index, 'gender', v)}
+                                disabled={editingPartyIndex !== index}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select gender" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Male">Male</SelectItem>
+                                  <SelectItem value="Female">Female</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Date of Birth</Label>
+                              <Input
+                                type="date"
+                                value={party.dob || ''}
+                                onChange={(e) => updateParty(index, 'dob', e.target.value)}
+                                disabled={editingPartyIndex !== index}
+                              />
+                            </div>
+                          </>
                         )}
                       </div>
                     </CardContent>
@@ -457,21 +643,9 @@ export default function SSBCaseIntake() {
                   value={formData.summary}
                   onChange={(e) => updateField('summary', e.target.value)}
                   placeholder="Provide a detailed summary of the case (minimum 20 characters)"
-                  rows={5}
+                  rows={8}
                 />
                 {errors.summary && <p className="text-sm text-destructive">{errors.summary}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="relief">Relief Sought *</Label>
-                <Textarea
-                  id="relief"
-                  value={formData.relief_sought}
-                  onChange={(e) => updateField('relief_sought', e.target.value)}
-                  placeholder="Describe the relief or remedy being sought (minimum 10 characters)"
-                  rows={3}
-                />
-                {errors.relief_sought && <p className="text-sm text-destructive">{errors.relief_sought}</p>}
               </div>
             </div>
           )}
@@ -480,40 +654,172 @@ export default function SSBCaseIntake() {
           {currentStep === 3 && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Upload supporting documents for this case</p>
+              
+              <div className="space-y-2">
+                <Label htmlFor="documentType">Document Type *</Label>
+                <Select value={documentType} onValueChange={setDocumentType}>
+                  <SelectTrigger id="documentType">
+                    <SelectValue placeholder="Select document type before uploading" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DOCUMENT_TYPES.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Please select a document type before uploading files</p>
+              </div>
+
               <div className="border-2 border-dashed rounded-lg p-8 text-center">
                 <p className="text-muted-foreground">Drag and drop files or click to browse</p>
-                <Button variant="outline" className="mt-4">Browse Files</Button>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="fileUpload"
+                  disabled={!documentType}
+                />
+                <label htmlFor="fileUpload">
+                  <Button 
+                    variant="outline" 
+                    className="mt-4" 
+                    disabled={!documentType}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('fileUpload')?.click();
+                    }}
+                  >
+                    Browse Files
+                  </Button>
+                </label>
               </div>
+
+              {formData.attachments.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Uploaded Documents ({formData.attachments.length})</Label>
+                  <div className="space-y-2">
+                    {formData.attachments.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">Type: {file.documentType}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              attachments: prev.attachments.filter((_, i) => i !== idx)
+                            }));
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Step 4: Review */}
           {currentStep === 4 && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2">Case Details</h3>
-                <dl className="grid grid-cols-2 gap-4 text-sm">
-                  <div><dt className="text-muted-foreground">Type:</dt><dd className="font-medium">{formData.type}</dd></div>
-                  <div><dt className="text-muted-foreground">Priority:</dt><dd className="font-medium">{formData.priority}</dd></div>
-                  <div className="col-span-2"><dt className="text-muted-foreground">Title:</dt><dd className="font-medium">{formData.title}</dd></div>
-                </dl>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Parties</h3>
-                <ul className="space-y-1 text-sm">
-                  {formData.parties.map((p, i) => (
-                    <li key={i}><span className="text-muted-foreground">{p.role}:</span> {p.name}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Summary</h3>
-                <p className="text-sm text-muted-foreground">{formData.summary}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Relief Sought</h3>
-                <p className="text-sm text-muted-foreground">{formData.relief_sought}</p>
-              </div>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Case ID:</dt>
+                      <dd className="font-medium">{formData.caseId}</dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Date:</dt>
+                      <dd className="font-medium">{new Date(formData.date).toLocaleDateString()}</dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Type:</dt>
+                      <dd className="font-medium">{formData.type}</dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Source:</dt>
+                      <dd className="font-medium">{formData.source}</dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Priority:</dt>
+                      <dd className="font-medium">{formData.priority}</dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Status:</dt>
+                      <dd className="font-medium">{formData.status}</dd>
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <dt className="text-muted-foreground">Assigned Officer:</dt>
+                      <dd className="font-medium">{formData.assignedOfficer}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Parties ({formData.parties.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {formData.parties.map((p, i) => (
+                      <div key={i} className="p-3 border rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline">{p.role}</Badge>
+                          <Badge variant={p.type === 'employer' ? 'default' : p.type === 'insured' ? 'secondary' : 'outline'}>
+                            {p.type === 'employer' ? 'Employer' : p.type === 'insured' ? 'Insured' : 'Manual'}
+                          </Badge>
+                        </div>
+                        <p className="font-medium text-sm">{p.name}</p>
+                        {p.email && <p className="text-xs text-muted-foreground">Email: {p.email}</p>}
+                        {p.phone && <p className="text-xs text-muted-foreground">Phone: {p.countryCode} {p.phone}</p>}
+                        {p.address && <p className="text-xs text-muted-foreground">Address: {p.address}</p>}
+                        {p.regNo && <p className="text-xs text-muted-foreground">Reg: {p.regNo}</p>}
+                        {p.ssn && <p className="text-xs text-muted-foreground">SSN: {p.ssn}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Case Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm whitespace-pre-wrap break-words">{formData.summary}</p>
+                </CardContent>
+              </Card>
+
+              {formData.attachments.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Attachments ({formData.attachments.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {formData.attachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 border rounded">
+                          <div>
+                            <p className="text-sm font-medium truncate max-w-md">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">{file.documentType}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </CardContent>
