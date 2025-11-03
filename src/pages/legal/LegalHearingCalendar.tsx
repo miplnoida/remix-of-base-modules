@@ -344,69 +344,73 @@ export default function LegalHearingCalendar() {
           </TabsContent>
 
           <TabsContent value="list">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>All Hearings</CardTitle>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filter
-                  </Button>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">All Hearings</h2>
+                  <p className="text-sm text-muted-foreground">View all scheduled hearings</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Case Number</TableHead>
-                      <TableHead>Case Title</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Start Time</TableHead>
-                      <TableHead>End Time</TableHead>
-                      <TableHead>Venue</TableHead>
-                      <TableHead>Panel</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {displayHearings.map((hearing) => (
-                      <TableRow
-                        key={hearing.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => {
-                          setSelectedHearing(hearing);
-                          setIsDetailOpen(true);
-                        }}
-                      >
-                        <TableCell className="font-medium">
-                          {hearing.legal_cases?.number || 'N/A'}
-                        </TableCell>
-                        <TableCell>{hearing.legal_cases?.title || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{hearing.type}</Badge>
-                        </TableCell>
-                        <TableCell>{format(new Date(hearing.start_at), 'PPp')}</TableCell>
-                        <TableCell>{format(new Date(hearing.end_at), 'PPp')}</TableCell>
-                        <TableCell>{hearing.venue}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {hearing.panel.slice(0, 2).map((member, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
-                                {member}
-                              </Badge>
-                            ))}
-                            {hearing.panel.length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{hearing.panel.length - 2}
-                              </Badge>
-                            )}
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filter
+                </Button>
+              </div>
+
+              {displayHearings.map((hearing) => (
+                <Card 
+                  key={hearing.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedHearing(hearing);
+                    setIsDetailOpen(true);
+                  }}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div className="space-y-3 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <div>
+                            <h3 className="font-semibold text-foreground">{hearing.legal_cases?.number || 'N/A'}</h3>
+                            <p className="text-sm text-muted-foreground">{hearing.legal_cases?.title || 'N/A'}</p>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                          <Badge variant="outline">{hearing.type}</Badge>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">Hearing Date:</span>
+                            <span className="text-sm text-foreground">{format(new Date(hearing.start_at), 'PPP p')}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">Venue:</span>
+                            <span className="text-sm text-foreground">{hearing.venue}</span>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm font-medium text-foreground">Panel:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {hearing.panel.map((member, idx) => (
+                                <span key={idx} className="text-sm text-foreground">
+                                  {member}{idx < hearing.panel.length - 1 ? ',' : ''}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-row lg:flex-col gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 lg:flex-none gap-1">
+                          <FileText className="h-3 w-3" />
+                          Details
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
 
