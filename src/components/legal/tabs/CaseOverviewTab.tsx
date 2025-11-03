@@ -55,7 +55,7 @@ export function CaseOverviewTab({ caseData }: CaseOverviewTabProps) {
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Next Event</div>
+              <div className="text-xs text-muted-foreground mb-1">Next Hearing</div>
               <div className="text-sm font-medium">
                 {caseData.next_event_at
                   ? new Date(caseData.next_event_at).toLocaleDateString('en-US', {
@@ -127,17 +127,6 @@ export function CaseOverviewTab({ caseData }: CaseOverviewTabProps) {
           </CardContent>
         </Card>
 
-        {/* Relief Sought */}
-        <Card className="md:col-span-2 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Relief Sought</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-foreground leading-relaxed">
-              {caseData.relief_sought}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Activity Timeline */}

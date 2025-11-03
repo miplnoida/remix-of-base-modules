@@ -86,9 +86,6 @@ export default function SSBCaseView() {
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <StatusBadge status={caseData.status} />
                 <TypeBadge type={caseData.type} />
-                {caseData.flags.map(flag => (
-                  <Badge key={flag} variant="outline" className="text-xs">{flag}</Badge>
-                ))}
                 <span className="text-sm text-muted-foreground">Assigned to: {caseData.assignee}</span>
               </div>
             </div>
@@ -98,25 +95,11 @@ export default function SSBCaseView() {
                 <Edit className="h-4 w-4" />
                 <span className="hidden sm:inline">Edit</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => toast.info("Note added")} className="gap-2">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Note</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => toast.info("Upload functionality coming soon")} className="gap-2">
-                <Upload className="h-4 w-4" />
-                <span className="hidden sm:inline">Upload</span>
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm"><MoreVertical className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setScheduleHearingOpen(true)}>
-                    <Calendar className="h-4 w-4 mr-2" />Schedule Hearing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setCreateTaskOpen(true)}>
-                    <CheckSquare className="h-4 w-4 mr-2" />Create Task
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIssueNoticeOpen(true)}>
                     <FileText className="h-4 w-4 mr-2" />Issue Notice
                   </DropdownMenuItem>
