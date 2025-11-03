@@ -91,7 +91,7 @@ export default function AdminConfig() {
         <div>
           <h1 className="text-3xl font-bold">Legal Administration</h1>
           <p className="text-muted-foreground mt-1">
-            Configure code sets, templates, SLAs, permissions, and integrations
+            Configure code sets and document templates
           </p>
         </div>
         <div className="flex gap-2">
@@ -107,7 +107,7 @@ export default function AdminConfig() {
       </div>
 
       <Tabs defaultValue="codesets" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="codesets">
             <Code className="mr-2 h-4 w-4" />
             Code Sets
@@ -115,18 +115,6 @@ export default function AdminConfig() {
           <TabsTrigger value="templates">
             <FileText className="mr-2 h-4 w-4" />
             Templates
-          </TabsTrigger>
-          <TabsTrigger value="sla">
-            <Clock className="mr-2 h-4 w-4" />
-            SLA & Routing
-          </TabsTrigger>
-          <TabsTrigger value="permissions">
-            <Shield className="mr-2 h-4 w-4" />
-            Permissions
-          </TabsTrigger>
-          <TabsTrigger value="integrations">
-            <Plug className="mr-2 h-4 w-4" />
-            Integrations
           </TabsTrigger>
         </TabsList>
 
@@ -399,148 +387,6 @@ export default function AdminConfig() {
           </Card>
         </TabsContent>
 
-        {/* SLA & Routing Tab */}
-        <TabsContent value="sla" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>SLA Rules</CardTitle>
-                <CardDescription>
-                  Define service level agreements for case processing
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Rule Name</TableHead>
-                      <TableHead>Case Type</TableHead>
-                      <TableHead>SLA Days</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockSLARules.map((rule) => (
-                      <TableRow key={rule.id}>
-                        <TableCell className="font-medium">{rule.name}</TableCell>
-                        <TableCell>{rule.caseType}</TableCell>
-                        <TableCell>{rule.slaDays} days</TableCell>
-                        <TableCell>
-                          <Badge variant={rule.status === 'Active' ? 'default' : 'secondary'}>
-                            {rule.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Auto-Assignment Rules</CardTitle>
-                <CardDescription>
-                  Configure automatic case assignment strategies
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mockSLARules.map((rule) => (
-                  <div key={rule.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{rule.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Strategy: <Badge variant="outline">{rule.autoAssign}</Badge>
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Permissions Tab */}
-        <TabsContent value="permissions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Role Permissions</CardTitle>
-              <CardDescription>
-                Configure permissions for each role in the legal module
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-7 gap-4 p-4 border-b font-medium">
-                  <div>Action</div>
-                  <div className="text-center">Clerk</div>
-                  <div className="text-center">Legal Officer</div>
-                  <div className="text-center">Supervisor</div>
-                  <div className="text-center">Finance</div>
-                  <div className="text-center">Read Only</div>
-                  <div className="text-center">Admin</div>
-                </div>
-                {['Create Case', 'Assign Case', 'Change Status', 'Publish Order', 'Read Confidential', 'Delete Case', 'Manage Templates'].map((action) => (
-                  <div key={action} className="grid grid-cols-7 gap-4 p-4 border-b items-center">
-                    <div className="font-medium">{action}</div>
-                    <div className="flex justify-center"><Switch /></div>
-                    <div className="flex justify-center"><Switch defaultChecked /></div>
-                    <div className="flex justify-center"><Switch defaultChecked /></div>
-                    <div className="flex justify-center"><Switch /></div>
-                    <div className="flex justify-center"><Switch /></div>
-                    <div className="flex justify-center"><Switch defaultChecked /></div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Integrations Tab */}
-        <TabsContent value="integrations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>External Integrations</CardTitle>
-              <CardDescription>
-                Configure connections to external systems and services
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockIntegrations.map((integration) => (
-                  <div key={integration.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        integration.isActive ? 'bg-primary/10' : 'bg-muted'
-                      }`}>
-                        <Plug className={`h-5 w-5 ${integration.isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{integration.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Type: {integration.type}
-                          {integration.lastSync && ` • Last sync: ${integration.lastSync}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant={integration.isActive ? 'default' : 'secondary'}>
-                        {integration.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                      <Switch checked={integration.isActive} />
-                      <Button variant="ghost" size="sm">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

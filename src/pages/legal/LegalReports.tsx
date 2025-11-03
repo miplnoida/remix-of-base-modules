@@ -171,69 +171,18 @@ const LegalReports = () => {
         </div>
       </div>
 
-        <Tabs defaultValue="predefined" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="predefined">Predefined Reports</TabsTrigger>
-            <TabsTrigger value="custom">Custom Reports</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics Dashboard</TabsTrigger>
-            <TabsTrigger value="history">Report History</TabsTrigger>
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="predefined" className="space-y-6">
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Download Reports Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Available Reports</CardTitle>
-                <CardDescription>Pre-configured reports for common legal analysis needs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {predefinedReports.map((report) => (
-                    <Card key={report.id} className="border">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <report.icon className={`h-6 w-6 ${report.color}`} />
-                            <div>
-                              <h3 className="font-medium">{report.name}</h3>
-                              <Badge variant="outline" className="mt-1">{report.category}</Badge>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-4">{report.description}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">
-                            Last generated: {report.lastGenerated}
-                          </span>
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleDownloadReport(report.id)}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Download
-                            </Button>
-                            <Button 
-                              size="sm"
-                              onClick={() => handleGenerateReport(report.id)}
-                            >
-                              Generate
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="custom" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Custom Report Builder</CardTitle>
-                <CardDescription>Create custom reports with specific filters and parameters</CardDescription>
+                <CardTitle>Download Legal Reports</CardTitle>
+                <CardDescription>Generate and download reports based on filter criteria</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Date Range */}
@@ -324,39 +273,44 @@ const LegalReports = () => {
                   </div>
                 </div>
 
-                {/* Report Options */}
-                <div className="space-y-2">
-                  <Label>Report Sections</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {[
-                      'Case Summary',
-                      'Status Breakdown',
-                      'Financial Analysis',
-                      'Officer Performance',
-                      'Timeline Analysis',
-                      'Evidence Summary',
-                      'Hearing Schedule',
-                      'Compliance Metrics'
-                    ].map((section) => (
-                      <label key={section} className="flex items-center space-x-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        <span className="text-sm">{section}</span>
-                      </label>
+                {/* Report Types */}
+                <div className="space-y-3">
+                  <Label>Select Report Types to Download</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {predefinedReports.map((report) => (
+                      <Card key={report.id} className="border hover:border-primary transition-colors">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-2">
+                              <report.icon className={`h-5 w-5 ${report.color}`} />
+                              <h4 className="font-medium text-sm">{report.name}</h4>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">{report.description}</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleDownloadReport(report.id)}
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t">
-                  <div className="flex space-x-2">
-                    <Button onClick={handleCustomReportGenerate}>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Generate Custom Report
-                    </Button>
-                    <Button variant="outline">
-                      <Download className="h-4 w-4 mr-2" />
-                      Save Template
-                    </Button>
-                  </div>
+                <div className="pt-4 border-t flex justify-end gap-2">
+                  <Button variant="outline">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Download All as ZIP
+                  </Button>
+                  <Button onClick={handleCustomReportGenerate}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate & Download Selected
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -439,45 +393,6 @@ const LegalReports = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Report Generation History</CardTitle>
-                <CardDescription>Track all previously generated reports</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {reportHistory.map((report) => (
-                    <div key={report.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">{report.reportName}</h4>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline">{report.status}</Badge>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                        <div>
-                          <span className="font-medium">Generated by:</span> {report.generatedBy}
-                        </div>
-                        <div>
-                          <span className="font-medium">Date:</span> {report.dateGenerated}
-                        </div>
-                        <div>
-                          <span className="font-medium">Size:</span> {report.fileSize}
-                        </div>
-                        <div>
-                          <span className="font-medium">Parameters:</span> {report.parameters}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
     </div>
   );

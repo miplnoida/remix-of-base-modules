@@ -179,16 +179,9 @@ export default function LegalHearingCalendar() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Hearing Calendar</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsScheduleOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Schedule Hearing
-          </Button>
-          <Button variant="outline" onClick={printSchedule} className="gap-2">
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Hearing Calendar</h1>
+          <p className="text-muted-foreground mt-1">View all scheduled hearings across all cases</p>
         </div>
       </div>
 
@@ -222,9 +215,8 @@ export default function LegalHearingCalendar() {
                       date={date}
                       onNavigate={setDate}
                       onSelectEvent={handleEventClick}
-                      onSelectSlot={handleSlotSelect}
-                      selectable
                       style={{ height: '100%' }}
+                      views={['month', 'week', 'day', 'agenda']}
                       eventPropGetter={(event) => ({
                         style: {
                           backgroundColor: '#3b82f6',
