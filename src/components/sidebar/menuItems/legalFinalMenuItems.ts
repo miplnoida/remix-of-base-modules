@@ -2,7 +2,7 @@ import { Scale, FileText, Gavel, AlertTriangle, BarChart3, Users } from 'lucide-
 
 export const legalFinalMenuItems = [
   {
-    title: "LegalFinal",
+    title: "Legal Final (TBR)",
     icon: Scale,
     subItems: [
       {

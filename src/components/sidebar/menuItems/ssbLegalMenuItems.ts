@@ -2,7 +2,7 @@ import { Scale, FileText, Calendar, FolderOpen, BarChart3, Settings } from 'luci
 
 export const ssbLegalMenuItems = [
   {
-    title: "SSB Legal",
+    title: "Legal",
     icon: Scale,
     subItems: [
       {

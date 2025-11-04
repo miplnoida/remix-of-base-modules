@@ -2,7 +2,7 @@ import { Scale, FileText, Gavel, AlertTriangle, Search, BarChart3, Settings, Fol
 
 export const legalMenuItems = [
   {
-    title: "NewLegal Module",
+    title: "NewLegal Module (TBR)",
     icon: Scale,
     subItems: [
       {
