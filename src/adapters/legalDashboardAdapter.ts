@@ -101,12 +101,21 @@ const generateMockKPIs = (filters: DashboardFilters): KPIData => ({
 
 const generateMockCollections = (): CollectionsData[] => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return months.map((month, i) => ({
-    month,
-    owed: 350000 + Math.random() * 100000,
-    collected: 180000 + Math.random() * 80000,
-    outstanding: 170000 + Math.random() * 70000
-  }));
+  return months.map((month, i) => {
+    // Generate realistic legal case collection data
+    // Outstanding should be higher than collected since collected comes from reducing outstanding
+    const owed = 300000 + Math.random() * 150000;
+    const collectionRate = 0.25 + Math.random() * 0.20; // 25-45% collection rate
+    const collected = owed * collectionRate;
+    const outstanding = owed - collected;
+    
+    return {
+      month,
+      owed: Math.round(owed),
+      collected: Math.round(collected),
+      outstanding: Math.round(outstanding)
+    };
+  });
 };
 
 const generateMockArrearsHeatmap = (): ArrearsHeatmapCell[] => {
