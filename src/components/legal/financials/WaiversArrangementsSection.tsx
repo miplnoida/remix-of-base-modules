@@ -55,15 +55,13 @@ export function WaiversArrangementsSection({ caseId, waivers, arrangements, isOp
     <Card className="border-2 shadow-lg border-purple-200 bg-gradient-to-br from-purple-50/50 to-background">
       <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="flex items-center gap-2">
-              <FileCheck className="h-5 w-5 text-purple-600" />
-              Waivers & Arrangements
-              <Badge className="bg-purple-600/10 text-purple-700 hover:bg-purple-600/20 font-semibold">
-                {waivers.length + arrangements.length} {waivers.length + arrangements.length === 1 ? 'Item' : 'Items'}
-              </Badge>
-            </CardTitle>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <FileCheck className="h-5 w-5 text-purple-600" />
+            Waivers & Arrangements
+            <Badge className="bg-purple-600/10 text-purple-700 hover:bg-purple-600/20 font-semibold">
+              {waivers.length + arrangements.length} {waivers.length + arrangements.length === 1 ? 'Item' : 'Items'}
+            </Badge>
+          </CardTitle>
           <div className="flex items-center gap-2">
             {nextPaymentDue && (
               <Badge variant="outline" className="flex items-center gap-1.5">

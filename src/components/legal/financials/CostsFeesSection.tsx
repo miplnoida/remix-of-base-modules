@@ -31,25 +31,11 @@ export function CostsFeesSection({ caseId, costs, isOpen, onToggle }: CostsFeesS
       <Card className="border-2 shadow-md">
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-orange-600" />
-                Costs & Fees
-                <Badge className="bg-orange-600/10 text-orange-700 hover:bg-orange-600/20 font-semibold">{costs.length} {costs.length === 1 ? 'Item' : 'Items'}</Badge>
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAddDialogOpen(true);
-                }}
-                aria-label="Add Cost or Fee"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-orange-600" />
+              Costs & Fees
+              <Badge className="bg-orange-600/10 text-orange-700 hover:bg-orange-600/20 font-semibold">{costs.length} {costs.length === 1 ? 'Item' : 'Items'}</Badge>
+            </CardTitle>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
         </CardHeader>

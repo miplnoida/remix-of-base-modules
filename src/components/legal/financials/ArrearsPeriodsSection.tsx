@@ -64,25 +64,11 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
       <Card className="border-2 shadow-md">
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Arrears & Periods
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold">{periods.length} {periods.length === 1 ? 'Record' : 'Records'}</Badge>
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAddDialogOpen(true);
-                }}
-                aria-label="Add Arrears Period"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Arrears & Periods
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold">{periods.length} {periods.length === 1 ? 'Record' : 'Records'}</Badge>
+            </CardTitle>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
         </CardHeader>
