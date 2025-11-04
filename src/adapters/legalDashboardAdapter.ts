@@ -78,26 +78,35 @@ export interface ActivityItem {
 const dataMode: 'mock' | 'legacy' = 'mock';
 
 // Mock data generators
-const generateMockKPIs = (filters: DashboardFilters): KPIData => ({
-  activeCases: 847,
-  newThisPeriod: {
-    count: 42,
-    sparkline: [28, 35, 31, 38, 45, 42, 39, 44, 41, 38, 42, 42]
-  },
-  financial: {
-    owed: 4250000,
-    collected: 2180000,
-    outstanding: 2070000
-  },
-  enforcementStage: {
-    summons: 124,
-    jds: 87,
-    warrant: 45,
-    writ: 23
-  },
-  postJudgmentRisk: 17,
-  hearingsThisMonth: 34
-});
+const generateMockKPIs = (filters: DashboardFilters): KPIData => {
+  // Generate consistent financial data
+  // Outstanding should always be higher than collected (collections reduce outstanding)
+  const totalOwed = 4250000;
+  const collectionRate = 0.51; // 51% collected
+  const totalCollected = Math.round(totalOwed * collectionRate);
+  const totalOutstanding = totalOwed - totalCollected;
+
+  return {
+    activeCases: 847,
+    newThisPeriod: {
+      count: 42,
+      sparkline: [28, 35, 31, 38, 45, 42, 39, 44, 41, 38, 42, 42]
+    },
+    financial: {
+      owed: totalOwed,
+      collected: totalCollected,
+      outstanding: totalOutstanding
+    },
+    enforcementStage: {
+      summons: 124,
+      jds: 87,
+      warrant: 45,
+      writ: 23
+    },
+    postJudgmentRisk: 17,
+    hearingsThisMonth: 34
+  };
+};
 
 const generateMockCollections = (): CollectionsData[] => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
