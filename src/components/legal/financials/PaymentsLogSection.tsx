@@ -34,11 +34,25 @@ export function PaymentsLogSection({ caseId, payments, periods, isOpen, onToggle
       <Card className="border-2 shadow-md">
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-green-600" />
-              Payments Log
-              <Badge className="bg-green-600/10 text-green-700 hover:bg-green-600/20 font-semibold">{payments.length} Payments</Badge>
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                Payments Log
+                <Badge className="bg-green-600/10 text-green-700 hover:bg-green-600/20 font-semibold">{payments.length} {payments.length === 1 ? 'Payment' : 'Payments'}</Badge>
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAddDialogOpen(true);
+                }}
+                aria-label="Add Payment"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
         </CardHeader>

@@ -55,22 +55,24 @@ export function WaiversArrangementsSection({ caseId, waivers, arrangements, isOp
     <Card className="border-2 shadow-lg border-purple-200 bg-gradient-to-br from-purple-50/50 to-background">
       <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            <CardTitle className="flex items-center gap-3 text-lg">
-              <FileCheck className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <FileCheck className="h-5 w-5 text-purple-600" />
               Waivers & Arrangements
-              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold px-3 py-1">
+              <Badge className="bg-purple-600/10 text-purple-700 hover:bg-purple-600/20 font-semibold">
                 {waivers.length + arrangements.length} {waivers.length + arrangements.length === 1 ? 'Item' : 'Items'}
               </Badge>
             </CardTitle>
-            {nextPaymentDue && (
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Next Due: {nextPaymentDue.toLocaleDateString()}
-              </div>
-            )}
           </div>
-          {isOpen ? <ChevronUp className="h-5 w-5 text-primary" /> : <ChevronDown className="h-5 w-5 text-primary" />}
+          <div className="flex items-center gap-2">
+            {nextPaymentDue && (
+              <Badge variant="outline" className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Next Due: {nextPaymentDue.toLocaleDateString()}
+              </Badge>
+            )}
+            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </div>
         </div>
       </CardHeader>
 
