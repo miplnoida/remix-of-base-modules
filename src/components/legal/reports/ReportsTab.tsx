@@ -76,7 +76,7 @@ export function ReportsTab() {
     status: 'all',
     enforcementStage: 'all',
     officer: 'all',
-    employer: ''
+    employer: 'all'
   });
 
   const [savedConfig, setSavedConfig] = useState<string>('');
@@ -238,7 +238,7 @@ export function ReportsTab() {
                   <SelectValue placeholder="Filter by employer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="company1">ABC Company Ltd</SelectItem>
                   <SelectItem value="company2">XYZ Enterprise</SelectItem>
                 </SelectContent>
