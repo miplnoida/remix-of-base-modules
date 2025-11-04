@@ -9,11 +9,11 @@ interface KPICardsProps {
   data: KPIData | null;
   loading: boolean;
   onActiveCasesClick?: () => void;
-  onRiskAlertClick?: () => void;
+  onMissedPaymentClick?: () => void;
   onHearingsClick?: () => void;
 }
 
-export function KPICards({ data, loading, onActiveCasesClick, onRiskAlertClick, onHearingsClick }: KPICardsProps) {
+export function KPICards({ data, loading, onActiveCasesClick, onMissedPaymentClick, onHearingsClick }: KPICardsProps) {
   const navigate = useNavigate();
 
   if (loading || !data) {
@@ -152,48 +152,30 @@ export function KPICards({ data, loading, onActiveCasesClick, onRiskAlertClick, 
         </CardContent>
       </Card>
 
-      {/* 14-Day Post-Judgment at Risk - Enhanced */}
+      {/* Missed Payment for a Month - Enhanced */}
       <Card
-        className={`cursor-pointer hover:shadow-lg transition-all hover:scale-105 ${
-          data.postJudgmentRisk > 0 
-            ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 border-red-300 dark:border-red-800' 
-            : 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 border-gray-200 dark:border-gray-800'
-        }`}
-        onClick={onRiskAlertClick || (() => navigate('/legal/cases'))}
+        className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 border-red-300 dark:border-red-800"
+        onClick={onMissedPaymentClick || (() => navigate('/legal/cases?filter=missedpayment'))}
         role="button"
         tabIndex={0}
-        aria-label="View post-judgment cases at risk"
+        aria-label="View cases with missed payments"
       >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className={`text-sm font-medium ${
-              data.postJudgmentRisk > 0 ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'
-            }`}>
-              14-Day Risk Alert
+            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
+              Missed Payment for a Month
             </CardTitle>
-            {data.postJudgmentRisk > 0 ? (
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 animate-pulse" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-gray-500" />
-            )}
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
         </CardHeader>
         <CardContent>
-          <div className={`text-4xl font-bold mb-2 ${
-            data.postJudgmentRisk > 0 ? 'text-red-900 dark:text-red-100' : 'text-gray-900 dark:text-gray-100'
-          }`}>
+          <div className="text-4xl font-bold mb-2 text-red-900 dark:text-red-100">
             {data.postJudgmentRisk}
           </div>
-          {data.postJudgmentRisk > 0 ? (
-            <Badge variant="destructive" className="w-full justify-center">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              Action Required
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="w-full justify-center text-gray-600 dark:text-gray-400">
-              All Clear
-            </Badge>
-          )}
+          <Badge variant="destructive" className="w-full justify-center">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Payment Overdue
+          </Badge>
         </CardContent>
       </Card>
 

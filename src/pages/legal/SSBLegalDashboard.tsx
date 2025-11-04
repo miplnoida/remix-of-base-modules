@@ -80,6 +80,7 @@ export default function SSBLegalDashboard() {
           data={kpiData} 
           loading={loading}
           onActiveCasesClick={() => navigate('/legal/cases')}
+          onMissedPaymentClick={() => navigate('/legal/cases?filter=missedpayment')}
           onHearingsClick={() => navigate('/legal/hearings')}
         />
 
