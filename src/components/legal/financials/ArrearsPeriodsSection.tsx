@@ -10,19 +10,25 @@ import { toast } from "sonner";
 
 interface ArrearsPeriod {
   id: string;
+  rowType: 'Amount Due on JDS' | 'Payment' | 'Bal Due';
   employer: string;
   periodFrom: string;
   periodTo: string;
   dateOfPayment?: string;
   ssc: number;
   ssf: number;
-  costsFees: number;
+  ssCosts: number;
+  totalSS: number;
   lvc: number;
   lvp: number;
+  lvCosts: number;
+  totalLV: number;
   pec: number;
-  waiverApplied: number;
-  balanceOutstanding: number;
-  hasPayment: boolean;
+  pep: number;
+  peCosts: number;
+  totalPE: number;
+  totalPaid?: number;
+  periodCovers?: string;
 }
 
 interface ArrearsPeriodsectionProps {
@@ -55,9 +61,18 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
     setPeriodToDelete(null);
   };
 
-  const totalDue = periods.reduce((sum, p) => sum + p.ssc + p.ssf + p.costsFees + p.lvc + p.lvp + p.pec, 0);
-  const totalWaived = periods.reduce((sum, p) => sum + p.waiverApplied, 0);
-  const totalOutstanding = periods.reduce((sum, p) => sum + p.balanceOutstanding, 0);
+  const totalDue = periods
+    .filter(p => p.rowType === 'Amount Due on JDS')
+    .reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
+  
+  const totalPaid = periods
+    .filter(p => p.rowType === 'Payment')
+    .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
+  
+  const balDuePeriods = periods.filter(p => p.rowType === 'Bal Due');
+  const totalOutstanding = balDuePeriods.length > 0
+    ? balDuePeriods.reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0)
+    : totalDue - totalPaid;
 
   return (
     <>
@@ -83,8 +98,8 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                     <span className="font-semibold">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Total Waived: </span>
-                    <span className="font-semibold text-green-600">${totalWaived.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-muted-foreground">Total Paid: </span>
+                    <span className="font-semibold text-green-600">${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Outstanding: </span>
@@ -103,34 +118,54 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">No.</TableHead>
+                        <TableHead>Row Type</TableHead>
                         <TableHead>Employer</TableHead>
                         <TableHead>Debt Period</TableHead>
                         <TableHead>D.O.P.</TableHead>
-                        <TableHead className="text-right">S.S.C</TableHead>
-                        <TableHead className="text-right">S.S.F</TableHead>
-                        <TableHead className="text-right">Costs/Fees</TableHead>
-                        <TableHead className="text-right">L.V.C</TableHead>
-                        <TableHead className="text-right">L.V.P</TableHead>
-                        <TableHead className="text-right">P.E.C</TableHead>
-                        <TableHead className="text-right">Waiver</TableHead>
-                        <TableHead className="text-right">Balance</TableHead>
+                        <TableHead className="text-right">SSC</TableHead>
+                        <TableHead className="text-right">SSF</TableHead>
+                        <TableHead className="text-right">SS Costs</TableHead>
+                        <TableHead className="text-right">Total SS</TableHead>
+                        <TableHead className="text-right">LVC</TableHead>
+                        <TableHead className="text-right">LVP</TableHead>
+                        <TableHead className="text-right">LV Costs</TableHead>
+                        <TableHead className="text-right">Total LV</TableHead>
+                        <TableHead className="text-right">PEC</TableHead>
+                        <TableHead className="text-right">PEP</TableHead>
+                        <TableHead className="text-right">PE Costs</TableHead>
+                        <TableHead className="text-right">Total PE</TableHead>
+                        <TableHead className="text-right">Total Paid</TableHead>
+                        <TableHead>Period Covers</TableHead>
                         <TableHead className="w-20">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {periods.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={20} className="text-center text-muted-foreground py-8">
                             No arrears periods recorded. Click "Add Period" to create one.
                           </TableCell>
                         </TableRow>
                       ) : (
                         periods.map((period, index) => (
-                          <TableRow key={period.id}>
+                          <TableRow key={period.id} className={
+                            period.rowType === 'Payment' ? 'bg-green-50/50 dark:bg-green-950/20' :
+                            period.rowType === 'Bal Due' ? 'bg-blue-50/50 dark:bg-blue-950/20 font-semibold' :
+                            ''
+                          }>
                             <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                period.rowType === 'Amount Due on JDS' ? 'destructive' :
+                                period.rowType === 'Payment' ? 'default' :
+                                'secondary'
+                              } className="text-xs">
+                                {period.rowType}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="font-medium">{period.employer}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {new Date(period.periodFrom).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })} - {new Date(period.periodTo).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                              {new Date(period.periodFrom).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })} – {new Date(period.periodTo).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
                             </TableCell>
                             <TableCell>
                               {period.dateOfPayment ? (
@@ -141,22 +176,20 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                             </TableCell>
                             <TableCell className="text-right">${period.ssc.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right">${period.ssf.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-right">${period.costsFees.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right">${period.ssCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right font-semibold">${period.totalSS.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right">${period.lvc.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right">${period.lvp.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right">${period.lvCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right font-semibold">${period.totalLV.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                             <TableCell className="text-right">${period.pec.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-right">
-                              {period.waiverApplied > 0 ? (
-                                <span className="text-green-600">${period.waiverApplied.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
+                            <TableCell className="text-right">${period.pep.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right">${period.peCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right font-semibold">${period.totalPE.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right font-semibold text-green-600">
+                              {period.totalPaid !== undefined ? `$${period.totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
                             </TableCell>
-                            <TableCell className="text-right font-semibold">
-                              <span className={period.balanceOutstanding > 0 ? "text-destructive" : "text-green-600"}>
-                                ${period.balanceOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                              </span>
-                            </TableCell>
+                            <TableCell className="text-sm max-w-[150px] truncate">{period.periodCovers || '—'}</TableCell>
                             <TableCell>
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(period)}>
@@ -178,11 +211,12 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
               <div className="text-xs text-muted-foreground space-y-1 mt-4">
                 <p><strong>Abbreviations:</strong></p>
                 <ul className="list-disc list-inside space-y-0.5 ml-2">
-                  <li>S.S.C = Social Security Contribution</li>
-                  <li>S.S.F = Social Security Fund</li>
-                  <li>L.V.C = Local Voluntary Contribution</li>
-                  <li>L.V.P = Local Voluntary Pension</li>
-                  <li>P.E.C = Penalty Enforcement Costs</li>
+                  <li>SSC = Social Security Contribution</li>
+                  <li>SSF = Social Security Fund</li>
+                  <li>LVC = Local Voluntary Contribution</li>
+                  <li>LVP = Local Voluntary Pension</li>
+                  <li>PEC = Penalty Enforcement Costs</li>
+                  <li>PEP = Penalty Enforcement Payments</li>
                   <li>D.O.P. = Date of Payment</li>
                 </ul>
               </div>

@@ -33,12 +33,14 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   }
 
   // Calculate summary
-  const totalOwed = financialData.periods.reduce((sum, p) => 
-    sum + p.ssc + p.ssf + p.costsFees + p.lvc + p.lvp + p.pec, 0
-  );
+  const totalOwed = financialData.periods
+    .filter(p => p.rowType === 'Amount Due on JDS')
+    .reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
   
   const totalCollected = financialData.payments.reduce((sum, p) => sum + p.amountPaid, 0);
-  const totalWaived = financialData.periods.reduce((sum, p) => sum + p.waiverApplied, 0);
+  
+  const totalWaived = financialData.waivers.reduce((sum, w) => sum + w.amount, 0);
+  
   const totalOutstanding = totalOwed - totalCollected - totalWaived;
 
   // Find next payment due from arrangements

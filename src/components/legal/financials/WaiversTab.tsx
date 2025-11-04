@@ -22,25 +22,20 @@ interface WaiversTabProps {
 }
 
 export function WaiversTab({ caseId, waivers }: WaiversTabProps) {
-  const [isAddWaiverOpen, setIsAddWaiverOpen] = useState(false);
-  const totalWaived = waivers.reduce((sum, w) => sum + w.amount, 0);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="text-sm">
-          <span className="text-muted-foreground">Total Waived: </span>
-          <span className="font-semibold text-green-600">${totalWaived.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-        </div>
-        <Button size="sm" onClick={() => setIsAddWaiverOpen(true)}>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Waiver
         </Button>
       </div>
 
       <AddWaiverDialog
-        open={isAddWaiverOpen}
-        onOpenChange={setIsAddWaiverOpen}
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
         caseId={caseId}
       />
 
@@ -48,37 +43,38 @@ export function WaiversTab({ caseId, waivers }: WaiversTabProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead className="text-right">Amount/Percent</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
               <TableHead>Authorized By</TableHead>
-              <TableHead>Applied Periods</TableHead>
+              <TableHead>Date</TableHead>
               <TableHead>Reason</TableHead>
+              <TableHead>Applied Periods</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {waivers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  No waivers applied. Click "Add Waiver" to create one.
+                  No waivers recorded. Click "Add Waiver" to create one.
                 </TableCell>
               </TableRow>
             ) : (
               waivers.map((waiver) => (
                 <TableRow key={waiver.id}>
-                  <TableCell>{new Date(waiver.date).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{waiver.waiverType}</Badge>
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-green-600">
-                    {waiver.percent ? `${waiver.percent}%` : `$${waiver.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                  <TableCell className="text-right font-semibold">
+                    ${waiver.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {waiver.percent && <span className="text-muted-foreground ml-1">({waiver.percent}%)</span>}
                   </TableCell>
                   <TableCell>{waiver.authorizedBy}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{waiver.appliedPeriods.length} periods</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                    {waiver.reason}
+                  <TableCell>{new Date(waiver.date).toLocaleDateString()}</TableCell>
+                  <TableCell className="max-w-xs truncate">{waiver.reason}</TableCell>
+                  <TableCell className="text-sm">
+                    {waiver.appliedPeriods.map((period, idx) => (
+                      <Badge key={idx} variant="secondary" className="mr-1">{period}</Badge>
+                    ))}
                   </TableCell>
                 </TableRow>
               ))

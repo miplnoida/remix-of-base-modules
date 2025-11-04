@@ -4,30 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AddPaymentDialog } from "./AddPaymentDialog";
+import { RecordPaymentDialog } from "./RecordPaymentDialog";
 
 interface Payment {
   id: string;
   paymentDate: string;
-  funds: string[];
+  fund: string;
   amountPaid: number;
   appliedPeriod: string;
   receiptReference: string;
   remainingBalance: number;
 }
 
+interface ArrearsPeriod {
+  id: string;
+  employer: string;
+  periodFrom: string;
+  periodTo: string;
+}
+
 interface PaymentsLogSectionProps {
   caseId: string;
   payments: Payment[];
-  periods: any[];
+  periods: ArrearsPeriod[];
   isOpen: boolean;
   onToggle: () => void;
 }
 
 export function PaymentsLogSection({ caseId, payments, periods, isOpen, onToggle }: PaymentsLogSectionProps) {
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-
-  const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+  const [recordDialogOpen, setRecordDialogOpen] = useState(false);
 
   return (
     <>
@@ -37,7 +42,9 @@ export function PaymentsLogSection({ caseId, payments, periods, isOpen, onToggle
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-600" />
               Payments Log
-              <Badge className="bg-green-600/10 text-green-700 hover:bg-green-600/20 font-semibold">{payments.length} {payments.length === 1 ? 'Payment' : 'Payments'}</Badge>
+              <Badge className="bg-green-600/10 text-green-700 hover:bg-green-600/20 font-semibold">
+                {payments.length} {payments.length === 1 ? 'Record' : 'Records'}
+              </Badge>
             </CardTitle>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
@@ -46,73 +53,61 @@ export function PaymentsLogSection({ caseId, payments, periods, isOpen, onToggle
         {isOpen && (
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Total Paid: </span>
-                  <span className="font-semibold text-green-600">${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <Button onClick={() => setAddDialogOpen(true)} size="sm">
+              <div className="flex justify-end">
+                <Button onClick={() => setRecordDialogOpen(true)} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Payment
+                  Record Payment
                 </Button>
               </div>
 
               <div className="border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payment Date</TableHead>
+                      <TableHead>Fund</TableHead>
+                      <TableHead className="text-right">Amount Paid</TableHead>
+                      <TableHead>Applied Period</TableHead>
+                      <TableHead>Receipt/Reference</TableHead>
+                      <TableHead className="text-right">Remaining Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.length === 0 ? (
                       <TableRow>
-                        <TableHead>Payment Date</TableHead>
-                        <TableHead>Fund(s)</TableHead>
-                        <TableHead className="text-right">Amount Paid</TableHead>
-                        <TableHead>Applied Period</TableHead>
-                        <TableHead>Receipt/Reference</TableHead>
-                        <TableHead className="text-right">Remaining Balance</TableHead>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          No payments recorded. Click "Record Payment" to add one.
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {payments.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            No payments recorded. Click "Add Payment" to create one.
+                    ) : (
+                      payments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell>{new Date(payment.paymentDate).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{payment.fund}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-green-600">
+                            ${payment.amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-sm">{payment.appliedPeriod}</TableCell>
+                          <TableCell className="text-sm font-mono">{payment.receiptReference}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            ${payment.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        payments.map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell>{new Date(payment.paymentDate).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-1">
-                                {payment.funds.map((fund) => (
-                                  <Badge key={fund} variant="outline" className="text-xs">
-                                    {fund}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-semibold text-green-600">
-                              ${payment.amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell>{payment.appliedPeriod}</TableCell>
-                            <TableCell className="font-mono text-sm">{payment.receiptReference}</TableCell>
-                            <TableCell className="text-right">
-                              ${payment.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </CardContent>
         )}
       </Card>
 
-      <AddPaymentDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
+      <RecordPaymentDialog
+        open={recordDialogOpen}
+        onOpenChange={setRecordDialogOpen}
         caseId={caseId}
         periods={periods}
       />

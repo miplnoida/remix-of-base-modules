@@ -8,35 +8,88 @@ export const useFinancialData = (caseId: string) => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Mock data
+      // Mock data with new structure
       return {
         periods: [
           {
             id: '1',
+            rowType: 'Amount Due on JDS' as const,
+            employer: 'ABC Construction Ltd.',
+            periodFrom: '2023-09-01',
+            periodTo: '2024-03-31',
+            ssc: 12500.00,
+            ssf: 8400.00,
+            ssCosts: 500.00,
+            totalSS: 21400.00,
+            lvc: 2000.00,
+            lvp: 1500.00,
+            lvCosts: 200.00,
+            totalLV: 3700.00,
+            pec: 750.00,
+            pep: 0.00,
+            peCosts: 150.00,
+            totalPE: 900.00,
+          },
+          {
+            id: '2',
+            rowType: 'Payment' as const,
             employer: 'ABC Construction Ltd.',
             periodFrom: '2023-09-01',
             periodTo: '2024-03-31',
             dateOfPayment: '2024-04-15',
-            ssc: 12500.00,
-            ssf: 8400.00,
-            costsFees: 500.00,
-            lvc: 2000.00,
-            lvp: 1500.00,
-            pec: 750.00,
-            waiverApplied: 1000.00,
-            balanceOutstanding: 24650.00,
-            hasPayment: true,
+            ssc: 5000.00,
+            ssf: 3000.00,
+            ssCosts: 0.00,
+            totalSS: 8000.00,
+            lvc: 500.00,
+            lvp: 500.00,
+            lvCosts: 0.00,
+            totalLV: 1000.00,
+            pec: 250.00,
+            pep: 0.00,
+            peCosts: 0.00,
+            totalPE: 250.00,
+            totalPaid: 9250.00,
+            periodCovers: "Sep'23, Oct'23",
+          },
+          {
+            id: '3',
+            rowType: 'Bal Due' as const,
+            employer: 'ABC Construction Ltd.',
+            periodFrom: '2023-09-01',
+            periodTo: '2024-03-31',
+            ssc: 7500.00,
+            ssf: 5400.00,
+            ssCosts: 500.00,
+            totalSS: 13400.00,
+            lvc: 1500.00,
+            lvp: 1000.00,
+            lvCosts: 200.00,
+            totalLV: 2700.00,
+            pec: 500.00,
+            pep: 0.00,
+            peCosts: 150.00,
+            totalPE: 650.00,
           },
         ],
         payments: [
           {
             id: '1',
             paymentDate: '2024-04-15',
-            funds: ['S.S.C', 'S.S.F'],
+            fund: 'SSC',
             amountPaid: 5000.00,
-            appliedPeriod: '1',
+            appliedPeriod: "Sep'23 – Mar'24",
             receiptReference: 'REC-2024-001',
-            remainingBalance: 24650.00,
+            remainingBalance: 16750.00,
+          },
+          {
+            id: '2',
+            paymentDate: '2024-05-10',
+            fund: 'SSF',
+            amountPaid: 3000.00,
+            appliedPeriod: "Sep'23 – Mar'24",
+            receiptReference: 'REC-2024-002',
+            remainingBalance: 13750.00,
           },
         ],
         costs: [
@@ -120,12 +173,12 @@ export const useFinancialSummary = (caseId: string) => {
     };
   }
 
-  const totalOwed = data.periods.reduce((sum, p) => 
-    sum + p.ssc + p.ssf + p.costsFees + p.lvc + p.lvp + p.pec, 0
-  );
+  const totalOwed = data.periods
+    .filter(p => p.rowType === 'Amount Due on JDS')
+    .reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
   
   const totalCollected = data.payments.reduce((sum, p) => sum + p.amountPaid, 0);
-  const totalWaived = data.periods.reduce((sum, p) => sum + p.waiverApplied, 0);
+  const totalWaived = data.waivers.reduce((sum, w) => sum + w.amount, 0);
   const totalOutstanding = totalOwed - totalCollected - totalWaived;
 
   // Find next payment due from arrangements
