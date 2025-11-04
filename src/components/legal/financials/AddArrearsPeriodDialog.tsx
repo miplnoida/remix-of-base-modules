@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 interface ArrearsPeriod {
   id: string;
-  rowType: 'Amount Due on JDS' | 'Payment' | 'Bal Due';
   employer: string;
   periodFrom: string;
   periodTo: string;
@@ -37,7 +36,6 @@ interface AddArrearsPeriodDialogProps {
 }
 
 export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: AddArrearsPeriodDialogProps) {
-  const [rowType, setRowType] = useState<'Amount Due on JDS' | 'Payment' | 'Bal Due'>('Amount Due on JDS');
   const [employer, setEmployer] = useState('');
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
@@ -55,7 +53,6 @@ export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: A
 
   useEffect(() => {
     if (period) {
-      setRowType(period.rowType);
       setEmployer(period.employer);
       setPeriodFrom(period.periodFrom);
       setPeriodTo(period.periodTo);
@@ -76,16 +73,10 @@ export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: A
   const totalSS = parseFloat(ssc || '0') + parseFloat(ssf || '0') + parseFloat(ssCosts || '0');
   const totalLV = parseFloat(lvc || '0') + parseFloat(lvp || '0') + parseFloat(lvCosts || '0');
   const totalPE = parseFloat(pec || '0') + parseFloat(pep || '0') + parseFloat(peCosts || '0');
-  const totalPaid = rowType === 'Payment' ? totalSS + totalLV + totalPE : undefined;
 
   const handleSubmit = () => {
     if (!employer || !periodFrom || !periodTo) {
       toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (rowType === 'Payment' && !dateOfPayment) {
-      toast.error('Date of Payment is required for payment rows');
       return;
     }
 
@@ -96,7 +87,6 @@ export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: A
   };
 
   const resetForm = () => {
-    setRowType('Amount Due on JDS');
     setEmployer('');
     setPeriodFrom('');
     setPeriodTo('');
@@ -121,34 +111,19 @@ export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: A
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Row Type & Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="row-type">Row Type *</Label>
-              <Select value={rowType} onValueChange={(val: any) => setRowType(val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Amount Due on JDS">Amount Due on JDS</SelectItem>
-                  <SelectItem value="Payment">Payment</SelectItem>
-                  <SelectItem value="Bal Due">Bal Due</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="employer">Employer *</Label>
-              <Input
-                id="employer"
-                placeholder="ABC Construction Ltd."
-                value={employer}
-                onChange={(e) => setEmployer(e.target.value)}
-              />
-            </div>
+          {/* Basic Info */}
+          <div>
+            <Label htmlFor="employer">Employer *</Label>
+            <Input
+              id="employer"
+              placeholder="ABC Construction Ltd."
+              value={employer}
+              onChange={(e) => setEmployer(e.target.value)}
+            />
           </div>
 
           {/* Period Dates */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="period-from">Debt Period From *</Label>
               <Input
@@ -167,17 +142,6 @@ export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: A
                 onChange={(e) => setPeriodTo(e.target.value)}
               />
             </div>
-            {rowType === 'Payment' && (
-              <div>
-                <Label htmlFor="dop">D.O.P. (Date of Payment) *</Label>
-                <Input
-                  id="dop"
-                  type="date"
-                  value={dateOfPayment}
-                  onChange={(e) => setDateOfPayment(e.target.value)}
-                />
-              </div>
-            )}
           </div>
 
           {/* SS Section */}
@@ -309,26 +273,6 @@ export function AddArrearsPeriodDialog({ open, onOpenChange, caseId, period }: A
             </div>
           </div>
 
-          {/* Total Paid & Period Covers */}
-          {rowType === 'Payment' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Total Paid</Label>
-                <div className="h-10 flex items-center px-3 border rounded-md bg-green-50 dark:bg-green-950/20 font-bold text-green-600">
-                  ${totalPaid?.toFixed(2)}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="period-covers">Period Covers</Label>
-                <Input
-                  id="period-covers"
-                  placeholder="e.g., Sep'20, Oct'20, Nov'20"
-                  value={periodCovers}
-                  onChange={(e) => setPeriodCovers(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter>

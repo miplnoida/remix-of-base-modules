@@ -32,16 +32,11 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
     );
   }
 
-  // Calculate summary
-  const totalOwed = financialData.periods
-    .filter(p => p.rowType === 'Amount Due on JDS')
-    .reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
-  
-  const totalCollected = financialData.payments.reduce((sum, p) => sum + p.amountPaid, 0);
-  
+  // Calculate summary - three separate totals
+  const totalAmountDue = financialData.periods.reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
+  const totalPayments = financialData.payments.reduce((sum, p) => sum + p.amountPaid, 0);
   const totalWaived = financialData.waivers.reduce((sum, w) => sum + w.amount, 0);
-  
-  const totalOutstanding = totalOwed - totalCollected - totalWaived;
+  const balanceDue = totalAmountDue - totalPayments - totalWaived;
 
   // Find next payment due from arrangements
   let nextPaymentDue = null;
@@ -67,22 +62,22 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="space-y-2 p-4 rounded-lg bg-background/50 border">
-              <p className="text-sm font-medium text-muted-foreground">Total Owed</p>
-              <p className="text-3xl font-bold text-foreground">
-                ${totalOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="space-y-2 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-400">Amount Due on JDS</p>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-500">
+                ${totalAmountDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="space-y-2 p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-              <p className="text-sm font-medium text-green-700 dark:text-green-400">Total Collected</p>
+              <p className="text-sm font-medium text-green-700 dark:text-green-400">Total Payments</p>
               <p className="text-3xl font-bold text-green-600 dark:text-green-500">
-                ${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${totalPayments.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="space-y-2 p-4 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-              <p className="text-sm font-medium text-red-700 dark:text-red-400">Total Outstanding</p>
+              <p className="text-sm font-medium text-red-700 dark:text-red-400">Balance Due</p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-500">
-                ${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="space-y-2 p-4 rounded-lg bg-background/50 border">
