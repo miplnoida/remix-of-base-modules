@@ -937,7 +937,7 @@ export default function SSBCaseIntake() {
           ) : (
             <Button onClick={handleSubmit}>
               <Send className="h-4 w-4 mr-2" />
-              File Case
+              Submit Case
             </Button>
           )}
         </div>
