@@ -641,7 +641,6 @@ export default function SSBCaseIntake() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Respondent">Respondent</SelectItem>
-                              <SelectItem value="Complainant">Complainant</SelectItem>
                               <SelectItem value="Third Party">Third Party</SelectItem>
                             </SelectContent>
                           </Select>
