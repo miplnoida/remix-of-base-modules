@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { CreateArrangementDialog } from "./CreateArrangementDialog";
 
 interface Arrangement {
   id: string;
@@ -22,9 +23,12 @@ interface Arrangement {
 interface ArrangementsTabProps {
   caseId: string;
   arrangements: Arrangement[];
+  totalAmount?: number;
 }
 
-export function ArrangementsTab({ caseId, arrangements }: ArrangementsTabProps) {
+export function ArrangementsTab({ caseId, arrangements, totalAmount = 0 }: ArrangementsTabProps) {
+  const [isCreatePlanOpen, setIsCreatePlanOpen] = useState(false);
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       "On Track": "default",
@@ -37,11 +41,18 @@ export function ArrangementsTab({ caseId, arrangements }: ArrangementsTabProps) 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button size="sm">
+        <Button size="sm" onClick={() => setIsCreatePlanOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Create Arrangement Plan
+          Create Plan
         </Button>
       </div>
+
+      <CreateArrangementDialog
+        open={isCreatePlanOpen}
+        onOpenChange={setIsCreatePlanOpen}
+        caseId={caseId}
+        totalAmount={totalAmount}
+      />
 
       {arrangements.length === 0 ? (
         <div className="border rounded-lg p-8 text-center text-muted-foreground">

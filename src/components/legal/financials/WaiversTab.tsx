@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AddWaiverDialog } from "./AddWaiverDialog";
 
 interface Waiver {
   id: string;
@@ -21,6 +22,7 @@ interface WaiversTabProps {
 }
 
 export function WaiversTab({ caseId, waivers }: WaiversTabProps) {
+  const [isAddWaiverOpen, setIsAddWaiverOpen] = useState(false);
   const totalWaived = waivers.reduce((sum, w) => sum + w.amount, 0);
 
   return (
@@ -30,11 +32,17 @@ export function WaiversTab({ caseId, waivers }: WaiversTabProps) {
           <span className="text-muted-foreground">Total Waived: </span>
           <span className="font-semibold text-green-600">${totalWaived.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={() => setIsAddWaiverOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Waiver
         </Button>
       </div>
+
+      <AddWaiverDialog
+        open={isAddWaiverOpen}
+        onOpenChange={setIsAddWaiverOpen}
+        caseId={caseId}
+      />
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
