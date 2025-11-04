@@ -10,7 +10,6 @@ import { toast } from "sonner";
 
 interface ArrearsPeriod {
   id: string;
-  rowType: 'Amount Due on JDS' | 'Payment' | 'Bal Due';
   employer: string;
   periodFrom: string;
   periodTo: string;
@@ -61,18 +60,9 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
     setPeriodToDelete(null);
   };
 
-  const totalDue = periods
-    .filter(p => p.rowType === 'Amount Due on JDS')
-    .reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
-  
-  const totalPaid = periods
-    .filter(p => p.rowType === 'Payment')
-    .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
-  
-  const balDuePeriods = periods.filter(p => p.rowType === 'Bal Due');
-  const totalOutstanding = balDuePeriods.length > 0
-    ? balDuePeriods.reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0)
-    : totalDue - totalPaid;
+  const totalDue = periods.reduce((sum, p) => sum + p.totalSS + p.totalLV + p.totalPE, 0);
+  const totalPaid = periods.reduce((sum, p) => sum + (p.totalPaid || 0), 0);
+  const totalOutstanding = totalDue - totalPaid;
 
   return (
     <>
@@ -118,7 +108,6 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">No.</TableHead>
-                        <TableHead>Row Type</TableHead>
                         <TableHead>Employer</TableHead>
                         <TableHead>Debt Period</TableHead>
                         <TableHead>D.O.P.</TableHead>
@@ -142,27 +131,14 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                     <TableBody>
                       {periods.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={20} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={19} className="text-center text-muted-foreground py-8">
                             No arrears periods recorded. Click "Add Period" to create one.
                           </TableCell>
                         </TableRow>
                       ) : (
                         periods.map((period, index) => (
-                          <TableRow key={period.id} className={
-                            period.rowType === 'Payment' ? 'bg-green-50/50 dark:bg-green-950/20' :
-                            period.rowType === 'Bal Due' ? 'bg-blue-50/50 dark:bg-blue-950/20 font-semibold' :
-                            ''
-                          }>
+                          <TableRow key={period.id}>
                             <TableCell className="font-medium">{index + 1}</TableCell>
-                            <TableCell>
-                              <Badge variant={
-                                period.rowType === 'Amount Due on JDS' ? 'destructive' :
-                                period.rowType === 'Payment' ? 'default' :
-                                'secondary'
-                              } className="text-xs">
-                                {period.rowType}
-                              </Badge>
-                            </TableCell>
                             <TableCell className="font-medium">{period.employer}</TableCell>
                             <TableCell className="whitespace-nowrap">
                               {new Date(period.periodFrom).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })} – {new Date(period.periodTo).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
