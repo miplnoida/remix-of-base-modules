@@ -57,19 +57,20 @@ export function WaiversArrangementsSection({ caseId, waivers, arrangements, isOp
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
             <CardTitle className="flex items-center gap-3 text-lg">
-              <FileCheck className="h-6 w-6 text-purple-600" />
+              <FileCheck className="h-6 w-6 text-primary" />
               Waivers & Arrangements
-              <Badge className="bg-purple-600/10 text-purple-700 hover:bg-purple-600/20 font-semibold px-3 py-1">{waivers.length} Waivers</Badge>
-              <Badge className="bg-blue-600/10 text-blue-700 hover:bg-blue-600/20 font-semibold px-3 py-1">{arrangements.length} Plans</Badge>
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold px-3 py-1">
+                {waivers.length + arrangements.length} {waivers.length + arrangements.length === 1 ? 'Item' : 'Items'}
+              </Badge>
             </CardTitle>
             {nextPaymentDue && (
-              <Badge className="bg-orange-600/10 text-orange-700 hover:bg-orange-600/20 font-semibold px-3 py-1 flex items-center gap-2">
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Next Due: {nextPaymentDue.toLocaleDateString()}
-              </Badge>
+              </div>
             )}
           </div>
-          {isOpen ? <ChevronUp className="h-5 w-5 text-purple-600" /> : <ChevronDown className="h-5 w-5 text-purple-600" />}
+          {isOpen ? <ChevronUp className="h-5 w-5 text-primary" /> : <ChevronDown className="h-5 w-5 text-primary" />}
         </div>
       </CardHeader>
 

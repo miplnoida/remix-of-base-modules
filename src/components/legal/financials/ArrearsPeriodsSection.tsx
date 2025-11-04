@@ -64,12 +64,12 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
       <Card className="border-2 shadow-md">
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <Calendar className="h-6 w-6 text-primary" />
               Arrears & Periods
-              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold">{periods.length} Records</Badge>
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold px-3 py-1">{periods.length} {periods.length === 1 ? 'Record' : 'Records'}</Badge>
             </CardTitle>
-            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {isOpen ? <ChevronUp className="h-5 w-5 text-primary" /> : <ChevronDown className="h-5 w-5 text-primary" />}
           </div>
         </CardHeader>
 
