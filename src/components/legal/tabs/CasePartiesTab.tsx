@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 import { toast } from "sonner";
 
 interface CasePartiesTabProps {
@@ -62,22 +62,36 @@ export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
                     {idx > 0 ? 'Legal Counsel - John Smith' : '—'}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">Actions</Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleView(party)}>
-                          <Eye className="h-4 w-4 mr-2" />View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(party)}>
-                          <Edit className="h-4 w-4 mr-2" />Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(party)} className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleView(party)}
+                        aria-label={`View ${party}`}
+                        title="View"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEdit(party)}
+                        aria-label={`Edit ${party}`}
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDelete(party)}
+                        aria-label={`Delete ${party}`}
+                        title="Delete"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

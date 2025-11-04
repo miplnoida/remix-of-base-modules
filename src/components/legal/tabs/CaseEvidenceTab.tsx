@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
-import { Plus, Shield, Lock, Unlock } from "lucide-react";
+import { Plus, Shield, Eye, Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddEvidenceDialog } from "@/components/legal/AddEvidenceDialog";
 import { toast } from "sonner";
@@ -20,8 +20,12 @@ const mockEvidence = [
 export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
   const [addOpen, setAddOpen] = useState(false);
 
-  const handleToggleSeal = (id: number, sealed: boolean) => {
-    toast.success(`Evidence ${sealed ? 'unsealed' : 'sealed'} successfully`);
+  const handleView = (id: number) => {
+    toast.info(`Opening evidence preview...`);
+  };
+
+  const handleDownload = (id: number, description: string) => {
+    toast.success(`Downloading ${description}...`);
   };
 
   return (
@@ -49,7 +53,6 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
                 <TableHead>Description</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Checksum</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -65,26 +68,26 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
                     {item.hash}
                   </TableCell>
                   <TableCell>
-                    {item.sealed ? (
-                      <Badge className="bg-amber-600 text-white gap-1">
-                        <Lock className="h-3 w-3" />
-                        Sealed
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="gap-1">
-                        <Unlock className="h-3 w-3" />
-                        Unsealed
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleToggleSeal(item.id, item.sealed)}
-                    >
-                      {item.sealed ? 'Unseal' : 'Seal'}
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleView(item.id)}
+                        aria-label="View evidence"
+                        title="View"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDownload(item.id, item.description)}
+                        aria-label="Download evidence"
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

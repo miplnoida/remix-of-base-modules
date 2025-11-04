@@ -103,10 +103,8 @@ export function UploadDocumentDialog({
               <SelectContent>
                 <SelectItem value="Filing">Filing</SelectItem>
                 <SelectItem value="Notice">Notice</SelectItem>
-                <SelectItem value="Evidence">Evidence</SelectItem>
-                <SelectItem value="Order">Order</SelectItem>
-                <SelectItem value="Correspondence">Correspondence</SelectItem>
                 <SelectItem value="Internal">Internal Memo</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -119,11 +117,9 @@ export function UploadDocumentDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Filings">Filings</SelectItem>
-                <SelectItem value="Evidence">Evidence</SelectItem>
                 <SelectItem value="Notices">Notices</SelectItem>
-                <SelectItem value="Orders">Orders</SelectItem>
-                <SelectItem value="Correspondence">Correspondence</SelectItem>
                 <SelectItem value="Internal">Internal</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

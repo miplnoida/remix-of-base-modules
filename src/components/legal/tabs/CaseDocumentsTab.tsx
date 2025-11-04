@@ -14,7 +14,7 @@ interface CaseDocumentsTabProps {
 }
 
 const DOCUMENT_FOLDERS = [
-  'All', 'Filings', 'Notices', 'Internal'
+  'All', 'Filings', 'Notices', 'Internal', 'Other'
 ];
 
 const mockDocuments = [

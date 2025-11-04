@@ -6,6 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface NewCorrespondenceDialogProps {
@@ -23,6 +28,7 @@ export function NewCorrespondenceDialog({
   caseNumber,
   onCorrespondenceSent 
 }: NewCorrespondenceDialogProps) {
+  const [correspondenceDate, setCorrespondenceDate] = useState<Date>();
   const [type, setType] = useState('Notice');
   const [template, setTemplate] = useState('');
   const [subject, setSubject] = useState('');
@@ -35,6 +41,11 @@ export function NewCorrespondenceDialog({
   const [isSending, setIsSending] = useState(false);
 
   const handleSend = async () => {
+    if (!correspondenceDate) {
+      toast.error('Please select a correspondence date');
+      return;
+    }
+
     if (!subject || !recipient) {
       toast.error('Please fill in subject and recipient');
       return;
@@ -60,6 +71,7 @@ export function NewCorrespondenceDialog({
   };
 
   const handleClose = () => {
+    setCorrespondenceDate(undefined);
     setType('Notice');
     setTemplate('');
     setSubject('');
@@ -77,6 +89,33 @@ export function NewCorrespondenceDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Correspondence Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !correspondenceDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {correspondenceDate ? format(correspondenceDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={correspondenceDate}
+                  onSelect={setCorrespondenceDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div className="space-y-2">
             <Label>Correspondence Type *</Label>
             <Select value={type} onValueChange={setType}>
