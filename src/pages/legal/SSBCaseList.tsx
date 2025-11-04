@@ -7,13 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Search, Filter, ChevronDown, Home, Eye, Edit, Check, AlertTriangle, Download, Columns } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 
 const getStatusBadgeClass = (status: string) => {
   const statusMap: Record<string, string> = {
     'Draft': 'bg-[#6B7280] text-white',
+    'Open': 'bg-[#0284C7] text-white',
     'Filed': 'bg-[#B45309] text-white',
     'Under Review': 'bg-[#B45309] text-white',
     'Pending Hearing': 'bg-[#0F766E] text-white',
@@ -37,7 +38,7 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 const CASE_TYPES = ['Employer Arrears', 'Overpayment Recovery', 'Insured Appeal', 'Compliance/Recovery', 'Other', 'Prosecution', 'Compliance', 'Appeal', 'Recovery'];
-const STATUSES = ['Draft', 'Filed', 'Pending Hearing', 'In Court', 'Judgment Delivered', 'Enforcement Ongoing', 'Closed – Compliant', 'Closed – Non-Compliant', 'Settled', 'Withdrawn', 'On Appeal', 'Reopened'];
+const STATUSES = ['Draft', 'Open', 'Filed', 'Pending Hearing', 'In Court', 'Judgment Delivered', 'Enforcement Ongoing', 'Closed – Compliant', 'Closed – Non-Compliant', 'Settled', 'Withdrawn', 'On Appeal', 'Reopened'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 
 export default function SSBCaseList() {
@@ -49,38 +50,127 @@ export default function SSBCaseList() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [caseTypeFilter, setCaseTypeFilter] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(10);
 
-  // Filter and search logic
+  // Filter logic for Query By section
   const filteredCases = useMemo(() => {
     if (!cases) return [];
     
     return cases.filter(c => {
-      const matchesSearch = !searchTerm || 
-        c.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.parties?.some((p: string) => p.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesCaseNumber = !caseNumber || c.number?.toLowerCase().includes(caseNumber.toLowerCase());
       const matchesTitle = !caseTitle || c.title?.toLowerCase().includes(caseTitle.toLowerCase());
       const matchesStatus = !statusFilter || statusFilter === 'all' || c.status === statusFilter;
       const matchesType = !caseTypeFilter || caseTypeFilter === 'all' || c.type === caseTypeFilter;
       const matchesPriority = !priorityFilter || priorityFilter === 'all' || c.priority === priorityFilter;
       
-      return matchesSearch && matchesCaseNumber && matchesTitle && matchesStatus && matchesType && matchesPriority;
+      return matchesCaseNumber && matchesTitle && matchesStatus && matchesType && matchesPriority;
     });
-  }, [cases, searchTerm, caseNumber, caseTitle, statusFilter, caseTypeFilter, priorityFilter]);
+  }, [cases, caseNumber, caseTitle, statusFilter, caseTypeFilter, priorityFilter]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCases.length / recordsPerPage);
-  const paginatedCases = useMemo(() => {
-    const startIndex = (currentPage - 1) * recordsPerPage;
-    return filteredCases.slice(startIndex, startIndex + recordsPerPage);
-  }, [filteredCases, currentPage, recordsPerPage]);
+  // Define DataTable columns
+  const columns: DataTableColumn[] = [
+    { 
+      key: 'number', 
+      label: 'Case No.', 
+      minWidth: '120px',
+      render: (value) => <span className="font-medium">{value}</span>
+    },
+    { 
+      key: 'filed_at', 
+      label: 'Date', 
+      minWidth: '120px',
+      render: (value) => value ? format(new Date(value), 'MMM d, yyyy') : '-'
+    },
+    { 
+      key: 'title', 
+      label: 'Title', 
+      minWidth: '200px',
+      render: (value) => <span className="max-w-[300px] truncate block">{value}</span>
+    },
+    { 
+      key: 'type', 
+      label: 'Case Type', 
+      minWidth: '150px' 
+    },
+    { 
+      key: 'source', 
+      label: 'Source', 
+      minWidth: '120px',
+      render: (value) => value || '-'
+    },
+    { 
+      key: 'priority', 
+      label: 'Priority', 
+      minWidth: '100px',
+      render: (value) => (
+        <Badge variant="outline" className={
+          value === 'Urgent' ? 'bg-[#B91C1C] text-white border-[#DC2626]' :
+          value === 'High' ? 'bg-[#DC2626] text-white border-[#B91C1C]' :
+          value === 'Medium' ? 'bg-[#B45309] text-white border-[#C2410C]' :
+          'bg-[#0F766E] text-white border-[#0D9488]'
+        }>
+          {value}
+        </Badge>
+      )
+    },
+    { 
+      key: 'enforcement_funnel', 
+      label: 'Enforcement Funnel', 
+      minWidth: '150px',
+      render: (value) => value || '-'
+    },
+    { 
+      key: 'assigned_officers', 
+      label: 'Assigned Officers', 
+      minWidth: '200px',
+      render: (value: string[]) => {
+        if (!value || value.length === 0) return '-';
+        return (
+          <div className="flex flex-wrap gap-1">
+            {value.map((officer, idx) => (
+              <Badge 
+                key={idx} 
+                variant="secondary" 
+                className="text-xs whitespace-nowrap bg-blue-100 text-blue-800 border-blue-200"
+              >
+                {officer}
+              </Badge>
+            ))}
+          </div>
+        );
+      }
+    },
+    { 
+      key: 'court_reference_number', 
+      label: 'Court Reference', 
+      minWidth: '150px',
+      render: (value) => value || '-'
+    },
+    { 
+      key: 'stage', 
+      label: 'Stage', 
+      minWidth: '120px',
+      render: (value) => value || '-'
+    },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      minWidth: '150px',
+      render: (value) => (
+        <Badge className={getStatusBadgeClass(value)}>
+          {value}
+        </Badge>
+      )
+    },
+    { 
+      key: 'next_event_at', 
+      label: 'Next Hearing', 
+      minWidth: '120px',
+      render: (value) => value ? format(new Date(value), 'MMM d, yyyy') : '-'
+    }
+  ];
 
   const handleSearch = () => {
-    setCurrentPage(1);
+    // Trigger re-render by updating state
   };
 
   const handleReset = () => {
@@ -89,21 +179,19 @@ export default function SSBCaseList() {
     setStatusFilter('');
     setCaseTypeFilter('');
     setPriorityFilter('');
-    setSearchTerm('');
-    setCurrentPage(1);
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-[1600px] mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate('/')} className="gap-2">
+            {/* <Button variant="outline" onClick={() => navigate('/')} className="gap-2">
               <Home className="h-4 w-4" />
               Main Menu
-            </Button>
-            <h1 className="text-2xl font-bold">SSB Legal - Case Management</h1>
+            </Button> */}
+            <h1 className="text-3xl font-bold text-foreground">SSB Legal - Case Management</h1>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => navigate('/legal/cases/new')} className="gap-2 bg-[#2563EB] hover:bg-[#1D4ED8]">
@@ -205,205 +293,31 @@ export default function SSBCaseList() {
           </Card>
         </Collapsible>
 
-        {/* Search Bar and Controls */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search cases..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">show</span>
-            <Select value={recordsPerPage.toString()} onValueChange={(v) => {
-              setRecordsPerPage(Number(v));
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-muted-foreground">records</span>
-          </div>
-        </div>
-
-        {/* Cases Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Legal Cases ({filteredCases.length})</CardTitle>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Columns className="h-4 w-4" />
-                  Columns
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredCases.length > 0 ? (
-              <>
-                <div className="border rounded-lg overflow-x-auto relative">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>Case No.</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>Stage</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Next Hearing</TableHead>
-                        <TableHead className="text-center sticky right-0 bg-muted/50 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedCases.map((legalCase) => (
-                        <TableRow key={legalCase.id} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{legalCase.number}</TableCell>
-                          <TableCell className="max-w-[300px] truncate">{legalCase.title}</TableCell>
-                          <TableCell>{legalCase.type}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={
-                              legalCase.priority === 'Urgent' ? 'bg-[#B91C1C] text-white border-[#DC2626]' :
-                              legalCase.priority === 'High' ? 'bg-[#DC2626] text-white border-[#B91C1C]' :
-                              legalCase.priority === 'Medium' ? 'bg-[#B45309] text-white border-[#C2410C]' :
-                              'bg-[#0F766E] text-white border-[#0D9488]'
-                            }>
-                              {legalCase.priority}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{legalCase.stage || '-'}</TableCell>
-                          <TableCell>
-                            <Badge className={getStatusBadgeClass(legalCase.status)}>
-                              {legalCase.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {legalCase.next_event_at ? format(new Date(legalCase.next_event_at), 'MMM d, yyyy') : '-'}
-                          </TableCell>
-                          <TableCell className="sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)]">
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
-                                onClick={() => navigate(`/legal/cases/${legalCase.id}`)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
-                                onClick={() => navigate(`/legal/cases/${legalCase.id}/edit`)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-[#16A34A] hover:bg-[#15803D] text-white border-0"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-[#DC2626] hover:bg-[#B91C1C] text-white border-0"
-                              >
-                                <AlertTriangle className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, filteredCases.length)} of {filteredCases.length} entries
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={currentPage === pageNum ? 'bg-[#2563EB] hover:bg-[#1D4ED8]' : ''}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <>
-                        <span>...</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No cases found</p>
-                <Button onClick={() => navigate('/legal/cases/new')} className="gap-2 bg-[#2563EB] hover:bg-[#1D4ED8]">
-                  <Plus className="h-4 w-4" />
-                  Create First Case
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Cases DataTable */}
+        <DataTable
+          data={filteredCases}
+          columns={columns}
+          title={`Legal Cases`}
+          searchPlaceholder="Search cases..."
+          showRecordsOptions={[10, 25, 50, 100]}
+          onView={(row) => navigate(`/legal/cases/${row.id}`)}
+          onEdit={(row) => navigate(`/legal/cases/${row.id}/edit`)}
+          onApprove={(id) => {
+            // TODO: Implement approve logic
+            console.log('Approve case:', id);
+          }}
+          onReject={(id) => {
+            // TODO: Implement reject logic
+            console.log('Reject case:', id);
+          }}
+          actions={{
+            view: true,
+            edit: true,
+            approve: true,
+            reject: true
+          }}
+          idField="id"
+        />
       </div>
     </div>
   );

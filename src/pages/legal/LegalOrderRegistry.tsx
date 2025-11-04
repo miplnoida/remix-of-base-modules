@@ -138,7 +138,7 @@ export default function LegalOrderRegistry() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="min-h-screen p-6  space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Order Registry</h1>

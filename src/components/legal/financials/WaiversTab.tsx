@@ -5,6 +5,15 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AddWaiverDialog } from "./AddWaiverDialog";
 
+// Format date as dd-mm-yyyy
+const formatDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 interface Waiver {
   id: string;
   waiverType: string;
@@ -69,11 +78,11 @@ export function WaiversTab({ caseId, waivers }: WaiversTabProps) {
                     {waiver.percent && <span className="text-muted-foreground ml-1">({waiver.percent}%)</span>}
                   </TableCell>
                   <TableCell>{waiver.authorizedBy}</TableCell>
-                  <TableCell>{new Date(waiver.date).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatDate(waiver.date)}</TableCell>
                   <TableCell className="max-w-xs truncate">{waiver.reason}</TableCell>
                   <TableCell className="text-sm">
                     {waiver.appliedPeriods.map((period, idx) => (
-                      <Badge key={idx} variant="secondary" className="mr-1">{period}</Badge>
+                      <Badge key={idx} variant="outline" className="mr-1">{period}</Badge>
                     ))}
                   </TableCell>
                 </TableRow>

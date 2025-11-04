@@ -64,9 +64,9 @@ export default function SSBLegalDashboard() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-card border-b border-border px-6 py-6">
+      <div className=" px-6 py-6">
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
           Comprehensive overview of cases, hearings, enforcement, and financial metrics
@@ -74,7 +74,7 @@ export default function SSBLegalDashboard() {
       </div>
 
       {/* Dashboard Content */}
-      <div className="p-6 space-y-6">
+      <div className="px-6 space-y-6">
         {/* KPI Strip */}
         <KPICards 
           data={kpiData} 
@@ -115,7 +115,7 @@ export default function SSBLegalDashboard() {
           loading={loading}
           onActivityClick={(activity) => {
             if (activity.caseId) {
-              navigate(`/legal/cases/${activity.caseId}`);
+           //   navigate(`/legal/cases/${activity.caseId}`);
             }
           }}
         />

@@ -38,6 +38,15 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
   const totalWaived = financialData.waivers.reduce((sum, w) => sum + w.amount, 0);
   const balanceDue = totalAmountDue - totalPayments - totalWaived;
 
+  // Format date as dd-mm-yyyy
+  const formatDate = (date: Date | string): string => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   // Find next payment due from arrangements
   let nextPaymentDue = null;
   if (financialData.arrangements.length > 0) {
@@ -45,7 +54,7 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
     if (activeArrangement) {
       const nextInstallment = activeArrangement.installments.find(i => !i.paid);
       if (nextInstallment) {
-        nextPaymentDue = new Date(nextInstallment.date).toLocaleDateString();
+        nextPaymentDue = formatDate(nextInstallment.date);
       }
     }
   }
@@ -56,7 +65,7 @@ export function CaseFinancialsTab({ caseData }: CaseFinancialsTabProps) {
       <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-2 border-primary/30 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <DollarSign className="h-6 w-6 text-primary" />
+            <DollarSign className="h-6 w-6" />
             Financial Summary
           </CardTitle>
         </CardHeader>

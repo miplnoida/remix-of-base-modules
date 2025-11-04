@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stepper } from "@/components/ui/stepper";
-import { ArrowLeft, ArrowRight, Save, Send, Search, X, Upload, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Send, Search, X, Upload, FileText, Edit2, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLegalCases } from "@/contexts/LegalCaseContext";
 import { peopleAdapter } from "@/adapters/peopleAdapter";
@@ -20,6 +20,7 @@ const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 const SOURCES = ['Compliance', 'Benefits', 'Other'];
 const STATUSES = [
   "Draft",
+  "Open",
   "Filed",
   "Under Review",
   "Hearing Scheduled",
@@ -331,11 +332,35 @@ export default function SSBCaseIntake() {
   };
 
 
-  const steps = ['Basics', 'Parties', 'Subject', 'Attachments', 'Review'];
+  const stepTitles = ['Basics', 'Parties', 'Subject', 'Attachments', 'Review'];
+  
+  // Transform steps for Stepper component
+  const steps = stepTitles.map((title, index) => ({
+    id: `step-${index}`,
+    title: title,
+    status: (index < currentStep ? 'completed' : index === currentStep ? 'current' : 'upcoming') as 'completed' | 'current' | 'upcoming'
+  }));
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
+    <div className="flex flex-col gap-6 px-6">
+      <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() =>  navigate('/legal/cases')}
+            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
+            <ArrowLeft className="h-4 w-4" />
+           
+            <span className="sm:hidden">Back</span>
+          </Button>
+          <div className="h-6 w-px bg-gray-300" />
+         
+          <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{isEditMode ? 'Edit Case' : 'New Case Intake'}</h1>
+          
+          </div>
+        </div>
+      {/* <div>
         <Button 
           onClick={() => navigate('/legal/cases')} 
           variant="ghost" 
@@ -349,31 +374,17 @@ export default function SSBCaseIntake() {
         <p className="text-muted-foreground mt-2">
           {isEditMode ? 'Update case information' : 'File a new legal case against an employer or entity'}
         </p>
-      </div>
-
-      <div className="flex items-center justify-between mb-8">
-        {steps.map((step, index) => (
-          <div key={step} className="flex items-center flex-1">
-            <div className="flex flex-col items-center">
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold ${
-                index < currentStep ? 'bg-[#166534] text-white' :
-                index === currentStep ? 'bg-[#1D4ED8] text-white' :
-                'bg-[#F3F4F6] text-[#111827]'
-              }`}>
-                {index < currentStep ? '✓' : index + 1}
-              </div>
-              <span className={`mt-2 text-xs font-medium ${index === currentStep ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {step}
-              </span>
-            </div>
-            {index < steps.length - 1 && <div className="flex-1 h-0.5 bg-muted mx-2" />}
-          </div>
-        ))}
-      </div>
-
-      <Card>
+      </div> */}
+<Card className='p-5' style={{backgroundColor:"#F9FAFB"}}>
+<Stepper 
+        steps={steps} 
+        currentStep={currentStep} 
+        onStepClick={(stepIndex) => setCurrentStep(stepIndex)}
+        className="mb-4"
+      />
+        <Card className="mb-4">
         <CardHeader>
-          <CardTitle>{steps[currentStep]}</CardTitle>
+          <CardTitle>{steps[currentStep].title}</CardTitle>
           <CardDescription>
             {currentStep === 0 && 'Provide basic case information'}
             {currentStep === 1 && 'Add parties involved in the case'}
@@ -470,7 +481,7 @@ export default function SSBCaseIntake() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="enforcementFunnel">Enforcement Funnel *</Label>
+                <Label htmlFor="enforcementFunnel">Enforcement Stage *</Label>
                 <Select value={formData.enforcementFunnel} onValueChange={(v) => updateField('enforcementFunnel', v)}>
                   <SelectTrigger id="enforcementFunnel">
                     <SelectValue placeholder="Select enforcement funnel" />
@@ -614,16 +625,19 @@ export default function SSBCaseIntake() {
                         </div>
                         <div className="flex gap-2">
                           {party.type === 'manual' && editingPartyIndex !== index && (
-                            <Button variant="ghost" size="sm" onClick={() => editParty(index)}>
+                            <Button variant="outline" size="sm" onClick={() => editParty(index)} className="gap-1.5">
+                              <Edit2 className="h-3.5 w-3.5" />
                               Edit
                             </Button>
                           )}
                           {editingPartyIndex === index && (
-                            <Button variant="ghost" size="sm" onClick={savePartyEdit}>
+                            <Button variant="default" size="sm" onClick={savePartyEdit} className="gap-1.5 bg-[#16A34A] hover:bg-[#15803D]">
+                              <Check className="h-3.5 w-3.5" />
                               Save
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => removeParty(index)}>
+                          <Button variant="destructive" size="sm" onClick={() => removeParty(index)} className="gap-1.5">
+                            <Trash2 className="h-3.5 w-3.5" />
                             Delete
                           </Button>
                         </div>
@@ -867,9 +881,9 @@ export default function SSBCaseIntake() {
                       <div key={i} className="p-3 border rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="outline">{p.role}</Badge>
-                          <Badge variant={p.type === 'employer' ? 'default' : p.type === 'insured' ? 'secondary' : 'outline'}>
+                          {/* <Badge variant={p.type === 'employer' ? 'default' : p.type === 'insured' ? 'secondary' : 'outline'}>
                             {p.type === 'employer' ? 'Employer' : p.type === 'insured' ? 'Insured' : 'Manual'}
-                          </Badge>
+                          </Badge> */}
                         </div>
                         <p className="font-medium text-sm">{p.name}</p>
                         {p.email && <p className="text-xs text-muted-foreground">Email: {p.email}</p>}
@@ -955,6 +969,10 @@ export default function SSBCaseIntake() {
           }));
         }}
       />
+</Card>
+     
+
+    
     </div>
   );
 }

@@ -30,6 +30,10 @@ export function LegalCaseProvider({ children }: { children: ReactNode }) {
       summary: caseData.summary,
       relief_sought: caseData.relief_sought || '',
       flags: [],
+      source: caseData.source,
+      enforcement_funnel: caseData.enforcementFunnel,
+      assigned_officers: caseData.assignedOfficers,
+      court_reference_number: caseData.courtReferenceNumber,
       activities: [{
         date: new Date().toISOString(),
         user: 'Current User',

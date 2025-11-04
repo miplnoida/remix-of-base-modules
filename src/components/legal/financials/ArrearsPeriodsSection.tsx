@@ -8,6 +8,15 @@ import { AddArrearsPeriodDialog } from "./AddArrearsPeriodDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
+// Format date as dd-mm-yyyy
+const formatDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 interface ArrearsPeriod {
   id: string;
   employer: string;
@@ -70,9 +79,9 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+              <Calendar className="h-5 w-5" />
               Arrears & Periods
-              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold">{periods.length} {periods.length === 1 ? 'Record' : 'Records'}</Badge>
+              <Badge variant="outline" className="">{periods.length} {periods.length === 1 ? 'Record' : 'Records'}</Badge>
             </CardTitle>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
@@ -141,11 +150,11 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                             <TableCell className="font-medium">{index + 1}</TableCell>
                             <TableCell className="font-medium">{period.employer}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {new Date(period.periodFrom).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })} – {new Date(period.periodTo).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                              {formatDate(period.periodFrom)} – {formatDate(period.periodTo)}
                             </TableCell>
                             <TableCell>
                               {period.dateOfPayment ? (
-                                <span className="text-sm">{new Date(period.dateOfPayment).toLocaleDateString()}</span>
+                                <span className="text-sm">{formatDate(period.dateOfPayment)}</span>
                               ) : (
                                 <span className="text-muted-foreground text-sm">—</span>
                               )}
@@ -168,10 +177,10 @@ export function ArrearsPeriodsSection({ caseId, periods, isOpen, onToggle }: Arr
                             <TableCell className="text-sm max-w-[150px] truncate">{period.periodCovers || '—'}</TableCell>
                             <TableCell>
                               <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(period)}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEdit(period)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(period.id)}>
+                                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDelete(period.id)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>

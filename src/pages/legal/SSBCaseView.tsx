@@ -71,16 +71,21 @@ export default function SSBCaseView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen">
+      <div className="">
+        <div className=" mx-auto px-4 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/legal/cases')} className="mb-2 -ml-2">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to Cases
-              </Button>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
+            <Button 
+            variant="outline" 
+            onClick={() => navigate('/person/management')}
+            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
+            <ArrowLeft className="h-4 w-4" />
+           
+            <span className="sm:hidden">Back</span>
+          </Button>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground truncate mt-5">
                 {caseData.number} · {caseData.title}
               </h1>
               <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -113,10 +118,10 @@ export default function SSBCaseView() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className=" mx-auto px-4 py-5">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="border-b overflow-x-auto">
-            <TabsList className="inline-flex h-auto p-0 bg-transparent w-full justify-start">
+            <TabsList className="inline-flex h-auto p-0  w-full justify-start">
               <TabsTrigger value="overview" className="gap-2"><FileText className="h-4 w-4" />Overview</TabsTrigger>
               <TabsTrigger value="parties" className="gap-2"><Users className="h-4 w-4" />Parties</TabsTrigger>
               <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" />Documents</TabsTrigger>

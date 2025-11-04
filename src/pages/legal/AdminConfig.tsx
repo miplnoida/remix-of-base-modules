@@ -203,12 +203,12 @@ export default function AdminConfig() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <BackNavigation to="/legal" backText="Back to Legal Dashboard" />
+    <div className="p-6 space-y-6">
+    
       
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Legal Administration</h1>
+          <h1 className="text-3xl font-bold text-foreground">Legal Administration</h1>
           <p className="text-muted-foreground mt-1">
             Configure code sets and document templates
           </p>
@@ -340,30 +340,30 @@ export default function AdminConfig() {
                       <TableCell className="font-mono text-sm">{code.code}</TableCell>
                       <TableCell>{code.label}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{code.usageCount} uses</Badge>
+                        <Badge variant="outline">{code.usageCount} uses</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={code.isActive ? "default" : "secondary"}>
+                        <Badge variant="success">
                           {code.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="outline" size="sm">
                             <ArrowUp className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="outline" size="sm">
                             <ArrowDown className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="outline" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="destructive"
                             size="sm"
                             onClick={() => handleDelete(code.label)}
                             disabled={code.usageCount > 0}
@@ -483,7 +483,7 @@ export default function AdminConfig() {
                       <TableCell className="font-medium">{template.name}</TableCell>
                       <TableCell>{template.type}</TableCell>
                       <TableCell>
-                        <Badge variant={template.status === 'Published' ? 'default' : 'secondary'}>
+                        <Badge variant={template.status === 'Published' ? 'success' : 'outline'}>
                           {template.status}
                         </Badge>
                       </TableCell>
@@ -491,13 +491,13 @@ export default function AdminConfig() {
                       <TableCell>{template.lastUpdated}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="outline" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="outline" size="sm">
                             <History className="h-4 w-4" />
                           </Button>
                         </div>

@@ -61,7 +61,7 @@ export function CaseOrdersTab({ caseData }: CaseOrdersTabProps) {
                     <Badge variant="outline">{order.type}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={order.status === 'Published' ? 'default' : 'outline'}>
+                    <Badge variant="outline">
                       {order.status}
                     </Badge>
                   </TableCell>
@@ -71,8 +71,7 @@ export function CaseOrdersTab({ caseData }: CaseOrdersTabProps) {
                   <TableCell className="text-sm">{order.outcome}</TableCell>
                   <TableCell>
                     <Button 
-                      variant="ghost" 
-                      size="sm" 
+                      variant="outline" size="icon" className="h-8 w-8"
                       onClick={() => handleView(order.number)}
                       aria-label={`View order ${order.number}`}
                       title="View"

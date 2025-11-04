@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
-import { Plus, Mail, Send, Download, ArrowDown, ArrowUp } from "lucide-react";
+import { Plus, Mail, Send, Download, ArrowDown, ArrowUp, Eye, Share2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NewCorrespondenceDialog } from "@/components/legal/NewCorrespondenceDialog";
 import { toast } from "sonner";
@@ -13,15 +13,43 @@ interface CaseCorrespondenceTabProps {
 }
 
 const mockCorrespondence = [
-  { id: 1, direction: 'Outbound', type: 'Notice', subject: 'Initial Summons Notification', sentOn: '2025-01-20', channel: 'Email, Print', status: 'Sent' },
-  { id: 2, direction: 'Inbound', type: 'Response', subject: 'Request for Extension', sentOn: '2025-01-25', channel: 'Email', status: 'Received' },
+  { 
+    id: 1, 
+    direction: 'Outbound', 
+    recipient: 'John Smith (Applicant)', 
+    correspondenceType: 'Formal Notice',
+    type: 'Notice', 
+    subject: 'Initial Summons Notification', 
+    sentOn: '2025-01-20', 
+    channel: 'Email, Print', 
+    status: 'Sent' 
+  },
+  { 
+    id: 2, 
+    direction: 'Inbound', 
+    recipient: 'SSB Legal Department', 
+    correspondenceType: 'Letter',
+    type: 'Response', 
+    subject: 'Request for Extension', 
+    sentOn: '2025-01-25', 
+    channel: 'Email', 
+    status: 'Received' 
+  },
 ];
 
 export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) {
   const [newCorrOpen, setNewCorrOpen] = useState(false);
 
+  const handleView = (subject: string) => {
+    toast.success(`Opening ${subject}...`);
+  };
+
   const handleDownload = (subject: string) => {
     toast.success(`Downloading ${subject}...`);
+  };
+
+  const handleShare = (subject: string) => {
+    toast.success(`Sharing ${subject}...`);
   };
 
   return (
@@ -43,6 +71,8 @@ export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) 
             <TableHeader>
               <TableRow>
                 <TableHead>Direction</TableHead>
+                <TableHead>Recipient</TableHead>
+                <TableHead>Correspondence Type</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead>Date</TableHead>
@@ -54,7 +84,7 @@ export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) 
               {mockCorrespondence.map(item => (
                 <TableRow key={item.id}>
                   <TableCell>
-                    <Badge variant={item.direction === 'Outbound' ? 'default' : 'outline'} className="gap-1">
+                    <Badge variant="outline" className="gap-1">
                       {item.direction === 'Outbound' ? (
                         <ArrowUp className="h-3 w-3" />
                       ) : (
@@ -63,6 +93,8 @@ export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) 
                       {item.direction}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-sm">{item.recipient}</TableCell>
+                  <TableCell className="text-sm">{item.correspondenceType}</TableCell>
                   <TableCell>{item.type}</TableCell>
                   <TableCell className="font-medium">{item.subject}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -78,9 +110,17 @@ export function CaseCorrespondenceTab({ caseData }: CaseCorrespondenceTabProps) 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleDownload(item.subject)}>
-                      <Download className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleView(item.subject)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDownload(item.subject)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleShare(item.subject)}>
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

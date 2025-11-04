@@ -6,6 +6,15 @@ import { Plus, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RecordPaymentDialog } from "./RecordPaymentDialog";
 
+// Format date as dd-mm-yyyy
+const formatDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 interface Payment {
   id: string;
   paymentDate: string;
@@ -82,7 +91,7 @@ export function PaymentsLogSection({ caseId, payments, periods, isOpen, onToggle
                     ) : (
                       payments.map((payment) => (
                         <TableRow key={payment.id}>
-                          <TableCell>{new Date(payment.paymentDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{formatDate(payment.paymentDate)}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{payment.fund}</Badge>
                           </TableCell>

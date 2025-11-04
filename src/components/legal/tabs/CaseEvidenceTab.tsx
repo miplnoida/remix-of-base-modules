@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
-import { Plus, Shield, Eye, Download } from "lucide-react";
+import { Plus, Shield, Eye, Download, Share2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddEvidenceDialog } from "@/components/legal/AddEvidenceDialog";
 import { toast } from "sonner";
@@ -26,6 +26,10 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
 
   const handleDownload = (id: number, description: string) => {
     toast.success(`Downloading ${description}...`);
+  };
+
+  const handleShare = (id: number, description: string) => {
+    toast.success(`Sharing ${description}...`);
   };
 
   return (
@@ -68,10 +72,11 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
                     {item.hash}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <Button 
-                        variant="ghost" 
-                        size="sm"
+                        variant="outline" 
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleView(item.id)}
                         aria-label="View evidence"
                         title="View"
@@ -79,13 +84,24 @@ export function CaseEvidenceTab({ caseData }: CaseEvidenceTabProps) {
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button 
-                        variant="ghost" 
-                        size="sm"
+                        variant="outline" 
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleDownload(item.id, item.description)}
                         aria-label="Download evidence"
                         title="Download"
                       >
                         <Download className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleShare(item.id, item.description)}
+                        aria-label="Share evidence"
+                        title="Share"
+                      >
+                        <Share2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
