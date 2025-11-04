@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BackNavigation } from "@/components/ui/back-navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Building2, Save, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function SSBLegalAdmin() {
+  const queryClient = useQueryClient();
   const [complainantData, setComplainantData] = useState({
     name: "Social Security Board",
     address: "123 Main Street\nBelmopan, Belize",
@@ -20,6 +23,78 @@ export default function SSBLegalAdmin() {
     defaultPriority: "Medium"
   });
 
+  // Fetch existing settings
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['complainant-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('legal_complainant_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    }
+  });
+
+  // Update form when settings are loaded
+  useEffect(() => {
+    if (settings) {
+      setComplainantData({
+        name: settings.name || "Social Security Board",
+        address: settings.address || "",
+        contactPerson: settings.contact_person || "",
+        email: settings.email || "legal@ssb.gov.bz",
+        phone: settings.phone || "",
+        defaultOfficer: settings.default_officer || "",
+        defaultPriority: settings.default_priority || "Medium"
+      });
+    }
+  }, [settings]);
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof complainantData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const payload = {
+        name: data.name,
+        address: data.address,
+        contact_person: data.contactPerson,
+        email: data.email,
+        phone: data.phone,
+        default_officer: data.defaultOfficer,
+        default_priority: data.defaultPriority,
+        created_by: user.id
+      };
+
+      if (settings?.id) {
+        // Update existing
+        const { error } = await supabase
+          .from('legal_complainant_settings')
+          .update(payload)
+          .eq('id', settings.id);
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { error } = await supabase
+          .from('legal_complainant_settings')
+          .insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['complainant-settings'] });
+      toast.success("Complainant settings saved successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to save settings: " + error.message);
+    }
+  });
+
   const handleSave = () => {
     // Validate required fields
     if (!complainantData.name || !complainantData.email) {
@@ -27,12 +102,22 @@ export default function SSBLegalAdmin() {
       return;
     }
 
-    // In real implementation, save to backend
-    toast.success("Complainant settings saved successfully");
+    saveMutation.mutate(complainantData);
   };
 
   const handleCancel = () => {
-    // Reset to original values or fetch from backend
+    // Reset to loaded values
+    if (settings) {
+      setComplainantData({
+        name: settings.name || "Social Security Board",
+        address: settings.address || "",
+        contactPerson: settings.contact_person || "",
+        email: settings.email || "legal@ssb.gov.bz",
+        phone: settings.phone || "",
+        defaultOfficer: settings.default_officer || "",
+        defaultPriority: settings.default_priority || "Medium"
+      });
+    }
     toast.info("Changes discarded");
   };
 
@@ -158,11 +243,20 @@ export default function SSBLegalAdmin() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <Button onClick={handleSave} className="gap-2">
+                  <Button 
+                    onClick={handleSave} 
+                    className="gap-2"
+                    disabled={saveMutation.isPending || isLoading}
+                  >
                     <Save className="h-4 w-4" />
-                    Save Settings
+                    {saveMutation.isPending ? "Saving..." : "Save Settings"}
                   </Button>
-                  <Button variant="outline" onClick={handleCancel} className="gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancel} 
+                    className="gap-2"
+                    disabled={saveMutation.isPending || isLoading}
+                  >
                     <X className="h-4 w-4" />
                     Cancel
                   </Button>

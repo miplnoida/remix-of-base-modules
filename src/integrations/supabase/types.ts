@@ -2379,6 +2379,48 @@ export type Database = {
           },
         ]
       }
+      legal_complainant_settings: {
+        Row: {
+          address: string | null
+          contact_person: string | null
+          created_at: string | null
+          created_by: string | null
+          default_officer: string | null
+          default_priority: string | null
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_officer?: string | null
+          default_priority?: string | null
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_officer?: string | null
+          default_priority?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       legal_document_saved_searches: {
         Row: {
           created_at: string | null
