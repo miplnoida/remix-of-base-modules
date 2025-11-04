@@ -8,19 +8,34 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stepper } from "@/components/ui/stepper";
-import { ArrowLeft, ArrowRight, Save, Send, Search, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Send, Search, X, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useLegalCases } from "@/contexts/LegalCaseContext";
 import { peopleAdapter } from "@/adapters/peopleAdapter";
 import { employersAdapter } from "@/adapters/employersAdapter";
+import { IntakeUploadDialog } from "@/components/legal/IntakeUploadDialog";
 
 const CASE_TYPES = ['Employer Arrears', 'Overpayment Recovery', 'Insured Appeal', 'Compliance/Recovery', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 const SOURCES = ['Compliance', 'Benefits', 'Other'];
-const STATUSES = ['Draft', 'Filed', 'Under Review', 'Active'];
+const STATUSES = [
+  "Draft",
+  "Filed",
+  "Under Review",
+  "Hearing Scheduled",
+  "Hearing Held",
+  "Decision Pending",
+  "Order Issued",
+  "Closed – Compliant",
+  "Closed – Non-Compliant",
+  "Withdrawn",
+  "Appealed",
+  "Reopened"
+];
 const DOCUMENT_TYPES = ['Evidence', 'Order', 'Correspondence', 'Other'];
 const COUNTRY_CODES = ['+1-869', '+1', '+44', '+91', '+86'];
-const ASSIGNED_OFFICES = ['Legal Office', 'Compliance Office', 'Benefits Office', 'Enforcement Office'];
+const ENFORCEMENT_FUNNELS = ['Summons', 'JDS', 'Warrant', 'Writ'];
+const ASSIGNED_OFFICERS = ['Officer A', 'Officer B', 'Officer C', 'Officer D'];
 
 export default function SSBCaseIntake() {
   const navigate = useNavigate();
@@ -36,8 +51,8 @@ export default function SSBCaseIntake() {
     source: 'Compliance',
     priority: 'Medium',
     status: 'Draft',
-    assignedOfficer: '',
-    assignedOffice: '',
+    enforcementFunnel: '',
+    assignedOfficers: [] as string[],
     courtReferenceNumber: '',
     confidential: false,
     title: '',
@@ -56,7 +71,8 @@ export default function SSBCaseIntake() {
       dob?: string;
       contact?: string; 
       regNo?: string; 
-      ssn?: string 
+      ssn?: string;
+      tin?: string;
     }>,
     attachments: [] as Array<{ name: string; type: string; documentType: string }>
   });
@@ -73,8 +89,8 @@ export default function SSBCaseIntake() {
           source: 'Compliance',
           priority: existingCase.priority,
           status: existingCase.status,
-          assignedOfficer: existingCase.assignee,
-          assignedOffice: '',
+          enforcementFunnel: '',
+          assignedOfficers: [],
           courtReferenceNumber: '',
           confidential: false,
           title: existingCase.title,
@@ -94,8 +110,7 @@ export default function SSBCaseIntake() {
   const [lookupQuery, setLookupQuery] = useState('');
   const [lookupType, setLookupType] = useState<'employer' | 'insured'>('employer');
   const [editingPartyIndex, setEditingPartyIndex] = useState<number | null>(null);
-  const [documentType, setDocumentType] = useState<string>('');
-  const [showDocumentTypeDialog, setShowDocumentTypeDialog] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -169,7 +184,8 @@ export default function SSBCaseIntake() {
         countryCode: '+1-869',
         address: '',
         gender: '',
-        dob: ''
+        dob: '',
+        tin: ''
       }]
     }));
   };
@@ -202,8 +218,8 @@ export default function SSBCaseIntake() {
     if (step === 0) {
       if (!formData.type) newErrors.type = 'Case type is required';
       if (!formData.source) newErrors.source = 'Source is required';
-      if (!formData.assignedOfficer) newErrors.assignedOfficer = 'Assigned officer is required';
-      if (!formData.assignedOffice) newErrors.assignedOffice = 'Assigned office is required';
+      if (!formData.enforcementFunnel) newErrors.enforcementFunnel = 'Enforcement funnel is required';
+      if (formData.assignedOfficers.length === 0) newErrors.assignedOfficers = 'At least one officer must be assigned';
       if (!formData.status) newErrors.status = 'Status is required';
     }
     
@@ -244,7 +260,7 @@ export default function SSBCaseIntake() {
         title: formData.title || 'Draft Case',
         type: formData.type || 'Non-Payment',
         priority: formData.priority,
-        assignee: formData.assignedOfficer || 'Unassigned',
+        assignee: formData.assignedOfficers.join(', ') || 'Unassigned',
         summary: formData.summary || ''
       });
       toast.success('Case updated successfully');
@@ -258,7 +274,7 @@ export default function SSBCaseIntake() {
         stage: 'Draft',
         priority: formData.priority,
         parties: formData.parties.map(p => p.name).filter(Boolean),
-        assignee: formData.assignedOfficer || 'Unassigned',
+        assignee: formData.assignedOfficers.join(', ') || 'Unassigned',
         filed_at: formData.date,
         next_event_at: null,
         summary: formData.summary || '',
@@ -285,7 +301,7 @@ export default function SSBCaseIntake() {
         type: formData.type,
         status: formData.status,
         priority: formData.priority,
-        assignee: formData.assignedOfficer,
+        assignee: formData.assignedOfficers.join(', '),
         summary: formData.summary
       });
       toast.success('Case updated successfully');
@@ -299,7 +315,7 @@ export default function SSBCaseIntake() {
         stage: 'Pre-Filing',
         priority: formData.priority,
         parties: formData.parties.map(p => p.name).filter(Boolean),
-        assignee: formData.assignedOfficer,
+        assignee: formData.assignedOfficers.join(', '),
         filed_at: formData.date,
         next_event_at: null,
         summary: formData.summary,
@@ -314,29 +330,6 @@ export default function SSBCaseIntake() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!documentType) {
-      setShowDocumentTypeDialog(true);
-      return;
-    }
-    
-    const files = e.target.files;
-    if (files) {
-      const newAttachments = Array.from(files).map(file => ({
-        name: file.name,
-        type: file.type,
-        documentType: documentType
-      }));
-      
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, ...newAttachments]
-      }));
-      
-      toast.success(`${files.length} file(s) uploaded as ${documentType}`);
-      setDocumentType('');
-    }
-  };
 
   const steps = ['Basics', 'Parties', 'Subject', 'Attachments', 'Review'];
 
@@ -477,29 +470,55 @@ export default function SSBCaseIntake() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="assignedOfficer">Assigned Officer *</Label>
-                <Input
-                  id="assignedOfficer"
-                  value={formData.assignedOfficer}
-                  onChange={(e) => updateField('assignedOfficer', e.target.value)}
-                  placeholder="Enter officer name"
-                />
-                {errors.assignedOfficer && <p className="text-sm text-destructive">{errors.assignedOfficer}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="assignedOffice">Assigned Office *</Label>
-                <Select value={formData.assignedOffice} onValueChange={(v) => updateField('assignedOffice', v)}>
-                  <SelectTrigger id="assignedOffice">
-                    <SelectValue placeholder="Select assigned office" />
+                <Label htmlFor="enforcementFunnel">Enforcement Funnel *</Label>
+                <Select value={formData.enforcementFunnel} onValueChange={(v) => updateField('enforcementFunnel', v)}>
+                  <SelectTrigger id="enforcementFunnel">
+                    <SelectValue placeholder="Select enforcement funnel" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ASSIGNED_OFFICES.map(office => (
-                      <SelectItem key={office} value={office}>{office}</SelectItem>
+                    {ENFORCEMENT_FUNNELS.map(funnel => (
+                      <SelectItem key={funnel} value={funnel}>{funnel}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.assignedOffice && <p className="text-sm text-destructive">{errors.assignedOffice}</p>}
+                {errors.enforcementFunnel && <p className="text-sm text-destructive">{errors.enforcementFunnel}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assignedOfficers">Assigned Officers *</Label>
+                <Select onValueChange={(v) => {
+                  if (!formData.assignedOfficers.includes(v)) {
+                    updateField('assignedOfficers', [...formData.assignedOfficers, v]);
+                  }
+                }}>
+                  <SelectTrigger id="assignedOfficers">
+                    <SelectValue placeholder="Select officers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSIGNED_OFFICERS.map(officer => (
+                      <SelectItem key={officer} value={officer}>{officer}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.assignedOfficers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.assignedOfficers.map((officer) => (
+                      <div key={officer} className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded">
+                        <span className="text-sm">{officer}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateField('assignedOfficers', formData.assignedOfficers.filter(o => o !== officer));
+                          }}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {errors.assignedOfficers && <p className="text-sm text-destructive">{errors.assignedOfficers}</p>}
               </div>
 
               <div className="space-y-2">
@@ -712,6 +731,15 @@ export default function SSBCaseIntake() {
                                 disabled={editingPartyIndex !== index}
                               />
                             </div>
+                            <div className="space-y-2">
+                              <Label>TIN</Label>
+                              <Input
+                                value={party.tin || ''}
+                                onChange={(e) => updateParty(index, 'tin', e.target.value)}
+                                placeholder="Enter TIN"
+                                disabled={editingPartyIndex !== index}
+                              />
+                            </div>
                           </>
                         )}
                       </div>
@@ -743,73 +771,43 @@ export default function SSBCaseIntake() {
           {/* Step 3: Attachments */}
           {currentStep === 3 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Upload supporting documents for this case</p>
-              
-              <div className="space-y-2">
-                <Label htmlFor="documentType">Document Type *</Label>
-                <Select value={documentType} onValueChange={setDocumentType}>
-                  <SelectTrigger id="documentType">
-                    <SelectValue placeholder="Select document type before uploading" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DOCUMENT_TYPES.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Please select a document type before uploading files</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Upload supporting documents (pdf, docx, jpg, png)
+                </p>
+                <Button type="button" onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Documents
+                </Button>
               </div>
-
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <p className="text-muted-foreground">Drag and drop files or click to browse</p>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="fileUpload"
-                  disabled={!documentType}
-                />
-                <label htmlFor="fileUpload">
-                  <Button 
-                    variant="outline" 
-                    className="mt-4" 
-                    disabled={!documentType}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      document.getElementById('fileUpload')?.click();
-                    }}
-                  >
-                    Browse Files
-                  </Button>
-                </label>
-              </div>
-
-              {formData.attachments.length > 0 && (
+              {formData.attachments.length > 0 ? (
                 <div className="space-y-2">
-                  <Label>Uploaded Documents ({formData.attachments.length})</Label>
-                  <div className="space-y-2">
-                    {formData.attachments.map((file, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">Type: {file.documentType}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              attachments: prev.attachments.filter((_, i) => i !== idx)
-                            }));
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                  {formData.attachments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between border rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{file.name}</span>
+                        <span className="text-sm text-muted-foreground">({file.documentType})</span>
                       </div>
-                    ))}
-                  </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            attachments: prev.attachments.filter((_, i) => i !== index)
+                          }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                  <p className="text-muted-foreground">No documents uploaded yet</p>
                 </div>
               )}
             </div>
@@ -849,8 +847,12 @@ export default function SSBCaseIntake() {
                       <dd className="font-medium">{formData.status}</dd>
                     </div>
                     <div className="col-span-2 space-y-1">
-                      <dt className="text-muted-foreground">Assigned Officer:</dt>
-                      <dd className="font-medium">{formData.assignedOfficer}</dd>
+                      <dt className="text-muted-foreground">Enforcement Funnel:</dt>
+                      <dd className="font-medium">{formData.enforcementFunnel}</dd>
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <dt className="text-muted-foreground">Assigned Officers:</dt>
+                      <dd className="font-medium">{formData.assignedOfficers.join(', ')}</dd>
                     </div>
                   </dl>
                 </CardContent>
@@ -942,6 +944,18 @@ export default function SSBCaseIntake() {
           )}
         </div>
       </div>
+
+      {/* Upload Dialog */}
+      <IntakeUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onDocumentUploaded={(file) => {
+          setFormData(prev => ({
+            ...prev,
+            attachments: [...prev.attachments, { ...file, documentType: file.type }]
+          }));
+        }}
+      />
     </div>
   );
 }
