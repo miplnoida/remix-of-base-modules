@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DashboardFilters, legalDashboardAdapter, KPIData, CollectionsData, ArrearsHeatmapCell, EnforcementFunnelData, HearingCalendarDay, PostJudgmentCase, ActivityItem } from '@/adapters/legalDashboardAdapter';
+import { DashboardFilters, legalDashboardAdapter, KPIData, CollectionsData, EnforcementFunnelData, HearingCalendarDay, ActivityItem } from '@/adapters/legalDashboardAdapter';
 import { KPICards } from '@/components/legal/dashboard/KPICards';
 import { CollectionsChart } from '@/components/legal/dashboard/CollectionsChart';
-import { ArrearsHeatmap } from '@/components/legal/dashboard/ArrearsHeatmap';
 import { EnforcementFunnel } from '@/components/legal/dashboard/EnforcementFunnel';
 import { HearingCalendarWidget } from '@/components/legal/dashboard/HearingCalendarWidget';
-import { PostJudgmentTracker } from '@/components/legal/dashboard/PostJudgmentTracker';
 import { RecentActivity } from '@/components/legal/dashboard/RecentActivity';
 import { toast } from '@/hooks/use-toast';
 
@@ -27,10 +25,8 @@ export default function SSBLegalDashboard() {
 
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
   const [collectionsData, setCollectionsData] = useState<CollectionsData[] | null>(null);
-  const [arrearsData, setArrearsData] = useState<ArrearsHeatmapCell[] | null>(null);
   const [funnelData, setFunnelData] = useState<EnforcementFunnelData[] | null>(null);
   const [calendarData, setCalendarData] = useState<HearingCalendarDay[] | null>(null);
-  const [postJudgmentData, setPostJudgmentData] = useState<PostJudgmentCase[] | null>(null);
   const [activityData, setActivityData] = useState<ActivityItem[] | null>(null);
   
   const [loading, setLoading] = useState(true);
@@ -42,22 +38,18 @@ export default function SSBLegalDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, collections, arrears, funnel, calendar, postJudgment, activity] = await Promise.all([
+      const [kpis, collections, funnel, calendar, activity] = await Promise.all([
         legalDashboardAdapter.getKPIs(filters),
         legalDashboardAdapter.getCollectionsData(filters),
-        legalDashboardAdapter.getArrearsHeatmap(filters),
         legalDashboardAdapter.getEnforcementFunnel(filters),
         legalDashboardAdapter.getHearingCalendar(filters),
-        legalDashboardAdapter.getPostJudgmentCases(filters),
         legalDashboardAdapter.getRecentActivity(filters)
       ]);
 
       setKpiData(kpis);
       setCollectionsData(collections);
-      setArrearsData(arrears);
       setFunnelData(funnel);
       setCalendarData(calendar);
-      setPostJudgmentData(postJudgment);
       setActivityData(activity);
     } catch (error) {
       toast({
@@ -88,23 +80,15 @@ export default function SSBLegalDashboard() {
           data={kpiData} 
           loading={loading}
           onActiveCasesClick={() => navigate('/legal/cases')}
-          onRiskAlertClick={() => navigate('/legal/cases?filter=highrisk')}
           onHearingsClick={() => navigate('/legal/hearings')}
         />
 
-        {/* Row A: Collections & Arrears */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CollectionsChart 
-            data={collectionsData} 
-            loading={loading}
-            onClick={() => navigate('/legal/reports')}
-          />
-          <ArrearsHeatmap 
-            data={arrearsData} 
-            loading={loading}
-            onClick={() => navigate('/legal/reports')}
-          />
-        </div>
+        {/* Row A: Collections Chart - Full Width */}
+        <CollectionsChart 
+          data={collectionsData} 
+          loading={loading}
+          onClick={() => navigate('/legal/reports')}
+        />
 
         {/* Row B: Enforcement */}
         <EnforcementFunnel 
@@ -124,23 +108,16 @@ export default function SSBLegalDashboard() {
           onDateClick={(date) => navigate(`/legal/hearings?date=${date}`)}
         />
 
-        {/* Row D: Risk & Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PostJudgmentTracker 
-            data={postJudgmentData} 
-            loading={loading}
-            onCaseClick={(caseId) => navigate(`/legal/cases/${caseId}`)}
-          />
-          <RecentActivity 
-            data={activityData} 
-            loading={loading}
-            onActivityClick={(activity) => {
-              if (activity.caseId) {
-                navigate(`/legal/cases/${activity.caseId}`);
-              }
-            }}
-          />
-        </div>
+        {/* Row D: Recent Activity */}
+        <RecentActivity 
+          data={activityData} 
+          loading={loading}
+          onActivityClick={(activity) => {
+            if (activity.caseId) {
+              navigate(`/legal/cases/${activity.caseId}`);
+            }
+          }}
+        />
       </div>
     </div>
   );
