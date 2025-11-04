@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Grid3x3, List, Upload, Filter, Search, Save, Download, Share2, FileSignature, Tag, Archive, Eye } from 'lucide-react';
+import { FileText, Grid3x3, List, Upload, Filter, Search, Save, Download, Share2, FileSignature, Tag, Archive, Eye, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   useLegalDocuments,
@@ -30,6 +33,18 @@ import { format } from 'date-fns';
 
 const DOC_TYPES = ['Filings', 'Evidence', 'Notices', 'Orders', 'Correspondence', 'Internal'];
 const ESIGN_STATUSES = ['Not Sent', 'Sent', 'Partially Signed', 'Fully Signed', 'Declined'];
+const CASE_IDS = [
+  'SSB/LGL/2024/001',
+  'SSB/LGL/2024/002',
+  'SSB/LGL/2024/003',
+  'SSB/LGL/2024/004',
+  'SSB/LGL/2024/005',
+  'SSB/LGL/2023/001',
+  'SSB/LGL/2023/002',
+  'SSB/LGL/2023/003',
+  'SSB/LGL/2023/004',
+  'SSB/LGL/2023/005',
+];
 
 export default function DocumentCenter() {
   const { toast } = useToast();
@@ -38,6 +53,8 @@ export default function DocumentCenter() {
   const [filters, setFilters] = useState<DocumentFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [caseIdOpen, setCaseIdOpen] = useState(false);
   
   // Dialogs
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -71,6 +88,7 @@ export default function DocumentCenter() {
       checksum: crypto.randomUUID(),
     });
     
+    setSelectedCaseId('');
     setUploadOpen(false);
   };
 
@@ -141,21 +159,24 @@ export default function DocumentCenter() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Document Center</h1>
+          <h1 className="text-3xl font-bold  text-foreground">Document Center</h1>
           <p className="text-muted-foreground">Cross-case document management with advanced search</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+          <Dialog open={uploadOpen} onOpenChange={(open) => {
+            setUploadOpen(open);
+            if (!open) setSelectedCaseId('');
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Documents
               </Button>
-            </DialogTrigger>
+            </DialogTrigger> 
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Documents</DialogTitle>
@@ -164,7 +185,48 @@ export default function DocumentCenter() {
               <form onSubmit={handleUpload} className="space-y-4">
                 <div>
                   <Label htmlFor="caseId">Case ID</Label>
-                  <Input id="caseId" name="caseId" required />
+                  <Popover open={caseIdOpen} onOpenChange={setCaseIdOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={caseIdOpen}
+                        className="w-full justify-between"
+                      >
+                        {selectedCaseId || "Select case ID..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search case ID..." />
+                        <CommandList>
+                          <CommandEmpty>No case found.</CommandEmpty>
+                          <CommandGroup>
+                            {CASE_IDS.map((caseId) => (
+                              <CommandItem
+                                key={caseId}
+                                value={caseId}
+                                onSelect={(currentValue) => {
+                                  setSelectedCaseId(currentValue === selectedCaseId ? "" : currentValue);
+                                  setCaseIdOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedCaseId === caseId ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {caseId}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <input type="hidden" name="caseId" value={selectedCaseId} required />
                 </div>
                 <div>
                   <Label htmlFor="name">Document Name</Label>

@@ -75,43 +75,67 @@ export function RecentActivity({ data, loading, onActivityClick }: RecentActivit
           </CardTitle>
           <div className="flex flex-wrap gap-2">
             <Badge
-              variant={filter === 'all' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => setFilter('all')}
             >
               All
             </Badge>
             <Badge
-              variant={filter === 'doc' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                filter === 'doc'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => setFilter('doc')}
             >
               Docs
             </Badge>
             <Badge
-              variant={filter === 'hearing' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                filter === 'hearing'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => setFilter('hearing')}
             >
               Hearings
             </Badge>
             <Badge
-              variant={filter === 'status' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                filter === 'status'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => setFilter('status')}
             >
               Status
             </Badge>
             <Badge
-              variant={filter === 'note' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                filter === 'note'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => setFilter('note')}
             >
               Notes
             </Badge>
             <Badge
-              variant={filter === 'payment' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                filter === 'payment'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => setFilter('payment')}
             >
               Finance

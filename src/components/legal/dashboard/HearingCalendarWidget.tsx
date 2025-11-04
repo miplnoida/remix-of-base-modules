@@ -125,10 +125,10 @@ export function HearingCalendarWidget({
                   key={day}
                   className={`p-2 text-sm rounded-md transition-colors relative ${
                     isSelected
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-emerald-400 dark:bg-emerald-950 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:bg-emerald-300 dark:active:bg-emerald-800 text-white'
                       : hasHearings
-                      ? 'bg-blue-100 dark:bg-blue-950 hover:bg-blue-200 dark:hover:bg-blue-900 text-foreground'
-                      : 'hover:bg-muted text-foreground'
+                      ? 'bg-blue-100 dark:bg-blue-950 hover:bg-blue-200 dark:hover:bg-blue-900 active:bg-blue-300 dark:active:bg-blue-800 text-foreground'
+                      : 'hover:bg-muted active:bg-muted/80 text-foreground'
                   }`}
                   onClick={() => setSelectedDay(day)}
                   aria-label={`Day ${day}${hasHearings ? ` with ${dayData.count} hearings` : ''}`}
@@ -166,7 +166,7 @@ export function HearingCalendarWidget({
                 <div
                   key={hearing.id}
                   className="border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/legal/cases/${hearing.caseNumber.toLowerCase()}`)}
+                  onClick={() => navigate(`/legal/cases/case-001`)}
                   role="button"
                   tabIndex={0}
                 >

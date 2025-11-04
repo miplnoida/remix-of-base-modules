@@ -65,8 +65,12 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
         {DOCUMENT_FOLDERS.map(folder => (
           <Badge
             key={folder}
-            variant={activeFolder === folder ? 'default' : 'outline'}
-            className="cursor-pointer"
+            variant="outline"
+            className={`cursor-pointer transition-colors ${
+              activeFolder === folder
+                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                : 'hover:bg-gray-100'
+            }`}
             onClick={() => setActiveFolder(folder)}
           >
             {folder}
@@ -84,6 +88,7 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Folder</TableHead>
                 <TableHead>Version</TableHead>
                 <TableHead>Uploaded By</TableHead>
                 <TableHead>Uploaded On</TableHead>
@@ -100,6 +105,11 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
                   </TableCell>
                   <TableCell>{doc.type}</TableCell>
                   <TableCell>
+                    <Badge variant="outline" className="text-xs bg-slate-100 text-slate-800 border-slate-200">
+                      {doc.folder}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="outline" className="text-xs">
                       v{doc.version}
                     </Badge>
@@ -115,13 +125,31 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleView(doc.name)}>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => handleView(doc.name)}
+                        title="View"
+                        className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDownload(doc.name)}>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => handleDownload(doc.name)}
+                        title="Download"
+                        className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleShare(doc.name)}>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => handleShare(doc.name)}
+                        title="Share"
+                        className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                      >
                         <Share2 className="h-4 w-4" />
                       </Button>
                     </div>

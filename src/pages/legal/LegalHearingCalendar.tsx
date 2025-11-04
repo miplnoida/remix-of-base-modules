@@ -300,11 +300,11 @@ export default function LegalHearingCalendar() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Hearing Calendar</h1>
+          <h1 className="text-3xl font-bold  text-foreground">Hearing Calendar</h1>
           <p className="text-muted-foreground mt-1">View all scheduled hearings across all cases</p>
         </div>
       </div>
@@ -641,20 +641,20 @@ export default function LegalHearingCalendar() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-semibold mb-1">Start Time</h4>
+                      <h4 className="text-sm font-semibold mb-1">Hearing Time</h4>
                       <p className="text-sm">{format(new Date(selectedHearing.start_at), 'PPp')}</p>
                     </div>
-                    <div>
+                    {/* <div>
                       <h4 className="text-sm font-semibold mb-1">End Time</h4>
                       <p className="text-sm">{format(new Date(selectedHearing.end_at), 'PPp')}</p>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div>
                     <h4 className="text-sm font-semibold mb-2">Panel Members</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedHearing.panel.map((member: string, idx: number) => (
-                        <Badge key={idx} variant="secondary">
+                        <Badge key={idx} variant="outline">
                           {member}
                         </Badge>
                       ))}
@@ -685,16 +685,16 @@ export default function LegalHearingCalendar() {
                   <div className="flex gap-2 pt-4">
                     <Button
                       variant="outline"
-                      onClick={() => navigate(`/legal/cases/${selectedHearing.case_id}`)}
+                      onClick={() => navigate(`/legal/cases`)}
                       className="flex-1"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Open Case
                     </Button>
-                    <Button variant="outline" className="flex-1">
+                    {/* <Button variant="outline" className="flex-1">
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Minutes
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               </>

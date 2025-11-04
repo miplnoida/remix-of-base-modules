@@ -28,18 +28,26 @@ export function AnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Filter Section */}
-      <div className="flex justify-end">
-        <Select value={activeView} onValueChange={setActiveView}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SAVED_VIEWS.map(view => (
-              <SelectItem key={view.id} value={view.id}>{view.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Time Period</h3>
+              <p className="text-xs text-muted-foreground mt-1">Filter analytics by date range</p>
+            </div>
+            <Select value={activeView} onValueChange={setActiveView}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                {SAVED_VIEWS.map(view => (
+                  <SelectItem key={view.id} value={view.id}>{view.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-4">

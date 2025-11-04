@@ -62,7 +62,7 @@ export function CaseTimelineTab({ caseData }: CaseTimelineTabProps) {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="default" className="text-xs font-medium">
+                          <Badge variant="outline" className="text-xs font-medium">
                             {event.type}
                           </Badge>
                           <span className="text-xs text-muted-foreground">

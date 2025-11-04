@@ -120,18 +120,18 @@ export function CaseNotesTab({ caseData }: CaseNotesTabProps) {
                 </div>
                 <div className="flex gap-1">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleEdit(note.id)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(note.id)}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className="h-4 w-4 text-white" />
                   </Button>
                 </div>
               </div>

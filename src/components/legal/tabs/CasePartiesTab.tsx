@@ -36,67 +36,91 @@ export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
           <CardTitle>Party Listing</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>SSN / Registration Number</TableHead>
-                <TableHead>Representative</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {caseData.parties.map((party, idx) => (
-                <TableRow key={idx}>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {idx === 0 ? 'Applicant' : 'Respondent'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{party}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {idx === 0 ? '123-45-6789' : `REG-${1000 + idx}`}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {idx > 0 ? 'Legal Counsel - John Smith' : '—'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleView(party)}
-                        aria-label={`View ${party}`}
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleEdit(party)}
-                        aria-label={`Edit ${party}`}
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDelete(party)}
-                        aria-label={`Delete ${party}`}
-                        title="Delete"
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>SSN</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone Number</TableHead>
+                  <TableHead>Gender</TableHead>
+                  <TableHead>Date of Birth</TableHead>
+                  <TableHead>TIN</TableHead>
+                  <TableHead>Representative</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {caseData.parties.map((party, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {idx === 0 ? 'Applicant' : 'Respondent'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{party}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {idx === 0 ? '556655' : '789123'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {idx === 0 ? 'applicant@email.com' : 'respondent@company.com'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {idx === 0 ? '+1-869-555-0123' : '+1-869-555-0456'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {idx === 0 ? 'Male' : 'Female'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {idx === 0 ? '15-03-1985' : '22-07-1978'}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {idx === 0 ? 'TIN-001234' : 'TIN-005678'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {idx > 0 ? 'Legal Counsel - John Smith' : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => handleView(party)}
+                          aria-label={`View ${party}`}
+                          title="View"
+                          className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => handleEdit(party)}
+                          aria-label={`Edit ${party}`}
+                          title="Edit"
+                          className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="icon" 
+                          onClick={() => handleDelete(party)}
+                          aria-label={`Delete ${party}`}
+                          title="Delete"
+                          className="h-9 w-9"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

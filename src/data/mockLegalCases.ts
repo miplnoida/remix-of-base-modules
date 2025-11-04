@@ -14,6 +14,10 @@ export interface MockCase {
   summary: string;
   relief_sought: string;
   flags: string[];
+  source?: string;
+  enforcement_funnel?: string;
+  assigned_officers?: string[];
+  court_reference_number?: string;
   activities: Array<{
     date: string;
     user: string;

@@ -7,6 +7,15 @@ import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { CreateArrangementDialog } from "./CreateArrangementDialog";
 
+// Format date as dd-mm-yyyy
+const formatDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 interface Arrangement {
   id: string;
   terms: string;
@@ -30,10 +39,10 @@ export function ArrangementsTab({ caseId, arrangements, totalAmount = 0 }: Arran
   const [isCreatePlanOpen, setIsCreatePlanOpen] = useState(false);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      "On Track": "default",
+    const variants: Record<string, "success" | "destructive" | "outline"> = {
+      "On Track": "outline",
       "Missed": "destructive",
-      "Completed": "secondary",
+      "Completed": "success",
     };
     return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
   };
@@ -73,7 +82,7 @@ export function ArrangementsTab({ caseId, arrangements, totalAmount = 0 }: Arran
                     <div>
                       <h4 className="font-semibold">{arrangement.terms}</h4>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Started: {new Date(arrangement.startDate).toLocaleDateString()} • {arrangement.durationMonths} months
+                        Started: {formatDate(arrangement.startDate)} • {arrangement.durationMonths} months
                       </p>
                     </div>
                     {getStatusBadge(arrangement.status)}
@@ -91,7 +100,7 @@ export function ArrangementsTab({ caseId, arrangements, totalAmount = 0 }: Arran
                     <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-sm text-muted-foreground">Next Payment Due</p>
                       <div className="flex justify-between items-center mt-1">
-                        <span className="font-semibold">{new Date(nextDue.date).toLocaleDateString()}</span>
+                        <span className="font-semibold">{formatDate(nextDue.date)}</span>
                         <span className="font-semibold">${nextDue.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
@@ -109,7 +118,7 @@ export function ArrangementsTab({ caseId, arrangements, totalAmount = 0 }: Arran
                       <TableBody>
                         {arrangement.installments.map((installment, idx) => (
                           <TableRow key={idx}>
-                            <TableCell>{new Date(installment.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{formatDate(installment.date)}</TableCell>
                             <TableCell className="text-right">${installment.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                             <TableCell>
                               {installment.paid ? (
