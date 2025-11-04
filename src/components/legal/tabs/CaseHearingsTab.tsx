@@ -68,7 +68,7 @@ export function CaseHearingsTab({ caseData }: CaseHearingsTabProps) {
                       <Badge variant="outline" className="text-sm font-medium">
                         {hearing.type}
                       </Badge>
-                      <Badge variant="default">Scheduled</Badge>
+                      <Badge variant="success">Scheduled</Badge>
                     </div>
                     
                     <div className="grid gap-2">

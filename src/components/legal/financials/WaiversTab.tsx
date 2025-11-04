@@ -82,7 +82,7 @@ export function WaiversTab({ caseId, waivers }: WaiversTabProps) {
                   <TableCell className="max-w-xs truncate">{waiver.reason}</TableCell>
                   <TableCell className="text-sm">
                     {waiver.appliedPeriods.map((period, idx) => (
-                      <Badge key={idx} variant="secondary" className="mr-1">{period}</Badge>
+                      <Badge key={idx} variant="outline" className="mr-1">{period}</Badge>
                     ))}
                   </TableCell>
                 </TableRow>
