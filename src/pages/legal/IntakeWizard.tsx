@@ -16,16 +16,32 @@ import { LegalService } from '@/services/legalService';
 import { CaseType, CaseSource, Priority } from '@/types/legal';
 import { IntakeUploadDialog } from '@/components/legal/IntakeUploadDialog';
 
+const STATUS_OPTIONS = [
+  "Draft",
+  "Filed",
+  "Under Review",
+  "Hearing Scheduled",
+  "Hearing Held",
+  "Decision Pending",
+  "Order Issued",
+  "Closed – Compliant",
+  "Closed – Non-Compliant",
+  "Withdrawn",
+  "Appealed",
+  "Reopened"
+];
+
 const caseSchema = z.object({
   caseType: z.enum(['Prosecution', 'Compliance', 'Appeal', 'Recovery', 'Employer Dispute', 'IP Dispute', 'Garnishment', 'Other']),
   source: z.enum(['Complaint', 'Referral', 'System', 'Audit']),
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']),
+  status: z.string().min(1, "Status is required"),
   confidential: z.boolean(),
   title: z.string().min(5, 'Title must be at least 5 characters'),
   summary: z.string().min(20, 'Summary must be at least 20 characters'),
   reliefSought: z.string().min(10, 'Relief sought must be at least 10 characters'),
-  enforcementFunnel: z.string().optional(),
-  assignedOfficers: z.array(z.string()).optional(),
+  enforcementFunnel: z.string().min(1, 'Enforcement funnel is required'),
+  assignedOfficers: z.array(z.string()).min(1, 'At least one officer must be assigned'),
 });
 
 type CaseFormData = z.infer<typeof caseSchema>;
@@ -53,6 +69,7 @@ export const IntakeWizard = () => {
       caseType: 'Compliance',
       source: 'Complaint',
       priority: 'Medium',
+      status: 'Draft',
       confidential: false,
       title: '',
       summary: '',
@@ -65,7 +82,10 @@ export const IntakeWizard = () => {
   const onSubmit = async (data: CaseFormData, isDraft: boolean = false) => {
     setSubmitting(true);
     try {
-      await LegalService.createCase(data);
+      await LegalService.createCase({
+        ...data,
+        status: isDraft ? 'Draft' : data.status,
+      } as any);
       toast({
         title: isDraft ? 'Draft Saved' : 'Case Created',
         description: `Case has been ${isDraft ? 'saved as draft' : 'submitted for review'}`,
@@ -234,6 +254,31 @@ export const IntakeWizard = () => {
 
                     <FormField
                       control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="confidential"
                       render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-4">
@@ -269,7 +314,7 @@ export const IntakeWizard = () => {
                       name="enforcementFunnel"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Enforcement Funnel</FormLabel>
+                          <FormLabel>Enforcement Funnel *</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -277,11 +322,10 @@ export const IntakeWizard = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Investigation">Investigation</SelectItem>
-                              <SelectItem value="Filing">Filing</SelectItem>
-                              <SelectItem value="Litigation">Litigation</SelectItem>
-                              <SelectItem value="Judgment">Judgment</SelectItem>
-                              <SelectItem value="Collection">Collection</SelectItem>
+                              <SelectItem value="Summons">Summons</SelectItem>
+                              <SelectItem value="JDS">JDS</SelectItem>
+                              <SelectItem value="Warrant">Warrant</SelectItem>
+                              <SelectItem value="Writ">Writ</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -294,7 +338,7 @@ export const IntakeWizard = () => {
                       name="assignedOfficers"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Assigned Officers</FormLabel>
+                          <FormLabel>Assigned Officers *</FormLabel>
                           <Select 
                             onValueChange={(value) => {
                               const current = field.value || [];
