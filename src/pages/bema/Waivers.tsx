@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useBemaWaivers } from "@/hooks/useBemaData";
+import { PlansWaiversSection } from "@/components/bema/compliance/PlansWaiversSection";
 
 interface WaiverRequest {
   id: string;
@@ -89,6 +90,7 @@ const getTypeBadge = (type: WaiverRequest["requestType"]) => {
 
 export default function WaiversManagement() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isPlansWaiversOpen, setIsPlansWaiversOpen] = useState(true);
   const { data: waiversData } = useBemaWaivers();
 
   return (
@@ -156,6 +158,16 @@ export default function WaiversManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Plans & Waivers Section */}
+      <PlansWaiversSection
+        employerId="demo-employer"
+        waivers={[]}
+        plans={[]}
+        totalAmount={25000}
+        isOpen={isPlansWaiversOpen}
+        onToggle={() => setIsPlansWaiversOpen(!isPlansWaiversOpen)}
+      />
 
       {/* Search */}
       <div className="relative">
