@@ -24,6 +24,7 @@ interface AllocationLine {
   id: string;
   accountId: string;
   amount: number;
+  displayValue?: string;
 }
 
 interface CollectionHead {
@@ -95,7 +96,7 @@ const FundsTransfer: React.FC = () => {
       defaultAccount: 'rbc-ec-operating',
       selectedAccount: 'rbc-ec-operating',
       allocations: [
-        { id: '1', accountId: 'rbc-ec-operating', amount: 8750.50 }
+        { id: '1', accountId: 'rbc-ec-operating', amount: 8750.50, displayValue: undefined }
       ]
     },
     {
@@ -106,7 +107,7 @@ const FundsTransfer: React.FC = () => {
       defaultAccount: 'fcb-ec-levy',
       selectedAccount: 'fcb-ec-levy',
       allocations: [
-        { id: '1', accountId: 'fcb-ec-levy', amount: 2500.00 }
+        { id: '1', accountId: 'fcb-ec-levy', amount: 2500.00, displayValue: undefined }
       ]
     },
     {
@@ -117,7 +118,7 @@ const FundsTransfer: React.FC = () => {
       defaultAccount: 'rbc-ec-operating',
       selectedAccount: 'rbc-ec-operating',
       allocations: [
-        { id: '1', accountId: 'rbc-ec-operating', amount: 1800.75 }
+        { id: '1', accountId: 'rbc-ec-operating', amount: 1800.75, displayValue: undefined }
       ]
     },
     {
@@ -128,7 +129,7 @@ const FundsTransfer: React.FC = () => {
       defaultAccount: 'rbc-ec-operating',
       selectedAccount: 'rbc-ec-operating',
       allocations: [
-        { id: '1', accountId: 'rbc-ec-operating', amount: 950.25 }
+        { id: '1', accountId: 'rbc-ec-operating', amount: 950.25, displayValue: undefined }
       ]
     },
     {
@@ -139,7 +140,7 @@ const FundsTransfer: React.FC = () => {
       defaultAccount: 'rbc-ec-operating',
       selectedAccount: 'rbc-ec-operating',
       allocations: [
-        { id: '1', accountId: 'rbc-ec-operating', amount: 325.00 }
+        { id: '1', accountId: 'rbc-ec-operating', amount: 325.00, displayValue: undefined }
       ]
     },
     {
@@ -150,7 +151,7 @@ const FundsTransfer: React.FC = () => {
       defaultAccount: 'rbc-us-operating',
       selectedAccount: 'rbc-us-operating',
       allocations: [
-        { id: '1', accountId: 'rbc-us-operating', amount: 1250.00 }
+        { id: '1', accountId: 'rbc-us-operating', amount: 1250.00, displayValue: undefined }
       ]
     }
   ]);
@@ -195,7 +196,7 @@ const FundsTransfer: React.FC = () => {
           ...head,
           allocations: [
             ...head.allocations,
-            { id: Date.now().toString(), accountId: head.defaultAccount, amount: 0 }
+            { id: Date.now().toString(), accountId: head.defaultAccount, amount: balance, displayValue: undefined }
           ]
         };
       }
@@ -252,9 +253,10 @@ const FundsTransfer: React.FC = () => {
         
         // Validate and cap the amount
         if (newAmount > maxAllowed) {
+          const formattedMax = formatToTwoDecimals(maxAllowed);
           toast({
             title: "Invalid Amount",
-            description: `Amount cannot exceed the remaining balance of ${head.currency} ${maxAllowed.toFixed(2)}`,
+            description: `Amount cannot exceed the remaining balance of ${head.currency} ${formattedMax}`,
             variant: "destructive"
           });
           
@@ -275,6 +277,68 @@ const FundsTransfer: React.FC = () => {
       }
       return head;
     }));
+  };
+
+  const updateAllocationDisplayValue = (headId: string, allocationId: string, displayValue: string) => {
+    setCollectionHeads(prev => prev.map(head => {
+      if (head.id === headId) {
+        return {
+          ...head,
+          allocations: head.allocations.map(a =>
+            a.id === allocationId ? { ...a, displayValue } : a
+          )
+        };
+      }
+      return head;
+    }));
+  };
+
+  const formatToTwoDecimals = (value: number): string => {
+    // Convert to string and handle decimal places
+    const str = String(value);
+    const parts = str.split('.');
+    
+    if (parts.length === 1) {
+      // No decimal point, add .00
+      return parts[0] + '.00';
+    } else {
+      // Has decimal point
+      const decimalPart = parts[1];
+      if (decimalPart.length === 0) {
+        return parts[0] + '.00';
+      } else if (decimalPart.length === 1) {
+        return parts[0] + '.' + decimalPart + '0';
+      } else {
+        // Keep only 2 decimal places
+        return parts[0] + '.' + decimalPart.substring(0, 2);
+      }
+    }
+  };
+
+  const handleAmountBlur = (headId: string, allocationId: string, inputRef: HTMLInputElement | null) => {
+    const head = collectionHeads.find(h => h.id === headId);
+    const allocation = head?.allocations.find(a => a.id === allocationId);
+    
+    if (allocation) {
+      const formattedValue = formatToTwoDecimals(allocation.amount);
+      updateAllocationDisplayValue(headId, allocationId, formattedValue);
+      
+      // Position cursor before decimal point
+      if (inputRef) {
+        setTimeout(() => {
+          const dotIndex = formattedValue.indexOf('.');
+          inputRef.setSelectionRange(dotIndex, dotIndex);
+          inputRef.focus();
+        }, 0);
+      }
+    }
+  };
+
+  const handleAmountKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, headId: string, allocationId: string) => {
+    if (e.key === 'Enter') {
+      const target = e.target as HTMLInputElement;
+      handleAmountBlur(headId, allocationId, target);
+    }
   };
 
   const calculateBalance = (head: CollectionHead): number => {
@@ -439,7 +503,7 @@ const FundsTransfer: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold">{head.currency} {head.amount.toFixed(2)}</div>
+                            <div className="font-semibold">{head.currency} {formatToTwoDecimals(head.amount)}</div>
                             <input 
                               type="checkbox" 
                               checked={selectedHeads.includes(head.id)}
@@ -459,12 +523,12 @@ const FundsTransfer: React.FC = () => {
                     {getAccountsByTransfer().map((group, index) => (
                       <div key={index} className="flex justify-between items-center py-1">
                         <span className="text-sm">{group.account.accountName}</span>
-                        <span className="font-semibold">{group.account.currency} {group.total.toFixed(2)}</span>
+                        <span className="font-semibold">{group.account.currency} {formatToTwoDecimals(group.total)}</span>
                       </div>
                     ))}
                     <div className="border-t mt-2 pt-2 flex justify-between items-center font-semibold">
                       <span>Total Selected</span>
-                      <span>$ {getSelectedAmount().toFixed(2)}</span>
+                      <span>$ {formatToTwoDecimals(getSelectedAmount())}</span>
                     </div>
                   </div>
                 )}
@@ -499,18 +563,9 @@ const FundsTransfer: React.FC = () => {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <div className="font-medium text-lg">{head.name}</div>
-                        <div className="text-2xl font-bold">{head.currency} {head.amount.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{head.currency} {formatToTwoDecimals(head.amount)}</div>
                       </div>
-                      {balance !== 0 && (
-                        <div className="text-right">
-                          <div className="text-sm text-muted-foreground">Balance</div>
-                          <div className={`text-xl font-bold ${
-                            balance < 0 ? 'text-red-600' : 'text-green-600'
-                          }`}>
-                            {head.currency} {balance.toFixed(2)}
-                          </div>
-                        </div>
-                      )}
+                    
                     </div>
                     
                     <div className="space-y-3">
@@ -545,12 +600,22 @@ const FundsTransfer: React.FC = () => {
                           <div className="w-40">
                             <Label className="text-xs mb-1">Amount</Label>
                             <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              max={head.amount}
-                              value={allocation.amount}
-                              onChange={(e) => updateAllocationAmount(head.id, allocation.id, parseFloat(e.target.value))}
+                              type="text"
+                              value={allocation.displayValue !== undefined ? allocation.displayValue : formatToTwoDecimals(allocation.amount)}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                updateAllocationDisplayValue(head.id, allocation.id, value);
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                  updateAllocationAmount(head.id, allocation.id, numValue);
+                                }
+                              }}
+                              // onBlur={(e) => handleAmountBlur(head.id, allocation.id, e.target)}
+                              // onKeyDown={(e) => handleAmountKeyDown(e, head.id, allocation.id)}
+                              // onFocus={(e) => {
+                              //   // Clear displayValue to allow free editing
+                              //   updateAllocationDisplayValue(head.id, allocation.id, String(allocation.amount));
+                              // }}
                               className="text-right font-semibold"
                             />
                           </div>
@@ -584,9 +649,9 @@ const FundsTransfer: React.FC = () => {
                     {balance !== 0 && (
                       <div className="mt-3 p-2 rounded text-sm text-center">
                         {balance > 0 ? (
-                          <span className="text-yellow-600">⚠️ {head.currency} {balance.toFixed(2)} remaining to allocate</span>
+                          <span className="text-yellow-600">⚠️ {head.currency} {formatToTwoDecimals(balance)} remaining to allocate</span>
                         ) : (
-                          <span className="text-red-600">⚠️ Over-allocated by {head.currency} {Math.abs(balance).toFixed(2)}</span>
+                          <span className="text-red-600">⚠️ Over-allocated by {head.currency} {formatToTwoDecimals(Math.abs(balance))}</span>
                         )}
                       </div>
                     )}
@@ -656,7 +721,7 @@ const FundsTransfer: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell className="font-semibold">
-                    {transfer.currency} {transfer.totalAmount.toFixed(2)}
+                    {transfer.currency} {formatToTwoDecimals(transfer.totalAmount)}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
