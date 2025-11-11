@@ -18,7 +18,8 @@ import {
   Receipt, 
   AlertTriangle,
   Banknote,
-  Calendar
+  Calendar,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getActiveBanks } from '@/data/bankData';
@@ -83,6 +84,13 @@ const C3Payments: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedPaymentHeads, setSelectedPaymentHeads] = useState<{[key: string]: number}>({});
+  
+  // Batch Management State
+  const [showOpenDialog, setShowOpenDialog] = useState(false);
+  const [newBatch, setNewBatch] = useState({
+    office: "Charlestown",
+    openingBalance: ""
+  });
   
   const banks = getActiveBanks();
   const paymentHeads = getActivePaymentHeads();
@@ -331,6 +339,29 @@ const C3Payments: React.FC = () => {
     setIsPayerDialogOpen(false);
   };
 
+  const handleOpenBatch = () => {
+    if (!newBatch.office || !newBatch.openingBalance) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    const batch = {
+      id: Date.now().toString(),
+      batchNumber: `BATCH-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+      cashierId: user?.email?.split('@')[0] || 'cashier',
+      cashierName: user?.name || 'Current User',
+      date: new Date().toISOString().slice(0, 10),
+      status: 'open',
+      office: newBatch.office,
+      openingBalance: parseFloat(newBatch.openingBalance)
+    };
+
+    setActiveBatch(batch);
+    setShowOpenDialog(false);
+    setNewBatch({ office: "Charlestown", openingBalance: "" });
+    toast.success("Batch opened successfully!");
+  };
+
   if (!activeBatch) {
     return (
       <div className="p-6">
@@ -352,9 +383,47 @@ const C3Payments: React.FC = () => {
           <h1 className="text-2xl font-bold text-foreground">C3 Contributions Payment</h1>
           <p className="text-muted-foreground">Process C3 contribution payments for all payer types</p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          Batch: {activeBatch.batchNumber}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-sm">
+            Batch: {activeBatch.batchNumber}
+          </Badge>
+          <Badge variant="outline" className="text-sm bg-red-100 text-red-700 border-red-300">
+            No Active
+          </Badge>
+          <Dialog open={showOpenDialog} onOpenChange={setShowOpenDialog}>
+            <DialogTrigger asChild>
+              <Button className="bema-btn-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                Open New Batch
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="bema-h2">Open New Cashier Batch</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label className="bema-t1">Office Location *</Label>
+                  <div className="mt-1 bema-t1">Charlestown</div>
+                </div>
+                <div>
+                  <Label className="bema-t1">Opening Balance *</Label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newBatch.openingBalance}
+                    onChange={(e) => setNewBatch({ ...newBatch, openingBalance: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <Button onClick={handleOpenBatch} className="w-full bema-btn-primary">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Open Batch
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -489,7 +558,7 @@ const C3Payments: React.FC = () => {
 
                 {/* Reference Number */}
                 <div className="space-y-2">
-                  <Label>Reference Number</Label>
+                  <Label>Reference No. / Note</Label>
                   <Input
                     value={referenceNumber}
                     onChange={(e) => setReferenceNumber(e.target.value)}
@@ -634,7 +703,7 @@ const C3Payments: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Reference</Label>
+                      <Label>Reference No. / Note</Label>
                       <Input
                         value={split.cardReference || ''}
                         onChange={(e) => updatePaymentSplit(split.id, 'cardReference', e.target.value)}

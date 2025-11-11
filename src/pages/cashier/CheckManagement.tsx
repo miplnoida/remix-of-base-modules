@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { FileX, AlertTriangle, CheckCircle, Search, Calendar } from "lucide-react";
+import { FileX, AlertTriangle, CheckCircle, Search, Calendar, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Check {
   id: string;
@@ -88,6 +89,8 @@ const CheckManagement: React.FC = () => {
     penalty: '',
     notes: ''
   });
+  const [selectedCheckIds, setSelectedCheckIds] = useState<Set<string>>(new Set());
+  const [bulkActionType, setBulkActionType] = useState<string>('');
 
   const [filters, setFilters] = useState({
     status: 'all',
@@ -159,6 +162,31 @@ const CheckManagement: React.FC = () => {
   };
 
   const summary = getStatusSummary();
+
+  // Helper functions to check if selected checks can perform actions
+  const canClearSelected = () => {
+    if (selectedCheckIds.size === 0) return false;
+    return Array.from(selectedCheckIds).some(id => {
+      const check = checks.find(c => c.id === id);
+      return check?.status === 'pending';
+    });
+  };
+
+  const canDishonorSelected = () => {
+    if (selectedCheckIds.size === 0) return false;
+    return Array.from(selectedCheckIds).some(id => {
+      const check = checks.find(c => c.id === id);
+      return check?.status === 'pending';
+    });
+  };
+
+  const canReturnSelected = () => {
+    if (selectedCheckIds.size === 0) return false;
+    return Array.from(selectedCheckIds).some(id => {
+      const check = checks.find(c => c.id === id);
+      return check?.status === 'cleared' || check?.status === 'dishonored';
+    });
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -280,12 +308,67 @@ const CheckManagement: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Check Register</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Check Register</CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setBulkActionType('clear')}
+                disabled={!canClearSelected()}
+                className={!canClearSelected() 
+                  ? "opacity-50 cursor-not-allowed" 
+                  : "bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
+                }
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Clear Check
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setBulkActionType('return')}
+                disabled={!canReturnSelected()}
+                className={!canReturnSelected() 
+                  ? "opacity-50 cursor-not-allowed" 
+                  : "bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                }
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Return
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setBulkActionType('dishonor')}
+                disabled={!canDishonorSelected()}
+                className={!canDishonorSelected() 
+                  ? "opacity-50 cursor-not-allowed" 
+                  : "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                }
+              >
+                <FileX className="h-4 w-4 mr-2" />
+                Dishonor
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={selectedCheckIds.size === filteredChecks.length && filteredChecks.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedCheckIds(new Set(filteredChecks.map(c => c.id)));
+                      } else {
+                        setSelectedCheckIds(new Set());
+                      }
+                    }}
+                  />
+                </TableHead>
                 <TableHead>Check #</TableHead>
                 <TableHead>Bank</TableHead>
                 <TableHead>Payer</TableHead>
@@ -301,6 +384,20 @@ const CheckManagement: React.FC = () => {
                 const StatusIcon = statusIcons[check.status];
                 return (
                   <TableRow key={check.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedCheckIds.has(check.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelected = new Set(selectedCheckIds);
+                          if (checked) {
+                            newSelected.add(check.id);
+                          } else {
+                            newSelected.delete(check.id);
+                          }
+                          setSelectedCheckIds(newSelected);
+                        }}
+                      />
+                    </TableCell>
                     <TableCell className="font-mono">{check.checkNumber}</TableCell>
                     <TableCell>{check.bankName}</TableCell>
                     <TableCell>
