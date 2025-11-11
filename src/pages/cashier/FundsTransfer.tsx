@@ -604,11 +604,84 @@ const FundsTransfer: React.FC = () => {
                               value={allocation.displayValue !== undefined ? allocation.displayValue : formatToTwoDecimals(allocation.amount)}
                               onChange={(e) => {
                                 const value = e.target.value;
-                                updateAllocationDisplayValue(head.id, allocation.id, value);
-                                const numValue = parseFloat(value);
+                                const cursorPosition = e.target.selectionStart;
+                                const cleanValue = value.replace(/[^0-9.]/g, '');
+                                const parts = cleanValue.split('.');
+                                const integerPart = parts[0];
+                                const decimalPart = parts[1];
+                                
+                                // Calculate maximum allowed amount for this allocation
+                                const otherAllocationsTotal = head.allocations
+                                  .filter(a => a.id !== allocation.id)
+                                  .reduce((sum, a) => sum + a.amount, 0);
+                                const maxAllowed = head.amount - otherAllocationsTotal;
+                                
+                                // Parse the numeric value
+                                const numValue = parseFloat(cleanValue);
+                                
+                                // Check if entered value exceeds maximum
+                                if (!isNaN(numValue) && numValue > maxAllowed) {
+                                  // Cap at maximum and show toast
+                                  const cappedValue = maxAllowed;
+                                  const cappedDisplay = formatToTwoDecimals(cappedValue);
+                                  
+                                  updateAllocationDisplayValue(head.id, allocation.id, cappedDisplay);
+                                  updateAllocationAmount(head.id, allocation.id, cappedValue);
+                                  
+                                  toast({
+                                    title: "Amount Capped",
+                                    description: `Maximum allowed amount is ${head.currency} ${formatToTwoDecimals(maxAllowed)}`,
+                                    variant: "destructive"
+                                  });
+                                  
+                                  // Position cursor before .00
+                                  setTimeout(() => {
+                                    const input = e.target;
+                                    if (input) {
+                                      const dotIndex = cappedDisplay.indexOf('.');
+                                      input.setSelectionRange(dotIndex, dotIndex);
+                                    }
+                                  }, 0);
+                                  return;
+                                }
+                                
+                                // Format value with .00 for whole numbers during typing
+                                let displayVal = cleanValue;
+                                if (cleanValue && !cleanValue.includes('.')) {
+                                  // Whole number - add .00
+                                  displayVal = cleanValue + '.00';
+                                } else if (cleanValue.includes('.') && decimalPart !== undefined) {
+                                  // Has decimal - ensure 2 decimal places
+                                  if (decimalPart.length === 0) {
+                                    displayVal = integerPart + '.00';
+                                  } else if (decimalPart.length === 1) {
+                                    displayVal = integerPart + '.' + decimalPart + '0';
+                                  } else {
+                                    displayVal = integerPart + '.' + decimalPart.substring(0, 2);
+                                  }
+                                }
+                                
+                                updateAllocationDisplayValue(head.id, allocation.id, displayVal);
                                 if (!isNaN(numValue)) {
                                   updateAllocationAmount(head.id, allocation.id, numValue);
                                 }
+                                
+                                // Maintain cursor position before .00
+                                setTimeout(() => {
+                                  const input = e.target;
+                                  if (input && cursorPosition !== null) {
+                                    // If user is typing a whole number, position cursor before .00
+                                    if (cleanValue && !cleanValue.includes('.')) {
+                                      const newCursorPos = cleanValue.length;
+                                      input.setSelectionRange(newCursorPos, newCursorPos);
+                                    } else if (cleanValue.includes('.')) {
+                                      // User typed a decimal, position after decimal point
+                                      const dotIndex = displayVal.indexOf('.');
+                                      const newCursorPos = Math.min(cursorPosition || 0, dotIndex + 3);
+                                      input.setSelectionRange(newCursorPos, newCursorPos);
+                                    }
+                                  }
+                                }, 0);
                               }}
                               // onBlur={(e) => handleAmountBlur(head.id, allocation.id, e.target)}
                               // onKeyDown={(e) => handleAmountKeyDown(e, head.id, allocation.id)}
