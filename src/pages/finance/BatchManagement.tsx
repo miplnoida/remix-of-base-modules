@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -49,7 +48,7 @@ export default function BatchManagement() {
 
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [newBatch, setNewBatch] = useState({
-    office: "",
+    office: "Charlestown",
     openingBalance: ""
   });
 
@@ -73,7 +72,7 @@ export default function BatchManagement() {
 
     setBatches([batch, ...batches]);
     setShowOpenDialog(false);
-    setNewBatch({ office: "", openingBalance: "" });
+    setNewBatch({ office: "Charlestown", openingBalance: "" });
     toast.success("Batch opened successfully!");
   };
 
@@ -112,17 +111,7 @@ export default function BatchManagement() {
             <div className="space-y-4 py-4">
               <div>
                 <Label className="bema-t1">Office Location *</Label>
-                <Select value={newBatch.office} onValueChange={(val) => setNewBatch({ ...newBatch, office: val })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select office" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Basseterre Main">Basseterre Main</SelectItem>
-                    <SelectItem value="Charlestown">Charlestown</SelectItem>
-                    <SelectItem value="Cayon">Cayon</SelectItem>
-                    <SelectItem value="Sandy Point">Sandy Point</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="mt-1 bema-t1">Charlestown</div>
               </div>
               <div>
                 <Label className="bema-t1">Opening Balance *</Label>

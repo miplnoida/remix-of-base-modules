@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Building2, ArrowRight, CheckCircle, DollarSign } from "lucide-react";
+import { Send, Building2, ArrowRight, CheckCircle, DollarSign, Plus, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -20,6 +20,12 @@ interface BankAccount {
   isDefault: boolean;
 }
 
+interface AllocationLine {
+  id: string;
+  accountId: string;
+  amount: number;
+}
+
 interface CollectionHead {
   id: string;
   name: string;
@@ -27,6 +33,7 @@ interface CollectionHead {
   currency: string;
   defaultAccount: string;
   selectedAccount: string;
+  allocations: AllocationLine[];
 }
 
 interface FundTransfer {
@@ -86,7 +93,10 @@ const FundsTransfer: React.FC = () => {
       amount: 8750.50,
       currency: 'EC$',
       defaultAccount: 'rbc-ec-operating',
-      selectedAccount: 'rbc-ec-operating'
+      selectedAccount: 'rbc-ec-operating',
+      allocations: [
+        { id: '1', accountId: 'rbc-ec-operating', amount: 8750.50 }
+      ]
     },
     {
       id: 'levy-collections',
@@ -94,7 +104,10 @@ const FundsTransfer: React.FC = () => {
       amount: 2500.00,
       currency: 'EC$',
       defaultAccount: 'fcb-ec-levy',
-      selectedAccount: 'fcb-ec-levy'
+      selectedAccount: 'fcb-ec-levy',
+      allocations: [
+        { id: '1', accountId: 'fcb-ec-levy', amount: 2500.00 }
+      ]
     },
     {
       id: 'rent-payments',
@@ -102,7 +115,10 @@ const FundsTransfer: React.FC = () => {
       amount: 1800.75,
       currency: 'EC$',
       defaultAccount: 'rbc-ec-operating',
-      selectedAccount: 'rbc-ec-operating'
+      selectedAccount: 'rbc-ec-operating',
+      allocations: [
+        { id: '1', accountId: 'rbc-ec-operating', amount: 1800.75 }
+      ]
     },
     {
       id: 'loan-repayments',
@@ -110,7 +126,10 @@ const FundsTransfer: React.FC = () => {
       amount: 950.25,
       currency: 'EC$',
       defaultAccount: 'rbc-ec-operating',
-      selectedAccount: 'rbc-ec-operating'
+      selectedAccount: 'rbc-ec-operating',
+      allocations: [
+        { id: '1', accountId: 'rbc-ec-operating', amount: 950.25 }
+      ]
     },
     {
       id: 'service-fees',
@@ -118,7 +137,10 @@ const FundsTransfer: React.FC = () => {
       amount: 325.00,
       currency: 'EC$',
       defaultAccount: 'rbc-ec-operating',
-      selectedAccount: 'rbc-ec-operating'
+      selectedAccount: 'rbc-ec-operating',
+      allocations: [
+        { id: '1', accountId: 'rbc-ec-operating', amount: 325.00 }
+      ]
     },
     {
       id: 'us-collections',
@@ -126,7 +148,10 @@ const FundsTransfer: React.FC = () => {
       amount: 1250.00,
       currency: 'US$',
       defaultAccount: 'rbc-us-operating',
-      selectedAccount: 'rbc-us-operating'
+      selectedAccount: 'rbc-us-operating',
+      allocations: [
+        { id: '1', accountId: 'rbc-us-operating', amount: 1250.00 }
+      ]
     }
   ]);
 
@@ -152,6 +177,109 @@ const FundsTransfer: React.FC = () => {
     setCollectionHeads(prev => prev.map(head => 
       head.id === headId ? { ...head, selectedAccount: accountId } : head
     ));
+  };
+
+  const addAllocationLine = (headId: string) => {
+    setCollectionHeads(prev => prev.map(head => {
+      if (head.id === headId) {
+        const balance = calculateBalance(head);
+        if (balance <= 0) {
+          toast({
+            title: "Cannot Add Line",
+            description: "No remaining balance to allocate.",
+            variant: "destructive"
+          });
+          return head;
+        }
+        return {
+          ...head,
+          allocations: [
+            ...head.allocations,
+            { id: Date.now().toString(), accountId: head.defaultAccount, amount: 0 }
+          ]
+        };
+      }
+      return head;
+    }));
+  };
+
+  const removeAllocationLine = (headId: string, allocationId: string) => {
+    setCollectionHeads(prev => prev.map(head => {
+      if (head.id === headId) {
+        if (head.allocations.length <= 1) {
+          toast({
+            title: "Cannot Remove",
+            description: "At least one allocation line is required.",
+            variant: "destructive"
+          });
+          return head;
+        }
+        return {
+          ...head,
+          allocations: head.allocations.filter(a => a.id !== allocationId)
+        };
+      }
+      return head;
+    }));
+  };
+
+  const updateAllocationAccount = (headId: string, allocationId: string, accountId: string) => {
+    setCollectionHeads(prev => prev.map(head => {
+      if (head.id === headId) {
+        return {
+          ...head,
+          allocations: head.allocations.map(a =>
+            a.id === allocationId ? { ...a, accountId } : a
+          )
+        };
+      }
+      return head;
+    }));
+  };
+
+  const updateAllocationAmount = (headId: string, allocationId: string, amount: number) => {
+    setCollectionHeads(prev => prev.map(head => {
+      if (head.id === headId) {
+        const newAmount = isNaN(amount) ? 0 : amount;
+        
+        // Calculate current total without this allocation
+        const otherAllocationsTotal = head.allocations
+          .filter(a => a.id !== allocationId)
+          .reduce((sum, a) => sum + a.amount, 0);
+        
+        // Calculate max allowed for this allocation
+        const maxAllowed = head.amount - otherAllocationsTotal;
+        
+        // Validate and cap the amount
+        if (newAmount > maxAllowed) {
+          toast({
+            title: "Invalid Amount",
+            description: `Amount cannot exceed the remaining balance of ${head.currency} ${maxAllowed.toFixed(2)}`,
+            variant: "destructive"
+          });
+          
+          return {
+            ...head,
+            allocations: head.allocations.map(a =>
+              a.id === allocationId ? { ...a, amount: maxAllowed } : a
+            )
+          };
+        }
+        
+        return {
+          ...head,
+          allocations: head.allocations.map(a =>
+            a.id === allocationId ? { ...a, amount: newAmount } : a
+          )
+        };
+      }
+      return head;
+    }));
+  };
+
+  const calculateBalance = (head: CollectionHead): number => {
+    const totalAllocated = head.allocations.reduce((sum, a) => sum + a.amount, 0);
+    return head.amount - totalAllocated;
   };
 
   const toggleHeadSelection = (headId: string) => {
@@ -363,46 +491,108 @@ const FundsTransfer: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {collectionHeads.map((head) => (
-                <div key={head.id} className="p-4 border rounded-lg">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <div className="font-medium">{head.name}</div>
-                      <div className="text-lg font-bold">{head.currency} {head.amount.toFixed(2)}</div>
+            <div className="space-y-6">
+              {collectionHeads.map((head) => {
+                const balance = calculateBalance(head);
+                return (
+                  <div key={head.id} className="p-4 border rounded-lg bg-card">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="font-medium text-lg">{head.name}</div>
+                        <div className="text-2xl font-bold">{head.currency} {head.amount.toFixed(2)}</div>
+                      </div>
+                      {balance !== 0 && (
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground">Balance</div>
+                          <div className={`text-xl font-bold ${
+                            balance < 0 ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {head.currency} {balance.toFixed(2)}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="outline">
-                      {head.selectedAccount === head.defaultAccount ? 'Default' : 'Custom'}
-                    </Badge>
+                    
+                    <div className="space-y-3">
+                      {head.allocations.map((allocation, index) => (
+                        <div key={allocation.id} className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <Label className="text-xs mb-1">Account</Label>
+                            <Select 
+                              value={allocation.accountId} 
+                              onValueChange={(value) => updateAllocationAccount(head.id, allocation.id, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {bankAccounts
+                                  .filter(acc => acc.currency === head.currency)
+                                  .map((account) => (
+                                  <SelectItem key={account.id} value={account.id}>
+                                    <div>
+                                      <div className="font-medium">{account.accountName}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {account.bankName}
+                                      </div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="w-40">
+                            <Label className="text-xs mb-1">Amount</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max={head.amount}
+                              value={allocation.amount}
+                              onChange={(e) => updateAllocationAmount(head.id, allocation.id, parseFloat(e.target.value))}
+                              className="text-right font-semibold"
+                            />
+                          </div>
+                          
+                          <div className="flex gap-1">
+                            {index === head.allocations.length - 1 && balance > 0 && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => addAllocationLine(head.id)}
+                                className="h-10 w-10"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {head.allocations.length > 1 && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => removeAllocationLine(head.id, allocation.id)}
+                                className="h-10 w-10"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {balance !== 0 && (
+                      <div className="mt-3 p-2 rounded text-sm text-center">
+                        {balance > 0 ? (
+                          <span className="text-yellow-600">⚠️ {head.currency} {balance.toFixed(2)} remaining to allocate</span>
+                        ) : (
+                          <span className="text-red-600">⚠️ Over-allocated by {head.currency} {Math.abs(balance).toFixed(2)}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-xs">Target Bank Account</Label>
-                    <Select 
-                      value={head.selectedAccount} 
-                      onValueChange={(value) => updateSelectedAccount(head.id, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bankAccounts
-                          .filter(acc => acc.currency === head.currency)
-                          .map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            <div>
-                              <div className="font-medium">{account.accountName}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {account.bankName} - {account.accountNumber}
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
