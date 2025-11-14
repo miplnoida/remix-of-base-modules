@@ -377,10 +377,10 @@ const C3Payments: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">C3 Contributions Payment</h1>
+          <h1 className="text-3xl font-bold text-foreground">C3 Contributions Payment</h1>
           <p className="text-muted-foreground">Process C3 contribution payments for all payer types</p>
         </div>
         <div className="flex items-center gap-2">

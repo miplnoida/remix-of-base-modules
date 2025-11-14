@@ -88,12 +88,12 @@ export default function BatchManagement() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="bema-h1 mb-2" style={{ color: "hsl(var(--bema-text-primary))" }}>Batch Management</h1>
-          <p className="bema-t1" style={{ color: "hsl(var(--bema-text-secondary))" }}>
+          <h1 className="text-3xl font-bold text-foreground">Batch Management</h1>
+          <p className="text-muted-foreground">
             Manage cashier batches - Open, Close, Lock, and Monitor
           </p>
         </div>

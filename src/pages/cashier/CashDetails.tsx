@@ -127,7 +127,7 @@ const CashDetails: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Cash Details Entry</h1>
+          <h1 className="text-3xl font-bold">Cash Details Entry</h1>
           <p className="text-muted-foreground">Enter physical cash count and generate over/short reports</p>
         </div>
         <div className="flex gap-2">
