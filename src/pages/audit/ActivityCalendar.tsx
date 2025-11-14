@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarDays, Clock, MapPin, User, Plus } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, User, Plus, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auditActivities, calendarEvents, departments, departmentAuditPlans } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
@@ -14,10 +14,12 @@ import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
 import { ActivityRescheduleDialog } from '@/components/audit/ActivityRescheduleDialog';
 import { Link } from 'react-router-dom';
 import { AuditActivity } from '@/types/audit';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function ActivityCalendar() {
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedAuditor, setSelectedAuditor] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -94,20 +96,27 @@ export default function ActivityCalendar() {
           </p>
         </div>
         {hasPermission('execute_audit_activities') && (
-          <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Schedule Activity
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Schedule New Activity</DialogTitle>
-              </DialogHeader>
-              <ActivityScheduleForm onClose={() => setIsScheduleDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          isMobile ? (
+            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Schedule Activity
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Schedule New Activity</DialogTitle>
+                </DialogHeader>
+                <ActivityScheduleForm onClose={() => setIsScheduleDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button onClick={() => setIsScheduleDialogOpen(!isScheduleDialogOpen)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Schedule Activity
+            </Button>
+          )
         )}
       </div>
 
@@ -372,6 +381,21 @@ export default function ActivityCalendar() {
                 ))}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Schedule Form - Inline on Desktop */}
+      {!isMobile && isScheduleDialogOpen && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Schedule New Activity</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setIsScheduleDialogOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <ActivityScheduleForm onClose={() => setIsScheduleDialogOpen(false)} />
           </CardContent>
         </Card>
       )}

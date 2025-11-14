@@ -6,16 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Eye, Edit, Send, FileText } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Send, FileText, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auditPlans, departments } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 import { AuditPlanForm } from '@/components/audit/AuditPlanForm';
 import { Link } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function AuditPlans() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -83,20 +85,27 @@ export default function AuditPlans() {
           </p>
         </div>
         {hasPermission('create_audit_plans') && (
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Plan
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Audit Plan</DialogTitle>
-              </DialogHeader>
-              <AuditPlanForm onClose={() => setIsCreateDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          isMobile ? (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Plan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Audit Plan</DialogTitle>
+                </DialogHeader>
+                <AuditPlanForm onClose={() => setIsCreateDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Plan
+            </Button>
+          )
         )}
       </div>
 
@@ -226,20 +235,55 @@ export default function AuditPlans() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Audit Plan</DialogTitle>
-          </DialogHeader>
-          {selectedPlan && (
+      {/* Create Form - Inline on Desktop */}
+      {!isMobile && isCreateDialogOpen && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Create New Audit Plan</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <AuditPlanForm onClose={() => setIsCreateDialogOpen(false)} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Form - Inline on Desktop */}
+      {!isMobile && isEditDialogOpen && selectedPlan && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Edit Audit Plan</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
             <AuditPlanForm 
-              plan={selectedPlan} 
+              plan={selectedPlan}
               onClose={() => setIsEditDialogOpen(false)} 
             />
-          )}
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Dialog - Mobile Only */}
+      {isMobile && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Audit Plan</DialogTitle>
+            </DialogHeader>
+            {selectedPlan && (
+              <AuditPlanForm 
+                plan={selectedPlan}
+                onClose={() => setIsEditDialogOpen(false)} 
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

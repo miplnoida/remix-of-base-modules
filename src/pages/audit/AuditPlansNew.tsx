@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Search, Eye, FileText, Calendar, Users, Mail, Send, Bell, MessageSquare, FileEdit } from 'lucide-react';
@@ -116,20 +117,27 @@ export default function AuditPlansNew() {
           </p>
         </div>
         {hasPermission('create_audit_plans') && (
-          <Dialog open={isAnnualPlanDialogOpen} onOpenChange={setIsAnnualPlanDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Annual Plan
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create Annual Audit Plan</DialogTitle>
-              </DialogHeader>
-              <AnnualPlanForm onClose={() => setIsAnnualPlanDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          isMobile ? (
+            <Dialog open={isAnnualPlanDialogOpen} onOpenChange={setIsAnnualPlanDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Annual Plan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create Annual Audit Plan</DialogTitle>
+                </DialogHeader>
+                <AnnualPlanForm onClose={() => setIsAnnualPlanDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button onClick={() => setIsAnnualPlanDialogOpen(!isAnnualPlanDialogOpen)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Annual Plan
+            </Button>
+          )
         )}
       </div>
 
@@ -178,28 +186,41 @@ export default function AuditPlansNew() {
                         <FileText className="w-4 h-4" />
                       </Button>
                       {plan.status === 'Approved' && (
-                        <Dialog open={isDeptAuditDialogOpen} onOpenChange={setIsDeptAuditDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button 
-                              size="sm"
-                              onClick={() => setSelectedAnnualPlan(plan)}
-                            >
-                              <Plus className="w-4 h-4 mr-1" />
-                              Add Dept Audit
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Add Department Audit to {plan.fiscalYear}</DialogTitle>
-                            </DialogHeader>
-                            {selectedAnnualPlan && (
-                              <DepartmentAuditForm 
-                                annualPlanId={selectedAnnualPlan.id}
-                                onClose={() => setIsDeptAuditDialogOpen(false)} 
-                              />
-                            )}
-                          </DialogContent>
-                        </Dialog>
+                        isMobile ? (
+                          <Dialog open={isDeptAuditDialogOpen} onOpenChange={setIsDeptAuditDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="sm"
+                                onClick={() => setSelectedAnnualPlan(plan)}
+                              >
+                                <Plus className="w-4 h-4 mr-1" />
+                                Add Dept Audit
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Add Department Audit to {plan.fiscalYear}</DialogTitle>
+                              </DialogHeader>
+                              {selectedAnnualPlan && (
+                                <DepartmentAuditForm 
+                                  annualPlanId={selectedAnnualPlan.id}
+                                  onClose={() => setIsDeptAuditDialogOpen(false)} 
+                                />
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <Button 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAnnualPlan(plan);
+                              setIsDeptAuditDialogOpen(true);
+                            }}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add Dept Audit
+                          </Button>
+                        )
                       )}
                     </div>
                   </TableCell>

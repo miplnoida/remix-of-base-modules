@@ -19,11 +19,12 @@ interface ActivityRescheduleDialogProps {
 
 export function ActivityRescheduleDialog({ activity, open, onOpenChange }: ActivityRescheduleDialogProps) {
   const { toast } = useToast();
-  const [newStartDate, setNewStartDate] = useState('');
-  const [newStartTime, setNewStartTime] = useState('');
-  const [newEndDate, setNewEndDate] = useState('');
-  const [newEndTime, setNewEndTime] = useState('');
-  const [reason, setReason] = useState('');
+  const isMobile = useIsMobile();
+  const [newStartDate, setNewStartDate] = React.useState('');
+  const [newStartTime, setNewStartTime] = React.useState('');
+  const [newEndDate, setNewEndDate] = React.useState('');
+  const [newEndTime, setNewEndTime] = React.useState('');
+  const [reason, setReason] = React.useState('');
 
   if (!activity) return null;
 
@@ -74,19 +75,10 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
     return colors[status as keyof typeof colors] || 'bg-gray-500';
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Reschedule Activity
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Activity Details */}
-          <div className="space-y-4 p-4 bg-muted rounded-lg">
+  const content = (
+    <div className="space-y-6">
+      {/* Activity Details */}
+      <div className="space-y-4 p-4 bg-muted rounded-lg">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold text-lg">{activity.title}</h3>
