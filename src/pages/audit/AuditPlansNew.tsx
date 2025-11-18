@@ -68,6 +68,7 @@ const departmentAudits = [
 export default function AuditPlansNew() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('all');
   const [isAnnualPlanDialogOpen, setIsAnnualPlanDialogOpen] = useState(false);

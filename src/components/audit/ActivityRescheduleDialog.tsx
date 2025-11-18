@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, Clock, MapPin, User, AlertCircle, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AuditActivity } from '@/types/audit';
 import { departments } from '@/data/auditData';
 
@@ -75,10 +76,15 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
     return colors[status as keyof typeof colors] || 'bg-gray-500';
   };
 
-  const content = (
-    <div className="space-y-6">
-      {/* Activity Details */}
-      <div className="space-y-4 p-4 bg-muted rounded-lg">
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Reschedule Activity</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Activity Details */}
+          <div className="space-y-4 p-4 bg-muted rounded-lg">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold text-lg">{activity.title}</h3>
