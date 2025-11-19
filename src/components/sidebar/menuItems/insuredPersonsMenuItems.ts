@@ -6,7 +6,9 @@ import {
   UserCog,
   FileText,
   TrendingUp,
-  Calendar
+  Calendar,
+  ClipboardList,
+  PlusCircle
 } from "lucide-react";
 
 export const insuredPersonsMenuItems = [
@@ -35,6 +37,25 @@ export const insuredPersonsMenuItems = [
           {
             title: "Insured Person Listing",
             url: "/person/ip-management",
+            icon: List,
+            requiresPermission: "manage_insured_persons"
+          }
+        ]
+      },
+      {
+        title: "Service Requests",
+        icon: ClipboardList,
+        requiresPermission: "manage_insured_persons",
+        subItems: [
+          {
+            title: "New Request",
+            url: "/person/service-requests/new",
+            icon: PlusCircle,
+            requiresPermission: "manage_insured_persons"
+          },
+          {
+            title: "Request Listing",
+            url: "/person/service-requests",
             icon: List,
             requiresPermission: "manage_insured_persons"
           }

@@ -7,7 +7,6 @@ import { complianceMenuItems } from './menuItems/complianceMenuItems';
 import { financeMenuItems } from './menuItems/financeMenuItems';
 import { auditMenuItems } from './menuItems/auditMenuItems';
 import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
-import { cashierMenuItems } from './menuItems/cashierMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -18,6 +17,5 @@ export const menuItems = [
   ...complianceMenuItems,
   ...financeMenuItems,
   ...auditMenuItems,
-  ...systemAdminMenuItems,
-  ...cashierMenuItems
+  ...systemAdminMenuItems
 ];
