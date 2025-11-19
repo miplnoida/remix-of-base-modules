@@ -242,6 +242,7 @@ import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
 // Foundation Components Demo
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
+import FeeConfiguration from '@/pages/admin/FeeConfiguration';
 
 // Report Pages
 import InsuredPersonsSummaryReport from '@/pages/reports/insured-persons/InsuredPersonsSummaryReport';
@@ -569,6 +570,46 @@ export const AppRoutes = () => {
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
+
+      {/* Foundation Components Demo */}
+      <Route path="/components-demo" element={<FoundationComponentsDemo />} />
+
+      {/* Report Routes - Insured Persons */}
+      <Route path="/person/reports/summary" element={<ProtectedLayout><InsuredPersonsSummaryReport /></ProtectedLayout>} />
+      <Route path="/person/reports/coverage-by-age" element={<ProtectedLayout><CoverageByAgeReport /></ProtectedLayout>} />
+      <Route path="/person/reports/contribution-history" element={<ProtectedLayout><ContributionHistoryReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - Employers */}
+      <Route path="/employers/reports/registered-summary" element={<ProtectedLayout><RegisteredSummaryReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/active-inactive" element={<ProtectedLayout><ActiveInactiveReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/contribution-compliance" element={<ProtectedLayout><ContributionComplianceReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - C3 */}
+      <Route path="/c3/reports/monthly-collections" element={<ProtectedLayout><MonthlyCollectionsReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/arrears" element={<ProtectedLayout><ArrearsReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/top-contributors" element={<ProtectedLayout><TopContributorsReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - Finance */}
+      <Route path="/finance/reports/contributions-vs-benefits" element={<ProtectedLayout><ContributionsVsBenefitsReport /></ProtectedLayout>} />
+      <Route path="/finance/reports/cash-flow" element={<ProtectedLayout><CashFlowReport /></ProtectedLayout>} />
+      <Route path="/finance/reports/investment-portfolio" element={<ProtectedLayout><InvestmentPortfolioReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - Benefits */}
+      <Route path="/benefits/reports/payments-by-type" element={<ProtectedLayout><PaymentsByTypeReport /></ProtectedLayout>} />
+      <Route path="/benefits/reports/claims-volume" element={<ProtectedLayout><ClaimsVolumeReport /></ProtectedLayout>} />
+      <Route path="/benefits/reports/overpayments" element={<ProtectedLayout><OverpaymentsReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - Compliance */}
+      <Route path="/compliance/reports/employer-status" element={<ProtectedLayout><EmployerStatusReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - Audit */}
+      <Route path="/audit/reports/engagement-summary" element={<ProtectedLayout><EngagementSummaryReport /></ProtectedLayout>} />
+      
+      {/* Report Routes - Admin */}
+      <Route path="/admin/reports/account-roles" element={<ProtectedLayout><AccountRolesReport /></ProtectedLayout>} />
+      
+      {/* Fee Configuration */}
+      <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
