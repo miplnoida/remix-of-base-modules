@@ -14,6 +14,8 @@ import { mockInvoices } from '@/data/mockInvoices';
 import { Invoice } from '@/types/invoice';
 import { getActiveBanks } from '@/data/bankData';
 import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
+import { getPendingInvoices, getAllInvoices, updateInvoiceStatus as updateServiceInvoiceStatus, getInsuredPersonById } from '@/services/serviceRequestService';
+import { Invoice as ServiceInvoice } from '@/types/serviceRequest';
 
 interface PaymentSplit {
   id: string;
@@ -36,20 +38,53 @@ const SearchPayInvoices: React.FC = () => {
   // Receipt Preview State
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
   const [currentReceiptData, setCurrentReceiptData] = useState<ReceiptData | null>(null);
+  const [serviceInvoices, setServiceInvoices] = useState<ServiceInvoice[]>([]);
   
   const banks = getActiveBanks();
 
+  // Load service request invoices
+  useEffect(() => {
+    setServiceInvoices(getAllInvoices());
+  }, []);
+
   const filteredInvoices = useMemo(() => {
-    return mockInvoices.filter(invoice => {
+    // Combine both mock invoices and service request invoices
+    const combinedInvoices = [
+      ...mockInvoices.filter(invoice => invoice.status !== 'paid'),
+      ...serviceInvoices
+        .filter(inv => inv.status === 'Pending')
+        .map(inv => {
+          const person = getInsuredPersonById(inv.insuredPersonId);
+          return {
+            id: inv.id,
+            invoiceNumber: inv.invoiceNumber,
+            payerName: person?.fullName || 'Unknown',
+            invoiceDate: inv.createdAt,
+            dueDate: inv.createdAt,
+            totalAmount: inv.totalAmount,
+            paidAmount: 0,
+            balanceAmount: inv.totalAmount,
+            status: 'pending' as const,
+            paymentCategory: 'Service Request Fee',
+            description: 'Insured Person Service Fee',
+            accountingHead: inv.accountingHeadCode,
+            type: 'Service Request',
+            currency: 'EC$',
+            amount: inv.totalAmount
+          };
+        })
+    ];
+
+    return combinedInvoices.filter(invoice => {
       const matchesSearch = searchType === 'invoice' 
         ? invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
         : invoice.payerName.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
       
-      return matchesSearch && matchesStatus && invoice.status !== 'paid';
+      return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, searchType, statusFilter]);
+  }, [searchTerm, searchType, statusFilter, serviceInvoices]);
 
   const selectedInvoiceDetails = useMemo(() => {
     return mockInvoices.filter(inv => selectedInvoices.includes(inv.id));
