@@ -243,6 +243,26 @@ import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 // Foundation Components Demo
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
 
+// Report Pages
+import InsuredPersonsSummaryReport from '@/pages/reports/insured-persons/InsuredPersonsSummaryReport';
+import CoverageByAgeReport from '@/pages/reports/insured-persons/CoverageByAgeReport';
+import ContributionHistoryReport from '@/pages/reports/insured-persons/ContributionHistoryReport';
+import RegisteredSummaryReport from '@/pages/reports/employers/RegisteredSummaryReport';
+import ActiveInactiveReport from '@/pages/reports/employers/ActiveInactiveReport';
+import ContributionComplianceReport from '@/pages/reports/employers/ContributionComplianceReport';
+import MonthlyCollectionsReport from '@/pages/reports/c3/MonthlyCollectionsReport';
+import ArrearsReport from '@/pages/reports/c3/ArrearsReport';
+import TopContributorsReport from '@/pages/reports/c3/TopContributorsReport';
+import ContributionsVsBenefitsReport from '@/pages/reports/finance/ContributionsVsBenefitsReport';
+import CashFlowReport from '@/pages/reports/finance/CashFlowReport';
+import InvestmentPortfolioReport from '@/pages/reports/finance/InvestmentPortfolioReport';
+import PaymentsByTypeReport from '@/pages/reports/benefits/PaymentsByTypeReport';
+import ClaimsVolumeReport from '@/pages/reports/benefits/ClaimsVolumeReport';
+import OverpaymentsReport from '@/pages/reports/benefits/OverpaymentsReport';
+import EmployerStatusReport from '@/pages/reports/compliance/EmployerStatusReport';
+import EngagementSummaryReport from '@/pages/reports/audit/EngagementSummaryReport';
+import AccountRolesReport from '@/pages/reports/admin/AccountRolesReport';
+
 // SSB Finance Module
 import FinanceDashboard from '@/pages/finance/FinanceDashboard';
 import BatchManagement from '@/pages/finance/BatchManagement';
