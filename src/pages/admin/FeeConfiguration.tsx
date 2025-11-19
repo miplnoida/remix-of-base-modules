@@ -132,17 +132,23 @@ export default function FeeConfiguration() {
 
     const accountingHead = ACCOUNTING_HEADS.find(h => h.id === formData.accountingHeadId);
 
+    // Auto-set effectiveTo to today if deactivating
+    const updatedFormData = { ...formData };
+    if (formData.activeStatus === false && !formData.effectiveTo) {
+      updatedFormData.effectiveTo = new Date().toISOString().split('T')[0];
+    }
+
     if (editingFee) {
       setFees(fees.map(f => f.id === editingFee.id ? {
         ...f,
-        ...formData,
+        ...updatedFormData,
         accountingHeadName: accountingHead?.name || ""
       } as FeeConfig : f));
       toast.success("Fee updated successfully");
     } else {
       const newFee: FeeConfig = {
         id: Date.now().toString(),
-        ...formData,
+        ...updatedFormData,
         accountingHeadName: accountingHead?.name || ""
       } as FeeConfig;
       setFees([...fees, newFee]);
