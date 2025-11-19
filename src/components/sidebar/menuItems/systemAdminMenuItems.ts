@@ -5,7 +5,11 @@ import {
   Shield, 
   FileText,
   Globe,
-  History
+  History,
+  DollarSign,
+  Activity,
+  UserCog,
+  Key
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -13,6 +17,12 @@ export const systemAdminMenuItems = [
     title: "System Administration",
     icon: Settings,
     subItems: [
+      {
+        title: "Fee Configuration",
+        url: "/admin/fee-configuration",
+        icon: DollarSign,
+        requiresPermission: "system_administration"
+      },
       {
         title: "User Management",
         url: "/admin/users",
@@ -54,6 +64,31 @@ export const systemAdminMenuItems = [
         url: "/admin/audit-log",
         icon: History,
         requiresPermission: "system_administration"
+      },
+      {
+        title: "Reports",
+        icon: FileText,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Account & Roles",
+            url: "/reports/admin/account-roles",
+            icon: UserCog,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Permission Changes",
+            url: "/reports/admin/permission-changes",
+            icon: Key,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Configuration Audit",
+            url: "/reports/admin/configuration-audit",
+            icon: Activity,
+            requiresPermission: "system_administration"
+          }
+        ]
       }
     ]
   }

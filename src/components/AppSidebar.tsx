@@ -16,7 +16,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { menuItems } from "./sidebar/sidebarMenuItems";
-import SidebarGroupMenu from "./sidebar/SidebarGroupMenu";
+import SidebarMenuGroup from "./sidebar/SidebarMenuGroup";
 import SidebarMenuLink from "./sidebar/SidebarMenuLink";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -147,27 +147,21 @@ export function AppSidebar() {
           <div className="px-3 py-4">
             <SidebarGroup>
               <SidebarMenu className="space-y-1">
-                {menuItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    {hasSubItems(item) ? (
-                      <SidebarGroupMenu 
-                        item={item} 
-                        collapsed={collapsed}
-                        open={openGroups.includes(item.title)}
-                        toggle={() => toggleGroup(item.title)}
-                        isGroupActive={isGroupActive(item.subItems)}
-                        hasPermission={checkPermission}
-                        currentPath={currentPath}
-                      />
-                    ) : hasUrl(item) ? (
-                      <SidebarMenuLink 
-                        item={item}
-                        collapsed={collapsed}
-                        isActive={isActive(item.url)} 
-                      />
-                    ) : null}
-                  </SidebarMenuItem>
-                ))}
+                {menuItems.map((item) => {
+                  // Check permission before rendering (if permission is required)
+                  const requiresPermission = 'requiresPermission' in item ? (item as any).requiresPermission : undefined;
+                  if (requiresPermission && !checkPermission(requiresPermission)) {
+                    return null;
+                  }
+
+                  return (
+                    <SidebarMenuGroup
+                      key={item.title}
+                      item={item}
+                      collapsed={collapsed}
+                    />
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroup>
           </div>
