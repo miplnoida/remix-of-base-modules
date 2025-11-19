@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, FileText, DollarSign, Save, Send, CheckCircle, RefreshCw, Info } from 'lucide-react';
+// Update imports to add Upload icon
+import { Search, FileText, DollarSign, Save, Send, CheckCircle, RefreshCw, Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   ServiceRequest,
@@ -56,17 +57,14 @@ export default function ServiceRequestNew() {
   const [categories] = useState(getServiceCategories());
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [priorities] = useState(getPriorities());
-  const [processingUnits] = useState(getProcessingUnits());
-  const [officers] = useState(getOfficers());
 
   // Form state
   const [serviceCategoryId, setServiceCategoryId] = useState('');
   const [serviceTypeId, setServiceTypeId] = useState('');
   const [reason, setReason] = useState('');
   const [priorityId, setPriorityId] = useState('PRI001'); // Default: Normal
-  const [processingUnitId, setProcessingUnitId] = useState('');
-  const [assignedOfficerId, setAssignedOfficerId] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   // Contact edit state
   const [editablePhone, setEditablePhone] = useState('');
@@ -110,20 +108,21 @@ export default function ServiceRequestNew() {
       setServiceTypes(types);
       setServiceTypeId('');
       setFeeConfig(null);
-      setProcessingUnitId('');
     }
   }, [serviceCategoryId]);
 
-  // Handle service type change
-  useEffect(() => {
-    if (serviceTypeId) {
-      const types = getServiceTypesByCategory(serviceCategoryId);
-      const selectedType = types.find(t => t.id === serviceTypeId);
-      if (selectedType?.defaultProcessingUnitId) {
-        setProcessingUnitId(selectedType.defaultProcessingUnitId);
-      }
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachments([...attachments, ...newFiles]);
+      toast.success(`${newFiles.length} file(s) added`);
     }
-  }, [serviceTypeId, serviceCategoryId]);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
 
   // Fetch fee configuration
   const handleFetchFee = () => {
@@ -140,7 +139,7 @@ export default function ServiceRequestNew() {
     }
   };
 
-  // Generate invoice
+  // Generate invoice or verification request
   const handleGenerateInvoice = () => {
     if (!selectedPerson) {
       toast.error('Please select an insured person');
@@ -155,9 +154,20 @@ export default function ServiceRequestNew() {
       return;
     }
 
-    // Create service request first (if not already created)
+    // Check if service type requires verification
+    const types = getServiceTypesByCategory(serviceCategoryId);
+    const selectedType = types.find(t => t.id === serviceTypeId);
+    
+    // Create service request with attachments
     let requestId = currentRequestId;
     if (!requestId) {
+      const attachmentData = attachments.map((file, index) => ({
+        id: `ATT-${Date.now()}-${index}`,
+        filename: file.name,
+        size: file.size,
+        uploadedAt: new Date().toISOString()
+      }));
+
       const request = createServiceRequest({
         insuredPersonId: selectedPerson.id,
         serviceCategoryId,
@@ -165,17 +175,27 @@ export default function ServiceRequestNew() {
         reason,
         priorityId,
         source: 'COUNTER',
-        processingUnitId,
-        assignedOfficerId: assignedOfficerId || undefined,
+        processingUnitId: selectedType?.defaultProcessingUnitId || 'UNIT001',
         status: 'Draft',
         internalNotes,
-        createdBy: 'SYSTEM_USER', // In real app, get from auth context
+        attachments: attachmentData,
+        verificationRequired: selectedType?.requiresVerification,
+        verificationStatus: selectedType?.requiresVerification ? 'Pending' : undefined,
+        createdBy: 'SYSTEM_USER',
       });
       requestId = request.id;
       setCurrentRequestId(requestId);
     }
 
-    // Generate invoice
+    // If verification required, don't generate invoice yet
+    if (selectedType?.requiresVerification) {
+      updateServiceRequestStatus(requestId, 'Draft');
+      setRequestStatus('Pending Verification');
+      toast.info('Service request created and sent for verification. Invoice will be generated after approval.');
+      return;
+    }
+
+    // Generate invoice for non-verification services
     const invoice = generateInvoice(
       requestId,
       selectedPerson.id,
@@ -188,10 +208,7 @@ export default function ServiceRequestNew() {
     setCurrentInvoiceNumber(invoice.invoiceNumber);
     setInvoiceGenerated(true);
     setRequestStatus('Invoice Generated');
-    
-    // Update request status
     updateServiceRequestStatus(requestId, 'Invoice Generated');
-
     toast.success(`Invoice generated: ${invoice.invoiceNumber}`);
   };
 
@@ -212,10 +229,6 @@ export default function ServiceRequestNew() {
   const handleForwardToProcessing = () => {
     if (requestStatus !== 'Payment Received') {
       toast.error('Payment must be received before forwarding');
-      return;
-    }
-    if (!processingUnitId) {
-      toast.error('Please select a processing unit');
       return;
     }
 
@@ -240,6 +253,16 @@ export default function ServiceRequestNew() {
       return;
     }
 
+    const types = getServiceTypesByCategory(serviceCategoryId);
+    const selectedType = types.find(t => t.id === serviceTypeId);
+    
+    const attachmentData = attachments.map((file, index) => ({
+      id: `ATT-${Date.now()}-${index}`,
+      filename: file.name,
+      size: file.size,
+      uploadedAt: new Date().toISOString()
+    }));
+
     const request = createServiceRequest({
       insuredPersonId: selectedPerson.id,
       serviceCategoryId,
@@ -247,10 +270,12 @@ export default function ServiceRequestNew() {
       reason,
       priorityId,
       source: 'COUNTER',
-      processingUnitId: processingUnitId || 'UNIT005',
-      assignedOfficerId: assignedOfficerId || undefined,
+      processingUnitId: selectedType?.defaultProcessingUnitId || 'UNIT005',
       status: 'Draft',
       internalNotes,
+      attachments: attachmentData,
+      verificationRequired: selectedType?.requiresVerification,
+      verificationStatus: selectedType?.requiresVerification ? 'Pending' : undefined,
       createdBy: 'SYSTEM_USER',
     });
 
@@ -554,45 +579,51 @@ export default function ServiceRequestNew() {
             </CardContent>
           </Card>
 
-          {/* Workflow & Routing */}
+          {/* Document Attachments */}
           <Card>
             <CardHeader>
-              <CardTitle>Workflow & Routing</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Document Attachments & Notes
+              </CardTitle>
+              <CardDescription>
+                Upload scanned forms, OCR documents, and physical copies
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="processingUnit">Processing Unit *</Label>
-                  <Select value={processingUnitId} onValueChange={setProcessingUnitId}>
-                    <SelectTrigger id="processingUnit">
-                      <SelectValue placeholder="Select unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {processingUnits.map((unit) => (
-                        <SelectItem key={unit.id} value={unit.id}>
-                          {unit.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="assignedOfficer">Assigned Officer (Optional)</Label>
-                  <Select value={assignedOfficerId} onValueChange={setAssignedOfficerId}>
-                    <SelectTrigger id="assignedOfficer">
-                      <SelectValue placeholder="Select officer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {officers.map((officer) => (
-                        <SelectItem key={officer.id} value={officer.id}>
-                          {officer.name} - {officer.department}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label htmlFor="fileUpload">Upload Documents</Label>
+                <Input
+                  id="fileUpload"
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="mt-2"
+                />
               </div>
+
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Uploaded Files</Label>
+                  {attachments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(2)} KB
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveFile(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="notes">Internal Notes</Label>
@@ -600,8 +631,8 @@ export default function ServiceRequestNew() {
                   id="notes"
                   value={internalNotes}
                   onChange={(e) => setInternalNotes(e.target.value)}
-                  placeholder="Officer-only notes..."
-                  rows={3}
+                  placeholder="Officer-only notes, observations, or special instructions..."
+                  rows={4}
                 />
               </div>
 

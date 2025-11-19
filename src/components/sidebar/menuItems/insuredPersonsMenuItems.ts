@@ -58,6 +58,12 @@ export const insuredPersonsMenuItems = [
             url: "/person/service-requests",
             icon: List,
             requiresPermission: "manage_insured_persons"
+          },
+          {
+            title: "Pending Verification",
+            url: "/person/service-requests/pending-verification",
+            icon: FileText,
+            requiresPermission: "manage_insured_persons"
           }
         ]
       },

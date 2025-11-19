@@ -18,12 +18,6 @@ export const systemAdminMenuItems = [
     icon: Settings,
     subItems: [
       {
-        title: "Fee Configuration",
-        url: "/admin/fee-configuration",
-        icon: DollarSign,
-        requiresPermission: "system_administration"
-      },
-      {
         title: "User Management",
         url: "/admin/users",
         icon: Users,
