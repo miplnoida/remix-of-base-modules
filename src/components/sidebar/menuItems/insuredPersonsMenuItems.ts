@@ -3,7 +3,10 @@ import {
   Users, 
   List,
   BarChart3,
-  UserCog
+  UserCog,
+  FileText,
+  TrendingUp,
+  Calendar
 } from "lucide-react";
 
 export const insuredPersonsMenuItems = [
@@ -15,15 +18,7 @@ export const insuredPersonsMenuItems = [
         title: "Dashboard",
         url: "/person/management",
         icon: BarChart3,
-        requiresPermission: "manage_insured_persons",
-        subItems: [
-          {
-            title: "Pending Reviews",
-            url: "/person/pending-reviews",
-            icon: List,
-            requiresPermission: "manage_insured_persons"
-          }
-        ]
+        requiresPermission: "manage_insured_persons"
       },
       {
         title: "IP Management",
@@ -42,6 +37,31 @@ export const insuredPersonsMenuItems = [
             url: "/person/ip-management",
             icon: List,
             requiresPermission: "manage_insured_persons"
+          }
+        ]
+      },
+      {
+        title: "Reports",
+        icon: FileText,
+        requiresPermission: "view_reports",
+        subItems: [
+          {
+            title: "Insured Persons Summary",
+            url: "/person/reports/summary",
+            icon: BarChart3,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Active Coverage by Age",
+            url: "/person/reports/coverage-by-age",
+            icon: TrendingUp,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Contribution History",
+            url: "/person/reports/contribution-history",
+            icon: Calendar,
+            requiresPermission: "view_reports"
           }
         ]
       }
