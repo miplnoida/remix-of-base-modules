@@ -39,6 +39,7 @@ import InsuredPersonProfile from '@/pages/person/InsuredPersonProfile';
 // Finance Settings Pages
 import FeeConfigurationPage from '@/pages/finance/settings/FeeConfiguration';
 import ServiceTypeManagement from '@/pages/finance/settings/ServiceTypeManagement';
+import VerificationSettings from '@/pages/finance/settings/VerificationSettings';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/benefits/AllBenefitsTabs';
@@ -405,6 +406,7 @@ export const AppRoutes = () => {
       {/* Finance Settings Routes */}
       <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
       <Route path="/finance/settings/service-types" element={<ProtectedLayout><ServiceTypeManagement /></ProtectedLayout>} />
+      <Route path="/finance/settings/verification" element={<ProtectedLayout><VerificationSettings /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />

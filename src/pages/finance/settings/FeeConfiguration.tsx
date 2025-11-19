@@ -29,10 +29,16 @@ export default function FeeConfigurationPage() {
 
   const handleSave = () => {
     if (editingFee) {
+      // Auto-set effectiveTo to today if deactivating
+      const updatedFee = { ...editingFee };
+      if (!editingFee.active && !editingFee.effectiveTo) {
+        updatedFee.effectiveTo = new Date().toISOString().split('T')[0];
+      }
+      
       if (isAdding) {
-        setFees([...fees, editingFee]);
+        setFees([...fees, updatedFee]);
       } else {
-        setFees(fees.map(f => f.id === editingFee.id ? editingFee : f));
+        setFees(fees.map(f => f.id === updatedFee.id ? updatedFee : f));
       }
       setEditingFee(null);
       setIsAdding(false);
