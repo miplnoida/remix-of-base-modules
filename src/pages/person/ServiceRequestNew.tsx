@@ -134,7 +134,7 @@ export default function ServiceRequestNew() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader title="New Service Request" subtitle="Create service request for insured person"
-        actions={<Button variant="outline" onClick={() => resetSeedData() || toast.success('Data reset')}><RefreshCw className="h-4 w-4 mr-2" />Reset Demo Data</Button>} />
+        actions={<Button variant="outline" onClick={() => { resetSeedData(); toast.success('Data reset'); }}><RefreshCw className="h-4 w-4 mr-2" />Reset Demo Data</Button>} />
 
       <Alert className="bg-blue-50 border-blue-200"><Info className="h-4 w-4 text-blue-600" /><AlertDescription className="text-blue-800"><strong>Demo Mode:</strong> Try: <strong>John Doe</strong>, <strong>Jane Smith</strong></AlertDescription></Alert>
 
