@@ -30,6 +30,10 @@ import ClaimHistory from '@/pages/insuredPersons/ClaimHistory';
 import BenefitEligibility from '@/pages/insuredPersons/BenefitEligibility';
 import PendingReviews from '@/pages/insuredPersons/PendingReviews';
 
+// Service Request Pages
+import ServiceRequestNew from '@/pages/person/ServiceRequestNew';
+import ServiceRequestList from '@/pages/person/ServiceRequestList';
+
 // Benefits
 import AllBenefitsTabs from '@/pages/benefits/AllBenefitsTabs';
 import OnlineBenefitApplications from '@/pages/benefits/OnlineBenefitApplications';
@@ -385,6 +389,10 @@ export const AppRoutes = () => {
       <Route path="/person/claim-history" element={<ProtectedLayout><ClaimHistory /></ProtectedLayout>} />
       <Route path="/person/benefit-eligibility" element={<ProtectedLayout><BenefitEligibility /></ProtectedLayout>} />
       <Route path="/person/pending-reviews" element={<ProtectedLayout><PendingReviews /></ProtectedLayout>} />
+      
+      {/* Service Request Routes */}
+      <Route path="/person/service-requests" element={<ProtectedLayout><ServiceRequestList /></ProtectedLayout>} />
+      <Route path="/person/service-requests/new" element={<ProtectedLayout><ServiceRequestNew /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />
