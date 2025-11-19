@@ -263,6 +263,8 @@ import OverpaymentsReport from '@/pages/reports/benefits/OverpaymentsReport';
 import EmployerStatusReport from '@/pages/reports/compliance/EmployerStatusReport';
 import EngagementSummaryReport from '@/pages/reports/audit/EngagementSummaryReport';
 import AccountRolesReport from '@/pages/reports/admin/AccountRolesReport';
+import PermissionChangesReport from '@/pages/reports/admin/PermissionChangesReport';
+import ConfigurationAuditReport from '@/pages/reports/admin/ConfigurationAuditReport';
 
 // SSB Finance Module
 import FinanceDashboard from '@/pages/finance/FinanceDashboard';
@@ -607,6 +609,8 @@ export const AppRoutes = () => {
       
       {/* Report Routes - Admin */}
       <Route path="/admin/reports/account-roles" element={<ProtectedLayout><AccountRolesReport /></ProtectedLayout>} />
+      <Route path="/admin/reports/permission-changes" element={<ProtectedLayout><PermissionChangesReport /></ProtectedLayout>} />
+      <Route path="/admin/reports/configuration-audit" element={<ProtectedLayout><ConfigurationAuditReport /></ProtectedLayout>} />
       
       {/* Fee Configuration */}
       <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
