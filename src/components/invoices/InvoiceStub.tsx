@@ -30,90 +30,93 @@ export function InvoiceStub({ invoice, insuredPerson, serviceType, serviceReques
           <title>Invoice Stub - ${invoice.invoiceNumber}</title>
           <style>
             body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              font-family: 'Courier New', monospace;
               margin: 0;
-              padding: 20px;
+              padding: 8px;
               background: white;
             }
             .stub-container {
-              max-width: 400px;
+              max-width: 300px;
               margin: 0 auto;
-              border: 2px solid #000;
-              padding: 20px;
+              padding: 8px;
+              border: 1px dashed #000;
             }
             .header {
               text-align: center;
-              border-bottom: 2px solid #000;
-              padding-bottom: 15px;
-              margin-bottom: 20px;
+              border-bottom: 1px dashed #000;
+              padding-bottom: 6px;
+              margin-bottom: 8px;
             }
             .header h1 {
               margin: 0;
-              font-size: 20px;
+              font-size: 14px;
               font-weight: bold;
             }
             .header p {
-              margin: 5px 0 0;
-              font-size: 12px;
-              color: #666;
+              margin: 2px 0 0;
+              font-size: 9px;
+              color: #333;
             }
             .section {
-              margin-bottom: 15px;
+              margin-bottom: 6px;
+              font-size: 10px;
             }
             .label {
-              font-size: 11px;
+              font-size: 8px;
               color: #666;
               text-transform: uppercase;
-              margin-bottom: 3px;
             }
             .value {
-              font-size: 14px;
+              font-size: 11px;
               font-weight: 600;
-              margin-bottom: 10px;
+              margin: 2px 0;
             }
             .amount-box {
               background: #f5f5f5;
-              border: 2px solid #000;
-              padding: 15px;
+              border: 1px solid #000;
+              padding: 8px;
               text-align: center;
-              margin: 20px 0;
+              margin: 8px 0;
             }
             .amount-label {
-              font-size: 12px;
+              font-size: 9px;
               color: #666;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
             }
             .amount-value {
-              font-size: 28px;
+              font-size: 18px;
               font-weight: bold;
             }
             .qr-container {
               text-align: center;
-              margin: 20px 0;
-              padding: 15px;
-              background: #f9f9f9;
+              margin: 8px 0;
+              padding: 6px;
             }
             .footer {
               text-align: center;
-              font-size: 10px;
+              font-size: 8px;
               color: #666;
-              border-top: 1px solid #ddd;
-              padding-top: 15px;
-              margin-top: 20px;
+              border-top: 1px dashed #000;
+              padding-top: 6px;
+              margin-top: 8px;
             }
             .badge {
               display: inline-block;
-              padding: 4px 8px;
+              padding: 2px 6px;
               background: #078A00;
               color: white;
-              border-radius: 4px;
-              font-size: 11px;
+              border-radius: 3px;
+              font-size: 9px;
               font-weight: 600;
-              margin-top: 5px;
+              margin-top: 2px;
             }
             @media print {
               body { padding: 0; }
               .no-print { display: none; }
+              @page { 
+                size: 80mm auto;
+                margin: 0;
+              }
             }
           </style>
         </head>
@@ -152,96 +155,81 @@ export function InvoiceStub({ invoice, insuredPerson, serviceType, serviceReques
       </div>
 
       <div ref={printRef}>
-        <div className="stub-container max-w-md mx-auto border-2 border-border bg-background">
+        <div className="stub-container max-w-[300px] mx-auto border border-dashed border-border bg-background p-2">
           {/* Header */}
-          <div className="header text-center border-b-2 border-border pb-4 mb-4">
-            <h1 className="text-xl font-bold">Social Security Board</h1>
-            <p className="text-sm text-muted-foreground mt-1">Service Invoice Stub</p>
-            <p className="text-xs text-muted-foreground">Present this at Cashier for Payment</p>
+          <div className="header text-center border-b border-dashed border-border pb-2 mb-2">
+            <h1 className="text-sm font-bold">Social Security Board</h1>
+            <p className="text-[9px] text-muted-foreground">Service Invoice</p>
           </div>
 
           {/* Invoice Number */}
-          <div className="section mb-4">
-            <div className="label text-xs text-muted-foreground uppercase mb-1">Invoice Number</div>
-            <div className="value text-2xl font-bold">{invoice.invoiceNumber}</div>
+          <div className="section mb-2">
+            <div className="label text-[8px] text-muted-foreground uppercase">Invoice #</div>
+            <div className="value text-base font-bold">{invoice.invoiceNumber}</div>
           </div>
 
           {/* Service Request ID */}
-          <div className="section mb-4">
-            <div className="label text-xs text-muted-foreground uppercase mb-1">Service Request ID</div>
-            <div className="value text-base font-semibold">{serviceRequestId}</div>
+          <div className="section mb-2">
+            <div className="label text-[8px] text-muted-foreground uppercase">Request ID</div>
+            <div className="value text-xs font-semibold">{serviceRequestId}</div>
           </div>
 
           {/* Queue Token (if applicable) */}
           {queueToken && (
-            <div className="section mb-4">
-              <div className="label text-xs text-muted-foreground uppercase mb-1">Queue Token</div>
-              <div className="value text-base font-semibold">{queueToken}</div>
+            <div className="section mb-2">
+              <div className="label text-[8px] text-muted-foreground uppercase">Token</div>
+              <div className="value text-xs font-semibold">{queueToken}</div>
             </div>
           )}
 
           {/* Insured Person */}
-          <div className="section mb-4">
-            <div className="label text-xs text-muted-foreground uppercase mb-1">Insured Person</div>
-            <div className="value text-base font-semibold">{insuredPerson.fullName}</div>
-            <div className="text-sm text-muted-foreground">SSN: {insuredPerson.ssn}</div>
+          <div className="section mb-2">
+            <div className="label text-[8px] text-muted-foreground uppercase">Name</div>
+            <div className="value text-[11px] font-semibold">{insuredPerson.fullName}</div>
+            <div className="text-[9px] text-muted-foreground">SSN: {insuredPerson.ssn}</div>
           </div>
 
           {/* Service Type */}
-          <div className="section mb-4">
-            <div className="label text-xs text-muted-foreground uppercase mb-1">Service Type</div>
-            <div className="value text-base font-semibold">{serviceType.name}</div>
+          <div className="section mb-2">
+            <div className="label text-[8px] text-muted-foreground uppercase">Service</div>
+            <div className="value text-[10px] font-semibold leading-tight">{serviceType.name}</div>
           </div>
 
           {/* Amount Box */}
-          <div className="amount-box bg-muted border-2 border-border p-4 text-center my-6">
-            <div className="amount-label text-sm text-muted-foreground mb-2">Total Amount Due</div>
-            <div className="amount-value text-4xl font-bold">
-              {isFree ? 'FREE' : `EC$ ${invoice.totalAmount.toFixed(2)}`}
+          <div className="amount-box bg-muted border border-border p-2 text-center my-2">
+            <div className="amount-label text-[9px] text-muted-foreground mb-1">Amount Due</div>
+            <div className="amount-value text-2xl font-bold">
+              {isFree ? 'FREE' : `$${invoice.totalAmount.toFixed(2)}`}
             </div>
             {isFree && (
-              <Badge className="mt-2 bg-green-600">No Payment Required</Badge>
+              <div className="badge text-[9px] mt-1">No Payment</div>
             )}
           </div>
 
           {/* QR Code */}
-          <div className="qr-container text-center bg-muted/50 p-4 rounded-lg">
-            <div className="label text-xs text-muted-foreground uppercase mb-3">
-              Scan for Quick Payment
+          <div className="qr-container text-center my-2">
+            <div className="label text-[8px] text-muted-foreground uppercase mb-1">
+              Scan to Pay
             </div>
             <div className="flex justify-center">
               <QRCodeSVG 
                 value={qrData} 
-                size={180}
-                level="H"
-                includeMargin
+                size={100}
+                level="M"
+                includeMargin={false}
               />
             </div>
           </div>
 
-          {/* Accounting Head */}
-          <div className="section mt-4 mb-4">
-            <div className="label text-xs text-muted-foreground uppercase mb-1">Accounting Head</div>
-            <div className="value text-sm font-medium">{invoice.accountingHeadCode}</div>
-          </div>
-
-          {/* Invoice Date */}
-          <div className="section mb-4">
-            <div className="label text-xs text-muted-foreground uppercase mb-1">Invoice Date</div>
-            <div className="value text-sm font-medium">
-              {new Date(invoice.createdAt).toLocaleString()}
-            </div>
-          </div>
-
           {/* Footer */}
-          <div className="footer text-center text-xs text-muted-foreground border-t border-border pt-4 mt-6">
-            <p>Please retain this stub for your records</p>
-            <p className="mt-1">
+          <div className="footer text-center text-[8px] text-muted-foreground border-t border-dashed border-border pt-2 mt-2">
+            <p className="leading-tight">
               {isFree 
-                ? 'Proceed to processing unit for service completion'
-                : 'Present at Cashier counter for payment processing'}
+                ? 'Proceed to processing unit'
+                : 'Present at Cashier'}
             </p>
-            <p className="mt-2 font-semibold">Thank you for your visit</p>
+            <p className="mt-1 leading-tight">{new Date(invoice.createdAt).toLocaleDateString()}</p>
+            <p className="mt-1 font-semibold">Thank You</p>
           </div>
         </div>
       </div>
