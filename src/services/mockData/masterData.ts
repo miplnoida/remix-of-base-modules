@@ -62,7 +62,8 @@ export const SERVICE_TYPES: ServiceType[] = [
     categoryId: 'CAT001',
     name: 'Name/Address Change & New Card',
     description: 'Update personal details and issue new card',
-    defaultProcessingUnitId: 'UNIT001'
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: true
   },
   // Contributions & Records
   {
@@ -70,7 +71,8 @@ export const SERVICE_TYPES: ServiceType[] = [
     categoryId: 'CAT002',
     name: 'Certified Contribution History',
     description: 'Official contribution history certificate',
-    defaultProcessingUnitId: 'UNIT002'
+    defaultProcessingUnitId: 'UNIT002',
+    requiresVerification: true
   },
   {
     id: 'SVC005',
@@ -100,7 +102,8 @@ export const SERVICE_TYPES: ServiceType[] = [
     categoryId: 'CAT004',
     name: 'Late Submission Appeal',
     description: 'Appeal for late submission penalties',
-    defaultProcessingUnitId: 'UNIT004'
+    defaultProcessingUnitId: 'UNIT004',
+    requiresVerification: true
   },
   // General Certification
   {
@@ -108,7 +111,8 @@ export const SERVICE_TYPES: ServiceType[] = [
     categoryId: 'CAT005',
     name: 'Certificate of Coverage',
     description: 'Official certificate of social security coverage',
-    defaultProcessingUnitId: 'UNIT002'
+    defaultProcessingUnitId: 'UNIT002',
+    requiresVerification: true
   },
   // Appeals & Reviews
   {
@@ -116,7 +120,8 @@ export const SERVICE_TYPES: ServiceType[] = [
     categoryId: 'CAT006',
     name: 'Voluntary Insured Registration',
     description: 'Register as voluntary insured person',
-    defaultProcessingUnitId: 'UNIT005'
+    defaultProcessingUnitId: 'UNIT005',
+    requiresVerification: true
   },
   {
     id: 'SVC011',
