@@ -12,7 +12,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Search, Eye } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PlusCircle, Search, Eye, RefreshCw, Info } from 'lucide-react';
 import { ServiceRequest } from '@/types/serviceRequest';
 import { 
   getAllServiceRequests, 
@@ -20,6 +21,7 @@ import {
   getServiceTypeById 
 } from '@/services/serviceRequestService';
 import { format } from 'date-fns';
+import { initializeSeedData } from '@/services/mockData/seedData';
 
 export default function ServiceRequestList() {
   const navigate = useNavigate();
@@ -27,6 +29,8 @@ export default function ServiceRequestList() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // Initialize seed data if not already done
+    initializeSeedData();
     loadRequests();
   }, []);
 
@@ -79,12 +83,63 @@ export default function ServiceRequestList() {
           { label: 'Service Requests' },
         ]}
         actions={
-          <Button onClick={() => navigate('/person/service-requests/new')}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Request
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => loadRequests()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={() => navigate('/person/service-requests/new')}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Request
+            </Button>
+          </div>
         }
       />
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="text-sm text-blue-600 font-medium">Total Requests</div>
+          <div className="text-2xl font-bold text-blue-900">{requests.length}</div>
+        </div>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="text-sm text-yellow-600 font-medium">Pending Payment</div>
+          <div className="text-2xl font-bold text-yellow-900">
+            {requests.filter(r => r.status === 'Payment Pending' || r.status === 'Invoice Generated').length}
+          </div>
+        </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div className="text-sm text-purple-600 font-medium">Under Review</div>
+          <div className="text-2xl font-bold text-purple-900">
+            {requests.filter(r => r.status === 'Under Review').length}
+          </div>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="text-sm text-green-600 font-medium">Completed</div>
+          <div className="text-2xl font-bold text-green-900">
+            {requests.filter(r => r.status === 'Completed').length}
+          </div>
+        </div>
+      </div>
+
+      {/* Demo Data Legend */}
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <div className="space-y-2">
+            <div><strong>Workflow Process:</strong></div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-500 text-white mr-1">Draft</span> Initial request</div>
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-500 text-white mr-1">Invoice Generated</span> Invoice created</div>
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-yellow-500 text-white mr-1">Payment Pending</span> Awaiting payment</div>
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-500 text-white mr-1">Payment Received</span> Paid</div>
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-500 text-white mr-1">Under Review</span> Processing</div>
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-700 text-white mr-1">Completed</span> Finished</div>
+              <div><span className="inline-flex items-center px-2 py-1 rounded text-xs bg-red-500 text-white mr-1">Rejected</span> Declined</div>
+            </div>
+          </div>
+        </AlertDescription>
+      </Alert>
 
       <div className="flex gap-2">
         <div className="relative flex-1">

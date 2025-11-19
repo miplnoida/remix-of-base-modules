@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, FileText, DollarSign, Save, Send, CheckCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Search, FileText, DollarSign, Save, Send, CheckCircle, RefreshCw, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   ServiceRequest,
@@ -36,9 +37,15 @@ import {
   updateServiceRequestStatus,
   updateInvoiceStatus,
 } from '@/services/serviceRequestService';
+import { initializeSeedData, resetSeedData } from '@/services/mockData/seedData';
 
 export default function ServiceRequestNew() {
   const navigate = useNavigate();
+
+  // Initialize seed data on component mount
+  useEffect(() => {
+    initializeSeedData();
+  }, []);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -251,6 +258,11 @@ export default function ServiceRequestNew() {
     toast.success('Service request saved as draft');
   };
 
+  const handleResetSeedData = () => {
+    resetSeedData();
+    toast.success('Seed data has been reset! View the Service Request List to see 10 sample requests.');
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -261,7 +273,29 @@ export default function ServiceRequestNew() {
           { label: 'Service Requests', href: '/person/service-requests' },
           { label: 'New Request' },
         ]}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleResetSeedData}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reset Demo Data
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/person/service-requests')}>
+              View All Requests
+            </Button>
+          </div>
+        }
       />
+
+      {/* Demo Data Info */}
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>Demo Mode:</strong> This system is running with 10 sample service requests showing the full workflow process 
+          (Draft → Invoice Generated → Payment Received → Under Review → Completed/Rejected). 
+          Click "View All Requests" to see existing requests or "Reset Demo Data" to reload fresh samples. 
+          Try searching for: <strong>John Doe</strong>, <strong>Jane Smith</strong>, or <strong>123-456-7890</strong>
+        </AlertDescription>
+      </Alert>
 
       {/* Insured Person Search */}
       <Card>
@@ -275,6 +309,20 @@ export default function ServiceRequestNew() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="bg-muted/50">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <strong>Available Demo Insured Persons:</strong>
+              <ul className="mt-1 ml-4 list-disc space-y-1">
+                <li>John Doe - SSN: 123-456-7890 (ID: IP10001)</li>
+                <li>Jane Smith - SSN: 234-567-8901 (ID: IP10002)</li>
+                <li>Michael Johnson - SSN: 345-678-9012 (ID: IP10003)</li>
+                <li>Sarah Williams - SSN: 456-789-0123 (ID: IP10004)</li>
+                <li>David Brown - SSN: 567-890-1234 (ID: IP10005)</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+          
           <div className="flex gap-2">
             <Input
               placeholder="Enter SSN, Name, or ID..."
