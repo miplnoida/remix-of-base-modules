@@ -34,6 +34,7 @@ import PendingReviews from '@/pages/insuredPersons/PendingReviews';
 import ServiceRequestNew from '@/pages/person/ServiceRequestNew';
 import ServiceRequestList from '@/pages/person/ServiceRequestList';
 import PendingVerification from '@/pages/person/PendingVerification';
+import InsuredPersonProfile from '@/pages/person/InsuredPersonProfile';
 
 // Finance Settings Pages
 import FeeConfigurationPage from '@/pages/finance/settings/FeeConfiguration';
@@ -399,6 +400,7 @@ export const AppRoutes = () => {
       <Route path="/person/service-requests" element={<ProtectedLayout><ServiceRequestList /></ProtectedLayout>} />
       <Route path="/person/service-requests/new" element={<ProtectedLayout><ServiceRequestNew /></ProtectedLayout>} />
       <Route path="/person/service-requests/pending-verification" element={<ProtectedLayout><PendingVerification /></ProtectedLayout>} />
+      <Route path="/person/profile/:id" element={<ProtectedLayout><InsuredPersonProfile /></ProtectedLayout>} />
 
       {/* Finance Settings Routes */}
       <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />

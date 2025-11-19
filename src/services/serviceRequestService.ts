@@ -134,6 +134,14 @@ export const getInvoiceById = (id: string): Invoice | undefined => {
   return getInvoices().find(inv => inv.id === id);
 };
 
+export const getPendingInvoices = (): Invoice[] => {
+  return getInvoices().filter(inv => inv.status === 'Pending');
+};
+
+export const getAllInvoices = (): Invoice[] => {
+  return getInvoices();
+};
+
 // Service Request Services
 const getServiceRequests = (): ServiceRequest[] => {
   const stored = localStorage.getItem(STORAGE_KEY_REQUESTS);
@@ -186,4 +194,8 @@ export const getServiceRequestById = (id: string): ServiceRequest | undefined =>
 
 export const getAllServiceRequests = (): ServiceRequest[] => {
   return getServiceRequests();
+};
+
+export const getServiceRequestsByInsuredPerson = (insuredPersonId: string): ServiceRequest[] => {
+  return getServiceRequests().filter(req => req.insuredPersonId === insuredPersonId);
 };
