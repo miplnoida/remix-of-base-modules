@@ -38,6 +38,7 @@ import InsuredPersonProfile from '@/pages/person/InsuredPersonProfile';
 
 // Insured Persons Reports
 import IPEntryVerificationReport from '@/pages/person/reports/IPEntryVerificationReport';
+import Age62WithoutClaimReport from '@/pages/person/reports/Age62WithoutClaimReport';
 import OnlineRenewalUpdateReport from '@/pages/person/reports/OnlineRenewalUpdateReport';
 import RegistrationPaymentsReport from '@/pages/person/reports/RegistrationPaymentsReport';
 import ContributionStatementPaymentReport from '@/pages/person/reports/ContributionStatementPaymentReport';
@@ -431,21 +432,36 @@ export const AppRoutes = () => {
       <Route path="/person/service-requests/pending-verification" element={<ProtectedLayout><PendingVerification /></ProtectedLayout>} />
       <Route path="/person/profile/:id" element={<ProtectedLayout><InsuredPersonProfile /></ProtectedLayout>} />
 
-      {/* Insured Persons Reports Routes */}
+      {/* Insured Persons Reports - CRD Department */}
       <Route path="/person/reports/ip-entry-verification" element={<ProtectedLayout><IPEntryVerificationReport /></ProtectedLayout>} />
-      <Route path="/person/reports/c3-entry-verification" element={<ProtectedLayout><C3EntryVerificationReport /></ProtectedLayout>} />
-      <Route path="/person/reports/pending-c3" element={<ProtectedLayout><PendingC3Report /></ProtectedLayout>} />
       <Route path="/person/reports/age-62-without-claim" element={<ProtectedLayout><Age62WithoutClaimReport /></ProtectedLayout>} />
-      <Route path="/person/reports/employer-notifications" element={<ProtectedLayout><EmployerNotificationsReport /></ProtectedLayout>} />
-      <Route path="/person/reports/outstanding-discrepancies" element={<ProtectedLayout><OutstandingDiscrepanciesReport /></ProtectedLayout>} />
-      <Route path="/person/reports/missing-ssn" element={<ProtectedLayout><MissingSSNReport /></ProtectedLayout>} />
-      <Route path="/person/reports/scanning-activity" element={<ProtectedLayout><ScanningActivityReport /></ProtectedLayout>} />
-      <Route path="/person/reports/electronic-c3-uploads" element={<ProtectedLayout><ElectronicC3UploadsReport /></ProtectedLayout>} />
-      <Route path="/person/reports/long-term-claims" element={<ProtectedLayout><LongTermClaimsReport /></ProtectedLayout>} />
-      <Route path="/person/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />
-      <Route path="/person/reports/high-wage-multi-employer" element={<ProtectedLayout><HighWageMultiEmployerReport /></ProtectedLayout>} />
-      <Route path="/person/reports/audit-sample" element={<ProtectedLayout><AuditSampleReport /></ProtectedLayout>} />
-      <Route path="/person/reports/c3-line-item-changes" element={<ProtectedLayout><C3LineItemChangesReport /></ProtectedLayout>} />
+      <Route path="/person/reports/online-renewal-update" element={<ProtectedLayout><OnlineRenewalUpdateReport /></ProtectedLayout>} />
+      <Route path="/person/reports/registration-payments" element={<ProtectedLayout><RegistrationPaymentsReport /></ProtectedLayout>} />
+      <Route path="/person/reports/contribution-statement-payment" element={<ProtectedLayout><ContributionStatementPaymentReport /></ProtectedLayout>} />
+      <Route path="/person/reports/pension-letters-payment" element={<ProtectedLayout><PensionLettersPaymentReport /></ProtectedLayout>} />
+      <Route path="/person/reports/non-national-workers-ssn" element={<ProtectedLayout><NonNationalWorkersSSNReport /></ProtectedLayout>} />
+      <Route path="/person/reports/new-registrants-by-officer" element={<ProtectedLayout><NewRegistrantsByOfficerReport /></ProtectedLayout>} />
+      <Route path="/person/reports/employer-registration-by-officer" element={<ProtectedLayout><EmployerRegistrationByOfficerReport /></ProtectedLayout>} />
+      <Route path="/person/reports/life-certificates" element={<ProtectedLayout><LifeCertificatesReport /></ProtectedLayout>} />
+      <Route path="/person/reports/self-employed-by-officer" element={<ProtectedLayout><SelfEmployedByOfficerReport /></ProtectedLayout>} />
+      <Route path="/person/reports/claims-entered-by-officer" element={<ProtectedLayout><ClaimsEnteredByOfficerReport /></ProtectedLayout>} />
+      <Route path="/person/reports/self-employed-without-license" element={<ProtectedLayout><SelfEmployedWithoutLicenseReport /></ProtectedLayout>} />
+      <Route path="/person/reports/claims-to-benefits" element={<ProtectedLayout><ClaimsToBenefitsReport /></ProtectedLayout>} />
+      <Route path="/person/reports/crm-activity" element={<ProtectedLayout><CRMActivityReport /></ProtectedLayout>} />
+      
+      {/* C3 Management Reports - Moved from Insured Persons */}
+      <Route path="/c3/reports/c3-entry-verification" element={<ProtectedLayout><C3EntryVerificationReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/pending-c3" element={<ProtectedLayout><PendingC3Report /></ProtectedLayout>} />
+      <Route path="/c3/reports/missing-ssn" element={<ProtectedLayout><MissingSSNReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/c3-line-item-changes" element={<ProtectedLayout><C3LineItemChangesReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/electronic-c3-uploads" element={<ProtectedLayout><ElectronicC3UploadsReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/employer-notifications" element={<ProtectedLayout><EmployerNotificationsReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/high-wage-multi-employer" element={<ProtectedLayout><HighWageMultiEmployerReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/scanning-activity" element={<ProtectedLayout><ScanningActivityReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/outstanding-discrepancies" element={<ProtectedLayout><OutstandingDiscrepanciesReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/long-term-claims" element={<ProtectedLayout><LongTermClaimsReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/audit-sample" element={<ProtectedLayout><AuditSampleReport /></ProtectedLayout>} />
 
       {/* Finance Settings Routes */}
       <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
