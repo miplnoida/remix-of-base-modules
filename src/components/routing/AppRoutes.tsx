@@ -240,6 +240,9 @@ const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 
+// Foundation Components Demo
+import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
+
 // SSB Finance Module
 import FinanceDashboard from '@/pages/finance/FinanceDashboard';
 import BatchManagement from '@/pages/finance/BatchManagement';
@@ -257,6 +260,7 @@ export const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
       <Route path="/demo-login" element={<DummyLoginPage />} />
+      <Route path="/components-demo" element={<ProtectedLayout><FoundationComponentsDemo /></ProtectedLayout>} />
       
       {/* Dashboard */}
       <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
