@@ -21,7 +21,8 @@ import {
   DollarSign,
   UsersRound,
   ListChecks,
-  LineChart
+  LineChart,
+  Building2
 } from "lucide-react";
 
 export const insuredPersonsMenuItems = [
@@ -92,81 +93,99 @@ export const insuredPersonsMenuItems = [
             requiresPermission: "view_reports"
           },
           {
-            title: "C3 Entry & Verification",
-            url: "/person/reports/c3-entry-verification",
+            title: "Online Renewal/Update",
+            url: "/person/reports/online-renewal-update",
             icon: FileText,
             requiresPermission: "view_reports"
           },
           {
-            title: "Pending C3 Schedules",
-            url: "/person/reports/pending-c3",
-            icon: Clock,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "Age 62+ Without Claim",
-            url: "/person/reports/age-62-without-claim",
-            icon: UserX,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "Employer Notification Letters",
-            url: "/person/reports/employer-notifications",
-            icon: Mail,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "Outstanding Discrepancies",
-            url: "/person/reports/outstanding-discrepancies",
-            icon: AlertCircle,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "C3s Missing SSN",
-            url: "/person/reports/missing-ssn",
-            icon: FileWarning,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "Scanning Activity",
-            url: "/person/reports/scanning-activity",
-            icon: Scan,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "Electronic C3 Uploads",
-            url: "/person/reports/electronic-c3-uploads",
-            icon: Upload,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "Long-Term Claims",
-            url: "/person/reports/long-term-claims",
-            icon: Activity,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "C3s Without Payment",
-            url: "/person/reports/c3-without-payment",
+            title: "Registration Payments",
+            url: "/person/reports/registration-payments",
             icon: DollarSign,
             requiresPermission: "view_reports"
           },
           {
-            title: "High-Wage Multi-Employer",
-            url: "/person/reports/high-wage-multi-employer",
-            icon: UsersRound,
+            title: "Contribution Statement Payment",
+            url: "/person/reports/contribution-statement-payment",
+            icon: FileText,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Pension Letters Payment",
+            url: "/person/reports/pension-letters-payment",
+            icon: Mail,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Non-National Workers SSN",
+            url: "/person/reports/non-national-workers-ssn",
+            icon: UserX,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "New Registrants by Officer",
+            url: "/person/reports/new-registrants-by-officer",
+            icon: Users,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Employer Registration by Officer",
+            url: "/person/reports/employer-registration-by-officer",
+            icon: Building2,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Life Certificates",
+            url: "/person/reports/life-certificates",
+            icon: FileText,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Self-Employed by Officer",
+            url: "/person/reports/self-employed-by-officer",
+            icon: Users,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Claims Entered by Officer",
+            url: "/person/reports/claims-entered-by-officer",
+            icon: ClipboardList,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Self-Employed Without License",
+            url: "/person/reports/self-employed-without-license",
+            icon: AlertCircle,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Claims to Benefits Dept",
+            url: "/person/reports/claims-to-benefits",
+            icon: FileText,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "CRM Activity",
+            url: "/person/reports/crm-activity",
+            icon: Activity,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Refunds to CRU/Finance",
+            url: "/person/reports/refunds-to-cru",
+            icon: DollarSign,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Printed & Spoiled Cards",
+            url: "/person/reports/printed-spoiled-cards",
+            icon: FileText,
             requiresPermission: "view_reports"
           },
           {
             title: "Internal Audit Sample",
-            url: "/person/reports/audit-sample",
+            url: "/person/reports/audit-sample-ip",
             icon: ListChecks,
-            requiresPermission: "view_reports"
-          },
-          {
-            title: "C3 Line-Item Changes",
-            url: "/person/reports/c3-line-item-changes",
-            icon: LineChart,
             requiresPermission: "view_reports"
           }
         ]
