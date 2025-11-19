@@ -61,14 +61,11 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
   }
 
   // Otherwise, render as collapsible group
-  const indentClass = level === 1 ? "" : level === 2 ? "ml-4" : "ml-8";
-
   const groupButton = (
     <CollapsibleTrigger asChild>
       <SidebarMenuButton
         className={cn(
           "group w-full rounded-lg transition-all duration-200 ease-in-out font-medium h-11",
-          indentClass,
           hasActiveChild 
             ? "bg-government-100 text-government-800 shadow-sm" 
             : "text-gray-700 hover:bg-gray-50 hover:text-government-700"
@@ -118,7 +115,7 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
         )}
       </SidebarMenuItem>
       
-      <CollapsibleContent className="space-y-1">
+      <CollapsibleContent className="space-y-1 ml-4">
         {item.subItems?.map((subItem) => (
           <SidebarMenuGroup
             key={subItem.title}
