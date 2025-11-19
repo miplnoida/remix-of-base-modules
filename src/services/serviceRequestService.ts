@@ -42,6 +42,10 @@ export const getMasterData = () => ({
 
 export const getServiceCategories = (): ServiceCategory[] => SERVICE_CATEGORIES;
 
+export const getServiceCategoryById = (id: string): ServiceCategory | undefined => {
+  return SERVICE_CATEGORIES.find(cat => cat.id === id);
+};
+
 export const getServiceTypesByCategory = (categoryId: string): ServiceType[] => {
   return SERVICE_TYPES.filter(st => st.categoryId === categoryId);
 };
