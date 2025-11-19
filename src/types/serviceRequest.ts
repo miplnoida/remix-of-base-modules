@@ -25,6 +25,7 @@ export interface ServiceType {
   description: string;
   defaultProcessingUnitId?: string;
   requiresExpressOption?: boolean;
+  requiresVerification?: boolean;
 }
 
 export interface Priority {
@@ -108,6 +109,11 @@ export interface ServiceRequest {
   invoiceId?: string;
   internalNotes?: string;
   attachments?: ServiceRequestAttachment[];
+  verificationRequired?: boolean;
+  verificationStatus?: 'Pending' | 'Approved' | 'Rejected';
+  verifiedBy?: string;
+  verifiedAt?: string;
+  verificationNotes?: string;
   createdAt: string;
   updatedAt: string;
   createdBy: string;

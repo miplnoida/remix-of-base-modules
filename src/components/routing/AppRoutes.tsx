@@ -33,6 +33,11 @@ import PendingReviews from '@/pages/insuredPersons/PendingReviews';
 // Service Request Pages
 import ServiceRequestNew from '@/pages/person/ServiceRequestNew';
 import ServiceRequestList from '@/pages/person/ServiceRequestList';
+import PendingVerification from '@/pages/person/PendingVerification';
+
+// Finance Settings Pages
+import FeeConfigurationPage from '@/pages/finance/settings/FeeConfiguration';
+import ServiceTypeManagement from '@/pages/finance/settings/ServiceTypeManagement';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/benefits/AllBenefitsTabs';
@@ -393,6 +398,11 @@ export const AppRoutes = () => {
       {/* Service Request Routes */}
       <Route path="/person/service-requests" element={<ProtectedLayout><ServiceRequestList /></ProtectedLayout>} />
       <Route path="/person/service-requests/new" element={<ProtectedLayout><ServiceRequestNew /></ProtectedLayout>} />
+      <Route path="/person/service-requests/pending-verification" element={<ProtectedLayout><PendingVerification /></ProtectedLayout>} />
+
+      {/* Finance Settings Routes */}
+      <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
+      <Route path="/finance/settings/service-types" element={<ProtectedLayout><ServiceTypeManagement /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />

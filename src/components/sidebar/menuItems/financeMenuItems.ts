@@ -205,6 +205,30 @@ export const financeMenuItems = [
             requiresPermission: 'cashier_operations'
           }
         ]
+      },
+      {
+        title: 'Settings',
+        icon: Settings,
+        subItems: [
+          {
+            title: 'Fee Configuration',
+            url: '/finance/settings/fee-configuration',
+            icon: DollarSign,
+            requiresPermission: 'admin'
+          },
+          {
+            title: 'Service Type Management',
+            url: '/finance/settings/service-types',
+            icon: FileText,
+            requiresPermission: 'admin'
+          },
+          {
+            title: 'Verification Settings',
+            url: '/finance/settings/verification',
+            icon: CheckSquare,
+            requiresPermission: 'admin'
+          }
+        ]
       }
     ]
   }
