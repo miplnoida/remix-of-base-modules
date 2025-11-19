@@ -40,9 +40,9 @@ export const FEE_CONFIGURATIONS: FeeConfiguration[] = [
   {
     id: 'FEE005',
     serviceTypeId: 'SVC005',
-    amount: 15.00,
+    amount: 0.00,
     accountingHeadCode: 'FEE_CONTRIBUTION_STMT',
-    accountingHeadName: 'Contribution Statement Fee Revenue',
+    accountingHeadName: 'Contribution Statement (Free)',
     effectiveFrom: '2024-01-01',
     active: true
   },
