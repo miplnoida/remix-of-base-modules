@@ -9,7 +9,8 @@ import {
   HandshakeIcon,
   FileText,
   TrendingUp,
-  Settings
+  Settings,
+  Scale
 } from "lucide-react";
 
 export const complianceMenuItems = [
@@ -79,6 +80,20 @@ export const complianceMenuItems = [
         icon: Calendar,
         requiresPermission: "manage_compliance",
         description: "Risk & sampling dashboard, monthly candidates"
+      },
+      {
+        title: "Legal Recommendation Queue",
+        url: "/compliance/legal-recommendation-queue",
+        icon: Scale,
+        requiresPermission: "manage_compliance",
+        description: "Review cases ready for legal escalation"
+      },
+      {
+        title: "Legal Escalation Policy",
+        url: "/compliance/legal-escalation-policy",
+        icon: Shield,
+        requiresPermission: "manage_compliance",
+        description: "Configure legal escalation rules and thresholds"
       },
       {
         title: "Settings",
