@@ -4,6 +4,12 @@ import LegalReferralWizard from './LegalReferralWizard';
 import ComplianceSettings from './ComplianceSettings';
 import LegalEscalationPolicy from './LegalEscalationPolicy';
 import RiskRulePolicy from './settings/RiskRulePolicy';
+import InspectorPlans from './InspectorPlans';
+import FieldOperations from './FieldOperations';
+import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
+import FieldExecution from './audit-planning/FieldExecution';
+import PendingReview from './audit-planning/PendingReview';
+import WeeklyReports from './audit-planning/WeeklyReports';
 import CaseAnalytics from './reports/CaseAnalytics';
 import InspectorPerformance from './reports/InspectorPerformance';
 import C3Compliance from './reports/C3Compliance';
@@ -21,6 +27,12 @@ const ComplianceRoutes = () => {
       <Route path="/settings" element={<ComplianceSettings />} />
       <Route path="/legal-escalation-policy" element={<LegalEscalationPolicy />} />
       <Route path="/settings/risk-policy" element={<RiskRulePolicy />} />
+      <Route path="/inspector-plans" element={<InspectorPlans />} />
+      <Route path="/field-operations" element={<FieldOperations />} />
+      <Route path="/audit-planning/weekly-plan-builder" element={<WeeklyPlanBuilder />} />
+      <Route path="/audit-planning/field-execution" element={<FieldExecution />} />
+      <Route path="/audit-planning/pending-review" element={<PendingReview />} />
+      <Route path="/audit-planning/weekly-reports" element={<WeeklyReports />} />
       <Route path="/reports/case-analytics" element={<CaseAnalytics />} />
       <Route path="/reports/inspector-performance" element={<InspectorPerformance />} />
       <Route path="/reports/c3-compliance" element={<C3Compliance />} />
