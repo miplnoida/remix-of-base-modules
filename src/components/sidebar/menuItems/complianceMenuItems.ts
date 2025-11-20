@@ -58,11 +58,11 @@ export const complianceMenuItems = [
             description: "View my weekly plans and status"
           },
           {
-            title: "Pending Review",
+            title: "Review & Approve Plans",
             url: "/compliance/audit-planning/pending-review",
             icon: ClipboardCheck,
             requiresPermission: "approve_weekly_plan",
-            description: "Review and approve submitted plans"
+            description: "Review and approve submitted inspector plans"
           },
           {
             title: "Field Execution",
