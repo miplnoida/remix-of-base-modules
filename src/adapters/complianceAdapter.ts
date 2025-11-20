@@ -1,5 +1,7 @@
 import { legalConfig } from "@/config/legalConfig";
 
+import { ContributionComponent, ComponentBreakdown } from '@/types/contributionComponents';
+
 export interface PeriodOwed {
   id: string;
   caseId: string;
@@ -8,6 +10,7 @@ export interface PeriodOwed {
   amount: number;
   type: 'current' | 'arrears';
   isEstimated: boolean;
+  componentBreakdown: ComponentBreakdown[];
 }
 
 const mockPeriods: PeriodOwed[] = [];
@@ -37,6 +40,7 @@ export const complianceAdapter = {
       amount: number;
       type: 'current' | 'arrears';
       isEstimated: boolean;
+      componentBreakdown?: ComponentBreakdown[];
     }>;
   }): Promise<PeriodOwed[]> {
     if (legalConfig.dataMode === "mock") {
@@ -44,7 +48,8 @@ export const complianceAdapter = {
       const newPeriods = data.periods.map(p => ({
         id: `PERIOD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         caseId: data.caseId,
-        ...p
+        ...p,
+        componentBreakdown: p.componentBreakdown || []
       }));
       mockPeriods.push(...newPeriods);
       return newPeriods;
