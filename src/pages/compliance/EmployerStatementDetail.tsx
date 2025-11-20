@@ -133,11 +133,23 @@ export default function EmployerStatementDetail() {
 
   const renderComponentSection = (componentName: string, componentCode: string, transactions: any[]) => {
     const filteredTransactions = filterTransactionsByDate(transactions);
+    
+    // Calculate opening balance (transactions before fromDate)
+    let openingBalance = 0;
+    if (fromDate) {
+      transactions.forEach(txn => {
+        const txnDate = new Date(txn.date);
+        if (txnDate < fromDate) {
+          openingBalance += txn.transactionType === 'DEBIT' ? txn.amount : -txn.amount;
+        }
+      });
+    }
+    
     const displayTransactions = reportType === "summary" 
       ? getSummaryTransactions(filteredTransactions) 
       : filteredTransactions;
     
-    let runningBalance = 0;
+    let runningBalance = openingBalance;
     
     return (
       <div className="mb-8 border rounded-lg overflow-hidden">
@@ -157,8 +169,22 @@ export default function EmployerStatementDetail() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {/* Opening Balance Row - Always show if there's an opening balance or filtered date */}
+            {(openingBalance !== 0 || fromDate) && (
+              <TableRow className="bg-muted/20 font-semibold border-b-2">
+                <TableCell className="text-sm">{fromDate ? formatDate(fromDate.toISOString()) : 'Start'}</TableCell>
+                <TableCell className="text-sm font-mono">-</TableCell>
+                <TableCell className="text-sm">Opening Balance</TableCell>
+                <TableCell className="text-right font-mono text-sm">-</TableCell>
+                <TableCell className="text-right font-mono text-sm">-</TableCell>
+                <TableCell className="text-right font-mono text-sm font-semibold text-blue-600">
+                  {formatCurrency(openingBalance)}
+                </TableCell>
+              </TableRow>
+            )}
+            
             {displayTransactions.map((txn, index) => {
-              // Handle opening balance
+              // Handle opening balance for summary reports
               if (txn.transactionType === 'OPENING') {
                 runningBalance = txn.openingBalance;
                 return (
