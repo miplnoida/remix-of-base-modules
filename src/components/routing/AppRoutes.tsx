@@ -14,6 +14,7 @@ import EditInsuredPerson from '@/pages/insuredPersons/EditInsuredPerson';
 
 // Compliance Module
 import CaseManagement from '@/pages/compliance/CaseManagement';
+import CaseDetails from '@/pages/compliance/CaseDetails';
 import InspectorPlans from '@/pages/compliance/InspectorPlans';
 import PaymentArrangements from '@/pages/compliance/PaymentArrangements';
 import FieldOperations from '@/pages/compliance/FieldOperations';
@@ -21,6 +22,11 @@ import NoticesManagement from '@/pages/compliance/NoticesManagement';
 import EmployerStatements from '@/pages/compliance/EmployerStatements';
 import ComplianceSettings from '@/pages/compliance/ComplianceSettings';
 import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
+import ComplianceReports from '@/pages/compliance/reports/ComplianceReports';
+import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
+import RiskSamplingSettings from '@/pages/compliance/sampling/RiskSamplingSettings';
+import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
+import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';

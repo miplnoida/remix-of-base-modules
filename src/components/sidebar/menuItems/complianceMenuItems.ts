@@ -74,6 +74,13 @@ export const complianceMenuItems = [
         description: "Compliance analytics and performance reports"
       },
       {
+        title: "Audit Planning",
+        url: "/compliance/audit-planning/sampling-dashboard",
+        icon: Calendar,
+        requiresPermission: "manage_compliance",
+        description: "Risk & sampling dashboard, monthly candidates"
+      },
+      {
         title: "Settings",
         url: "/compliance/settings",
         icon: Settings,
