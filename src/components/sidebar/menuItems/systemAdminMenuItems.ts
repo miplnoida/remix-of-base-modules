@@ -9,7 +9,8 @@ import {
   DollarSign,
   Activity,
   UserCog,
-  Key
+  Key,
+  Clock
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -57,6 +58,12 @@ export const systemAdminMenuItems = [
         title: "Audit Log",
         url: "/admin/audit-log",
         icon: History,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Central Scheduler",
+        url: "/admin/scheduler",
+        icon: Clock,
         requiresPermission: "system_administration"
       },
       {
