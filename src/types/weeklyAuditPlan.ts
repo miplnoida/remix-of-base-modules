@@ -61,6 +61,10 @@ export interface PlannedVisit {
   plannedStartTime?: string; // HH:MM
   plannedEndTime?: string; // HH:MM
   
+  // Unplanned Sighting Support
+  isUnplannedSighting?: boolean;
+  sightingLocation?: string; // For unplanned sightings without employer
+  
   // Execution tracking
   executionStatus: VisitExecutionStatus;
   checkInTime?: string;
