@@ -103,7 +103,6 @@ export default function EmployerStatementDetail() {
 
     Object.keys(yearlyData).sort().forEach(year => {
       const yearData = yearlyData[year];
-      const firstTxn = yearData.transactions[0];
       
       // Opening balance entry
       summaryEntries.push({
@@ -115,17 +114,29 @@ export default function EmployerStatementDetail() {
         openingBalance: openingBalance
       });
 
-      // Net transaction entry
-      const netAmount = yearData.debits - yearData.credits;
-      summaryEntries.push({
-        date: `${year}-12-31`,
-        period: year,
-        description: `Net Transactions for ${year}`,
-        transactionType: netAmount >= 0 ? 'DEBIT' : 'CREDIT',
-        amount: Math.abs(netAmount),
-      });
+      // Full debits entry
+      if (yearData.debits > 0) {
+        summaryEntries.push({
+          date: `${year}-12-31`,
+          period: year,
+          description: `Total Amount Due for ${year}`,
+          transactionType: 'DEBIT',
+          amount: yearData.debits,
+        });
+      }
 
-      openingBalance += netAmount;
+      // Full credits entry
+      if (yearData.credits > 0) {
+        summaryEntries.push({
+          date: `${year}-12-31`,
+          period: year,
+          description: `Total Payments Received for ${year}`,
+          transactionType: 'CREDIT',
+          amount: yearData.credits,
+        });
+      }
+
+      openingBalance += yearData.debits - yearData.credits;
     });
 
     return summaryEntries;
