@@ -24,6 +24,12 @@ import ComplianceSettings from '@/pages/compliance/ComplianceSettings';
 import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
 import ComplianceReports from '@/pages/compliance/reports/ComplianceReports';
 import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
+import InspectorPerformance from '@/pages/compliance/reports/InspectorPerformance';
+import C3Compliance from '@/pages/compliance/reports/C3Compliance';
+import ArrearsReports from '@/pages/compliance/reports/ArrearsReports';
+import ComplianceAuditReports from '@/pages/compliance/reports/AuditReports';
+import ArrangementReports from '@/pages/compliance/reports/ArrangementReports';
+import LegalEscalationReports from '@/pages/compliance/reports/LegalEscalationReports';
 import RiskSamplingSettings from '@/pages/compliance/sampling/RiskSamplingSettings';
 import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
 import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
@@ -398,12 +404,12 @@ export const AppRoutes = () => {
       <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
       <Route path="/compliance/reports/case-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/c3-compliance" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/arrears" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/audit" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/arrangements" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/legal" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><InspectorPerformance /></ProtectedLayout>} />
+      <Route path="/compliance/reports/c3-compliance" element={<ProtectedLayout><C3Compliance /></ProtectedLayout>} />
+      <Route path="/compliance/reports/arrears" element={<ProtectedLayout><ArrearsReports /></ProtectedLayout>} />
+      <Route path="/compliance/reports/audit" element={<ProtectedLayout><ComplianceAuditReports /></ProtectedLayout>} />
+      <Route path="/compliance/reports/arrangements" element={<ProtectedLayout><ArrangementReports /></ProtectedLayout>} />
+      <Route path="/compliance/reports/legal" element={<ProtectedLayout><LegalEscalationReports /></ProtectedLayout>} />
       <Route path="/compliance/reports/trends" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/settings" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/sampling-dashboard" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
