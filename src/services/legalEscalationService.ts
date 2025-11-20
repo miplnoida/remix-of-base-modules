@@ -111,18 +111,46 @@ const mockEscalationRules: LegalEscalationRule[] = [
   }
 ];
 
-const mockEscalationPolicy: LegalEscalationPolicy = {
-  id: 'policy-001',
-  policyName: 'Default Legal Escalation Policy',
-  effectiveFrom: '2024-01-01',
-  active: true,
-  rules: mockEscalationRules,
-  evaluationFrequency: 'WEEKLY',
-  lastEvaluationDate: '2024-12-15',
-  nextEvaluationDate: '2024-12-22',
-  createdDate: '2024-01-01',
-  createdBy: 'System Administrator'
-};
+const mockEscalationPolicies: LegalEscalationPolicy[] = [
+  {
+    id: 'policy-001',
+    policyId: 'POL-LEP-2024-001',
+    policyVersion: 'v1.0',
+    policyName: 'Default Legal Escalation Policy',
+    effectiveFrom: '2024-01-01',
+    effectiveTo: '2024-02-28',
+    isActive: false,
+    rules: mockEscalationRules.map(r => ({...r})),
+    evaluationFrequency: 'WEEKLY',
+    lastEvaluationDate: '2024-02-25',
+    nextEvaluationDate: '2024-03-03',
+    createdDate: '2023-12-20',
+    createdBy: 'System Administrator',
+    activatedBy: 'System Administrator',
+    activatedDate: '2024-01-01',
+    deactivatedBy: 'admin.user',
+    deactivatedDate: '2024-03-01',
+    notes: 'Initial legal escalation policy configuration'
+  },
+  {
+    id: 'policy-002',
+    policyId: 'POL-LEP-2024-002',
+    policyVersion: 'v2.0',
+    policyName: 'Enhanced Legal Escalation Policy',
+    effectiveFrom: '2024-03-01',
+    effectiveTo: null,
+    isActive: true,
+    rules: mockEscalationRules,
+    evaluationFrequency: 'WEEKLY',
+    lastEvaluationDate: '2024-12-15',
+    nextEvaluationDate: '2024-12-22',
+    createdDate: '2024-02-20',
+    createdBy: 'admin.user',
+    activatedBy: 'admin.user',
+    activatedDate: '2024-03-01',
+    notes: 'Updated thresholds for more aggressive legal escalation'
+  }
+];
 
 // ============================================
 // MOCK DATA: Legal Recommendations
@@ -362,48 +390,104 @@ Employer has refused all attempts at negotiation and continues to operate withou
 // ============================================
 
 export const legalEscalationService = {
-  // Get active escalation policy
-  async getActivePolicy(): Promise<LegalEscalationPolicy> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return mockEscalationPolicy;
+  // Get policy history
+  async getPolicyHistory(): Promise<{ policies: LegalEscalationPolicy[]; activePolicy: LegalEscalationPolicy | null }> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const activePolicy = mockEscalationPolicies.find(p => p.isActive) || null;
+    return {
+      policies: [...mockEscalationPolicies].sort((a, b) => 
+        new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime()
+      ),
+      activePolicy
+    };
   },
 
-  // Update escalation policy
-  async updatePolicy(policy: Partial<LegalEscalationPolicy>): Promise<LegalEscalationPolicy> {
+  // Get active escalation policy
+  async getActivePolicy(): Promise<LegalEscalationPolicy | null> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return mockEscalationPolicies.find(p => p.isActive) || null;
+  },
+
+  // Update active policy
+  async updateActivePolicy(updates: Partial<LegalEscalationPolicy>): Promise<LegalEscalationPolicy> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    return {
-      ...mockEscalationPolicy,
-      ...policy,
+    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
+    if (!activePolicy) {
+      throw new Error('No active policy found');
+    }
+    Object.assign(activePolicy, updates, {
       updatedDate: new Date().toISOString(),
       updatedBy: 'Current User'
+    });
+    return activePolicy;
+  },
+
+  // Activate new policy
+  async activateNewPolicy(policy: Omit<LegalEscalationPolicy, 'policyId' | 'id' | 'createdDate' | 'isActive'>): Promise<LegalEscalationPolicy> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Deactivate current policy
+    const currentActive = mockEscalationPolicies.find(p => p.isActive);
+    if (currentActive) {
+      currentActive.isActive = false;
+      currentActive.effectiveTo = policy.effectiveFrom;
+      currentActive.deactivatedBy = policy.createdBy;
+      currentActive.deactivatedDate = new Date().toISOString();
+    }
+    
+    // Create new policy
+    const newPolicy: LegalEscalationPolicy = {
+      ...policy,
+      id: `policy-${Date.now()}`,
+      policyId: `POL-LEP-${Date.now()}`,
+      createdDate: new Date().toISOString(),
+      isActive: true,
+      effectiveTo: null
     };
+    
+    mockEscalationPolicies.push(newPolicy);
+    
+    return newPolicy;
+  },
+
+  // Update escalation policy (legacy, deprecated)
+  async updatePolicy(policy: Partial<LegalEscalationPolicy>): Promise<LegalEscalationPolicy> {
+    return this.updateActivePolicy(policy);
   },
 
   // Add escalation rule
   async addRule(rule: Omit<LegalEscalationRule, 'id'>): Promise<LegalEscalationRule> {
     await new Promise(resolve => setTimeout(resolve, 150));
+    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
+    if (!activePolicy) {
+      throw new Error('No active policy found');
+    }
     const newRule: LegalEscalationRule = {
       ...rule,
       id: `rule-${Date.now()}`,
       createdDate: new Date().toISOString(),
       createdBy: 'Current User'
     };
-    mockEscalationPolicy.rules.push(newRule);
+    activePolicy.rules.push(newRule);
     return newRule;
   },
 
   // Update escalation rule
   async updateRule(ruleId: string, updates: Partial<LegalEscalationRule>): Promise<LegalEscalationRule> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    const ruleIndex = mockEscalationPolicy.rules.findIndex(r => r.id === ruleId);
+    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
+    if (!activePolicy) {
+      throw new Error('No active policy found');
+    }
+    const ruleIndex = activePolicy.rules.findIndex(r => r.id === ruleId);
     if (ruleIndex !== -1) {
-      mockEscalationPolicy.rules[ruleIndex] = {
-        ...mockEscalationPolicy.rules[ruleIndex],
+      activePolicy.rules[ruleIndex] = {
+        ...activePolicy.rules[ruleIndex],
         ...updates,
         updatedDate: new Date().toISOString(),
         updatedBy: 'Current User'
       };
-      return mockEscalationPolicy.rules[ruleIndex];
+      return activePolicy.rules[ruleIndex];
     }
     throw new Error('Rule not found');
   },
@@ -411,9 +495,13 @@ export const legalEscalationService = {
   // Delete escalation rule
   async deleteRule(ruleId: string): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 100));
-    const ruleIndex = mockEscalationPolicy.rules.findIndex(r => r.id === ruleId);
+    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
+    if (!activePolicy) {
+      throw new Error('No active policy found');
+    }
+    const ruleIndex = activePolicy.rules.findIndex(r => r.id === ruleId);
     if (ruleIndex !== -1) {
-      mockEscalationPolicy.rules.splice(ruleIndex, 1);
+      activePolicy.rules.splice(ruleIndex, 1);
     }
   },
 

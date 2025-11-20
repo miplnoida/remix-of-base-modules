@@ -74,18 +74,30 @@ export interface LegalEscalationRule {
 
 export interface LegalEscalationPolicy {
   id: string;
+  policyId: string;
+  policyVersion: string;
   policyName: string;
   effectiveFrom: string;
-  effectiveTo?: string;
-  active: boolean;
+  effectiveTo: string | null;
+  isActive: boolean;
   rules: LegalEscalationRule[];
   evaluationFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   lastEvaluationDate?: string;
   nextEvaluationDate?: string;
   createdDate: string;
   createdBy: string;
+  activatedBy?: string;
+  activatedDate?: string;
+  deactivatedBy?: string;
+  deactivatedDate?: string;
+  notes?: string;
   updatedDate?: string;
   updatedBy?: string;
+}
+
+export interface LegalEscalationPolicyHistory {
+  policies: LegalEscalationPolicy[];
+  activePolicy: LegalEscalationPolicy | null;
 }
 
 // ============================================
