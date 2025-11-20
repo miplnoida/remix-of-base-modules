@@ -10,7 +10,12 @@ import {
   FileText,
   TrendingUp,
   Settings,
-  Scale
+  Scale,
+  Users,
+  ClipboardCheck,
+  DollarSign,
+  BarChart3,
+  AlertTriangle
 } from "lucide-react";
 
 export const complianceMenuItems = [
@@ -69,10 +74,267 @@ export const complianceMenuItems = [
       },
       {
         title: "Reports",
-        url: "/compliance/reports",
         icon: TrendingUp,
         requiresPermission: "generate_reports",
-        description: "Compliance analytics and performance reports"
+        description: "Compliance analytics and performance reports",
+        subItems: [
+          {
+            title: "Case Management Reports",
+            icon: FileText,
+            requiresPermission: "generate_reports",
+            description: "Case analytics, trends, and status tracking",
+            subItems: [
+              {
+                title: "Cases by Status",
+                url: "/compliance/reports/case-analytics",
+                icon: FileText,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Cases by Type",
+                url: "/compliance/reports/case-analytics",
+                icon: FileText,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Case Resolution Time",
+                url: "/compliance/reports/case-analytics",
+                icon: FileText,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Cases by Zone",
+                url: "/compliance/reports/case-analytics",
+                icon: FileText,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "Inspector Performance",
+            icon: Users,
+            requiresPermission: "generate_reports",
+            description: "Field activity, plan compliance, and productivity metrics",
+            subItems: [
+              {
+                title: "Weekly Plan Compliance",
+                url: "/compliance/reports/inspector-performance",
+                icon: Users,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Field Activities Summary",
+                url: "/compliance/reports/inspector-performance",
+                icon: Users,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Check-In/Check-Out Audit",
+                url: "/compliance/reports/inspector-performance",
+                icon: Users,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Cases Handled by Inspector",
+                url: "/compliance/reports/inspector-performance",
+                icon: Users,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "C3 Compliance Reports",
+            icon: ClipboardCheck,
+            requiresPermission: "generate_reports",
+            description: "C3 submission rates, timeliness, and employer compliance",
+            subItems: [
+              {
+                title: "On-Time vs Late Submissions",
+                url: "/compliance/reports/c3-compliance",
+                icon: ClipboardCheck,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Missing C3 Submissions",
+                url: "/compliance/reports/c3-compliance",
+                icon: ClipboardCheck,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "C3 Without Payment",
+                url: "/compliance/reports/c3-compliance",
+                icon: ClipboardCheck,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Compliance Rate by Zone",
+                url: "/compliance/reports/c3-compliance",
+                icon: ClipboardCheck,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "Arrears & Collections",
+            icon: DollarSign,
+            requiresPermission: "generate_reports",
+            description: "Outstanding balances, payment trends, and recovery metrics",
+            subItems: [
+              {
+                title: "Total Arrears by Zone",
+                url: "/compliance/reports/arrears",
+                icon: DollarSign,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Arrears Aging Analysis",
+                url: "/compliance/reports/arrears",
+                icon: DollarSign,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Collections Over Time",
+                url: "/compliance/reports/arrears",
+                icon: DollarSign,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Top 50 Arrears Employers",
+                url: "/compliance/reports/arrears",
+                icon: DollarSign,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "Audit & Inspection Reports",
+            icon: BarChart3,
+            requiresPermission: "generate_reports",
+            description: "Audit findings, inspection results, and risk assessments",
+            subItems: [
+              {
+                title: "Audit Completion Rate",
+                url: "/compliance/reports/audit",
+                icon: BarChart3,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Findings by Severity",
+                url: "/compliance/reports/audit",
+                icon: BarChart3,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Inspection Coverage by Zone",
+                url: "/compliance/reports/audit",
+                icon: BarChart3,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Risk-Based Audit Results",
+                url: "/compliance/reports/audit",
+                icon: BarChart3,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "Payment Arrangements",
+            icon: HandshakeIcon,
+            requiresPermission: "generate_reports",
+            description: "Active arrangements, defaults, and compliance tracking",
+            subItems: [
+              {
+                title: "Active Arrangements",
+                url: "/compliance/reports/arrangements",
+                icon: HandshakeIcon,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Defaulted Arrangements",
+                url: "/compliance/reports/arrangements",
+                icon: HandshakeIcon,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Arrangement Success Rate",
+                url: "/compliance/reports/arrangements",
+                icon: HandshakeIcon,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Installment Payment Trends",
+                url: "/compliance/reports/arrangements",
+                icon: HandshakeIcon,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "Legal Escalation",
+            icon: Scale,
+            requiresPermission: "generate_reports",
+            description: "Cases escalated to legal, court proceedings, and outcomes",
+            subItems: [
+              {
+                title: "Cases Escalated to Legal",
+                url: "/compliance/reports/legal",
+                icon: Scale,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Legal Stage Distribution",
+                url: "/compliance/reports/legal",
+                icon: Scale,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Court Proceedings Status",
+                url: "/compliance/reports/legal",
+                icon: Scale,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Judgements & Enforcement",
+                url: "/compliance/reports/legal",
+                icon: Scale,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          },
+          {
+            title: "Trend Analysis",
+            icon: TrendingUp,
+            requiresPermission: "generate_reports",
+            description: "Historical trends and predictive analytics",
+            subItems: [
+              {
+                title: "Compliance Trends (12 months)",
+                url: "/compliance/reports/trends",
+                icon: TrendingUp,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Case Creation Trends",
+                url: "/compliance/reports/trends",
+                icon: TrendingUp,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Resolution Rate Trends",
+                url: "/compliance/reports/trends",
+                icon: TrendingUp,
+                requiresPermission: "generate_reports"
+              },
+              {
+                title: "Financial Recovery Trends",
+                url: "/compliance/reports/trends",
+                icon: TrendingUp,
+                requiresPermission: "generate_reports"
+              }
+            ]
+          }
+        ]
       },
       {
         title: "Audit Planning",
