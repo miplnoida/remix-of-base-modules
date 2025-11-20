@@ -99,7 +99,6 @@ import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
 // Compliance & Audit (ComplianceDashboard already imported above)
 import EmployerComplianceManagement from '@/pages/compliance/EmployerComplianceManagement';
-import ComplianceReports from '@/pages/compliance/ComplianceReports';
 import LegalProceedings from '@/pages/compliance/LegalProceedings';
 import AuditManagement from '@/pages/compliance/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
