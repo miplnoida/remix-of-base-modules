@@ -14,10 +14,13 @@ import { riskPolicyService } from '@/services/riskPolicyService';
 import { RiskPolicy } from '@/types/riskPolicy';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import RiskPolicyDialog from '@/components/compliance/risk-policy/RiskPolicyDialog';
 
 export default function RiskPoliciesTab() {
   const [policies, setPolicies] = useState<RiskPolicy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<RiskPolicy | undefined>();
 
   useEffect(() => {
     loadPolicies();
@@ -47,6 +50,25 @@ export default function RiskPoliciesTab() {
     }
   };
 
+  const handleCreate = () => {
+    setEditingPolicy(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (policy: RiskPolicy) => {
+    setEditingPolicy(policy);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async (policyData: Omit<RiskPolicy, 'id' | 'policyId' | 'createdDate' | 'lastModified' | 'isActive'>) => {
+    if (editingPolicy) {
+      await riskPolicyService.updatePolicy(editingPolicy.id, policyData);
+    } else {
+      await riskPolicyService.createPolicy(policyData);
+    }
+    await loadPolicies();
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Actions */}
@@ -57,7 +79,7 @@ export default function RiskPoliciesTab() {
             Configure how risk factors are combined to generate employer risk scores
           </p>
         </div>
-        <Button>
+        <Button onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Create New Policy
         </Button>
@@ -132,7 +154,7 @@ export default function RiskPoliciesTab() {
                       </Button>
                       {policy.status !== 'ACTIVE' && (
                         <>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(policy)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
@@ -171,6 +193,13 @@ export default function RiskPoliciesTab() {
           </div>
         </div>
       )}
+
+      <RiskPolicyDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        policy={editingPolicy}
+        onSave={handleSave}
+      />
     </div>
   );
 }
