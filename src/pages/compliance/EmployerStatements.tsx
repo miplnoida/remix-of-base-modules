@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 import { mockEmployerStatements } from "@/services/mockData/complianceData";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function EmployerStatements() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredStatements = mockEmployerStatements.filter(statement => 
@@ -157,7 +159,7 @@ export default function EmployerStatements() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => window.location.href = `/compliance/employer-statement/${statement.employerId}`}
+                    onClick={() => navigate(`/compliance/employer-statement/${statement.employerId}`)}
                   >
                     View Full Statement
                   </Button>
