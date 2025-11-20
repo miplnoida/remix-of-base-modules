@@ -27,6 +27,8 @@ import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
 import RiskSamplingSettings from '@/pages/compliance/sampling/RiskSamplingSettings';
 import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
 import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
+import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
+import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -387,16 +389,30 @@ export const AppRoutes = () => {
 
       {/* Compliance & Audit Routes */}
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/case-management" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
+      <Route path="/compliance/cases" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
+      <Route path="/compliance/cases/:id" element={<ProtectedLayout><CaseDetails /></ProtectedLayout>} />
       <Route path="/compliance/inspector-plans" element={<ProtectedLayout><InspectorPlans /></ProtectedLayout>} />
       <Route path="/compliance/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
       <Route path="/compliance/payment-arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
       <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
+      <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
+      <Route path="/compliance/reports/case-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/c3-compliance" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/arrears" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/audit" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/arrangements" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/legal" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/trends" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/settings" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/sampling-dashboard" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/monthly-candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
+      <Route path="/compliance/my-audits/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
+      <Route path="/compliance/employers/:employerId/risk-profile" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
       <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
       <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
       <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
-      <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
 
