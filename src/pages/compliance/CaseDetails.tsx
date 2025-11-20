@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,19 +6,34 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { MOCK_CASES, MOCK_CASE_HISTORY, MOCK_NOTICES } from '@/services/mockData/complianceData';
 import { CaseStatus } from '@/types/compliance';
 import { ContributionComponent, COMPONENT_LABELS } from '@/types/contributionComponents';
+import { ComponentPaymentArrangement } from '@/types/paymentArrangement';
+import { getArrangementsForCase, createPaymentArrangement } from '@/services/paymentArrangementService';
+import { CreateArrangementDialog } from '@/components/compliance/CreateArrangementDialog';
+import { ArrangementDetailsCard } from '@/components/compliance/ArrangementDetailsCard';
+import { toast } from 'sonner';
 
 export default function CaseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [arrangements, setArrangements] = useState<ComponentPaymentArrangement[]>([]);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const caseData = MOCK_CASES.find(c => c.id === id);
   const caseHistory = MOCK_CASE_HISTORY.filter(h => h.caseId === id);
   const caseNotices = MOCK_NOTICES.filter(n => n.caseId === id);
+
+  // Load arrangements
+  useEffect(() => {
+    if (id) {
+      getArrangementsForCase(id).then(setArrangements);
+    }
+  }, [id]);
 
   if (!caseData) {
     return (
@@ -497,7 +512,71 @@ export default function CaseDetails() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="arrangements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Payment Arrangements</CardTitle>
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Arrangement
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {arrangements.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    No payment arrangements created for this case
+                  </p>
+                  <Button onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Arrangement
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {arrangements.map((arrangement) => (
+                    <ArrangementDetailsCard 
+                      key={arrangement.id} 
+                      arrangement={arrangement}
+                      onRecordPayment={(installmentId) => {
+                        toast.info('Payment recording not yet implemented');
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Create Arrangement Dialog */}
+      {caseData && (
+        <CreateArrangementDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          caseId={caseData.id}
+          employerId={caseData.employerId}
+          componentBreakdown={[
+            { component: ContributionComponent.SSC, principalAmount: 4166.67, penaltyAmount: 0, interestAmount: 83.33, totalAmount: 4250.00 },
+            { component: ContributionComponent.SSF, principalAmount: 0, penaltyAmount: 1250.00, interestAmount: 0, totalAmount: 1250.00 },
+            { component: ContributionComponent.LVC, principalAmount: 2800.00, penaltyAmount: 0, interestAmount: 56.00, totalAmount: 2856.00 },
+            { component: ContributionComponent.LVF, principalAmount: 0, penaltyAmount: 700.00, interestAmount: 0, totalAmount: 700.00 },
+          ]}
+          onSubmit={async (arrangementData) => {
+            try {
+              const newArrangement = await createPaymentArrangement(arrangementData);
+              setArrangements(prev => [...prev, newArrangement]);
+              toast.success('Payment arrangement created successfully');
+            } catch (error) {
+              toast.error('Failed to create payment arrangement');
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
