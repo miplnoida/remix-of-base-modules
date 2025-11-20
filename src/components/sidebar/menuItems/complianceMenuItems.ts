@@ -52,7 +52,7 @@ export const complianceMenuItems = [
           },
           {
             title: "My Plans",
-            url: "/compliance/inspector-plans",
+            url: "/compliance/audit-planning/my-plans",
             icon: Calendar,
             requiresPermission: "manage_compliance",
             description: "View my weekly plans and status"
