@@ -43,6 +43,7 @@ import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
 import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
 import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
+import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -428,7 +429,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/monthly-candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/weekly-plan-builder" element={<ProtectedLayout><WeeklyPlanBuilder /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/pending-review" element={<ProtectedLayout><PendingReviews /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/field-execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/my-audits/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
