@@ -9,13 +9,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, DollarSign, Gavel, TrendingUp } from 'lucide-react';
+import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, Gavel, TrendingUp, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   VisitType, 
@@ -63,6 +71,19 @@ export default function WeeklyPlanBuilder() {
   const [employerSearchResults, setEmployerSearchResults] = useState<Employer[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
+  
+  // Date picker dialog for "Add to Plan"
+  const [datePickerDialog, setDatePickerDialog] = useState<{
+    open: boolean;
+    employer: Employer | null;
+    visitType: VisitType | null;
+    purpose: string;
+  }>({
+    open: false,
+    employer: null,
+    visitType: null,
+    purpose: ''
+  });
 
   // Load risk-based suggestions
   useEffect(() => {
@@ -130,22 +151,43 @@ export default function WeeklyPlanBuilder() {
   };
 
   const handleQuickAddFromSuggestion = (employer: Employer, visitType: VisitType, purpose: string) => {
-    const newVisit: Partial<VisitFormData> = {
-      employerId: employer.regNo,
-      employerName: employer.name,
+    // Open date picker dialog instead of directly adding
+    setDatePickerDialog({
+      open: true,
+      employer,
       visitType,
+      purpose
+    });
+  };
+  
+  const handleDateSelection = (selectedDay: typeof DAYS_OF_WEEK[number]) => {
+    if (!datePickerDialog.employer || !datePickerDialog.visitType) return;
+    
+    const newVisit: Partial<VisitFormData> = {
+      dayOfWeek: selectedDay,
+      employerId: datePickerDialog.employer.regNo,
+      employerName: datePickerDialog.employer.name,
+      visitType: datePickerDialog.visitType,
       duration: VisitDuration.FULL_DAY,
-      purpose,
+      purpose: datePickerDialog.purpose,
       isUnplannedSighting: false
     };
 
     // Scroll to the form and pre-fill it
     setCurrentVisit(newVisit);
-    setSelectedEmployer(employer);
+    setSelectedEmployer(datePickerDialog.employer);
+    
+    // Close dialog
+    setDatePickerDialog({
+      open: false,
+      employer: null,
+      visitType: null,
+      purpose: ''
+    });
     
     toast({
-      title: 'Employer Selected',
-      description: `${employer.name} added to form. Please complete remaining details.`
+      title: 'Employer Added',
+      description: `${datePickerDialog.employer.name} added for ${selectedDay}. Complete remaining details below.`
     });
     
     // Scroll to form
@@ -333,8 +375,19 @@ export default function WeeklyPlanBuilder() {
   // Filter suggested employers by category
   const highRiskEmployers = suggestedEmployers.filter(e => e.riskBand === 'Critical' || e.riskBand === 'High').slice(0, 10);
   const legalReadyEmployers = suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 50000).slice(0, 5);
-  const c3WithoutPayment = suggestedEmployers.filter(e => e.lastC3Status === 'submitted_no_payment').slice(0, 5);
-  const arrearsEmployers = suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 10000).slice(0, 8);
+  
+  // Active Cases - combine C3 without payment and arrears cases
+  const activeCases = [
+    ...suggestedEmployers.filter(e => e.lastC3Status === 'submitted_no_payment').map(e => ({ ...e, caseType: 'C3 No Payment' as const })),
+    ...suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 10000).map(e => ({ ...e, caseType: 'Arrears' as const }))
+  ].slice(0, 10);
+  
+  // Mock LMS courses data
+  const lmsCourses = [
+    { id: 'LMS-001', title: 'Compliance Procedures Training', status: 'In Progress', dueDate: '2024-01-30', progress: 65 },
+    { id: 'LMS-002', title: 'Risk Assessment Methodologies', status: 'Not Started', dueDate: '2024-02-15', progress: 0 },
+    { id: 'LMS-003', title: 'Evidence Collection & Documentation', status: 'In Progress', dueDate: '2024-02-05', progress: 40 }
+  ];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -373,13 +426,13 @@ export default function WeeklyPlanBuilder() {
                   <Gavel className="h-4 w-4 mr-2" />
                   Legal ({legalReadyEmployers.length})
                 </TabsTrigger>
-                <TabsTrigger value="c3">
+                <TabsTrigger value="active-cases">
                   <FileText className="h-4 w-4 mr-2" />
-                  C3 Follow-Up ({c3WithoutPayment.length})
+                  Active Cases ({activeCases.length})
                 </TabsTrigger>
-                <TabsTrigger value="arrears">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Arrears ({arrearsEmployers.length})
+                <TabsTrigger value="lms">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  LMS Courses ({lmsCourses.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -461,14 +514,14 @@ export default function WeeklyPlanBuilder() {
                 )}
               </TabsContent>
 
-              <TabsContent value="c3" className="space-y-2 mt-4">
+              <TabsContent value="active-cases" className="space-y-2 mt-4">
                 <div className="text-sm text-muted-foreground mb-3">
-                  Employers who submitted C3 forms without payment
+                  Active compliance cases requiring follow-up (C3 issues, arrears, payment plans, etc.)
                 </div>
-                {c3WithoutPayment.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">No C3s without payment to follow up</div>
+                {activeCases.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">No active cases requiring attention</div>
                 ) : (
-                  c3WithoutPayment.map((employer) => (
+                  activeCases.map((employer) => (
                     <div
                       key={employer.regNo}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -476,11 +529,16 @@ export default function WeeklyPlanBuilder() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold">{employer.name}</p>
-                          <Badge variant="outline" className="bg-amber-50">C3 No Payment</Badge>
+                          <Badge variant="outline" className={employer.caseType === 'C3 No Payment' ? 'bg-amber-50' : 'bg-red-50'}>
+                            {employer.caseType}
+                          </Badge>
+                          <Badge className={getRiskBadgeColor(employer.riskBand)}>{employer.riskBand}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Code: {employer.regNo} • Last C3: {employer.lastC3Date || 'N/A'} • 
-                          Estimated Due: ${employer.outstandingBalance?.toLocaleString() || '0'}
+                          Code: {employer.regNo} • 
+                          {employer.caseType === 'C3 No Payment' && ` Last C3: ${employer.lastC3Date || 'N/A'} •`}
+                          {` Outstanding: $${employer.outstandingBalance?.toLocaleString() || '0'}`}
+                          {employer.lastPaymentDate && ` • Last Payment: ${employer.lastPaymentDate}`}
                         </p>
                       </div>
                       <Button
@@ -488,8 +546,10 @@ export default function WeeklyPlanBuilder() {
                         variant="secondary"
                         onClick={() => handleQuickAddFromSuggestion(
                           employer,
-                          VisitType.C3_FOLLOW_UP,
-                          `C3 submitted without payment - Follow up on outstanding contributions`
+                          employer.caseType === 'C3 No Payment' ? VisitType.C3_FOLLOW_UP : VisitType.PAYMENT_FOLLOW_UP,
+                          employer.caseType === 'C3 No Payment' 
+                            ? `C3 submitted without payment - Follow up on outstanding contributions`
+                            : `Arrears follow-up - $${employer.outstandingBalance?.toLocaleString()} outstanding`
                         )}
                       >
                         <Plus className="h-4 w-4 mr-1" />
@@ -500,42 +560,51 @@ export default function WeeklyPlanBuilder() {
                 )}
               </TabsContent>
 
-              <TabsContent value="arrears" className="space-y-2 mt-4">
+              <TabsContent value="lms" className="space-y-2 mt-4">
                 <div className="text-sm text-muted-foreground mb-3">
-                  Employers with significant arrears requiring follow-up
+                  Learning Management System courses assigned to you for completion
                 </div>
-                {arrearsEmployers.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">No significant arrears to address</div>
+                {lmsCourses.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">No courses assigned</div>
                 ) : (
-                  arrearsEmployers.map((employer) => (
-                    <div
-                      key={employer.regNo}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{employer.name}</p>
-                          <Badge className={getRiskBadgeColor(employer.riskBand)}>{employer.riskBand}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Code: {employer.regNo} • Arrears: ${employer.outstandingBalance?.toLocaleString()} • 
-                          Last Payment: {employer.lastPaymentDate || 'Never'}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleQuickAddFromSuggestion(
-                          employer,
-                          VisitType.PAYMENT_FOLLOW_UP,
-                          `Arrears follow-up - $${employer.outstandingBalance?.toLocaleString()} outstanding`
-                        )}
+                  <div className="space-y-3">
+                    {lmsCourses.map((course) => (
+                      <div
+                        key={course.id}
+                        className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add to Plan
-                      </Button>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <GraduationCap className="h-5 w-5 text-primary" />
+                              <p className="font-semibold">{course.title}</p>
+                              <Badge variant={course.status === 'In Progress' ? 'default' : 'secondary'}>
+                                {course.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Course ID: {course.id}</span>
+                              <span>Due: {course.dueDate}</span>
+                              <span>Progress: {course.progress}%</span>
+                            </div>
+                            {course.progress > 0 && (
+                              <div className="mt-2 w-full bg-muted rounded-full h-2">
+                                <div 
+                                  className="bg-primary h-2 rounded-full transition-all" 
+                                  style={{ width: `${course.progress}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-900 dark:text-blue-100">
+                        <strong>Note:</strong> Complete assigned LMS courses to maintain compliance inspector certification and stay current with policy updates.
+                      </p>
                     </div>
-                  ))
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
@@ -854,6 +923,37 @@ export default function WeeklyPlanBuilder() {
           Submit for Review
         </Button>
       </div>
+
+      {/* Date Picker Dialog */}
+      <Dialog open={datePickerDialog.open} onOpenChange={(open) => setDatePickerDialog({ ...datePickerDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Day for Visit</DialogTitle>
+            <DialogDescription>
+              Choose which day next week to add this visit to your plan
+              {datePickerDialog.employer && (
+                <div className="mt-2 p-2 bg-muted rounded-md">
+                  <p className="font-medium">{datePickerDialog.employer.name}</p>
+                  <p className="text-xs text-muted-foreground">{datePickerDialog.purpose}</p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2 py-4">
+            {DAYS_OF_WEEK.map((day) => (
+              <Button
+                key={day}
+                variant="outline"
+                className="justify-start"
+                onClick={() => handleDateSelection(day)}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {day}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
