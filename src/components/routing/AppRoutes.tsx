@@ -12,6 +12,16 @@ import NotFound from '@/pages/NotFound';
 import ViewInsuredPerson from '@/pages/insuredPersons/ViewInsuredPerson';
 import EditInsuredPerson from '@/pages/insuredPersons/EditInsuredPerson';
 
+// Compliance Module
+import CaseManagement from '@/pages/compliance/CaseManagement';
+import InspectorPlans from '@/pages/compliance/InspectorPlans';
+import PaymentArrangements from '@/pages/compliance/PaymentArrangements';
+import FieldOperations from '@/pages/compliance/FieldOperations';
+import NoticesManagement from '@/pages/compliance/NoticesManagement';
+import EmployerStatements from '@/pages/compliance/EmployerStatements';
+import ComplianceSettings from '@/pages/compliance/ComplianceSettings';
+import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
+
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
@@ -81,8 +91,7 @@ import WorkInjuryBenefits from '@/pages/benefits/WorkInjuryBenefits';
 import DeathBenefits from '@/pages/benefits/DeathBenefits';
 import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
-// Compliance & Audit
-import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
+// Compliance & Audit (ComplianceDashboard already imported above)
 import EmployerComplianceManagement from '@/pages/compliance/EmployerComplianceManagement';
 import ComplianceReports from '@/pages/compliance/ComplianceReports';
 import LegalProceedings from '@/pages/compliance/LegalProceedings';
@@ -216,7 +225,7 @@ import LegalAdminConfig from '@/pages/legal/AdminConfig';
 // LegalFinal Module pages
 import { LegalFinalDashboard } from '@/pages/legalFinal/LegalFinalDashboard';
 import { NewCaseForm } from '@/pages/legalFinal/NewCaseForm';
-import { CaseManagement } from '@/pages/legalFinal/CaseManagement';
+import { CaseManagement as LegalCaseManagement } from '@/pages/legalFinal/CaseManagement';
 import { LegalReports as LegalFinalReports } from '@/pages/legalFinal/LegalReports';
 import { CaseStatusUpdateForm } from '@/pages/legalFinal/CaseStatusUpdateForm';
 import { DocumentUploadForm } from '@/pages/legalFinal/DocumentUploadForm';
@@ -373,6 +382,13 @@ export const AppRoutes = () => {
 
       {/* Compliance & Audit Routes */}
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/case-management" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
+      <Route path="/compliance/inspector-plans" element={<ProtectedLayout><InspectorPlans /></ProtectedLayout>} />
+      <Route path="/compliance/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
+      <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
+      <Route path="/compliance/payment-arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
+      <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
+      <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
       <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
       <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
@@ -534,7 +550,7 @@ export const AppRoutes = () => {
       {/* LegalFinal Module Routes */}
       <Route path="/legal-final" element={<ProtectedLayout><LegalFinalDashboard /></ProtectedLayout>} />
       <Route path="/legal-final/new-case" element={<ProtectedLayout><NewCaseForm /></ProtectedLayout>} />
-      <Route path="/legal-final/cases" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
+      <Route path="/legal-final/cases" element={<ProtectedLayout><LegalCaseManagement /></ProtectedLayout>} />
       <Route path="/legal-final/cases/:caseId/edit" element={<ProtectedLayout><CaseStatusUpdateForm /></ProtectedLayout>} />
       <Route path="/legal-final/cases/:caseId/documents" element={<ProtectedLayout><DocumentUploadForm /></ProtectedLayout>} />
       <Route path="/legal-final/cases/:caseId/hearing" element={<ProtectedLayout><HearingJudgmentForm /></ProtectedLayout>} />
