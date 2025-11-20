@@ -2,6 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Bell, 
   Send, 
@@ -9,13 +18,19 @@ import {
   Clock, 
   Search,
   Filter,
-  Plus
+  Plus,
+  Eye,
+  Download
 } from "lucide-react";
 import { MOCK_NOTICES } from "@/services/mockData/complianceData";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NoticesManagement() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState<any>(null);
 
   const filteredNotices = MOCK_NOTICES.filter(notice => 
     notice.employerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,6 +55,18 @@ export default function NoticesManagement() {
       case "draft": return "bg-gray-500";
       default: return "bg-gray-500";
     }
+  };
+
+  const handleViewNotice = (notice: any) => {
+    setSelectedNotice(notice);
+    setViewDialogOpen(true);
+  };
+
+  const handleDownloadPDF = (notice: any) => {
+    toast({
+      title: "Downloading PDF",
+      description: `Notice ${notice.noticeNumber} is being downloaded...`,
+    });
   };
 
   return (
@@ -122,53 +149,60 @@ export default function NoticesManagement() {
                         {notice.employerName}
                       </h3>
                       <Badge variant="outline" className="text-xs">
-                        {notice.caseId}
+                        {notice.noticeNumber}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {notice.subject}
+                    <p className="text-sm text-muted-foreground">
+                      Case: {notice.caseId}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Badge className={getNoticeTypeColor(notice.noticeType)}>
-                      {notice.noticeType.replace(/_/g, " ")}
-                    </Badge>
-                    <Badge className="bg-green-500">
-                      SENT
-                    </Badge>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${getNoticeTypeColor(notice.noticeType)}`} />
+                    <span className="text-sm text-muted-foreground">
+                      {notice.noticeType.replace('_', ' ')}
+                    </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Issued</p>
-                      <p className="font-medium text-foreground">{notice.issuedDate}</p>
-                    </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Notice Type</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {notice.noticeType.replace(/_/g, ' ')}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Due Date</p>
-                      <p className="font-medium text-foreground">{notice.issuedDate || "N/A"}</p>
-                    </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Issued Date</p>
+                    <p className="text-sm font-semibold text-foreground">{notice.issuedDate}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Template</p>
-                      <p className="font-medium text-foreground">{notice.noticeType}</p>
-                    </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Delivery Method</p>
+                    <p className="text-sm font-semibold text-foreground">{notice.deliveryMethod}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <Badge className={getStatusColor(notice.deliveryStatus)}>
+                      {notice.deliveryStatus}
+                    </Badge>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline">View Notice</Button>
-                  <Button size="sm" variant="outline">Download PDF</Button>
-                  <Button size="sm" className="gap-2">
-                    <Send className="h-4 w-4" />
-                    Resend Notice
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleViewNotice(notice)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Notice
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleDownloadPDF(notice)}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
                   </Button>
                 </div>
               </div>
@@ -176,6 +210,100 @@ export default function NoticesManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* View Notice Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Notice Details</DialogTitle>
+            <DialogDescription>
+              {selectedNotice?.noticeNumber} - {selectedNotice?.noticeType.replace(/_/g, ' ')}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedNotice && (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Employer</Label>
+                  <p className="font-medium">{selectedNotice.employerName}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Case ID</Label>
+                  <p className="font-medium">{selectedNotice.caseId}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Notice Type</Label>
+                  <p className="font-medium">{selectedNotice.noticeType.replace(/_/g, ' ')}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Issued Date</Label>
+                  <p className="font-medium">{selectedNotice.issuedDate}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Delivery Method</Label>
+                  <p className="font-medium">{selectedNotice.deliveryMethod}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <Badge className={getStatusColor(selectedNotice.deliveryStatus)}>
+                    {selectedNotice.deliveryStatus}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Subject</Label>
+                <Card className="mt-2">
+                  <CardContent className="pt-4">
+                    <p className="text-sm font-medium">{selectedNotice.subject}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Notice Body</Label>
+                <Card className="mt-2">
+                  <CardContent className="pt-4">
+                    <p className="text-sm whitespace-pre-line">{selectedNotice.body}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {selectedNotice.responseReceived && (
+                <div>
+                  <Label className="text-muted-foreground">Employer Response</Label>
+                  <Card className="mt-2">
+                    <CardContent className="pt-4">
+                      <p className="text-sm">
+                        Response received on {selectedNotice.responseDate}
+                      </p>
+                      {selectedNotice.responseNotes && (
+                        <p className="text-sm mt-2 text-muted-foreground">
+                          {selectedNotice.responseNotes}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => handleDownloadPDF(selectedNotice)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
