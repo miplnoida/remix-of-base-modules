@@ -14,6 +14,10 @@ export interface Employer {
   zone?: string;
   lastAuditDate?: string;
   outstandingArrears?: number;
+  outstandingBalance?: number; // Alias for compatibility
+  lastC3Status?: string;
+  lastC3Date?: string;
+  lastPaymentDate?: string;
 }
 
 const mockEmployers: Record<string, Employer> = {
@@ -30,7 +34,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Critical',
     zone: 'Zone A',
     lastAuditDate: '2023-06-15',
-    outstandingArrears: 75000
+    outstandingArrears: 75000,
+    outstandingBalance: 75000,
+    lastC3Status: 'submitted_no_payment',
+    lastC3Date: '2024-11-15',
+    lastPaymentDate: '2023-08-10'
   },
   "EMP-002": {
     regNo: "EMP-002",
@@ -45,7 +53,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'High',
     zone: 'Zone A',
     lastAuditDate: '2023-09-20',
-    outstandingArrears: 45000
+    outstandingArrears: 65000,
+    outstandingBalance: 65000,
+    lastC3Status: 'not_submitted',
+    lastC3Date: '2024-09-01',
+    lastPaymentDate: '2024-01-15'
   },
   "EMP-003": {
     regNo: "EMP-003",
@@ -60,7 +72,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'High',
     zone: 'Zone A',
     lastAuditDate: '2024-01-10',
-    outstandingArrears: 0
+    outstandingArrears: 0,
+    outstandingBalance: 0,
+    lastC3Status: 'submitted_with_payment',
+    lastC3Date: '2024-12-01',
+    lastPaymentDate: '2024-12-01'
   },
   "EMP-004": {
     regNo: "EMP-004",
@@ -75,7 +91,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'High',
     zone: 'Zone A',
     lastAuditDate: '2024-02-15',
-    outstandingArrears: 0
+    outstandingArrears: 12000,
+    outstandingBalance: 12000,
+    lastC3Status: 'submitted_partial_payment',
+    lastC3Date: '2024-11-30',
+    lastPaymentDate: '2024-11-30'
   },
   "EMP-005": {
     regNo: "EMP-005",
@@ -90,7 +110,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Medium',
     zone: 'Zone B',
     lastAuditDate: '2023-08-05',
-    outstandingArrears: 32000
+    outstandingArrears: 55000,
+    outstandingBalance: 55000,
+    lastC3Status: 'submitted_no_payment',
+    lastC3Date: '2024-10-15',
+    lastPaymentDate: '2023-12-20'
   },
   "EMP-006": {
     regNo: "EMP-006",
@@ -105,7 +129,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Medium',
     zone: 'Zone A',
     lastAuditDate: '2024-03-01',
-    outstandingArrears: 0
+    outstandingArrears: 0,
+    outstandingBalance: 0,
+    lastC3Status: 'submitted_with_payment',
+    lastC3Date: '2024-12-05',
+    lastPaymentDate: '2024-12-05'
   },
   "EMP-007": {
     regNo: "EMP-007",
@@ -120,7 +148,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Medium',
     zone: 'Zone B',
     lastAuditDate: '2024-01-20',
-    outstandingArrears: 15000
+    outstandingArrears: 28000,
+    outstandingBalance: 28000,
+    lastC3Status: 'submitted_no_payment',
+    lastC3Date: '2024-11-01',
+    lastPaymentDate: '2024-05-15'
   },
   "EMP-008": {
     regNo: "EMP-008",
@@ -135,7 +167,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Medium',
     zone: 'Zone A',
     lastAuditDate: '2024-04-10',
-    outstandingArrears: 0
+    outstandingArrears: 8500,
+    outstandingBalance: 8500,
+    lastC3Status: 'submitted_with_payment',
+    lastC3Date: '2024-11-28',
+    lastPaymentDate: '2024-11-28'
   },
   "EMP-009": {
     regNo: "EMP-009",
@@ -150,7 +186,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Low',
     zone: 'Zone B',
     lastAuditDate: '2024-05-15',
-    outstandingArrears: 0
+    outstandingArrears: 0,
+    outstandingBalance: 0,
+    lastC3Status: 'submitted_with_payment',
+    lastC3Date: '2024-12-02',
+    lastPaymentDate: '2024-12-02'
   },
   "EMP-010": {
     regNo: "EMP-010",
@@ -165,7 +205,11 @@ const mockEmployers: Record<string, Employer> = {
     riskBand: 'Low',
     zone: 'Zone A',
     lastAuditDate: '2024-06-01',
-    outstandingArrears: 0
+    outstandingArrears: 0,
+    outstandingBalance: 0,
+    lastC3Status: 'submitted_with_payment',
+    lastC3Date: '2024-12-03',
+    lastPaymentDate: '2024-12-03'
   }
 };
 
