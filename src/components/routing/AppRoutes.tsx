@@ -156,6 +156,9 @@ import EmployerStatement from '@/pages/reports/EmployerStatement';
 import WebUsers from '@/pages/users/WebUsers';
 import AuditLog from '@/pages/systemAdmin/AuditLog';
 import CentralScheduler from '@/pages/admin/CentralScheduler';
+import UserManagement from '@/pages/systemAdmin/UserManagement';
+import BackupRecovery from '@/pages/systemAdmin/BackupRecovery';
+import SystemLogs from '@/pages/systemAdmin/SystemLogs';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -354,7 +357,7 @@ import GLExport from '@/pages/finance/GLExport';
 import DailyReports from '@/pages/finance/DailyReports';
 import ReversalsAndPenalties from '@/pages/finance/ReversalsAndPenalties';
 import AdminConfiguration from '@/pages/finance/AdminConfiguration';
-import UserManagement from '@/pages/finance/UserManagement';
+import { default as FinanceUserManagement } from '@/pages/finance/UserManagement';
 
 export const AppRoutes = () => {
   return (
@@ -540,9 +543,12 @@ export const AppRoutes = () => {
       <Route path="/benefits/educational" element={<ProtectedLayout><EducationalBenefits /></ProtectedLayout>} />
 
       {/* System Administration Routes */}
+      <Route path="/admin/users" element={<ProtectedLayout><UserManagement /></ProtectedLayout>} />
       <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
       <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLog /></ProtectedLayout>} />
       <Route path="/admin/scheduler" element={<ProtectedLayout><CentralScheduler /></ProtectedLayout>} />
+      <Route path="/admin/backup" element={<ProtectedLayout><BackupRecovery /></ProtectedLayout>} />
+      <Route path="/admin/logs" element={<ProtectedLayout><SystemLogs /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
@@ -713,7 +719,7 @@ export const AppRoutes = () => {
       <Route path="/finance/daily-reports" element={<ProtectedLayout><DailyReports /></ProtectedLayout>} />
       <Route path="/finance/reversals" element={<ProtectedLayout><ReversalsAndPenalties /></ProtectedLayout>} />
       <Route path="/finance/admin-config" element={<ProtectedLayout><AdminConfiguration /></ProtectedLayout>} />
-      <Route path="/finance/user-management" element={<ProtectedLayout><UserManagement /></ProtectedLayout>} />
+      <Route path="/finance/user-management" element={<ProtectedLayout><FinanceUserManagement /></ProtectedLayout>} />
 
       {/* Test Routes */}
       <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
