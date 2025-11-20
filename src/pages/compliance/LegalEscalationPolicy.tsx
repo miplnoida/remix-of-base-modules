@@ -4,10 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { toast } from 'sonner';
 import { 
   Settings, 
@@ -20,16 +29,24 @@ import {
   Target,
   Shield,
   Save,
-  Calendar
+  Calendar,
+  History,
+  CheckCircle2
 } from 'lucide-react';
 import { legalEscalationService } from '@/services/legalEscalationService';
 import { LegalEscalationPolicy, LegalEscalationRule, EscalationRuleType, EscalationTriggerCondition } from '@/types/legalEscalation';
+import { format } from 'date-fns';
 
 const LegalEscalationPolicyPage = () => {
   const [policy, setPolicy] = useState<LegalEscalationPolicy | null>(null);
+  const [policyHistory, setPolicyHistory] = useState<LegalEscalationPolicy[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRuleDialog, setShowRuleDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showNewPolicyDialog, setShowNewPolicyDialog] = useState(false);
   const [editingRule, setEditingRule] = useState<LegalEscalationRule | null>(null);
+  const [newPolicyEffectiveFrom, setNewPolicyEffectiveFrom] = useState('');
+  const [newPolicyNotes, setNewPolicyNotes] = useState('');
   const [newRule, setNewRule] = useState<Partial<LegalEscalationRule>>({
     ruleType: EscalationRuleType.AGE_THRESHOLD,
     triggerCondition: EscalationTriggerCondition.AND,
@@ -47,8 +64,9 @@ const LegalEscalationPolicyPage = () => {
   const loadPolicy = async () => {
     try {
       setLoading(true);
-      const data = await legalEscalationService.getActivePolicy();
-      setPolicy(data);
+      const history = await legalEscalationService.getPolicyHistory();
+      setPolicy(history.activePolicy);
+      setPolicyHistory(history.policies);
     } catch (error) {
       toast.error('Failed to load escalation policy');
     } finally {
@@ -60,10 +78,39 @@ const LegalEscalationPolicyPage = () => {
     if (!policy) return;
     
     try {
-      await legalEscalationService.updatePolicy(policy);
+      await legalEscalationService.updateActivePolicy(policy);
       toast.success('Policy settings saved successfully');
+      loadPolicy();
     } catch (error) {
       toast.error('Failed to save policy');
+    }
+  };
+
+  const handleActivateNewPolicy = async () => {
+    if (!newPolicyEffectiveFrom) {
+      toast.error('Please select an effective date');
+      return;
+    }
+
+    if (!policy) return;
+
+    try {
+      await legalEscalationService.activateNewPolicy({
+        ...policy,
+        policyVersion: `v${policyHistory.length + 1}.0`,
+        effectiveFrom: newPolicyEffectiveFrom,
+        createdBy: 'current.user',
+        notes: newPolicyNotes
+      });
+      
+      toast.success('New policy activated successfully');
+      setShowNewPolicyDialog(false);
+      setNewPolicyEffectiveFrom('');
+      setNewPolicyNotes('');
+      loadPolicy();
+    } catch (error) {
+      console.error('Error activating new policy:', error);
+      toast.error('Failed to activate new policy');
     }
   };
 
@@ -171,11 +218,30 @@ const LegalEscalationPolicyPage = () => {
           <p className="text-muted-foreground mt-2">
             Configure automated rules and thresholds for escalating compliance cases to legal proceedings
           </p>
+          <div className="flex items-center gap-3 mt-2">
+            <Badge variant="default" className="gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Active Policy: {policy.policyVersion}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Effective from {format(new Date(policy.effectiveFrom), 'MMM dd, yyyy')}
+            </span>
+          </div>
         </div>
-        <Button onClick={handleSavePolicy}>
-          <Save className="h-4 w-4 mr-2" />
-          Save Policy
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setShowHistoryDialog(true)}>
+            <History className="h-4 w-4" />
+            Policy History
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setShowNewPolicyDialog(true)}>
+            <Plus className="h-4 w-4" />
+            Activate New Policy
+          </Button>
+          <Button onClick={handleSavePolicy}>
+            <Save className="h-4 w-4 mr-2" />
+            Save Changes
+          </Button>
+        </div>
       </div>
 
       {/* Policy Overview Card */}
@@ -209,10 +275,10 @@ const LegalEscalationPolicyPage = () => {
             <Label>Policy Status</Label>
             <div className="flex items-center gap-2 mt-2">
               <Switch
-                checked={policy.active}
-                onCheckedChange={(checked) => setPolicy({ ...policy, active: checked })}
+                checked={policy.isActive}
+                onCheckedChange={(checked) => setPolicy({ ...policy, isActive: checked })}
               />
-              <span className="text-sm">{policy.active ? 'Active' : 'Inactive'}</span>
+              <span className="text-sm">{policy.isActive ? 'Active' : 'Inactive'}</span>
             </div>
           </div>
         </div>
@@ -342,6 +408,99 @@ const LegalEscalationPolicyPage = () => {
           ))}
         </div>
       </Card>
+
+      {/* Policy History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Policy History</DialogTitle>
+            <DialogDescription>
+              View all legal escalation policy versions and their effective periods
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Version</TableHead>
+                  <TableHead>Policy Name</TableHead>
+                  <TableHead>Effective From</TableHead>
+                  <TableHead>Effective To</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {policyHistory.map((historyPolicy) => (
+                  <TableRow key={historyPolicy.policyId}>
+                    <TableCell className="font-medium">{historyPolicy.policyVersion}</TableCell>
+                    <TableCell>{historyPolicy.policyName}</TableCell>
+                    <TableCell>{format(new Date(historyPolicy.effectiveFrom), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>
+                      {historyPolicy.effectiveTo 
+                        ? format(new Date(historyPolicy.effectiveTo), 'MMM dd, yyyy')
+                        : 'Present'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={historyPolicy.isActive ? "default" : "secondary"}>
+                        {historyPolicy.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{historyPolicy.createdBy}</TableCell>
+                    <TableCell className="max-w-xs truncate">{historyPolicy.notes || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Policy Dialog */}
+      <Dialog open={showNewPolicyDialog} onOpenChange={setShowNewPolicyDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Activate New Policy</DialogTitle>
+            <DialogDescription>
+              Create a new policy version with current settings. The current policy will be deactivated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="effectiveFrom">Effective From Date</Label>
+              <Input
+                id="effectiveFrom"
+                type="date"
+                value={newPolicyEffectiveFrom}
+                onChange={(e) => setNewPolicyEffectiveFrom(e.target.value)}
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+              <p className="text-xs text-muted-foreground">
+                The date when this policy will become active
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Describe the changes in this policy version..."
+                value={newPolicyNotes}
+                onChange={(e) => setNewPolicyNotes(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewPolicyDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleActivateNewPolicy}>
+              Activate Policy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Rule Dialog */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
