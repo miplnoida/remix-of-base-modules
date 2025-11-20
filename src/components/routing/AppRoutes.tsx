@@ -155,6 +155,7 @@ import EmployerStatement from '@/pages/reports/EmployerStatement';
 // System Administration
 import WebUsers from '@/pages/users/WebUsers';
 import AuditLog from '@/pages/systemAdmin/AuditLog';
+import CentralScheduler from '@/pages/admin/CentralScheduler';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -541,6 +542,7 @@ export const AppRoutes = () => {
       {/* System Administration Routes */}
       <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
       <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLog /></ProtectedLayout>} />
+      <Route path="/admin/scheduler" element={<ProtectedLayout><CentralScheduler /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
