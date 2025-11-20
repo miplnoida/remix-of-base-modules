@@ -300,6 +300,12 @@ import TopMissingC3Report from '@/pages/reports/employers/TopMissingC3Report';
 import MissingC3PerZoneReport from '@/pages/reports/employers/MissingC3PerZoneReport';
 import C3WithoutPaymentReport from '@/pages/reports/employers/C3WithoutPaymentReport';
 import NoPaymentPerZoneReport from '@/pages/reports/employers/NoPaymentPerZoneReport';
+import EmployeeTurnoverReport from '@/pages/reports/employers/EmployeeTurnoverReport';
+import ByEmployeeCountReport from '@/pages/reports/employers/ByEmployeeCountReport';
+import ByMonthlyContributionsReport from '@/pages/reports/employers/ByMonthlyContributionsReport';
+import ByArrearsReport from '@/pages/reports/employers/ByArrearsReport';
+import ByWaiversReport from '@/pages/reports/employers/ByWaiversReport';
+import WaiversPerZoneReport from '@/pages/reports/employers/WaiversPerZoneReport';
 import MonthlyCollectionsReport from '@/pages/reports/c3/MonthlyCollectionsReport';
 import ArrearsReport from '@/pages/reports/c3/ArrearsReport';
 import TopContributorsReport from '@/pages/reports/c3/TopContributorsReport';
@@ -686,6 +692,12 @@ export const AppRoutes = () => {
       <Route path="/employers/reports/missing-c3-per-zone" element={<ProtectedLayout><MissingC3PerZoneReport /></ProtectedLayout>} />
       <Route path="/employers/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />
       <Route path="/employers/reports/no-payment-per-zone" element={<ProtectedLayout><NoPaymentPerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/employee-turnover" element={<ProtectedLayout><EmployeeTurnoverReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/by-employee-count" element={<ProtectedLayout><ByEmployeeCountReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/by-monthly-contributions" element={<ProtectedLayout><ByMonthlyContributionsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/by-arrears" element={<ProtectedLayout><ByArrearsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/by-waivers" element={<ProtectedLayout><ByWaiversReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/waivers-per-zone" element={<ProtectedLayout><WaiversPerZoneReport /></ProtectedLayout>} />
       
       {/* Report Routes - C3 */}
       <Route path="/c3/reports/monthly-collections" element={<ProtectedLayout><MonthlyCollectionsReport /></ProtectedLayout>} />
