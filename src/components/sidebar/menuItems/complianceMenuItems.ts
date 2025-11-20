@@ -106,6 +106,13 @@ export const complianceMenuItems = [
             icon: Shield,
             requiresPermission: "manage_compliance",
             description: "Configure legal escalation rules and thresholds"
+          },
+          {
+            title: "Risk Rule Policy",
+            url: "/compliance/settings/risk-policy",
+            icon: TrendingUp,
+            requiresPermission: "manage_compliance",
+            description: "Configure risk factors, policies, and risk bands"
           }
         ]
       }
