@@ -64,6 +64,9 @@ import ScanningActivityReport from '@/pages/person/reports/ScanningActivityRepor
 import OutstandingDiscrepanciesReport from '@/pages/person/reports/OutstandingDiscrepanciesReport';
 import LongTermClaimsReport from '@/pages/person/reports/LongTermClaimsReport';
 import AuditSampleReport from '@/pages/person/reports/AuditSampleReport';
+import RefundsToCRUReport from '@/pages/person/reports/RefundsToCRUReport';
+import PrintedSpoiledCardsReport from '@/pages/person/reports/PrintedSpoiledCardsReport';
+import AuditSampleIPReport from '@/pages/person/reports/AuditSampleIPReport';
 
 // Finance Settings Pages
 import FeeConfigurationPage from '@/pages/finance/settings/FeeConfiguration';
@@ -448,6 +451,9 @@ export const AppRoutes = () => {
       <Route path="/person/reports/self-employed-without-license" element={<ProtectedLayout><SelfEmployedWithoutLicenseReport /></ProtectedLayout>} />
       <Route path="/person/reports/claims-to-benefits" element={<ProtectedLayout><ClaimsToBenefitsReport /></ProtectedLayout>} />
       <Route path="/person/reports/crm-activity" element={<ProtectedLayout><CRMActivityReport /></ProtectedLayout>} />
+      <Route path="/person/reports/refunds-to-cru" element={<ProtectedLayout><RefundsToCRUReport /></ProtectedLayout>} />
+      <Route path="/person/reports/printed-spoiled-cards" element={<ProtectedLayout><PrintedSpoiledCardsReport /></ProtectedLayout>} />
+      <Route path="/person/reports/audit-sample-ip" element={<ProtectedLayout><AuditSampleIPReport /></ProtectedLayout>} />
       
       {/* C3 Management Reports - Moved from Insured Persons */}
       <Route path="/c3/reports/c3-entry-verification" element={<ProtectedLayout><C3EntryVerificationReport /></ProtectedLayout>} />
