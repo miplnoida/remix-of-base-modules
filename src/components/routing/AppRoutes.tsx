@@ -57,7 +57,6 @@ import PendingC3Report from '@/pages/person/reports/PendingC3Report';
 import MissingSSNReport from '@/pages/person/reports/MissingSSNReport';
 import C3LineItemChangesReport from '@/pages/person/reports/C3LineItemChangesReport';
 import ElectronicC3UploadsReport from '@/pages/person/reports/ElectronicC3UploadsReport';
-import C3WithoutPaymentReport from '@/pages/person/reports/C3WithoutPaymentReport';
 import EmployerNotificationsReport from '@/pages/person/reports/EmployerNotificationsReport';
 import HighWageMultiEmployerReport from '@/pages/person/reports/HighWageMultiEmployerReport';
 import ScanningActivityReport from '@/pages/person/reports/ScanningActivityReport';
@@ -294,6 +293,13 @@ import ContributionHistoryReport from '@/pages/reports/insured-persons/Contribut
 import RegisteredSummaryReport from '@/pages/reports/employers/RegisteredSummaryReport';
 import ActiveInactiveReport from '@/pages/reports/employers/ActiveInactiveReport';
 import ContributionComplianceReport from '@/pages/reports/employers/ContributionComplianceReport';
+import NonPaying3MonthsReport from '@/pages/reports/employers/NonPaying3MonthsReport';
+import NonPaying6MonthsReport from '@/pages/reports/employers/NonPaying6MonthsReport';
+import NonPaying9MonthsReport from '@/pages/reports/employers/NonPaying9MonthsReport';
+import TopMissingC3Report from '@/pages/reports/employers/TopMissingC3Report';
+import MissingC3PerZoneReport from '@/pages/reports/employers/MissingC3PerZoneReport';
+import C3WithoutPaymentReport from '@/pages/reports/employers/C3WithoutPaymentReport';
+import NoPaymentPerZoneReport from '@/pages/reports/employers/NoPaymentPerZoneReport';
 import MonthlyCollectionsReport from '@/pages/reports/c3/MonthlyCollectionsReport';
 import ArrearsReport from '@/pages/reports/c3/ArrearsReport';
 import TopContributorsReport from '@/pages/reports/c3/TopContributorsReport';
@@ -673,6 +679,13 @@ export const AppRoutes = () => {
       <Route path="/employers/reports/registered-summary" element={<ProtectedLayout><RegisteredSummaryReport /></ProtectedLayout>} />
       <Route path="/employers/reports/active-inactive" element={<ProtectedLayout><ActiveInactiveReport /></ProtectedLayout>} />
       <Route path="/employers/reports/contribution-compliance" element={<ProtectedLayout><ContributionComplianceReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/non-paying-3-months" element={<ProtectedLayout><NonPaying3MonthsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/non-paying-6-months" element={<ProtectedLayout><NonPaying6MonthsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/non-paying-9-months" element={<ProtectedLayout><NonPaying9MonthsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/top-missing-c3" element={<ProtectedLayout><TopMissingC3Report /></ProtectedLayout>} />
+      <Route path="/employers/reports/missing-c3-per-zone" element={<ProtectedLayout><MissingC3PerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/no-payment-per-zone" element={<ProtectedLayout><NoPaymentPerZoneReport /></ProtectedLayout>} />
       
       {/* Report Routes - C3 */}
       <Route path="/c3/reports/monthly-collections" element={<ProtectedLayout><MonthlyCollectionsReport /></ProtectedLayout>} />
