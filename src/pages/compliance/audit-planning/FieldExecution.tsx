@@ -14,7 +14,8 @@ import {
   CheckCircle,
   PlayCircle,
   StopCircle,
-  Upload
+  Upload,
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -24,6 +25,8 @@ import {
   GPSLocation
 } from '@/types/weeklyAuditPlan';
 import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
+import { AuditChecklistDialog } from './AuditChecklistDialog';
+import { ChecklistItem } from '@/types/auditChecklist';
 
 export default function FieldExecution() {
   const { toast } = useToast();
@@ -33,6 +36,8 @@ export default function FieldExecution() {
   const [visitNotes, setVisitNotes] = useState('');
   const [findings, setFindings] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checklistDialogOpen, setChecklistDialogOpen] = useState(false);
+  const [checklistData, setChecklistData] = useState<ChecklistItem[]>([]);
 
   useEffect(() => {
     loadApprovedPlans();
@@ -147,6 +152,14 @@ export default function FieldExecution() {
     }
   };
 
+  const handleSaveChecklist = (checklist: ChecklistItem[]) => {
+    setChecklistData(checklist);
+    toast({
+      title: 'Checklist Saved',
+      description: 'Audit checklist saved successfully'
+    });
+  };
+
   const getTodayVisits = () => {
     const today = new Date().toISOString().split('T')[0];
     return plans.flatMap(p =>
@@ -252,9 +265,14 @@ export default function FieldExecution() {
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Document
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setChecklistDialogOpen(true)}>
                 <FileText className="h-4 w-4 mr-2" />
                 Audit Checklist
+                {checklistData.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {checklistData.filter(item => item.response).length}/{checklistData.length}
+                  </Badge>
+                )}
               </Button>
             </div>
 
@@ -328,6 +346,13 @@ export default function FieldExecution() {
           )}
         </CardContent>
       </Card>
+
+      <AuditChecklistDialog
+        open={checklistDialogOpen}
+        onOpenChange={setChecklistDialogOpen}
+        visit={selectedVisit}
+        onSave={handleSaveChecklist}
+      />
     </div>
   );
 }

@@ -40,7 +40,7 @@ import LegalRecommendationQueue from '@/pages/compliance/LegalRecommendationQueu
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
-import PendingReview from '@/pages/compliance/audit-planning/PendingReview';
+import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
 import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
 import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
 
