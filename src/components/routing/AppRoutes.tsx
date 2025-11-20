@@ -37,6 +37,7 @@ import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
 import LegalEscalationPolicy from '@/pages/compliance/LegalEscalationPolicy';
 import LegalRecommendationQueue from '@/pages/compliance/LegalRecommendationQueue';
+import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -425,6 +426,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/legal-escalation-policy" element={<ProtectedLayout><LegalEscalationPolicy /></ProtectedLayout>} />
       <Route path="/compliance/legal-recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
       <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
+      <Route path="/compliance/settings/risk-policy" element={<ProtectedLayout><RiskRulePolicy /></ProtectedLayout>} />
       <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
       <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
