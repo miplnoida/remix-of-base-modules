@@ -81,13 +81,6 @@ export const complianceMenuItems = [
         ]
       },
       {
-        title: "Field Operations",
-        url: "/compliance/field-operations",
-        icon: MapPin,
-        requiresPermission: "conduct_inspections",
-        description: "Check-in/check-out, evidence upload, working papers"
-      },
-      {
         title: "Notices & Communication",
         url: "/compliance/notices",
         icon: Bell,

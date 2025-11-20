@@ -410,8 +410,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/cases" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
       <Route path="/compliance/cases/:id" element={<ProtectedLayout><CaseDetails /></ProtectedLayout>} />
       <Route path="/compliance/inspector-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
-      <Route path="/compliance/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
+      <Route path="/compliance/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
       <Route path="/compliance/payment-arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
       <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
