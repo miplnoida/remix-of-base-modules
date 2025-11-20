@@ -38,11 +38,47 @@ export const complianceMenuItems = [
         description: "View and manage all compliance cases"
       },
       {
-        title: "Inspector Plans",
-        url: "/compliance/inspector-plans",
+        title: "Weekly Audit Planning",
         icon: Calendar,
         requiresPermission: "manage_compliance",
-        description: "Weekly plans, approvals, and scheduling"
+        description: "Plan and execute weekly audits",
+        subItems: [
+          {
+            title: "Plan Builder",
+            url: "/compliance/audit-planning/weekly-plan-builder",
+            icon: Calendar,
+            requiresPermission: "create_weekly_plan",
+            description: "Create and manage weekly audit plans"
+          },
+          {
+            title: "My Plans",
+            url: "/compliance/inspector-plans",
+            icon: Calendar,
+            requiresPermission: "manage_compliance",
+            description: "View my weekly plans and status"
+          },
+          {
+            title: "Pending Review",
+            url: "/compliance/audit-planning/pending-review",
+            icon: ClipboardCheck,
+            requiresPermission: "approve_weekly_plan",
+            description: "Review and approve submitted plans"
+          },
+          {
+            title: "Field Execution",
+            url: "/compliance/audit-planning/field-execution",
+            icon: MapPin,
+            requiresPermission: "conduct_inspections",
+            description: "Check-in, execute visits, collect evidence"
+          },
+          {
+            title: "Weekly Reports",
+            url: "/compliance/audit-planning/weekly-reports",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "Submit and review weekly reports"
+          }
+        ]
       },
       {
         title: "Field Operations",
