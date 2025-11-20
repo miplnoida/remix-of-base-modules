@@ -31,7 +31,7 @@ export default function FinanceDashboard() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="bema-h1 mb-2" style={{ color: "hsl(var(--bema-text-primary))" }}>SSB Finance Dashboard</h1>
+        <h1 className="bema-h1 mb-2" style={{ color: "hsl(var(--bema-text-primary))" }}>Finance Dashboard</h1>
         <p className="bema-t1" style={{ color: "hsl(var(--bema-text-secondary))" }}>Real-time financial overview and key performance indicators</p>
       </div>
 
