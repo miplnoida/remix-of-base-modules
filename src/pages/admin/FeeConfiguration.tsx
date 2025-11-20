@@ -200,7 +200,7 @@ export default function FeeConfiguration() {
                     <StatusBadge status={fee.activeStatus ? "Active" : "Inactive"} />
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>EC$ {fee.feeAmount.toFixed(2)}</span>
+                    <span>XCD {fee.feeAmount.toFixed(2)}</span>
                     <span>•</span>
                     <span>{fee.accountingHeadName}</span>
                     <span>•</span>
@@ -289,7 +289,7 @@ export default function FeeConfiguration() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="feeAmount">Fee Amount (EC$) *</Label>
+                <Label htmlFor="feeAmount">Fee Amount (XCD) *</Label>
                 <Input
                   id="feeAmount"
                   type="number"
