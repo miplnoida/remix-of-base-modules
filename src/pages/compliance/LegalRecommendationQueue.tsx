@@ -28,9 +28,9 @@ const LegalRecommendationQueue = () => {
   const [stats, setStats] = useState<LegalRecommendationQueueStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedZone, setSelectedZone] = useState('');
-  const [selectedRiskBand, setSelectedRiskBand] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [selectedZone, setSelectedZone] = useState('ALL');
+  const [selectedRiskBand, setSelectedRiskBand] = useState('ALL');
   const [selectedRecommendation, setSelectedRecommendation] = useState<LegalRecommendation | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
@@ -43,9 +43,9 @@ const LegalRecommendationQueue = () => {
       setLoading(true);
       const [recommendationsData, statsData] = await Promise.all([
         legalEscalationService.getLegalRecommendations({
-          status: selectedStatus || undefined,
-          zone: selectedZone || undefined,
-          riskBand: selectedRiskBand || undefined
+          status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+          zone: selectedZone !== 'ALL' ? selectedZone : undefined,
+          riskBand: selectedRiskBand !== 'ALL' ? selectedRiskBand : undefined
         }),
         legalEscalationService.getQueueStats()
       ]);
@@ -209,7 +209,7 @@ const LegalRecommendationQueue = () => {
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
               <SelectItem value="APPROVED_FOR_REFERRAL">Approved for Referral</SelectItem>
               <SelectItem value="REFERRAL_CREATED">Referral Created</SelectItem>
@@ -221,7 +221,7 @@ const LegalRecommendationQueue = () => {
               <SelectValue placeholder="All Zones" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Zones</SelectItem>
+              <SelectItem value="ALL">All Zones</SelectItem>
               <SelectItem value="Zone 1 - Basseterre">Zone 1 - Basseterre</SelectItem>
               <SelectItem value="Zone 2 - Sandy Point">Zone 2 - Sandy Point</SelectItem>
               <SelectItem value="Zone 3 - Charlestown">Zone 3 - Charlestown</SelectItem>
@@ -232,7 +232,7 @@ const LegalRecommendationQueue = () => {
               <SelectValue placeholder="All Risk Bands" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Risk Bands</SelectItem>
+              <SelectItem value="ALL">All Risk Bands</SelectItem>
               <SelectItem value="Critical">Critical</SelectItem>
               <SelectItem value="High">High</SelectItem>
               <SelectItem value="Medium">Medium</SelectItem>
