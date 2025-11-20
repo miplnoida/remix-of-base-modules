@@ -459,11 +459,52 @@ export default function WeeklyPlanBuilder() {
   const highRiskEmployers = suggestedEmployers.filter(e => e.riskBand === 'Critical' || e.riskBand === 'High').slice(0, 10);
   const legalReadyEmployers = suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 50000).slice(0, 5);
   
-  // Active Cases - combine C3 without payment and arrears cases
-  const activeCases = [
+  // Active Cases - combine C3 without payment and arrears cases, grouped by employer
+  const activeCasesRaw = [
     ...suggestedEmployers.filter(e => e.lastC3Status === 'submitted_no_payment').map(e => ({ ...e, caseType: 'C3 No Payment' as const })),
     ...suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 10000).map(e => ({ ...e, caseType: 'Arrears' as const }))
-  ].slice(0, 10);
+  ];
+  
+  // Group active cases by employer
+  const activeCasesGrouped = activeCasesRaw.reduce((acc, employer) => {
+    const existing = acc.find(group => group.employerId === employer.regNo);
+    if (existing) {
+      existing.cases.push({
+        caseType: employer.caseType,
+        outstandingBalance: employer.outstandingBalance || 0,
+        lastC3Date: employer.lastC3Date,
+        lastPaymentDate: employer.lastPaymentDate,
+        riskBand: employer.riskBand
+      });
+    } else {
+      acc.push({
+        employerId: employer.regNo,
+        employerName: employer.name,
+        riskBand: employer.riskBand,
+        employer: employer,
+        cases: [{
+          caseType: employer.caseType,
+          outstandingBalance: employer.outstandingBalance || 0,
+          lastC3Date: employer.lastC3Date,
+          lastPaymentDate: employer.lastPaymentDate,
+          riskBand: employer.riskBand
+        }]
+      });
+    }
+    return acc;
+  }, [] as Array<{
+    employerId: string;
+    employerName: string;
+    riskBand: string;
+    employer: any;
+    cases: Array<{
+      caseType: 'C3 No Payment' | 'Arrears';
+      outstandingBalance: number;
+      lastC3Date?: string;
+      lastPaymentDate?: string;
+      riskBand: string;
+    }>;
+  }>).slice(0, 10);
   
   // Mock LMS courses data
   const lmsCourses = [
@@ -511,7 +552,7 @@ export default function WeeklyPlanBuilder() {
                 </TabsTrigger>
                 <TabsTrigger value="active-cases">
                   <FileText className="h-4 w-4 mr-2" />
-                  Active Cases ({activeCases.length})
+                  Active Cases ({activeCasesGrouped.length})
                 </TabsTrigger>
                 <TabsTrigger value="lms">
                   <GraduationCap className="h-4 w-4 mr-2" />
@@ -597,47 +638,73 @@ export default function WeeklyPlanBuilder() {
                 )}
               </TabsContent>
 
-              <TabsContent value="active-cases" className="space-y-2 mt-4">
+              <TabsContent value="active-cases" className="space-y-3 mt-4">
                 <div className="text-sm text-muted-foreground mb-3">
                   Active compliance cases requiring follow-up (C3 issues, arrears, payment plans, etc.)
                 </div>
-                {activeCases.length === 0 ? (
+                {activeCasesGrouped.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground">No active cases requiring attention</div>
                 ) : (
-                  activeCases.map((employer) => (
+                  activeCasesGrouped.map((group) => (
                     <div
-                      key={employer.regNo}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      key={group.employerId}
+                      className="border rounded-lg overflow-hidden"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">{employer.name}</p>
-                          <Badge variant="outline" className={employer.caseType === 'C3 No Payment' ? 'bg-amber-50' : 'bg-red-50'}>
-                            {employer.caseType}
-                          </Badge>
-                          <Badge className={getRiskBadgeColor(employer.riskBand)}>{employer.riskBand}</Badge>
+                      {/* Employer Header */}
+                      <div className="bg-muted/30 p-3 border-b">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <p className="font-bold">{group.employerName}</p>
+                              <Badge className={getRiskBadgeColor(group.riskBand)}>{group.riskBand}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Employer Code: {group.employerId} • {group.cases.length} Active {group.cases.length === 1 ? 'Case' : 'Cases'}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Code: {employer.regNo} • 
-                          {employer.caseType === 'C3 No Payment' && ` Last C3: ${employer.lastC3Date || 'N/A'} •`}
-                          {` Outstanding: $${employer.outstandingBalance?.toLocaleString() || '0'}`}
-                          {employer.lastPaymentDate && ` • Last Payment: ${employer.lastPaymentDate}`}
-                        </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleQuickAddFromSuggestion(
-                          employer,
-                          employer.caseType === 'C3 No Payment' ? VisitType.C3_FOLLOW_UP : VisitType.PAYMENT_FOLLOW_UP,
-                          employer.caseType === 'C3 No Payment' 
-                            ? `C3 submitted without payment - Follow up on outstanding contributions`
-                            : `Arrears follow-up - $${employer.outstandingBalance?.toLocaleString()} outstanding`
-                        )}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add to Plan
-                      </Button>
+                      
+                      {/* Cases List */}
+                      <div className="divide-y">
+                        {group.cases.map((caseItem, caseIndex) => (
+                          <div
+                            key={caseIndex}
+                            className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={caseItem.caseType === 'C3 No Payment' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}>
+                                  {caseItem.caseType}
+                                </Badge>
+                                <Badge variant="outline" className={getRiskBadgeColor(caseItem.riskBand)}>
+                                  {caseItem.riskBand}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                {caseItem.caseType === 'C3 No Payment' && caseItem.lastC3Date && `Last C3: ${caseItem.lastC3Date} • `}
+                                Outstanding: ${caseItem.outstandingBalance.toLocaleString()}
+                                {caseItem.lastPaymentDate && ` • Last Payment: ${caseItem.lastPaymentDate}`}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleQuickAddFromSuggestion(
+                                group.employer,
+                                caseItem.caseType === 'C3 No Payment' ? VisitType.C3_FOLLOW_UP : VisitType.PAYMENT_FOLLOW_UP,
+                                caseItem.caseType === 'C3 No Payment' 
+                                  ? `C3 submitted without payment - Follow up on outstanding contributions`
+                                  : `Arrears follow-up - $${caseItem.outstandingBalance.toLocaleString()} outstanding`
+                              )}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add to Plan
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))
                 )}
