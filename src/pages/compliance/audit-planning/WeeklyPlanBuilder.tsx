@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, Gavel, TrendingUp, GraduationCap } from 'lucide-react';
+import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, Gavel, TrendingUp, GraduationCap, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   VisitType, 
@@ -32,6 +32,7 @@ import {
 } from '@/types/weeklyAuditPlan';
 import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
 import { employersAdapter, Employer } from '@/adapters/employersAdapter';
+import { supabase } from '@/integrations/supabase/client';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
 
@@ -84,6 +85,8 @@ export default function WeeklyPlanBuilder() {
     visitType: null,
     purpose: ''
   });
+  
+  const [aiAssistantLoading, setAiAssistantLoading] = useState(false);
 
   // Load risk-based suggestions
   useEffect(() => {
@@ -370,6 +373,86 @@ export default function WeeklyPlanBuilder() {
 
   const getVisitsByDay = (day: typeof DAYS_OF_WEEK[number]) => {
     return visits.filter(v => v.dayOfWeek === day);
+  };
+  
+  const handleAIAssist = async () => {
+    setAiAssistantLoading(true);
+    try {
+      // Gather all relevant data for AI analysis
+      const requestData = {
+        inspectorName: 'John Inspector', // TODO: Get from auth context
+        inspectorZone: inspectorZone,
+        weekStartDate,
+        weekEndDate,
+        employers: suggestedEmployers.map(emp => ({
+          regNo: emp.regNo,
+          name: emp.name,
+          zone: emp.zone,
+          riskRating: emp.riskRating,
+          riskBand: emp.riskBand,
+          lastAuditDate: emp.lastAuditDate,
+          outstandingBalance: emp.outstandingBalance,
+          lastC3Status: emp.lastC3Status,
+          lastC3Date: emp.lastC3Date
+        })),
+        riskScores: suggestedEmployers.map(emp => ({
+          employerId: emp.regNo,
+          score: emp.riskRating,
+          band: emp.riskBand
+        })),
+        arrearsData: suggestedEmployers.filter(emp => emp.outstandingBalance && emp.outstandingBalance > 0).map(emp => ({
+          employerId: emp.regNo,
+          employerName: emp.name,
+          outstanding: emp.outstandingBalance,
+          components: { SSC: 0, SSF: 0, LVC: 0, LVF: 0, PEC: 0, PEF: 0 } // TODO: Get real component breakdown
+        })),
+        c3Data: suggestedEmployers.map(emp => ({
+          employerId: emp.regNo,
+          lastSubmission: emp.lastC3Date,
+          status: emp.lastC3Status
+        })),
+        scoutingHotspots: [
+          { area: 'Basseterre Downtown', reason: 'New construction activity' },
+          { area: 'Frigate Bay', reason: 'Tourism sector expansion' }
+        ],
+        lmsCourses: [
+          { title: 'Compliance Procedures Update', status: 'In Progress', dueDate: '2025-10-05' },
+          { title: 'Risk Assessment Framework', status: 'Not Started', dueDate: '2025-10-12' }
+        ],
+        existingSubcases: [] // TODO: Fetch from database
+      };
+
+      const { data, error } = await supabase.functions.invoke('compliance-intelligence', {
+        body: requestData
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (data?.success) {
+        toast({
+          title: 'AI Analysis Complete',
+          description: 'Intelligent weekly plan generated successfully',
+          variant: 'default'
+        });
+        
+        // TODO: Process and display the AI-generated plan
+        console.log('AI Generated Plan:', data.data);
+      } else {
+        throw new Error(data?.error || 'Failed to generate plan');
+      }
+    } catch (error) {
+      console.error('AI Assistant error:', error);
+      toast({
+        title: 'AI Assistant Error',
+        description: error instanceof Error ? error.message : 'Failed to generate intelligent plan',
+        variant: 'destructive'
+      });
+    } finally {
+      setAiAssistantLoading(false);
+    }
   };
 
   // Filter suggested employers by category
@@ -914,6 +997,15 @@ export default function WeeklyPlanBuilder() {
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-end">
+        <Button 
+          variant="outline"
+          onClick={handleAIAssist}
+          disabled={aiAssistantLoading || !weekStartDate || !weekEndDate}
+          className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 border-0"
+        >
+          <Sparkles className="h-4 w-4 mr-2" />
+          {aiAssistantLoading ? 'Analyzing...' : 'AI Assistant'}
+        </Button>
         <Button variant="outline" onClick={handleSaveDraft}>
           <Save className="h-4 w-4 mr-2" />
           Save as Draft
