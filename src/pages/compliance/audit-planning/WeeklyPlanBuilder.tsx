@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -13,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, DollarSign, Gavel, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   VisitType, 
@@ -42,6 +44,7 @@ interface VisitFormData {
 export default function WeeklyPlanBuilder() {
   const { toast } = useToast();
   const [inspectorId] = useState('inspector-001'); // Would come from auth context
+  const [inspectorZone] = useState('Zone A'); // Would come from auth context
   const [weekStartDate, setWeekStartDate] = useState('');
   const [weekEndDate, setWeekEndDate] = useState('');
   const [visits, setVisits] = useState<VisitFormData[]>([]);
@@ -51,11 +54,37 @@ export default function WeeklyPlanBuilder() {
     isUnplannedSighting: false
   });
   
+  // Risk-based suggestions
+  const [suggestedEmployers, setSuggestedEmployers] = useState<Employer[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+  
   // Employer search
   const [employerSearchQuery, setEmployerSearchQuery] = useState('');
   const [employerSearchResults, setEmployerSearchResults] = useState<Employer[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
+
+  // Load risk-based suggestions
+  useEffect(() => {
+    loadRiskBasedSuggestions();
+  }, []);
+
+  const loadRiskBasedSuggestions = async () => {
+    setIsLoadingSuggestions(true);
+    try {
+      // Get all employers in inspector's zone, sorted by risk (highest first)
+      const employers = await employersAdapter.getAllByZone(inspectorZone);
+      setSuggestedEmployers(employers);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load risk-based suggestions',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
 
   const handleEmployerSearch = async () => {
     if (!employerSearchQuery.trim()) {
@@ -98,6 +127,42 @@ export default function WeeklyPlanBuilder() {
     });
     setEmployerSearchResults([]);
     setEmployerSearchQuery('');
+  };
+
+  const handleQuickAddFromSuggestion = (employer: Employer, visitType: VisitType, purpose: string) => {
+    const newVisit: Partial<VisitFormData> = {
+      employerId: employer.regNo,
+      employerName: employer.name,
+      visitType,
+      duration: VisitDuration.FULL_DAY,
+      purpose,
+      isUnplannedSighting: false
+    };
+
+    // Scroll to the form and pre-fill it
+    setCurrentVisit(newVisit);
+    setSelectedEmployer(employer);
+    
+    toast({
+      title: 'Employer Selected',
+      description: `${employer.name} added to form. Please complete remaining details.`
+    });
+    
+    // Scroll to form
+    const formElement = document.getElementById('visit-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const getRiskBadgeColor = (riskBand: string) => {
+    switch (riskBand) {
+      case 'Critical': return 'bg-red-100 text-red-800 border-red-300';
+      case 'High': return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'Low': return 'bg-green-100 text-green-800 border-green-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
   };
 
   const handleClearEmployer = () => {
@@ -265,17 +330,218 @@ export default function WeeklyPlanBuilder() {
     return visits.filter(v => v.dayOfWeek === day);
   };
 
+  // Filter suggested employers by category
+  const highRiskEmployers = suggestedEmployers.filter(e => e.riskBand === 'Critical' || e.riskBand === 'High').slice(0, 10);
+  const legalReadyEmployers = suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 50000).slice(0, 5);
+  const c3WithoutPayment = suggestedEmployers.filter(e => e.lastC3Status === 'submitted_no_payment').slice(0, 5);
+  const arrearsEmployers = suggestedEmployers.filter(e => e.outstandingBalance && e.outstandingBalance > 10000).slice(0, 8);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title="Weekly Plan Builder"
-        subtitle="Create and manage your weekly audit and inspection schedule"
+        subtitle="Create and manage your weekly audit and inspection schedule with risk-based suggestions"
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Audit Planning', href: '/compliance/audit-planning/sampling-dashboard' },
           { label: 'Weekly Plan Builder' }
         ]}
       />
+
+      {/* Risk-Based Suggestions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Risk-Based Suggestions for {inspectorZone}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Start with these high-priority employers sorted by risk rating (highest first). Click "Add to Plan" to quickly add them to your schedule.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isLoadingSuggestions ? (
+            <div className="text-center py-8 text-muted-foreground">Loading suggestions...</div>
+          ) : (
+            <Tabs defaultValue="surveys" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="surveys">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Surveys ({highRiskEmployers.length})
+                </TabsTrigger>
+                <TabsTrigger value="legal">
+                  <Gavel className="h-4 w-4 mr-2" />
+                  Legal ({legalReadyEmployers.length})
+                </TabsTrigger>
+                <TabsTrigger value="c3">
+                  <FileText className="h-4 w-4 mr-2" />
+                  C3 Follow-Up ({c3WithoutPayment.length})
+                </TabsTrigger>
+                <TabsTrigger value="arrears">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Arrears ({arrearsEmployers.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="surveys" className="space-y-2 mt-4">
+                <div className="text-sm text-muted-foreground mb-3">
+                  High/Critical risk employers requiring audit surveys (sorted by risk rating descending)
+                </div>
+                {highRiskEmployers.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">No high-risk employers in your zone</div>
+                ) : (
+                  highRiskEmployers.map((employer) => (
+                    <div
+                      key={employer.regNo}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{employer.name}</p>
+                          <Badge className={getRiskBadgeColor(employer.riskBand)}>{employer.riskBand}</Badge>
+                          <Badge variant="outline">Score: {employer.riskRating}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Code: {employer.regNo} • Last Audit: {employer.lastAuditDate || 'Never'} • 
+                          Outstanding: ${employer.outstandingBalance?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleQuickAddFromSuggestion(
+                          employer,
+                          VisitType.RISK_BASED_AUDIT,
+                          `Risk-based audit - ${employer.riskBand} risk rating (${employer.riskRating})`
+                        )}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add to Plan
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="legal" className="space-y-2 mt-4">
+                <div className="text-sm text-muted-foreground mb-3">
+                  Employers recommended for legal action based on escalation thresholds
+                </div>
+                {legalReadyEmployers.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">No employers ready for legal escalation</div>
+                ) : (
+                  legalReadyEmployers.map((employer) => (
+                    <div
+                      key={employer.regNo}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{employer.name}</p>
+                          <Badge variant="destructive">Legal Ready</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Code: {employer.regNo} • Outstanding: ${employer.outstandingBalance?.toLocaleString()} • 
+                          Status: {employer.complianceStatus}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleQuickAddFromSuggestion(
+                          employer,
+                          VisitType.AUDIT,
+                          `Pre-legal assessment - Outstanding balance $${employer.outstandingBalance?.toLocaleString()}`
+                        )}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add to Plan
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="c3" className="space-y-2 mt-4">
+                <div className="text-sm text-muted-foreground mb-3">
+                  Employers who submitted C3 forms without payment
+                </div>
+                {c3WithoutPayment.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">No C3s without payment to follow up</div>
+                ) : (
+                  c3WithoutPayment.map((employer) => (
+                    <div
+                      key={employer.regNo}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{employer.name}</p>
+                          <Badge variant="outline" className="bg-amber-50">C3 No Payment</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Code: {employer.regNo} • Last C3: {employer.lastC3Date || 'N/A'} • 
+                          Estimated Due: ${employer.outstandingBalance?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleQuickAddFromSuggestion(
+                          employer,
+                          VisitType.C3_FOLLOW_UP,
+                          `C3 submitted without payment - Follow up on outstanding contributions`
+                        )}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add to Plan
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="arrears" className="space-y-2 mt-4">
+                <div className="text-sm text-muted-foreground mb-3">
+                  Employers with significant arrears requiring follow-up
+                </div>
+                {arrearsEmployers.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">No significant arrears to address</div>
+                ) : (
+                  arrearsEmployers.map((employer) => (
+                    <div
+                      key={employer.regNo}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{employer.name}</p>
+                          <Badge className={getRiskBadgeColor(employer.riskBand)}>{employer.riskBand}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Code: {employer.regNo} • Arrears: ${employer.outstandingBalance?.toLocaleString()} • 
+                          Last Payment: {employer.lastPaymentDate || 'Never'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleQuickAddFromSuggestion(
+                          employer,
+                          VisitType.PAYMENT_FOLLOW_UP,
+                          `Arrears follow-up - $${employer.outstandingBalance?.toLocaleString()} outstanding`
+                        )}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add to Plan
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Week Selection */}
       <Card>
@@ -308,9 +574,12 @@ export default function WeeklyPlanBuilder() {
       </Card>
 
       {/* Add Visit Form */}
-      <Card>
+      <Card id="visit-form">
         <CardHeader>
           <CardTitle>Add Planned Visit</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Complete the details below to add a visit to your weekly plan. You can also add employers manually here.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Unplanned Sighting Toggle */}
