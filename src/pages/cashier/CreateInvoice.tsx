@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { PlusCircle, Save, RefreshCw, X, Plus } from 'lucide-react';
+import { PlusCircle, Save, RefreshCw, X, Plus, Building2, User, Phone, Mail } from 'lucide-react';
 
 interface PaymentHead {
   id: string;
@@ -18,16 +18,43 @@ interface PaymentHead {
 }
 
 interface InvoiceFormData {
+  // Invoice Classification
   type: 'contribution' | 'rent' | 'loan' | 'service' | '';
+  paymentSource: 'counter' | 'online' | 'bank_transfer' | 'check' | 'eft' | '';
+  purpose: string;
+  
+  // Payer Details
   payerType: 'employer' | 'individual' | 'contributor' | '';
   payerName: string;
   payerId: string;
+  payerPhone: string;
+  payerEmail: string;
+  payerAddress: string;
+  
+  // Organization Details (for employers/organizations)
+  organizationName: string;
+  organizationDepartment: string;
+  organizationDivision: string;
+  contactPersonName: string;
+  contactPersonPosition: string;
+  
+  // Payment Details
   paymentHeads: PaymentHead[];
   totalAmount: string;
-  currency: 'EC$' | 'US$';
+  currency: 'XCD' | 'USD';
   dueDate: string;
+  
+  // Additional Information
   description: string;
   reference: string;
+  internalNotes: string;
+  
+  // Tracking Metadata
+  receivedBy: string;
+  processedBy: string;
+  department: string;
+  
+  // Recurring Options
   isRecurring: boolean;
   recurringFrequency: 'monthly' | 'quarterly' | 'annually' | '';
 }
@@ -35,15 +62,29 @@ interface InvoiceFormData {
 const CreateInvoice: React.FC = () => {
   const [formData, setFormData] = useState<InvoiceFormData>({
     type: '',
+    paymentSource: '',
+    purpose: '',
     payerType: '',
     payerName: '',
     payerId: '',
+    payerPhone: '',
+    payerEmail: '',
+    payerAddress: '',
+    organizationName: '',
+    organizationDepartment: '',
+    organizationDivision: '',
+    contactPersonName: '',
+    contactPersonPosition: '',
     paymentHeads: [{ id: '1', type: '', amount: '', description: '' }],
     totalAmount: '0.00',
-    currency: 'EC$',
+    currency: 'XCD',
     dueDate: '',
     description: '',
     reference: '',
+    internalNotes: '',
+    receivedBy: '',
+    processedBy: '',
+    department: '',
     isRecurring: false,
     recurringFrequency: ''
   });
@@ -67,21 +108,25 @@ const CreateInvoice: React.FC = () => {
           'ID Card Replacement',
           'Pension Letter',
           'Certificate Fee',
-          'Processing Fee'
+          'Processing Fee',
+          'Document Verification',
+          'Statement Request'
         ];
       case 'contribution':
         return [
           'Social Security Contribution',
           'Levy Payment',
           'Pension Fund Contribution',
-          'Late Payment Penalty'
+          'Late Payment Penalty',
+          'Interest Charge'
         ];
       case 'rent':
         return [
           'Office Rent',
           'Equipment Rental',
           'Facility Rental',
-          'Utility Charges'
+          'Utility Charges',
+          'Maintenance Fee'
         ];
       default:
         return [];
@@ -135,8 +180,11 @@ const CreateInvoice: React.FC = () => {
   };
 
   const handleCreateInvoice = () => {
-    if (!formData.type || !formData.payerName || !formData.dueDate || formData.paymentHeads.some(head => !head.type || !head.amount)) {
-      toast.error('Please fill in all required fields including payment heads');
+    // Validation
+    if (!formData.type || !formData.payerName || !formData.dueDate || 
+        !formData.paymentSource || !formData.purpose ||
+        formData.paymentHeads.some(head => !head.type || !head.amount)) {
+      toast.error('Please fill in all required fields including payment source, purpose, and payment heads');
       return;
     }
 
@@ -148,15 +196,29 @@ const CreateInvoice: React.FC = () => {
     // Reset form
     setFormData({
       type: '',
+      paymentSource: '',
+      purpose: '',
       payerType: '',
       payerName: '',
       payerId: '',
+      payerPhone: '',
+      payerEmail: '',
+      payerAddress: '',
+      organizationName: '',
+      organizationDepartment: '',
+      organizationDivision: '',
+      contactPersonName: '',
+      contactPersonPosition: '',
       paymentHeads: [{ id: '1', type: '', amount: '', description: '' }],
       totalAmount: '0.00',
-      currency: 'EC$',
+      currency: 'XCD',
       dueDate: '',
       description: '',
       reference: '',
+      internalNotes: '',
+      receivedBy: '',
+      processedBy: '',
+      department: '',
       isRecurring: false,
       recurringFrequency: ''
     });
@@ -167,7 +229,7 @@ const CreateInvoice: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Create Invoice</h1>
-          <p className="text-muted-foreground">Create new invoices with multiple payment heads</p>
+          <p className="text-muted-foreground">Create comprehensive invoices with full tracking details</p>
         </div>
         <Badge variant="outline" className="text-sm">
           New Invoice
@@ -178,14 +240,14 @@ const CreateInvoice: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PlusCircle className="h-5 w-5" />
-            Invoice Details
+            Invoice Classification & Source
           </CardTitle>
           <CardDescription>
-            Enter the invoice information with multiple payment heads for different charge types.
+            Define the type, source, and purpose of this invoice for comprehensive tracking.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Invoice Type */}
             <div className="space-y-2">
               <Label htmlFor="type">Invoice Type *</Label>
@@ -202,6 +264,49 @@ const CreateInvoice: React.FC = () => {
               </Select>
             </div>
 
+            {/* Payment Source */}
+            <div className="space-y-2">
+              <Label htmlFor="paymentSource">Payment Source *</Label>
+              <Select value={formData.paymentSource} onValueChange={(value) => handleInputChange('paymentSource', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="counter">Counter Payment</SelectItem>
+                  <SelectItem value="online">Online Payment</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="check">Check</SelectItem>
+                  <SelectItem value="eft">EFT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Purpose */}
+            <div className="space-y-2">
+              <Label htmlFor="purpose">Purpose/Reason *</Label>
+              <Input
+                id="purpose"
+                value={formData.purpose}
+                onChange={(e) => handleInputChange('purpose', e.target.value)}
+                placeholder="e.g., Monthly contribution, Service fee"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Payer Information
+          </CardTitle>
+          <CardDescription>
+            Complete details about the person or organization making the payment.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Payer Type */}
             <div className="space-y-2">
               <Label htmlFor="payerType">Payer Type *</Label>
@@ -224,45 +329,135 @@ const CreateInvoice: React.FC = () => {
                 id="payerName"
                 value={formData.payerName}
                 onChange={(e) => handleInputChange('payerName', e.target.value)}
-                placeholder="Enter payer name"
+                placeholder="Enter full name"
               />
             </div>
 
             {/* Payer ID */}
             <div className="space-y-2">
-              <Label htmlFor="payerId">Payer ID</Label>
+              <Label htmlFor="payerId">Payer ID/SSN</Label>
               <Input
                 id="payerId"
                 value={formData.payerId}
                 onChange={(e) => handleInputChange('payerId', e.target.value)}
-                placeholder="Enter payer ID/SSN"
+                placeholder="Enter ID or SSN"
               />
             </div>
 
-            {/* Due Date */}
+            {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date *</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => handleInputChange('dueDate', e.target.value)}
-              />
+              <Label htmlFor="payerPhone">Phone Number</Label>
+              <div className="flex gap-2">
+                <Phone className="h-4 w-4 self-center text-muted-foreground" />
+                <Input
+                  id="payerPhone"
+                  value={formData.payerPhone}
+                  onChange={(e) => handleInputChange('payerPhone', e.target.value)}
+                  placeholder="(869) 123-4567"
+                />
+              </div>
             </div>
 
-            {/* Reference */}
+            {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="reference">Reference</Label>
+              <Label htmlFor="payerEmail">Email Address</Label>
+              <div className="flex gap-2">
+                <Mail className="h-4 w-4 self-center text-muted-foreground" />
+                <Input
+                  id="payerEmail"
+                  type="email"
+                  value={formData.payerEmail}
+                  onChange={(e) => handleInputChange('payerEmail', e.target.value)}
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+
+            {/* Address */}
+            <div className="space-y-2">
+              <Label htmlFor="payerAddress">Address</Label>
               <Input
-                id="reference"
-                value={formData.reference}
-                onChange={(e) => handleInputChange('reference', e.target.value)}
-                placeholder="Enter reference number"
+                id="payerAddress"
+                value={formData.payerAddress}
+                onChange={(e) => handleInputChange('payerAddress', e.target.value)}
+                placeholder="Street address, city, parish"
               />
             </div>
           </div>
 
-          {/* Payment Heads Section */}
+          {/* Organization Details (shown for employer type) */}
+          {formData.payerType === 'employer' && (
+            <>
+              <div className="pt-4 border-t">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Organization Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="organizationName">Organization Name</Label>
+                    <Input
+                      id="organizationName"
+                      value={formData.organizationName}
+                      onChange={(e) => handleInputChange('organizationName', e.target.value)}
+                      placeholder="Company/Organization name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="organizationDepartment">Department</Label>
+                    <Input
+                      id="organizationDepartment"
+                      value={formData.organizationDepartment}
+                      onChange={(e) => handleInputChange('organizationDepartment', e.target.value)}
+                      placeholder="e.g., Finance, HR, Operations"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="organizationDivision">Division/Branch</Label>
+                    <Input
+                      id="organizationDivision"
+                      value={formData.organizationDivision}
+                      onChange={(e) => handleInputChange('organizationDivision', e.target.value)}
+                      placeholder="Division or branch location"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contactPersonName">Contact Person</Label>
+                    <Input
+                      id="contactPersonName"
+                      value={formData.contactPersonName}
+                      onChange={(e) => handleInputChange('contactPersonName', e.target.value)}
+                      placeholder="Contact person name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contactPersonPosition">Contact Position</Label>
+                    <Input
+                      id="contactPersonPosition"
+                      value={formData.contactPersonPosition}
+                      onChange={(e) => handleInputChange('contactPersonPosition', e.target.value)}
+                      placeholder="Job title/position"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Heads</CardTitle>
+          <CardDescription>
+            Add multiple payment heads for different charge types within this invoice.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-lg font-semibold">Payment Heads *</Label>
@@ -354,34 +549,118 @@ const CreateInvoice: React.FC = () => {
             </div>
           </div>
 
-          {/* Currency Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EC$">EC$</SelectItem>
-                <SelectItem value="US$">US$</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Currency Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="currency">Currency</Label>
+              <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="XCD">XCD</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Due Date */}
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date *</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => handleInputChange('dueDate', e.target.value)}
+              />
+            </div>
+
+            {/* Reference */}
+            <div className="space-y-2">
+              <Label htmlFor="reference">Reference Number</Label>
+              <Input
+                id="reference"
+                value={formData.reference}
+                onChange={(e) => handleInputChange('reference', e.target.value)}
+                placeholder="External reference"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Processing & Tracking Information</CardTitle>
+          <CardDescription>
+            Internal tracking details for audit and management purposes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="receivedBy">Received By</Label>
+              <Input
+                id="receivedBy"
+                value={formData.receivedBy}
+                onChange={(e) => handleInputChange('receivedBy', e.target.value)}
+                placeholder="Staff member name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="processedBy">Processed By</Label>
+              <Input
+                id="processedBy"
+                value={formData.processedBy}
+                onChange={(e) => handleInputChange('processedBy', e.target.value)}
+                placeholder="Processing officer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cashier">Cashier</SelectItem>
+                  <SelectItem value="contributions">Contributions</SelectItem>
+                  <SelectItem value="benefits">Benefits</SelectItem>
+                  <SelectItem value="compliance">Compliance</SelectItem>
+                  <SelectItem value="finance">Finance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Additional Notes</Label>
+            <Label htmlFor="description">Public Notes/Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Enter additional notes or comments"
-              rows={3}
+              placeholder="Additional notes visible to payer"
+              rows={2}
+            />
+          </div>
+
+          {/* Internal Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="internalNotes">Internal Notes (Private)</Label>
+            <Textarea
+              id="internalNotes"
+              value={formData.internalNotes}
+              onChange={(e) => handleInputChange('internalNotes', e.target.value)}
+              placeholder="Internal notes for staff use only"
+              rows={2}
             />
           </div>
 
           {/* Recurring Options */}
-          <div className="space-y-4">
+          <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center space-x-2">
               <Switch
                 id="isRecurring"

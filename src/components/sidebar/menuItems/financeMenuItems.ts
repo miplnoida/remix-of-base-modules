@@ -25,65 +25,65 @@ export const financeMenuItems = [
     icon: DollarSign,
     subItems: [
       {
-        title: 'SSB Finance',
+        title: 'Finance Dashboard',
+        url: '/finance/dashboard',
+        icon: BarChart3,
+      },
+      {
+        title: 'Batch Management',
+        url: '/finance/batch-management',
+        icon: Receipt,
+      },
+      {
+        title: 'Payment Entry',
+        url: '/finance/payment-entry',
         icon: DollarSign,
-        subItems: [
-          {
-            title: 'Finance Dashboard',
-            url: '/finance/dashboard',
-            icon: BarChart3,
-          },
-          {
-            title: 'Batch Management',
-            url: '/finance/batch-management',
-            icon: Receipt,
-          },
-          {
-            title: 'Payment Entry',
-            url: '/finance/payment-entry',
-            icon: DollarSign,
-          },
-          {
-            title: 'Receipt Search',
-            url: '/finance/receipt-search',
-            icon: Search,
-          },
-          {
-            title: 'Invoice Management',
-            url: '/finance/invoices',
-            icon: FileText,
-          },
-          {
-            title: 'GL & SAGE Export',
-            url: '/finance/gl-export',
-            icon: Database,
-          },
-          {
-            title: 'Daily Reports',
-            url: '/finance/daily-reports',
-            icon: TrendingUp,
-          },
-          {
-            title: 'Reversal & Penalties',
-            url: '/finance/reversals',
-            icon: AlertCircle,
-          },
-          {
-            title: 'Admin Configuration',
-            url: '/finance/admin-config',
-            icon: Settings,
-          },
-          {
-            title: 'User Management',
-            url: '/finance/user-management',
-            icon: Users2,
-          },
-        ]
+      },
+      {
+        title: 'Receipt Search',
+        url: '/finance/receipt-search',
+        icon: Search,
+      },
+      {
+        title: 'Invoice Management',
+        url: '/finance/invoices',
+        icon: FileText,
+      },
+      {
+        title: 'GL & SAGE Export',
+        url: '/finance/gl-export',
+        icon: Database,
+      },
+      {
+        title: 'Daily Reports',
+        url: '/finance/daily-reports',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Reversal & Penalties',
+        url: '/finance/reversals',
+        icon: AlertCircle,
+      },
+      {
+        title: 'Admin Configuration',
+        url: '/finance/admin-config',
+        icon: Settings,
+      },
+      {
+        title: 'User Management',
+        url: '/finance/user-management',
+        icon: Users2,
       },
       {
         title: 'Cashier & Payments',
         icon: CreditCard,
         subItems: [
+          {
+            title: 'Create Invoice',
+            url: '/cashier/create-invoice',
+            icon: PlusCircle,
+            requiresPermission: 'cashier_operations'
+          },
           {
             title: 'Miscellaneous Payments (TBR)',
             url: '/cashier/misc-payments',
@@ -94,6 +94,12 @@ export const financeMenuItems = [
             title: 'Search & Pay Invoices',
             url: '/cashier/search-pay-invoices',
             icon: Search,
+            requiresPermission: 'cashier_operations'
+          },
+          {
+            title: 'Daily Invoice Report',
+            url: '/cashier/daily-invoice-report',
+            icon: ClipboardList,
             requiresPermission: 'cashier_operations'
           },
           {
@@ -185,24 +191,6 @@ export const financeMenuItems = [
             url: '/cashier/reconciliation-accounts',
             icon: CheckSquare,
             requiresPermission: 'admin'
-          }
-        ]
-      },
-      {
-        title: 'Invoice-Based Payments',
-        icon: FileText,
-        subItems: [
-          {
-            title: 'Create Invoice',
-            url: '/cashier/create-invoice',
-            icon: PlusCircle,
-            requiresPermission: 'cashier_operations'
-          },
-          {
-            title: 'Daily Invoice Report',
-            url: '/cashier/daily-invoice-report',
-            icon: ClipboardList,
-            requiresPermission: 'cashier_operations'
           }
         ]
       },

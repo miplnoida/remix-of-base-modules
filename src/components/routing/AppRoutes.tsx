@@ -357,7 +357,7 @@ import AccountRolesReport from '@/pages/reports/admin/AccountRolesReport';
 import PermissionChangesReport from '@/pages/reports/admin/PermissionChangesReport';
 import ConfigurationAuditReport from '@/pages/reports/admin/ConfigurationAuditReport';
 
-// SSB Finance Module
+// Finance Module
 import FinanceDashboard from '@/pages/finance/FinanceDashboard';
 import BatchManagement from '@/pages/finance/BatchManagement';
 import PaymentEntry from '@/pages/finance/PaymentEntry';
@@ -728,7 +728,7 @@ export const AppRoutes = () => {
       <Route path="/bema/zones" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaZones /></Suspense></ProtectedLayout>} />
       <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
 
-      {/* SSB Finance Module */}
+      {/* Finance Module */}
       <Route path="/finance/dashboard" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
       <Route path="/finance/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
       <Route path="/finance/payment-entry" element={<ProtectedLayout><PaymentEntry /></ProtectedLayout>} />
