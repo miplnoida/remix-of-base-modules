@@ -264,6 +264,53 @@ const mockUsers: User[] = [
       'admin', 'manage_users', 'create_audit_plans', 'approve_audit_plans',
       'view_all_claims', 'view_all_payments'
     ]
+  },
+  {
+    id: '16',
+    email: 'field.inspector@ssb.kn',
+    name: 'Michael Johnson',
+    role: 'field_inspector',
+    department: 'field_operations',
+    permissions: [
+      'view_dashboard',
+      'view_compliance_cases',
+      'create_weekly_plan',
+      'submit_weekly_plan',
+      'conduct_field_visits',
+      'upload_field_evidence',
+      'create_working_papers',
+      'issue_compliance_notices',
+      'negotiate_payment_arrangements',
+      'view_employer_statements',
+      'generate_reports'
+    ]
+  },
+  {
+    id: '17',
+    email: 'senior.inspector@ssb.kn',
+    name: 'Patricia Davis',
+    role: 'compliance_senior_inspector',
+    department: 'compliance',
+    permissions: [
+      'view_dashboard',
+      'view_compliance_cases',
+      'create_compliance_cases',
+      'edit_compliance_cases',
+      'create_weekly_plan',
+      'submit_weekly_plan',
+      'approve_weekly_plan',
+      'conduct_field_visits',
+      'upload_field_evidence',
+      'create_working_papers',
+      'issue_compliance_notices',
+      'negotiate_payment_arrangements',
+      'approve_payment_arrangements',
+      'escalate_to_legal',
+      'view_employer_statements',
+      'manage_compliance_settings',
+      'generate_reports',
+      'manage_users'
+    ]
   }
 ];
 

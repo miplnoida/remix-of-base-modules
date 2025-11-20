@@ -818,3 +818,114 @@ export const MOCK_DASHBOARD_STATS: ComplianceDashboardStats = {
   casesEscalatedToLegal: 2,
   casesEscalatedThisMonth: 1
 };
+
+// ============================================
+// FIELD ACTIVITIES
+// ============================================
+export const mockFieldActivities = [
+  {
+    id: 'FA-001',
+    planId: 'PLAN-2024-W12-001',
+    caseId: 'CASE-2024-001',
+    caseNumber: 'C-2024-001',
+    employerId: 'EMP-001',
+    employerName: 'ABC Construction Ltd',
+    visitType: 'Audit Inspection',
+    planReference: 'PLAN-2024-W12-001',
+    checkInTime: '09:15 AM',
+    checkOutTime: null,
+    status: 'in_progress',
+    evidenceCount: 5,
+    workingPapers: 2
+  },
+  {
+    id: 'FA-002',
+    planId: 'PLAN-2024-W12-001',
+    caseId: 'CASE-2024-003',
+    caseNumber: 'C-2024-003',
+    employerId: 'EMP-003',
+    employerName: 'Island Enterprises',
+    visitType: 'C3 Compliance Check',
+    planReference: 'PLAN-2024-W12-001',
+    checkInTime: '08:30 AM',
+    checkOutTime: '11:45 AM',
+    status: 'completed',
+    evidenceCount: 8,
+    workingPapers: 3
+  }
+];
+
+// ============================================
+// EMPLOYER STATEMENTS
+// ============================================
+export const mockEmployerStatements = [
+  {
+    id: 'STMT-001',
+    employerId: 'EMP-001',
+    employerName: 'ABC Construction Ltd',
+    asOfDate: '2024-03-15',
+    c3Submitted: 32,
+    c3Missing: 4,
+    totalDue: 45000,
+    penalties: 3200,
+    outstanding: 18500,
+    complianceStatus: 'non_compliant' as const,
+    arrangementStatus: 'Active - On Track',
+    nextPaymentDue: '2024-04-15'
+  },
+  {
+    id: 'STMT-002',
+    employerId: 'EMP-002',
+    employerName: 'XYZ Trading Inc',
+    asOfDate: '2024-03-15',
+    c3Submitted: 36,
+    c3Missing: 0,
+    totalDue: 0,
+    penalties: 0,
+    outstanding: 0,
+    complianceStatus: 'compliant' as const,
+    arrangementStatus: null,
+    nextPaymentDue: null
+  }
+];
+
+// ============================================
+// COMPLIANCE SETTINGS
+// ============================================
+export const mockComplianceSettings = {
+  c3GracePeriodDays: 5,
+  c3SubmissionDeadlineDay: 15,
+  paymentDueDateDay: 20,
+  penaltyRatePercent: 2.5,
+  interestRatePercent: 1.5,
+  penaltyCalculationFrequency: 'monthly' as const,
+  minimumAuditFrequencyMonths: 18,
+  arrearsEscalationThreshold: 50000,
+  autoCaseCreationRules: [
+    {
+      triggerEvent: 'C3 Submitted After Grace Period',
+      caseType: 'LATE_C3_SUBMISSION',
+      enabled: true
+    },
+    {
+      triggerEvent: 'C3 Not Submitted By Cutoff',
+      caseType: 'C3_NOT_SUBMITTED',
+      enabled: true
+    },
+    {
+      triggerEvent: 'Payment Not Received',
+      caseType: 'C3_SUBMITTED_NO_PAYMENT',
+      enabled: true
+    },
+    {
+      triggerEvent: 'Validation Errors Detected',
+      caseType: 'C3_VALIDATION_ERROR',
+      enabled: true
+    },
+    {
+      triggerEvent: 'Arrears Exceed Threshold',
+      caseType: 'ARREARS_CASE',
+      enabled: true
+    }
+  ]
+};
