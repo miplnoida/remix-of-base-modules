@@ -3,23 +3,140 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   Settings, 
   Calendar, 
   DollarSign, 
   AlertCircle,
-  Save
+  Save,
+  History,
+  Plus,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
-import { mockComplianceSettings } from "@/services/mockData/complianceData";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { complianceSettingsService } from "@/services/complianceSettingsService";
+import { ComplianceSettingsPolicy, AutoCaseCreationRule } from "@/types/complianceSettings";
+import { format } from "date-fns";
 
 export default function ComplianceSettings() {
-  const [settings, setSettings] = useState(mockComplianceSettings);
+  const [activePolicy, setActivePolicy] = useState<ComplianceSettingsPolicy | null>(null);
+  const [policyHistory, setPolicyHistory] = useState<ComplianceSettingsPolicy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showNewPolicyDialog, setShowNewPolicyDialog] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState<Partial<ComplianceSettingsPolicy>>({});
+  const [newPolicyEffectiveFrom, setNewPolicyEffectiveFrom] = useState('');
+  const [newPolicyNotes, setNewPolicyNotes] = useState('');
 
-  const handleSave = () => {
-    toast.success("Compliance settings saved successfully");
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const history = await complianceSettingsService.getSettingsHistory();
+      setActivePolicy(history.activePolicy);
+      setPolicyHistory(history.policies);
+      if (history.activePolicy) {
+        setFormData(history.activePolicy);
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast.error('Failed to load compliance settings');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    if (!activePolicy) return;
+    
+    try {
+      await complianceSettingsService.updateActivePolicy(formData);
+      toast.success('Compliance settings updated successfully');
+      loadSettings();
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings');
+    }
+  };
+
+  const handleRuleToggle = (ruleId: string, enabled: boolean) => {
+    if (!formData.autoCaseCreationRules) return;
+    
+    const updatedRules = formData.autoCaseCreationRules.map(rule =>
+      rule.ruleId === ruleId ? { ...rule, enabled } : rule
+    );
+    
+    setFormData({ ...formData, autoCaseCreationRules: updatedRules });
+  };
+
+  const handleActivateNewPolicy = async () => {
+    if (!newPolicyEffectiveFrom) {
+      toast.error('Please select an effective date');
+      return;
+    }
+
+    if (!formData) return;
+
+    try {
+      await complianceSettingsService.activateNewPolicy({
+        ...formData as ComplianceSettingsPolicy,
+        policyVersion: `v${policyHistory.length + 1}.0`,
+        effectiveFrom: newPolicyEffectiveFrom,
+        createdBy: 'current.user',
+        notes: newPolicyNotes
+      });
+      
+      toast.success('New policy activated successfully');
+      setShowNewPolicyDialog(false);
+      setNewPolicyEffectiveFrom('');
+      setNewPolicyNotes('');
+      loadSettings();
+    } catch (error) {
+      console.error('Error activating new policy:', error);
+      toast.error('Failed to activate new policy');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">Loading compliance settings...</div>
+      </div>
+    );
+  }
+
+  if (!activePolicy) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">No active policy found</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -29,11 +146,30 @@ export default function ComplianceSettings() {
           <p className="text-muted-foreground">
             Configure rules, grace periods, and automation
           </p>
+          <div className="flex items-center gap-3 mt-2">
+            <Badge variant="default" className="gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Active Policy: {activePolicy.policyVersion}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Effective from {format(new Date(activePolicy.effectiveFrom), 'MMM dd, yyyy')}
+            </span>
+          </div>
         </div>
-        <Button className="gap-2" onClick={handleSave}>
-          <Save className="h-4 w-4" />
-          Save Changes
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setShowHistoryDialog(true)}>
+            <History className="h-4 w-4" />
+            Policy History
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setShowNewPolicyDialog(true)}>
+            <Plus className="h-4 w-4" />
+            Activate New Policy
+          </Button>
+          <Button className="gap-2" onClick={handleSave}>
+            <Save className="h-4 w-4" />
+            Save Changes
+          </Button>
+        </div>
       </div>
 
       {/* C3 Submission Settings */}
@@ -54,9 +190,9 @@ export default function ComplianceSettings() {
               <Input
                 id="gracePeriod"
                 type="number"
-                value={settings.c3GracePeriodDays}
-                onChange={(e) => setSettings({
-                  ...settings,
+                value={formData.c3GracePeriodDays || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
                   c3GracePeriodDays: parseInt(e.target.value)
                 })}
               />
@@ -69,9 +205,9 @@ export default function ComplianceSettings() {
               <Input
                 id="submissionDeadline"
                 type="number"
-                value={settings.c3SubmissionDeadlineDay}
-                onChange={(e) => setSettings({
-                  ...settings,
+                value={formData.c3SubmissionDeadlineDay || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
                   c3SubmissionDeadlineDay: parseInt(e.target.value)
                 })}
               />
@@ -101,9 +237,9 @@ export default function ComplianceSettings() {
               <Input
                 id="paymentDueDay"
                 type="number"
-                value={settings.paymentDueDateDay}
-                onChange={(e) => setSettings({
-                  ...settings,
+                value={formData.paymentDueDateDay || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
                   paymentDueDateDay: parseInt(e.target.value)
                 })}
               />
@@ -114,9 +250,9 @@ export default function ComplianceSettings() {
                 id="penaltyRate"
                 type="number"
                 step="0.01"
-                value={settings.penaltyRatePercent}
-                onChange={(e) => setSettings({
-                  ...settings,
+                value={formData.penaltyRatePercent || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
                   penaltyRatePercent: parseFloat(e.target.value)
                 })}
               />
@@ -127,23 +263,27 @@ export default function ComplianceSettings() {
                 id="interestRate"
                 type="number"
                 step="0.01"
-                value={settings.interestRatePercent}
-                onChange={(e) => setSettings({
-                  ...settings,
+                value={formData.interestRatePercent || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
                   interestRatePercent: parseFloat(e.target.value)
                 })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="penaltyFrequency">Penalty Calculation</Label>
+              <Label htmlFor="arrearsThreshold">Arrears Escalation Threshold (XCD)</Label>
               <Input
-                id="penaltyFrequency"
-                value={settings.penaltyCalculationFrequency}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  penaltyCalculationFrequency: e.target.value as any
+                id="arrearsThreshold"
+                type="number"
+                value={formData.arrearsEscalationThreshold || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  arrearsEscalationThreshold: parseInt(e.target.value)
                 })}
               />
+              <p className="text-xs text-muted-foreground">
+                Automatic legal escalation if arrears exceed this amount
+              </p>
             </div>
           </div>
         </CardContent>
@@ -167,29 +307,14 @@ export default function ComplianceSettings() {
               <Input
                 id="auditFrequency"
                 type="number"
-                value={settings.minimumAuditFrequencyMonths}
-                onChange={(e) => setSettings({
-                  ...settings,
+                value={formData.minimumAuditFrequencyMonths || 0}
+                onChange={(e) => setFormData({
+                  ...formData,
                   minimumAuditFrequencyMonths: parseInt(e.target.value)
                 })}
               />
               <p className="text-xs text-muted-foreground">
                 Every employer must be audited at least once in this period
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="arrearsThreshold">Arrears Threshold (XCD)</Label>
-              <Input
-                id="arrearsThreshold"
-                type="number"
-                value={settings.arrearsEscalationThreshold}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  arrearsEscalationThreshold: parseInt(e.target.value)
-                })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Automatic legal escalation if arrears exceed this amount
               </p>
             </div>
           </div>
@@ -201,30 +326,133 @@ export default function ComplianceSettings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-primary" />
-            <CardTitle>Automatic Case Creation</CardTitle>
+            <CardTitle>Automatic Case Creation Rules</CardTitle>
           </div>
           <CardDescription>
-            Configure which events trigger automatic case creation
+            Enable or disable automatic case creation triggers
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            {settings.autoCaseCreationRules.map((rule, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
+        <CardContent className="space-y-3">
+          {formData.autoCaseCreationRules?.map((rule) => (
+            <div key={rule.ruleId} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
                   <p className="font-medium text-foreground">{rule.triggerEvent}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Creates: {rule.caseType}
-                  </p>
+                  <Badge variant={rule.enabled ? "default" : "secondary"} className="gap-1">
+                    {rule.enabled ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {rule.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
                 </div>
-                <Badge variant={rule.enabled ? "default" : "secondary"}>
-                  {rule.enabled ? "Enabled" : "Disabled"}
-                </Badge>
+                <p className="text-sm text-muted-foreground">
+                  {rule.description}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Creates case type: <span className="font-mono">{rule.caseType}</span>
+                </p>
               </div>
-            ))}
-          </div>
+              <Switch
+                checked={rule.enabled}
+                onCheckedChange={(checked) => handleRuleToggle(rule.ruleId, checked)}
+              />
+            </div>
+          ))}
         </CardContent>
       </Card>
+
+      {/* Policy History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Policy History</DialogTitle>
+            <DialogDescription>
+              View all compliance policy versions and their effective periods
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Version</TableHead>
+                  <TableHead>Effective From</TableHead>
+                  <TableHead>Effective To</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {policyHistory.map((policy) => (
+                  <TableRow key={policy.policyId}>
+                    <TableCell className="font-medium">{policy.policyVersion}</TableCell>
+                    <TableCell>{format(new Date(policy.effectiveFrom), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>
+                      {policy.effectiveTo 
+                        ? format(new Date(policy.effectiveTo), 'MMM dd, yyyy')
+                        : 'Present'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={policy.isActive ? "default" : "secondary"}>
+                        {policy.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{policy.createdBy}</TableCell>
+                    <TableCell className="max-w-xs truncate">{policy.notes || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Policy Dialog */}
+      <Dialog open={showNewPolicyDialog} onOpenChange={setShowNewPolicyDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Activate New Policy</DialogTitle>
+            <DialogDescription>
+              Create a new policy version with current settings. The current policy will be deactivated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="effectiveFrom">Effective From Date</Label>
+              <Input
+                id="effectiveFrom"
+                type="date"
+                value={newPolicyEffectiveFrom}
+                onChange={(e) => setNewPolicyEffectiveFrom(e.target.value)}
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+              <p className="text-xs text-muted-foreground">
+                The date when this policy will become active
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Describe the changes in this policy version..."
+                value={newPolicyNotes}
+                onChange={(e) => setNewPolicyNotes(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewPolicyDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleActivateNewPolicy}>
+              Activate Policy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

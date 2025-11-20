@@ -89,18 +89,25 @@ export const complianceMenuItems = [
         description: "Review cases ready for legal escalation"
       },
       {
-        title: "Legal Escalation Policy",
-        url: "/compliance/legal-escalation-policy",
-        icon: Shield,
-        requiresPermission: "manage_compliance",
-        description: "Configure legal escalation rules and thresholds"
-      },
-      {
         title: "Settings",
-        url: "/compliance/settings",
         icon: Settings,
         requiresPermission: "manage_compliance",
-        description: "Configure C3 grace periods, penalties, and rules"
+        subItems: [
+          {
+            title: "Compliance Settings",
+            url: "/compliance/settings",
+            icon: Settings,
+            requiresPermission: "manage_compliance",
+            description: "Configure C3 grace periods, penalties, and automatic case rules"
+          },
+          {
+            title: "Legal Escalation Policy",
+            url: "/compliance/legal-escalation-policy",
+            icon: Shield,
+            requiresPermission: "manage_compliance",
+            description: "Configure legal escalation rules and thresholds"
+          }
+        ]
       }
     ]
   }
