@@ -38,6 +38,11 @@ import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile
 import LegalEscalationPolicy from '@/pages/compliance/LegalEscalationPolicy';
 import LegalRecommendationQueue from '@/pages/compliance/LegalRecommendationQueue';
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
+import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
+import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
+import PendingReview from '@/pages/compliance/audit-planning/PendingReview';
+import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
+import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -404,7 +409,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
       <Route path="/compliance/cases" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
       <Route path="/compliance/cases/:id" element={<ProtectedLayout><CaseDetails /></ProtectedLayout>} />
-      <Route path="/compliance/inspector-plans" element={<ProtectedLayout><InspectorPlans /></ProtectedLayout>} />
+      <Route path="/compliance/inspector-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
       <Route path="/compliance/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
       <Route path="/compliance/payment-arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
@@ -421,6 +426,11 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/settings" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/sampling-dashboard" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/monthly-candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/weekly-plan-builder" element={<ProtectedLayout><WeeklyPlanBuilder /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/pending-review" element={<ProtectedLayout><PendingReview /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/field-execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
+      <Route path="/compliance/audit-planning/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/my-audits/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
       <Route path="/compliance/employers/:employerId/risk-profile" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
       <Route path="/compliance/legal-escalation-policy" element={<ProtectedLayout><LegalEscalationPolicy /></ProtectedLayout>} />
