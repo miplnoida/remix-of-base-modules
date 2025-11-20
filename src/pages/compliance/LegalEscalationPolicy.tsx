@@ -344,7 +344,7 @@ const LegalEscalationPolicyPage = () => {
                     {rule.totalArrearsThreshold && (
                       <div>
                         <span className="text-muted-foreground">Amount Threshold: </span>
-                        <span className="font-medium">EC${rule.totalArrearsThreshold.toLocaleString()}</span>
+                        <span className="font-medium">XCD {rule.totalArrearsThreshold.toLocaleString()}</span>
                       </div>
                     )}
                     {rule.noticesSentMinimum && (
@@ -590,7 +590,7 @@ const LegalEscalationPolicyPage = () => {
                 <h3 className="font-medium">Amount Threshold Settings</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Total Arrears Threshold (EC$)</Label>
+                    <Label>Total Arrears Threshold (XCD)</Label>
                     <Input
                       type="number"
                       value={newRule.totalArrearsThreshold || ''}
@@ -599,7 +599,7 @@ const LegalEscalationPolicyPage = () => {
                     />
                   </div>
                   <div>
-                    <Label>Single Period Threshold (EC$)</Label>
+                    <Label>Single Period Threshold (XCD)</Label>
                     <Input
                       type="number"
                       value={newRule.singlePeriodThreshold || ''}

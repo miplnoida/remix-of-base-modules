@@ -43,7 +43,7 @@ const CheckManagement: React.FC = () => {
       employerName: "Government of St. Kitts and Nevis",
       invoiceReference: "INV-2024-001",
       amount: 15000.00,
-      currency: "EC$",
+      currency: "XCD",
       dateReceived: new Date("2024-12-20"),
       status: "cleared",
       receiptNumber: "C3-20241220-0001",

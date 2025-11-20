@@ -23,16 +23,16 @@ const CashierReports = () => {
 
   // Sample data for demonstration
   const dailyReceipts = [
-    { receiptNo: 'RCP-20241225-0001', time: '09:15', payer: 'John Smith', type: 'Social Security Contributions', mode: 'Cash', currency: 'EC$', amount: 450.00 },
-    { receiptNo: 'RCP-20241225-0002', time: '09:32', payer: 'Mary Johnson', type: 'Rent - Recurring', mode: 'Check', currency: 'EC$', amount: 800.00 },
+    { receiptNo: 'RCP-20241225-0001', time: '09:15', payer: 'John Smith', type: 'Social Security Contributions', mode: 'Cash', currency: 'XCD', amount: 450.00 },
+    { receiptNo: 'RCP-20241225-0002', time: '09:32', payer: 'Mary Johnson', type: 'Rent - Recurring', mode: 'Check', currency: 'XCD', amount: 800.00 },
     { receiptNo: 'RCP-20241225-0003', time: '10:15', payer: 'Robert Davis', type: 'Levy Contributions', mode: 'Card', currency: 'US$', amount: 275.50 },
-    { receiptNo: 'RCP-20241225-0004', time: '10:45', payer: 'Sarah Wilson', type: 'Loan Repayments', mode: 'Online', currency: 'EC$', amount: 1200.00 },
-    { receiptNo: 'RCP-20241225-0005', time: '11:20', payer: 'Michael Brown', type: 'Miscellaneous Invoice', mode: 'Cash', currency: 'EC$', amount: 85.00 },
+    { receiptNo: 'RCP-20241225-0004', time: '10:45', payer: 'Sarah Wilson', type: 'Loan Repayments', mode: 'Online', currency: 'XCD', amount: 1200.00 },
+    { receiptNo: 'RCP-20241225-0005', time: '11:20', payer: 'Michael Brown', type: 'Miscellaneous Invoice', mode: 'Cash', currency: 'XCD', amount: 85.00 },
   ];
 
   const checkRegister = [
-    { checkNo: '001234', bank: 'Bank of Nova Scotia', payer: 'Mary Johnson', employer: 'ABC Company Ltd', invoiceRef: 'INV-2024-001', amount: 800.00, currency: 'EC$', status: 'Cleared' },
-    { checkNo: '005678', bank: 'FirstCaribbean International', payer: 'David Thompson', employer: 'XYZ Corporation', invoiceRef: 'INV-2024-002', amount: 1500.00, currency: 'EC$', status: 'Pending' },
+    { checkNo: '001234', bank: 'Bank of Nova Scotia', payer: 'Mary Johnson', employer: 'ABC Company Ltd', invoiceRef: 'INV-2024-001', amount: 800.00, currency: 'XCD', status: 'Cleared' },
+    { checkNo: '005678', bank: 'FirstCaribbean International', payer: 'David Thompson', employer: 'XYZ Corporation', invoiceRef: 'INV-2024-002', amount: 1500.00, currency: 'XCD', status: 'Pending' },
     { checkNo: '002468', bank: 'Antigua Commercial Bank', payer: 'Lisa Anderson', employer: 'DEF Industries', invoiceRef: 'INV-2024-003', amount: 400.00, currency: 'US$', status: 'Returned' },
   ];
 

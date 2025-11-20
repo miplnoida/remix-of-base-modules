@@ -197,8 +197,8 @@ const BatchManagement: React.FC = () => {
 
   // Sample check register data
   const checkRegister = [
-    { checkNo: '001234', bank: 'RBC', amount: 500.00, currency: 'EC$', status: 'cleared' },
-    { checkNo: '005678', bank: 'FCB', amount: 800.00, currency: 'EC$', status: 'pending' },
+    { checkNo: '001234', bank: 'RBC', amount: 500.00, currency: 'XCD', status: 'cleared' },
+    { checkNo: '005678', bank: 'FCB', amount: 800.00, currency: 'XCD', status: 'pending' },
     { checkNo: '009876', bank: 'BON', amount: 600.00, currency: 'US$', status: 'cleared' }
   ];
 

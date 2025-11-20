@@ -49,13 +49,13 @@ export default function EmployerStatements() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-foreground">EC$ 2.4M</div>
+            <div className="text-2xl font-bold text-foreground">XCD 2.4M</div>
             <p className="text-sm text-muted-foreground">Total Outstanding</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-foreground">EC$ 856K</div>
+            <div className="text-2xl font-bold text-foreground">XCD 856K</div>
             <p className="text-sm text-muted-foreground">Penalties & Interest</p>
           </CardContent>
         </Card>
