@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle } from 'lucide-react';
 import { MOCK_CASES, MOCK_CASE_HISTORY, MOCK_NOTICES } from '@/services/mockData/complianceData';
 import { CaseStatus } from '@/types/compliance';
+import { ContributionComponent, COMPONENT_LABELS } from '@/types/contributionComponents';
 
 export default function CaseDetails() {
   const { id } = useParams();
@@ -311,24 +312,175 @@ export default function CaseDetails() {
         </TabsContent>
 
         <TabsContent value="financial" className="space-y-4">
+          {/* Component-Level Breakdown */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Social Security Components */}
+            <Card className="border-blue-200 bg-blue-50/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-300">Social Security</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">SSC - Contributions</div>
+                  <div className="text-base font-semibold">{formatCurrency(4166.67)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">SSF - Penalties</div>
+                  <div className="text-base font-semibold">{formatCurrency(1250.00)}</div>
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-muted-foreground mb-1">Subtotal</div>
+                  <div className="text-lg font-bold text-blue-600">{formatCurrency(5416.67)}</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Levy Components */}
+            <Card className="border-green-200 bg-green-50/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Badge className="bg-green-100 text-green-800 border-green-300">Levy</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">LVC - Contributions</div>
+                  <div className="text-base font-semibold">{formatCurrency(2800.00)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">LVF - Penalties</div>
+                  <div className="text-base font-semibold">{formatCurrency(700.00)}</div>
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-muted-foreground mb-1">Subtotal</div>
+                  <div className="text-lg font-bold text-green-600">{formatCurrency(3500.00)}</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Severance Components */}
+            <Card className="border-purple-200 bg-purple-50/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Badge className="bg-purple-100 text-purple-800 border-purple-300">Severance</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">PEC - Contributions</div>
+                  <div className="text-base font-semibold">{formatCurrency(5000.00)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">PEF - Penalties</div>
+                  <div className="text-base font-semibold">{formatCurrency(1500.00)}</div>
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-muted-foreground mb-1">Subtotal</div>
+                  <div className="text-lg font-bold text-purple-600">{formatCurrency(6500.00)}</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Detailed Component Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Financial Breakdown</CardTitle>
+              <CardTitle>Component-Level Financial Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Component</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Principal</TableHead>
+                    <TableHead className="text-right">Penalty</TableHead>
+                    <TableHead className="text-right">Interest</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="bg-blue-50/50">
+                    <TableCell className="font-medium">
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-300">SSC</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.SSC]}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(4166.67)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right">{formatCurrency(41.67)}</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(4208.34)}</TableCell>
+                  </TableRow>
+                  <TableRow className="bg-blue-50/30">
+                    <TableCell className="font-medium">
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-300">SSF</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.SSF]}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(1250.00)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(1250.00)}</TableCell>
+                  </TableRow>
+                  <TableRow className="bg-green-50/50">
+                    <TableCell className="font-medium">
+                      <Badge className="bg-green-100 text-green-800 border-green-300">LVC</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.LVC]}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(2800.00)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right">{formatCurrency(56.00)}</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(2856.00)}</TableCell>
+                  </TableRow>
+                  <TableRow className="bg-green-50/30">
+                    <TableCell className="font-medium">
+                      <Badge className="bg-green-100 text-green-800 border-green-300">LVF</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.LVF]}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(700.00)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(700.00)}</TableCell>
+                  </TableRow>
+                  <TableRow className="bg-purple-50/50">
+                    <TableCell className="font-medium">
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-300">PEC</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.PEC]}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(5000.00)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right">{formatCurrency(75.00)}</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(5075.00)}</TableCell>
+                  </TableRow>
+                  <TableRow className="bg-purple-50/30">
+                    <TableCell className="font-medium">
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-300">PEF</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.PEF]}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(1500.00)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(1500.00)}</TableCell>
+                  </TableRow>
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell colSpan={2}>TOTAL</TableCell>
+                    <TableCell className="text-right">{formatCurrency(caseData.principalAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(caseData.penaltyAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(caseData.interestAmount)}</TableCell>
+                    <TableCell className="text-right text-primary">{formatCurrency(caseData.totalAmountDue)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Summary Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4">
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="text-muted-foreground">Principal Amount</span>
-                  <span className="font-medium">{formatCurrency(caseData.principalAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="text-muted-foreground">Penalty Amount</span>
-                  <span className="font-medium">{formatCurrency(caseData.penaltyAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="text-muted-foreground">Interest Amount</span>
-                  <span className="font-medium">{formatCurrency(caseData.interestAmount)}</span>
-                </div>
                 <div className="flex justify-between items-center pb-2 border-b font-semibold">
                   <span>Total Amount Due</span>
                   <span>{formatCurrency(caseData.totalAmountDue)}</span>
