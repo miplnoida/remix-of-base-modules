@@ -41,6 +41,56 @@ const mockEmployers: Record<string, Employer> = {
       address: "789 Bird Rock, Basseterre"
     },
     complianceStatus: "Compliant"
+  },
+  "EMP-004": {
+    regNo: "EMP-004",
+    name: "Island Resort & Spa",
+    contact: {
+      email: "hr@islandresort.com",
+      phone: "869-555-1004",
+      address: "Beach Front, Frigate Bay"
+    },
+    complianceStatus: "Compliant"
+  },
+  "EMP-005": {
+    regNo: "EMP-005",
+    name: "St. Kitts Manufacturing Co.",
+    contact: {
+      email: "accounts@skmfg.com",
+      phone: "869-555-1005",
+      address: "Industrial Estate, Sandy Point"
+    },
+    complianceStatus: "Non-Compliant"
+  },
+  "EMP-006": {
+    regNo: "EMP-006",
+    name: "Paradise Hotel Group",
+    contact: {
+      email: "payroll@paradisehotel.com",
+      phone: "869-555-1006",
+      address: "Cockleshell Beach"
+    },
+    complianceStatus: "Compliant"
+  },
+  "EMP-007": {
+    regNo: "EMP-007",
+    name: "BuildRight Contractors",
+    contact: {
+      email: "office@buildright.com",
+      phone: "869-555-1007",
+      address: "Main Street, Charlestown"
+    },
+    complianceStatus: "Under Review"
+  },
+  "EMP-008": {
+    regNo: "EMP-008",
+    name: "Caribbean Shipping Ltd.",
+    contact: {
+      email: "admin@caribship.com",
+      phone: "869-555-1008",
+      address: "Port Zante, Basseterre"
+    },
+    complianceStatus: "Compliant"
   }
 };
 
