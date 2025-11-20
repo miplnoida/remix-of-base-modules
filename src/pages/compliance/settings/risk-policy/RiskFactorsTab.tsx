@@ -15,11 +15,14 @@ import { riskFactorService } from '@/services/riskFactorService';
 import { RiskFactor } from '@/types/riskPolicy';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import RiskFactorDialog from '@/components/compliance/risk-policy/RiskFactorDialog';
 
 export default function RiskFactorsTab() {
   const [factors, setFactors] = useState<RiskFactor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingFactor, setEditingFactor] = useState<RiskFactor | undefined>();
 
   useEffect(() => {
     loadFactors();
@@ -49,6 +52,25 @@ export default function RiskFactorsTab() {
     }
   };
 
+  const handleEdit = (factor: RiskFactor) => {
+    setEditingFactor(factor);
+    setDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingFactor(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async (factorData: Omit<RiskFactor, 'id' | 'code' | 'createdDate' | 'lastModified'>) => {
+    if (editingFactor) {
+      await riskFactorService.updateFactor(editingFactor.id, factorData);
+    } else {
+      await riskFactorService.createFactor(factorData);
+    }
+    await loadFactors();
+  };
+
   const filteredFactors = factors.filter(factor =>
     factor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     factor.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,7 +90,7 @@ export default function RiskFactorsTab() {
             className="pl-10"
           />
         </div>
-        <Button>
+        <Button onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Add Risk Factor
         </Button>
@@ -134,7 +156,7 @@ export default function RiskFactorsTab() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(factor)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
@@ -182,6 +204,13 @@ export default function RiskFactorsTab() {
           </div>
         </div>
       </div>
+
+      <RiskFactorDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        factor={editingFactor}
+        onSave={handleSave}
+      />
     </div>
   );
 }
