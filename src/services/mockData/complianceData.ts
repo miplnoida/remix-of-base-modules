@@ -890,6 +890,92 @@ export const mockEmployerStatements = [
 ];
 
 // ============================================
+// EMPLOYER STATEMENT TRANSACTIONS (Banking Style)
+// ============================================
+export const mockEmployerStatementTransactions = [
+  {
+    employerId: 'EMP-001',
+    employerName: 'ABC Construction Ltd',
+    statementPeriodFrom: '2023-01-01',
+    statementPeriodTo: '2024-03-31',
+    generatedDate: '2024-03-15',
+    // SSC - Social Security Contributions
+    ssc: [
+      { date: '2024-01-01', period: '2024-01', description: 'SS Contributions Due - January 2024', transactionType: 'DEBIT', amount: 12500.00 },
+      { date: '2024-01-25', period: '2024-01', description: 'Payment Received - Cheque #4523', transactionType: 'CREDIT', amount: 12500.00 },
+      { date: '2024-02-01', period: '2024-02', description: 'SS Contributions Due - February 2024', transactionType: 'DEBIT', amount: 13200.00 },
+      { date: '2024-02-28', period: '2024-02', description: 'Partial Payment - Bank Transfer', transactionType: 'CREDIT', amount: 8000.00 },
+      { date: '2024-03-01', period: '2024-03', description: 'SS Contributions Due - March 2024', transactionType: 'DEBIT', amount: 14100.00 },
+    ],
+    // SSF - Social Security Penalties
+    ssf: [
+      { date: '2024-02-16', period: '2024-02', description: 'Late Payment Penalty - February (2.5%)', transactionType: 'DEBIT', amount: 330.00 },
+      { date: '2024-03-16', period: '2024-03', description: 'Late Payment Penalty - March (2.5%)', transactionType: 'DEBIT', amount: 352.50 },
+      { date: '2024-03-20', period: '2024-03', description: 'Interest on Outstanding - Monthly', transactionType: 'DEBIT', amount: 125.00 },
+    ],
+    // LVC - Levy Contributions
+    lvc: [
+      { date: '2024-01-01', period: '2024-01', description: 'Levy Contributions Due - January 2024', transactionType: 'DEBIT', amount: 2500.00 },
+      { date: '2024-01-25', period: '2024-01', description: 'Payment Received - Cheque #4523', transactionType: 'CREDIT', amount: 2500.00 },
+      { date: '2024-02-01', period: '2024-02', description: 'Levy Contributions Due - February 2024', transactionType: 'DEBIT', amount: 2640.00 },
+      { date: '2024-02-28', period: '2024-02', description: 'Partial Payment - Bank Transfer', transactionType: 'CREDIT', amount: 1600.00 },
+      { date: '2024-03-01', period: '2024-03', description: 'Levy Contributions Due - March 2024', transactionType: 'DEBIT', amount: 2820.00 },
+    ],
+    // LVF - Levy Penalties
+    lvf: [
+      { date: '2024-02-16', period: '2024-02', description: 'Late Payment Penalty - February Levy (2.5%)', transactionType: 'DEBIT', amount: 66.00 },
+      { date: '2024-03-16', period: '2024-03', description: 'Late Payment Penalty - March Levy (2.5%)', transactionType: 'DEBIT', amount: 70.50 },
+    ],
+    // PEC - Severance Contributions
+    pec: [
+      { date: '2024-01-01', period: '2024-01', description: 'Severance Contributions Due - January 2024', transactionType: 'DEBIT', amount: 1875.00 },
+      { date: '2024-01-25', period: '2024-01', description: 'Payment Received - Cheque #4523', transactionType: 'CREDIT', amount: 1875.00 },
+      { date: '2024-02-01', period: '2024-02', description: 'Severance Contributions Due - February 2024', transactionType: 'DEBIT', amount: 1980.00 },
+      { date: '2024-03-01', period: '2024-03', description: 'Severance Contributions Due - March 2024', transactionType: 'DEBIT', amount: 2115.00 },
+    ],
+    // PEF - Severance Penalties
+    pef: [
+      { date: '2024-03-16', period: '2024-03', description: 'Late Payment Penalty - Severance (2.5%)', transactionType: 'DEBIT', amount: 52.88 },
+    ],
+  },
+  {
+    employerId: 'EMP-002',
+    employerName: 'XYZ Trading Inc',
+    statementPeriodFrom: '2023-01-01',
+    statementPeriodTo: '2024-03-31',
+    generatedDate: '2024-03-15',
+    // All payments on time
+    ssc: [
+      { date: '2024-01-01', period: '2024-01', description: 'SS Contributions Due - January 2024', transactionType: 'DEBIT', amount: 8500.00 },
+      { date: '2024-01-15', period: '2024-01', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 8500.00 },
+      { date: '2024-02-01', period: '2024-02', description: 'SS Contributions Due - February 2024', transactionType: 'DEBIT', amount: 8500.00 },
+      { date: '2024-02-14', period: '2024-02', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 8500.00 },
+      { date: '2024-03-01', period: '2024-03', description: 'SS Contributions Due - March 2024', transactionType: 'DEBIT', amount: 8500.00 },
+      { date: '2024-03-13', period: '2024-03', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 8500.00 },
+    ],
+    ssf: [],
+    lvc: [
+      { date: '2024-01-01', period: '2024-01', description: 'Levy Contributions Due - January 2024', transactionType: 'DEBIT', amount: 1700.00 },
+      { date: '2024-01-15', period: '2024-01', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 1700.00 },
+      { date: '2024-02-01', period: '2024-02', description: 'Levy Contributions Due - February 2024', transactionType: 'DEBIT', amount: 1700.00 },
+      { date: '2024-02-14', period: '2024-02', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 1700.00 },
+      { date: '2024-03-01', period: '2024-03', description: 'Levy Contributions Due - March 2024', transactionType: 'DEBIT', amount: 1700.00 },
+      { date: '2024-03-13', period: '2024-03', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 1700.00 },
+    ],
+    lvf: [],
+    pec: [
+      { date: '2024-01-01', period: '2024-01', description: 'Severance Contributions Due - January 2024', transactionType: 'DEBIT', amount: 1275.00 },
+      { date: '2024-01-15', period: '2024-01', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 1275.00 },
+      { date: '2024-02-01', period: '2024-02', description: 'Severance Contributions Due - February 2024', transactionType: 'DEBIT', amount: 1275.00 },
+      { date: '2024-02-14', period: '2024-02', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 1275.00 },
+      { date: '2024-03-01', period: '2024-03', description: 'Severance Contributions Due - March 2024', transactionType: 'DEBIT', amount: 1275.00 },
+      { date: '2024-03-13', period: '2024-03', description: 'Payment Received - Online Banking', transactionType: 'CREDIT', amount: 1275.00 },
+    ],
+    pef: [],
+  }
+];
+
+// ============================================
 // COMPLIANCE SETTINGS
 // ============================================
 export const mockComplianceSettings = {

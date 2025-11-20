@@ -154,7 +154,13 @@ export default function EmployerStatements() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline">View Full Statement</Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => window.location.href = `/compliance/employer-statement/${statement.employerId}`}
+                  >
+                    View Full Statement
+                  </Button>
                   <Button size="sm" variant="outline" className="gap-2">
                     <Download className="h-4 w-4" />
                     Download PDF

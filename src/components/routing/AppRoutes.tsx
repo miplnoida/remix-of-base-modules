@@ -44,6 +44,7 @@ import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports
 import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
 import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
 import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
+import EmployerStatementDetail from '@/pages/compliance/EmployerStatementDetail';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -415,6 +416,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
       <Route path="/compliance/payment-arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
       <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
+      <Route path="/compliance/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
       <Route path="/compliance/reports/case-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
       <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><InspectorPerformance /></ProtectedLayout>} />
