@@ -14,6 +14,8 @@ import {
 import { Search, User, FileText, Calendar, DollarSign, ArrowRight, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { peopleAdapter, type Person } from "@/adapters/peopleAdapter";
+import { toast } from "sonner";
 
 interface BenefitApplicationFormProps {
   benefitType: "SICKNESS" | "MATERNITY" | "EMPLOYMENT_INJURY" | "FUNERAL_GRANT" | "AGE_BENEFIT" | "INVALIDITY";
@@ -21,8 +23,10 @@ interface BenefitApplicationFormProps {
 }
 
 export const BenefitApplicationForm = ({ benefitType, onClose }: BenefitApplicationFormProps) => {
-  const [ssn, setSsn] = useState("");
-  const [insuredPerson, setInsuredPerson] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Person[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [insuredPerson, setInsuredPerson] = useState<Person | null>(null);
   const [formData, setFormData] = useState({
     claimDate: "",
     startDate: "",
@@ -38,21 +42,32 @@ export const BenefitApplicationForm = ({ benefitType, onClose }: BenefitApplicat
     notes: "",
   });
 
-  const handleSearchSSN = () => {
-    // Mock data - in real implementation, this would call an API
-    if (ssn) {
-      setInsuredPerson({
-        ssn: ssn,
-        fullName: "John Michael Pemberton",
-        dateOfBirth: "1985-05-15",
-        address: "123 Main Street, Basseterre, St. Kitts",
-        phone: "+1-869-465-1234",
-        email: "john.pemberton@example.com",
-        contributionWeeks: 156,
-        lastEmployer: "Caribbean Hotel & Resort Ltd.",
-        status: "Active"
-      });
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      toast.error("Please enter an SSN or name to search");
+      return;
     }
+    
+    setIsSearching(true);
+    try {
+      const results = await peopleAdapter.search(searchQuery);
+      setSearchResults(results);
+      if (results.length === 0) {
+        toast.error("No insured person found");
+      }
+    } catch (error) {
+      toast.error("Error searching for insured person");
+      console.error(error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectPerson = (person: Person) => {
+    setInsuredPerson(person);
+    setSearchResults([]);
+    setSearchQuery("");
+    toast.success(`Selected ${person.name}`);
   };
 
   const getBenefitTitle = () => {
@@ -90,30 +105,60 @@ export const BenefitApplicationForm = ({ benefitType, onClose }: BenefitApplicat
 
         {/* Content */}
         <div className="flex-1 p-6 space-y-6">
-          {/* Step 1: Search Insured Person by SSN */}
+          {/* Step 1: Search Insured Person by SSN or Name */}
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <Search className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-semibold">Step 1: Search Insured Person</h3>
             </div>
             
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="ssn">Social Security Number (SSN)</Label>
-                <Input
-                  id="ssn"
-                  placeholder="Enter SSN (e.g., 123456789)"
-                  value={ssn}
-                  onChange={(e) => setSsn(e.target.value)}
-                  className="mt-1"
-                />
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="search">SSN or Name</Label>
+                  <Input
+                    id="search"
+                    placeholder="Enter SSN or Name (e.g., 123-45-6789 or John Williams)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleSearch} disabled={isSearching}>
+                    <Search className="h-4 w-4 mr-2" />
+                    {isSearching ? "Searching..." : "Search"}
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-end">
-                <Button onClick={handleSearchSSN}>
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
-                </Button>
-              </div>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && !insuredPerson && (
+                <div className="border rounded-lg divide-y">
+                  <div className="p-3 bg-muted/50 font-medium text-sm">
+                    Found {searchResults.length} result{searchResults.length > 1 ? 's' : ''} - Click to select
+                  </div>
+                  {searchResults.map((person) => (
+                    <div
+                      key={person.ssn}
+                      className="p-4 hover:bg-accent cursor-pointer transition-colors"
+                      onClick={() => handleSelectPerson(person)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">{person.name}</div>
+                          <div className="text-sm text-muted-foreground mt-1">SSN: {person.ssn}</div>
+                          <div className="text-sm text-muted-foreground">DOB: {person.dob}</div>
+                        </div>
+                        <Badge variant={person.status === "Active" ? "default" : "secondary"}>
+                          {person.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </Card>
 
@@ -130,7 +175,7 @@ export const BenefitApplicationForm = ({ benefitType, onClose }: BenefitApplicat
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-xs text-muted-foreground">Full Name</Label>
-                    <p className="font-semibold">{insuredPerson.fullName}</p>
+                    <p className="font-semibold">{insuredPerson.name}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">SSN</Label>
@@ -138,24 +183,34 @@ export const BenefitApplicationForm = ({ benefitType, onClose }: BenefitApplicat
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                    <p className="font-semibold">{insuredPerson.dateOfBirth}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Contribution Weeks</Label>
-                    <p className="font-semibold">{insuredPerson.contributionWeeks} weeks</p>
+                    <p className="font-semibold">{insuredPerson.dob}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Phone</Label>
-                    <p className="font-semibold">{insuredPerson.phone}</p>
+                    <p className="font-semibold">{insuredPerson.contact.phone || "N/A"}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Last Employer</Label>
-                    <p className="font-semibold">{insuredPerson.lastEmployer}</p>
+                    <Label className="text-xs text-muted-foreground">Email</Label>
+                    <p className="font-semibold">{insuredPerson.contact.email || "N/A"}</p>
                   </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-xs text-muted-foreground">Address</Label>
-                    <p className="font-semibold">{insuredPerson.address}</p>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Status</Label>
+                    <p className="font-semibold">{insuredPerson.status}</p>
                   </div>
+                </div>
+                
+                <div className="flex justify-end mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setInsuredPerson(null);
+                      setSearchQuery("");
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear Selection
+                  </Button>
                 </div>
               </Card>
 

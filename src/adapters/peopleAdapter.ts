@@ -32,6 +32,55 @@ const mockPeople: Record<string, Person> = {
     dob: "1990-11-30",
     contact: { email: "r.brown@example.com", phone: "869-555-0103" },
     status: "Active"
+  },
+  "456-78-9012": {
+    ssn: "456-78-9012",
+    name: "Sarah Davis",
+    dob: "1982-05-20",
+    contact: { email: "s.davis@example.com", phone: "869-555-0104" },
+    status: "Active"
+  },
+  "567-89-0123": {
+    ssn: "567-89-0123",
+    name: "Michael Thompson",
+    dob: "1975-09-12",
+    contact: { email: "m.thompson@example.com", phone: "869-555-0105" },
+    status: "Active"
+  },
+  "678-90-1234": {
+    ssn: "678-90-1234",
+    name: "Jennifer Martinez",
+    dob: "1988-12-08",
+    contact: { email: "j.martinez@example.com", phone: "869-555-0106" },
+    status: "Active"
+  },
+  "789-01-2345": {
+    ssn: "789-01-2345",
+    name: "David Wilson",
+    dob: "1970-04-25",
+    contact: { email: "d.wilson@example.com", phone: "869-555-0107" },
+    status: "Active"
+  },
+  "890-12-3456": {
+    ssn: "890-12-3456",
+    name: "Lisa Anderson",
+    dob: "1992-08-17",
+    contact: { email: "l.anderson@example.com", phone: "869-555-0108" },
+    status: "Active"
+  },
+  "901-23-4567": {
+    ssn: "901-23-4567",
+    name: "James Taylor",
+    dob: "1965-11-30",
+    contact: { email: "j.taylor@example.com", phone: "869-555-0109" },
+    status: "Retired"
+  },
+  "012-34-5678": {
+    ssn: "012-34-5678",
+    name: "Patricia White",
+    dob: "1995-02-14",
+    contact: { email: "p.white@example.com", phone: "869-555-0110" },
+    status: "Active"
   }
 };
 
