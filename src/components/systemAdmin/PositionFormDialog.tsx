@@ -88,14 +88,13 @@ export function PositionFormDialog({ open, onOpenChange, position, onSave }: Pos
           <div className="space-y-2">
             <Label htmlFor="reportsToPositionId">Reports To Position</Label>
             <Select
-              value={formData.reportsToPositionId}
+              value={formData.reportsToPositionId || undefined}
               onValueChange={(value) => setFormData({ ...formData, reportsToPositionId: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select supervisor position (optional)" />
+                <SelectValue placeholder="None (No supervisor)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
                 {positions.filter(p => p.positionId !== position?.positionId).map(pos => (
                   <SelectItem key={pos.positionId} value={pos.positionId}>
                     {pos.positionName}

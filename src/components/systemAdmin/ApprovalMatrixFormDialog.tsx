@@ -58,14 +58,13 @@ export function ApprovalMatrixFormDialog({ open, onOpenChange, matrix, onSave }:
           <div className="space-y-2">
             <Label htmlFor="orgUnitId">Organisation Unit</Label>
             <Select
-              value={formData.orgUnitId}
+              value={formData.orgUnitId || undefined}
               onValueChange={(value) => setFormData({ ...formData, orgUnitId: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select unit (optional - applies to all if blank)" />
+                <SelectValue placeholder="All Units (leave blank for system-wide)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Units</SelectItem>
                 {orgUnits.map(unit => (
                   <SelectItem key={unit.orgUnitId} value={unit.orgUnitId}>
                     {unit.name} ({unit.type})
