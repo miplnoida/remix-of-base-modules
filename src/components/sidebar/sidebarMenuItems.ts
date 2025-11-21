@@ -7,6 +7,7 @@ import { complianceMenuItems } from './menuItems/complianceMenuItems';
 import { financeMenuItems } from './menuItems/financeMenuItems';
 import { auditMenuItems } from './menuItems/auditMenuItems';
 import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
+import { nbenefitMenuItems } from './menuItems/nbenefitMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -14,6 +15,7 @@ export const menuItems = [
   ...employersMenuItems,
   ...c3MenuItems,
   ...benefitsMenuItems,
+  ...nbenefitMenuItems,
   ...complianceMenuItems,
   ...financeMenuItems,
   ...auditMenuItems,
