@@ -190,12 +190,20 @@ import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannel
 // NBenefit Module
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
+import EmploymentInjuryBenefit from '@/pages/nbenefit/short-term/EmploymentInjuryBenefit';
+import FuneralGrantBenefit from '@/pages/nbenefit/short-term/FuneralGrantBenefit';
 import AgeBenefit from '@/pages/nbenefit/long-term/AgeBenefit';
+import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
+import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
+import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
+import AssistancePension from '@/pages/nbenefit/non-contributory/AssistancePension';
+import InvalidityAssistance from '@/pages/nbenefit/non-contributory/InvalidityAssistance';
 import RegistrySearch from '@/pages/nbenefit/shared/RegistrySearch';
 import CommonEligibilityRules from '@/pages/nbenefit/shared/CommonEligibilityRules';
 import CalculationEngines from '@/pages/nbenefit/shared/CalculationEngines';
 import DocumentTemplates from '@/pages/nbenefit/shared/DocumentTemplates';
 import BenefitWorkflows from '@/pages/nbenefit/shared/BenefitWorkflows';
+import BenefitApplicationFormPage from '@/pages/nbenefit/BenefitApplicationFormPage';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -690,21 +698,24 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
+      {/* Benefit Application Form */}
+      <Route path="/nbenefit/application/:benefitType" element={<BenefitApplicationFormPage />} />
+      
       {/* Short-Term Benefits */}
       <Route path="/nbenefit/short-term/sickness/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/short-term/employment-injury/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/employment-injury/*" element={<ProtectedLayout><EmploymentInjuryBenefit /></ProtectedLayout>} />
       <Route path="/nbenefit/short-term/maternity/*" element={<ProtectedLayout><MaternityBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/short-term/funeral-grant/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/funeral-grant/*" element={<ProtectedLayout><FuneralGrantBenefit /></ProtectedLayout>} />
       
       {/* Long-Term Benefits */}
       <Route path="/nbenefit/long-term/age-benefit/*" element={<ProtectedLayout><AgeBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/invalidity/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/assistance/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/survivors/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/invalidity/*" element={<ProtectedLayout><InvalidityBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/assistance/*" element={<ProtectedLayout><AssistanceBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/survivors/*" element={<ProtectedLayout><SurvivorsBenefit /></ProtectedLayout>} />
       
       {/* Non-Contributory Pensions */}
-      <Route path="/nbenefit/non-contributory/assistance-pension/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/non-contributory/assistance-pension/*" element={<ProtectedLayout><AssistancePension /></ProtectedLayout>} />
+      <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<ProtectedLayout><InvalidityAssistance /></ProtectedLayout>} />
       
       {/* Shared Config & Tools */}
       <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><CommonEligibilityRules /></ProtectedLayout>} />
