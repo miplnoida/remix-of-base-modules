@@ -8,14 +8,24 @@ export interface MedicalExpense {
   status: 'Pending' | 'Approved' | 'Rejected';
 }
 
+export interface Document {
+  id: string;
+  type: string;
+  filename: string;
+  uploadDate: string;
+  verified: boolean;
+}
+
 export interface BenefitApplication {
   id: string;
   applicationNumber: string;
   benefitType: string;
   insuredPersonSSN: string;
   insuredPersonName: string;
+  dateOfBirth?: string;
   applicationDate: string;
   status: 'Draft' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Payment Pending' | 'Completed';
+  workflowStage?: string;
   claimAmount?: number;
   approvedAmount?: number;
   reviewedBy?: string;
@@ -27,6 +37,9 @@ export interface BenefitApplication {
   contactEmail?: string;
   employerName?: string;
   employerId?: string;
+  employerVerified?: boolean;
+  recentContributions?: number;
+  documents?: Document[];
   
   // Sickness Benefit specific
   lastDayWorked?: string;
