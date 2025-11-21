@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -5,9 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { delegations, positions } from "@/services/mockData/systemAdminData";
 import { useToast } from "@/hooks/use-toast";
+import { DelegationFormDialog } from "@/components/systemAdmin/DelegationFormDialog";
+import { Delegation } from "@/types/systemAdmin";
 
 export default function DelegationList() {
   const { toast } = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedDelegation, setSelectedDelegation] = useState<Delegation | undefined>();
   
   const getPositionName = (positionId: string) => {
     return positions.find(p => p.positionId === positionId)?.positionName || "N/A";
@@ -27,9 +32,9 @@ export default function DelegationList() {
           <h1 className="text-3xl font-bold">Delegation Management</h1>
           <p className="text-muted-foreground">Manage temporary delegations and acting authority</p>
         </div>
-        <Button onClick={() => toast({ title: "Create Delegation", description: "Create delegation dialog would open here" })}>
+        <Button onClick={() => { setSelectedDelegation(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
-          Create Delegation
+          Add Delegation
         </Button>
       </div>
 
@@ -80,30 +85,42 @@ export default function DelegationList() {
                     )}
                   </TableCell>
                   <TableCell className="max-w-xs truncate">{delegation.reason}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => toast({ title: "Edit Delegation", description: `Editing delegation ${delegation.delegationId}` })}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => toast({ title: "Delete Delegation", description: `Delegation ${delegation.delegationId} would be deleted`, variant: "destructive" })}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                   <TableCell>
+                     <div className="flex gap-2">
+                       <Button 
+                         variant="ghost" 
+                         size="sm"
+                         onClick={() => { setSelectedDelegation(delegation); setFormOpen(true); }}
+                       >
+                         <Edit className="h-4 w-4" />
+                       </Button>
+                       <Button 
+                         variant="ghost" 
+                         size="sm"
+                         onClick={() => toast({ title: "Delete Delegation", description: `Delegation ${delegation.delegationId} would be deleted`, variant: "destructive" })}
+                       >
+                         <Trash2 className="h-4 w-4 text-red-600" />
+                       </Button>
+                     </div>
+                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <DelegationFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        delegation={selectedDelegation}
+        onSave={(delegation) => {
+          toast({
+            title: selectedDelegation ? "Delegation Updated" : "Delegation Created",
+            description: `Delegation has been ${selectedDelegation ? "updated" : "created"} successfully.`,
+          });
+        }}
+      />
     </div>
   );
 }

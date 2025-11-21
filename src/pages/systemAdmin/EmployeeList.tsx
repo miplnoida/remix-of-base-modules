@@ -7,10 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit, Eye } from "lucide-react";
 import { employees } from "@/services/mockData/systemAdminData";
 import { useToast } from "@/hooks/use-toast";
+import { EmployeeFormDialog } from "@/components/systemAdmin/EmployeeFormDialog";
+import { EmployeeDetailDialog } from "@/components/systemAdmin/EmployeeDetailDialog";
+import { Employee } from "@/types/systemAdmin";
 
 export default function EmployeeList() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>();
 
   const filteredEmployees = employees.filter(emp =>
     emp.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,7 +42,7 @@ export default function EmployeeList() {
           <h1 className="text-3xl font-bold">Employee Management</h1>
           <p className="text-muted-foreground">Manage employee profiles and information</p>
         </div>
-        <Button onClick={() => toast({ title: "Add Employee", description: "Add employee dialog would open here" })}>
+        <Button onClick={() => { setSelectedEmployee(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Employee
         </Button>
@@ -85,14 +91,14 @@ export default function EmployeeList() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast({ title: "View Employee", description: `Viewing ${employee.firstName} ${employee.lastName}` })}
+                        onClick={() => { setSelectedEmployee(employee); setDetailOpen(true); }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast({ title: "Edit Employee", description: `Editing ${employee.firstName} ${employee.lastName}` })}
+                        onClick={() => { setSelectedEmployee(employee); setFormOpen(true); }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -104,6 +110,26 @@ export default function EmployeeList() {
           </Table>
         </CardContent>
       </Card>
+
+      <EmployeeFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        employee={selectedEmployee}
+        onSave={(employee) => {
+          toast({
+            title: selectedEmployee ? "Employee Updated" : "Employee Created",
+            description: `Employee ${employee.firstName} ${employee.lastName} has been ${selectedEmployee ? "updated" : "created"} successfully.`,
+          });
+        }}
+      />
+
+      {selectedEmployee && (
+        <EmployeeDetailDialog
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          employee={selectedEmployee}
+        />
+      )}
     </div>
   );
 }

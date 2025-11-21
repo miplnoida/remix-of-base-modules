@@ -6,10 +6,13 @@ import { Plus, Edit, ChevronRight, ChevronDown } from "lucide-react";
 import { orgUnits } from "@/services/mockData/systemAdminData";
 import { OrgUnit } from "@/types/systemAdmin";
 import { useToast } from "@/hooks/use-toast";
+import { OrgUnitFormDialog } from "@/components/systemAdmin/OrgUnitFormDialog";
 
 export default function OrgUnitList() {
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set(["ORG001"]));
   const { toast } = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<OrgUnit | undefined>();
 
   const toggleExpand = (unitId: string) => {
     setExpandedUnits(prev => {
@@ -55,7 +58,7 @@ export default function OrgUnitList() {
             ) : (
               <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
             )}
-            <Button variant="ghost" size="sm" onClick={() => toast({ title: "Edit Unit", description: `Editing ${unit.name}` })}>
+            <Button variant="ghost" size="sm" onClick={() => { setSelectedUnit(unit); setFormOpen(true); }}>
               <Edit className="h-4 w-4" />
             </Button>
           </div>
@@ -74,7 +77,7 @@ export default function OrgUnitList() {
           <h1 className="text-3xl font-bold">Organisation Structure</h1>
           <p className="text-muted-foreground">Manage organisational units and hierarchy</p>
         </div>
-        <Button onClick={() => toast({ title: "Add Unit", description: "Add unit dialog would open here" })}>
+        <Button onClick={() => { setSelectedUnit(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Unit
         </Button>
@@ -88,6 +91,18 @@ export default function OrgUnitList() {
           {rootUnits.map(unit => renderOrgUnit(unit))}
         </CardContent>
       </Card>
+
+      <OrgUnitFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        orgUnit={selectedUnit}
+        onSave={(unit) => {
+          toast({
+            title: selectedUnit ? "Unit Updated" : "Unit Created",
+            description: `Organisation unit ${unit.name} has been ${selectedUnit ? "updated" : "created"} successfully.`,
+          });
+        }}
+      />
     </div>
   );
 }
