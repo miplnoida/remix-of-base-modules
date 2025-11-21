@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface Currency {
   id: string;
@@ -99,6 +99,10 @@ const MultiCurrencySettings = () => {
   };
 
   const handleEditCurrency = (currency: Currency) => {
+    if (currency.isBase) {
+      toast.error('Base currency (XCD) cannot be edited');
+      return;
+    }
     setEditingCurrency(currency);
     setShowCurrencyDialog(true);
   };
@@ -114,6 +118,11 @@ const MultiCurrencySettings = () => {
   };
 
   const handleSaveCurrency = () => {
+    // Validation: Cannot modify base currency
+    if (editingCurrency?.isBase) {
+      toast.error('Base currency (XCD) cannot be modified');
+      return;
+    }
     toast.success('Currency saved successfully');
     setShowCurrencyDialog(false);
   };
@@ -158,6 +167,12 @@ const MultiCurrencySettings = () => {
             <p className="text-sm text-muted-foreground">
               <strong>Note:</strong> All ledger postings, statutory reports, liability statements, legal documents, and account balances are maintained in XCD. 
               Transactions in foreign currencies are converted to XCD using the applicable exchange rate at transaction date.
+            </p>
+          </div>
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+            <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <strong>Security:</strong> The base currency (XCD) cannot be edited or disabled once configured. This ensures data integrity across all financial records.
             </p>
           </div>
         </CardContent>
@@ -219,14 +234,19 @@ const MultiCurrencySettings = () => {
                       <TableCell>{currency.decimalPlaces}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditCurrency(currency)}
-                            disabled={currency.isBase}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          {currency.isBase ? (
+                            <Badge variant="outline" className="text-xs">
+                              Protected
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditCurrency(currency)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -311,24 +331,47 @@ const MultiCurrencySettings = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {editingCurrency?.isBase && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <strong>Warning:</strong> Base currency (XCD) cannot be modified. This dialog is read-only.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Currency Code *</Label>
-                <Input placeholder="e.g., USD" defaultValue={editingCurrency?.code} />
+                <Input 
+                  placeholder="e.g., USD" 
+                  defaultValue={editingCurrency?.code}
+                  disabled={editingCurrency?.isBase}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Currency Symbol *</Label>
-                <Input placeholder="e.g., $" defaultValue={editingCurrency?.symbol} />
+                <Input 
+                  placeholder="e.g., $" 
+                  defaultValue={editingCurrency?.symbol}
+                  disabled={editingCurrency?.isBase}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Currency Name *</Label>
-              <Input placeholder="e.g., United States Dollar" defaultValue={editingCurrency?.name} />
+              <Input 
+                placeholder="e.g., United States Dollar" 
+                defaultValue={editingCurrency?.name}
+                disabled={editingCurrency?.isBase}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Decimal Places *</Label>
-                <Select defaultValue={editingCurrency?.decimalPlaces.toString() || '2'}>
+                <Select 
+                  defaultValue={editingCurrency?.decimalPlaces.toString() || '2'}
+                  disabled={editingCurrency?.isBase}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -343,8 +386,16 @@ const MultiCurrencySettings = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <span>Active</span>
-                  <Switch defaultChecked={editingCurrency?.isActive ?? true} />
+                  <Switch 
+                    defaultChecked={editingCurrency?.isActive ?? true}
+                    disabled={editingCurrency?.isBase}
+                  />
                 </Label>
+                {editingCurrency?.isBase && (
+                  <p className="text-xs text-muted-foreground">
+                    Base currency cannot be disabled
+                  </p>
+                )}
               </div>
             </div>
           </div>
