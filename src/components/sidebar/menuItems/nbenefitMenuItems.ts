@@ -12,7 +12,8 @@ import {
   FileText,
   Calculator,
   Workflow,
-  CheckCircle
+  CheckCircle,
+  Stethoscope
 } from "lucide-react";
 
 export const nbenefitMenuItems = [
@@ -435,6 +436,12 @@ export const nbenefitMenuItems = [
             title: "Calculation Engines",
             url: "/nbenefit/shared/calculation-engines",
             icon: Calculator,
+            requiresPermission: "benefits_configuration"
+          },
+          {
+            title: "Medical Rules Configuration",
+            url: "/nbenefit/config/medical-rules",
+            icon: Stethoscope,
             requiresPermission: "benefits_configuration"
           },
           {
