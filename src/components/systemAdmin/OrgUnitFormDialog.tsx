@@ -72,14 +72,13 @@ export function OrgUnitFormDialog({ open, onOpenChange, orgUnit, onSave }: OrgUn
           <div className="space-y-2">
             <Label htmlFor="parentOrgUnitId">Parent Unit</Label>
             <Select
-              value={formData.parentOrgUnitId}
+              value={formData.parentOrgUnitId || undefined}
               onValueChange={(value) => setFormData({ ...formData, parentOrgUnitId: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select parent unit (optional)" />
+                <SelectValue placeholder="None (Top Level)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None (Top Level)</SelectItem>
                 {orgUnits.filter(u => u.orgUnitId !== orgUnit?.orgUnitId).map(unit => (
                   <SelectItem key={unit.orgUnitId} value={unit.orgUnitId}>
                     {unit.name} ({unit.type})
