@@ -98,7 +98,9 @@ const FuneralGrantBenefit = () => {
                 New Application
               </Button>
             </div>
-            <p className="text-muted-foreground">List of funeral grant applications will appear here.</p>
+            <BenefitApplicationTable 
+              applications={BENEFIT_APPLICATIONS.filter(app => app.benefitType === "Funeral Grant")}
+            />
           </Card>
         </TabsContent>
 

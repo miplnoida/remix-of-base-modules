@@ -3,6 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BenefitApplicationTable from "@/components/nbenefit/BenefitApplicationTable";
+import { BENEFIT_APPLICATIONS } from "@/services/mockData/benefitApplications";
 
 const AssistancePension = () => {
   const navigate = useNavigate();
@@ -80,7 +82,9 @@ const AssistancePension = () => {
                 New Application
               </Button>
             </div>
-            <p className="text-muted-foreground">List of assistance pension applications will appear here.</p>
+            <BenefitApplicationTable 
+              applications={BENEFIT_APPLICATIONS.filter(app => app.benefitType === "Assistance Pension")}
+            />
           </Card>
         </TabsContent>
 
