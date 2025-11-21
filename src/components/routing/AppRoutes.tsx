@@ -189,6 +189,8 @@ import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannel
 
 // NBenefit Module
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
+import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
+import AgeBenefit from '@/pages/nbenefit/long-term/AgeBenefit';
 import RegistrySearch from '@/pages/nbenefit/shared/RegistrySearch';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
@@ -687,11 +689,11 @@ export const AppRoutes = () => {
       {/* Short-Term Benefits */}
       <Route path="/nbenefit/short-term/sickness/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
       <Route path="/nbenefit/short-term/employment-injury/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/short-term/maternity/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/maternity/*" element={<ProtectedLayout><MaternityBenefit /></ProtectedLayout>} />
       <Route path="/nbenefit/short-term/funeral-grant/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
       
       {/* Long-Term Benefits */}
-      <Route path="/nbenefit/long-term/age-benefit/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/age-benefit/*" element={<ProtectedLayout><AgeBenefit /></ProtectedLayout>} />
       <Route path="/nbenefit/long-term/invalidity/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
       <Route path="/nbenefit/long-term/assistance/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
       <Route path="/nbenefit/long-term/survivors/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
