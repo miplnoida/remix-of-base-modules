@@ -1,4 +1,3 @@
-
 import { 
   Settings, 
   Users, 
@@ -10,7 +9,13 @@ import {
   Activity,
   UserCog,
   Key,
-  Clock
+  Clock,
+  Building2,
+  Briefcase,
+  ShieldCheck,
+  GitBranch,
+  Grid3x3,
+  Workflow
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -25,9 +30,58 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration"
       },
       {
+        title: "Employee Management",
+        url: "/admin/employees",
+        icon: UserCog,
+        requiresPermission: "system_administration"
+      },
+      {
         title: "Web Users",
         url: "/admin/web-users",
         icon: Globe,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Organisation Structure",
+        icon: Building2,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Org Units",
+            url: "/admin/org-units",
+            icon: Building2,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Positions",
+            url: "/admin/positions",
+            icon: Briefcase,
+            requiresPermission: "system_administration"
+          }
+        ]
+      },
+      {
+        title: "Roles & Permissions",
+        url: "/admin/roles",
+        icon: ShieldCheck,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Delegations",
+        url: "/admin/delegations",
+        icon: GitBranch,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Approval Matrix",
+        url: "/admin/approval-matrix",
+        icon: Grid3x3,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Workflow Configuration",
+        url: "/admin/workflow-schemes",
+        icon: Workflow,
         requiresPermission: "system_administration"
       },
       {
