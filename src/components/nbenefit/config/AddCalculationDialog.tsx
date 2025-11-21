@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import { FormulaBuilder } from "./FormulaBuilder";
 
 interface AddCalculationDialogProps {
   open: boolean;
@@ -44,11 +46,30 @@ export function AddCalculationDialog({ open, onOpenChange, calculationType, onSa
             </div>
             <div className="space-y-2">
               <Label>Calculation Formula</Label>
-              <Input
-                value={formData.formula || ""}
-                onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
-                placeholder="e.g., 60% of Average Weekly Insurable Wages"
-              />
+              <Tabs defaultValue="builder" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="builder">Visual Builder</TabsTrigger>
+                  <TabsTrigger value="text">Text Input</TabsTrigger>
+                </TabsList>
+                <TabsContent value="builder" className="mt-4">
+                  <FormulaBuilder
+                    value={formData.formula || ""}
+                    onChange={(formula) => setFormData({ ...formData, formula })}
+                    benefitType={formData.benefitType}
+                  />
+                </TabsContent>
+                <TabsContent value="text" className="mt-4">
+                  <Input
+                    value={formData.formula || ""}
+                    onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
+                    placeholder="e.g., 0.60 * {AWE}"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Use curly braces for variables: {"{AWW}"}, {"{AWE}"}, {"{TotalContributions}"}
+                  </p>
+                </TabsContent>
+              </Tabs>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -104,11 +125,30 @@ export function AddCalculationDialog({ open, onOpenChange, calculationType, onSa
             </div>
             <div className="space-y-2">
               <Label>Calculation Formula</Label>
-              <Input
-                value={formData.formula || ""}
-                onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
-                placeholder="e.g., 30% of AWW + 1% × (contributions - 500)"
-              />
+              <Tabs defaultValue="builder" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="builder">Visual Builder</TabsTrigger>
+                  <TabsTrigger value="text">Text Input</TabsTrigger>
+                </TabsList>
+                <TabsContent value="builder" className="mt-4">
+                  <FormulaBuilder
+                    value={formData.formula || ""}
+                    onChange={(formula) => setFormData({ ...formData, formula })}
+                    benefitType={formData.benefitType}
+                  />
+                </TabsContent>
+                <TabsContent value="text" className="mt-4">
+                  <Input
+                    value={formData.formula || ""}
+                    onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
+                    placeholder="e.g., 0.30 * {AWW} + 0.01 * ({TotalContributions} - 500)"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Use curly braces for variables: {"{AWW}"}, {"{AWE}"}, {"{TotalContributions}"}
+                  </p>
+                </TabsContent>
+              </Tabs>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -194,11 +234,11 @@ export function AddCalculationDialog({ open, onOpenChange, calculationType, onSa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-4 py-4">
           {renderFields()}
         </div>
         <DialogFooter>
