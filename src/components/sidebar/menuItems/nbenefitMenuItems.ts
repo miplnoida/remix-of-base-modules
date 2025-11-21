@@ -450,6 +450,13 @@ export const nbenefitMenuItems = [
             requiresPermission: "benefits_management"
           }
         ]
+      },
+      // Benefit Rules Configuration
+      {
+        path: '/nbenefit/config/rules',
+        title: 'Benefit Rules Configuration',
+        icon: Settings,
+        requiresPermission: "benefits_configuration"
       }
     ]
   }
