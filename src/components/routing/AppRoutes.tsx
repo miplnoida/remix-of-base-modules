@@ -103,6 +103,7 @@ import AuditSampleIPReport from '@/pages/person/reports/AuditSampleIPReport';
 
 // Finance Settings Pages
 import FeeConfigurationPage from '@/pages/finance/settings/FeeConfiguration';
+import FeeConfigurationList from '@/pages/finance/settings/FeeConfigurationList';
 import ServiceTypeManagement from '@/pages/finance/settings/ServiceTypeManagement';
 import VerificationSettings from '@/pages/finance/settings/VerificationSettings';
 import MultiCurrencySettings from '@/pages/finance/settings/MultiCurrencySettings';
@@ -549,7 +550,10 @@ export const AppRoutes = () => {
       <Route path="/c3/reports/audit-sample" element={<ProtectedLayout><AuditSampleReport /></ProtectedLayout>} />
 
       {/* Finance Settings Routes */}
-      <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
+      <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationList /></ProtectedLayout>} />
+      <Route path="/finance/settings/fee-configuration/new" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
+      <Route path="/finance/settings/fee-configuration/:feeId" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
+      <Route path="/finance/settings/fee-configuration/:feeId/edit" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
       <Route path="/finance/settings/service-types" element={<ProtectedLayout><ServiceTypeManagement /></ProtectedLayout>} />
       <Route path="/finance/settings/verification" element={<ProtectedLayout><VerificationSettings /></ProtectedLayout>} />
       <Route path="/finance/settings/multi-currency" element={<ProtectedLayout><MultiCurrencySettings /></ProtectedLayout>} />

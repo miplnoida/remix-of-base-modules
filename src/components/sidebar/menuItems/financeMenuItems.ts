@@ -157,7 +157,8 @@ export const financeMenuItems = [
             title: 'Fee Configuration',
             url: '/finance/settings/fee-configuration',
             icon: DollarSign,
-            requiresPermission: 'admin'
+            requiresPermission: 'admin',
+            description: 'Central fee management for all modules'
           },
           {
             title: 'Service Type Management',
