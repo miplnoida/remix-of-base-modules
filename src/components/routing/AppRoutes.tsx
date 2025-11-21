@@ -171,6 +171,13 @@ import CentralScheduler from '@/pages/admin/CentralScheduler';
 import UserManagement from '@/pages/systemAdmin/UserManagement';
 import BackupRecovery from '@/pages/systemAdmin/BackupRecovery';
 import SystemLogs from '@/pages/systemAdmin/SystemLogs';
+import EmployeeList from '@/pages/systemAdmin/EmployeeList';
+import OrgUnitList from '@/pages/systemAdmin/OrgUnitList';
+import PositionList from '@/pages/systemAdmin/PositionList';
+import RoleList from '@/pages/systemAdmin/RoleList';
+import DelegationList from '@/pages/systemAdmin/DelegationList';
+import ApprovalMatrixList from '@/pages/systemAdmin/ApprovalMatrixList';
+import WorkflowSchemeList from '@/pages/systemAdmin/WorkflowSchemeList';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -574,6 +581,13 @@ export const AppRoutes = () => {
       <Route path="/admin/scheduler" element={<ProtectedLayout><CentralScheduler /></ProtectedLayout>} />
       <Route path="/admin/backup" element={<ProtectedLayout><BackupRecovery /></ProtectedLayout>} />
       <Route path="/admin/logs" element={<ProtectedLayout><SystemLogs /></ProtectedLayout>} />
+      <Route path="/admin/employees" element={<ProtectedLayout><EmployeeList /></ProtectedLayout>} />
+      <Route path="/admin/org-units" element={<ProtectedLayout><OrgUnitList /></ProtectedLayout>} />
+      <Route path="/admin/positions" element={<ProtectedLayout><PositionList /></ProtectedLayout>} />
+      <Route path="/admin/roles" element={<ProtectedLayout><RoleList /></ProtectedLayout>} />
+      <Route path="/admin/delegations" element={<ProtectedLayout><DelegationList /></ProtectedLayout>} />
+      <Route path="/admin/approval-matrix" element={<ProtectedLayout><ApprovalMatrixList /></ProtectedLayout>} />
+      <Route path="/admin/workflow-schemes" element={<ProtectedLayout><WorkflowSchemeList /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
