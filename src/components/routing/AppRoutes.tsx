@@ -198,6 +198,7 @@ import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
 import AssistancePension from '@/pages/nbenefit/non-contributory/AssistancePension';
 import InvalidityAssistance from '@/pages/nbenefit/non-contributory/InvalidityAssistance';
+import ClaimApproval from '@/pages/nbenefit/ClaimApproval';
 import RegistrySearch from '@/pages/nbenefit/shared/RegistrySearch';
 import CommonEligibilityRules from '@/pages/nbenefit/shared/CommonEligibilityRules';
 import CalculationEngines from '@/pages/nbenefit/shared/CalculationEngines';
@@ -700,6 +701,9 @@ export const AppRoutes = () => {
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}
       <Route path="/nbenefit/application/:benefitType" element={<BenefitApplicationFormPage />} />
+      
+      {/* Claim Approval */}
+      <Route path="/nbenefit/claim-approval" element={<ProtectedLayout><ClaimApproval /></ProtectedLayout>} />
       
       {/* Short-Term Benefits */}
       <Route path="/nbenefit/short-term/sickness/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
