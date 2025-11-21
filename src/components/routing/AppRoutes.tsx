@@ -192,6 +192,10 @@ import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
 import AgeBenefit from '@/pages/nbenefit/long-term/AgeBenefit';
 import RegistrySearch from '@/pages/nbenefit/shared/RegistrySearch';
+import CommonEligibilityRules from '@/pages/nbenefit/shared/CommonEligibilityRules';
+import CalculationEngines from '@/pages/nbenefit/shared/CalculationEngines';
+import DocumentTemplates from '@/pages/nbenefit/shared/DocumentTemplates';
+import BenefitWorkflows from '@/pages/nbenefit/shared/BenefitWorkflows';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -703,10 +707,10 @@ export const AppRoutes = () => {
       <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
       
       {/* Shared Config & Tools */}
-      <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/calculation-engines" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><CommonEligibilityRules /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/calculation-engines" element={<ProtectedLayout><CalculationEngines /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><DocumentTemplates /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><BenefitWorkflows /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
