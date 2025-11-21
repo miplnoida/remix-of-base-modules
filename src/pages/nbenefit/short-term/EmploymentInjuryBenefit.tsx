@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BenefitApplicationTable from "@/components/nbenefit/BenefitApplicationTable";
+import { BENEFIT_APPLICATIONS } from "@/services/mockData/benefitApplications";
 
 const EmploymentInjuryBenefit = () => {
   const navigate = useNavigate();
