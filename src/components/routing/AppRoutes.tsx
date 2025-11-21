@@ -187,6 +187,10 @@ import NotificationLog from '@/pages/systemAdmin/NotificationLog';
 import NotificationTemplates from '@/pages/systemAdmin/NotificationTemplates';
 import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannelSettings';
 
+// NBenefit Module
+import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
+import RegistrySearch from '@/pages/nbenefit/shared/RegistrySearch';
+
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
 
@@ -678,6 +682,30 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/communications" element={<ProtectedLayout><LettersCommunications /></ProtectedLayout>} />
           <Route path="/newbenefit/admin" element={<ProtectedLayout><AdminConfig /></ProtectedLayout>} />
           <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
+
+      {/* NBenefit Module - Central Benefits Registry */}
+      {/* Short-Term Benefits */}
+      <Route path="/nbenefit/short-term/sickness/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/employment-injury/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/maternity/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/funeral-grant/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      
+      {/* Long-Term Benefits */}
+      <Route path="/nbenefit/long-term/age-benefit/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/invalidity/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/assistance/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/survivors/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      
+      {/* Non-Contributory Pensions */}
+      <Route path="/nbenefit/non-contributory/assistance-pension/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      
+      {/* Shared Config & Tools */}
+      <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/calculation-engines" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
