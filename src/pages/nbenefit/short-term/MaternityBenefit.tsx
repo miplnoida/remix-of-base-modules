@@ -2,8 +2,7 @@ import { SharedBenefitLayout } from "../SharedBenefitLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ApplicationFormDialog } from "@/components/nbenefit/ApplicationFormDialog";
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const OverviewTab = () => (
   <div className="space-y-4">
@@ -36,24 +35,17 @@ const OverviewTab = () => (
 );
 
 const ApplicationsTab = () => {
-  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Maternity Benefit Applications</h3>
-        <Button onClick={() => setShowApplicationForm(true)}>
+        <Button onClick={() => navigate("/nbenefit/application/maternity")}>
           <Plus className="h-4 w-4 mr-2" />
           New Application
         </Button>
       </div>
-      
-      <ApplicationFormDialog
-        open={showApplicationForm}
-        onOpenChange={setShowApplicationForm}
-        benefitType="MATERNITY"
-        title="New Maternity Benefit Application"
-      />
 
       <div className="flex gap-2">
         <div className="relative flex-1">
