@@ -1,12 +1,14 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Settings, Eye } from "lucide-react";
 import { workflowSchemes } from "@/services/mockData/systemAdminData";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WorkflowSchemeList() {
+  const { toast } = useToast();
+  
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -14,7 +16,7 @@ export default function WorkflowSchemeList() {
           <h1 className="text-3xl font-bold">Workflow Configuration</h1>
           <p className="text-muted-foreground">Configure approval workflows for all modules</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Create Workflow", description: "Create workflow dialog would open here" })}>
           <Plus className="mr-2 h-4 w-4" />
           Create Workflow
         </Button>
@@ -52,13 +54,28 @@ export default function WorkflowSchemeList() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" title="View Details">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="View Details"
+                        onClick={() => toast({ title: "View Workflow", description: `Viewing ${scheme.name}` })}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" title="Configure Steps">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Configure Steps"
+                        onClick={() => toast({ title: "Configure Steps", description: `Configuring steps for ${scheme.name}` })}
+                      >
                         <Settings className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" title="Edit">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Edit"
+                        onClick={() => toast({ title: "Edit Workflow", description: `Editing ${scheme.name}` })}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>

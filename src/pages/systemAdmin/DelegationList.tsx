@@ -1,12 +1,14 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { delegations, positions, employees } from "@/services/mockData/systemAdminData";
+import { delegations, positions } from "@/services/mockData/systemAdminData";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DelegationList() {
+  const { toast } = useToast();
+  
   const getPositionName = (positionId: string) => {
     return positions.find(p => p.positionId === positionId)?.positionName || "N/A";
   };
@@ -25,7 +27,7 @@ export default function DelegationList() {
           <h1 className="text-3xl font-bold">Delegation Management</h1>
           <p className="text-muted-foreground">Manage temporary delegations and acting authority</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Create Delegation", description: "Create delegation dialog would open here" })}>
           <Plus className="mr-2 h-4 w-4" />
           Create Delegation
         </Button>
@@ -80,10 +82,18 @@ export default function DelegationList() {
                   <TableCell className="max-w-xs truncate">{delegation.reason}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => toast({ title: "Edit Delegation", description: `Editing delegation ${delegation.delegationId}` })}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => toast({ title: "Delete Delegation", description: `Delegation ${delegation.delegationId} would be deleted`, variant: "destructive" })}
+                      >
                         <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>
                     </div>

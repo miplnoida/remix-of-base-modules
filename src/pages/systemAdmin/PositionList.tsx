@@ -6,9 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit } from "lucide-react";
 import { positions, orgUnits } from "@/services/mockData/systemAdminData";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PositionList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredPositions = positions.filter(pos =>
     pos.positionName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -25,7 +27,7 @@ export default function PositionList() {
           <h1 className="text-3xl font-bold">Position Management</h1>
           <p className="text-muted-foreground">Manage positions and reporting structure</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Add Position", description: "Add position dialog would open here" })}>
           <Plus className="mr-2 h-4 w-4" />
           Add Position
         </Button>
@@ -88,7 +90,7 @@ export default function PositionList() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => toast({ title: "Edit Position", description: `Editing ${position.positionName}` })}>
                       <Edit className="h-4 w-4" />
                     </Button>
                   </TableCell>

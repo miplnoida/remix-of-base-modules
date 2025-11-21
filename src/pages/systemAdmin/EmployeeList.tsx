@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit, Eye } from "lucide-react";
 import { employees } from "@/services/mockData/systemAdminData";
-import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EmployeeList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const filteredEmployees = employees.filter(emp =>
     emp.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,7 +36,7 @@ export default function EmployeeList() {
           <h1 className="text-3xl font-bold">Employee Management</h1>
           <p className="text-muted-foreground">Manage employee profiles and information</p>
         </div>
-        <Button onClick={() => navigate("/admin/employees/new")}>
+        <Button onClick={() => toast({ title: "Add Employee", description: "Add employee dialog would open here" })}>
           <Plus className="mr-2 h-4 w-4" />
           Add Employee
         </Button>
@@ -85,14 +85,14 @@ export default function EmployeeList() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/admin/employees/${employee.employeeId}`)}
+                        onClick={() => toast({ title: "View Employee", description: `Viewing ${employee.firstName} ${employee.lastName}` })}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/admin/employees/${employee.employeeId}/edit`)}
+                        onClick={() => toast({ title: "Edit Employee", description: `Editing ${employee.firstName} ${employee.lastName}` })}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

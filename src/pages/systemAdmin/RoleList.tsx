@@ -6,9 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit, Shield } from "lucide-react";
 import { roles, rolePermissions, permissions } from "@/services/mockData/systemAdminData";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RoleList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredRoles = roles.filter(role =>
     role.roleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -26,7 +28,7 @@ export default function RoleList() {
           <h1 className="text-3xl font-bold">Role Management</h1>
           <p className="text-muted-foreground">Manage roles and permissions</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Add Role", description: "Add role dialog would open here" })}>
           <Plus className="mr-2 h-4 w-4" />
           Add Role
         </Button>
@@ -80,7 +82,12 @@ export default function RoleList() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" disabled={role.isSystemRole}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      disabled={role.isSystemRole}
+                      onClick={() => !role.isSystemRole && toast({ title: "Edit Role", description: `Editing ${role.roleName}` })}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                   </TableCell>

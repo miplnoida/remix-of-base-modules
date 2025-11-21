@@ -6,9 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { approvalMatrix, roles, positions } from "@/services/mockData/systemAdminData";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ApprovalMatrixList() {
   const [activeProcess, setActiveProcess] = useState("Payment");
+  const { toast } = useToast();
 
   const processTypes = [...new Set(approvalMatrix.map(m => m.processType))];
   const filteredMatrix = approvalMatrix.filter(m => m.processType === activeProcess && m.activeFlag);
@@ -30,7 +32,7 @@ export default function ApprovalMatrixList() {
           <h1 className="text-3xl font-bold">Approval Matrix</h1>
           <p className="text-muted-foreground">Configure amount-based approval workflows</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Add Rule", description: `Add new approval rule for ${activeProcess}` })}>
           <Plus className="mr-2 h-4 w-4" />
           Add Rule
         </Button>
@@ -81,10 +83,18 @@ export default function ApprovalMatrixList() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => toast({ title: "Edit Rule", description: `Editing approval rule ${matrix.approvalMatrixId}` })}
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => toast({ title: "Delete Rule", description: `Rule ${matrix.approvalMatrixId} would be deleted`, variant: "destructive" })}
+                              >
                                 <Trash2 className="h-4 w-4 text-red-600" />
                               </Button>
                             </div>
