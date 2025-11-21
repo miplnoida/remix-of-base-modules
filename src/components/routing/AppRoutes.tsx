@@ -105,6 +105,7 @@ import AuditSampleIPReport from '@/pages/person/reports/AuditSampleIPReport';
 import FeeConfigurationPage from '@/pages/finance/settings/FeeConfiguration';
 import ServiceTypeManagement from '@/pages/finance/settings/ServiceTypeManagement';
 import VerificationSettings from '@/pages/finance/settings/VerificationSettings';
+import MultiCurrencySettings from '@/pages/finance/settings/MultiCurrencySettings';
 
 // Benefits
 import AllBenefitsTabs from '@/pages/benefits/AllBenefitsTabs';
@@ -551,6 +552,7 @@ export const AppRoutes = () => {
       <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationPage /></ProtectedLayout>} />
       <Route path="/finance/settings/service-types" element={<ProtectedLayout><ServiceTypeManagement /></ProtectedLayout>} />
       <Route path="/finance/settings/verification" element={<ProtectedLayout><VerificationSettings /></ProtectedLayout>} />
+      <Route path="/finance/settings/multi-currency" element={<ProtectedLayout><MultiCurrencySettings /></ProtectedLayout>} />
 
       {/* Benefits Routes */}
       <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />
