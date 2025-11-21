@@ -90,6 +90,30 @@ export function AddCalculationDialog({ open, onOpenChange, calculationType, onSa
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Maximum Formula (Optional)</Label>
+              <Input 
+                value={formData.maxFormula || ""}
+                onChange={(e) => setFormData({ ...formData, maxFormula: e.target.value })}
+                placeholder="e.g., MIN(0.65 * AWE, 500)" 
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formula to cap the benefit amount. Example: MIN(Formula, MaxAmount)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Maximum Formula (Optional)</Label>
+              <Input 
+                value={formData.maxFormula || ""}
+                onChange={(e) => setFormData({ ...formData, maxFormula: e.target.value })}
+                placeholder="e.g., MIN(0.65 * AWE, 500)" 
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formula to cap the benefit amount. Uses MIN() to apply maximum limit.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Duration</Label>
               <Input
                 value={formData.duration || ""}
@@ -167,6 +191,30 @@ export function AddCalculationDialog({ open, onOpenChange, calculationType, onSa
                   onChange={(e) => setFormData({ ...formData, maxMonthly: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Maximum Formula (Optional)</Label>
+              <Input 
+                value={formData.maxFormula || ""}
+                onChange={(e) => setFormData({ ...formData, maxFormula: e.target.value })}
+                placeholder="e.g., MIN((0.30 * AIW) + ContribBonus, 1000)" 
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formula to cap the benefit amount. Example: MIN(Formula, MaxAmount)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Maximum Formula (Optional)</Label>
+              <Input 
+                value={formData.maxFormula || ""}
+                onChange={(e) => setFormData({ ...formData, maxFormula: e.target.value })}
+                placeholder="e.g., MIN((0.30 * AIW) + ContribBonus, 1000)" 
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formula to cap the benefit amount. Uses MIN() to apply maximum limit.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Notes</Label>
