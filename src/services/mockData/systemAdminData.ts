@@ -324,6 +324,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE002",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "Jane Smith",
+    createdOn: "2024-01-10T08:00:00Z",
+    lastModifiedBy: "Jane Smith",
+    lastModifiedOn: "2024-01-10T08:00:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD001",
+        approvalMatrixId: "AM001",
+        action: "Created",
+        changedBy: "Jane Smith",
+        changedOn: "2024-01-10T08:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of payment approval rule"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM002",
@@ -334,6 +349,32 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE003",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "John Doe",
+    createdOn: "2024-01-10T09:00:00Z",
+    lastModifiedBy: "Jane Smith",
+    lastModifiedOn: "2024-03-15T10:30:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD002",
+        approvalMatrixId: "AM002",
+        action: "Created",
+        changedBy: "John Doe",
+        changedOn: "2024-01-10T09:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of payment approval rule"
+      },
+      {
+        auditId: "AUD003",
+        approvalMatrixId: "AM002",
+        action: "Updated",
+        changedBy: "Jane Smith",
+        changedOn: "2024-03-15T10:30:00Z",
+        fieldChanges: [
+          { field: "rangeMaxXCD", oldValue: 40000, newValue: 50000 }
+        ],
+        changeDescription: "Increased maximum amount threshold"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM003",
@@ -344,6 +385,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE004",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "John Doe",
+    createdOn: "2024-01-10T09:30:00Z",
+    lastModifiedBy: "John Doe",
+    lastModifiedOn: "2024-01-10T09:30:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD004",
+        approvalMatrixId: "AM003",
+        action: "Created",
+        changedBy: "John Doe",
+        changedOn: "2024-01-10T09:30:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of high-value payment approval rule"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM004",
@@ -354,6 +410,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE006",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "Jane Smith",
+    createdOn: "2024-01-12T08:00:00Z",
+    lastModifiedBy: "Jane Smith",
+    lastModifiedOn: "2024-01-12T08:00:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD005",
+        approvalMatrixId: "AM004",
+        action: "Created",
+        changedBy: "Jane Smith",
+        changedOn: "2024-01-12T08:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of fee waiver approval rule"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM005",
@@ -364,6 +435,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE004",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "John Doe",
+    createdOn: "2024-01-12T09:00:00Z",
+    lastModifiedBy: "John Doe",
+    lastModifiedOn: "2024-01-12T09:00:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD006",
+        approvalMatrixId: "AM005",
+        action: "Created",
+        changedBy: "John Doe",
+        changedOn: "2024-01-12T09:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of high-value fee waiver approval rule"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM006",
@@ -374,6 +460,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE003",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "Jane Smith",
+    createdOn: "2024-01-15T08:00:00Z",
+    lastModifiedBy: "Jane Smith",
+    lastModifiedOn: "2024-01-15T08:00:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD007",
+        approvalMatrixId: "AM006",
+        action: "Created",
+        changedBy: "Jane Smith",
+        changedOn: "2024-01-15T08:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of journal entry approval rule"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM007",
@@ -384,6 +485,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE003",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "John Doe",
+    createdOn: "2024-01-18T10:00:00Z",
+    lastModifiedBy: "John Doe",
+    lastModifiedOn: "2024-01-18T10:00:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD008",
+        approvalMatrixId: "AM007",
+        action: "Created",
+        changedBy: "John Doe",
+        changedOn: "2024-01-18T10:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of refund approval rule"
+      }
+    ]
   },
   {
     approvalMatrixId: "AM008",
@@ -394,6 +510,21 @@ export const approvalMatrix: ApprovalMatrix[] = [
     approverRoleId: "ROLE003",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "Jane Smith",
+    createdOn: "2024-01-20T08:00:00Z",
+    lastModifiedBy: "Jane Smith",
+    lastModifiedOn: "2024-01-20T08:00:00Z",
+    changeHistory: [
+      {
+        auditId: "AUD009",
+        approvalMatrixId: "AM008",
+        action: "Created",
+        changedBy: "Jane Smith",
+        changedOn: "2024-01-20T08:00:00Z",
+        fieldChanges: [],
+        changeDescription: "Initial creation of write-off approval rule"
+      }
+    ]
   },
 ];
 

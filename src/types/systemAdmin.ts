@@ -107,6 +107,25 @@ export interface ApprovalMatrix {
   approverPositionId?: string;
   sequenceOrder: number;
   activeFlag: boolean;
+  createdBy?: string;
+  createdOn?: string;
+  lastModifiedBy?: string;
+  lastModifiedOn?: string;
+  changeHistory?: ApprovalMatrixAudit[];
+}
+
+export interface ApprovalMatrixAudit {
+  auditId: string;
+  approvalMatrixId: string;
+  action: "Created" | "Updated" | "Deleted" | "Activated" | "Deactivated";
+  changedBy: string;
+  changedOn: string;
+  fieldChanges: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
+  changeDescription: string;
 }
 
 export interface WorkflowScheme {

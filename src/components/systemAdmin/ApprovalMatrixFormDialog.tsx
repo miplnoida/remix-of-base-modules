@@ -12,12 +12,13 @@ interface ApprovalMatrixFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   matrix?: ApprovalMatrix;
+  processType: string;
   onSave: (matrix: Partial<ApprovalMatrix>) => void;
 }
 
-export function ApprovalMatrixFormDialog({ open, onOpenChange, matrix, onSave }: ApprovalMatrixFormDialogProps) {
+export function ApprovalMatrixFormDialog({ open, onOpenChange, matrix, processType, onSave }: ApprovalMatrixFormDialogProps) {
   const [formData, setFormData] = useState<Partial<ApprovalMatrix>>(matrix || {
-    processType: "",
+    processType: processType,
     orgUnitId: "",
     rangeMinXCD: 0,
     rangeMaxXCD: 0,
@@ -26,11 +27,18 @@ export function ApprovalMatrixFormDialog({ open, onOpenChange, matrix, onSave }:
     approverPositionId: "",
     sequenceOrder: 1,
     activeFlag: true,
+    createdBy: "Current User",
+    createdOn: new Date().toISOString(),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const updatedData = {
+      ...formData,
+      lastModifiedBy: "Current User",
+      lastModifiedOn: new Date().toISOString(),
+    };
+    onSave(updatedData);
     onOpenChange(false);
   };
 
@@ -50,8 +58,8 @@ export function ApprovalMatrixFormDialog({ open, onOpenChange, matrix, onSave }:
               id="processType"
               required
               value={formData.processType}
-              onChange={(e) => setFormData({ ...formData, processType: e.target.value })}
-              placeholder="e.g., Purchase Requisition, Leave Request, etc."
+              disabled
+              className="bg-muted"
             />
           </div>
 
