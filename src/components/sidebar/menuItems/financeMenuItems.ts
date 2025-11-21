@@ -40,12 +40,6 @@ export const financeMenuItems = [
             requiresPermission: 'cashier_operations'
           },
           {
-            title: 'Miscellaneous Payments (TBR)',
-            url: '/cashier/misc-payments',
-            icon: Receipt,
-            requiresPermission: 'cashier_operations'
-          },
-          {
             title: 'Search & Pay Invoices',
             url: '/cashier/search-pay-invoices',
             icon: Search,
@@ -61,12 +55,6 @@ export const financeMenuItems = [
             title: 'C3 Contributions',
             url: '/cashier/c3-payments',
             icon: Banknote,
-            requiresPermission: 'cashier_operations'
-          },
-          {
-            title: 'EFT Entry (TBR)',
-            url: '/cashier/eft-entry',
-            icon: Archive,
             requiresPermission: 'cashier_operations'
           },
           {
