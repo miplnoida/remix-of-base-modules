@@ -11,8 +11,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AddCalculationDialog } from "@/components/nbenefit/config/AddCalculationDialog";
+import { useState } from "react";
 
 const CalculationEngines = () => {
+  const [addCalculationOpen, setAddCalculationOpen] = useState(false);
+  const [currentCalculationType, setCurrentCalculationType] = useState<"short-term" | "long-term" | "indexation">("short-term");
+
+  const handleAddCalculation = (type: "short-term" | "long-term" | "indexation") => {
+    setCurrentCalculationType(type);
+    setAddCalculationOpen(true);
+  };
+
+  const handleSaveCalculation = (data: any) => {
+    console.log("Saving calculation:", data);
+    // TODO: Implement actual save logic
+  };
   const shortTermCalculations = [
     {
       benefit: "Sickness Benefit",
@@ -102,7 +116,7 @@ const CalculationEngines = () => {
             Configure formulas, rates, and calculation methods for all benefit types
           </p>
         </div>
-        <Button>
+        <Button onClick={() => handleAddCalculation("short-term")}>
           <Plus className="h-4 w-4 mr-2" />
           Add Calculation Rule
         </Button>
@@ -143,7 +157,7 @@ const CalculationEngines = () => {
                       <TableCell>{calc.duration}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{calc.notes}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleAddCalculation("short-term")}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -180,7 +194,7 @@ const CalculationEngines = () => {
                       <TableCell>{calc.maxMonthly}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{calc.notes}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleAddCalculation("long-term")}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -258,13 +272,13 @@ const CalculationEngines = () => {
         <TabsContent value="indexation">
           <Card className="p-6">
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Indexation Rates & Benefit Adjustments</h3>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add New Rate
-                </Button>
-              </div>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Indexation Rates & Benefit Adjustments</h3>
+                  <Button onClick={() => handleAddCalculation("indexation")}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Rate
+                  </Button>
+                </div>
               
               <Table>
                 <TableHeader>
@@ -292,7 +306,7 @@ const CalculationEngines = () => {
                         All long-term benefits
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleAddCalculation("indexation")}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -324,6 +338,13 @@ const CalculationEngines = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AddCalculationDialog
+        open={addCalculationOpen}
+        onOpenChange={setAddCalculationOpen}
+        calculationType={currentCalculationType}
+        onSave={handleSaveCalculation}
+      />
     </div>
   );
 };

@@ -3,8 +3,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, ArrowRight, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AddWorkflowDialog } from "@/components/nbenefit/config/AddWorkflowDialog";
+import { useState } from "react";
 
 const BenefitWorkflows = () => {
+  const [addWorkflowOpen, setAddWorkflowOpen] = useState(false);
+
+  const handleSaveWorkflow = (data: any) => {
+    console.log("Saving workflow:", data);
+    // TODO: Implement actual save logic
+  };
   const workflowStages = [
     {
       stage: "Intake",
@@ -167,7 +175,7 @@ const BenefitWorkflows = () => {
             Configure standard workflow stages, approval paths, and processing timelines
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setAddWorkflowOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Workflow
         </Button>
@@ -469,6 +477,12 @@ const BenefitWorkflows = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AddWorkflowDialog
+        open={addWorkflowOpen}
+        onOpenChange={setAddWorkflowOpen}
+        onSave={handleSaveWorkflow}
+      />
     </div>
   );
 };

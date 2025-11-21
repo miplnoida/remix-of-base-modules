@@ -11,8 +11,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AddRuleDialog } from "@/components/nbenefit/config/AddRuleDialog";
+import { useState } from "react";
 
 const CommonEligibilityRules = () => {
+  const [addRuleOpen, setAddRuleOpen] = useState(false);
+  const [currentRuleType, setCurrentRuleType] = useState<"contribution" | "age" | "overlap" | "waiting">("contribution");
+
+  const handleAddRule = (type: "contribution" | "age" | "overlap" | "waiting") => {
+    setCurrentRuleType(type);
+    setAddRuleOpen(true);
+  };
+
+  const handleSaveRule = (data: any) => {
+    console.log("Saving rule:", data);
+    // TODO: Implement actual save logic
+  };
   // Mock data for contribution requirements
   const contributionRules = [
     {
@@ -107,7 +121,7 @@ const CommonEligibilityRules = () => {
             Configure contribution requirements, age thresholds, and eligibility criteria across all benefit types
           </p>
         </div>
-        <Button>
+        <Button onClick={() => handleAddRule("contribution")}>
           <Plus className="h-4 w-4 mr-2" />
           Add New Rule
         </Button>
@@ -160,7 +174,7 @@ const CommonEligibilityRules = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleAddRule("contribution")}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm">
@@ -210,7 +224,7 @@ const CommonEligibilityRules = () => {
                       <TableCell className="text-sm text-muted-foreground">{req.notes}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleAddRule("age")}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
@@ -252,7 +266,7 @@ const CommonEligibilityRules = () => {
                       <TableCell className="text-sm text-muted-foreground">{rule.reason}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleAddRule("overlap")}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
@@ -310,6 +324,13 @@ const CommonEligibilityRules = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AddRuleDialog
+        open={addRuleOpen}
+        onOpenChange={setAddRuleOpen}
+        ruleType={currentRuleType}
+        onSave={handleSaveRule}
+      />
     </div>
   );
 };
