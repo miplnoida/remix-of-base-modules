@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, ChevronRight, ChevronDown } from "lucide-react";
 import { orgUnits } from "@/services/mockData/systemAdminData";
 import { OrgUnit } from "@/types/systemAdmin";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrgUnitList() {
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set(["ORG001"]));
+  const { toast } = useToast();
 
   const toggleExpand = (unitId: string) => {
     setExpandedUnits(prev => {
@@ -53,7 +55,7 @@ export default function OrgUnitList() {
             ) : (
               <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
             )}
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => toast({ title: "Edit Unit", description: `Editing ${unit.name}` })}>
               <Edit className="h-4 w-4" />
             </Button>
           </div>
@@ -72,7 +74,7 @@ export default function OrgUnitList() {
           <h1 className="text-3xl font-bold">Organisation Structure</h1>
           <p className="text-muted-foreground">Manage organisational units and hierarchy</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Add Unit", description: "Add unit dialog would open here" })}>
           <Plus className="mr-2 h-4 w-4" />
           Add Unit
         </Button>
