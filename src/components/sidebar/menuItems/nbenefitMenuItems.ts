@@ -414,15 +414,21 @@ export const nbenefitMenuItems = [
           }
         ]
       },
-      // Shared Config & Tools
+      // Benefit Rules Configuration
       {
-        title: "Shared Config & Tools",
+        title: "Benefit Rules Configuration",
         icon: Settings,
         subItems: [
           {
+            title: "Dynamic Rules Builder",
+            url: "/nbenefit/config/rules",
+            icon: Settings,
+            requiresPermission: "benefits_configuration"
+          },
+          {
             title: "Common Eligibility Rules",
             url: "/nbenefit/shared/common-eligibility-rules",
-            icon: Settings,
+            icon: CheckCircle,
             requiresPermission: "benefits_configuration"
           },
           {
@@ -442,7 +448,14 @@ export const nbenefitMenuItems = [
             url: "/nbenefit/shared/workflows",
             icon: Workflow,
             requiresPermission: "benefits_configuration"
-          },
+          }
+        ]
+      },
+      // Shared Tools
+      {
+        title: "Shared Tools",
+        icon: FileSearch,
+        subItems: [
           {
             title: "Benefit Registry Search",
             url: "/nbenefit/shared/registry-search",
@@ -450,13 +463,6 @@ export const nbenefitMenuItems = [
             requiresPermission: "benefits_management"
           }
         ]
-      },
-      // Benefit Rules Configuration
-      {
-        path: '/nbenefit/config/rules',
-        title: 'Benefit Rules Configuration',
-        icon: Settings,
-        requiresPermission: "benefits_configuration"
       }
     ]
   }

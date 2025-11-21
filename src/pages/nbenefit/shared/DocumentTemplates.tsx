@@ -11,8 +11,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AddDocumentDialog } from "@/components/nbenefit/config/AddDocumentDialog";
+import { useState } from "react";
 
 const DocumentTemplates = () => {
+  const [addDocumentOpen, setAddDocumentOpen] = useState(false);
+  const [currentDocumentType, setCurrentDocumentType] = useState<"application" | "supporting" | "letter">("application");
+
+  const handleAddDocument = (type: "application" | "supporting" | "letter") => {
+    setCurrentDocumentType(type);
+    setAddDocumentOpen(true);
+  };
+
+  const handleSaveDocument = (data: any) => {
+    console.log("Saving document:", data);
+    // TODO: Implement actual save logic
+  };
   const applicationForms = [
     {
       code: "SB/EIB",
@@ -177,7 +191,7 @@ const DocumentTemplates = () => {
             Manage application forms, supporting documents, and letter templates for all benefit types
           </p>
         </div>
-        <Button>
+        <Button onClick={() => handleAddDocument("application")}>
           <Plus className="h-4 w-4 mr-2" />
           Upload New Template
         </Button>
@@ -234,7 +248,7 @@ const DocumentTemplates = () => {
                           <Button variant="ghost" size="sm" title="Download PDF">
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" title="Edit Template">
+                          <Button variant="ghost" size="sm" title="Edit Template" onClick={() => handleAddDocument("application")}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" title="View">
@@ -293,10 +307,10 @@ const DocumentTemplates = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleAddDocument("supporting")}>
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleAddDocument("supporting")}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
@@ -343,7 +357,7 @@ const DocumentTemplates = () => {
                           <Button variant="ghost" size="sm" title="Preview">
                             <FileText className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" title="Edit">
+                          <Button variant="ghost" size="sm" title="Edit" onClick={() => handleAddDocument("letter")}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
@@ -488,6 +502,13 @@ const DocumentTemplates = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AddDocumentDialog
+        open={addDocumentOpen}
+        onOpenChange={setAddDocumentOpen}
+        documentType={currentDocumentType}
+        onSave={handleSaveDocument}
+      />
     </div>
   );
 };
