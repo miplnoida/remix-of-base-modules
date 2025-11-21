@@ -30,51 +30,6 @@ export const financeMenuItems = [
         icon: BarChart3,
       },
       {
-        title: 'Batch Management',
-        url: '/finance/batch-management',
-        icon: Receipt,
-      },
-      {
-        title: 'Payment Entry',
-        url: '/finance/payment-entry',
-        icon: DollarSign,
-      },
-      {
-        title: 'Receipt Search',
-        url: '/finance/receipt-search',
-        icon: Search,
-      },
-      {
-        title: 'Invoice Management',
-        url: '/finance/invoices',
-        icon: FileText,
-      },
-      {
-        title: 'GL & SAGE Export',
-        url: '/finance/gl-export',
-        icon: Database,
-      },
-      {
-        title: 'Daily Reports',
-        url: '/finance/daily-reports',
-        icon: TrendingUp,
-      },
-      {
-        title: 'Reversal & Penalties',
-        url: '/finance/reversals',
-        icon: AlertCircle,
-      },
-      {
-        title: 'Admin Configuration',
-        url: '/finance/admin-config',
-        icon: Settings,
-      },
-      {
-        title: 'User Management',
-        url: '/finance/user-management',
-        icon: Users2,
-      },
-      {
         title: 'Cashier & Payments',
         icon: CreditCard,
         subItems: [
@@ -159,45 +114,45 @@ export const financeMenuItems = [
         ]
       },
       {
-        title: 'Sage Integration Settings',
-        icon: Settings,
-        subItems: [
-          {
-            title: 'Chart of Accounts Mapping',
-            url: '/cashier/chart-accounts-mapping',
-            icon: FileText,
-            requiresPermission: 'admin'
-          },
-          {
-            title: 'Payment Types Mapping',
-            url: '/cashier/payment-types-mapping',
-            icon: Calculator,
-            requiresPermission: 'admin'
-          },
-          {
-            title: 'Sage Synchronization',
-            url: '/cashier/sage-sync',
-            icon: Settings,
-            requiresPermission: 'admin'
-          },
-          {
-            title: 'Current Accounts Setup',
-            url: '/cashier/current-accounts',
-            icon: Banknote,
-            requiresPermission: 'admin'
-          },
-          {
-            title: 'Bank Reconciliation Accounts',
-            url: '/cashier/reconciliation-accounts',
-            icon: CheckSquare,
-            requiresPermission: 'admin'
-          }
-        ]
-      },
-      {
         title: 'Settings',
         icon: Settings,
         subItems: [
+          {
+            title: 'Sage',
+            icon: Settings,
+            subItems: [
+              {
+                title: 'Chart of Accounts Mapping',
+                url: '/cashier/chart-accounts-mapping',
+                icon: FileText,
+                requiresPermission: 'admin'
+              },
+              {
+                title: 'Payment Types Mapping',
+                url: '/cashier/payment-types-mapping',
+                icon: Calculator,
+                requiresPermission: 'admin'
+              },
+              {
+                title: 'Sage Synchronization',
+                url: '/cashier/sage-sync',
+                icon: Settings,
+                requiresPermission: 'admin'
+              },
+              {
+                title: 'Current Accounts Setup',
+                url: '/cashier/current-accounts',
+                icon: Banknote,
+                requiresPermission: 'admin'
+              },
+              {
+                title: 'Bank Reconciliation Accounts',
+                url: '/cashier/reconciliation-accounts',
+                icon: CheckSquare,
+                requiresPermission: 'admin'
+              }
+            ]
+          },
           {
             title: 'Fee Configuration',
             url: '/finance/settings/fee-configuration',
