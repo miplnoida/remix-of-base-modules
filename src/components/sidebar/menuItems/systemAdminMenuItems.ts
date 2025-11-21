@@ -74,9 +74,40 @@ export const systemAdminMenuItems = [
       },
       {
         title: "Approval Matrix",
-        url: "/admin/approval-matrix",
         icon: Grid3x3,
-        requiresPermission: "system_administration"
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Payment Approvals",
+            url: "/admin/approval-matrix/payment",
+            icon: DollarSign,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Fee Waiver Approvals",
+            url: "/admin/approval-matrix/fee-waiver",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Journal Entry Approvals",
+            url: "/admin/approval-matrix/journal",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Refund Approvals",
+            url: "/admin/approval-matrix/refund",
+            icon: DollarSign,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Write-Off Approvals",
+            url: "/admin/approval-matrix/write-off",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          }
+        ]
       },
       {
         title: "Workflow Configuration",

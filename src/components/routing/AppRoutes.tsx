@@ -176,7 +176,11 @@ import OrgUnitList from '@/pages/systemAdmin/OrgUnitList';
 import PositionList from '@/pages/systemAdmin/PositionList';
 import RoleList from '@/pages/systemAdmin/RoleList';
 import DelegationList from '@/pages/systemAdmin/DelegationList';
-import ApprovalMatrixList from '@/pages/systemAdmin/ApprovalMatrixList';
+import ApprovalMatrixPayment from '@/pages/systemAdmin/ApprovalMatrixPayment';
+import ApprovalMatrixFeeWaiver from '@/pages/systemAdmin/ApprovalMatrixFeeWaiver';
+import ApprovalMatrixJournal from '@/pages/systemAdmin/ApprovalMatrixJournal';
+import ApprovalMatrixRefund from '@/pages/systemAdmin/ApprovalMatrixRefund';
+import ApprovalMatrixWriteOff from '@/pages/systemAdmin/ApprovalMatrixWriteOff';
 import WorkflowSchemeList from '@/pages/systemAdmin/WorkflowSchemeList';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
@@ -586,7 +590,11 @@ export const AppRoutes = () => {
       <Route path="/admin/positions" element={<ProtectedLayout><PositionList /></ProtectedLayout>} />
       <Route path="/admin/roles" element={<ProtectedLayout><RoleList /></ProtectedLayout>} />
       <Route path="/admin/delegations" element={<ProtectedLayout><DelegationList /></ProtectedLayout>} />
-      <Route path="/admin/approval-matrix" element={<ProtectedLayout><ApprovalMatrixList /></ProtectedLayout>} />
+      <Route path="/admin/approval-matrix/payment" element={<ProtectedLayout><ApprovalMatrixPayment /></ProtectedLayout>} />
+      <Route path="/admin/approval-matrix/fee-waiver" element={<ProtectedLayout><ApprovalMatrixFeeWaiver /></ProtectedLayout>} />
+      <Route path="/admin/approval-matrix/journal" element={<ProtectedLayout><ApprovalMatrixJournal /></ProtectedLayout>} />
+      <Route path="/admin/approval-matrix/refund" element={<ProtectedLayout><ApprovalMatrixRefund /></ProtectedLayout>} />
+      <Route path="/admin/approval-matrix/write-off" element={<ProtectedLayout><ApprovalMatrixWriteOff /></ProtectedLayout>} />
       <Route path="/admin/workflow-schemes" element={<ProtectedLayout><WorkflowSchemeList /></ProtectedLayout>} />
 
       {/* Reports Routes */}
