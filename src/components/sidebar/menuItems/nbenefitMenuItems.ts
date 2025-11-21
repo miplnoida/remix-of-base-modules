@@ -179,6 +179,19 @@ export const nbenefitMenuItems = [
           }
         ]
       },
+      // Long-Term Beneficiary Registry
+      {
+        title: "Long-Term Beneficiary Registry",
+        url: "/nbenefit/long-term/registry",
+        icon: Users,
+        requiresPermission: "benefits_management"
+      },
+      {
+        title: "Life Certificate Management",
+        url: "/nbenefit/long-term/life-certificates",
+        icon: CheckCircle,
+        requiresPermission: "benefits_management"
+      },
       // Long-Term Benefits
       {
         title: "Long-Term Benefits",
