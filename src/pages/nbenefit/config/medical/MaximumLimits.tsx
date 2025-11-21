@@ -7,7 +7,137 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Save, MapPin, Plane, Hotel, Utensils } from "lucide-react";
+import { DollarSign, Save, MapPin, Plane, Utensils } from "lucide-react";
+
+interface LimitFormProps {
+  limits: any;
+  setLimits: (limits: any) => void;
+  location: string;
+  icon: any;
+  color: string;
+}
+
+const LimitForm = ({ limits, setLimits, location, icon: Icon, color }: LimitFormProps) => (
+  <div className="space-y-6">
+    <div className="flex items-center gap-2">
+      <Icon className={`h-5 w-5 ${color}`} />
+      <h3 className="text-lg font-semibold">{location} Treatment Limits</h3>
+      <Badge>XCD (Eastern Caribbean Dollar)</Badge>
+    </div>
+
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <DollarSign className="h-4 w-4 text-primary" />
+        <h4 className="font-semibold">Treatment & Hospital Costs</h4>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Treatment Maximum (XCD)</Label>
+          <Input
+            type="number"
+            value={limits.treatmentMax}
+            onChange={(e) => setLimits({...limits, treatmentMax: e.target.value})}
+            placeholder="e.g., 5000"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Hospital Stay Max Days</Label>
+          <Input
+            type="number"
+            value={limits.hospitalMaxDays}
+            onChange={(e) => setLimits({...limits, hospitalMaxDays: e.target.value})}
+            placeholder="e.g., 7"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Hospital Stay Max Amount (XCD)</Label>
+          <Input
+            type="number"
+            value={limits.hospitalMaxAmount}
+            onChange={(e) => setLimits({...limits, hospitalMaxAmount: e.target.value})}
+            placeholder="e.g., 2000"
+          />
+        </div>
+      </div>
+    </Card>
+
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Plane className="h-4 w-4 text-blue-600" />
+        <h4 className="font-semibold">Travel & Accommodation</h4>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Travel Maximum (XCD)</Label>
+          <Input
+            type="number"
+            value={limits.travelMax}
+            onChange={(e) => setLimits({...limits, travelMax: e.target.value})}
+            placeholder="e.g., 2000"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Accommodation Maximum (XCD)</Label>
+          <Input
+            type="number"
+            value={limits.accommodationMax}
+            onChange={(e) => setLimits({...limits, accommodationMax: e.target.value})}
+            placeholder="e.g., 3000"
+          />
+        </div>
+      </div>
+    </Card>
+
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Utensils className="h-4 w-4 text-amber-600" />
+        <h4 className="font-semibold">Daily Allowance & Companion</h4>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Daily Subsistence Allowance (XCD)</Label>
+          <Input
+            type="number"
+            value={limits.dailyAllowance}
+            onChange={(e) => setLimits({...limits, dailyAllowance: e.target.value})}
+            placeholder="e.g., 150"
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <Label>Companion Allowed</Label>
+            <Switch
+              checked={limits.companionAllowed}
+              onCheckedChange={(checked) => setLimits({...limits, companionAllowed: checked})}
+            />
+          </div>
+          {limits.companionAllowed && (
+            <div className="space-y-2">
+              <Label>Companion Maximum (XCD)</Label>
+              <Input
+                type="number"
+                value={limits.companionMax}
+                onChange={(e) => setLimits({...limits, companionMax: e.target.value})}
+                placeholder="e.g., 1500"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+
+    <div className="flex justify-end gap-2">
+      <Button variant="outline">Reset to Defaults</Button>
+      <Button>
+        <Save className="h-4 w-4 mr-2" />
+        Save {location} Limits
+      </Button>
+    </div>
+  </div>
+);
 
 export const MaximumLimits = () => {
   const [selectedProcedure, setSelectedProcedure] = useState("SURG001");
@@ -51,128 +181,6 @@ export const MaximumLimits = () => {
     companionAllowed: true,
     companionMax: "3000"
   });
-
-  const LimitForm = ({ limits, setLimits, location, icon: Icon, color }: any) => (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Icon className={`h-5 w-5 ${color}`} />
-        <h3 className="text-lg font-semibold">{location} Treatment Limits</h3>
-        <Badge>XCD (Eastern Caribbean Dollar)</Badge>
-      </div>
-
-      <Card className="p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <DollarSign className="h-4 w-4 text-primary" />
-          <h4 className="font-semibold">Treatment & Hospital Costs</h4>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Treatment Maximum (XCD)</Label>
-            <Input
-              type="number"
-              value={limits.treatmentMax}
-              onChange={(e) => setLimits({...limits, treatmentMax: e.target.value})}
-              placeholder="e.g., 5000"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Hospital Stay Max Days</Label>
-            <Input
-              type="number"
-              value={limits.hospitalMaxDays}
-              onChange={(e) => setLimits({...limits, hospitalMaxDays: e.target.value})}
-              placeholder="e.g., 7"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Hospital Stay Max Amount (XCD)</Label>
-            <Input
-              type="number"
-              value={limits.hospitalMaxAmount}
-              onChange={(e) => setLimits({...limits, hospitalMaxAmount: e.target.value})}
-              placeholder="e.g., 2000"
-            />
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Plane className="h-4 w-4 text-blue-600" />
-          <h4 className="font-semibold">Travel & Accommodation</h4>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Travel Maximum (XCD)</Label>
-            <Input
-              type="number"
-              value={limits.travelMax}
-              onChange={(e) => setLimits({...limits, travelMax: e.target.value})}
-              placeholder="e.g., 2000"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Accommodation Maximum (XCD)</Label>
-            <Input
-              type="number"
-              value={limits.accommodationMax}
-              onChange={(e) => setLimits({...limits, accommodationMax: e.target.value})}
-              placeholder="e.g., 3000"
-            />
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Utensils className="h-4 w-4 text-amber-600" />
-          <h4 className="font-semibold">Daily Allowance & Companion</h4>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Daily Subsistence Allowance (XCD)</Label>
-            <Input
-              type="number"
-              value={limits.dailyAllowance}
-              onChange={(e) => setLimits({...limits, dailyAllowance: e.target.value})}
-              placeholder="e.g., 150"
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between mb-2">
-              <Label>Companion Allowed</Label>
-              <Switch
-                checked={limits.companionAllowed}
-                onCheckedChange={(checked) => setLimits({...limits, companionAllowed: checked})}
-              />
-            </div>
-            {limits.companionAllowed && (
-              <div className="space-y-2">
-                <Label>Companion Maximum (XCD)</Label>
-                <Input
-                  type="number"
-                  value={limits.companionMax}
-                  onChange={(e) => setLimits({...limits, companionMax: e.target.value})}
-                  placeholder="e.g., 1500"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline">Reset to Defaults</Button>
-        <Button>
-          <Save className="h-4 w-4 mr-2" />
-          Save {location} Limits
-        </Button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">

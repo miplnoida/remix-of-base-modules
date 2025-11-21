@@ -8,7 +8,14 @@ import { AddProcedureDialog } from "@/components/nbenefit/config/AddProcedureDia
 
 export const ProcedureRegistry = () => {
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedProcedure, setSelectedProcedure] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const handleEdit = (procedure: any) => {
+    setSelectedProcedure(procedure);
+    setEditOpen(true);
+  };
 
   const procedures = [
     { id: 1, code: "SURG001", name: "Appendectomy", category: "Surgery", active: true },
@@ -75,7 +82,7 @@ export const ProcedureRegistry = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(procedure)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                 </TableCell>
@@ -86,6 +93,11 @@ export const ProcedureRegistry = () => {
       </div>
 
       <AddProcedureDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddProcedureDialog 
+        open={editOpen} 
+        onOpenChange={setEditOpen}
+        procedure={selectedProcedure}
+      />
     </div>
   );
 };

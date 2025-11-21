@@ -9,14 +9,27 @@ import { useState } from "react";
 interface AddProcedureDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  procedure?: any;
 }
 
-export const AddProcedureDialog = ({ open, onOpenChange }: AddProcedureDialogProps) => {
+export const AddProcedureDialog = ({ open, onOpenChange, procedure }: AddProcedureDialogProps) => {
   const [formData, setFormData] = useState({
-    code: "",
-    name: "",
-    category: "Surgery",
-    description: ""
+    code: procedure?.code || "",
+    name: procedure?.name || "",
+    category: procedure?.category || "Surgery",
+    description: procedure?.description || ""
+  });
+
+  // Update form when procedure changes
+  useState(() => {
+    if (procedure) {
+      setFormData({
+        code: procedure.code || "",
+        name: procedure.name || "",
+        category: procedure.category || "Surgery",
+        description: procedure.description || ""
+      });
+    }
   });
 
   const handleSave = () => {
@@ -29,7 +42,7 @@ export const AddProcedureDialog = ({ open, onOpenChange }: AddProcedureDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add Medical Procedure</DialogTitle>
+          <DialogTitle>{procedure ? "Edit" : "Add"} Medical Procedure</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
