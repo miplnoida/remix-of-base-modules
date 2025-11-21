@@ -7,10 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit } from "lucide-react";
 import { positions, orgUnits } from "@/services/mockData/systemAdminData";
 import { useToast } from "@/hooks/use-toast";
+import { PositionFormDialog } from "@/components/systemAdmin/PositionFormDialog";
+import { PositionAssignmentDialog } from "@/components/systemAdmin/PositionAssignmentDialog";
+import { Position } from "@/types/systemAdmin";
+import { UserPlus } from "lucide-react";
 
 export default function PositionList() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<Position | undefined>();
 
   const filteredPositions = positions.filter(pos =>
     pos.positionName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -27,7 +34,7 @@ export default function PositionList() {
           <h1 className="text-3xl font-bold">Position Management</h1>
           <p className="text-muted-foreground">Manage positions and reporting structure</p>
         </div>
-        <Button onClick={() => toast({ title: "Add Position", description: "Add position dialog would open here" })}>
+        <Button onClick={() => { setSelectedPosition(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Position
         </Button>
@@ -90,9 +97,14 @@ export default function PositionList() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => toast({ title: "Edit Position", description: `Editing ${position.positionName}` })}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => { setSelectedPosition(position); setFormOpen(true); }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => { setSelectedPosition(position); setAssignOpen(true); }}>
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -100,6 +112,32 @@ export default function PositionList() {
           </Table>
         </CardContent>
       </Card>
+
+      <PositionFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        position={selectedPosition}
+        onSave={(position) => {
+          toast({
+            title: selectedPosition ? "Position Updated" : "Position Created",
+            description: `Position ${position.positionName} has been ${selectedPosition ? "updated" : "created"} successfully.`,
+          });
+        }}
+      />
+
+      {selectedPosition && (
+        <PositionAssignmentDialog
+          open={assignOpen}
+          onOpenChange={setAssignOpen}
+          position={selectedPosition}
+          onSave={(assignment) => {
+            toast({
+              title: "Employee Assigned",
+              description: `Employee has been assigned to ${selectedPosition.positionName}.`,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

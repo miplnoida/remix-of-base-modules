@@ -5,9 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Settings, Eye } from "lucide-react";
 import { workflowSchemes } from "@/services/mockData/systemAdminData";
 import { useToast } from "@/hooks/use-toast";
+import { WorkflowFormDialog } from "@/components/systemAdmin/WorkflowFormDialog";
+import { WorkflowDetailDialog } from "@/components/systemAdmin/WorkflowDetailDialog";
+import { WorkflowStepsDialog } from "@/components/systemAdmin/WorkflowStepsDialog";
+import { useState } from "react";
+import { WorkflowScheme } from "@/types/systemAdmin";
 
 export default function WorkflowSchemeList() {
   const { toast } = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowScheme | undefined>();
   
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -16,7 +25,7 @@ export default function WorkflowSchemeList() {
           <h1 className="text-3xl font-bold">Workflow Configuration</h1>
           <p className="text-muted-foreground">Configure approval workflows for all modules</p>
         </div>
-        <Button onClick={() => toast({ title: "Create Workflow", description: "Create workflow dialog would open here" })}>
+        <Button onClick={() => { setSelectedWorkflow(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Create Workflow
         </Button>
@@ -58,7 +67,7 @@ export default function WorkflowSchemeList() {
                         variant="ghost" 
                         size="sm" 
                         title="View Details"
-                        onClick={() => toast({ title: "View Workflow", description: `Viewing ${scheme.name}` })}
+                        onClick={() => { setSelectedWorkflow(scheme); setDetailOpen(true); }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -66,7 +75,7 @@ export default function WorkflowSchemeList() {
                         variant="ghost" 
                         size="sm" 
                         title="Configure Steps"
-                        onClick={() => toast({ title: "Configure Steps", description: `Configuring steps for ${scheme.name}` })}
+                        onClick={() => { setSelectedWorkflow(scheme); setStepsOpen(true); }}
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
@@ -74,7 +83,7 @@ export default function WorkflowSchemeList() {
                         variant="ghost" 
                         size="sm" 
                         title="Edit"
-                        onClick={() => toast({ title: "Edit Workflow", description: `Editing ${scheme.name}` })}
+                        onClick={() => { setSelectedWorkflow(scheme); setFormOpen(true); }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -86,6 +95,33 @@ export default function WorkflowSchemeList() {
           </Table>
         </CardContent>
       </Card>
+
+      <WorkflowFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        workflow={selectedWorkflow}
+        onSave={(workflow) => {
+          toast({
+            title: selectedWorkflow ? "Workflow Updated" : "Workflow Created",
+            description: `Workflow ${workflow.name} has been ${selectedWorkflow ? "updated" : "created"} successfully.`,
+          });
+        }}
+      />
+
+      {selectedWorkflow && (
+        <>
+          <WorkflowDetailDialog
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
+            workflow={selectedWorkflow}
+          />
+          <WorkflowStepsDialog
+            open={stepsOpen}
+            onOpenChange={setStepsOpen}
+            workflow={selectedWorkflow}
+          />
+        </>
+      )}
     </div>
   );
 }

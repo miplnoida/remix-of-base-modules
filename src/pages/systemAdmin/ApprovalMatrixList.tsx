@@ -7,10 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { approvalMatrix, roles, positions } from "@/services/mockData/systemAdminData";
 import { useToast } from "@/hooks/use-toast";
+import { ApprovalMatrixFormDialog } from "@/components/systemAdmin/ApprovalMatrixFormDialog";
+import { ApprovalMatrix } from "@/types/systemAdmin";
 
 export default function ApprovalMatrixList() {
   const [activeProcess, setActiveProcess] = useState("Payment");
   const { toast } = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedMatrix, setSelectedMatrix] = useState<ApprovalMatrix | undefined>();
 
   const processTypes = [...new Set(approvalMatrix.map(m => m.processType))];
   const filteredMatrix = approvalMatrix.filter(m => m.processType === activeProcess && m.activeFlag);
@@ -32,7 +36,7 @@ export default function ApprovalMatrixList() {
           <h1 className="text-3xl font-bold">Approval Matrix</h1>
           <p className="text-muted-foreground">Configure amount-based approval workflows</p>
         </div>
-        <Button onClick={() => toast({ title: "Add Rule", description: `Add new approval rule for ${activeProcess}` })}>
+        <Button onClick={() => { setSelectedMatrix(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Rule
         </Button>
@@ -81,24 +85,24 @@ export default function ApprovalMatrixList() {
                           <TableCell>
                             <Badge className="bg-green-100 text-green-800">Active</Badge>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => toast({ title: "Edit Rule", description: `Editing approval rule ${matrix.approvalMatrixId}` })}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => toast({ title: "Delete Rule", description: `Rule ${matrix.approvalMatrixId} would be deleted`, variant: "destructive" })}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="flex gap-2">
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => { setSelectedMatrix(matrix); setFormOpen(true); }}
+                               >
+                                 <Edit className="h-4 w-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => toast({ title: "Delete Rule", description: `Rule ${matrix.approvalMatrixId} would be deleted`, variant: "destructive" })}
+                               >
+                                 <Trash2 className="h-4 w-4 text-red-600" />
+                               </Button>
+                             </div>
+                           </TableCell>
                         </TableRow>
                       ))}
                   </TableBody>
@@ -108,6 +112,18 @@ export default function ApprovalMatrixList() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <ApprovalMatrixFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        matrix={selectedMatrix}
+        onSave={(matrix) => {
+          toast({
+            title: selectedMatrix ? "Rule Updated" : "Rule Created",
+            description: `Approval rule for ${matrix.processType} has been ${selectedMatrix ? "updated" : "created"} successfully.`,
+          });
+        }}
+      />
     </div>
   );
 }
