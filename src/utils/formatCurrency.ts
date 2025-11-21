@@ -1,6 +1,22 @@
 /**
  * Format currency values consistently across the application
- * Uses XCD (East Caribbean Dollar) as the standard currency
+ * XCD (Eastern Caribbean Dollar) is the base/functional currency for all accounting.
+ * All ledger postings, statutory reports, liability statements, and balances are in XCD.
+ */
+
+/**
+ * Base currency constants
+ */
+export const BASE_CURRENCY = 'XCD';
+export const BASE_CURRENCY_NAME = 'Eastern Caribbean Dollar';
+export const BASE_CURRENCY_SYMBOL = 'XCD';
+
+// Legacy constants for backward compatibility
+export const CURRENCY_CODE = 'XCD';
+export const CURRENCY_SYMBOL = 'XCD';
+
+/**
+ * Format amount in XCD (base currency)
  */
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
@@ -12,7 +28,7 @@ export const formatCurrency = (amount: number): string => {
 };
 
 /**
- * Format currency without currency symbol
+ * Format currency amount without currency symbol
  */
 export const formatCurrencyAmount = (amount: number): string => {
   return amount.toLocaleString('en-US', {
@@ -22,11 +38,19 @@ export const formatCurrencyAmount = (amount: number): string => {
 };
 
 /**
- * Currency code constant
+ * Format amount with explicit currency code
  */
-export const CURRENCY_CODE = 'XCD';
+export const formatWithCurrency = (amount: number, currencyCode: string = 'XCD'): string => {
+  const formattedAmount = amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  return `${currencyCode} ${formattedAmount}`;
+};
 
 /**
- * Currency symbol constant
+ * Format XCD amount (base currency) with explicit XCD label
  */
-export const CURRENCY_SYMBOL = 'XCD';
+export const formatXCD = (amount: number): string => {
+  return formatWithCurrency(amount, 'XCD');
+};

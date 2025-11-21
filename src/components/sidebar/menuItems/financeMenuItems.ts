@@ -215,6 +215,12 @@ export const financeMenuItems = [
             url: '/finance/settings/verification',
             icon: CheckSquare,
             requiresPermission: 'admin'
+          },
+          {
+            title: 'Multi-Currency Settings',
+            url: '/finance/settings/multi-currency',
+            icon: DollarSign,
+            requiresPermission: 'admin'
           }
         ]
       }
