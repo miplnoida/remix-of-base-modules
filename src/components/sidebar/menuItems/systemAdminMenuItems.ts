@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   GitBranch,
   Grid3x3,
-  Workflow
+  Workflow,
+  Bell
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -114,6 +115,31 @@ export const systemAdminMenuItems = [
         url: "/admin/workflow-schemes",
         icon: Workflow,
         requiresPermission: "system_administration"
+      },
+      {
+        title: "Notifications",
+        icon: Bell,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Notification Log",
+            url: "/admin/notifications/log",
+            icon: History,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Templates",
+            url: "/admin/notifications/templates",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Channel Settings",
+            url: "/admin/notifications/channels",
+            icon: Settings,
+            requiresPermission: "system_administration"
+          }
+        ]
       },
       {
         title: "Security Settings",

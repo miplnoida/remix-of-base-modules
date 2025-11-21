@@ -183,6 +183,9 @@ import ApprovalMatrixJournal from '@/pages/systemAdmin/ApprovalMatrixJournal';
 import ApprovalMatrixRefund from '@/pages/systemAdmin/ApprovalMatrixRefund';
 import ApprovalMatrixWriteOff from '@/pages/systemAdmin/ApprovalMatrixWriteOff';
 import WorkflowSchemeList from '@/pages/systemAdmin/WorkflowSchemeList';
+import NotificationLog from '@/pages/systemAdmin/NotificationLog';
+import NotificationTemplates from '@/pages/systemAdmin/NotificationTemplates';
+import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannelSettings';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -597,6 +600,9 @@ export const AppRoutes = () => {
       <Route path="/admin/approval-matrix/refund" element={<ProtectedLayout><ApprovalMatrixRefund /></ProtectedLayout>} />
       <Route path="/admin/approval-matrix/write-off" element={<ProtectedLayout><ApprovalMatrixWriteOff /></ProtectedLayout>} />
       <Route path="/admin/workflow-schemes" element={<ProtectedLayout><WorkflowSchemeList /></ProtectedLayout>} />
+      <Route path="/admin/notifications/log" element={<ProtectedLayout><NotificationLog /></ProtectedLayout>} />
+      <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationTemplates /></ProtectedLayout>} />
+      <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
