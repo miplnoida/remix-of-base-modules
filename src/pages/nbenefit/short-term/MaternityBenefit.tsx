@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import BenefitApplicationTable from "@/components/nbenefit/BenefitApplicationTable";
+import { BENEFIT_APPLICATIONS } from "@/services/mockData/benefitApplications";
 
 const OverviewTab = () => (
   <div className="space-y-4">
@@ -47,15 +49,9 @@ const ApplicationsTab = () => {
         </Button>
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search applications..." className="pl-10" />
-        </div>
-      </div>
-      <div className="border rounded-lg p-4 text-center text-muted-foreground">
-        Application list will be displayed here
-      </div>
+      <BenefitApplicationTable 
+        applications={BENEFIT_APPLICATIONS.filter(app => app.benefitType === "Maternity Benefit")}
+      />
     </div>
   );
 };
