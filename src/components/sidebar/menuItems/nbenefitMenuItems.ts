@@ -11,7 +11,8 @@ import {
   FileSearch,
   FileText,
   Calculator,
-  Workflow
+  Workflow,
+  CheckCircle
 } from "lucide-react";
 
 export const nbenefitMenuItems = [
@@ -19,6 +20,13 @@ export const nbenefitMenuItems = [
     title: "Central Benefits Registry",
     icon: Heart,
     subItems: [
+      // Claim Approval
+      {
+        title: "Claim Approval",
+        url: "/nbenefit/claim-approval",
+        icon: CheckCircle,
+        requiresPermission: "benefits_management"
+      },
       // Short-Term Benefits
       {
         title: "Short-Term Benefits",
