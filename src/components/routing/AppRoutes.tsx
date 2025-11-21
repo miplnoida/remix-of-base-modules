@@ -196,6 +196,7 @@ import AgeBenefit from '@/pages/nbenefit/long-term/AgeBenefit';
 import ClaimApprovalEnhanced from '@/pages/nbenefit/ClaimApprovalEnhanced';
 import BenefitRulesList from '@/pages/nbenefit/config/BenefitRulesList';
 import BenefitRuleEditor from '@/pages/nbenefit/config/BenefitRuleEditor';
+import MedicalRulesConfig from '@/pages/nbenefit/config/MedicalRulesConfig';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
 import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
@@ -731,6 +732,7 @@ export const AppRoutes = () => {
       {/* Shared Config & Tools */}
       <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><CommonEligibilityRules /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/calculation-engines" element={<ProtectedLayout><CalculationEngines /></ProtectedLayout>} />
+      <Route path="/nbenefit/config/medical-rules" element={<ProtectedLayout><MedicalRulesConfig /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><DocumentTemplates /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><BenefitWorkflows /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
