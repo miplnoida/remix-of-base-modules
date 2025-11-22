@@ -119,6 +119,49 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration"
       },
       {
+        title: "Workflow Management",
+        icon: Workflow,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Designer",
+            url: "/admin/workflow-management",
+            icon: Grid3x3,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "All Workflows",
+            url: "/admin/workflow-management/workflows",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Runs",
+            url: "/admin/workflow-management/runs",
+            icon: Activity,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Data",
+            url: "/admin/workflow-management/data",
+            icon: ClipboardCheck,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Templates",
+            url: "/admin/workflow-management/templates",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Settings",
+            url: "/admin/workflow-management/settings",
+            icon: Settings,
+            requiresPermission: "system_administration"
+          }
+        ]
+      },
+      {
         title: "Notifications",
         icon: Bell,
         requiresPermission: "system_administration",

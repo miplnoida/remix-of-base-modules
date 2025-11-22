@@ -204,6 +204,7 @@ import WorkflowSchemeList from '@/pages/systemAdmin/WorkflowSchemeList';
 import NotificationLog from '@/pages/systemAdmin/NotificationLog';
 import NotificationTemplates from '@/pages/systemAdmin/NotificationTemplates';
 import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannelSettings';
+import WorkflowManagement from '@/pages/workflow/WorkflowManagement';
 
 // NBenefit Module
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
@@ -680,6 +681,12 @@ export const AppRoutes = () => {
       <Route path="/admin/approval-matrix/refund" element={<ProtectedLayout><ApprovalMatrixRefund /></ProtectedLayout>} />
       <Route path="/admin/approval-matrix/write-off" element={<ProtectedLayout><ApprovalMatrixWriteOff /></ProtectedLayout>} />
       <Route path="/admin/workflow-schemes" element={<ProtectedLayout><WorkflowSchemeList /></ProtectedLayout>} />
+      <Route path="/admin/workflow-management" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
+      <Route path="/admin/workflow-management/workflows" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
+      <Route path="/admin/workflow-management/runs" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
+      <Route path="/admin/workflow-management/data" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
+      <Route path="/admin/workflow-management/templates" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
+      <Route path="/admin/workflow-management/settings" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
       <Route path="/admin/notifications/log" element={<ProtectedLayout><NotificationLog /></ProtectedLayout>} />
       <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationTemplates /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
