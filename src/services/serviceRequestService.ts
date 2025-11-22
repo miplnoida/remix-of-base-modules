@@ -203,3 +203,26 @@ export const getAllServiceRequests = (): ServiceRequest[] => {
 export const getServiceRequestsByInsuredPerson = (insuredPersonId: string): ServiceRequest[] => {
   return getServiceRequests().filter(req => req.insuredPersonId === insuredPersonId);
 };
+
+// Auto-create first card issuance service request for newly approved insured person
+export const createAutoCardServiceRequest = (insuredPersonId: string): ServiceRequest => {
+  const serviceTypeId = 'SVC_CARD_FIRST'; // First Card Issue service type
+  const serviceCategoryId = 'CAT004'; // Card Services category
+  
+  const request = createServiceRequest({
+    insuredPersonId,
+    serviceCategoryId,
+    serviceTypeId,
+    reason: 'Automatic first card issuance upon insured person approval',
+    priorityId: 'PRI001',
+    source: 'COUNTER', // System-initiated counter service
+    processingUnitId: 'UNIT001',
+    status: 'Completed', // Auto-completed as it's free and no verification needed
+    internalNotes: 'Auto-generated card service request. First card issue with no fee.',
+    attachments: [],
+    verificationRequired: false,
+    createdBy: 'SYSTEM_AUTO',
+  });
+  
+  return request;
+};

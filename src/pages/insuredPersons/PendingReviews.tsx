@@ -140,7 +140,15 @@ const PendingReviews = () => {
 
   const handleApprove = (id: number | string) => {
     console.log('Approving item:', id);
-    // Handle approval logic
+    
+    // Auto-create card service request upon approval
+    const { createAutoCardServiceRequest } = require('@/services/serviceRequestService');
+    try {
+      const cardRequest = createAutoCardServiceRequest(String(id));
+      console.log('Auto-created card service request:', cardRequest);
+    } catch (error) {
+      console.error('Failed to auto-create card service request:', error);
+    }
   };
 
   const handleReject = (id: number | string) => {
