@@ -12,6 +12,10 @@ import NotFound from '@/pages/NotFound';
 import ViewInsuredPerson from '@/pages/insuredPersons/ViewInsuredPerson';
 import EditInsuredPerson from '@/pages/insuredPersons/EditInsuredPerson';
 
+// CRD Module
+import CardManagement from '@/pages/crd/CardManagement';
+import CRDPrintedSpoiledCardsReport from '@/pages/crd/reports/PrintedSpoiledCardsReport';
+
 // Compliance Module
 import CaseManagement from '@/pages/compliance/CaseManagement';
 import CaseDetails from '@/pages/compliance/CaseDetails';
@@ -112,7 +116,6 @@ import OutstandingDiscrepanciesReport from '@/pages/person/reports/OutstandingDi
 import LongTermClaimsReport from '@/pages/person/reports/LongTermClaimsReport';
 import AuditSampleReport from '@/pages/person/reports/AuditSampleReport';
 import RefundsToCRUReport from '@/pages/person/reports/RefundsToCRUReport';
-import PrintedSpoiledCardsReport from '@/pages/person/reports/PrintedSpoiledCardsReport';
 import AuditSampleIPReport from '@/pages/person/reports/AuditSampleIPReport';
 
 // Finance Settings Pages
@@ -588,6 +591,7 @@ export const AppRoutes = () => {
       {/* Service Request Routes */}
       <Route path="/person/service-requests" element={<ProtectedLayout><ServiceRequestList /></ProtectedLayout>} />
       <Route path="/person/service-requests/new" element={<ProtectedLayout><ServiceRequestNew /></ProtectedLayout>} />
+      <Route path="/person/service-requests/:id" element={<ProtectedLayout><ServiceRequestDetail /></ProtectedLayout>} />
       <Route path="/person/service-requests/pending-verification" element={<ProtectedLayout><PendingVerification /></ProtectedLayout>} />
       <Route path="/person/profile/:id" element={<ProtectedLayout><InsuredPersonProfile /></ProtectedLayout>} />
 
@@ -608,7 +612,6 @@ export const AppRoutes = () => {
       <Route path="/person/reports/claims-to-benefits" element={<ProtectedLayout><ClaimsToBenefitsReport /></ProtectedLayout>} />
       <Route path="/person/reports/crm-activity" element={<ProtectedLayout><CRMActivityReport /></ProtectedLayout>} />
       <Route path="/person/reports/refunds-to-cru" element={<ProtectedLayout><RefundsToCRUReport /></ProtectedLayout>} />
-      <Route path="/person/reports/printed-spoiled-cards" element={<ProtectedLayout><PrintedSpoiledCardsReport /></ProtectedLayout>} />
       <Route path="/person/reports/audit-sample-ip" element={<ProtectedLayout><AuditSampleIPReport /></ProtectedLayout>} />
       
       {/* C3 Management Reports - Moved from Insured Persons */}
@@ -647,6 +650,10 @@ export const AppRoutes = () => {
       <Route path="/benefits/work-injury" element={<ProtectedLayout><WorkInjuryBenefits /></ProtectedLayout>} />
       <Route path="/benefits/death" element={<ProtectedLayout><DeathBenefits /></ProtectedLayout>} />
       <Route path="/benefits/educational" element={<ProtectedLayout><EducationalBenefits /></ProtectedLayout>} />
+
+      {/* Customer Relationship (CRD) Module Routes */}
+      <Route path="/crd/cards" element={<ProtectedLayout><CardManagement /></ProtectedLayout>} />
+      <Route path="/crd/reports/printed-spoiled-cards" element={<ProtectedLayout><CRDPrintedSpoiledCardsReport /></ProtectedLayout>} />
 
       {/* System Administration Routes */}
       <Route path="/admin/users" element={<ProtectedLayout><UserManagement /></ProtectedLayout>} />

@@ -1,6 +1,62 @@
 import { FeeConfiguration } from '@/types/serviceRequest';
 
 export const FEE_CONFIGURATIONS: FeeConfiguration[] = [
+  // New Card-Related Fees
+  {
+    id: 'FEE_CARD_FIRST',
+    serviceTypeId: 'SVC_CARD_FIRST',
+    amount: 0.00,
+    accountingHeadCode: 'FEE_CARD_FIRST_ISSUE',
+    accountingHeadName: 'First Card Issue (No Fee)',
+    effectiveFrom: '2024-01-01',
+    active: true
+  },
+  {
+    id: 'FEE_CARD_LOST',
+    serviceTypeId: 'SVC_CARD_LOST',
+    amount: 20.00,
+    accountingHeadCode: 'FEE_CARD_REPLACEMENT',
+    accountingHeadName: 'Card Replacement Fee - Lost',
+    effectiveFrom: '2024-01-01',
+    active: true
+  },
+  {
+    id: 'FEE_CARD_STOLEN',
+    serviceTypeId: 'SVC_CARD_STOLEN',
+    amount: 20.00,
+    accountingHeadCode: 'FEE_CARD_REPLACEMENT',
+    accountingHeadName: 'Card Replacement Fee - Stolen',
+    effectiveFrom: '2024-01-01',
+    active: true
+  },
+  {
+    id: 'FEE_CARD_DAMAGED',
+    serviceTypeId: 'SVC_CARD_DAMAGED',
+    amount: 20.00,
+    accountingHeadCode: 'FEE_CARD_REPLACEMENT',
+    accountingHeadName: 'Card Replacement Fee - Damaged',
+    effectiveFrom: '2024-01-01',
+    active: true
+  },
+  {
+    id: 'FEE_CARD_NAME_CHANGE',
+    serviceTypeId: 'SVC_CARD_NAME_CHANGE',
+    amount: 25.00,
+    accountingHeadCode: 'FEE_NAME_CHANGE',
+    accountingHeadName: 'Card Replacement Fee - Name Change',
+    effectiveFrom: '2024-01-01',
+    active: true
+  },
+  {
+    id: 'FEE_CARD_NON_CITIZEN',
+    serviceTypeId: 'SVC_CARD_NON_CITIZEN',
+    amount: 30.00,
+    accountingHeadCode: 'FEE_NON_CITIZEN_RENEWAL',
+    accountingHeadName: 'Non-Citizen Card Renewal Fee',
+    effectiveFrom: '2024-01-01',
+    active: true
+  },
+  // Legacy Fees
   {
     id: 'FEE001',
     serviceTypeId: 'SVC001',
