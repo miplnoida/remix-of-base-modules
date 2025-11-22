@@ -183,6 +183,9 @@ import ApprovalMatrixJournal from '@/pages/systemAdmin/ApprovalMatrixJournal';
 import ApprovalMatrixRefund from '@/pages/systemAdmin/ApprovalMatrixRefund';
 import ApprovalMatrixWriteOff from '@/pages/systemAdmin/ApprovalMatrixWriteOff';
 import WorkflowSchemeList from '@/pages/systemAdmin/WorkflowSchemeList';
+import LevySchemesList from "@/pages/c3/settings/levy/LevySchemesList";
+import LevySchemeDetail from "@/pages/c3/settings/levy/LevySchemeDetail";
+import LevySimulator from "@/pages/c3/settings/levy/LevySimulator";
 import NotificationLog from '@/pages/systemAdmin/NotificationLog';
 import NotificationTemplates from '@/pages/systemAdmin/NotificationTemplates';
 import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannelSettings';
@@ -585,6 +588,11 @@ export const AppRoutes = () => {
       <Route path="/c3/reports/c3-entry-verification" element={<ProtectedLayout><C3EntryVerificationReport /></ProtectedLayout>} />
       <Route path="/c3/reports/pending-c3" element={<ProtectedLayout><PendingC3Report /></ProtectedLayout>} />
       <Route path="/c3/reports/missing-ssn" element={<ProtectedLayout><MissingSSNReport /></ProtectedLayout>} />
+      
+      {/* C3 Levy Settings Routes */}
+      <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/levy/schemes/:schemeId" element={<ProtectedLayout><LevySchemeDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/levy/simulator" element={<ProtectedLayout><LevySimulator /></ProtectedLayout>} />
       <Route path="/c3/reports/c3-line-item-changes" element={<ProtectedLayout><C3LineItemChangesReport /></ProtectedLayout>} />
       <Route path="/c3/reports/electronic-c3-uploads" element={<ProtectedLayout><ElectronicC3UploadsReport /></ProtectedLayout>} />
       <Route path="/c3/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />

@@ -39,6 +39,19 @@ export const c3MenuItems = [
         requiresPermission: "verify_c3"
       },
       {
+        title: "Settings",
+        icon: Settings,
+        requiresPermission: "view_dashboard",
+        subItems: [
+          {
+            title: "Levy Settings",
+            url: "/c3-management/settings/levy/schemes",
+            icon: Settings,
+            requiresPermission: "view_dashboard"
+          }
+        ]
+      },
+      {
         title: "Reports",
         icon: FileText,
         requiresPermission: "view_reports",
