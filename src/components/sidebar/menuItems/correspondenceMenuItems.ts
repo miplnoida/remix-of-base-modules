@@ -1,4 +1,4 @@
-import { MessageSquare, Inbox, Send, Archive, Search, Bell, FileText } from 'lucide-react';
+import { MessageSquare, Inbox, Send, Archive, Search, Bell } from 'lucide-react';
 
 export const correspondenceMenuItems = [
   {
@@ -40,12 +40,6 @@ export const correspondenceMenuItems = [
         url: '/admin/notifications/log',
         icon: Bell,
         requiresPermission: 'view_notifications'
-      },
-      {
-        title: 'Templates',
-        url: '/admin/notifications/templates',
-        icon: FileText,
-        requiresPermission: 'manage_notification_templates'
       }
     ]
   }

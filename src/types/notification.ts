@@ -1,6 +1,6 @@
 // Central Notification Engine Types
 
-export type NotificationChannel = 'Email' | 'SMS' | 'Push' | 'Multi' | 'Auto';
+export type NotificationChannel = 'Email' | 'SMS' | 'Push' | 'Letter' | 'Multi' | 'Auto';
 export type NotificationPriority = 'Low' | 'Normal' | 'High' | 'Critical';
 export type NotificationStatus = 
   | 'Pending' 
@@ -25,6 +25,8 @@ export type SourceModule =
   | 'Scheduler'
   | 'Employers'
   | 'InsuredPersons'
+  | 'Registration'
+  | 'CRD'
   | 'System';
 
 export type PartyType = 'Employer' | 'InsuredPerson' | 'OtherParty' | 'InternalUser';

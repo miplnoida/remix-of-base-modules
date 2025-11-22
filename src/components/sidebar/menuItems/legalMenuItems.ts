@@ -64,6 +64,18 @@ export const legalMenuItems = [
         url: "/legal/admin",
         icon: Settings,
         description: "Configure code sets, templates, and integrations"
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        subItems: [
+          {
+            title: "Templates",
+            url: "/legal/templates",
+            icon: FileText,
+            description: "Manage legal notification templates"
+          }
+        ]
       }
     ]
   }

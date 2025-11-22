@@ -181,6 +181,20 @@ export const auditMenuItems = [
         icon: FileSearch,
         requiresPermission: "configure_audit_system",
         description: "Manage department functions and risk assessment"
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        requiresPermission: "configure_audit_system",
+        subItems: [
+          {
+            title: "Templates",
+            url: "/audit/templates",
+            icon: FileText,
+            requiresPermission: "configure_audit_system",
+            description: "Manage internal audit notification templates"
+          }
+        ]
       }
     ]
   }

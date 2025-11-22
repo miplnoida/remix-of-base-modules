@@ -230,6 +230,7 @@ import IncomingCommunications from '@/pages/correspondence/IncomingCommunication
 import OutgoingCommunications from '@/pages/correspondence/OutgoingCommunications';
 import SearchHistory from '@/pages/correspondence/SearchHistory';
 import Archive from '@/pages/correspondence/Archive';
+import ModuleTemplates from '@/pages/templates/ModuleTemplates';
 import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
 import AssistancePension from '@/pages/nbenefit/non-contributory/AssistancePension';
@@ -691,6 +692,13 @@ export const AppRoutes = () => {
       <Route path="/correspondence/outgoing" element={<ProtectedLayout><OutgoingCommunications /></ProtectedLayout>} />
       <Route path="/correspondence/search" element={<ProtectedLayout><SearchHistory /></ProtectedLayout>} />
       <Route path="/correspondence/archive" element={<ProtectedLayout><Archive /></ProtectedLayout>} />
+
+      {/* Module Templates Routes */}
+      <Route path="/compliance/templates" element={<ProtectedLayout><ModuleTemplates module="Compliance" /></ProtectedLayout>} />
+      <Route path="/benefits/templates" element={<ProtectedLayout><ModuleTemplates module="Benefits" /></ProtectedLayout>} />
+      <Route path="/finance/templates" element={<ProtectedLayout><ModuleTemplates module="Finance" /></ProtectedLayout>} />
+      <Route path="/legal/templates" element={<ProtectedLayout><ModuleTemplates module="Legal" /></ProtectedLayout>} />
+      <Route path="/audit/templates" element={<ProtectedLayout><ModuleTemplates module="InternalAudit" /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
