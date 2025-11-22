@@ -175,6 +175,12 @@ export const financeMenuItems = [
             url: '/finance/settings/multi-currency',
             icon: DollarSign,
             requiresPermission: 'admin'
+          },
+          {
+            title: 'Benefit-Finance Mapping',
+            url: '/finance/settings/benefit-finance-mapping',
+            icon: Database,
+            requiresPermission: 'admin'
           }
         ]
       }
