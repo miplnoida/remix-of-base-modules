@@ -699,6 +699,8 @@ export const AppRoutes = () => {
       <Route path="/finance/templates" element={<ProtectedLayout><ModuleTemplates module="Finance" /></ProtectedLayout>} />
       <Route path="/legal/templates" element={<ProtectedLayout><ModuleTemplates module="Legal" /></ProtectedLayout>} />
       <Route path="/audit/templates" element={<ProtectedLayout><ModuleTemplates module="InternalAudit" /></ProtectedLayout>} />
+      <Route path="/employers/templates" element={<ProtectedLayout><ModuleTemplates module="Employers" /></ProtectedLayout>} />
+      <Route path="/insured-persons/templates" element={<ProtectedLayout><ModuleTemplates module="InsuredPersons" /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
