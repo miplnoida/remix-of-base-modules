@@ -4,7 +4,8 @@ import {
   Users, 
   Shield, 
   FileText,
-  Globe
+  Globe,
+  Settings
 } from "lucide-react";
 
 export const benefitsMenuItems = [
@@ -53,6 +54,20 @@ export const benefitsMenuItems = [
         url: "/benefits/educational",
         icon: FileText,
         requiresPermission: "process_claims"
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        requiresPermission: "benefits_management",
+        subItems: [
+          {
+            title: "Templates",
+            url: "/benefits/templates",
+            icon: FileText,
+            requiresPermission: "benefits_management",
+            description: "Manage benefits notification templates"
+          }
+        ]
       }
     ]
   }

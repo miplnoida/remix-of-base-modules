@@ -404,6 +404,13 @@ export const complianceMenuItems = [
             icon: TrendingUp,
             requiresPermission: "manage_compliance",
             description: "Configure risk factors, policies, and risk bands"
+          },
+          {
+            title: "Templates",
+            url: "/compliance/templates",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "Manage compliance notification templates"
           }
         ]
       }

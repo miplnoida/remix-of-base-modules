@@ -181,6 +181,13 @@ export const financeMenuItems = [
             url: '/finance/settings/benefit-finance-mapping',
             icon: Database,
             requiresPermission: 'admin'
+          },
+          {
+            title: 'Templates',
+            url: '/finance/templates',
+            icon: FileText,
+            requiresPermission: 'admin',
+            description: 'Manage finance notification templates'
           }
         ]
       }
