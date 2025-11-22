@@ -155,6 +155,7 @@ const MOCK_CORRESPONDENCE: Correspondence[] = [
       deliveryStatus: 'delivered',
       deliveryProvider: 'resend',
       deliveryReference: 'msg_abc123',
+      deliveredAt: '2024-11-19T08:40:00Z',
       openedAt: '2024-11-19T09:15:00Z'
     },
     documents: [],
@@ -236,6 +237,12 @@ const MOCK_CORRESPONDENCE: Correspondence[] = [
       contextDescription: 'November 2024 Audit Plan',
       module: CorrespondenceModule.COMPLIANCE
     }],
+    deliveryMetadata: {
+      deliveryStatus: 'awaiting_acknowledgement',
+      assignedInspectorId: 'INS001',
+      assignedInspectorName: 'John Inspector',
+      assignedAt: '2024-11-22T08:00:00Z'
+    },
     documents: [],
     createdDate: '2024-11-20T15:00:00Z',
     referenceNumber: 'LTR-2024-AUDIT-005',
