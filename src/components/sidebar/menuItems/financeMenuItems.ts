@@ -16,7 +16,8 @@ import {
   Building,
   ClipboardList,
   CheckSquare,
-  Archive
+  Archive,
+  Printer
 } from 'lucide-react';
 
 export const financeMenuItems = [
@@ -105,8 +106,9 @@ export const financeMenuItems = [
         title: 'Accounts Payable',
         icon: Banknote,
         subItems: [
-          { title: 'Benefit Pay Runs', url: '/finance/accounts-payable/pay-runs', icon: ClipboardList },
-          { title: 'Create Pay Run', url: '/finance/accounts-payable/pay-runs/create', icon: PlusCircle },
+          { title: 'Benefit Pay Runs', path: '/finance/accounts-payable/pay-runs', icon: ClipboardList },
+          { title: 'Generate Payments', path: '/finance/accounts-payable/generate-payments', icon: Printer },
+          { title: 'Payment Inquiry', path: '/finance/accounts-payable/payment-inquiry', icon: Search },
         ]
       },
       {

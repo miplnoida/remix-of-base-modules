@@ -202,6 +202,10 @@ import BeneficiaryDetail from '@/pages/nbenefit/long-term/BeneficiaryDetail';
 import LifeCertificateManagement from '@/pages/nbenefit/long-term/LifeCertificateManagement';
 import CreatePayRun from '@/pages/finance/accounts-payable/CreatePayRun';
 import PayRunList from '@/pages/finance/accounts-payable/PayRunList';
+import GeneratePayments from '@/pages/finance/accounts-payable/GeneratePayments';
+import PaymentInquiry from '@/pages/finance/accounts-payable/PaymentInquiry';
+import BenefitFinanceMapping from '@/pages/system-admin/config/BenefitFinanceMapping';
+import LifeCertificateConfig from '@/pages/system-admin/config/LifeCertificateConfig';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
 import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
@@ -630,6 +634,8 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications/log" element={<ProtectedLayout><NotificationLog /></ProtectedLayout>} />
       <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationTemplates /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
+      <Route path="/system-admin/config/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
+      <Route path="/system-admin/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
@@ -738,6 +744,9 @@ export const AppRoutes = () => {
       <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><CommonEligibilityRules /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/calculation-engines" element={<ProtectedLayout><CalculationEngines /></ProtectedLayout>} />
       <Route path="/nbenefit/config/medical-rules" element={<ProtectedLayout><MedicalRulesConfig /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/registry" element={<ProtectedLayout><BeneficiaryRegistry /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/beneficiary/:id" element={<ProtectedLayout><BeneficiaryDetail /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/life-certificates" element={<ProtectedLayout><LifeCertificateManagement /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><DocumentTemplates /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><BenefitWorkflows /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
@@ -746,6 +755,13 @@ export const AppRoutes = () => {
       {/* Traditional Payment Processing */}
       <Route path="/cashier/misc-payments" element={<ProtectedLayout><MiscellaneousPayments /></ProtectedLayout>} />
       <Route path="/cashier/c3-payments" element={<ProtectedLayout><C3Payments /></ProtectedLayout>} />
+      
+      {/* Accounts Payable & Benefit Payments */}
+      <Route path="/finance/accounts-payable/pay-runs" element={<ProtectedLayout><PayRunList /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/pay-runs/create" element={<ProtectedLayout><CreatePayRun /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/generate-payments" element={<ProtectedLayout><GeneratePayments /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/payment-inquiry" element={<ProtectedLayout><PaymentInquiry /></ProtectedLayout>} />
+      
       <Route path="/cashier/eft-entry" element={<ProtectedLayout><EFTEntry /></ProtectedLayout>} />
       <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
       <Route path="/cashier/funds-transfer" element={<ProtectedLayout><FundsTransfer /></ProtectedLayout>} />
