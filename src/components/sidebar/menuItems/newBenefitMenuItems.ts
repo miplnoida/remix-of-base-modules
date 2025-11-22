@@ -95,7 +95,39 @@ export const newBenefitMenuItems = [
         title: "Admin & Config",
         url: "/newbenefit/admin",
         icon: Settings,
-        requiresPermission: "system_administration"
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Survivors' Rules - Deceased Eligibility",
+            url: "/nbenefit/config/survivors/deceased-eligibility",
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Survivors' Rules - Dependant Types",
+            url: "/nbenefit/config/survivors/dependant-types",
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Survivors' Rules - Duration Rules",
+            url: "/nbenefit/config/survivors/duration-rules",
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Survivors' Rules - Share Allocation",
+            url: "/nbenefit/config/survivors/share-allocation",
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Survivors' Rules - Case Cap",
+            url: "/nbenefit/config/survivors/case-cap",
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Survivors' Rules - Ongoing Eligibility",
+            url: "/nbenefit/config/survivors/ongoing-eligibility",
+            requiresPermission: "system_administration"
+          }
+        ]
       },
       
       // Auditor View
