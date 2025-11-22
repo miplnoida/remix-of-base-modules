@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Download } from "lucide-react";
+import { Eye, Download, FileJson } from "lucide-react";
 import { mockFormSubmissions } from "@/services/mockData/workflowData";
+import SubmissionDetailDialog from "./SubmissionDetailDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WorkflowData() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
 
   const filteredSubmissions = mockFormSubmissions.filter(
     (sub) =>
@@ -17,8 +19,8 @@ export default function WorkflowData() {
       sub.submittedByName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleView = (submissionId: string) => {
-    toast({ title: "View Submission", description: `Opening submission ${submissionId}` });
+  const handleView = (submission: any) => {
+    setSelectedSubmission(submission);
   };
 
   const handleExport = () => {
@@ -27,6 +29,39 @@ export default function WorkflowData() {
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">{mockFormSubmissions.length}</div>
+            <p className="text-sm text-muted-foreground">Total Submissions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-blue-600">
+              {mockFormSubmissions.filter(s => s.stepName.includes("Intake")).length}
+            </div>
+            <p className="text-sm text-muted-foreground">Intake Forms</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-green-600">
+              {mockFormSubmissions.filter(s => s.submittedBy).length}
+            </div>
+            <p className="text-sm text-muted-foreground">User Submitted</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-purple-600">
+              <FileJson className="h-8 w-8" />
+            </div>
+            <p className="text-sm text-muted-foreground">Data Records</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex justify-between items-center">
         <Input
           placeholder="Search submissions..."
@@ -67,7 +102,7 @@ export default function WorkflowData() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleView(submission.id)}
+                      onClick={() => handleView(submission)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -78,6 +113,12 @@ export default function WorkflowData() {
           </TableBody>
         </Table>
       </Card>
+
+      <SubmissionDetailDialog
+        open={!!selectedSubmission}
+        onOpenChange={(open) => !open && setSelectedSubmission(null)}
+        submission={selectedSubmission}
+      />
     </div>
   );
 }

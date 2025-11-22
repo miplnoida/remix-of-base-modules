@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Eye } from "lucide-react";
+import TemplatePreviewDialog from "./TemplatePreviewDialog";
 import { useToast } from "@/hooks/use-toast";
 
 const templates = [
@@ -44,6 +46,7 @@ const templates = [
 
 export default function WorkflowTemplates() {
   const { toast } = useToast();
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
 
   const handleClone = (templateName: string) => {
     toast({
@@ -52,8 +55,8 @@ export default function WorkflowTemplates() {
     });
   };
 
-  const handlePreview = (templateName: string) => {
-    toast({ title: "Preview Template", description: `Viewing "${templateName}"` });
+  const handlePreview = (template: any) => {
+    setSelectedTemplate(template);
   };
 
   return (
@@ -102,7 +105,7 @@ export default function WorkflowTemplates() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePreview(template.name)}
+                  onClick={() => handlePreview(template)}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -111,6 +114,12 @@ export default function WorkflowTemplates() {
           </Card>
         ))}
       </div>
+
+      <TemplatePreviewDialog
+        open={!!selectedTemplate}
+        onOpenChange={(open) => !open && setSelectedTemplate(null)}
+        template={selectedTemplate}
+      />
     </div>
   );
 }

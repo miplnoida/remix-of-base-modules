@@ -137,7 +137,9 @@ export const mockFormSubmissions: WorkflowFormSubmission[] = [
       fullName: "John Michael Smith",
       monthlyEarnings: 3500,
       contributionYears: 25,
-      retirementDate: "2025-01-01"
+      retirementDate: "2025-01-01",
+      contactPhone: "+1869-465-1234",
+      contactEmail: "john.smith@email.com"
     },
     submittedBy: "user-001",
     submittedByName: "John Doe",
@@ -152,10 +154,84 @@ export const mockFormSubmissions: WorkflowFormSubmission[] = [
       claimNumber: "CLM-2024-567",
       hasMedicalCertificate: true,
       diagnosisCode: "J06.9",
-      sickLeaveDays: 14
+      sickLeaveDays: 14,
+      doctorName: "Dr. Sarah Wilson",
+      hospitalName: "St. Kitts General Hospital"
     },
     submittedBy: "user-002",
     submittedByName: "Jane Smith",
     createdAt: "2024-11-21T14:10:00Z"
+  },
+  {
+    id: "sub-003",
+    runId: "run-003",
+    stepId: "step-employer-onboard",
+    stepName: "Employer Onboarding",
+    formData: {
+      employerName: "ABC Construction Ltd.",
+      taxId: "TIN-12345678",
+      registrationNumber: "REG-2024-001",
+      businessAddress: "123 Main Street, Basseterre",
+      contactPerson: "Michael Johnson",
+      contactEmail: "michael@abcconstruction.com",
+      contactPhone: "+1869-465-5678",
+      numberOfEmployees: 45,
+      industryType: "Construction"
+    },
+    submittedBy: "user-003",
+    submittedByName: "Mike Johnson",
+    createdAt: "2024-11-22T09:20:00Z"
+  },
+  {
+    id: "sub-004",
+    runId: "run-004",
+    stepId: "step-case-creation",
+    stepName: "Case Creation",
+    formData: {
+      caseNumber: "CASE-2024-001",
+      employerName: "XYZ Services Ltd.",
+      auditType: "Routine Compliance",
+      auditReason: "Annual scheduled audit",
+      scheduledDate: "2024-12-01",
+      assignedInspector: "Inspector Davis"
+    },
+    submittedBy: "user-001",
+    submittedByName: "John Doe",
+    createdAt: "2024-11-22T10:05:00Z"
+  },
+  {
+    id: "sub-005",
+    runId: "run-005",
+    stepId: "step-ticket-intake",
+    stepName: "Intake",
+    formData: {
+      ticketId: "TKT-001",
+      customerName: "Robert Brown",
+      customerEmail: "robert.brown@email.com",
+      customerPhone: "+1869-465-9012",
+      issueCategory: "Account Access",
+      issueDescription: "Unable to login to online portal",
+      priority: "High"
+    },
+    submittedBy: "user-004",
+    submittedByName: "Sarah Williams",
+    createdAt: "2024-11-21T11:32:00Z"
+  },
+  {
+    id: "sub-006",
+    runId: "run-001",
+    stepId: "step-eligibility",
+    stepName: "Eligibility Check",
+    formData: {
+      ssn: "SKN-123-456",
+      ageVerified: true,
+      contributionYearsVerified: true,
+      qualifiesForBenefit: true,
+      monthlyBenefitAmount: 2275,
+      calculationMethod: "65% of Average Monthly Earnings"
+    },
+    submittedBy: null,
+    submittedByName: "System",
+    createdAt: "2024-11-22T08:40:00Z"
   }
 ];
