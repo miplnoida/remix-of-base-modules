@@ -101,6 +101,12 @@ export default function ServiceRequestNew() {
       uploadedAt: new Date().toISOString()
     }));
 
+    const feeAmount = feeConfig?.amount || 0;
+    const totalAmount = feeAmount + additionalFee;
+    
+    // Check if service should be executed directly (zero fee + no verification)
+    const isZeroFeeNoVerification = totalAmount === 0 && !selectedType?.requiresVerification;
+
     const request = createServiceRequest({
       insuredPersonId: selectedPerson.id,
       serviceCategoryId,
@@ -110,7 +116,7 @@ export default function ServiceRequestNew() {
       source: 'COUNTER',
       queueTokenId: queueToken || undefined,
       processingUnitId: selectedType?.defaultProcessingUnitId || 'UNIT001',
-      status: selectedType?.requiresVerification ? 'Draft' : 'Invoice Generated',
+      status: isZeroFeeNoVerification ? 'Completed' : (selectedType?.requiresVerification ? 'Draft' : 'Invoice Generated'),
       internalNotes,
       attachments: attachmentData,
       verificationRequired: selectedType?.requiresVerification,
@@ -126,10 +132,14 @@ export default function ServiceRequestNew() {
       return;
     }
 
-    // Handle zero-cost services
-    const feeAmount = feeConfig?.amount || 0;
-    const totalAmount = feeAmount + additionalFee;
+    // Handle zero-fee, no-verification services - complete immediately
+    if (isZeroFeeNoVerification) {
+      toast.success('Service request completed successfully (no fee required).');
+      setTimeout(() => navigate('/person/service-requests'), 2000);
+      return;
+    }
     
+    // Generate invoice only when there's a fee
     const invoice = generateInvoice(
       request.id, 
       selectedPerson.id, 
@@ -141,11 +151,7 @@ export default function ServiceRequestNew() {
     setCurrentInvoice(invoice);
     setInvoiceGenerated(true);
     
-    if (totalAmount === 0) {
-      toast.success(`Service request processed (No fee). Invoice ${invoice.invoiceNumber} generated for records.`);
-    } else {
-      toast.success(`Invoice ${invoice.invoiceNumber} generated for EC$ ${totalAmount.toFixed(2)}. Proceed to cashier.`);
-    }
+    toast.success(`Invoice ${invoice.invoiceNumber} generated for XCD ${totalAmount.toFixed(2)}. Proceed to cashier.`);
   };
 
   const totalAmount = (feeConfig?.amount || 0) + additionalFee;
@@ -170,8 +176,8 @@ export default function ServiceRequestNew() {
         </AlertDescription>
       </Alert>
 
-      {/* Invoice Stub Display */}
-      {invoiceGenerated && currentInvoice && selectedPerson && (
+      {/* Invoice Stub Display - Only show when there's an actual fee */}
+      {invoiceGenerated && currentInvoice && selectedPerson && currentInvoice.totalAmount > 0 && (
         <InvoiceStub 
           invoice={currentInvoice}
           insuredPerson={selectedPerson}
