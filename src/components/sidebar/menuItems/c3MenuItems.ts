@@ -48,6 +48,12 @@ export const c3MenuItems = [
             url: "/c3-management/settings/levy/schemes",
             icon: Settings,
             requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Social Security Contribution",
+            url: "/c3-management/settings/ss/schemes",
+            icon: Settings,
+            requiresPermission: "view_dashboard"
           }
         ]
       },

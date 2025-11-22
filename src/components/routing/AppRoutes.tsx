@@ -45,6 +45,12 @@ import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
 import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
 import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
 import EmployerStatementDetail from '@/pages/compliance/EmployerStatementDetail';
+import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
+import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
+import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
+import SSSchemesList from '@/pages/c3/settings/ss/SSSchemesList';
+import SSSchemeDetail from '@/pages/c3/settings/ss/SSSchemeDetail';
+import SSSimulator from '@/pages/c3/settings/ss/SSSimulator';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
