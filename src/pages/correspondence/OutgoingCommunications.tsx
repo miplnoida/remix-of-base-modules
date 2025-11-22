@@ -262,6 +262,8 @@ export default function OutgoingCommunications() {
               <TableHead className="w-20">Channel</TableHead>
               <TableHead className="w-32">Number</TableHead>
               <TableHead className="w-32">Created/Sent</TableHead>
+              <TableHead className="w-32">Comm. Date</TableHead>
+              <TableHead className="w-28">Ref. No.</TableHead>
               <TableHead>To (Party)</TableHead>
               <TableHead>Subject</TableHead>
               <TableHead className="w-28">Module</TableHead>
@@ -272,13 +274,13 @@ export default function OutgoingCommunications() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   Loading outgoing communications...
                 </TableCell>
               </TableRow>
             ) : correspondence.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   No outgoing correspondence found
                 </TableCell>
               </TableRow>
@@ -296,6 +298,23 @@ export default function OutgoingCommunications() {
                       ? format(new Date(item.sentDate), 'MMM dd, yyyy')
                       : format(new Date(item.createdDate), 'MMM dd, yyyy')
                     }
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {item.communicationDate ? (
+                      <div>
+                        <div>{format(new Date(item.communicationDate), 'MMM dd, yyyy')}</div>
+                        {item.storingTime && (
+                          <div className="text-xs text-muted-foreground">
+                            Stored: {format(new Date(item.storingTime), 'HH:mm')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm font-mono">
+                    {item.referenceNumber || <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">

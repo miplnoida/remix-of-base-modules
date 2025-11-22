@@ -41,6 +41,11 @@ export default function NewCorrespondenceDialog({
   const [priority, setPriority] = useState<CorrespondencePriority>(CorrespondencePriority.NORMAL);
   const [openRelatedScreen, setOpenRelatedScreen] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Additional fields for letters and emails
+  const [communicationDate, setCommunicationDate] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [storingTime, setStoringTime] = useState('');
 
   const handleSave = async () => {
     if (!subject.trim()) {
@@ -181,6 +186,53 @@ export default function NewCorrespondenceDialog({
               rows={6}
             />
           </div>
+
+          {/* Additional fields for letters and emails */}
+          {(channel === CorrespondenceChannel.LETTER || channel === CorrespondenceChannel.EMAIL) && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>
+                    {direction === CorrespondenceDirection.OUTGOING ? 'Date Sent' : 'Date Received'}
+                  </Label>
+                  <Input
+                    type="date"
+                    value={communicationDate}
+                    onChange={(e) => setCommunicationDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Actual date the {channel === CorrespondenceChannel.LETTER ? 'letter' : 'email'} was {direction === CorrespondenceDirection.OUTGOING ? 'sent' : 'received'}
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Reference Number</Label>
+                  <Input
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                    placeholder={channel === CorrespondenceChannel.LETTER ? 'Letter ref. no.' : 'Email tracking no.'}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    External tracking or reference number
+                  </p>
+                </div>
+              </div>
+
+              {channel === CorrespondenceChannel.LETTER && (
+                <div>
+                  <Label>Storing Time (Optional)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={storingTime}
+                    onChange={(e) => setStoringTime(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Timestamp when physical letter was filed/stored
+                  </p>
+                </div>
+              )}
+            </>
+          )}
 
           <div className="flex items-center space-x-2">
             <Checkbox

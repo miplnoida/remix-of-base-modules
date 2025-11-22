@@ -199,6 +199,11 @@ export interface Correspondence {
   receivedDate?: string; // For incoming
   respondByDate?: string; // For incoming requiring response
   
+  // Additional tracking for physical letters and emails
+  communicationDate?: string; // Actual date of letter/email (different from system logged date)
+  referenceNumber?: string; // External reference number for tracking
+  storingTime?: string; // Timestamp when physical document was stored/filed
+  
   // User Info
   createdBy: string;
   createdByName: string;
