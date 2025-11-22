@@ -16,7 +16,9 @@ import {
   GitBranch,
   Grid3x3,
   Workflow,
-  Bell
+  Bell,
+  Link2,
+  ClipboardCheck
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -169,6 +171,18 @@ export const systemAdminMenuItems = [
         title: "Audit Log",
         url: "/admin/audit-log",
         icon: History,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Benefit-Finance Mapping",
+        url: "/system-admin/config/benefit-finance-mapping",
+        icon: Link2,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Life Certificate Config",
+        url: "/system-admin/config/life-certificate-config",
+        icon: ClipboardCheck,
         requiresPermission: "system_administration"
       },
       {
