@@ -42,7 +42,56 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
 ];
 
 export const SERVICE_TYPES: ServiceType[] = [
-  // Card & Identity
+  // Card & Identity - New Card-Related Service Types
+  {
+    id: 'SVC_CARD_FIRST',
+    categoryId: 'CAT001',
+    name: 'SS Card – First Issue',
+    description: 'Initial social security card issuance for new registrants',
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: false
+  },
+  {
+    id: 'SVC_CARD_LOST',
+    categoryId: 'CAT001',
+    name: 'SS Card – Replacement (Lost)',
+    description: 'Replacement card for lost original',
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: false
+  },
+  {
+    id: 'SVC_CARD_STOLEN',
+    categoryId: 'CAT001',
+    name: 'SS Card – Replacement (Stolen)',
+    description: 'Replacement card for stolen original',
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: false
+  },
+  {
+    id: 'SVC_CARD_DAMAGED',
+    categoryId: 'CAT001',
+    name: 'SS Card – Replacement (Damaged)',
+    description: 'Replacement card for damaged original',
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: false
+  },
+  {
+    id: 'SVC_CARD_NAME_CHANGE',
+    categoryId: 'CAT001',
+    name: 'SS Card – Replacement (Name Change)',
+    description: 'Replacement card due to name change (marriage, deed poll, etc.)',
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: true
+  },
+  {
+    id: 'SVC_CARD_NON_CITIZEN',
+    categoryId: 'CAT001',
+    name: 'SS Card – Non-Citizen Renewal',
+    description: 'Card renewal for non-citizen insured persons',
+    defaultProcessingUnitId: 'UNIT001',
+    requiresVerification: true
+  },
+  // Legacy Card Services
   {
     id: 'SVC001',
     categoryId: 'CAT001',

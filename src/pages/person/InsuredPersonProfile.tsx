@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { User, FileText, DollarSign, Calendar } from 'lucide-react';
+import { User, FileText, DollarSign, Calendar, CreditCard } from 'lucide-react';
 import { getInsuredPersonById, getServiceRequestsByInsuredPerson } from '@/services/serviceRequestService';
 import { InsuredPerson, ServiceRequest } from '@/types/serviceRequest';
 import { format } from 'date-fns';
+import { CardHistoryTab } from './tabs/CardHistoryTab';
 
 export default function InsuredPersonProfile() {
   const { id } = useParams<{ id: string }>();
@@ -101,6 +102,7 @@ export default function InsuredPersonProfile() {
       <Tabs defaultValue="services" className="w-full">
         <TabsList>
           <TabsTrigger value="services">Services Availed</TabsTrigger>
+          <TabsTrigger value="cards">Card History</TabsTrigger>
           <TabsTrigger value="contributions">Contributions</TabsTrigger>
           <TabsTrigger value="benefits">Benefits</TabsTrigger>
         </TabsList>
@@ -173,6 +175,10 @@ export default function InsuredPersonProfile() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="cards">
+          <CardHistoryTab insuredPersonId={person.id} />
         </TabsContent>
 
         <TabsContent value="contributions">
