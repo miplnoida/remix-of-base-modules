@@ -189,9 +189,6 @@ import ApprovalMatrixJournal from '@/pages/systemAdmin/ApprovalMatrixJournal';
 import ApprovalMatrixRefund from '@/pages/systemAdmin/ApprovalMatrixRefund';
 import ApprovalMatrixWriteOff from '@/pages/systemAdmin/ApprovalMatrixWriteOff';
 import WorkflowSchemeList from '@/pages/systemAdmin/WorkflowSchemeList';
-import LevySchemesList from "@/pages/c3/settings/levy/LevySchemesList";
-import LevySchemeDetail from "@/pages/c3/settings/levy/LevySchemeDetail";
-import LevySimulator from "@/pages/c3/settings/levy/LevySimulator";
 import NotificationLog from '@/pages/systemAdmin/NotificationLog';
 import NotificationTemplates from '@/pages/systemAdmin/NotificationTemplates';
 import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannelSettings';
@@ -458,6 +455,14 @@ export const AppRoutes = () => {
       <Route path="/c3-management/configure-electronic-c3" element={<ProtectedLayout><ElectronicC3Config /></ProtectedLayout>} />
       <Route path="/c3-management/view/:id" element={<ProtectedLayout><ViewC3Record /></ProtectedLayout>} />
       <Route path="/c3-management/edit/:id" element={<ProtectedLayout><EditC3Record /></ProtectedLayout>} />
+      
+      {/* C3 Settings Routes */}
+      <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/levy/schemes/:schemeId" element={<ProtectedLayout><LevySchemeDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/levy/simulator" element={<ProtectedLayout><LevySimulator /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/ss/schemes" element={<ProtectedLayout><SSSchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/ss/schemes/:schemeId" element={<ProtectedLayout><SSSchemeDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/ss/simulator" element={<ProtectedLayout><SSSimulator /></ProtectedLayout>} />
 
       {/* Self-Employed Management Routes */}
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
