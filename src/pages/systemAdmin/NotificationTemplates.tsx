@@ -1,21 +1,30 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Copy, Eye } from "lucide-react";
-import { notificationTemplates } from "@/services/mockData/notificationData";
+import { Plus, Edit, Copy, Eye, Send, FileText, Mail, MessageSquare, Bell } from "lucide-react";
+import { comprehensiveTemplates } from "@/services/mockData/comprehensiveTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NotificationChannel } from "@/types/notification";
+import TemplateEditor from "@/components/templates/TemplateEditor";
+import TemplatePreview from "@/components/templates/TemplatePreview";
+import SendTestDialog from "@/components/templates/SendTestDialog";
 
 export default function NotificationTemplates() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string>("All");
   const [channelFilter, setChannelFilter] = useState<string>("All");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sendTestOpen, setSendTestOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [templates, setTemplates] = useState(comprehensiveTemplates);
 
-  const filteredTemplates = notificationTemplates.filter(template => {
+  const filteredTemplates = templates.filter(template => {
     const matchesSearch = 
       template.templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       template.bodyText.toLowerCase().includes(searchTerm.toLowerCase());
@@ -24,14 +33,90 @@ export default function NotificationTemplates() {
     return matchesSearch && matchesModule && matchesChannel;
   });
 
+  const getChannelIcon = (channel: NotificationChannel) => {
+    switch (channel) {
+      case 'Email': return <Mail className="h-4 w-4" />;
+      case 'SMS': return <MessageSquare className="h-4 w-4" />;
+      case 'Push': return <Bell className="h-4 w-4" />;
+      case 'Letter': return <FileText className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const getChannelColor = (channel: NotificationChannel) => {
+    switch (channel) {
+      case 'Email': return 'bg-blue-100 text-blue-800';
+      case 'SMS': return 'bg-green-100 text-green-800';
+      case 'Push': return 'bg-purple-100 text-purple-800';
+      case 'Letter': return 'bg-amber-100 text-amber-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleEdit = (templateId: string) => {
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setEditorOpen(true);
+    }
+  };
+
+  const handleDuplicate = (templateId: string) => {
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      const newTemplate = {
+        ...template,
+        templateId: `TPL-${Date.now()}`,
+        templateName: `${template.templateName} (Copy)`,
+        createdAt: new Date().toISOString(),
+      };
+      setTemplates([...templates, newTemplate]);
+      toast({ title: "Template Duplicated", description: `Created copy of "${template.templateName}"` });
+    }
+  };
+
+  const handlePreview = (templateId: string) => {
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setPreviewOpen(true);
+    }
+  };
+
+  const handleSendTest = (templateId: string) => {
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setSendTestOpen(true);
+    }
+  };
+
+  const handleSaveTemplate = (template: any) => {
+    const existingIndex = templates.findIndex(t => t.templateId === template.templateId);
+    if (existingIndex >= 0) {
+      const updatedTemplates = [...templates];
+      updatedTemplates[existingIndex] = template;
+      setTemplates(updatedTemplates);
+      toast({ title: "Template Updated", description: `"${template.templateName}" has been saved successfully` });
+    } else {
+      setTemplates([...templates, template]);
+      toast({ title: "Template Created", description: `"${template.templateName}" has been created successfully` });
+    }
+  };
+
+  const handleCreateNew = () => {
+    setSelectedTemplate(null);
+    setEditorOpen(true);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Notification Templates</h1>
-          <p className="text-muted-foreground">Manage reusable notification message templates</p>
+          <h1 className="text-3xl font-bold">All Notification Templates</h1>
+          <p className="text-muted-foreground">Manage all notification templates across all modules</p>
         </div>
-        <Button>
+        <Button onClick={handleCreateNew}>
           <Plus className="mr-2 h-4 w-4" />
           Create Template
         </Button>
@@ -41,32 +126,32 @@ export default function NotificationTemplates() {
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{notificationTemplates.length}</div>
+            <div className="text-2xl font-bold">{filteredTemplates.length}</div>
             <p className="text-sm text-muted-foreground">Total Templates</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
-              {notificationTemplates.filter(t => t.isActive).length}
-            </div>
-            <p className="text-sm text-muted-foreground">Active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-600">
-              {notificationTemplates.filter(t => t.channel === 'Email').length}
+              {filteredTemplates.filter(t => t.channel === 'Email').length}
             </div>
-            <p className="text-sm text-muted-foreground">Email Templates</p>
+            <p className="text-sm text-muted-foreground">Email</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-purple-600">
-              {notificationTemplates.filter(t => t.channel === 'SMS').length}
+            <div className="text-2xl font-bold text-amber-600">
+              {filteredTemplates.filter(t => t.channel === 'Letter').length}
             </div>
-            <p className="text-sm text-muted-foreground">SMS Templates</p>
+            <p className="text-sm text-muted-foreground">Physical Letters</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-green-600">
+              {filteredTemplates.filter(t => t.channel === 'SMS').length}
+            </div>
+            <p className="text-sm text-muted-foreground">SMS</p>
           </CardContent>
         </Card>
       </div>
@@ -91,6 +176,11 @@ export default function NotificationTemplates() {
                 <SelectItem value="Finance">Finance</SelectItem>
                 <SelectItem value="Legal">Legal</SelectItem>
                 <SelectItem value="InternalAudit">Internal Audit</SelectItem>
+                <SelectItem value="Employers">Employers</SelectItem>
+                <SelectItem value="InsuredPersons">Insured Persons</SelectItem>
+                <SelectItem value="Registration">Registration</SelectItem>
+                <SelectItem value="CRD">CRD</SelectItem>
+                <SelectItem value="System">System</SelectItem>
               </SelectContent>
             </Select>
             <Select value={channelFilter} onValueChange={setChannelFilter}>
@@ -101,7 +191,8 @@ export default function NotificationTemplates() {
                 <SelectItem value="All">All Channels</SelectItem>
                 <SelectItem value="Email">Email</SelectItem>
                 <SelectItem value="SMS">SMS</SelectItem>
-                <SelectItem value="Push">Push</SelectItem>
+                <SelectItem value="Push">Push Notification</SelectItem>
+                <SelectItem value="Letter">Physical Letter</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -110,127 +201,108 @@ export default function NotificationTemplates() {
 
       {/* Templates Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Templates</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">Channel</TableHead>
+              <TableHead>Template Name</TableHead>
+              <TableHead className="w-32">Module</TableHead>
+              <TableHead>Subject / Summary</TableHead>
+              <TableHead className="w-24">Status</TableHead>
+              <TableHead className="w-48 text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTemplates.length === 0 ? (
               <TableRow>
-                <TableHead>Template Name</TableHead>
-                <TableHead>Module</TableHead>
-                <TableHead>Channel</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead>Subject/Preview</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Modified</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No templates found
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTemplates.map((template) => (
+            ) : (
+              filteredTemplates.map((template) => (
                 <TableRow key={template.templateId}>
-                  <TableCell className="font-medium">{template.templateName}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getChannelIcon(template.channel)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{template.templateName}</div>
+                    <div className="text-sm text-muted-foreground">{template.description}</div>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{template.module}</Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{template.channel}</Badge>
-                  </TableCell>
-                  <TableCell className="uppercase text-sm">{template.languageCode}</TableCell>
-                  <TableCell className="max-w-md truncate text-sm">
-                    {template.subject || template.bodyText.substring(0, 60) + '...'}
+                  <TableCell className="max-w-xs truncate">
+                    {template.subject || template.bodyText.substring(0, 50) + '...'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">v{template.versionNo}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={template.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                    <Badge className={template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
                       {template.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {template.lastModifiedOn 
-                      ? new Date(template.lastModifiedOn).toLocaleDateString()
-                      : new Date(template.createdOn).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toast({ title: "View Template", description: template.templateName })}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Preview"
+                        onClick={() => handlePreview(template.templateId)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toast({ title: "Edit Template", description: template.templateName })}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Edit"
+                        onClick={() => handleEdit(template.templateId)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toast({ title: "Clone Template", description: `Cloning ${template.templateName}` })}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Duplicate"
+                        onClick={() => handleDuplicate(template.templateId)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toast({ title: "Delete Template", description: template.templateName, variant: "destructive" })}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Send Test"
+                        onClick={() => handleSendTest(template.templateId)}
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Send className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </Card>
 
-      {/* Template Parameters Help */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Available Template Parameters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="font-semibold mb-2">Common Parameters:</p>
-              <ul className="space-y-1 text-muted-foreground">
-                <li><code>{'{'}EmployerName{'}'}</code> - Employer name</li>
-                <li><code>{'{'}InsuredPersonName{'}'}</code> - Insured person name</li>
-                <li><code>{'{'}Date{'}'}</code> - Current date</li>
-                <li><code>{'{'}AmountXCD{'}'}</code> - Amount in XCD</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-semibold mb-2">Compliance Parameters:</p>
-              <ul className="space-y-1 text-muted-foreground">
-                <li><code>{'{'}Period{'}'}</code> - C3 period</li>
-                <li><code>{'{'}DueDate{'}'}</code> - Due date</li>
-                <li><code>{'{'}DaysOverdue{'}'}</code> - Days overdue</li>
-                <li><code>{'{'}CaseNumber{'}'}</code> - Case number</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-semibold mb-2">Benefits Parameters:</p>
-              <ul className="space-y-1 text-muted-foreground">
-                <li><code>{'{'}ClaimNumber{'}'}</code> - Claim number</li>
-                <li><code>{'{'}BenefitType{'}'}</code> - Benefit type</li>
-                <li><code>{'{'}ApprovedAmount{'}'}</code> - Approved amount</li>
-                <li><code>{'{'}PaymentDate{'}'}</code> - Payment date</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Dialogs */}
+      <TemplateEditor
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        templateId={selectedTemplate?.templateId}
+        initialData={selectedTemplate}
+        onSave={handleSaveTemplate}
+      />
+      <TemplatePreview
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        template={selectedTemplate}
+      />
+      <SendTestDialog
+        open={sendTestOpen}
+        onOpenChange={setSendTestOpen}
+        template={selectedTemplate}
+      />
     </div>
   );
 }
