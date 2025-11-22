@@ -51,6 +51,9 @@ import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
 import SSSchemesList from '@/pages/c3/settings/ss/SSSchemesList';
 import SSSchemeDetail from '@/pages/c3/settings/ss/SSSchemeDetail';
 import SSSimulator from '@/pages/c3/settings/ss/SSSimulator';
+import SeveranceSchemesList from '@/pages/c3/settings/severance/SeveranceSchemesList';
+import InjurySchemesList from '@/pages/c3/settings/injury/InjurySchemesList';
+import C3FormatsList from '@/pages/c3/settings/c3file/C3FormatsList';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -463,6 +466,9 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/ss/schemes" element={<ProtectedLayout><SSSchemesList /></ProtectedLayout>} />
       <Route path="/c3-management/settings/ss/schemes/:schemeId" element={<ProtectedLayout><SSSchemeDetail /></ProtectedLayout>} />
       <Route path="/c3-management/settings/ss/simulator" element={<ProtectedLayout><SSSimulator /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/severance/schemes" element={<ProtectedLayout><SeveranceSchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/injury/schemes" element={<ProtectedLayout><InjurySchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/c3file/formats" element={<ProtectedLayout><C3FormatsList /></ProtectedLayout>} />
 
       {/* Self-Employed Management Routes */}
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />

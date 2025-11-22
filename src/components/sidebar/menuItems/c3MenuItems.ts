@@ -54,6 +54,24 @@ export const c3MenuItems = [
             url: "/c3-management/settings/ss/schemes",
             icon: Settings,
             requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Severance Settings",
+            url: "/c3-management/settings/severance/schemes",
+            icon: Settings,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Employment Injury Settings",
+            url: "/c3-management/settings/injury/schemes",
+            icon: Settings,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "C3 File Configuration",
+            url: "/c3-management/settings/c3file/formats",
+            icon: Settings,
+            requiresPermission: "view_dashboard"
           }
         ]
       },
