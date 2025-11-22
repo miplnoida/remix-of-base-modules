@@ -85,6 +85,7 @@ import PendingReviews from '@/pages/insuredPersons/PendingReviews';
 // Service Request Pages
 import ServiceRequestNew from '@/pages/person/ServiceRequestNew';
 import ServiceRequestList from '@/pages/person/ServiceRequestList';
+import ServiceRequestDetail from '@/pages/person/ServiceRequestDetail';
 import PendingVerification from '@/pages/person/PendingVerification';
 import InsuredPersonProfile from '@/pages/person/InsuredPersonProfile';
 
