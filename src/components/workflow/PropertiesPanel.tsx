@@ -1,16 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Node } from "@xyflow/react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Settings } from "lucide-react";
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
+  onConfigure?: () => void;
 }
 
-export default function PropertiesPanel({ selectedNode, setNodes }: PropertiesPanelProps) {
+export default function PropertiesPanel({ selectedNode, setNodes, onConfigure }: PropertiesPanelProps) {
   if (!selectedNode) {
     return (
       <Card>
@@ -66,6 +68,13 @@ export default function PropertiesPanel({ selectedNode, setNodes }: PropertiesPa
             rows={3}
           />
         </div>
+
+        {(selectedNode.data.type === "task" || selectedNode.data.type === "decision" || selectedNode.data.type === "automation") && onConfigure && (
+          <Button onClick={onConfigure} className="w-full" variant="outline">
+            <Settings className="mr-2 h-4 w-4" />
+            Configure {selectedNode.data.type === "task" ? "Form" : selectedNode.data.type === "decision" ? "Conditions" : "Action"}
+          </Button>
+        )}
 
         {selectedNode.data.type === "task" && (
           <div className="space-y-2">

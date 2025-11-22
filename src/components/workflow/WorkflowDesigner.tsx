@@ -16,9 +16,13 @@ import "@xyflow/react/dist/style.css";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, Play, Eye, Upload, Download, Undo, Redo } from "lucide-react";
+import { Save, Play, Eye, Upload, History } from "lucide-react";
 import NodeToolbox from "./NodeToolbox";
 import PropertiesPanel from "./PropertiesPanel";
+import FormBuilderDialog from "./FormBuilderDialog";
+import ConditionBuilderDialog from "./ConditionBuilderDialog";
+import ActionEditorDialog from "./ActionEditorDialog";
+import WorkflowVersionDialog from "./WorkflowVersionDialog";
 import { useToast } from "@/hooks/use-toast";
 
 const initialNodes: Node[] = [
@@ -38,6 +42,10 @@ export default function WorkflowDesigner() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [workflowName, setWorkflowName] = useState("Untitled Workflow");
+  const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [showConditionBuilder, setShowConditionBuilder] = useState(false);
+  const [showActionEditor, setShowActionEditor] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -69,7 +77,21 @@ export default function WorkflowDesigner() {
     });
   };
 
+  const handleConfigureNode = () => {
+    if (!selectedNode) return;
+    
+    const nodeType = selectedNode.data.type;
+    if (nodeType === "task") {
+      setShowFormBuilder(true);
+    } else if (nodeType === "decision") {
+      setShowConditionBuilder(true);
+    } else if (nodeType === "automation") {
+      setShowActionEditor(true);
+    }
+  };
+
   return (
+    <>
     <div className="grid grid-cols-[280px_1fr_360px] gap-4 h-[calc(100vh-240px)]">
       {/* Toolbox */}
       <div className="space-y-4">
@@ -92,6 +114,10 @@ export default function WorkflowDesigner() {
             <Button onClick={handlePreview} size="sm" variant="outline" className="w-full">
               <Eye className="mr-2 h-4 w-4" />
               Preview
+            </Button>
+            <Button onClick={() => setShowVersions(true)} size="sm" variant="outline" className="w-full">
+              <History className="mr-2 h-4 w-4" />
+              Versions
             </Button>
           </div>
         </Card>
@@ -117,7 +143,36 @@ export default function WorkflowDesigner() {
       </Card>
 
       {/* Properties Panel */}
-      <PropertiesPanel selectedNode={selectedNode} setNodes={setNodes} />
+      <PropertiesPanel 
+        selectedNode={selectedNode} 
+        setNodes={setNodes}
+        onConfigure={handleConfigureNode}
+      />
     </div>
+
+    <FormBuilderDialog
+      open={showFormBuilder}
+      onOpenChange={setShowFormBuilder}
+      onSave={(fields) => console.log("Form fields:", fields)}
+    />
+
+    <ConditionBuilderDialog
+      open={showConditionBuilder}
+      onOpenChange={setShowConditionBuilder}
+      onSave={(groups) => console.log("Conditions:", groups)}
+    />
+
+    <ActionEditorDialog
+      open={showActionEditor}
+      onOpenChange={setShowActionEditor}
+      onSave={(config) => console.log("Action config:", config)}
+    />
+
+    <WorkflowVersionDialog
+      open={showVersions}
+      onOpenChange={setShowVersions}
+      workflowName={workflowName}
+    />
+    </>
   );
 }
