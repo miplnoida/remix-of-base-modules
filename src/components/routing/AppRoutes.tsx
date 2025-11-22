@@ -415,6 +415,32 @@ import ByMonthlyContributionsReport from '@/pages/reports/employers/ByMonthlyCon
 import ByArrearsReport from '@/pages/reports/employers/ByArrearsReport';
 import ByWaiversReport from '@/pages/reports/employers/ByWaiversReport';
 import WaiversPerZoneReport from '@/pages/reports/employers/WaiversPerZoneReport';
+import EmployeesPerZoneReport from '@/pages/reports/employers/EmployeesPerZoneReport';
+import ContributionsPerZoneReport from '@/pages/reports/employers/ContributionsPerZoneReport';
+import QueriesPerZoneReport from '@/pages/reports/employers/QueriesPerZoneReport';
+import MostQueriesReport from '@/pages/reports/employers/MostQueriesReport';
+import ByLitigationCountReport from '@/pages/reports/employers/ByLitigationCountReport';
+import ArrearsPerZoneReport from '@/pages/reports/employers/ArrearsPerZoneReport';
+import ArrearsOver50kReport from '@/pages/reports/employers/ArrearsOver50kReport';
+import ArrearsOver100kReport from '@/pages/reports/employers/ArrearsOver100kReport';
+import ArrearsOver200kReport from '@/pages/reports/employers/ArrearsOver200kReport';
+import ArrearsOver300kReport from '@/pages/reports/employers/ArrearsOver300kReport';
+import ArrearsOver400kReport from '@/pages/reports/employers/ArrearsOver400kReport';
+import Arrears50kByZoneReport from '@/pages/reports/employers/Arrears50kByZoneReport';
+import TopCompliantReport from '@/pages/reports/employers/TopCompliantReport';
+import Arrears30DaysReport from '@/pages/reports/employers/Arrears30DaysReport';
+import Arrears60DaysReport from '@/pages/reports/employers/Arrears60DaysReport';
+import Arrears90DaysReport from '@/pages/reports/employers/Arrears90DaysReport';
+import ArrearsOver90DaysReport from '@/pages/reports/employers/ArrearsOver90DaysReport';
+import UnderLitigationReport from '@/pages/reports/employers/UnderLitigationReport';
+import WithPaymentPlansReport from '@/pages/reports/employers/WithPaymentPlansReport';
+import DefaultedPlansReport from '@/pages/reports/employers/DefaultedPlansReport';
+import CeasedEmployersReport from '@/pages/reports/employers/CeasedEmployersReport';
+import OutOfFederationReport from '@/pages/reports/employers/OutOfFederationReport';
+import DeceasedEmployersReport from '@/pages/reports/employers/DeceasedEmployersReport';
+import OverseasSubmissionsReport from '@/pages/reports/employers/OverseasSubmissionsReport';
+import NILReturns3MonthsReport from '@/pages/reports/employers/NILReturns3MonthsReport';
+import NILReturnsOver3MonthsReport from '@/pages/reports/employers/NILReturnsOver3MonthsReport';
 import MonthlyCollectionsReport from '@/pages/reports/c3/MonthlyCollectionsReport';
 import ArrearsReport from '@/pages/reports/c3/ArrearsReport';
 import TopContributorsReport from '@/pages/reports/c3/TopContributorsReport';
@@ -954,8 +980,34 @@ export const AppRoutes = () => {
       <Route path="/employers/reports/by-arrears" element={<ProtectedLayout><ByArrearsReport /></ProtectedLayout>} />
       <Route path="/employers/reports/by-waivers" element={<ProtectedLayout><ByWaiversReport /></ProtectedLayout>} />
       <Route path="/employers/reports/waivers-per-zone" element={<ProtectedLayout><WaiversPerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/employees-per-zone" element={<ProtectedLayout><EmployeesPerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/contributions-per-zone" element={<ProtectedLayout><ContributionsPerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/queries-per-zone" element={<ProtectedLayout><QueriesPerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/most-queries" element={<ProtectedLayout><MostQueriesReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/by-litigation-count" element={<ProtectedLayout><ByLitigationCountReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-per-zone" element={<ProtectedLayout><ArrearsPerZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-over-50k" element={<ProtectedLayout><ArrearsOver50kReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-over-100k" element={<ProtectedLayout><ArrearsOver100kReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-over-200k" element={<ProtectedLayout><ArrearsOver200kReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-over-300k" element={<ProtectedLayout><ArrearsOver300kReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-over-400k" element={<ProtectedLayout><ArrearsOver400kReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-50k-by-zone" element={<ProtectedLayout><Arrears50kByZoneReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/top-compliant" element={<ProtectedLayout><TopCompliantReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-30-days" element={<ProtectedLayout><Arrears30DaysReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-60-days" element={<ProtectedLayout><Arrears60DaysReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-90-days" element={<ProtectedLayout><Arrears90DaysReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/arrears-over-90-days" element={<ProtectedLayout><ArrearsOver90DaysReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/under-litigation" element={<ProtectedLayout><UnderLitigationReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/with-payment-plans" element={<ProtectedLayout><WithPaymentPlansReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/defaulted-plans" element={<ProtectedLayout><DefaultedPlansReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/ceased-employers" element={<ProtectedLayout><CeasedEmployersReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/out-of-federation" element={<ProtectedLayout><OutOfFederationReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/deceased-employers" element={<ProtectedLayout><DeceasedEmployersReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/overseas-submissions" element={<ProtectedLayout><OverseasSubmissionsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/nil-returns-3-months" element={<ProtectedLayout><NILReturns3MonthsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/nil-returns-over-3-months" element={<ProtectedLayout><NILReturnsOver3MonthsReport /></ProtectedLayout>} />
       
-      {/* Report Routes - C3 */}
+      {/* Report Routes - C3 */
       <Route path="/c3/reports/monthly-collections" element={<ProtectedLayout><MonthlyCollectionsReport /></ProtectedLayout>} />
       <Route path="/c3/reports/arrears" element={<ProtectedLayout><ArrearsReport /></ProtectedLayout>} />
       <Route path="/c3/reports/top-contributors" element={<ProtectedLayout><TopContributorsReport /></ProtectedLayout>} />

@@ -6,6 +6,7 @@ import { QueryByFilter } from '@/components/shared/QueryByFilter';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MessageSquare, MapPin, AlertCircle, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { CHART_COLORS } from '@/lib/chartColors';
 
 const chartData = [
   { zone: 'Zone 1', employers: 15, queries: 78, resolved: 62 },
@@ -68,14 +69,14 @@ export default function QueriesPerZoneReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="zone" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.gridline} />
+                <XAxis dataKey="zone" stroke={CHART_COLORS.text} />
+                <YAxis stroke={CHART_COLORS.text} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="employers" fill="#009B4C" name="Employers" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="queries" fill="#2563EB" name="Queries" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="resolved" fill="#0EA5E9" name="Resolved" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill={CHART_COLORS.primary} name="Employers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="queries" fill={CHART_COLORS.blue} name="Queries" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="resolved" fill={CHART_COLORS.teal} name="Resolved" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

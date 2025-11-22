@@ -6,6 +6,7 @@ import { QueryByFilter } from '@/components/shared/QueryByFilter';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CheckCircle, MapPin, DollarSign, Building2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { CHART_COLORS } from '@/lib/chartColors';
 
 const chartData = [
   { zone: 'Zone 1', employers: 12, waivers: 38, value: 285000 },
@@ -62,13 +63,13 @@ export default function WaiversPerZoneReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="zone" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.gridline} />
+                <XAxis dataKey="zone" stroke={CHART_COLORS.text} />
+                <YAxis stroke={CHART_COLORS.text} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="employers" fill="#009B4C" name="Employers" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="waivers" fill="#2563EB" name="Waivers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill={CHART_COLORS.primary} name="Employers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="waivers" fill={CHART_COLORS.blue} name="Waivers" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
