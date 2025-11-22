@@ -2,9 +2,10 @@
 
 export type C3FormatStatus = 'Active' | 'Inactive';
 export type InputType = 'CSV' | 'Excel' | 'XML' | 'JSON' | 'PortalDirectEntry';
-export type FieldType = 'String' | 'Number' | 'Date' | 'Enum' | 'Boolean';
+export type FieldType = 'String' | 'Number' | 'Date' | 'Enum' | 'Boolean' | 'Decimal' | 'Integer';
 export type ValidationSeverity = 'Error' | 'Warning';
 export type RuleType = 'RowLevel' | 'FileLevel' | 'CrossField';
+export type RowType = 'HEADER' | 'DETAIL' | 'FOOTER' | 'ALL';
 
 // Main C3 Format Scheme (Top-Level Versioned Container)
 export interface C3FormatScheme {
@@ -27,14 +28,16 @@ export interface C3FormatScheme {
 export interface C3ColumnMapping {
   mappingId: string;
   formatId: string;
+  rowType: RowType;
   columnPosition: number;
+  columnCode: string;
   columnName: string;
   displayName: string;
   fieldType: FieldType;
   required: boolean;
   unique: boolean;
-  mapsTo: 'EmployeeField' | 'PayrollComponent' | 'EmployerInfo' | 'PeriodInfo';
-  mappingTarget: string; // e.g., "SSN", "BASIC_EARNINGS", "EMPLOYER_ID", "YEAR"
+  mapsTo: string; // e.g., "System.RowType", "Employee.SSN", "Payroll.Pay1", "Contributions.LevyEmployee"
+  mappingTarget: string; // Detailed mapping target
   validationPattern: string | null;
   effectiveFrom: string;
   effectiveTo: string | null;
@@ -45,9 +48,12 @@ export interface C3ColumnMapping {
 // Validation Rules
 export interface C3ValidationRule {
   ruleId: string;
+  ruleCode: string;
   formatId: string;
   ruleName: string;
   ruleType: RuleType;
+  ruleScope: 'Row' | 'File' | 'CrossRow';
+  rowTypeFilter: RowType;
   condition: string; // JSON or simple definition
   severity: ValidationSeverity;
   errorMessage: string;
@@ -61,14 +67,13 @@ export interface C3ValidationRule {
 export interface C3ContributionMapping {
   mappingId: string;
   formatId: string;
-  payrollComponent: string;
-  earningsField: string;
-  contributesToSocialSecurity: boolean;
-  contributesToInjury: boolean;
-  contributesToLevy: boolean;
-  contributesToSeverance: boolean;
-  shareType: 'FullAmount' | 'Portion';
-  portionPercent: number | null;
+  mappingCode: string;
+  description: string;
+  sourceField: string;
+  targetModule: 'SocialSecurity' | 'Levy' | 'Injury' | 'Severance' | 'Wages';
+  targetField: string;
+  formula: string | null;
+  appliesTo: string;
   effectiveFrom: string;
   effectiveTo: string | null;
   status: C3FormatStatus;

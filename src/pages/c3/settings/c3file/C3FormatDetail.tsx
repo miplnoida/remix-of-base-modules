@@ -18,6 +18,9 @@ import {
 import { toast } from 'sonner';
 import { c3FileConfigService } from '@/services/c3FileConfigService';
 import type { C3FormatScheme } from '@/types/c3FileConfig';
+import ColumnMappingsTab from './tabs/ColumnMappingsTab';
+import ValidationRulesTab from './tabs/ValidationRulesTab';
+import ContributionMappingTab from './tabs/ContributionMappingTab';
 
 export default function C3FormatDetail() {
   const { formatId } = useParams();
@@ -209,36 +212,15 @@ export default function C3FormatDetail() {
           </TabsContent>
 
           <TabsContent value="columns">
-            <Card>
-              <CardHeader>
-                <CardTitle>Column Mappings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Define C3 file columns and their mappings to system fields</p>
-              </CardContent>
-            </Card>
+            <ColumnMappingsTab formatId={formatId} />
           </TabsContent>
 
           <TabsContent value="validation">
-            <Card>
-              <CardHeader>
-                <CardTitle>Validation Rules</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Configure file and row-level validation rules</p>
-              </CardContent>
-            </Card>
+            <ValidationRulesTab formatId={formatId} />
           </TabsContent>
 
           <TabsContent value="contributions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contribution Mapping</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Map payroll components to SS, Levy, Injury, and Severance contributions</p>
-              </CardContent>
-            </Card>
+            <ContributionMappingTab formatId={formatId} />
           </TabsContent>
 
           <TabsContent value="importexport">
