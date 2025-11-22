@@ -13,7 +13,8 @@ import {
   FileX,
   Briefcase,
   Globe,
-  UserX
+  UserX,
+  Settings
 } from "lucide-react";
 
 export const employersMenuItems = [
@@ -289,6 +290,19 @@ export const employersMenuItems = [
             url: "/employers/reports/nil-returns-over-3-months",
             icon: FileX,
             requiresPermission: "view_reports"
+          }
+        ]
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        requiresPermission: "manage_settings",
+        subItems: [
+          {
+            title: "Templates",
+            url: "/employers/templates",
+            icon: FileText,
+            requiresPermission: "manage_templates"
           }
         ]
       }

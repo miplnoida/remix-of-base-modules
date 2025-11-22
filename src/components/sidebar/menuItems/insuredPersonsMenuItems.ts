@@ -22,7 +22,8 @@ import {
   UsersRound,
   ListChecks,
   LineChart,
-  Building2
+  Building2,
+  Settings
 } from "lucide-react";
 
 export const insuredPersonsMenuItems = [
@@ -187,6 +188,19 @@ export const insuredPersonsMenuItems = [
             url: "/person/reports/audit-sample-ip",
             icon: ListChecks,
             requiresPermission: "view_reports"
+          }
+        ]
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        requiresPermission: "manage_settings",
+        subItems: [
+          {
+            title: "Templates",
+            url: "/insured-persons/templates",
+            icon: FileText,
+            requiresPermission: "manage_templates"
           }
         ]
       }

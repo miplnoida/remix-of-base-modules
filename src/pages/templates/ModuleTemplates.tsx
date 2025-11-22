@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { comprehensiveTemplates } from "@/services/mockData/comprehensiveTemplat
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SourceModule, NotificationChannel } from "@/types/notification";
+import TemplateEditor from "@/components/templates/TemplateEditor";
+import TemplatePreview from "@/components/templates/TemplatePreview";
+import SendTestDialog from "@/components/templates/SendTestDialog";
 
 interface ModuleTemplatesProps {
   module?: SourceModule;
@@ -20,6 +23,11 @@ export default function ModuleTemplates({ module }: ModuleTemplatesProps) {
   const params = useParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("All");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sendTestOpen, setSendTestOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [templates, setTemplates] = useState(comprehensiveTemplates);
 
   // Determine which module's templates to show
   const currentModule = module || (params.module as SourceModule);
@@ -55,19 +63,59 @@ export default function ModuleTemplates({ module }: ModuleTemplatesProps) {
   };
 
   const handleEdit = (templateId: string) => {
-    toast({ title: "Edit Template", description: `Opening template ${templateId} for editing...` });
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setEditorOpen(true);
+    }
   };
 
   const handleDuplicate = (templateId: string) => {
-    toast({ title: "Template Duplicated", description: `Created copy of template ${templateId}` });
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      const newTemplate = {
+        ...template,
+        templateId: `TPL-${Date.now()}`,
+        templateName: `${template.templateName} (Copy)`,
+        createdAt: new Date().toISOString(),
+      };
+      setTemplates([...templates, newTemplate]);
+      toast({ title: "Template Duplicated", description: `Created copy of "${template.templateName}"` });
+    }
   };
 
   const handlePreview = (templateId: string) => {
-    toast({ title: "Preview Template", description: `Opening preview for template ${templateId}...` });
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setPreviewOpen(true);
+    }
   };
 
   const handleSendTest = (templateId: string) => {
-    toast({ title: "Test Message", description: `Sending test message using template ${templateId}...` });
+    const template = templates.find(t => t.templateId === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setSendTestOpen(true);
+    }
+  };
+
+  const handleSaveTemplate = (template: any) => {
+    const existingIndex = templates.findIndex(t => t.templateId === template.templateId);
+    if (existingIndex >= 0) {
+      const updatedTemplates = [...templates];
+      updatedTemplates[existingIndex] = template;
+      setTemplates(updatedTemplates);
+      toast({ title: "Template Updated", description: `"${template.templateName}" has been saved successfully` });
+    } else {
+      setTemplates([...templates, template]);
+      toast({ title: "Template Created", description: `"${template.templateName}" has been created successfully` });
+    }
+  };
+
+  const handleCreateNew = () => {
+    setSelectedTemplate(null);
+    setEditorOpen(true);
   };
 
   return (
@@ -84,7 +132,7 @@ export default function ModuleTemplates({ module }: ModuleTemplatesProps) {
             }
           </p>
         </div>
-        <Button>
+        <Button onClick={handleCreateNew}>
           <Plus className="mr-2 h-4 w-4" />
           Create Template
         </Button>
@@ -236,6 +284,25 @@ export default function ModuleTemplates({ module }: ModuleTemplatesProps) {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialogs */}
+      <TemplateEditor
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        templateId={selectedTemplate?.templateId}
+        initialData={selectedTemplate}
+        onSave={handleSaveTemplate}
+      />
+      <TemplatePreview
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        template={selectedTemplate}
+      />
+      <SendTestDialog
+        open={sendTestOpen}
+        onOpenChange={setSendTestOpen}
+        template={selectedTemplate}
+      />
     </div>
   );
 }
