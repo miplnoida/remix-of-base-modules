@@ -46,6 +46,10 @@ export default function NewCorrespondenceDialog({
   const [communicationDate, setCommunicationDate] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [storingTime, setStoringTime] = useState('');
+  
+  // Physical delivery tracking
+  const [assignedInspectorId, setAssignedInspectorId] = useState('');
+  const [requiresAcknowledgement, setRequiresAcknowledgement] = useState(false);
 
   const handleSave = async () => {
     if (!subject.trim()) {
@@ -232,6 +236,44 @@ export default function NewCorrespondenceDialog({
                 </div>
               )}
             </>
+          )}
+
+          {/* Physical delivery tracking for outgoing letters */}
+          {direction === CorrespondenceDirection.OUTGOING && 
+           channel === CorrespondenceChannel.LETTER && (
+            <div className="border-t pt-4 mt-2">
+              <h4 className="font-medium mb-3 text-sm">Physical Delivery Tracking</h4>
+              
+              <div className="flex items-center space-x-2 mb-3">
+                <Checkbox
+                  id="requiresAck"
+                  checked={requiresAcknowledgement}
+                  onCheckedChange={(checked) => setRequiresAcknowledgement(checked as boolean)}
+                />
+                <Label htmlFor="requiresAck" className="cursor-pointer">
+                  Requires acknowledgement signature (mobile capture)
+                </Label>
+              </div>
+
+              {requiresAcknowledgement && (
+                <div>
+                  <Label>Assign to Inspector</Label>
+                  <Select value={assignedInspectorId} onValueChange={setAssignedInspectorId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select inspector for delivery" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="INS001">John Inspector</SelectItem>
+                      <SelectItem value="INS002">Mary Field Officer</SelectItem>
+                      <SelectItem value="INS003">Peter Compliance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Inspector will deliver letter and capture acknowledgement via mobile app
+                  </p>
+                </div>
+              )}
+            </div>
           )}
 
           <div className="flex items-center space-x-2">

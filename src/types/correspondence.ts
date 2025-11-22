@@ -116,14 +116,30 @@ export interface DeliveryMetadata {
   bcc?: string[];
   
   // Delivery info
-  deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced';
+  deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced' | 'awaiting_acknowledgement' | 'acknowledged';
   deliveryProvider?: string; // 'resend', 'twilio', etc.
   deliveryReference?: string; // External provider reference
   deliveryAttempts?: number;
   lastDeliveryAttempt?: string;
   deliveryError?: string;
   
-  // Read receipts
+  // Physical delivery tracking (for letters/in-person)
+  assignedInspectorId?: string;
+  assignedInspectorName?: string;
+  assignedAt?: string;
+  deliveredByInspectorId?: string;
+  deliveredByInspectorName?: string;
+  deliveredAt?: string;
+  
+  // Acknowledgement/Signature
+  recipientSignatureData?: string; // Base64 signature image
+  recipientName?: string;
+  recipientSignedAt?: string;
+  deliveryNotes?: string; // Notes from inspector
+  gpsLatitude?: number;
+  gpsLongitude?: number;
+  
+  // Read receipts (for electronic)
   openedAt?: string;
   clickedAt?: string;
 }

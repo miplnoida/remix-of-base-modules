@@ -344,9 +344,16 @@ export default function OutgoingCommunications() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(item.status)}>
-                      {item.status.replace(/_/g, ' ')}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.status.replace(/_/g, ' ')}
+                      </Badge>
+                      {item.deliveryMetadata?.deliveryStatus && (
+                        <Badge variant="outline" className="text-xs">
+                          {item.deliveryMetadata.deliveryStatus === 'awaiting_acknowledgement' ? 'Awaiting Ack.' : item.deliveryMetadata.deliveryStatus}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
