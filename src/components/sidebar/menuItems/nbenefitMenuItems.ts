@@ -468,6 +468,12 @@ export const nbenefitMenuItems = [
             url: "/nbenefit/shared/workflows",
             icon: Workflow,
             requiresPermission: "benefits_configuration"
+          },
+          {
+            title: "Life Certificate Config",
+            url: "/nbenefit/config/life-certificate-config",
+            icon: CheckCircle,
+            requiresPermission: "benefits_configuration"
           }
         ]
       },

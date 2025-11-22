@@ -222,8 +222,8 @@ import CreatePayRun from '@/pages/finance/accounts-payable/CreatePayRun';
 import PayRunList from '@/pages/finance/accounts-payable/PayRunList';
 import GeneratePayments from '@/pages/finance/accounts-payable/GeneratePayments';
 import PaymentInquiry from '@/pages/finance/accounts-payable/PaymentInquiry';
-import BenefitFinanceMapping from '@/pages/system-admin/config/BenefitFinanceMapping';
-import LifeCertificateConfig from '@/pages/system-admin/config/LifeCertificateConfig';
+import BenefitFinanceMapping from '@/pages/finance/settings/BenefitFinanceMapping';
+import LifeCertificateConfig from '@/pages/nbenefit/config/LifeCertificateConfig';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
 import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
@@ -677,8 +677,8 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications/log" element={<ProtectedLayout><NotificationLog /></ProtectedLayout>} />
       <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationTemplates /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
-      <Route path="/system-admin/config/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
-      <Route path="/system-admin/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
+      <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
+      <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />

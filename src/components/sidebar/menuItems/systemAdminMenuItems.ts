@@ -174,18 +174,6 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration"
       },
       {
-        title: "Benefit-Finance Mapping",
-        url: "/system-admin/config/benefit-finance-mapping",
-        icon: Link2,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Life Certificate Config",
-        url: "/system-admin/config/life-certificate-config",
-        icon: ClipboardCheck,
-        requiresPermission: "system_administration"
-      },
-      {
         title: "Central Scheduler",
         url: "/admin/scheduler",
         icon: Clock,
