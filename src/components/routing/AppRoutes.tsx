@@ -52,8 +52,13 @@ import SSSchemesList from '@/pages/c3/settings/ss/SSSchemesList';
 import SSSchemeDetail from '@/pages/c3/settings/ss/SSSchemeDetail';
 import SSSimulator from '@/pages/c3/settings/ss/SSSimulator';
 import SeveranceSchemesList from '@/pages/c3/settings/severance/SeveranceSchemesList';
+import SeveranceSchemeDetail from '@/pages/c3/settings/severance/SeveranceSchemeDetail';
+import SeveranceSimulator from '@/pages/c3/settings/severance/SeveranceSimulator';
 import InjurySchemesList from '@/pages/c3/settings/injury/InjurySchemesList';
+import InjurySchemeDetail from '@/pages/c3/settings/injury/InjurySchemeDetail';
+import InjurySimulator from '@/pages/c3/settings/injury/InjurySimulator';
 import C3FormatsList from '@/pages/c3/settings/c3file/C3FormatsList';
+import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 
 // Employer Management
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
@@ -467,8 +472,13 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/ss/schemes/:schemeId" element={<ProtectedLayout><SSSchemeDetail /></ProtectedLayout>} />
       <Route path="/c3-management/settings/ss/simulator" element={<ProtectedLayout><SSSimulator /></ProtectedLayout>} />
       <Route path="/c3-management/settings/severance/schemes" element={<ProtectedLayout><SeveranceSchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/severance/schemes/:schemeId" element={<ProtectedLayout><SeveranceSchemeDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/severance/simulator" element={<ProtectedLayout><SeveranceSimulator /></ProtectedLayout>} />
       <Route path="/c3-management/settings/injury/schemes" element={<ProtectedLayout><InjurySchemesList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/injury/schemes/:schemeId" element={<ProtectedLayout><InjurySchemeDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/injury/simulator" element={<ProtectedLayout><InjurySimulator /></ProtectedLayout>} />
       <Route path="/c3-management/settings/c3file/formats" element={<ProtectedLayout><C3FormatsList /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/c3file/formats/:formatId" element={<ProtectedLayout><C3FormatDetail /></ProtectedLayout>} />
 
       {/* Self-Employed Management Routes */}
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
