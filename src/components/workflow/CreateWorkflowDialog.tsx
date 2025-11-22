@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import WorkflowModeSelector from "./WorkflowModeSelector";
+import { useNavigate } from "react-router-dom";
 
 interface CreateWorkflowDialogProps {
   open: boolean;
@@ -23,6 +25,9 @@ const categories = [
 
 export default function CreateWorkflowDialog({ open, onOpenChange, onSave }: CreateWorkflowDialogProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [step, setStep] = useState<"mode" | "details">("mode");
+  const [selectedMode, setSelectedMode] = useState<"designer" | "manual">("designer");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -35,6 +40,10 @@ export default function CreateWorkflowDialog({ open, onOpenChange, onSave }: Cre
     setFormData({ ...formData, [field]: value });
   };
 
+  const handleModeNext = () => {
+    setStep("details");
+  };
+
   const handleCreate = () => {
     if (!formData.name.trim()) {
       toast({ title: "Validation Error", description: "Workflow name is required", variant: "destructive" });
@@ -44,36 +53,63 @@ export default function CreateWorkflowDialog({ open, onOpenChange, onSave }: Cre
     const workflow = {
       id: `wf-${Date.now()}`,
       ...formData,
+      builderMode: selectedMode,
       status: "Draft",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     onSave(workflow);
-    toast({ title: "Workflow Created", description: `"${formData.name}" has been created as draft` });
+    toast({ 
+      title: "Workflow Created", 
+      description: `"${formData.name}" has been created. Opening ${selectedMode} builder...` 
+    });
     onOpenChange(false);
+    setStep("mode");
     setFormData({ name: "", description: "", category: "benefits", owner: "", tags: "" });
+    // Navigate to designer page
+    navigate("/admin/workflow-management");
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={open} onOpenChange={(open) => {
+      onOpenChange(open);
+      if (!open) setStep("mode");
+    }}>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create New Workflow</DialogTitle>
           <DialogDescription>
-            Define the basic properties of your new workflow
+            {step === "mode" 
+              ? "Choose how you want to build your workflow"
+              : "Define the basic properties of your new workflow"
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Workflow Name *</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => updateField("name", e.target.value)}
-              placeholder="e.g., Retirement Benefit Application"
-            />
-          </div>
+          {step === "mode" ? (
+            <>
+              <WorkflowModeSelector
+                selectedMode={selectedMode}
+                onModeChange={setSelectedMode}
+              />
+              <div className="flex justify-end">
+                <Button onClick={handleModeNext}>
+                  Next: Enter Details
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label>Workflow Name *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  placeholder="e.g., Retirement Benefit Application"
+                />
+              </div>
 
           <div className="space-y-2">
             <Label>Description</Label>
@@ -120,12 +156,13 @@ export default function CreateWorkflowDialog({ open, onOpenChange, onSave }: Cre
               placeholder="e.g., retirement, pension, benefits"
             />
           </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setStep("mode")}>Back</Button>
+                <Button onClick={handleCreate}>Create & Open Builder</Button>
+              </DialogFooter>
+            </>
+          )}
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleCreate}>Create Workflow</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

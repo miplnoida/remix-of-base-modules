@@ -7,12 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Edit, Play, Eye, Copy } from "lucide-react";
 import { mockWorkflows } from "@/services/mockData/workflowData";
 import CreateWorkflowDialog from "./CreateWorkflowDialog";
+import EditWorkflowDialog from "./EditWorkflowDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WorkflowList() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingWorkflow, setEditingWorkflow] = useState<any>(null);
 
   const filteredWorkflows = mockWorkflows.filter(
     (wf) =>
@@ -43,6 +45,12 @@ export default function WorkflowList() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSave={(workflow) => console.log("New workflow:", workflow)}
+      />
+
+      <EditWorkflowDialog
+        open={!!editingWorkflow}
+        onOpenChange={(open) => !open && setEditingWorkflow(null)}
+        workflow={editingWorkflow}
       />
 
       <Card>
@@ -92,7 +100,7 @@ export default function WorkflowList() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleAction("Edit", workflow.name)}
+                      onClick={() => setEditingWorkflow(workflow)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
