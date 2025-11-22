@@ -6,6 +6,7 @@ import { QueryByFilter } from '@/components/shared/QueryByFilter';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MessageSquare, AlertCircle, TrendingUp, FileQuestion } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { CHART_COLORS } from '@/lib/chartColors';
 
 const chartData = [
   { employer: 'Hotels Group', queries: 28, overpayment: 12, underpayment: 10, ssnMismatch: 6 },
@@ -68,14 +69,14 @@ export default function MostQueriesReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="employer" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.gridline} />
+                <XAxis dataKey="employer" stroke={CHART_COLORS.text} />
+                <YAxis stroke={CHART_COLORS.text} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="overpayment" fill="#2563EB" name="Overpayment" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="underpayment" fill="#F59E0B" name="Underpayment" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="ssnMismatch" fill="#E74C3C" name="SSN Mismatch" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="overpayment" fill={CHART_COLORS.blue} name="Overpayment" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="underpayment" fill={CHART_COLORS.gold} name="Underpayment" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="ssnMismatch" fill={CHART_COLORS.error} name="SSN Mismatch" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
