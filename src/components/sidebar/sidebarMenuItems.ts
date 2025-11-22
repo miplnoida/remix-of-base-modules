@@ -8,6 +8,7 @@ import { financeMenuItems } from './menuItems/financeMenuItems';
 import { auditMenuItems } from './menuItems/auditMenuItems';
 import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
 import { nbenefitMenuItems } from './menuItems/nbenefitMenuItems';
+import { correspondenceMenuItems } from './menuItems/correspondenceMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -19,5 +20,6 @@ export const menuItems = [
   ...complianceMenuItems,
   ...financeMenuItems,
   ...auditMenuItems,
+  ...correspondenceMenuItems,
   ...systemAdminMenuItems
 ];

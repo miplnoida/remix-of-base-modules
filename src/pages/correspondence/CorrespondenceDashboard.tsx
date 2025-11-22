@@ -42,12 +42,14 @@ import {
   ArrowDown,
   Eye
 } from 'lucide-react';
+import NewCorrespondenceDialog from '@/components/correspondence/NewCorrespondenceDialog';
 
 export default function CorrespondenceDashboard() {
   const [correspondence, setCorrespondence] = useState<Correspondence[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<CorrespondenceFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNewDialog, setShowNewDialog] = useState(false);
 
   useEffect(() => {
     loadCorrespondence();
@@ -129,11 +131,11 @@ export default function CorrespondenceDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowNewDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Log Incoming
           </Button>
-          <Button>
+          <Button onClick={() => setShowNewDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Outgoing
           </Button>
@@ -329,6 +331,14 @@ export default function CorrespondenceDashboard() {
           </TableBody>
         </Table>
       </Card>
+
+      <NewCorrespondenceDialog
+        open={showNewDialog}
+        onOpenChange={setShowNewDialog}
+        onCreated={() => {
+          loadCorrespondence();
+        }}
+      />
     </div>
   );
 }
