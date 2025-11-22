@@ -225,6 +225,7 @@ import PaymentInquiry from '@/pages/finance/accounts-payable/PaymentInquiry';
 import BenefitFinanceMapping from '@/pages/finance/settings/BenefitFinanceMapping';
 import LifeCertificateConfig from '@/pages/nbenefit/config/LifeCertificateConfig';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
+import CorrespondenceDashboard from '@/pages/correspondence/CorrespondenceDashboard';
 import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
 import AssistancePension from '@/pages/nbenefit/non-contributory/AssistancePension';
@@ -679,6 +680,13 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
       <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
+
+      {/* Correspondence / Communication Hub Routes */}
+      <Route path="/correspondence/dashboard" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
+      <Route path="/correspondence/incoming" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
+      <Route path="/correspondence/outgoing" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
+      <Route path="/correspondence/search" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
+      <Route path="/correspondence/archive" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
