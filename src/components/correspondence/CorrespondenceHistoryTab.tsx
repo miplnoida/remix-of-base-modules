@@ -28,7 +28,9 @@ export default function CorrespondenceHistoryTab({
       channel: 'Email',
       subject: 'Contribution reminder for December 2023',
       status: 'Sent',
-      territory: 'St Kitts'
+      territory: 'St Kitts',
+      communicationDate: '2024-01-15',
+      referenceNumber: 'EMAIL-CONTRIB-20240115-001'
     },
     {
       id: '2',
@@ -37,7 +39,9 @@ export default function CorrespondenceHistoryTab({
       channel: 'Phone',
       subject: 'Query about payment arrangement',
       status: 'Closed',
-      territory: 'St Kitts'
+      territory: 'St Kitts',
+      communicationDate: null,
+      referenceNumber: null
     },
     {
       id: '3',
@@ -46,7 +50,10 @@ export default function CorrespondenceHistoryTab({
       channel: 'Letter',
       subject: 'Compliance notice - Missing C3',
       status: 'Delivered',
-      territory: 'St Kitts'
+      territory: 'St Kitts',
+      communicationDate: '2023-12-20',
+      referenceNumber: 'LTR-COMP-20231220-005',
+      storingTime: '2023-12-20T16:45:00Z'
     }
   ];
 
@@ -86,6 +93,8 @@ export default function CorrespondenceHistoryTab({
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
+              <TableHead>Comm. Date</TableHead>
+              <TableHead>Ref. No.</TableHead>
               <TableHead>Direction</TableHead>
               <TableHead>Channel</TableHead>
               <TableHead>Subject</TableHead>
@@ -97,7 +106,7 @@ export default function CorrespondenceHistoryTab({
           <TableBody>
             {mockCorrespondence.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   No correspondence records found
                 </TableCell>
               </TableRow>
@@ -105,6 +114,23 @@ export default function CorrespondenceHistoryTab({
               mockCorrespondence.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.date}</TableCell>
+                  <TableCell className="text-sm">
+                    {item.communicationDate ? (
+                      <div>
+                        <div>{item.communicationDate}</div>
+                        {item.storingTime && (
+                          <div className="text-xs text-muted-foreground">
+                            Stored: {new Date(item.storingTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm font-mono">
+                    {item.referenceNumber || <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell>
                     <span className={getDirectionColor(item.direction)}>
                       {item.direction}

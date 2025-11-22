@@ -224,6 +224,8 @@ export default function Archive() {
               <TableHead className="w-20">Direction</TableHead>
               <TableHead className="w-32">Number</TableHead>
               <TableHead className="w-32">Date</TableHead>
+              <TableHead className="w-32">Comm. Date</TableHead>
+              <TableHead className="w-28">Ref. No.</TableHead>
               <TableHead className="w-20">Channel</TableHead>
               <TableHead>Party</TableHead>
               <TableHead>Subject</TableHead>
@@ -235,13 +237,13 @@ export default function Archive() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   Loading archived correspondence...
                 </TableCell>
               </TableRow>
             ) : correspondence.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   No archived correspondence found
                 </TableCell>
               </TableRow>
@@ -257,6 +259,23 @@ export default function Archive() {
                   <TableCell className="font-medium">{item.correspondenceNumber}</TableCell>
                   <TableCell className="text-sm">
                     {format(new Date(item.createdDate), 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {item.communicationDate ? (
+                      <div>
+                        <div>{format(new Date(item.communicationDate), 'MMM dd, yyyy')}</div>
+                        {item.storingTime && (
+                          <div className="text-xs text-muted-foreground">
+                            Stored: {format(new Date(item.storingTime), 'HH:mm')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm font-mono">
+                    {item.referenceNumber || <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {item.channel}
