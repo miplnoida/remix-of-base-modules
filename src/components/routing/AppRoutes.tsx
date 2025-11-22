@@ -226,6 +226,10 @@ import BenefitFinanceMapping from '@/pages/finance/settings/BenefitFinanceMappin
 import LifeCertificateConfig from '@/pages/nbenefit/config/LifeCertificateConfig';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
 import CorrespondenceDashboard from '@/pages/correspondence/CorrespondenceDashboard';
+import IncomingCommunications from '@/pages/correspondence/IncomingCommunications';
+import OutgoingCommunications from '@/pages/correspondence/OutgoingCommunications';
+import SearchHistory from '@/pages/correspondence/SearchHistory';
+import Archive from '@/pages/correspondence/Archive';
 import AssistanceBenefit from '@/pages/nbenefit/long-term/AssistanceBenefit';
 import SurvivorsBenefit from '@/pages/nbenefit/long-term/SurvivorsBenefit';
 import AssistancePension from '@/pages/nbenefit/non-contributory/AssistancePension';
@@ -683,10 +687,10 @@ export const AppRoutes = () => {
 
       {/* Correspondence / Communication Hub Routes */}
       <Route path="/correspondence/dashboard" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
-      <Route path="/correspondence/incoming" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
-      <Route path="/correspondence/outgoing" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
-      <Route path="/correspondence/search" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
-      <Route path="/correspondence/archive" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
+      <Route path="/correspondence/incoming" element={<ProtectedLayout><IncomingCommunications /></ProtectedLayout>} />
+      <Route path="/correspondence/outgoing" element={<ProtectedLayout><OutgoingCommunications /></ProtectedLayout>} />
+      <Route path="/correspondence/search" element={<ProtectedLayout><SearchHistory /></ProtectedLayout>} />
+      <Route path="/correspondence/archive" element={<ProtectedLayout><Archive /></ProtectedLayout>} />
 
       {/* Reports Routes */}
       <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
