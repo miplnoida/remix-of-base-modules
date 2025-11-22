@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, XCircle, RotateCw } from "lucide-react";
 import { mockWorkflowRuns } from "@/services/mockData/workflowData";
+import RunDetailDialog from "./RunDetailDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WorkflowRuns() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   const filteredRuns = mockWorkflowRuns.filter(
     (run) =>
@@ -127,7 +129,7 @@ export default function WorkflowRuns() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleAction("View Details", run.id)}
+                      onClick={() => setSelectedRunId(run.id)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -156,6 +158,12 @@ export default function WorkflowRuns() {
           </TableBody>
         </Table>
       </Card>
+
+      <RunDetailDialog
+        open={!!selectedRunId}
+        onOpenChange={(open) => !open && setSelectedRunId(null)}
+        runId={selectedRunId || ""}
+      />
     </div>
   );
 }
