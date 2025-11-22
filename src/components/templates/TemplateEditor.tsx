@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +90,9 @@ export default function TemplateEditor({ open, onOpenChange, templateId, onSave,
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{templateId ? "Edit Template" : "Create New Template"}</DialogTitle>
+          <DialogDescription>
+            {templateId ? "Update template details and content" : "Create a new notification template with dynamic parameters"}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-6">

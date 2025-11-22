@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Mail, MessageSquare, Bell, FileText } from "lucide-react";
@@ -63,6 +63,9 @@ export default function TemplatePreview({ open, onOpenChange, template }: Templa
             {getChannelIcon(template.channel)}
             Preview: {template.templateName}
           </DialogTitle>
+          <DialogDescription>
+            Preview template with sample data values
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
