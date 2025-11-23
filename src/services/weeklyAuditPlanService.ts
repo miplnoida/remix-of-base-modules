@@ -9,6 +9,7 @@ import {
   VisitType,
   VisitDuration,
   VisitExecutionStatus,
+  PlanItemType,
   CreateWeeklyPlanRequest,
   UpdateVisitExecutionRequest,
   SubmitWeeklyReportRequest,
@@ -43,6 +44,7 @@ let mockPlans: WeeklyAuditPlan[] = [
       {
         id: 'visit-001',
         planId: 'plan-001',
+        itemType: PlanItemType.EMPLOYER_VISIT,
         dayOfWeek: 'Monday',
         visitDate: '2025-01-13',
         employerId: 'emp-001',
@@ -67,6 +69,7 @@ let mockPlans: WeeklyAuditPlan[] = [
       {
         id: 'visit-002',
         planId: 'plan-001',
+        itemType: PlanItemType.EMPLOYER_VISIT,
         dayOfWeek: 'Tuesday',
         visitDate: '2025-01-14',
         employerId: 'emp-002',
@@ -86,6 +89,7 @@ let mockPlans: WeeklyAuditPlan[] = [
       {
         id: 'visit-003',
         planId: 'plan-001',
+        itemType: PlanItemType.EMPLOYER_VISIT,
         dayOfWeek: 'Wednesday',
         visitDate: '2025-01-15',
         employerId: 'emp-003',
@@ -120,6 +124,7 @@ let mockPlans: WeeklyAuditPlan[] = [
       {
         id: 'visit-004',
         planId: 'plan-002',
+        itemType: PlanItemType.EMPLOYER_VISIT,
         dayOfWeek: 'Monday',
         visitDate: '2025-01-13',
         employerId: 'emp-004',
@@ -136,15 +141,17 @@ let mockPlans: WeeklyAuditPlan[] = [
       {
         id: 'visit-005',
         planId: 'plan-002',
+        itemType: PlanItemType.SCOUTING,
         dayOfWeek: 'Thursday',
         visitDate: '2025-01-16',
-        employerId: 'emp-005',
-        employerName: 'Retail Mart Inc',
+        areaName: 'Basseterre Central Market Area',
+        territory: 'St Kitts',
         visitType: VisitType.SCOUTING,
         duration: VisitDuration.HALF_DAY_PM,
         purpose: 'Zone scouting for unregistered employers',
         plannedStartTime: '13:00',
         plannedEndTime: '16:00',
+        focusNotes: 'Focus on retail and restaurant establishments',
         executionStatus: VisitExecutionStatus.PLANNED,
         createdAt: '2025-01-10T11:00:00Z',
         updatedAt: '2025-01-10T11:00:00Z'
@@ -337,8 +344,8 @@ export const weeklyAuditPlanService = {
       evidenceCollected: mockEvidence.filter(e => 
         completedVisits.some(v => v.id === e.visitId)
       ).length,
-      casesOpened: 2, // Mock
-      casesUpdated: 5, // Mock
+      violationsOpened: 2, // Mock
+      violationsUpdated: 5, // Mock
       findingsSummary: completedVisits.map(v => v.findings).filter(Boolean).join('; '),
       inspectorNarrative: plan.weeklyReportNarrative || '',
       generatedAt: new Date().toISOString()

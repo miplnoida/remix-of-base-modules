@@ -12,6 +12,11 @@ export enum WeeklyPlanWorkflowStatus {
   COMPLETED = 'COMPLETED'
 }
 
+export enum PlanItemType {
+  EMPLOYER_VISIT = 'EMPLOYER_VISIT',
+  SCOUTING = 'SCOUTING'
+}
+
 export enum VisitType {
   C3_FOLLOW_UP = 'C3_FOLLOW_UP',
   PAYMENT_FOLLOW_UP = 'PAYMENT_FOLLOW_UP',
@@ -51,15 +56,21 @@ export enum EvidenceType {
 export interface PlannedVisit {
   id: string;
   planId: string;
+  itemType: PlanItemType;
   dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
   visitDate: string; // YYYY-MM-DD
-  employerId: string;
-  employerName: string;
+  employerId?: string; // Optional for scouting
+  employerName?: string; // Optional for scouting
   visitType: VisitType;
   duration: VisitDuration;
   purpose: string;
   plannedStartTime?: string; // HH:MM
   plannedEndTime?: string; // HH:MM
+  
+  // Scouting-specific fields
+  areaName?: string; // For scouting: area being scouted
+  territory?: 'St Kitts' | 'Nevis'; // Territory
+  focusNotes?: string; // Optional notes about scouting area
   
   // Unplanned Sighting Support
   isUnplannedSighting?: boolean;
@@ -75,7 +86,7 @@ export interface PlannedVisit {
   checkOutGPSLng?: number;
   
   // Links
-  caseId?: string;
+  violationId?: string; // Changed from caseId to violationId
   riskFactorId?: string;
   
   // Notes
@@ -182,8 +193,8 @@ export interface WeeklyReportSummary {
   rescheduledVisits: number;
   totalHoursSpent: number;
   evidenceCollected: number;
-  casesOpened: number;
-  casesUpdated: number;
+  violationsOpened: number; // Changed from casesOpened
+  violationsUpdated: number; // Changed from casesUpdated
   findingsSummary: string;
   inspectorNarrative: string;
   generatedAt: string;
