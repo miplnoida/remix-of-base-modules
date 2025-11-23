@@ -70,11 +70,17 @@ export interface InspectionVisit {
   visitDate?: string; // Backward compatibility
   checkInTime?: string;
   checkInLocation?: string;
+  checkInGPSLat?: number; // Backward compatibility
+  checkInGPSLng?: number; // Backward compatibility
   checkOutTime?: string;
   checkOutLocation?: string;
+  checkOutGPSLat?: number; // Backward compatibility
+  checkOutGPSLng?: number; // Backward compatibility
   visitStatus: InspectionVisitStatus;
   visitNotes?: string; // Backward compatibility
   notes?: string;
+  inspectorId?: string; // Backward compatibility
+  status?: InspectionVisitStatus; // Backward compatibility
   createdAt: string;
   updatedAt: string;
 }

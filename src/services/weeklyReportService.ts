@@ -68,6 +68,9 @@ const mockVisits: InspectionVisit[] = [
     weeklyPlanItemId: 'wpi-001',
     employerId: 'EMP-2024-001',
     employerName: 'ABC Construction Ltd',
+    inspectorUserId: 'inspector-001',
+    inspectorName: 'John Inspector',
+    territory: 'St Kitts',
     visitDate: '2024-01-22',
     checkInTime: '09:15',
     checkInGPSLat: 17.2945,
@@ -75,10 +78,10 @@ const mockVisits: InspectionVisit[] = [
     checkOutTime: '16:45',
     checkOutGPSLat: 17.2945,
     checkOutGPSLng: -62.7267,
+    visitStatus: InspectionVisitStatus.COMPLETED,
     status: InspectionVisitStatus.COMPLETED,
     visitNotes: 'Conducted full audit. Employer cooperative. Found several issues with wage reporting.',
     inspectorId: 'inspector-001',
-    inspectorName: 'John Inspector',
     createdAt: '2024-01-22T09:15:00Z',
     updatedAt: '2024-01-22T16:45:00Z'
   }
@@ -87,26 +90,32 @@ const mockVisits: InspectionVisit[] = [
 const mockEvidence: InspectionEvidence[] = [
   {
     id: 'evidence-001',
+    inspectionVisitId: 'visit-001',
     visitId: 'visit-001',
+    evidenceType: EvidenceType.PHOTO,
     type: EvidenceType.PHOTO,
     fileName: 'wage_book_page1.jpg',
     fileUrl: '/evidence/wage_book_page1.jpg',
     fileSize: 2048000,
     description: 'Wage book showing discrepancies in reported wages',
     capturedAt: '2024-01-22T10:30:00Z',
+    capturedByUserId: 'inspector-001',
     capturedBy: 'inspector-001',
     gpsLat: 17.2945,
     gpsLng: -62.7267
   },
   {
     id: 'evidence-002',
+    inspectionVisitId: 'visit-001',
     visitId: 'visit-001',
+    evidenceType: EvidenceType.DOCUMENT,
     type: EvidenceType.DOCUMENT,
     fileName: 'c3_comparison.pdf',
     fileUrl: '/evidence/c3_comparison.pdf',
     fileSize: 512000,
     description: 'Comparison of C3 submissions vs actual wage records',
     capturedAt: '2024-01-22T14:15:00Z',
+    capturedByUserId: 'inspector-001',
     capturedBy: 'inspector-001'
   }
 ];
