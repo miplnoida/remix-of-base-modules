@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ReportLayout } from '@/components/reports/ReportLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { QueryByFilter } from '@/components/shared/QueryByFilter';
@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Scale, Building2, AlertTriangle, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CHART_COLORS } from '@/lib/chartColors';
+import { ExportActions } from '@/components/reports/ExportActions';
+import { ExportColumn } from '@/utils/exportUtils';
 
 const chartData = [
   { employer: 'ABC Trading', cases: 5 },
@@ -34,6 +36,15 @@ const mockData = [
   { id: 'EMP-010', name: 'Manufacturing Ltd', zone: 'Zone 3', litigationCases: 1, totalArrears: 125000, status: 'Active' }
 ];
 
+const exportColumns: ExportColumn[] = [
+  { header: 'Employer ID', key: 'id', width: 15 },
+  { header: 'Employer Name', key: 'name', width: 30 },
+  { header: 'Zone', key: 'zone', width: 15 },
+  { header: 'Litigation Cases', key: 'litigationCases', width: 18 },
+  { header: 'Total Arrears (XCD)', key: 'totalArrears', width: 20 },
+  { header: 'Status', key: 'status', width: 15 },
+];
+
 export default function ByLitigationCountReport() {
   const [filters, setFilters] = useState<Record<string, any>>({});
 
@@ -54,90 +65,103 @@ export default function ByLitigationCountReport() {
   ];
 
   return (
-    <ReportLayout
-      title="Employers By Litigation Count"
-      subtitle="Employers ranked by number of litigation cases"
-      breadcrumbs={[
-        { label: 'Employers', href: '/employers-management/dashboard' },
-        { label: 'Reports' },
-        { label: 'By Litigation Count' }
-      ]}
-      filterPanel={<QueryByFilter fields={filterFields} onFilter={setFilters} defaultExpanded={true} />}
-      summaryMetrics={
-        <div className="grid gap-4 md:grid-cols-4">
-          <MetricCard title="Total Cases" value="27" icon={Scale} variant="error" />
-          <MetricCard title="Employers Affected" value="10" icon={Building2} variant="warning" />
-          <MetricCard title="Active Cases" value="22" icon={AlertTriangle} variant="error" />
-          <MetricCard title="Total Arrears" value="XCD 2.78M" icon={TrendingUp} variant="warning" />
-        </div>
-      }
-      chartArea={
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 10 Employers by Litigation Cases</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.gridline} />
-                <XAxis type="number" stroke={CHART_COLORS.text} />
-                <YAxis dataKey="employer" type="category" width={120} stroke={CHART_COLORS.text} />
-                <Tooltip />
-                <Bar dataKey="cases" fill={CHART_COLORS.error} name="Litigation Cases" radius={[0, 8, 8, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      }
-      tableArea={
-        <Card>
-          <CardHeader>
-            <CardTitle>Employers With Multiple Litigation Cases</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employer ID</TableHead>
-                  <TableHead>Employer Name</TableHead>
-                  <TableHead>Zone</TableHead>
-                  <TableHead>Litigation Cases</TableHead>
-                  <TableHead>Total Arrears (XCD)</TableHead>
-                  <TableHead>Status</TableHead>
+    <div className="container mx-auto p-6 space-y-6" id="by-litigation-count-report">
+      <div className="flex justify-between items-start">
+        <PageHeader
+          title="Employers By Litigation Count"
+          subtitle="Employers ranked by number of litigation cases"
+          breadcrumbs={[
+            { label: 'Employers', href: '/employers-management/dashboard' },
+            { label: 'Reports' },
+            { label: 'By Litigation Count' }
+          ]}
+        />
+        <ExportActions
+          reportTitle="Employers By Litigation Count"
+          fileName="employers-by-litigation-count"
+          data={mockData}
+          columns={exportColumns}
+          additionalInfo={[
+            { label: 'Report Date', value: new Date().toLocaleDateString() },
+            { label: 'Total Cases', value: '27' },
+            { label: 'Total Arrears', value: 'XCD 2.78M' },
+          ]}
+        />
+      </div>
+
+      <div className="no-print">
+        <QueryByFilter fields={filterFields} onFilter={setFilters} defaultExpanded={true} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <MetricCard title="Total Cases" value="27" icon={Scale} variant="error" />
+        <MetricCard title="Employers Affected" value="10" icon={Building2} variant="warning" />
+        <MetricCard title="Active Cases" value="22" icon={AlertTriangle} variant="error" />
+        <MetricCard title="Total Arrears" value="XCD 2.78M" icon={TrendingUp} variant="warning" />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Top 10 Employers by Litigation Cases</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.gridline} />
+              <XAxis type="number" stroke={CHART_COLORS.text} />
+              <YAxis dataKey="employer" type="category" width={120} stroke={CHART_COLORS.text} />
+              <Tooltip />
+              <Bar dataKey="cases" fill={CHART_COLORS.error} name="Litigation Cases" radius={[0, 8, 8, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Employers With Multiple Litigation Cases</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employer ID</TableHead>
+                <TableHead>Employer Name</TableHead>
+                <TableHead>Zone</TableHead>
+                <TableHead>Litigation Cases</TableHead>
+                <TableHead>Total Arrears (XCD)</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mockData.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.id}</TableCell>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell>{row.zone}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      row.litigationCases >= 4 ? 'bg-red-100 text-red-800' : 
+                      row.litigationCases >= 2 ? 'bg-orange-100 text-orange-800' : 
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {row.litigationCases}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-semibold">{row.totalArrears.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      row.status === 'Active' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {row.status}
+                    </span>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockData.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.id}</TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.zone}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        row.litigationCases >= 4 ? 'bg-red-100 text-red-800' : 
-                        row.litigationCases >= 2 ? 'bg-orange-100 text-orange-800' : 
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {row.litigationCases}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-semibold">{row.totalArrears.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        row.status === 'Active' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        {row.status}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      }
-      onExportCSV={() => console.log('Export CSV')}
-      onExportPDF={() => console.log('Export PDF')}
-    />
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
