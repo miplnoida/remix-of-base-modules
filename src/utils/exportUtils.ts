@@ -156,20 +156,3 @@ export const exportToPDF = (
   // Save PDF
   doc.save(`${fileName}.pdf`);
 };
-
-/**
- * Format currency values for export
- */
-export const formatCurrency = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  return `XCD ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-/**
- * Format date values for export
- */
-export const formatDate = (date: string | Date | null | undefined): string => {
-  if (!date) return '-';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-US');
-};
