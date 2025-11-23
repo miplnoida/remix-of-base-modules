@@ -433,7 +433,7 @@ const InsuredPersonListing = () => {
                     <TableHead>Verified By</TableHead>
                     <TableHead>Application Date</TableHead>
                     <TableHead>Registration Date</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="min-w-[120px] sticky right-0 bg-background">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -482,7 +482,7 @@ const InsuredPersonListing = () => {
                       <TableCell>{person.verifiedBy}</TableCell>
                       <TableCell>{person.applicationDate}</TableCell>
                       <TableCell>{person.registrationDate}</TableCell>
-                      <TableCell>
+                      <TableCell className="sticky right-0 bg-background">
                         <div className="flex gap-1">
                           <Button 
                             variant="outline" 
