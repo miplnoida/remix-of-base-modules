@@ -152,6 +152,22 @@ export const legalManagementMenuItems = [
         requiresPermission: "manage_legal_settings",
         subItems: [
           {
+            title: "Case Workflow",
+            url: "/legal/settings/workflow",
+            icon: CheckCircle,
+            requiresPermission: "manage_legal_settings",
+            description: "Configure case stages and statuses",
+            subItems: [
+              {
+                title: "Case Stages & Statuses",
+                url: "/legal/settings/workflow",
+                icon: CheckCircle,
+                requiresPermission: "manage_legal_settings",
+                description: "Manage case stages and statuses"
+              }
+            ]
+          },
+          {
             title: "Courts & Judges",
             url: "/legal/settings/courts",
             icon: Gavel,
@@ -164,13 +180,6 @@ export const legalManagementMenuItems = [
             icon: Calendar,
             requiresPermission: "manage_legal_settings",
             description: "Configure hearing types"
-          },
-          {
-            title: "Case Statuses",
-            url: "/legal/settings/statuses",
-            icon: CheckCircle,
-            requiresPermission: "manage_legal_settings",
-            description: "Legal case status configuration"
           },
           {
             title: "Legal Roles",
