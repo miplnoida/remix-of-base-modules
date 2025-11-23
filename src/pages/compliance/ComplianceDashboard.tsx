@@ -39,19 +39,27 @@ const ComplianceDashboard = () => {
     { label: 'Pending Audits', value: '89', status: 'warning', icon: Clock, change: '+15%' },
   ];
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'XCD',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
   const recentViolations = [
-    { id: 'V-2024-001', employer: 'ABC Manufacturing Ltd', type: 'Late Payment', severity: 'High', daysOpen: 15, amount: '$12,500', status: 'Open' },
-    { id: 'V-2024-002', employer: 'XYZ Services Corp', type: 'Under-reporting', severity: 'Medium', daysOpen: 8, amount: '$5,200', status: 'Under Review' },
-    { id: 'V-2024-003', employer: 'Tech Solutions Inc', type: 'Missing Registration', severity: 'High', daysOpen: 22, amount: '$18,750', status: 'Open' },
-    { id: 'V-2024-004', employer: 'Retail Chain Ltd', type: 'Incomplete Records', severity: 'Low', daysOpen: 5, amount: '$2,100', status: 'Resolved' },
-    { id: 'V-2024-005', employer: 'Construction Corp', type: 'Late Payment', severity: 'Medium', daysOpen: 12, amount: '$8,900', status: 'Open' },
+    { id: 'V-2024-001', employer: 'ABC Manufacturing Ltd', type: 'Late Payment', severity: 'High', daysOpen: 15, amount: 12500, status: 'Open', employerId: 'EMP-001' },
+    { id: 'V-2024-002', employer: 'XYZ Services Corp', type: 'Under-reporting', severity: 'Medium', daysOpen: 8, amount: 5200, status: 'Under Review', employerId: 'EMP-002' },
+    { id: 'V-2024-003', employer: 'Tech Solutions Inc', type: 'Missing Registration', severity: 'High', daysOpen: 22, amount: 18750, status: 'Open', employerId: 'EMP-003' },
+    { id: 'V-2024-004', employer: 'Retail Chain Ltd', type: 'Incomplete Records', severity: 'Low', daysOpen: 5, amount: 2100, status: 'Resolved', employerId: 'EMP-004' },
+    { id: 'V-2024-005', employer: 'Construction Corp', type: 'Late Payment', severity: 'Medium', daysOpen: 12, amount: 8900, status: 'Open', employerId: 'EMP-005' },
   ];
 
   const upcomingAudits = [
-    { id: 'A-2024-001', company: 'Global Industries', date: '2024-01-15', type: 'Routine', auditor: 'John Smith', riskLevel: 'Medium' },
-    { id: 'A-2024-002', company: 'Medical Center Ltd', date: '2024-01-16', type: 'Follow-up', auditor: 'Jane Doe', riskLevel: 'High' },
-    { id: 'A-2024-003', company: 'Education Services', date: '2024-01-18', type: 'Risk-based', auditor: 'Mike Johnson', riskLevel: 'Low' },
-    { id: 'A-2024-004', company: 'Transport Company', date: '2024-01-20', type: 'Investigation', auditor: 'Sarah Wilson', riskLevel: 'High' },
+    { id: 'A-2024-001', company: 'Global Industries', date: '2024-01-15', type: 'Routine', auditor: 'John Smith', riskLevel: 'Medium', employerId: 'EMP-001', findings: 'Initial assessment pending' },
+    { id: 'A-2024-002', company: 'Medical Center Ltd', date: '2024-01-16', type: 'Follow-up', auditor: 'Jane Doe', riskLevel: 'High', employerId: 'EMP-002', findings: 'Reviewing compliance records' },
+    { id: 'A-2024-003', company: 'Education Services', date: '2024-01-18', type: 'Risk-based', auditor: 'Mike Johnson', riskLevel: 'Low', employerId: 'EMP-003', findings: 'Standard documentation check' },
+    { id: 'A-2024-004', company: 'Transport Company', date: '2024-01-20', type: 'Investigation', auditor: 'Sarah Wilson', riskLevel: 'High', employerId: 'EMP-004', findings: 'Investigating discrepancies' },
   ];
 
   const sectorCompliance = [
@@ -164,9 +172,18 @@ const ComplianceDashboard = () => {
                         </div>
                         <p className="text-sm text-gray-600">{violation.type}</p>
                         <div className="flex justify-between text-xs text-gray-500">
-                          <span>{violation.amount}</span>
+                          <span>{formatCurrency(violation.amount)}</span>
                           <span>{violation.daysOpen} days open</span>
                         </div>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="mt-2 w-full"
+                          onClick={() => navigate(`/compliance/violations/${violation.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -201,6 +218,15 @@ const ComplianceDashboard = () => {
                           <span>{audit.date}</span>
                         </div>
                         <p className="text-xs text-gray-500">Auditor: {audit.auditor}</p>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="mt-2 w-full"
+                          onClick={() => navigate(`/employers/${audit.employerId}/audits/${audit.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Audit
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -262,7 +288,7 @@ const ComplianceDashboard = () => {
                             {violation.severity}
                           </Badge>
                         </TableCell>
-                        <TableCell>{violation.amount}</TableCell>
+                        <TableCell>{formatCurrency(violation.amount)}</TableCell>
                         <TableCell>
                           <Badge variant={
                             violation.status === 'Open' ? 'destructive' :
@@ -273,7 +299,11 @@ const ComplianceDashboard = () => {
                         </TableCell>
                         <TableCell>{violation.daysOpen}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => navigate(`/compliance/violations/${violation.id}`)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -321,7 +351,11 @@ const ComplianceDashboard = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => navigate(`/employers/${audit.employerId}/audits/${audit.id}`)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>
