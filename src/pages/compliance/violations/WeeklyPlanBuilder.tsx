@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { WeeklyPlanItem, ItemType, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { inspectionService } from '@/services/inspectionService';
 import { violationService } from '@/services/violationService';
