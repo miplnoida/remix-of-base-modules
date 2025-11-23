@@ -11,6 +11,7 @@ import MyPlans from './audit-planning/MyPlans';
 import FieldExecution from './audit-planning/FieldExecution';
 import PendingReview from './audit-planning/PendingReview';
 import WeeklyReports from './audit-planning/WeeklyReports';
+import ViolationDetails from './ViolationDetails';
 import CaseAnalytics from './reports/CaseAnalytics';
 import InspectorPerformance from './reports/InspectorPerformance';
 import C3Compliance from './reports/C3Compliance';
@@ -23,6 +24,7 @@ import TrendReports from './reports/TrendReports';
 const ComplianceRoutes = () => {
   return (
     <Routes>
+      <Route path="/violations/:id" element={<ViolationDetails />} />
       <Route path="/legal-recommendation-queue" element={<LegalRecommendationQueue />} />
       <Route path="/legal-referral/new" element={<LegalReferralWizard />} />
       <Route path="/settings" element={<ComplianceSettings />} />

@@ -191,7 +191,7 @@ const BatchClosing: React.FC = () => {
             </div>
             <div>
               <div className="text-sm text-muted-foreground">System Total</div>
-              <div className="font-semibold text-lg">EC$ {activeBatch.systemTotal.toFixed(2)}</div>
+              <div className="font-semibold text-lg">XCD {activeBatch.systemTotal.toFixed(2)}</div>
             </div>
           </div>
         </CardContent>
@@ -204,8 +204,8 @@ const BatchClosing: React.FC = () => {
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-600" />
               <div>
-                <div className="text-sm text-muted-foreground">Cash EC$</div>
-                <div className="font-semibold">EC$ {calculateCashTotal(closingData.cashEC).toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground">Cash XCD</div>
+                <div className="font-semibold">XCD {calculateCashTotal(closingData.cashEC).toFixed(2)}</div>
               </div>
             </div>
           </CardContent>
@@ -227,7 +227,7 @@ const BatchClosing: React.FC = () => {
               <FileText className="h-5 w-5 text-purple-600" />
               <div>
                 <div className="text-sm text-muted-foreground">Checks</div>
-                <div className="font-semibold">EC$ {closingData.checksTotal.toFixed(2)}</div>
+                <div className="font-semibold">XCD {closingData.checksTotal.toFixed(2)}</div>
               </div>
             </div>
           </CardContent>
@@ -239,7 +239,7 @@ const BatchClosing: React.FC = () => {
               <div>
                 <div className="text-sm text-muted-foreground">Variance</div>
                 <div className={`font-semibold ${Math.abs(closingData.variance) > 50 ? 'text-red-600' : 'text-green-600'}`}>
-                  EC$ {closingData.variance.toFixed(2)}
+                  XCD {closingData.variance.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -253,7 +253,7 @@ const BatchClosing: React.FC = () => {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Variance Alert</AlertTitle>
           <AlertDescription>
-            The variance of EC$ {closingData.variance.toFixed(2)} exceeds the acceptable limit. 
+            The variance of XCD {closingData.variance.toFixed(2)} exceeds the acceptable limit. 
             Supervisor override will be required to close this batch.
           </AlertDescription>
         </Alert>
@@ -264,7 +264,7 @@ const BatchClosing: React.FC = () => {
         {/* EC$ Denominations */}
         <Card>
           <CardHeader>
-            <CardTitle>EC$ Cash Count</CardTitle>
+            <CardTitle>XCD Cash Count</CardTitle>
             <CardDescription>Enter the count for each denomination</CardDescription>
           </CardHeader>
           <CardContent>
@@ -288,15 +288,15 @@ const BatchClosing: React.FC = () => {
                         onChange={(e) => updateDenomination('cashEC', index, e.target.value)}
                       />
                     </TableCell>
-                    <TableCell className="font-semibold">EC$ {denom.total.toFixed(2)}</TableCell>
+                    <TableCell className="font-semibold">XCD {denom.total.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             <div className="border-t pt-4 mt-4">
               <div className="flex justify-between text-lg font-semibold">
-                <span>EC$ Total:</span>
-                <span>EC$ {calculateCashTotal(closingData.cashEC).toFixed(2)}</span>
+                <span>XCD Total:</span>
+                <span>XCD {calculateCashTotal(closingData.cashEC).toFixed(2)}</span>
               </div>
             </div>
           </CardContent>
@@ -388,16 +388,16 @@ const BatchClosing: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 border rounded-lg">
                 <div className="text-sm text-muted-foreground">System Total</div>
-                <div className="text-2xl font-bold">EC$ {closingData.systemTotal.toFixed(2)}</div>
+                <div className="text-2xl font-bold">XCD {closingData.systemTotal.toFixed(2)}</div>
               </div>
               <div className="text-center p-4 border rounded-lg">
                 <div className="text-sm text-muted-foreground">Physical Count</div>
-                <div className="text-2xl font-bold">EC$ {closingData.physicalTotal.toFixed(2)}</div>
+                <div className="text-2xl font-bold">XCD {closingData.physicalTotal.toFixed(2)}</div>
               </div>
               <div className="text-center p-4 border rounded-lg">
                 <div className="text-sm text-muted-foreground">Variance</div>
                 <div className={`text-2xl font-bold ${Math.abs(closingData.variance) > 50 ? 'text-red-600' : 'text-green-600'}`}>
-                  EC$ {closingData.variance.toFixed(2)}
+                  XCD {closingData.variance.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -441,16 +441,16 @@ const BatchClosing: React.FC = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span>System Total:</span>
-                          <span>EC$ {closingData.systemTotal.toFixed(2)}</span>
+                          <span>XCD {closingData.systemTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Physical Total:</span>
-                          <span>EC$ {closingData.physicalTotal.toFixed(2)}</span>
+                          <span>XCD {closingData.physicalTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between font-semibold">
                           <span>Variance:</span>
                           <span className={Math.abs(closingData.variance) > 50 ? 'text-red-600' : 'text-green-600'}>
-                            EC$ {closingData.variance.toFixed(2)}
+                            XCD {closingData.variance.toFixed(2)}
                           </span>
                         </div>
                       </div>

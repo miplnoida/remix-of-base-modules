@@ -18,7 +18,7 @@ import CRDPrintedSpoiledCardsReport from '@/pages/crd/reports/PrintedSpoiledCard
 
 // Compliance Module
 import ViolationsManagement from '@/pages/compliance/ViolationsManagement';
-import CaseDetails from '@/pages/compliance/CaseDetails';
+import ViolationDetails from '@/pages/compliance/ViolationDetails';
 import InspectorPlans from '@/pages/compliance/InspectorPlans';
 import PaymentArrangements from '@/pages/compliance/PaymentArrangements';
 import FieldOperations from '@/pages/compliance/FieldOperations';
@@ -540,7 +540,7 @@ export const AppRoutes = () => {
       {/* Compliance & Audit Routes */}
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
       <Route path="/compliance/violations" element={<ProtectedLayout><ViolationsManagement /></ProtectedLayout>} />
-      <Route path="/compliance/violations/:id" element={<ProtectedLayout><CaseDetails /></ProtectedLayout>} />
+      <Route path="/compliance/violations/:id" element={<ProtectedLayout><ViolationDetails /></ProtectedLayout>} />
       <Route path="/compliance/inspector-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
       <Route path="/compliance/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
