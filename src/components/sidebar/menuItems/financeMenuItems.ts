@@ -31,6 +31,13 @@ export const financeMenuItems = [
         icon: BarChart3,
       },
       {
+        title: 'Payment Arrangements',
+        url: '/finance/arrangements',
+        icon: ClipboardList,
+        requiresPermission: 'manage_finance',
+        description: 'Central payment arrangements (Compliance, Legal, Finance)'
+      },
+      {
         title: 'Cashier & Payments',
         icon: CreditCard,
         subItems: [
