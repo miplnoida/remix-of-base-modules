@@ -25,6 +25,9 @@ import {
 } from '@/components/ui/select';
 import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, Gavel, TrendingUp, GraduationCap, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SuggestedFollowUpActions } from '@/components/compliance/SuggestedFollowUpActions';
+import { ViolationAction, ActionType, ActionStatus } from '@/types/violationActions';
+import { violationActionsService } from '@/services/violationActionsService';
 import { 
   VisitType, 
   VisitDuration, 
@@ -272,6 +275,50 @@ export default function WeeklyPlanBuilder() {
     const formElement = document.getElementById('visit-form');
     if (formElement) {
       formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleAddActionToPlan = async (action: ViolationAction) => {
+    const visitDate = getDateForDayOfWeek(weekStartDate, 'Monday'); // Default to Monday, user can change
+    const startTime = getNextAvailableTime(visits, visitDate, '08:00');
+    const [hours] = startTime.split(':').map(Number);
+    const endTime = `${String(hours + 1).padStart(2, '0')}:00`;
+
+    if (action.actionType === ActionType.EMPLOYER_VISIT && action.employerId) {
+      // Add as employer visit
+      setCurrentVisit({
+        itemType: PlanItemType.EMPLOYER_VISIT,
+        dayOfWeek: 'Monday',
+        visitDate: visitDate,
+        employerId: action.employerId,
+        employerName: action.employerName,
+        visitType: VisitType.AUDIT,
+        duration: VisitDuration.FULL_DAY,
+        purpose: action.description,
+        plannedStartTime: startTime,
+        plannedEndTime: endTime
+      });
+
+      // Update action status
+      try {
+        await violationActionsService.update(action.id, {
+          status: ActionStatus.IN_WEEKLY_PLAN
+        });
+      } catch (error) {
+        console.error('Failed to update action status:', error);
+      }
+
+      // Scroll to form
+      const formElement = document.getElementById('visit-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      // For non-visit actions (calls, etc.), just show a notification
+      toast({
+        title: 'Action Noted',
+        description: `${action.actionType}: ${action.description}`,
+      });
     }
   };
 
@@ -859,6 +906,13 @@ export default function WeeklyPlanBuilder() {
           )}
         </CardContent>
       </Card>
+
+      {/* Suggested Follow-up Actions */}
+      <SuggestedFollowUpActions
+        inspectorId={inspectorId}
+        weekStartDate={weekStartDate}
+        onAddToPlan={handleAddActionToPlan}
+      />
 
       {/* Week Selection */}
       <Card>
