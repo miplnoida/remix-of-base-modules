@@ -6,6 +6,27 @@ import { MetricCard } from "@/components/shared/MetricCard";
 import { QueryByFilter, FilterField } from "@/components/shared/QueryByFilter";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { CHART_COLORS } from '@/lib/chartColors';
+import { ExportActions } from '@/components/reports/ExportActions';
+import { ExportColumn } from '@/utils/exportUtils';
+
+// Mock data for employer table
+const employerTableData = [
+  { employerId: 'EMP001', employerName: 'ABC Retail Ltd', industry: 'Retail', zone: 'Zone 1', registrationDate: '2023-01-15', status: 'Active', employeeCount: 45 },
+  { employerId: 'EMP002', employerName: 'Grand Hotel', industry: 'Hospitality', zone: 'Zone 2', registrationDate: '2023-02-20', status: 'Active', employeeCount: 78 },
+  { employerId: 'EMP003', employerName: 'Build Pro Construction', industry: 'Construction', zone: 'Zone 1', registrationDate: '2023-03-10', status: 'Active', employeeCount: 32 },
+  { employerId: 'EMP004', employerName: 'Tech Services Inc', industry: 'Services', zone: 'Zone 3', registrationDate: '2023-03-25', status: 'Active', employeeCount: 56 },
+  { employerId: 'EMP005', employerName: 'Manufacturing Co', industry: 'Manufacturing', zone: 'Zone 2', registrationDate: '2023-04-12', status: 'Inactive', employeeCount: 23 },
+];
+
+const exportColumns: ExportColumn[] = [
+  { header: 'Employer ID', key: 'employerId', width: 15 },
+  { header: 'Employer Name', key: 'employerName', width: 30 },
+  { header: 'Industry', key: 'industry', width: 20 },
+  { header: 'Zone', key: 'zone', width: 15 },
+  { header: 'Registration Date', key: 'registrationDate', width: 20 },
+  { header: 'Status', key: 'status', width: 15 },
+  { header: 'Employee Count', key: 'employeeCount', width: 15 },
+];
 
 // Mock data for registration trend
 const registrationTrendData = [
@@ -80,15 +101,28 @@ export default function RegisteredSummaryReport() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <PageHeader
-        title="Registered Employers Summary"
-        subtitle="Overview of all registered employers"
-        breadcrumbs={[
-          { label: "Employers", href: "/employers-management/dashboard" },
-          { label: "Reports", href: "#" },
-          { label: "Registered Summary" }
-        ]}
-      />
+      <div className="flex justify-between items-start">
+        <PageHeader
+          title="Registered Employers Summary"
+          subtitle="Overview of all registered employers"
+          breadcrumbs={[
+            { label: "Employers", href: "/employers-management/dashboard" },
+            { label: "Reports", href: "#" },
+            { label: "Registered Summary" }
+          ]}
+        />
+        <ExportActions
+          reportTitle="Registered Employers Summary"
+          fileName="registered-employers-summary"
+          data={employerTableData}
+          columns={exportColumns}
+          additionalInfo={[
+            { label: 'Report Date', value: new Date().toLocaleDateString() },
+            { label: 'Total Employers', value: '1,234' },
+            { label: 'Active Employers', value: '1,156' }
+          ]}
+        />
+      </div>
 
       <QueryByFilter fields={filterFields} onFilter={setFilters} defaultExpanded={true} />
 
