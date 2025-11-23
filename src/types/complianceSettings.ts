@@ -1,9 +1,17 @@
-export interface AutoCaseCreationRule {
+export interface AutoViolationCreationRule {
   ruleId: string;
   triggerEvent: string;
-  caseType: string;
+  violationType: string;
   enabled: boolean;
   description: string;
+}
+
+export interface ViolationPrefixConfig {
+  automaticPrefix: string;
+  manualPrefix: string;
+  numberFormat: string;
+  startingNumber: number;
+  currentNumber: number;
 }
 
 export interface ComplianceSettingsPolicy {
@@ -20,7 +28,8 @@ export interface ComplianceSettingsPolicy {
   penaltyCalculationFrequency: 'daily' | 'monthly';
   minimumAuditFrequencyMonths: number;
   arrearsEscalationThreshold: number;
-  autoCaseCreationRules: AutoCaseCreationRule[];
+  autoViolationCreationRules: AutoViolationCreationRule[];
+  violationPrefixConfig: ViolationPrefixConfig;
   createdBy: string;
   createdDate: string;
   activatedBy?: string;

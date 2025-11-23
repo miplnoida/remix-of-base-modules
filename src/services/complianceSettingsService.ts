@@ -1,5 +1,12 @@
 import { ComplianceSettingsPolicy, ComplianceSettingsHistory } from '@/types/complianceSettings';
 
+// Get last day of next month
+const getNextMonthEndDay = () => {
+  const today = new Date();
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+  return nextMonth.getDate();
+};
+
 // Mock data for policy history
 const MOCK_POLICIES: ComplianceSettingsPolicy[] = [
   {
@@ -9,57 +16,64 @@ const MOCK_POLICIES: ComplianceSettingsPolicy[] = [
     effectiveTo: '2024-02-28',
     isActive: false,
     c3GracePeriodDays: 7,
-    c3SubmissionDeadlineDay: 15,
-    paymentDueDateDay: 20,
+    c3SubmissionDeadlineDay: getNextMonthEndDay(),
+    paymentDueDateDay: getNextMonthEndDay(),
     penaltyRatePercent: 3.0,
     interestRatePercent: 2.0,
     penaltyCalculationFrequency: 'monthly',
     minimumAuditFrequencyMonths: 24,
     arrearsEscalationThreshold: 75000,
-    autoCaseCreationRules: [
+    autoViolationCreationRules: [
       {
         ruleId: 'RULE-001',
         triggerEvent: 'C3 Submitted After Grace Period',
-        caseType: 'LATE_C3_SUBMISSION',
+        violationType: 'LATE_C3_SUBMISSION',
         enabled: true,
-        description: 'Create case when C3 is submitted after the grace period expires'
+        description: 'Create violation when C3 is submitted after the grace period expires'
       },
       {
         ruleId: 'RULE-002',
         triggerEvent: 'C3 Not Submitted By Cutoff',
-        caseType: 'C3_NOT_SUBMITTED',
+        violationType: 'C3_NOT_SUBMITTED',
         enabled: true,
-        description: 'Create case when C3 is not submitted by the final deadline'
+        description: 'Create violation when C3 is not submitted by the final deadline'
       },
       {
         ruleId: 'RULE-003',
         triggerEvent: 'Payment Not Received',
-        caseType: 'C3_SUBMITTED_NO_PAYMENT',
+        violationType: 'C3_SUBMITTED_NO_PAYMENT',
         enabled: true,
-        description: 'Create case when C3 is submitted but payment is not received'
+        description: 'Create violation when C3 is submitted but payment is not received'
       },
       {
         ruleId: 'RULE-004',
         triggerEvent: 'Validation Errors Detected',
-        caseType: 'C3_VALIDATION_ERROR',
+        violationType: 'C3_VALIDATION_ERROR',
         enabled: false,
-        description: 'Create case when validation errors are detected in C3 submission'
+        description: 'Create violation when validation errors are detected in C3 submission'
       },
       {
         ruleId: 'RULE-005',
         triggerEvent: 'Arrears Exceed Threshold',
-        caseType: 'ARREARS_CASE',
+        violationType: 'ARREARS_CASE',
         enabled: true,
-        description: 'Create case when total arrears exceed the configured threshold'
+        description: 'Create violation when total arrears exceed the configured threshold'
       },
       {
         ruleId: 'RULE-006',
         triggerEvent: 'Payment Arrangement Defaulted',
-        caseType: 'PAYMENT_ARRANGEMENT_DEFAULT',
+        violationType: 'PAYMENT_ARRANGEMENT_DEFAULT',
         enabled: true,
-        description: 'Create case when payment arrangement installment is missed'
+        description: 'Create violation when payment arrangement installment is missed'
       }
     ],
+    violationPrefixConfig: {
+      automaticPrefix: 'VIOA',
+      manualPrefix: 'VIOM',
+      numberFormat: 'YYYY-NNNN',
+      startingNumber: 1,
+      currentNumber: 1
+    },
     createdBy: 'admin.user',
     createdDate: '2023-12-15T10:00:00Z',
     activatedBy: 'admin.user',
@@ -75,57 +89,64 @@ const MOCK_POLICIES: ComplianceSettingsPolicy[] = [
     effectiveTo: null,
     isActive: true,
     c3GracePeriodDays: 5,
-    c3SubmissionDeadlineDay: 15,
-    paymentDueDateDay: 20,
+    c3SubmissionDeadlineDay: getNextMonthEndDay(),
+    paymentDueDateDay: getNextMonthEndDay(),
     penaltyRatePercent: 2.5,
     interestRatePercent: 1.5,
     penaltyCalculationFrequency: 'monthly',
     minimumAuditFrequencyMonths: 18,
     arrearsEscalationThreshold: 50000,
-    autoCaseCreationRules: [
+    autoViolationCreationRules: [
       {
         ruleId: 'RULE-001',
         triggerEvent: 'C3 Submitted After Grace Period',
-        caseType: 'LATE_C3_SUBMISSION',
+        violationType: 'LATE_C3_SUBMISSION',
         enabled: true,
-        description: 'Create case when C3 is submitted after the grace period expires'
+        description: 'Create violation when C3 is submitted after the grace period expires'
       },
       {
         ruleId: 'RULE-002',
         triggerEvent: 'C3 Not Submitted By Cutoff',
-        caseType: 'C3_NOT_SUBMITTED',
+        violationType: 'C3_NOT_SUBMITTED',
         enabled: true,
-        description: 'Create case when C3 is not submitted by the final deadline'
+        description: 'Create violation when C3 is not submitted by the final deadline'
       },
       {
         ruleId: 'RULE-003',
         triggerEvent: 'Payment Not Received',
-        caseType: 'C3_SUBMITTED_NO_PAYMENT',
+        violationType: 'C3_SUBMITTED_NO_PAYMENT',
         enabled: true,
-        description: 'Create case when C3 is submitted but payment is not received'
+        description: 'Create violation when C3 is submitted but payment is not received'
       },
       {
         ruleId: 'RULE-004',
         triggerEvent: 'Validation Errors Detected',
-        caseType: 'C3_VALIDATION_ERROR',
+        violationType: 'C3_VALIDATION_ERROR',
         enabled: true,
-        description: 'Create case when validation errors are detected in C3 submission'
+        description: 'Create violation when validation errors are detected in C3 submission'
       },
       {
         ruleId: 'RULE-005',
         triggerEvent: 'Arrears Exceed Threshold',
-        caseType: 'ARREARS_CASE',
+        violationType: 'ARREARS_CASE',
         enabled: true,
-        description: 'Create case when total arrears exceed the configured threshold'
+        description: 'Create violation when total arrears exceed the configured threshold'
       },
       {
         ruleId: 'RULE-006',
         triggerEvent: 'Payment Arrangement Defaulted',
-        caseType: 'PAYMENT_ARRANGEMENT_DEFAULT',
+        violationType: 'PAYMENT_ARRANGEMENT_DEFAULT',
         enabled: true,
-        description: 'Create case when payment arrangement installment is missed'
+        description: 'Create violation when payment arrangement installment is missed'
       }
     ],
+    violationPrefixConfig: {
+      automaticPrefix: 'VIOA',
+      manualPrefix: 'VIOM',
+      numberFormat: 'YYYY-NNNN',
+      startingNumber: 1,
+      currentNumber: 145
+    },
     createdBy: 'admin.user',
     createdDate: '2024-02-20T14:30:00Z',
     activatedBy: 'admin.user',

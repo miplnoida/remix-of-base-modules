@@ -35,7 +35,7 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { complianceSettingsService } from "@/services/complianceSettingsService";
-import { ComplianceSettingsPolicy, AutoCaseCreationRule } from "@/types/complianceSettings";
+import { ComplianceSettingsPolicy, AutoViolationCreationRule } from "@/types/complianceSettings";
 import { format } from "date-fns";
 
 export default function ComplianceSettings() {
@@ -85,13 +85,13 @@ export default function ComplianceSettings() {
   };
 
   const handleRuleToggle = (ruleId: string, enabled: boolean) => {
-    if (!formData.autoCaseCreationRules) return;
+    if (!formData.autoViolationCreationRules) return;
     
-    const updatedRules = formData.autoCaseCreationRules.map(rule =>
+    const updatedRules = formData.autoViolationCreationRules.map(rule =>
       rule.ruleId === ruleId ? { ...rule, enabled } : rule
     );
     
-    setFormData({ ...formData, autoCaseCreationRules: updatedRules });
+    setFormData({ ...formData, autoViolationCreationRules: updatedRules });
   };
 
   const handleActivateNewPolicy = async () => {
@@ -201,18 +201,16 @@ export default function ComplianceSettings() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="submissionDeadline">Submission Deadline (day of month)</Label>
+              <Label htmlFor="submissionDeadline">Submission & Payment Deadline</Label>
               <Input
                 id="submissionDeadline"
-                type="number"
-                value={formData.c3SubmissionDeadlineDay || 0}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  c3SubmissionDeadlineDay: parseInt(e.target.value)
-                })}
+                type="text"
+                value="End of Coming Month"
+                disabled
+                className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Day of month by which C3 must be submitted
+                Both C3 submission and payment are due by the last day of the coming month
               </p>
             </div>
           </div>
@@ -232,18 +230,6 @@ export default function ComplianceSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="paymentDueDay">Payment Due Date (day of month)</Label>
-              <Input
-                id="paymentDueDay"
-                type="number"
-                value={formData.paymentDueDateDay || 0}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  paymentDueDateDay: parseInt(e.target.value)
-                })}
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="penaltyRate">Penalty Rate (%)</Label>
               <Input
@@ -321,19 +307,112 @@ export default function ComplianceSettings() {
         </CardContent>
       </Card>
 
-      {/* Automatic Case Creation */}
+      {/* Violation Prefix Configuration */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-primary" />
+            <CardTitle>Violation Prefix Configuration</CardTitle>
+          </div>
+          <CardDescription>
+            Configure violation number prefixes and formatting
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="automaticPrefix">Automatic Creation Prefix</Label>
+              <Input
+                id="automaticPrefix"
+                value={formData.violationPrefixConfig?.automaticPrefix || 'VIOA'}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  violationPrefixConfig: {
+                    ...formData.violationPrefixConfig!,
+                    automaticPrefix: e.target.value
+                  }
+                })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Prefix for automatically created violations
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manualPrefix">Manual Creation Prefix</Label>
+              <Input
+                id="manualPrefix"
+                value={formData.violationPrefixConfig?.manualPrefix || 'VIOM'}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  violationPrefixConfig: {
+                    ...formData.violationPrefixConfig!,
+                    manualPrefix: e.target.value
+                  }
+                })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Prefix for manually created violations
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numberFormat">Number Format</Label>
+              <Input
+                id="numberFormat"
+                value={formData.violationPrefixConfig?.numberFormat || 'YYYY-NNNN'}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  violationPrefixConfig: {
+                    ...formData.violationPrefixConfig!,
+                    numberFormat: e.target.value
+                  }
+                })}
+              />
+              <p className="text-xs text-muted-foreground">
+                YYYY = Year, NNNN = Sequential Number
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentNumber">Current Number</Label>
+              <Input
+                id="currentNumber"
+                type="number"
+                value={formData.violationPrefixConfig?.currentNumber || 1}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  violationPrefixConfig: {
+                    ...formData.violationPrefixConfig!,
+                    currentNumber: parseInt(e.target.value)
+                  }
+                })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Next violation number to be assigned
+              </p>
+            </div>
+          </div>
+          <div className="p-3 bg-muted rounded-lg">
+            <p className="text-sm font-medium mb-2">Example Violation Numbers:</p>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>Automatic: <span className="font-mono font-medium text-foreground">{formData.violationPrefixConfig?.automaticPrefix}-{new Date().getFullYear()}-{String(formData.violationPrefixConfig?.currentNumber || 1).padStart(4, '0')}</span></p>
+              <p>Manual: <span className="font-mono font-medium text-foreground">{formData.violationPrefixConfig?.manualPrefix}-{new Date().getFullYear()}-{String(formData.violationPrefixConfig?.currentNumber || 1).padStart(4, '0')}</span></p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Automatic Violation Creation */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-primary" />
-            <CardTitle>Automatic Case Creation Rules</CardTitle>
+            <CardTitle>Automatic Violation Creation Rules</CardTitle>
           </div>
           <CardDescription>
-            Enable or disable automatic case creation triggers
+            Enable or disable automatic violation creation triggers
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {formData.autoCaseCreationRules?.map((rule) => (
+          {formData.autoViolationCreationRules?.map((rule) => (
             <div key={rule.ruleId} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2">
@@ -351,7 +430,7 @@ export default function ComplianceSettings() {
                   {rule.description}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Creates case type: <span className="font-mono">{rule.caseType}</span>
+                  Creates violation type: <span className="font-mono">{rule.violationType}</span>
                 </p>
               </div>
               <Switch
