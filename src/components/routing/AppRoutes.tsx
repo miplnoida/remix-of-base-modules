@@ -49,6 +49,7 @@ import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
 import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
 import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
 import { WeeklyPlanReview } from '@/pages/compliance/audit-planning/WeeklyPlanReview';
+import WeeklyReportSubmission from '@/pages/compliance/violations/WeeklyReportSubmission';
 import EmployerStatementDetail from '@/pages/compliance/EmployerStatementDetail';
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
@@ -564,6 +565,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />
+      <Route path="/compliance/violations/weekly-reports" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/field-execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/my-audits/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
