@@ -37,6 +37,52 @@ import { supabase } from '@/integrations/supabase/client';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
 
+// Helper function to get next Monday from current date
+const getNextMonday = (date: Date = new Date()) => {
+  const result = new Date(date);
+  const day = result.getDay();
+  // If today is Monday, use today; otherwise calculate next Monday
+  const diff = day === 1 ? 0 : day === 0 ? 1 : 8 - day;
+  result.setDate(result.getDate() + diff);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+// Helper function to get Sunday of the same week
+const getSundayOfWeek = (monday: Date) => {
+  const result = new Date(monday);
+  result.setDate(result.getDate() + 6);
+  result.setHours(23, 59, 59, 999);
+  return result;
+};
+
+// Helper function to get date for a specific day of week in a given week
+const getDateForDayOfWeek = (weekStart: string, dayOfWeek: typeof DAYS_OF_WEEK[number]) => {
+  const daysMap = { 'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4 };
+  const dayOffset = daysMap[dayOfWeek];
+  const date = new Date(weekStart);
+  date.setDate(date.getDate() + dayOffset);
+  return date.toISOString().split('T')[0];
+};
+
+// Helper function to find next available time slot for a given date
+const getNextAvailableTime = (visits: VisitFormData[], visitDate: string, defaultStart: string = '08:00') => {
+  const timeSlotsOnDate = visits
+    .filter(v => v.visitDate === visitDate)
+    .map(v => v.plannedStartTime)
+    .filter(Boolean)
+    .sort();
+  
+  if (timeSlotsOnDate.length === 0) return defaultStart;
+  if (!timeSlotsOnDate.includes(defaultStart)) return defaultStart;
+  
+  // If default time (08:00) is taken, find next available hour
+  const lastTime = timeSlotsOnDate[timeSlotsOnDate.length - 1];
+  const [hours] = lastTime.split(':').map(Number);
+  const nextHour = hours + 1;
+  return `${String(nextHour).padStart(2, '0')}:00`;
+};
+
 interface VisitFormData {
   itemType: PlanItemType;
   dayOfWeek: typeof DAYS_OF_WEEK[number];
@@ -63,15 +109,24 @@ export default function WeeklyPlanBuilder() {
   const { toast } = useToast();
   const [inspectorId] = useState('inspector-001'); // Would come from auth context
   const [inspectorZone] = useState('Zone A'); // Would come from auth context
-  const [weekStartDate, setWeekStartDate] = useState('');
-  const [weekEndDate, setWeekEndDate] = useState('');
+  
+  // Initialize with coming Monday and Sunday
+  const initialMonday = getNextMonday();
+  const initialSunday = getSundayOfWeek(initialMonday);
+  
+  const [weekStartDate, setWeekStartDate] = useState(initialMonday.toISOString().split('T')[0]);
+  const [weekEndDate, setWeekEndDate] = useState(initialSunday.toISOString().split('T')[0]);
   const [visits, setVisits] = useState<VisitFormData[]>([]);
   const [currentVisit, setCurrentVisit] = useState<Partial<VisitFormData>>({
     itemType: PlanItemType.EMPLOYER_VISIT,
     visitType: VisitType.AUDIT,
     duration: VisitDuration.FULL_DAY,
     territory: 'St Kitts',
-    isUnplannedSighting: false
+    isUnplannedSighting: false,
+    dayOfWeek: 'Monday',
+    visitDate: initialMonday.toISOString().split('T')[0],
+    plannedStartTime: '08:00',
+    plannedEndTime: '09:00'
   });
   
   // Risk-based suggestions
@@ -177,14 +232,23 @@ export default function WeeklyPlanBuilder() {
   const handleDateSelection = (selectedDay: typeof DAYS_OF_WEEK[number]) => {
     if (!datePickerDialog.employer || !datePickerDialog.visitType) return;
     
+    const visitDate = getDateForDayOfWeek(weekStartDate, selectedDay);
+    const startTime = getNextAvailableTime(visits, visitDate, '08:00');
+    const [hours] = startTime.split(':').map(Number);
+    const endTime = `${String(hours + 1).padStart(2, '0')}:00`;
+    
     const newVisit: Partial<VisitFormData> = {
+      itemType: PlanItemType.EMPLOYER_VISIT,
       dayOfWeek: selectedDay,
+      visitDate: visitDate,
       employerId: datePickerDialog.employer.regNo,
       employerName: datePickerDialog.employer.name,
       visitType: datePickerDialog.visitType,
       duration: VisitDuration.FULL_DAY,
       purpose: datePickerDialog.purpose,
-      isUnplannedSighting: false
+      isUnplannedSighting: false,
+      plannedStartTime: startTime,
+      plannedEndTime: endTime
     };
 
     // Scroll to the form and pre-fill it
@@ -811,16 +875,38 @@ export default function WeeklyPlanBuilder() {
               <Input
                 type="date"
                 value={weekStartDate}
-                onChange={(e) => setWeekStartDate(e.target.value)}
+                onChange={(e) => {
+                  const selectedDate = new Date(e.target.value);
+                  const monday = getNextMonday(selectedDate);
+                  const sunday = getSundayOfWeek(monday);
+                  setWeekStartDate(monday.toISOString().split('T')[0]);
+                  setWeekEndDate(sunday.toISOString().split('T')[0]);
+                  
+                  // Update current visit date if day of week is selected
+                  if (currentVisit.dayOfWeek) {
+                    const newVisitDate = getDateForDayOfWeek(monday.toISOString().split('T')[0], currentVisit.dayOfWeek);
+                    setCurrentVisit({
+                      ...currentVisit,
+                      visitDate: newVisitDate
+                    });
+                  }
+                }}
               />
+              <p className="text-xs text-muted-foreground">
+                Automatically adjusts to nearest Monday
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Week End (Sunday) *</Label>
               <Input
                 type="date"
                 value={weekEndDate}
-                onChange={(e) => setWeekEndDate(e.target.value)}
+                disabled
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground">
+                Automatically set based on week start
+              </p>
             </div>
           </div>
         </CardContent>
@@ -884,7 +970,21 @@ export default function WeeklyPlanBuilder() {
               <Label>Day of Week *</Label>
               <Select
                 value={currentVisit.dayOfWeek}
-                onValueChange={(value) => setCurrentVisit({ ...currentVisit, dayOfWeek: value as any })}
+                onValueChange={(value) => {
+                  const selectedDay = value as typeof DAYS_OF_WEEK[number];
+                  const newVisitDate = getDateForDayOfWeek(weekStartDate, selectedDay);
+                  const startTime = getNextAvailableTime(visits, newVisitDate, '08:00');
+                  const [hours] = startTime.split(':').map(Number);
+                  const endTime = `${String(hours + 1).padStart(2, '0')}:00`;
+                  
+                  setCurrentVisit({ 
+                    ...currentVisit, 
+                    dayOfWeek: selectedDay,
+                    visitDate: newVisitDate,
+                    plannedStartTime: startTime,
+                    plannedEndTime: endTime
+                  });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select day" />
@@ -903,7 +1003,12 @@ export default function WeeklyPlanBuilder() {
                 type="date"
                 value={currentVisit.visitDate}
                 onChange={(e) => setCurrentVisit({ ...currentVisit, visitDate: e.target.value })}
+                disabled
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground">
+                Date is automatically set based on selected day of week
+              </p>
             </div>
 
             {/* Conditional Fields Based on Activity Type */}
@@ -1058,18 +1163,33 @@ export default function WeeklyPlanBuilder() {
               <Label>Planned Start Time *</Label>
               <Input
                 type="time"
-                value={currentVisit.plannedStartTime}
-                onChange={(e) => setCurrentVisit({ ...currentVisit, plannedStartTime: e.target.value })}
+                value={currentVisit.plannedStartTime || '08:00'}
+                onChange={(e) => {
+                  const startTime = e.target.value;
+                  const [hours] = startTime.split(':').map(Number);
+                  const endTime = `${String(hours + 1).padStart(2, '0')}:00`;
+                  setCurrentVisit({ 
+                    ...currentVisit, 
+                    plannedStartTime: startTime,
+                    plannedEndTime: endTime
+                  });
+                }}
               />
+              <p className="text-xs text-muted-foreground">
+                Default: 08:00 AM (auto-adjusted if slot taken)
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label>Planned End Time *</Label>
               <Input
                 type="time"
-                value={currentVisit.plannedEndTime}
+                value={currentVisit.plannedEndTime || '09:00'}
                 onChange={(e) => setCurrentVisit({ ...currentVisit, plannedEndTime: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                Automatically set to 1 hour after start time
+              </p>
             </div>
 
             <div className="space-y-2 col-span-2">
