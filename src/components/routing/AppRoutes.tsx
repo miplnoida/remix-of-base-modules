@@ -50,6 +50,7 @@ import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
 import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
 import { WeeklyPlanReview } from '@/pages/compliance/audit-planning/WeeklyPlanReview';
 import WeeklyReportSubmission from '@/pages/compliance/violations/WeeklyReportSubmission';
+import ManualViolationEntry from '@/pages/compliance/violations/ManualViolationEntry';
 import EmployerStatementDetail from '@/pages/compliance/EmployerStatementDetail';
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
@@ -542,6 +543,7 @@ export const AppRoutes = () => {
       {/* Compliance & Audit Routes */}
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
       <Route path="/compliance/violations" element={<ProtectedLayout><ViolationsManagement /></ProtectedLayout>} />
+      <Route path="/compliance/violations/manual-entry" element={<ProtectedLayout><ManualViolationEntry /></ProtectedLayout>} />
       <Route path="/compliance/violations/:id" element={<ProtectedLayout><ViolationDetails /></ProtectedLayout>} />
       <Route path="/compliance/inspector-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />

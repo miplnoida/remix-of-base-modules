@@ -32,10 +32,25 @@ export const complianceMenuItems = [
       },
       {
         title: "Violations Management",
-        url: "/compliance/violations",
         icon: FolderOpen,
         requiresPermission: "manage_compliance",
-        description: "View and manage all compliance violations"
+        description: "View and manage all compliance violations",
+        subItems: [
+          {
+            title: "All Violations",
+            url: "/compliance/violations",
+            icon: FolderOpen,
+            requiresPermission: "manage_compliance",
+            description: "View and manage all compliance violations"
+          },
+          {
+            title: "Manual Violation Entry",
+            url: "/compliance/violations/manual-entry",
+            icon: AlertTriangle,
+            requiresPermission: "manage_compliance",
+            description: "Create violations from field observations or scouting"
+          }
+        ]
       },
       {
         title: "Weekly Audit Planning",
