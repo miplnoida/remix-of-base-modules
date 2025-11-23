@@ -306,6 +306,11 @@ import CourtOrdersManagement from '@/pages/legal/CourtOrdersManagement';
 import EnforcementActions from '@/pages/legal/EnforcementActions';
 import LegalPaymentPlans from '@/pages/legal/LegalPaymentPlans';
 import CasesByStageReport from '@/pages/legal/reports/CasesByStageReport';
+import RecoveryAnalysis from '@/pages/legal/reports/RecoveryAnalysis';
+import AgingReceivables from '@/pages/legal/reports/AgingReceivables';
+import CourtCostsFees from '@/pages/legal/reports/CourtCostsFees';
+import PerformanceMetrics from '@/pages/legal/reports/PerformanceMetrics';
+import PendingHearings from '@/pages/legal/reports/PendingHearings';
 import CourtsJudges from '@/pages/legal/settings/CourtsJudges';
 import HearingTypes from '@/pages/legal/settings/HearingTypes';
 import CaseStatuses from '@/pages/legal/settings/CaseStatuses';
@@ -796,6 +801,11 @@ export const AppRoutes = () => {
       <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementActions /></ProtectedLayout>} />
       <Route path="/legal/payment-plans" element={<ProtectedLayout><LegalPaymentPlans /></ProtectedLayout>} />
       <Route path="/legal/reports/cases-by-stage" element={<ProtectedLayout><CasesByStageReport /></ProtectedLayout>} />
+      <Route path="/legal/reports/recovery" element={<ProtectedLayout><RecoveryAnalysis /></ProtectedLayout>} />
+      <Route path="/legal/reports/aging" element={<ProtectedLayout><AgingReceivables /></ProtectedLayout>} />
+      <Route path="/legal/reports/costs-fees" element={<ProtectedLayout><CourtCostsFees /></ProtectedLayout>} />
+      <Route path="/legal/reports/performance" element={<ProtectedLayout><PerformanceMetrics /></ProtectedLayout>} />
+      <Route path="/legal/reports/pending-hearings" element={<ProtectedLayout><PendingHearings /></ProtectedLayout>} />
       <Route path="/legal/settings/courts" element={<ProtectedLayout><CourtsJudges /></ProtectedLayout>} />
       <Route path="/legal/settings/hearing-types" element={<ProtectedLayout><HearingTypes /></ProtectedLayout>} />
       <Route path="/legal/settings/statuses" element={<ProtectedLayout><CaseStatuses /></ProtectedLayout>} />

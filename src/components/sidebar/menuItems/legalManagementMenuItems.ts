@@ -1,6 +1,5 @@
 import { 
   Scale, 
-  Briefcase,
   Calendar,
   FileText,
   Gavel,
@@ -28,13 +27,6 @@ export const legalManagementMenuItems = [
         description: "Overview of all legal cases and metrics"
       },
       {
-        title: "Legal Workbench",
-        url: "/legal/workbench",
-        icon: Briefcase,
-        requiresPermission: "view_legal",
-        description: "All legal subcases management"
-      },
-      {
         title: "Case Management",
         icon: FolderOpen,
         requiresPermission: "view_legal",
@@ -53,13 +45,6 @@ export const legalManagementMenuItems = [
             requiresPermission: "create_legal_case",
             description: "Create new legal case"
           },
-          {
-            title: "Delinquent Cases",
-            url: "/legal/cases/delinquent",
-            icon: TrendingDown,
-            requiresPermission: "view_legal",
-            description: "Cases with overdue payments"
-          }
         ]
       },
       {
