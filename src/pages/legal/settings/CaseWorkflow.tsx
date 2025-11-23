@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Workflow, ListTree, Zap } from 'lucide-react';
+import { Workflow, ListTree, Zap, Clock } from 'lucide-react';
 import { StagesTab } from '@/components/legal/workflow/StagesTab';
 import { StatusesTab } from '@/components/legal/workflow/StatusesTab';
 import { WorkflowRulesTab } from '@/components/legal/workflow/WorkflowRulesTab';
+import { TimelinesTriggersTab } from '@/components/legal/workflow/TimelinesTriggersTab';
 
 export default function CaseWorkflow() {
   return (
@@ -17,7 +18,7 @@ export default function CaseWorkflow() {
       </div>
 
       <Tabs defaultValue="stages" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="stages">
             <ListTree className="h-4 w-4 mr-2" />
             Stages
@@ -25,6 +26,10 @@ export default function CaseWorkflow() {
           <TabsTrigger value="statuses">
             <Workflow className="h-4 w-4 mr-2" />
             Statuses
+          </TabsTrigger>
+          <TabsTrigger value="timelines">
+            <Clock className="h-4 w-4 mr-2" />
+            Timelines & Triggers
           </TabsTrigger>
           <TabsTrigger value="rules">
             <Zap className="h-4 w-4 mr-2" />
@@ -44,6 +49,14 @@ export default function CaseWorkflow() {
           <Card>
             <CardContent className="pt-6">
               <StatusesTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="timelines">
+          <Card>
+            <CardContent className="pt-6">
+              <TimelinesTriggersTab />
             </CardContent>
           </Card>
         </TabsContent>
