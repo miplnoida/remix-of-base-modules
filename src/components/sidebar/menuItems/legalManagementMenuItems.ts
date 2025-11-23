@@ -98,7 +98,7 @@ export const legalManagementMenuItems = [
         ]
       },
       {
-        title: "Legal Reports",
+        title: "Reports",
         icon: BarChart3,
         requiresPermission: "view_legal_reports",
         subItems: [
@@ -147,25 +147,16 @@ export const legalManagementMenuItems = [
         ]
       },
       {
-        title: "Legal Settings",
+        title: "Settings",
         icon: Settings,
         requiresPermission: "manage_legal_settings",
         subItems: [
           {
-            title: "Case Workflow",
+            title: "Case Stages & Statuses",
             url: "/legal/settings/workflow",
             icon: CheckCircle,
             requiresPermission: "manage_legal_settings",
-            description: "Configure case stages and statuses",
-            subItems: [
-              {
-                title: "Case Stages & Statuses",
-                url: "/legal/settings/workflow",
-                icon: CheckCircle,
-                requiresPermission: "manage_legal_settings",
-                description: "Manage case stages and statuses"
-              }
-            ]
+            description: "Manage case stages and statuses"
           },
           {
             title: "Courts & Judges",

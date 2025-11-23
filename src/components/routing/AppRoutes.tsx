@@ -295,6 +295,7 @@ import TestDataEntry from '@/pages/test/TestDataEntry';
 // Legal Module pages
 import NewLegalModule from '@/pages/legal/NewLegalModule';
 import CaseIntake from '@/pages/legal/CaseIntake';
+import IntakeDetail from '@/pages/legal/IntakeDetail';
 import CaseTracking from '@/pages/legal/CaseTracking';
 import CaseDetailView from '@/pages/legal/CaseDetailView';
 import CaseEditView from '@/pages/legal/CaseEditView';
@@ -806,6 +807,8 @@ export const AppRoutes = () => {
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
       <Route path="/legal/case-intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
+      <Route path="/legal/cases/intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
+      <Route path="/legal/cases/intake/:id" element={<ProtectedLayout><IntakeDetail /></ProtectedLayout>} />
       <Route path="/legal/case-tracking" element={<ProtectedLayout><CaseTracking /></ProtectedLayout>} />
       <Route path="/legal/case-detail/:id" element={<ProtectedLayout><CaseDetailView /></ProtectedLayout>} />
       <Route path="/legal/case-edit/:id" element={<ProtectedLayout><CaseEditView /></ProtectedLayout>} />

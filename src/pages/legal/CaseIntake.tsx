@@ -1,355 +1,148 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Send, Search } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Eye, FileText, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { mockLegalRequisitions } from '@/data/mockLegalIntake';
 
-const CaseIntake = () => {
+export default function CaseIntake() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    caseId: `LC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
-    caseType: '',
-    status: 'Open',
-    linkedParty: '',
-    partyType: '',
-    caseDescription: '',
-    assignedOfficer: '',
-    priority: 'Medium',
-    evidence: '',
-    actionsTaken: '',
-    nextSteps: '',
-    dateCreated: new Date().toISOString().split('T')[0]
-  });
+  const [filter, setFilter] = useState<string>('all');
 
-  const caseTypes = [
-    'Non-Compliance',
-    'Benefit Dispute', 
-    'Fraud Investigation',
-    'Appeal',
-    'License Violation',
-    'Other'
-  ];
+  const pendingCount = mockLegalRequisitions.filter(r => r.status === 'Pending Review').length;
+  const infoRequestedCount = mockLegalRequisitions.filter(r => r.status === 'Info Requested').length;
 
-  const officers = [
-    'Sarah Johnson',
-    'Michael Chen',
-    'Lisa Wang',
-    'David Rodriguez',
-    'Emma Thompson'
-  ];
+  const filteredRequisitions = filter === 'all' 
+    ? mockLegalRequisitions 
+    : mockLegalRequisitions.filter(r => r.status === filter);
 
-  const mockEmployers = [
-    { id: 'EMP-001', name: 'ABC Manufacturing Ltd', registrationNumber: 'REG-12345' },
-    { id: 'EMP-002', name: 'XYZ Services Corp', registrationNumber: 'REG-23456' },
-    { id: 'EMP-003', name: 'Tech Solutions Inc', registrationNumber: 'REG-34567' }
-  ].filter(emp => emp.name && emp.registrationNumber);
-
-  const mockInsuredPersons = [
-    { id: 'IP-001', name: 'John Smith', ssn: '123-45-6789' },
-    { id: 'IP-002', name: 'Jane Doe', ssn: '234-56-7890' },
-    { id: 'IP-003', name: 'Robert Johnson', ssn: '345-67-8901' }
-  ].filter(person => person.name && person.ssn);
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSave = () => {
-    toast({
-      title: "Case Saved",
-      description: `Case ${formData.caseId} has been saved as draft.`,
-    });
-  };
-
-  const handleSubmit = () => {
-    if (!formData.caseType || !formData.linkedParty || !formData.caseDescription || !formData.assignedOfficer || !formData.nextSteps) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Pending Review':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'Info Requested':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Accepted':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'Rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-neutral-100 text-neutral-800 border-neutral-200';
     }
-
-    toast({
-      title: "Case Submitted",
-      description: `Case ${formData.caseId} has been submitted successfully.`,
-    });
-    navigate('/legal');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/legal')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Legal Module
-              </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
-                <span>Legal Module</span>
-                <span>/</span>
-                <span className="text-gray-900 font-medium">Case Intake & Registration</span>
-              </nav>
+    <div className="flex-1 space-y-6 p-8">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Case Intake</h1>
+          <p className="text-muted-foreground">Review and process legal action requisitions</p>
+        </div>
+        <div className="flex gap-4">
+          <Card className="p-4 border-amber-200 bg-amber-50">
+            <div className="flex items-center gap-2 text-amber-700">
+              <FileText className="h-5 w-5" />
+              <div>
+                <div className="text-xs font-medium">Pending Review</div>
+                <div className="text-2xl font-bold">{pendingCount}</div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Draft
-              </Button>
-              <Button size="sm" onClick={handleSubmit}>
-                <Send className="h-4 w-4 mr-2" />
-                Submit Case
-              </Button>
+          </Card>
+          <Card className="p-4 border-blue-200 bg-blue-50">
+            <div className="flex items-center gap-2 text-blue-700">
+              <MessageSquare className="h-5 w-5" />
+              <div>
+                <div className="text-xs font-medium">Info Requested</div>
+                <div className="text-2xl font-bold">{infoRequestedCount}</div>
+              </div>
             </div>
+          </Card>
+        </div>
+      </div>
+
+      <Card>
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Legal Action Requisitions</h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Intake ID</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Case No.</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Employer</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Reason</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Period</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Amount</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Submitted By</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRequisitions.map((req) => (
+                  <tr key={req.id} className="border-b hover:bg-muted/50 transition-colors">
+                    <td className="p-3">
+                      <div className="font-medium">{req.intakeId}</div>
+                    </td>
+                    <td className="p-3">
+                      {req.caseNumber ? (
+                        <div className="font-medium text-primary">{req.caseNumber}</div>
+                      ) : (
+                        <div className="text-muted-foreground">-</div>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <FileText className="h-4 w-4" />
+                        {new Date(req.submissionDate).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-medium">{req.employer.name}</div>
+                      <div className="text-xs text-muted-foreground">{req.employer.registrationNumber}</div>
+                    </td>
+                    <td className="p-3 max-w-xs">
+                      <div className="text-sm">{req.reason}</div>
+                    </td>
+                    <td className="p-3">
+                      <div className="text-sm">{req.period}</div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="font-medium">${req.amount.toLocaleString()}</div>
+                    </td>
+                    <td className="p-3">
+                      <Badge variant="outline" className={getStatusColor(req.status)}>
+                        {req.status}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                          {req.submittedBy.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <span>{req.submittedBy}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/legal/cases/intake/${req.id}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Case Intake & Registration</h1>
-          <p className="text-gray-600">Create and register a new legal case</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Case Information</CardTitle>
-            <CardDescription>Enter the details for the new legal case</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Case ID and Date */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="caseId">Case ID</Label>
-                <Input
-                  id="caseId"
-                  value={formData.caseId}
-                  disabled
-                  className="bg-gray-50"
-                />
-                <p className="text-xs text-gray-500">Auto-generated</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dateCreated">Date Filed</Label>
-                <Input
-                  id="dateCreated"
-                  type="date"
-                  value={formData.dateCreated}
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
-            </div>
-
-            {/* Case Type */}
-            <div className="space-y-2">
-              <Label htmlFor="caseType">Case Type *</Label>
-              <Select value={formData.caseType} onValueChange={(value) => handleInputChange('caseType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select case type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {caseTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Party Type Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="partyType">Party Type *</Label>
-              <Select value={formData.partyType} onValueChange={(value) => handleInputChange('partyType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select party type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employer">Employer</SelectItem>
-                  <SelectItem value="insured-person">Insured Person</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Linked Party Selection */}
-            {formData.partyType && (
-              <div className="space-y-2">
-                <Label htmlFor="linkedParty">
-                  Linked {formData.partyType === 'employer' ? 'Employer' : 'Insured Person'} *
-                </Label>
-                <div className="flex space-x-2">
-                  <Select value={formData.linkedParty} onValueChange={(value) => handleInputChange('linkedParty', value)}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder={`Select ${formData.partyType === 'employer' ? 'employer' : 'insured person'}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.partyType === 'employer' ? (
-                        mockEmployers.map((employer) => (
-                          <SelectItem 
-                            key={employer.id} 
-                            value={`${employer.name} (${employer.registrationNumber})`}
-                          >
-                            {employer.name} ({employer.registrationNumber})
-                          </SelectItem>
-                        ))
-                      ) : (
-                        mockInsuredPersons.map((person) => (
-                          <SelectItem 
-                            key={person.id} 
-                            value={`${person.name} (${person.ssn})`}
-                          >
-                            {person.name} ({person.ssn})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="sm">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Case Description */}
-            <div className="space-y-2">
-              <Label htmlFor="caseDescription">Case Description *</Label>
-              <Textarea
-                id="caseDescription"
-                placeholder="Describe the legal case, violation, or dispute in detail..."
-                value={formData.caseDescription}
-                onChange={(e) => handleInputChange('caseDescription', e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            {/* Assigned Officer */}
-            <div className="space-y-2">
-              <Label htmlFor="assignedOfficer">Assigned Officer *</Label>
-              <Select value={formData.assignedOfficer} onValueChange={(value) => handleInputChange('assignedOfficer', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select assigned officer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {officers.map((officer) => (
-                    <SelectItem key={officer} value={officer}>{officer}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Status */}
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Open">Open</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Under Review">Under Review</SelectItem>
-                  <SelectItem value="Resolved">Resolved</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Priority */}
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex space-x-2 mt-2">
-                <Badge variant={
-                  formData.priority === 'High' ? 'destructive' :
-                  formData.priority === 'Medium' ? 'default' : 'secondary'
-                }>
-                  {formData.priority} Priority
-                </Badge>
-              </div>
-            </div>
-
-            {/* Evidence */}
-            <div className="space-y-2">
-              <Label htmlFor="evidence">Evidence & Documentation</Label>
-              <Textarea
-                id="evidence"
-                placeholder="List any evidence, documents, or supporting materials..."
-                value={formData.evidence}
-                onChange={(e) => handleInputChange('evidence', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            {/* Actions Taken */}
-            <div className="space-y-2">
-              <Label htmlFor="actionsTaken">Actions Taken</Label>
-              <Textarea
-                id="actionsTaken"
-                placeholder="Describe any actions already taken or immediate steps..."
-                value={formData.actionsTaken}
-                onChange={(e) => handleInputChange('actionsTaken', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            {/* Next Steps */}
-            <div className="space-y-2">
-              <Label htmlFor="nextSteps">Next Steps *</Label>
-              <Textarea
-                id="nextSteps"
-                placeholder="Outline the planned next steps and actions required..."
-                value={formData.nextSteps}
-                onChange={(e) => handleInputChange('nextSteps', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="pt-4 border-t">
-              <p className="text-sm text-gray-600 mb-4">* Required fields</p>
-              <div className="flex space-x-2">
-                <Button variant="outline" onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Draft
-                </Button>
-                <Button onClick={handleSubmit}>
-                  <Send className="h-4 w-4 mr-2" />
-                  Submit Case
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </Card>
     </div>
   );
-};
-
-export default CaseIntake;
+}
