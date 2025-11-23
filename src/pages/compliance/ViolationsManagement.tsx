@@ -24,13 +24,13 @@ import { MOCK_CASES } from '@/services/mockData/complianceData';
 import { CaseStatus, CaseType } from '@/types/compliance';
 import { useNavigate } from 'react-router-dom';
 
-export default function CaseManagement() {
+export default function ViolationsManagement() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
 
-  const filteredCases = MOCK_CASES.filter(c => {
+  const filteredViolations = MOCK_CASES.filter(c => {
     const matchesSearch = 
       c.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.employerName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -79,11 +79,11 @@ export default function CaseManagement() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title="Case Management"
-        subtitle="View and manage all compliance cases"
+        title="Violations Management"
+        subtitle="View and manage all compliance violations"
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance' },
-          { label: 'Case Management' }
+          { label: 'Violations Management' }
         ]}
       />
 
@@ -92,7 +92,7 @@ export default function CaseManagement() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Cases
+              Total Violations
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -102,7 +102,7 @@ export default function CaseManagement() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Cases
+              Active Violations
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -150,7 +150,7 @@ export default function CaseManagement() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by case number or employer..."
+                placeholder="Search by violation number or employer..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -182,20 +182,20 @@ export default function CaseManagement() {
         </CardContent>
       </Card>
 
-      {/* Cases Table */}
+      {/* Violations Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Cases ({filteredCases.length})</CardTitle>
+          <CardTitle>All Violations ({filteredViolations.length})</CardTitle>
           <Button size="sm">
             <Plus className="mr-2 h-4 w-4" />
-            Create Manual Case
+            Create Manual Violation
           </Button>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Case Number</TableHead>
+                <TableHead>Violation Number</TableHead>
                 <TableHead>Employer</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
@@ -208,14 +208,14 @@ export default function CaseManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCases.length === 0 ? (
+              {filteredViolations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center text-muted-foreground">
-                    No cases found
+                    No violations found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCases.map((case_) => (
+                filteredViolations.map((case_) => (
                   <TableRow key={case_.id}>
                     <TableCell className="font-medium">{case_.caseNumber}</TableCell>
                     <TableCell>
@@ -258,7 +258,7 @@ export default function CaseManagement() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`/compliance/cases/${case_.id}`)}
+                          onClick={() => navigate(`/compliance/violations/${case_.id}`)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

@@ -17,7 +17,7 @@ import CardManagement from '@/pages/crd/CardManagement';
 import CRDPrintedSpoiledCardsReport from '@/pages/crd/reports/PrintedSpoiledCardsReport';
 
 // Compliance Module
-import CaseManagement from '@/pages/compliance/CaseManagement';
+import ViolationsManagement from '@/pages/compliance/ViolationsManagement';
 import CaseDetails from '@/pages/compliance/CaseDetails';
 import InspectorPlans from '@/pages/compliance/InspectorPlans';
 import PaymentArrangements from '@/pages/compliance/PaymentArrangements';
@@ -539,8 +539,8 @@ export const AppRoutes = () => {
 
       {/* Compliance & Audit Routes */}
       <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/cases" element={<ProtectedLayout><CaseManagement /></ProtectedLayout>} />
-      <Route path="/compliance/cases/:id" element={<ProtectedLayout><CaseDetails /></ProtectedLayout>} />
+      <Route path="/compliance/violations" element={<ProtectedLayout><ViolationsManagement /></ProtectedLayout>} />
+      <Route path="/compliance/violations/:id" element={<ProtectedLayout><CaseDetails /></ProtectedLayout>} />
       <Route path="/compliance/inspector-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
       <Route path="/compliance/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
@@ -548,7 +548,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
       <Route path="/compliance/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
-      <Route path="/compliance/reports/case-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/reports/violations-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
       <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><InspectorPerformance /></ProtectedLayout>} />
       <Route path="/compliance/reports/c3-compliance" element={<ProtectedLayout><C3Compliance /></ProtectedLayout>} />
       <Route path="/compliance/reports/arrears" element={<ProtectedLayout><ArrearsReports /></ProtectedLayout>} />

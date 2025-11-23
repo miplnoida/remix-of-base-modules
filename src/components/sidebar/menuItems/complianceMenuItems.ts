@@ -31,11 +31,11 @@ export const complianceMenuItems = [
         description: "Visual overview of compliance metrics and trends"
       },
       {
-        title: "Case Management",
-        url: "/compliance/cases",
+        title: "Violations Management",
+        url: "/compliance/violations",
         icon: FolderOpen,
         requiresPermission: "manage_compliance",
-        description: "View and manage all compliance cases"
+        description: "View and manage all compliance violations"
       },
       {
         title: "Weekly Audit Planning",
@@ -108,32 +108,32 @@ export const complianceMenuItems = [
         description: "Compliance analytics and performance reports",
         subItems: [
           {
-            title: "Case Management Reports",
+            title: "Violations Reports",
             icon: FileText,
             requiresPermission: "generate_reports",
-            description: "Case analytics, trends, and status tracking",
+            description: "Violation analytics, trends, and status tracking",
             subItems: [
               {
-                title: "Cases by Status",
-                url: "/compliance/reports/case-analytics",
+                title: "Violations by Status",
+                url: "/compliance/reports/violations-analytics",
                 icon: FileText,
                 requiresPermission: "generate_reports"
               },
               {
-                title: "Cases by Type",
-                url: "/compliance/reports/case-analytics",
+                title: "Violations by Type",
+                url: "/compliance/reports/violations-analytics",
                 icon: FileText,
                 requiresPermission: "generate_reports"
               },
               {
-                title: "Case Resolution Time",
-                url: "/compliance/reports/case-analytics",
+                title: "Violation Resolution Time",
+                url: "/compliance/reports/violations-analytics",
                 icon: FileText,
                 requiresPermission: "generate_reports"
               },
               {
-                title: "Cases by Zone",
-                url: "/compliance/reports/case-analytics",
+                title: "Violations by Zone",
+                url: "/compliance/reports/violations-analytics",
                 icon: FileText,
                 requiresPermission: "generate_reports"
               }
@@ -164,7 +164,7 @@ export const complianceMenuItems = [
                 requiresPermission: "generate_reports"
               },
               {
-                title: "Cases Handled by Inspector",
+                title: "Violations Handled by Inspector",
                 url: "/compliance/reports/inspector-performance",
                 icon: Users,
                 requiresPermission: "generate_reports"
@@ -306,7 +306,7 @@ export const complianceMenuItems = [
             description: "Cases escalated to legal, court proceedings, and outcomes",
             subItems: [
               {
-                title: "Cases Escalated to Legal",
+                title: "Violations Escalated to Legal",
                 url: "/compliance/reports/legal",
                 icon: Scale,
                 requiresPermission: "generate_reports"
@@ -344,7 +344,7 @@ export const complianceMenuItems = [
                 requiresPermission: "generate_reports"
               },
               {
-                title: "Case Creation Trends",
+                title: "Violation Creation Trends",
                 url: "/compliance/reports/trends",
                 icon: TrendingUp,
                 requiresPermission: "generate_reports"
@@ -377,7 +377,7 @@ export const complianceMenuItems = [
         url: "/compliance/legal-recommendation-queue",
         icon: Scale,
         requiresPermission: "manage_compliance",
-        description: "Review cases ready for legal escalation"
+        description: "Review violations ready for legal escalation"
       },
       {
         title: "Settings",
@@ -389,7 +389,7 @@ export const complianceMenuItems = [
             url: "/compliance/settings",
             icon: Settings,
             requiresPermission: "manage_compliance",
-            description: "Configure C3 grace periods, penalties, and automatic case rules"
+            description: "Configure C3 grace periods, penalties, and automatic violation rules"
           },
           {
             title: "Legal Escalation Policy",
