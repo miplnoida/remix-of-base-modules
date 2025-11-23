@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, AlertCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, AlertCircle, MessageSquare, Mail, ListChecks } from 'lucide-react';
 import { MOCK_CASES, MOCK_CASE_HISTORY, MOCK_NOTICES } from '@/services/mockData/complianceData';
 import { CaseStatus } from '@/types/compliance';
 import { ContributionComponent, COMPONENT_LABELS } from '@/types/contributionComponents';
@@ -14,6 +14,9 @@ import { ComponentPaymentArrangement } from '@/types/paymentArrangement';
 import { getArrangementsForCase, createPaymentArrangement } from '@/services/paymentArrangementService';
 import { CreateArrangementDialog } from '@/components/compliance/CreateArrangementDialog';
 import { ArrangementDetailsCard } from '@/components/compliance/ArrangementDetailsCard';
+import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
+import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
+import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
 import { toast } from 'sonner';
 
 export default function ViolationDetails() {
@@ -167,14 +170,26 @@ export default function ViolationDetails() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="overview">
             <FileText className="h-4 w-4 mr-2" />
             Overview
           </TabsTrigger>
+          <TabsTrigger value="notes">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Notes
+          </TabsTrigger>
+          <TabsTrigger value="correspondence">
+            <Mail className="h-4 w-4 mr-2" />
+            Correspondence
+          </TabsTrigger>
+          <TabsTrigger value="actions">
+            <ListChecks className="h-4 w-4 mr-2" />
+            Action Plan
+          </TabsTrigger>
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />
-            Stage History
+            History
           </TabsTrigger>
           <TabsTrigger value="notices">
             <Bell className="h-4 w-4 mr-2" />
@@ -182,11 +197,11 @@ export default function ViolationDetails() {
           </TabsTrigger>
           <TabsTrigger value="financial">
             <DollarSign className="h-4 w-4 mr-2" />
-            Financial Details
+            Financial
           </TabsTrigger>
           <TabsTrigger value="other-violations">
             <AlertCircle className="h-4 w-4 mr-2" />
-            Other Violations ({otherViolations.length})
+            Other ({otherViolations.length})
           </TabsTrigger>
         </TabsList>
 
@@ -238,6 +253,22 @@ export default function ViolationDetails() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="notes" className="space-y-4">
+          <ViolationNotesTab violationId={violationData.id} />
+        </TabsContent>
+
+        <TabsContent value="correspondence" className="space-y-4">
+          <ViolationCorrespondenceTab 
+            violationId={violationData.id}
+            employerId={violationData.employerId}
+            employerName={violationData.employerName}
+          />
+        </TabsContent>
+
+        <TabsContent value="actions" className="space-y-4">
+          <ViolationActionPlanTab violationId={violationData.id} />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">
