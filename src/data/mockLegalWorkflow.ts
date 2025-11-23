@@ -136,3 +136,144 @@ export const mockTaskTemplates = [
   'review_enforcement',
   'review_recovery_options'
 ];
+
+// ============================================
+// WORKFLOW RULES (UI ONLY - NO DB YET)
+// ============================================
+
+export interface LegalWorkflowRule {
+  id: string;
+  name: string;
+  description?: string;
+  active: boolean;
+
+  // TRIGGER
+  stageId: string;
+  statusId: string;
+  daysInStatus: number;
+
+  // CONDITIONS (optional)
+  minOutstandingAmount?: number | null;
+  maxOutstandingAmount?: number | null;
+  caseCategory?: string | null;
+
+  // ACTIONS
+  suggestNextStatusId?: string | null;
+  autoChangeStatus?: boolean;
+
+  sendInternalAlert: boolean;
+  internalNotificationTemplateId?: string | null;
+
+  sendExternalLetter: boolean;
+  letterTemplateId?: string | null;
+
+  createTask: boolean;
+  taskTemplateId?: string | null;
+}
+
+export const mockCaseCategories = [
+  'ARREARS',
+  'OVERPAYMENT',
+  'EMPLOYER_NONCOMPLIANCE',
+  'PENALTY_RECOVERY',
+  'OTHER'
+];
+
+export const mockInternalAlertTemplates = [
+  'Legal Bring-Up Alert',
+  'Enforcement Escalation Alert',
+  'Payment Plan Review Alert',
+  'Hearing Preparation Reminder',
+  'Judgment Follow-Up Alert'
+];
+
+export const mockLetterTemplates = [
+  'Reminder of Court Date',
+  'Notice of Judgment',
+  'Demand for Payment',
+  'Final Notice Before Enforcement',
+  'Settlement Offer Letter'
+];
+
+export const mockWorkflowRules: LegalWorkflowRule[] = [
+  {
+    id: 'rule-1',
+    name: 'Escalate Pending Review After 14 Days',
+    description: 'Alert legal team when case remains in Pending Legal Review for more than 14 days',
+    active: true,
+    stageId: 'stage-1',
+    statusId: 'status-1',
+    daysInStatus: 14,
+    minOutstandingAmount: null,
+    maxOutstandingAmount: null,
+    caseCategory: null,
+    suggestNextStatusId: null,
+    autoChangeStatus: false,
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Legal Bring-Up Alert',
+    sendExternalLetter: false,
+    letterTemplateId: null,
+    createTask: true,
+    taskTemplateId: 'review_case_task'
+  },
+  {
+    id: 'rule-2',
+    name: 'Service Reminder After 30 Days',
+    description: 'Send reminder and create follow-up task if service not completed within 30 days',
+    active: true,
+    stageId: 'stage-2',
+    statusId: 'status-7',
+    daysInStatus: 30,
+    minOutstandingAmount: null,
+    maxOutstandingAmount: null,
+    caseCategory: null,
+    suggestNextStatusId: null,
+    autoChangeStatus: false,
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Legal Bring-Up Alert',
+    sendExternalLetter: false,
+    letterTemplateId: null,
+    createTask: true,
+    taskTemplateId: 'retry_service'
+  },
+  {
+    id: 'rule-3',
+    name: 'Escalate Judgment to Enforcement',
+    description: 'After 7 days with judgment granted, suggest moving to enforcement',
+    active: true,
+    stageId: 'stage-4',
+    statusId: 'status-15',
+    daysInStatus: 7,
+    minOutstandingAmount: 5000,
+    maxOutstandingAmount: null,
+    caseCategory: null,
+    suggestNextStatusId: 'status-20',
+    autoChangeStatus: false,
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Enforcement Escalation Alert',
+    sendExternalLetter: true,
+    letterTemplateId: 'Demand for Payment',
+    createTask: true,
+    taskTemplateId: 'prepare_enforcement'
+  },
+  {
+    id: 'rule-4',
+    name: 'High-Value Enforcement Alert',
+    description: 'Alert legal head for high-value cases in enforcement for over 60 days',
+    active: true,
+    stageId: 'stage-5',
+    statusId: 'status-20',
+    daysInStatus: 60,
+    minOutstandingAmount: 50000,
+    maxOutstandingAmount: null,
+    caseCategory: null,
+    suggestNextStatusId: null,
+    autoChangeStatus: false,
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Enforcement Escalation Alert',
+    sendExternalLetter: false,
+    letterTemplateId: null,
+    createTask: true,
+    taskTemplateId: 'review_enforcement'
+  }
+];
