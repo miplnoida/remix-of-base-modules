@@ -72,11 +72,11 @@ export const complianceMenuItems = [
             description: "Check-in, execute visits, collect evidence"
           },
           {
-            title: "Weekly Reports",
-            url: "/compliance/audit-planning/weekly-reports",
+            title: "Weekly Report Submission",
+            url: "/compliance/violations/weekly-reports",
             icon: FileText,
             requiresPermission: "manage_compliance",
-            description: "Submit and review weekly reports"
+            description: "Submit weekly inspection reports with visit tracking"
           }
         ]
       },
