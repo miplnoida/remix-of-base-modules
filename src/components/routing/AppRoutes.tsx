@@ -299,6 +299,11 @@ import EnforcementActions from '@/pages/legal/EnforcementActions';
 import LegalPaymentPlans from '@/pages/legal/LegalPaymentPlans';
 import CasesByStageReport from '@/pages/legal/reports/CasesByStageReport';
 import CourtsJudges from '@/pages/legal/settings/CourtsJudges';
+import HearingTypes from '@/pages/legal/settings/HearingTypes';
+import CaseStatuses from '@/pages/legal/settings/CaseStatuses';
+import LegalRoles from '@/pages/legal/settings/LegalRoles';
+import FeeMappings from '@/pages/legal/settings/FeeMappings';
+import TerritorySettings from '@/pages/legal/settings/TerritorySettings';
 
 import MiscellaneousPayments from '@/pages/cashier/MiscellaneousPayments';
 import C3Payments from '@/pages/cashier/C3Payments';
@@ -777,6 +782,11 @@ export const AppRoutes = () => {
       <Route path="/legal/payment-plans" element={<ProtectedLayout><LegalPaymentPlans /></ProtectedLayout>} />
       <Route path="/legal/reports/cases-by-stage" element={<ProtectedLayout><CasesByStageReport /></ProtectedLayout>} />
       <Route path="/legal/settings/courts" element={<ProtectedLayout><CourtsJudges /></ProtectedLayout>} />
+      <Route path="/legal/settings/hearing-types" element={<ProtectedLayout><HearingTypes /></ProtectedLayout>} />
+      <Route path="/legal/settings/statuses" element={<ProtectedLayout><CaseStatuses /></ProtectedLayout>} />
+      <Route path="/legal/settings/roles" element={<ProtectedLayout><LegalRoles /></ProtectedLayout>} />
+      <Route path="/legal/settings/fee-mappings" element={<ProtectedLayout><FeeMappings /></ProtectedLayout>} />
+      <Route path="/legal/settings/territory" element={<ProtectedLayout><TerritorySettings /></ProtectedLayout>} />
       
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
