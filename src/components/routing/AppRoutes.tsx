@@ -1006,13 +1006,13 @@ export const AppRoutes = () => {
       <Route path="/employers/reports/overseas-submissions" element={<ProtectedLayout><OverseasSubmissionsReport /></ProtectedLayout>} />
       <Route path="/employers/reports/nil-returns-3-months" element={<ProtectedLayout><NILReturns3MonthsReport /></ProtectedLayout>} />
       <Route path="/employers/reports/nil-returns-over-3-months" element={<ProtectedLayout><NILReturnsOver3MonthsReport /></ProtectedLayout>} />
-      
-      {/* Report Routes - C3 */
+
+      {/* C3 Reports */}
       <Route path="/c3/reports/monthly-collections" element={<ProtectedLayout><MonthlyCollectionsReport /></ProtectedLayout>} />
       <Route path="/c3/reports/arrears" element={<ProtectedLayout><ArrearsReport /></ProtectedLayout>} />
       <Route path="/c3/reports/top-contributors" element={<ProtectedLayout><TopContributorsReport /></ProtectedLayout>} />
-      
-      {/* Report Routes - Finance */}
+
+      {/* Finance Reports */}
       <Route path="/finance/reports/contributions-vs-benefits" element={<ProtectedLayout><ContributionsVsBenefitsReport /></ProtectedLayout>} />
       <Route path="/finance/reports/cash-flow" element={<ProtectedLayout><CashFlowReport /></ProtectedLayout>} />
       <Route path="/finance/reports/investment-portfolio" element={<ProtectedLayout><InvestmentPortfolioReport /></ProtectedLayout>} />
