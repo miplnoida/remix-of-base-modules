@@ -192,21 +192,22 @@ export default function ViolationsManagement() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Violation Number</TableHead>
-                <TableHead>Employer</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Outstanding</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Last Activity</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[140px]">Violation Number</TableHead>
+                  <TableHead className="min-w-[200px]">Employer</TableHead>
+                  <TableHead className="min-w-[150px]">Type</TableHead>
+                  <TableHead className="min-w-[120px]">Status</TableHead>
+                  <TableHead className="min-w-[180px]">Stage</TableHead>
+                  <TableHead className="min-w-[100px]">Priority</TableHead>
+                  <TableHead className="min-w-[130px]">Outstanding</TableHead>
+                  <TableHead className="min-w-[150px]">Assigned To</TableHead>
+                  <TableHead className="min-w-[120px]">Last Activity</TableHead>
+                  <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {filteredViolations.length === 0 ? (
                 <TableRow>
@@ -253,16 +254,21 @@ export default function ViolationsManagement() {
                     <TableCell>
                       {new Date(violation.lastActivityDate).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="sticky right-0 bg-background">
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => navigate(`/compliance/violations/${violation.id}`)}
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          title="View Documents"
+                        >
                           <FileText className="h-4 w-4" />
                         </Button>
                       </div>
@@ -272,6 +278,7 @@ export default function ViolationsManagement() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
