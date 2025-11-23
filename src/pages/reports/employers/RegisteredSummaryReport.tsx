@@ -1,13 +1,22 @@
 import { useState, useMemo } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, TrendingUp, Activity } from "lucide-react";
+import { Building2, Users, TrendingUp, Activity, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { QueryByFilter, FilterField } from "@/components/shared/QueryByFilter";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { CHART_COLORS } from '@/lib/chartColors';
-import { ExportActions } from '@/components/reports/ExportActions';
-import { ExportColumn } from '@/utils/exportUtils';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { exportToExcel, exportToPDF, ExportColumn } from '@/utils/exportUtils';
 
 // Mock data for employer table
 const employerTableData = [
@@ -50,6 +59,7 @@ const industryData = [
 
 export default function RegisteredSummaryReport() {
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const { toast } = useToast();
 
   // Calculate current quarter dates
   const getCurrentQuarter = () => {
@@ -65,6 +75,45 @@ export default function RegisteredSummaryReport() {
   };
 
   const currentQuarter = useMemo(() => getCurrentQuarter(), []);
+
+  const handleExcelExport = async () => {
+    try {
+      await exportToExcel(employerTableData, exportColumns, 'registered-employers-summary', 'Registered Employers');
+      toast({
+        title: 'Export Successful',
+        description: 'Report exported to Excel with formulas.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export to Excel.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePDFExport = () => {
+    try {
+      exportToPDF('Registered Employers Summary', exportColumns, employerTableData, 'registered-employers-summary', [
+        { label: 'Report Date', value: new Date().toLocaleDateString() },
+        { label: 'Total Employers', value: '1,234' },
+      ]);
+      toast({
+        title: 'Export Successful',
+        description: 'Report exported to PDF.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export to PDF.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const filterFields: FilterField[] = [
     { 
@@ -100,7 +149,7 @@ export default function RegisteredSummaryReport() {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6" id="registered-summary-report">
       <div className="flex justify-between items-start">
         <PageHeader
           title="Registered Employers Summary"
@@ -111,20 +160,37 @@ export default function RegisteredSummaryReport() {
             { label: "Registered Summary" }
           ]}
         />
-        <ExportActions
-          reportTitle="Registered Employers Summary"
-          fileName="registered-employers-summary"
-          data={employerTableData}
-          columns={exportColumns}
-          additionalInfo={[
-            { label: 'Report Date', value: new Date().toLocaleDateString() },
-            { label: 'Total Employers', value: '1,234' },
-            { label: 'Active Employers', value: '1,156' }
-          ]}
-        />
+        <div className="no-print flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg z-50">
+              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleExcelExport} className="cursor-pointer">
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                Excel (with formulas)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePDFExport} className="cursor-pointer">
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                PDF (data only)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+        </div>
       </div>
 
-      <QueryByFilter fields={filterFields} onFilter={setFilters} defaultExpanded={true} />
+      <div className="no-print">
+        <QueryByFilter fields={filterFields} onFilter={setFilters} defaultExpanded={true} />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
