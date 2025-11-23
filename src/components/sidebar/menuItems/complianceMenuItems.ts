@@ -15,7 +15,8 @@ import {
   ClipboardCheck,
   DollarSign,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  Building2
 } from "lucide-react";
 
 export const complianceMenuItems = [
@@ -49,6 +50,21 @@ export const complianceMenuItems = [
             icon: AlertTriangle,
             requiresPermission: "manage_compliance",
             description: "Create violations from field observations or scouting"
+          }
+        ]
+      },
+      {
+        title: "Employer Inspections",
+        icon: Building2,
+        requiresPermission: "manage_compliance",
+        description: "Employer visit workspace and findings",
+        subItems: [
+          {
+            title: "Employer Findings",
+            url: "/compliance/employers/findings",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "View all findings for employers"
           }
         ]
       },

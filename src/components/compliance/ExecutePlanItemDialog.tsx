@@ -85,7 +85,11 @@ export function ExecutePlanItemDialog({
                 </TabsContent>
 
                 <TabsContent value="findings">
-                  <FindingsTabContent visit={visit} planItem={planItem} />
+                  <FindingsTabContent 
+                    visit={visit} 
+                    employerId={visit.employerId || planItem.employerId || ''} 
+                    planItem={planItem} 
+                  />
                 </TabsContent>
 
                 <TabsContent value="violations">

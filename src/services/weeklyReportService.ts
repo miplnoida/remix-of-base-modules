@@ -91,6 +91,7 @@ const mockEvidence: InspectionEvidence[] = [
   {
     id: 'evidence-001',
     inspectionVisitId: 'visit-001',
+    employerId: 'EMP-2024-001',
     visitId: 'visit-001',
     evidenceType: EvidenceType.PHOTO,
     type: EvidenceType.PHOTO,
@@ -107,6 +108,7 @@ const mockEvidence: InspectionEvidence[] = [
   {
     id: 'evidence-002',
     inspectionVisitId: 'visit-001',
+    employerId: 'EMP-2024-001',
     visitId: 'visit-001',
     evidenceType: EvidenceType.DOCUMENT,
     type: EvidenceType.DOCUMENT,
@@ -124,12 +126,13 @@ const mockFindings: InspectionFinding[] = [
   {
     id: 'finding-001',
     inspectionVisitId: 'visit-001',
+    employerId: 'EMP-2024-001',
     visitId: 'visit-001',
     findingType: FindingType.POSSIBLE_VIOLATION,
     category: 'Under-reporting',
     title: 'Under-reporting of wages',
     description: 'Employer reported lower wages on C3 form than shown in wage books. Discrepancy of approximately $15,000 over 3 months.',
-    severity: 'High',
+    severity: 'High' as const,
     evidenceIds: ['evidence-001', 'evidence-002'],
     isViolationCreated: false,
     inspectorNotes: 'Need to create violation and calculate penalties',

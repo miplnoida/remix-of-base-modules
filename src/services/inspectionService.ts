@@ -152,9 +152,13 @@ class InspectionService {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     // In real implementation, upload file to storage
+    const visit = mockVisits.find(v => v.id === visitId);
+    if (!visit) throw new Error('Visit not found');
+
     const evidence: InspectionEvidence = {
       id: `evidence-${Date.now()}`,
       inspectionVisitId: visitId,
+      employerId: visit.employerId || '',
       evidenceType: request.evidenceType,
       fileName: request.file.name,
       fileUrl: URL.createObjectURL(request.file),
@@ -178,9 +182,13 @@ class InspectionService {
   async createFinding(visitId: string, request: CreateFindingRequest): Promise<InspectionFinding> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
+    const visit = mockVisits.find(v => v.id === visitId);
+    if (!visit) throw new Error('Visit not found');
+    
     const finding: InspectionFinding = {
       id: `finding-${Date.now()}`,
       inspectionVisitId: visitId,
+      employerId: visit.employerId || '',
       findingType: request.findingType,
       title: request.title,
       description: request.description,

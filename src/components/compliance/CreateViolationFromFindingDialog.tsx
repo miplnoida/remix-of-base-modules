@@ -14,8 +14,10 @@ import { toast } from 'sonner';
 
 interface CreateViolationFromFindingDialogProps {
   finding: InspectionFinding;
-  visit: InspectionVisit;
-  planItem: WeeklyPlanItem;
+  visit?: InspectionVisit;
+  planItem?: WeeklyPlanItem;
+  employerId?: string;
+  employerName?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onViolationCreated: () => void;
@@ -25,6 +27,8 @@ export function CreateViolationFromFindingDialog({
   finding,
   visit,
   planItem,
+  employerId,
+  employerName,
   open,
   onOpenChange,
   onViolationCreated
@@ -44,7 +48,7 @@ export function CreateViolationFromFindingDialog({
   
   const [loading, setLoading] = useState(false);
 
-  const isScouting = planItem.itemType === ItemType.SCOUTING;
+  const isScouting = planItem?.itemType === 'SCOUTING' || !employerId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +57,12 @@ export function CreateViolationFromFindingDialog({
       setLoading(true);
       
       const newViolation = await violationService.create({
-        employerId: isScouting ? undefined : visit.employerId,
+        employerId: isScouting ? undefined : (employerId || visit?.employerId),
         violationType,
         priority,
         summary,
         description,
-        inspectionVisitId: visit.id,
+        inspectionVisitId: visit?.id,
         inspectionFindingId: finding.id,
         isUnlinked: isScouting,
         candidateBusinessName: isScouting ? candidateBusinessName : undefined,
