@@ -64,7 +64,7 @@ export function QueryByFilter({
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full min-w-0 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
           />
         );
 
@@ -73,7 +73,8 @@ export function QueryByFilter({
           <select
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full min-w-0 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background appearance-none cursor-pointer"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
           >
             <option value="">Select {field.label}</option>
             {field.options?.map((opt) => (
@@ -90,26 +91,26 @@ export function QueryByFilter({
             type="date"
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full min-w-0 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
           />
         );
 
       case "daterange":
         return (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
             <input
               type="date"
               value={filters[`${field.name}_from`] || ""}
               onChange={(e) => handleFieldChange(`${field.name}_from`, e.target.value)}
               placeholder="From"
-              className="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 min-w-[140px] px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
             />
             <input
               type="date"
               value={filters[`${field.name}_to`] || ""}
               onChange={(e) => handleFieldChange(`${field.name}_to`, e.target.value)}
               placeholder="To"
-              className="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 min-w-[140px] px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
             />
           </div>
         );
@@ -145,13 +146,15 @@ export function QueryByFilter({
 
       {isExpanded && (
         <CardContent className="pt-0 pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
             {fields.map((field) => (
-              <div key={field.name}>
-                <label className="block text-sm font-medium mb-1.5 text-foreground">
+              <div key={field.name} className={cn("flex flex-col gap-1.5", field.type === "daterange" && "md:col-span-2 lg:col-span-3")}>
+                <label className="block text-sm font-medium text-foreground">
                   {field.label}
                 </label>
-                {renderField(field)}
+                <div className="w-full">
+                  {renderField(field)}
+                </div>
               </div>
             ))}
           </div>
