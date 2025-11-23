@@ -4,10 +4,17 @@
 
 export enum InspectionVisitStatus {
   PLANNED = 'PLANNED',
+  NOT_STARTED = 'NOT_STARTED',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   RESCHEDULED = 'RESCHEDULED',
-  NOT_DONE = 'NOT_DONE'
+  NOT_DONE = 'NOT_DONE',
+  ABORTED = 'ABORTED'
+}
+
+export enum ItemType {
+  EMPLOYER_VISIT = 'EMPLOYER_VISIT',
+  SCOUTING = 'SCOUTING'
 }
 
 export enum EvidenceType {
@@ -15,14 +22,41 @@ export enum EvidenceType {
   DOCUMENT = 'DOCUMENT',
   AUDIO = 'AUDIO',
   VIDEO = 'VIDEO',
-  SIGNATURE = 'SIGNATURE'
+  OTHER = 'OTHER'
 }
 
 export enum FindingType {
   COMPLIANT = 'COMPLIANT',
   MINOR_ISSUE = 'MINOR_ISSUE',
+  MAJOR_ISSUE = 'MAJOR_ISSUE',
   POSSIBLE_VIOLATION = 'POSSIBLE_VIOLATION',
-  CONFIRMED_VIOLATION = 'CONFIRMED_VIOLATION'
+  INFORMATION_ONLY = 'INFORMATION_ONLY'
+}
+
+export interface WeeklyPlanItem {
+  id: string;
+  inspectorUserId: string;
+  inspectorName: string;
+  itemType: ItemType;
+  employerId?: string;
+  employerName?: string;
+  territory: 'St Kitts' | 'Nevis';
+  plannedDate: string;
+  visitDate?: string; // Backward compatibility
+  plannedStartTime?: string;
+  plannedEndTime?: string;
+  duration?: string; // Backward compatibility
+  purpose?: string; // Backward compatibility
+  // For SCOUTING
+  areaName?: string;
+  focusNotes?: string;
+  // Status
+  status: InspectionVisitStatus;
+  rescheduleReason?: string;
+  rescheduledTo?: string;
+  notDoneReason?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface InspectionVisit {
@@ -30,71 +64,58 @@ export interface InspectionVisit {
   weeklyPlanItemId: string;
   employerId?: string;
   employerName?: string;
-  visitDate: string;
-  checkInTime?: string;
-  checkInGPSLat?: number;
-  checkInGPSLng?: number;
-  checkOutTime?: string;
-  checkOutGPSLat?: number;
-  checkOutGPSLng?: number;
-  status: InspectionVisitStatus;
-  visitNotes?: string;
-  inspectorId: string;
+  inspectorUserId: string;
   inspectorName: string;
+  territory: 'St Kitts' | 'Nevis';
+  visitDate?: string; // Backward compatibility
+  checkInTime?: string;
+  checkInLocation?: string;
+  checkOutTime?: string;
+  checkOutLocation?: string;
+  visitStatus: InspectionVisitStatus;
+  visitNotes?: string; // Backward compatibility
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface InspectionEvidence {
   id: string;
-  visitId: string;
-  type: EvidenceType;
+  inspectionVisitId: string;
+  visitId?: string; // Backward compatibility
+  documentId?: string;
+  evidenceType: EvidenceType;
+  type?: EvidenceType; // Backward compatibility
   fileName: string;
   fileUrl: string;
   fileSize: number;
   description?: string;
   capturedAt: string;
-  capturedBy: string;
+  capturedByUserId: string;
+  capturedByName?: string;
+  capturedBy?: string; // Backward compatibility
   gpsLat?: number;
   gpsLng?: number;
 }
 
 export interface InspectionFinding {
   id: string;
-  visitId: string;
+  inspectionVisitId: string;
+  visitId?: string; // Backward compatibility
   findingType: FindingType;
-  category: string;
+  category?: string; // Backward compatibility
+  title?: string;
   description: string;
   severity?: 'Low' | 'Medium' | 'High' | 'Critical';
-  evidenceIds: string[];
+  recommendedAction?: string;
+  inspectorNotes?: string; // Backward compatibility
+  evidenceIds?: string[];
   isViolationCreated: boolean;
   violationId?: string;
-  inspectorNotes?: string;
   createdAt: string;
-  createdBy: string;
-}
-
-export interface WeeklyPlanItem {
-  id: string;
-  planId: string;
-  itemType: 'EMPLOYER_VISIT' | 'SCOUTING';
-  dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
-  visitDate: string;
-  employerId?: string;
-  employerName?: string;
-  areaName?: string;
-  territory: 'St Kitts' | 'Nevis';
-  visitType: string;
-  duration: string;
-  purpose: string;
-  plannedStartTime?: string;
-  plannedEndTime?: string;
-  status: InspectionVisitStatus;
-  rescheduleReason?: string;
-  rescheduledTo?: string;
-  notDoneReason?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdByUserId: string;
+  createdByName?: string;
+  createdBy?: string; // Backward compatibility
 }
 
 export interface WeeklyReportSummary {
@@ -111,4 +132,38 @@ export interface WeeklyReportSummary {
   totalViolations: number;
   submittedAt?: string;
   status: 'DRAFT' | 'SUBMITTED' | 'APPROVED';
+}
+
+export interface CreateWeeklyPlanItemRequest {
+  itemType: ItemType;
+  employerId?: string;
+  territory: 'St Kitts' | 'Nevis';
+  plannedDate: string;
+  plannedStartTime?: string;
+  plannedEndTime?: string;
+  areaName?: string;
+  focusNotes?: string;
+}
+
+export interface CheckInRequest {
+  location?: string;
+}
+
+export interface CheckOutRequest {
+  location?: string;
+  notes?: string;
+}
+
+export interface CreateEvidenceRequest {
+  evidenceType: EvidenceType;
+  file: File;
+  description?: string;
+}
+
+export interface CreateFindingRequest {
+  findingType: FindingType;
+  title: string;
+  description: string;
+  severity: 'Low' | 'Medium' | 'High' | 'Critical';
+  recommendedAction?: string;
 }

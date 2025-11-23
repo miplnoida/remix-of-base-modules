@@ -6,7 +6,8 @@ import {
   WeeklyReportSummary,
   InspectionVisitStatus,
   FindingType,
-  EvidenceType
+  EvidenceType,
+  ItemType
 } from '@/types/inspectionTypes';
 import { Violation, ViolationStatus, ViolationType } from '@/types/violation';
 
@@ -14,16 +15,14 @@ import { Violation, ViolationStatus, ViolationType } from '@/types/violation';
 const mockWeeklyPlanItems: WeeklyPlanItem[] = [
   {
     id: 'wpi-001',
-    planId: 'plan-001',
-    itemType: 'EMPLOYER_VISIT',
-    dayOfWeek: 'Monday',
+    inspectorUserId: 'inspector-001',
+    inspectorName: 'John Inspector',
+    itemType: ItemType.EMPLOYER_VISIT,
     visitDate: '2024-01-22',
+    plannedDate: '2024-01-22',
     employerId: 'EMP-2024-001',
     employerName: 'ABC Construction Ltd',
     territory: 'St Kitts',
-    visitType: 'AUDIT',
-    duration: 'FULL_DAY',
-    purpose: 'Compliance audit for registration verification',
     plannedStartTime: '09:00',
     plannedEndTime: '17:00',
     status: InspectionVisitStatus.COMPLETED,
@@ -32,16 +31,14 @@ const mockWeeklyPlanItems: WeeklyPlanItem[] = [
   },
   {
     id: 'wpi-002',
-    planId: 'plan-001',
-    itemType: 'EMPLOYER_VISIT',
-    dayOfWeek: 'Tuesday',
+    inspectorUserId: 'inspector-001',
+    inspectorName: 'John Inspector',
+    itemType: ItemType.EMPLOYER_VISIT,
     visitDate: '2024-01-23',
+    plannedDate: '2024-01-23',
     employerId: 'EMP-2024-010',
     employerName: 'Retail Services Inc',
     territory: 'St Kitts',
-    visitType: 'PAYMENT_FOLLOW_UP',
-    duration: 'HALF_DAY_AM',
-    purpose: 'Follow-up on outstanding C3 payment',
     plannedStartTime: '09:00',
     plannedEndTime: '12:00',
     status: InspectionVisitStatus.PLANNED,
@@ -50,15 +47,13 @@ const mockWeeklyPlanItems: WeeklyPlanItem[] = [
   },
   {
     id: 'wpi-003',
-    planId: 'plan-001',
-    itemType: 'SCOUTING',
-    dayOfWeek: 'Wednesday',
+    inspectorUserId: 'inspector-001',
+    inspectorName: 'John Inspector',
+    itemType: ItemType.SCOUTING,
     visitDate: '2024-01-24',
+    plannedDate: '2024-01-24',
     areaName: 'Basseterre Industrial Zone',
     territory: 'St Kitts',
-    visitType: 'SCOUTING',
-    duration: 'FULL_DAY',
-    purpose: 'Identify unregistered employers in industrial area',
     plannedStartTime: '08:00',
     plannedEndTime: '16:00',
     status: InspectionVisitStatus.COMPLETED,
@@ -119,15 +114,18 @@ const mockEvidence: InspectionEvidence[] = [
 const mockFindings: InspectionFinding[] = [
   {
     id: 'finding-001',
+    inspectionVisitId: 'visit-001',
     visitId: 'visit-001',
     findingType: FindingType.POSSIBLE_VIOLATION,
     category: 'Under-reporting',
+    title: 'Under-reporting of wages',
     description: 'Employer reported lower wages on C3 form than shown in wage books. Discrepancy of approximately $15,000 over 3 months.',
     severity: 'High',
     evidenceIds: ['evidence-001', 'evidence-002'],
     isViolationCreated: false,
     inspectorNotes: 'Need to create violation and calculate penalties',
     createdAt: '2024-01-22T15:00:00Z',
+    createdByUserId: 'inspector-001',
     createdBy: 'inspector-001'
   }
 ];
