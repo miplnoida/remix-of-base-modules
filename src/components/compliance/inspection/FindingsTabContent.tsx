@@ -13,10 +13,11 @@ import { toast } from 'sonner';
 
 interface FindingsTabContentProps {
   visit: InspectionVisit;
-  planItem: WeeklyPlanItem;
+  employerId: string;
+  planItem?: WeeklyPlanItem;
 }
 
-export function FindingsTabContent({ visit, planItem }: FindingsTabContentProps) {
+export function FindingsTabContent({ visit, employerId, planItem }: FindingsTabContentProps) {
   const [findings, setFindings] = useState<InspectionFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -259,6 +260,8 @@ export function FindingsTabContent({ visit, planItem }: FindingsTabContentProps)
           finding={selectedFinding}
           visit={visit}
           planItem={planItem}
+          employerId={employerId}
+          employerName={visit.employerName}
           open={!!selectedFinding}
           onOpenChange={(open) => !open && setSelectedFinding(null)}
           onViolationCreated={() => {

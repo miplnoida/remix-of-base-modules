@@ -88,6 +88,7 @@ export interface InspectionVisit {
 export interface InspectionEvidence {
   id: string;
   inspectionVisitId: string;
+  employerId: string; // Denormalized for reporting
   visitId?: string; // Backward compatibility
   documentId?: string;
   evidenceType: EvidenceType;
@@ -107,12 +108,13 @@ export interface InspectionEvidence {
 export interface InspectionFinding {
   id: string;
   inspectionVisitId: string;
+  employerId: string;
   visitId?: string; // Backward compatibility
   findingType: FindingType;
   category?: string; // Backward compatibility
-  title?: string;
+  title: string;
   description: string;
-  severity?: 'Low' | 'Medium' | 'High' | 'Critical';
+  severity: 'Low' | 'Medium' | 'High' | 'Critical';
   recommendedAction?: string;
   inspectorNotes?: string; // Backward compatibility
   evidenceIds?: string[];
