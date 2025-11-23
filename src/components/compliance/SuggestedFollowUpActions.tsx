@@ -92,81 +92,116 @@ export function SuggestedFollowUpActions({
             <p className="text-xs mt-1">Actions will appear here when violations have planned follow-ups</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {actions.map((action) => (
-              <div
-                key={action.id}
-                className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors"
-              >
-                {/* Header Row */}
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="font-mono">
-                        {action.violationNumber}
-                      </Badge>
-                      <Badge variant="outline">{action.actionType}</Badge>
-                      <Badge className={getPriorityColor(action.priority)}>
-                        {action.priority}
-                      </Badge>
-                      {action.status === ActionStatus.IN_WEEKLY_PLAN && (
-                        <Badge variant="secondary">In Plan</Badge>
-                      )}
-                    </div>
-                    
-                    {/* Employer Info */}
-                    {action.employerId ? (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-semibold">{action.employerName}</span>
-                        {action.territory && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span>{action.territory}</span>
+          <div className="space-y-4">
+            {(() => {
+              // Group actions by employer
+              const groupedByEmployer = actions.reduce((acc, action) => {
+                const key = action.employerId || 'unlinked';
+                if (!acc[key]) {
+                  acc[key] = {
+                    employerId: action.employerId,
+                    employerName: action.employerName,
+                    territory: action.territory,
+                    actions: [],
+                    allInPlan: true,
+                  };
+                }
+                acc[key].actions.push(action);
+                if (action.status !== ActionStatus.IN_WEEKLY_PLAN) {
+                  acc[key].allInPlan = false;
+                }
+                return acc;
+              }, {} as Record<string, { employerId: string | null; employerName: string | null; territory: string | null; actions: ViolationAction[]; allInPlan: boolean }>);
+
+              return Object.values(groupedByEmployer).map((group) => (
+                <div
+                  key={group.employerId || 'unlinked'}
+                  className="border rounded-lg p-4 space-y-3"
+                >
+                  {/* Employer Header */}
+                  <div className="flex items-start justify-between pb-3 border-b">
+                    <div className="space-y-1">
+                      {group.employerId ? (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-primary" />
+                            <span className="font-semibold text-lg">{group.employerName}</span>
                           </div>
-                        )}
+                          {group.territory && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground ml-7">
+                              <MapPin className="h-3 w-3" />
+                              <span>{group.territory}</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Building2 className="h-5 w-5" />
+                          <span className="font-semibold">Unlinked Violations (Scouting)</span>
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground ml-7">
+                        {group.actions.length} violation{group.actions.length > 1 ? 's' : ''} requiring follow-up
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Building2 className="h-4 w-4" />
-                        <span>Unlinked Violation (Scouting)</span>
-                      </div>
+                    </div>
+
+                    {group.employerId && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddToPlan(group.actions[0])}
+                        disabled={group.allInPlan}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        {group.allInPlan ? 'In Plan' : 'Add to Plan'}
+                      </Button>
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    onClick={() => handleAddToPlan(action)}
-                    disabled={action.status === ActionStatus.IN_WEEKLY_PLAN}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    {action.status === ActionStatus.IN_WEEKLY_PLAN ? 'In Plan' : 'Add to Plan'}
-                  </Button>
-                </div>
+                  {/* Violations List */}
+                  <div className="space-y-2 ml-7">
+                    {group.actions.map((action) => (
+                      <div
+                        key={action.id}
+                        className="border-l-2 border-muted pl-3 py-2 space-y-2"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {action.violationNumber}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">{action.actionType}</Badge>
+                          <Badge className={`text-xs ${getPriorityColor(action.priority)}`}>
+                            {action.priority}
+                          </Badge>
+                          {action.status === ActionStatus.IN_WEEKLY_PLAN && (
+                            <Badge variant="secondary" className="text-xs">In Plan</Badge>
+                          )}
+                        </div>
+                        
+                        <div className="text-sm text-foreground">
+                          {action.description}
+                        </div>
 
-                {/* Description */}
-                <div className="text-sm">
-                  <p className="text-foreground">{action.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          {action.dueDate && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>Due: {format(new Date(action.dueDate), 'PP')}</span>
+                            </div>
+                          )}
+                          {action.suggestedWeek && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>Suggested: {format(new Date(action.suggestedWeek), 'PP')}</span>
+                            </div>
+                          )}
+                          <span>By: {action.createdByName}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                {/* Due Date Info */}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {action.dueDate && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>Due: {format(new Date(action.dueDate), 'PP')}</span>
-                    </div>
-                  )}
-                  {action.suggestedWeek && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>Suggested Week: {format(new Date(action.suggestedWeek), 'PP')}</span>
-                    </div>
-                  )}
-                  <span>Created by: {action.createdByName}</span>
-                </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         )}
       </CardContent>
