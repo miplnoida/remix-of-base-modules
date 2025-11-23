@@ -20,18 +20,21 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  FileText
+  FileText,
+  Play
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WeeklyAuditPlan, WeeklyPlanWorkflowStatus } from '@/types/weeklyAuditPlan';
 import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
 import { useNavigate } from 'react-router-dom';
+import { PlanExecutionDialog } from '@/components/compliance/PlanExecutionDialog';
 
 export default function MyPlans() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<WeeklyAuditPlan[]>([]);
   const [loading, setLoading] = useState(false);
+  const [executingPlan, setExecutingPlan] = useState<WeeklyAuditPlan | null>(null);
 
   useEffect(() => {
     loadMyPlans();
@@ -271,12 +274,11 @@ export default function MyPlans() {
                         {(plan.status === WeeklyPlanWorkflowStatus.APPROVED || 
                           plan.status === WeeklyPlanWorkflowStatus.IN_EXECUTION) && (
                           <Button
-                            variant="outline"
                             size="sm"
-                            onClick={() => navigate('/compliance/audit-planning/field-execution')}
+                            onClick={() => setExecutingPlan(plan)}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Execute
+                            <Play className="h-4 w-4 mr-2" />
+                            Execute Plan
                           </Button>
                         )}
                         <Button
@@ -336,6 +338,17 @@ export default function MyPlans() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Execution Dialog */}
+      {executingPlan && (
+        <PlanExecutionDialog
+          visits={executingPlan.plannedVisits}
+          planNumber={executingPlan.planNumber}
+          weekPeriod={`${executingPlan.weekStartDate} - ${executingPlan.weekEndDate}`}
+          onClose={() => setExecutingPlan(null)}
+          onRefresh={loadMyPlans}
+        />
       )}
     </div>
   );

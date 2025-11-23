@@ -366,13 +366,6 @@ export const complianceMenuItems = [
         ]
       },
       {
-        title: "Audit Planning",
-        url: "/compliance/audit-planning/sampling-dashboard",
-        icon: Calendar,
-        requiresPermission: "manage_compliance",
-        description: "Risk & sampling dashboard, monthly candidates"
-      },
-      {
         title: "Legal Recommendation Queue",
         url: "/compliance/legal-recommendation-queue",
         icon: Scale,
