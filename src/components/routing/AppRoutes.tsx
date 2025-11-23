@@ -128,6 +128,8 @@ import AuditSampleIPReport from '@/pages/person/reports/AuditSampleIPReport';
 import FeeConfigurationDetail from '@/pages/finance/settings/FeeConfigurationDetail';
 import FeeConfigurationList from '@/pages/finance/settings/FeeConfigurationList';
 import ServiceTypeManagement from '@/pages/finance/settings/ServiceTypeManagement';
+import PaymentArrangementsPage from '@/pages/finance/PaymentArrangements';
+import ArrangementDetail from '@/pages/finance/ArrangementDetail';
 import VerificationSettings from '@/pages/finance/settings/VerificationSettings';
 import MultiCurrencySettings from '@/pages/finance/settings/MultiCurrencySettings';
 
@@ -902,6 +904,10 @@ export const AppRoutes = () => {
       <Route path="/finance/accounts-payable/pay-runs/create" element={<ProtectedLayout><CreatePayRun /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/generate-payments" element={<ProtectedLayout><GeneratePayments /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/payment-inquiry" element={<ProtectedLayout><PaymentInquiry /></ProtectedLayout>} />
+      
+      {/* Central Payment Arrangements */}
+      <Route path="/finance/arrangements" element={<ProtectedLayout><PaymentArrangementsPage /></ProtectedLayout>} />
+      <Route path="/finance/arrangements/:id" element={<ProtectedLayout><ArrangementDetail /></ProtectedLayout>} />
       
       <Route path="/cashier/eft-entry" element={<ProtectedLayout><EFTEntry /></ProtectedLayout>} />
       <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
