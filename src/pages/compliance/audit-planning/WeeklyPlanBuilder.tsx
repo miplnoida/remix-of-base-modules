@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,7 @@ interface VisitFormData {
 
 export default function WeeklyPlanBuilder() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [inspectorId] = useState('inspector-001'); // Would come from auth context
   const [inspectorZone] = useState('Zone A'); // Would come from auth context
   
@@ -503,10 +505,8 @@ export default function WeeklyPlanBuilder() {
         description: 'Weekly plan submitted for review'
       });
       
-      // Reset form
-      setWeekStartDate('');
-      setWeekEndDate('');
-      setVisits([]);
+      // Navigate to My Plans
+      navigate('/compliance/audit-planning/my-plans');
     } catch (error) {
       toast({
         title: 'Error',
