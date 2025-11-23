@@ -291,6 +291,14 @@ import CaseIntake from '@/pages/legal/CaseIntake';
 import CaseTracking from '@/pages/legal/CaseTracking';
 import CaseDetailView from '@/pages/legal/CaseDetailView';
 import CaseEditView from '@/pages/legal/CaseEditView';
+import LegalDashboard from '@/pages/legal/LegalDashboard';
+import LegalWorkbench from '@/pages/legal/LegalWorkbench';
+import DelinquentCases from '@/pages/legal/DelinquentCases';
+import CourtOrdersManagement from '@/pages/legal/CourtOrdersManagement';
+import EnforcementActions from '@/pages/legal/EnforcementActions';
+import LegalPaymentPlans from '@/pages/legal/LegalPaymentPlans';
+import CasesByStageReport from '@/pages/legal/reports/CasesByStageReport';
+import CourtsJudges from '@/pages/legal/settings/CourtsJudges';
 
 import MiscellaneousPayments from '@/pages/cashier/MiscellaneousPayments';
 import C3Payments from '@/pages/cashier/C3Payments';
@@ -757,6 +765,19 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/roles" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRoleManagement /></Suspense></ProtectedLayout>} />
       <Route path="/bema/admin/logs" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaSystemLogs /></Suspense></ProtectedLayout>} />
 
+      {/* Legal Module Routes - New */}
+      <Route path="/legal/dashboard" element={<ProtectedLayout><LegalDashboard /></ProtectedLayout>} />
+      <Route path="/legal/workbench" element={<ProtectedLayout><LegalWorkbench /></ProtectedLayout>} />
+      <Route path="/legal/cases" element={<ProtectedLayout><CaseTracking /></ProtectedLayout>} />
+      <Route path="/legal/cases/intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
+      <Route path="/legal/cases/delinquent" element={<ProtectedLayout><DelinquentCases /></ProtectedLayout>} />
+      <Route path="/legal/hearings" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><LegalHearingCalendar /></Suspense></ProtectedLayout>} />
+      <Route path="/legal/court-orders" element={<ProtectedLayout><CourtOrdersManagement /></ProtectedLayout>} />
+      <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementActions /></ProtectedLayout>} />
+      <Route path="/legal/payment-plans" element={<ProtectedLayout><LegalPaymentPlans /></ProtectedLayout>} />
+      <Route path="/legal/reports/cases-by-stage" element={<ProtectedLayout><CasesByStageReport /></ProtectedLayout>} />
+      <Route path="/legal/settings/courts" element={<ProtectedLayout><CourtsJudges /></ProtectedLayout>} />
+      
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
       <Route path="/legal/case-intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
@@ -765,7 +786,6 @@ export const AppRoutes = () => {
       <Route path="/legal/case-edit/:id" element={<ProtectedLayout><CaseEditView /></ProtectedLayout>} />
       <Route path="/legal/notices" element={<ProtectedLayout><NoticeGeneration /></ProtectedLayout>} />
       <Route path="/legal/appeals" element={<ProtectedLayout><AppealSubmission /></ProtectedLayout>} />
-      <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementPenalty /></ProtectedLayout>} />
       <Route path="/legal/evidence" element={<ProtectedLayout><LegalEvidenceManagement /></ProtectedLayout>} />
       <Route path="/legal/admin" element={<ProtectedLayout><LegalAdminConfig /></ProtectedLayout>} />
 
