@@ -36,7 +36,8 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'XCD',
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -66,7 +67,7 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
             <TableHead>Compliance</TableHead>
             <TableHead>Last Contribution</TableHead>
             <TableHead>Contact</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -100,7 +101,7 @@ export const EmployerTable: React.FC<EmployerTableProps> = ({ employers, onViewD
                   <div className="text-muted-foreground">{employer.contactInfo.email}</div>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="sticky right-0 bg-background">
                 <Button
                   variant="outline"
                   size="sm"

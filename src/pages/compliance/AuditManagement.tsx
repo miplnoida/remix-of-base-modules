@@ -86,44 +86,52 @@ const AuditManagement = () => {
                 <CardDescription>View and manage all scheduled audits</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Audit ID</TableHead>
-                      <TableHead>Employer</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Auditor</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {auditSchedule.map((audit) => (
-                      <TableRow key={audit.id}>
-                        <TableCell className="font-medium">{audit.id}</TableCell>
-                        <TableCell>{audit.employer}</TableCell>
-                        <TableCell>{audit.type}</TableCell>
-                        <TableCell>{audit.date}</TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            audit.status === 'Completed' ? 'default' :
-                            audit.status === 'In Progress' ? 'secondary' : 'outline'
-                          }>
-                            {audit.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{audit.auditor}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button variant="ghost" size="sm">View</Button>
-                            <Button variant="ghost" size="sm">Edit</Button>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[120px]">Audit ID</TableHead>
+                        <TableHead className="min-w-[180px]">Employer</TableHead>
+                        <TableHead className="min-w-[120px]">Type</TableHead>
+                        <TableHead className="min-w-[120px]">Date</TableHead>
+                        <TableHead className="min-w-[120px]">Status</TableHead>
+                        <TableHead className="min-w-[150px]">Auditor</TableHead>
+                        <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {auditSchedule.map((audit) => (
+                        <TableRow key={audit.id}>
+                          <TableCell className="font-medium">{audit.id}</TableCell>
+                          <TableCell>{audit.employer}</TableCell>
+                          <TableCell>{audit.type}</TableCell>
+                          <TableCell>{audit.date}</TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              audit.status === 'Completed' ? 'default' :
+                              audit.status === 'In Progress' ? 'secondary' : 'outline'
+                            }>
+                              {audit.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{audit.auditor}</TableCell>
+                          <TableCell className="sticky right-0 bg-background">
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => navigate(`/compliance/audits/${audit.id}`)}
+                              >
+                                View
+                              </Button>
+                              <Button variant="ghost" size="sm">Edit</Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
