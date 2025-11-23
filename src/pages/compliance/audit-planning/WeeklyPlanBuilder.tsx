@@ -244,45 +244,60 @@ export default function WeeklyPlanBuilder() {
   const handleAddVisit = () => {
     // Validation
     if (!currentVisit.dayOfWeek || !currentVisit.visitDate || 
-        !currentVisit.purpose || !currentVisit.plannedStartTime || !currentVisit.plannedEndTime) {
+        !currentVisit.plannedStartTime || !currentVisit.plannedEndTime) {
       toast({
         title: 'Missing Information',
-        description: 'Please fill in all required visit details',
+        description: 'Please fill in all required fields',
         variant: 'destructive'
       });
       return;
     }
 
-    // Check employer or unplanned sighting
-    if (!currentVisit.isUnplannedSighting && !currentVisit.employerName) {
-      toast({
-        title: 'Employer Required',
-        description: 'Please select an employer or mark as unplanned sighting',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (currentVisit.isUnplannedSighting && !currentVisit.sightingLocation) {
-      toast({
-        title: 'Location Required',
-        description: 'Please provide location for unplanned sighting',
-        variant: 'destructive'
-      });
-      return;
+    // Validate based on item type
+    if (currentVisit.itemType === PlanItemType.SCOUTING) {
+      if (!currentVisit.areaName || !currentVisit.territory) {
+        toast({
+          title: 'Missing Information',
+          description: 'Please provide area name and territory for scouting',
+          variant: 'destructive'
+        });
+        return;
+      }
+    } else {
+      // Employer visit validation
+      if (!currentVisit.employerName) {
+        toast({
+          title: 'Employer Required',
+          description: 'Please select an employer',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (!currentVisit.purpose) {
+        toast({
+          title: 'Purpose Required',
+          description: 'Please describe the purpose of this visit',
+          variant: 'destructive'
+        });
+        return;
+      }
     }
 
     setVisits([...visits, currentVisit as VisitFormData]);
     setCurrentVisit({
+      itemType: PlanItemType.EMPLOYER_VISIT,
       visitType: VisitType.AUDIT,
       duration: VisitDuration.FULL_DAY,
+      territory: 'St Kitts',
       isUnplannedSighting: false
     });
     setSelectedEmployer(null);
     
     toast({
-      title: 'Visit Added',
-      description: 'Visit has been added to the weekly plan'
+      title: currentVisit.itemType === PlanItemType.SCOUTING ? 'Scouting Added' : 'Visit Added',
+      description: currentVisit.itemType === PlanItemType.SCOUTING 
+        ? 'Scouting activity has been added to the weekly plan'
+        : 'Visit has been added to the weekly plan'
     });
   };
 
@@ -814,28 +829,54 @@ export default function WeeklyPlanBuilder() {
       {/* Add Visit Form */}
       <Card id="visit-form">
         <CardHeader>
-          <CardTitle>Add Planned Visit</CardTitle>
+          <CardTitle>Add to Weekly Plan</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Complete the details below to add a visit to your weekly plan. You can also add employers manually here.
+            Choose activity type and complete details to add to your weekly plan
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Unplanned Sighting Toggle */}
-          <div className="flex items-center space-x-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-            <Checkbox
-              id="unplanned-sighting"
-              checked={currentVisit.isUnplannedSighting}
-              onCheckedChange={handleToggleUnplannedSighting}
-            />
-            <div className="flex-1">
-              <Label htmlFor="unplanned-sighting" className="cursor-pointer flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <span className="font-medium">Unplanned Sighting During Scouting</span>
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Check this for construction sites or activities discovered during area scouting (no prior employer selection)
+          {/* Activity Type Selection */}
+          <div className="space-y-2">
+            <Label>Activity Type *</Label>
+            <Select
+              value={currentVisit.itemType}
+              onValueChange={(value) => {
+                setCurrentVisit({
+                  ...currentVisit,
+                  itemType: value as PlanItemType,
+                  employerId: undefined,
+                  employerName: undefined,
+                  areaName: value === PlanItemType.SCOUTING ? '' : undefined,
+                  territory: value === PlanItemType.SCOUTING ? 'St Kitts' : undefined,
+                  focusNotes: value === PlanItemType.SCOUTING ? '' : undefined,
+                  visitType: value === PlanItemType.SCOUTING ? VisitType.SCOUTING : VisitType.AUDIT
+                });
+                setSelectedEmployer(null);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select activity type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PlanItemType.EMPLOYER_VISIT}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Employer Visit
+                  </div>
+                </SelectItem>
+                <SelectItem value={PlanItemType.SCOUTING}>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Scouting / Area Patrol
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {currentVisit.itemType === PlanItemType.SCOUTING && (
+              <p className="text-xs text-muted-foreground">
+                Plan area scouting activities without selecting a specific employer. Violations discovered can be recorded during execution.
               </p>
-            </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -865,8 +906,55 @@ export default function WeeklyPlanBuilder() {
               />
             </div>
 
-            {/* Employer Search or Sighting Location */}
-            {!currentVisit.isUnplannedSighting ? (
+            {/* Conditional Fields Based on Activity Type */}
+            {currentVisit.itemType === PlanItemType.SCOUTING ? (
+              <>
+                {/* Scouting Fields */}
+                <div className="space-y-2 col-span-2">
+                  <Label>Area Name *</Label>
+                  <Input
+                    placeholder="e.g., Basseterre Central Market Area, Frigate Bay Construction Zone"
+                    value={currentVisit.areaName || ''}
+                    onChange={(e) => setCurrentVisit({ ...currentVisit, areaName: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Territory *</Label>
+                  <Select
+                    value={currentVisit.territory}
+                    onValueChange={(value) => setCurrentVisit({ ...currentVisit, territory: value as 'St Kitts' | 'Nevis' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select territory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="St Kitts">St Kitts</SelectItem>
+                      <SelectItem value="Nevis">Nevis</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Duration *</Label>
+                  <Select
+                    value={currentVisit.duration}
+                    onValueChange={(value) => setCurrentVisit({ ...currentVisit, duration: value as VisitDuration })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={VisitDuration.SHORT}>Short (1-2 hours)</SelectItem>
+                      <SelectItem value={VisitDuration.HALF_DAY_AM}>Half Day (Morning)</SelectItem>
+                      <SelectItem value={VisitDuration.HALF_DAY_PM}>Half Day (Afternoon)</SelectItem>
+                      <SelectItem value={VisitDuration.FULL_DAY}>Full Day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              /* Employer Visit Fields */
               <div className="space-y-2 col-span-2">
                 <Label>Employer *</Label>
                 {selectedEmployer ? (
@@ -920,56 +1008,51 @@ export default function WeeklyPlanBuilder() {
                   </>
                 )}
               </div>
-            ) : (
-              <div className="space-y-2 col-span-2">
-                <Label>Sighting Location / Description *</Label>
-                <Textarea
-                  placeholder="e.g., Construction site on Main Street near Plaza, unregistered activity observed"
-                  value={currentVisit.sightingLocation}
-                  onChange={(e) => setCurrentVisit({ ...currentVisit, sightingLocation: e.target.value })}
-                  rows={2}
-                />
+            )}
+
+            {/* Visit Type - Only for Employer Visits */}
+            {currentVisit.itemType === PlanItemType.EMPLOYER_VISIT && (
+              <div className="space-y-2">
+                <Label>Visit Type *</Label>
+                <Select
+                  value={currentVisit.visitType}
+                  onValueChange={(value) => setCurrentVisit({ ...currentVisit, visitType: value as VisitType })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select visit type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={VisitType.AUDIT}>Audit</SelectItem>
+                    <SelectItem value={VisitType.INSPECTION}>Inspection</SelectItem>
+                    <SelectItem value={VisitType.C3_FOLLOW_UP}>C3 Follow-up</SelectItem>
+                    <SelectItem value={VisitType.PAYMENT_FOLLOW_UP}>Payment Follow-up</SelectItem>
+                    <SelectItem value={VisitType.RISK_BASED_AUDIT}>Risk-Based Audit</SelectItem>
+                    <SelectItem value={VisitType.COMPLAINT_INVESTIGATION}>Complaint Investigation</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Visit Type *</Label>
-              <Select
-                value={currentVisit.visitType}
-                onValueChange={(value) => setCurrentVisit({ ...currentVisit, visitType: value as VisitType })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={VisitType.AUDIT}>Full Audit</SelectItem>
-                  <SelectItem value={VisitType.RISK_BASED_AUDIT}>Risk-Based Audit</SelectItem>
-                  <SelectItem value={VisitType.INSPECTION}>Inspection</SelectItem>
-                  <SelectItem value={VisitType.C3_FOLLOW_UP}>C3 Follow-Up</SelectItem>
-                  <SelectItem value={VisitType.PAYMENT_FOLLOW_UP}>Payment Follow-Up</SelectItem>
-                  <SelectItem value={VisitType.SCOUTING}>Scouting</SelectItem>
-                  <SelectItem value={VisitType.COMPLAINT_INVESTIGATION}>Complaint Investigation</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Duration *</Label>
-              <Select
-                value={currentVisit.duration}
-                onValueChange={(value) => setCurrentVisit({ ...currentVisit, duration: value as VisitDuration })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={VisitDuration.SHORT}>Short (1-2 hours)</SelectItem>
-                  <SelectItem value={VisitDuration.HALF_DAY_AM}>Half Day (AM)</SelectItem>
-                  <SelectItem value={VisitDuration.HALF_DAY_PM}>Half Day (PM)</SelectItem>
-                  <SelectItem value={VisitDuration.FULL_DAY}>Full Day</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Duration - Only for Employer Visits (Scouting duration handled in scouting section) */}
+            {currentVisit.itemType === PlanItemType.EMPLOYER_VISIT && (
+              <div className="space-y-2">
+                <Label>Duration *</Label>
+                <Select
+                  value={currentVisit.duration}
+                  onValueChange={(value) => setCurrentVisit({ ...currentVisit, duration: value as VisitDuration })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={VisitDuration.SHORT}>Short (1-2 hours)</SelectItem>
+                    <SelectItem value={VisitDuration.HALF_DAY_AM}>Half Day (Morning)</SelectItem>
+                    <SelectItem value={VisitDuration.HALF_DAY_PM}>Half Day (Afternoon)</SelectItem>
+                    <SelectItem value={VisitDuration.FULL_DAY}>Full Day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Planned Start Time *</Label>
@@ -990,19 +1073,29 @@ export default function WeeklyPlanBuilder() {
             </div>
 
             <div className="space-y-2 col-span-2">
-              <Label>Purpose / Reason *</Label>
+              <Label>{currentVisit.itemType === PlanItemType.SCOUTING ? 'Focus Notes' : 'Purpose / Notes'} *</Label>
               <Textarea
-                placeholder="Describe the purpose of this visit"
-                value={currentVisit.purpose}
-                onChange={(e) => setCurrentVisit({ ...currentVisit, purpose: e.target.value })}
-                rows={2}
+                placeholder={
+                  currentVisit.itemType === PlanItemType.SCOUTING
+                    ? 'Notes about this scouting area (e.g., known construction activity, new businesses, compliance concerns)...'
+                    : 'Describe the purpose of this visit...'
+                }
+                value={currentVisit.itemType === PlanItemType.SCOUTING ? (currentVisit.focusNotes || '') : (currentVisit.purpose || '')}
+                onChange={(e) => {
+                  if (currentVisit.itemType === PlanItemType.SCOUTING) {
+                    setCurrentVisit({ ...currentVisit, focusNotes: e.target.value });
+                  } else {
+                    setCurrentVisit({ ...currentVisit, purpose: e.target.value });
+                  }
+                }}
+                rows={3}
               />
             </div>
           </div>
 
           <Button onClick={handleAddVisit} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
-            Add Visit to Plan
+            {currentVisit.itemType === PlanItemType.SCOUTING ? 'Add Scouting to Plan' : 'Add Visit to Plan'}
           </Button>
         </CardContent>
       </Card>
@@ -1035,10 +1128,10 @@ export default function WeeklyPlanBuilder() {
                       {dayVisits.map((visit, idx) => (
                         <div key={idx} className="bg-muted/50 p-3 rounded-md flex justify-between items-start">
                           <div className="flex-1 space-y-1">
-                            {visit.isUnplannedSighting && (
-                              <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded mb-1">
-                                <AlertCircle className="h-3 w-3" />
-                                Unplanned Sighting
+                            {visit.itemType === PlanItemType.SCOUTING && (
+                              <span className="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded mb-1">
+                                <MapPin className="h-3 w-3" />
+                                Scouting Activity
                               </span>
                             )}
                             <div className="flex items-center gap-2">
@@ -1051,14 +1144,22 @@ export default function WeeklyPlanBuilder() {
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
-                              <MapPin className="h-3 w-3 text-muted-foreground" />
-                              <span className="font-medium">
-                                {visit.isUnplannedSighting 
-                                  ? visit.sightingLocation 
-                                  : visit.employerName}
-                              </span>
+                              {visit.itemType === PlanItemType.SCOUTING ? (
+                                <>
+                                  <MapPin className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-medium">{visit.areaName}</span>
+                                  <Badge variant="outline" className="text-xs">{visit.territory}</Badge>
+                                </>
+                              ) : (
+                                <>
+                                  <Building2 className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-medium">{visit.employerName}</span>
+                                </>
+                              )}
                             </div>
-                            <p className="text-sm text-muted-foreground">{visit.purpose}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {visit.itemType === PlanItemType.SCOUTING ? visit.focusNotes : visit.purpose}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               Type: {visit.visitType.replace(/_/g, ' ')}
                             </p>
