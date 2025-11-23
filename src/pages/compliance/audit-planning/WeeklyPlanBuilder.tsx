@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   VisitType, 
   VisitDuration, 
+  PlanItemType,
   CreateWeeklyPlanRequest 
 } from '@/types/weeklyAuditPlan';
 import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
@@ -37,15 +38,23 @@ import { supabase } from '@/integrations/supabase/client';
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
 
 interface VisitFormData {
+  itemType: PlanItemType;
   dayOfWeek: typeof DAYS_OF_WEEK[number];
   visitDate: string;
-  employerId: string;
-  employerName: string;
+  employerId?: string;
+  employerName?: string;
   visitType: VisitType;
   duration: VisitDuration;
   purpose: string;
   plannedStartTime: string;
   plannedEndTime: string;
+  
+  // Scouting fields
+  areaName?: string;
+  territory?: 'St Kitts' | 'Nevis';
+  focusNotes?: string;
+  
+  // Unplanned sighting fields
   isUnplannedSighting?: boolean;
   sightingLocation?: string;
 }
@@ -58,8 +67,10 @@ export default function WeeklyPlanBuilder() {
   const [weekEndDate, setWeekEndDate] = useState('');
   const [visits, setVisits] = useState<VisitFormData[]>([]);
   const [currentVisit, setCurrentVisit] = useState<Partial<VisitFormData>>({
+    itemType: PlanItemType.EMPLOYER_VISIT,
     visitType: VisitType.AUDIT,
     duration: VisitDuration.FULL_DAY,
+    territory: 'St Kitts',
     isUnplannedSighting: false
   });
   
@@ -295,15 +306,19 @@ export default function WeeklyPlanBuilder() {
         weekStartDate,
         weekEndDate,
         visits: visits.map(v => ({
+          itemType: v.itemType,
           dayOfWeek: v.dayOfWeek,
           visitDate: v.visitDate,
-          employerId: v.employerId || `emp-${Date.now()}`,
-          employerName: v.employerName,
+          employerId: v.employerId || undefined,
+          employerName: v.employerName || '',
           visitType: v.visitType,
           duration: v.duration,
           purpose: v.purpose,
           plannedStartTime: v.plannedStartTime,
-          plannedEndTime: v.plannedEndTime
+          plannedEndTime: v.plannedEndTime,
+          areaName: v.areaName,
+          territory: v.territory,
+          focusNotes: v.focusNotes
         }))
       };
 
@@ -338,15 +353,19 @@ export default function WeeklyPlanBuilder() {
         weekStartDate,
         weekEndDate,
         visits: visits.map(v => ({
+          itemType: v.itemType,
           dayOfWeek: v.dayOfWeek,
           visitDate: v.visitDate,
-          employerId: v.employerId || `emp-${Date.now()}`,
-          employerName: v.employerName,
+          employerId: v.employerId || undefined,
+          employerName: v.employerName || '',
           visitType: v.visitType,
           duration: v.duration,
           purpose: v.purpose,
           plannedStartTime: v.plannedStartTime,
-          plannedEndTime: v.plannedEndTime
+          plannedEndTime: v.plannedEndTime,
+          areaName: v.areaName,
+          territory: v.territory,
+          focusNotes: v.focusNotes
         }))
       };
 
@@ -550,9 +569,9 @@ export default function WeeklyPlanBuilder() {
                   <Gavel className="h-4 w-4 mr-2" />
                   Legal ({legalReadyEmployers.length})
                 </TabsTrigger>
-                <TabsTrigger value="active-cases">
+                <TabsTrigger value="active-violations">
                   <FileText className="h-4 w-4 mr-2" />
-                  Active Cases ({activeCasesGrouped.length})
+                  Active Violations ({activeCasesGrouped.length})
                 </TabsTrigger>
                 <TabsTrigger value="lms">
                   <GraduationCap className="h-4 w-4 mr-2" />
@@ -638,12 +657,12 @@ export default function WeeklyPlanBuilder() {
                 )}
               </TabsContent>
 
-              <TabsContent value="active-cases" className="space-y-3 mt-4">
+              <TabsContent value="active-violations" className="space-y-3 mt-4">
                 <div className="text-sm text-muted-foreground mb-3">
-                  Active compliance cases requiring follow-up (C3 issues, arrears, payment plans, etc.)
+                  Active violations requiring follow-up (open, in progress, escalated, under review status)
                 </div>
                 {activeCasesGrouped.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">No active cases requiring attention</div>
+                  <div className="text-center py-6 text-muted-foreground">No active violations requiring attention</div>
                 ) : (
                   activeCasesGrouped.map((group) => (
                     <div
@@ -660,7 +679,7 @@ export default function WeeklyPlanBuilder() {
                               <Badge className={getRiskBadgeColor(group.riskBand)}>{group.riskBand}</Badge>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Employer Code: {group.employerId} • {group.cases.length} Active {group.cases.length === 1 ? 'Case' : 'Cases'}
+                              Employer Code: {group.employerId} • {group.cases.length} Active {group.cases.length === 1 ? 'Violation' : 'Violations'}
                             </p>
                           </div>
                         </div>

@@ -360,8 +360,8 @@ export default function WeeklyReports() {
                   <p className="text-2xl font-bold">{reportSummary.evidenceCollected}</p>
                 </div>
                 <div className="border rounded-lg p-4">
-                  <Label className="text-sm text-muted-foreground">Cases Updated</Label>
-                  <p className="text-2xl font-bold">{reportSummary.casesUpdated}</p>
+                  <Label className="text-sm text-muted-foreground">Violations Updated</Label>
+                  <p className="text-2xl font-bold">{reportSummary.violationsUpdated}</p>
                 </div>
               </div>
 
