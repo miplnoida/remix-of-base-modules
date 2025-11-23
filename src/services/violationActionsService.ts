@@ -87,6 +87,43 @@ class ViolationActionsService {
     );
   }
 
+  async getAllPendingForInspector(
+    inspectorId: string,
+    weekStartDate: string,
+    filterType: 'this-week' | 'past-due' | 'all-pending'
+  ): Promise<ViolationAction[]> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const weekEnd = new Date(weekStartDate);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+
+    let filtered = mockActions.filter(action => 
+      action.assignedToUserId === inspectorId &&
+      (action.status === ActionStatus.PLANNED || action.status === ActionStatus.IN_WEEKLY_PLAN)
+    );
+
+    switch (filterType) {
+      case 'this-week':
+        filtered = filtered.filter(action =>
+          (action.suggestedWeek && action.suggestedWeek >= weekStartDate && action.suggestedWeek <= weekEndStr) ||
+          (action.dueDate && action.dueDate >= weekStartDate && action.dueDate <= weekEndStr)
+        );
+        break;
+      case 'past-due':
+        filtered = filtered.filter(action =>
+          action.dueDate && action.dueDate < today && action.status !== ActionStatus.IN_WEEKLY_PLAN
+        );
+        break;
+      case 'all-pending':
+        // Return all pending actions
+        break;
+    }
+
+    return filtered;
+  }
+
   async create(request: CreateViolationActionRequest): Promise<ViolationAction> {
     await new Promise(resolve => setTimeout(resolve, 300));
     

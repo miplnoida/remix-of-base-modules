@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar, Plus, Trash2, Clock, MapPin, Save, Send, Search, Building2, AlertCircle, AlertTriangle, FileText, Gavel, TrendingUp, GraduationCap, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { SuggestedFollowUpActions } from '@/components/compliance/SuggestedFollowUpActions';
+import { PendingFollowUpActions } from '@/components/compliance/PendingFollowUpActions';
 import { ViolationAction, ActionType, ActionStatus } from '@/types/violationActions';
 import { violationActionsService } from '@/services/violationActionsService';
 import { 
@@ -907,8 +907,8 @@ export default function WeeklyPlanBuilder() {
         </CardContent>
       </Card>
 
-      {/* Suggested Follow-up Actions */}
-      <SuggestedFollowUpActions
+      {/* Pending Follow-up Actions */}
+      <PendingFollowUpActions
         inspectorId={inspectorId}
         weekStartDate={weekStartDate}
         onAddToPlan={handleAddActionToPlan}
