@@ -342,6 +342,7 @@ import { default as LegalEvidenceManagement } from '@/pages/legal/EvidenceManage
 import LegalReports from '@/pages/legal/LegalReports';
 import LegalReportsAnalytics from '@/pages/legal/ReportsAnalytics';
 import LegalAdminConfig from '@/pages/legal/AdminConfig';
+import CaseWorkflow from '@/pages/legal/settings/CaseWorkflow';
 
 // LegalFinal Module pages
 import { LegalFinalDashboard } from '@/pages/legalFinal/LegalFinalDashboard';
@@ -797,6 +798,7 @@ export const AppRoutes = () => {
       <Route path="/legal/settings/courts" element={<ProtectedLayout><CourtsJudges /></ProtectedLayout>} />
       <Route path="/legal/settings/hearing-types" element={<ProtectedLayout><HearingTypes /></ProtectedLayout>} />
       <Route path="/legal/settings/statuses" element={<ProtectedLayout><CaseStatuses /></ProtectedLayout>} />
+      <Route path="/legal/settings/workflow" element={<ProtectedLayout><CaseWorkflow /></ProtectedLayout>} />
       <Route path="/legal/settings/roles" element={<ProtectedLayout><LegalRoles /></ProtectedLayout>} />
       <Route path="/legal/settings/fee-mappings" element={<ProtectedLayout><FeeMappings /></ProtectedLayout>} />
       <Route path="/legal/settings/territory" element={<ProtectedLayout><TerritorySettings /></ProtectedLayout>} />
