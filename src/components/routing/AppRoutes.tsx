@@ -271,6 +271,7 @@ import PendingVerificationPage from '@/pages/insuredPersons/PendingVerificationP
 import C3Dashboard from '@/pages/c3Management/C3Dashboard';
 import C3Management from '@/pages/c3Management/C3Management';
 import C3InputForm from '@/pages/c3Management/C3InputForm';
+import C3Simulation from '@/pages/c3Management/C3Simulation';
 
 
 import C3Reports from '@/pages/c3Management/C3Reports';
@@ -500,6 +501,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/configure-electronic-c3" element={<ProtectedLayout><ElectronicC3Config /></ProtectedLayout>} />
       <Route path="/c3-management/view/:id" element={<ProtectedLayout><ViewC3Record /></ProtectedLayout>} />
       <Route path="/c3-management/edit/:id" element={<ProtectedLayout><EditC3Record /></ProtectedLayout>} />
+      <Route path="/c3-management/simulation" element={<ProtectedLayout><C3Simulation /></ProtectedLayout>} />
       
       {/* C3 Settings Routes */}
       <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />

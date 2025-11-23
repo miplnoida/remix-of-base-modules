@@ -6,7 +6,8 @@ import {
   Settings,
   DollarSign,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Calculator
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -37,6 +38,12 @@ export const c3MenuItems = [
         url: "/c3-management/verification",
         icon: BarChart3,
         requiresPermission: "verify_c3"
+      },
+      {
+        title: "C3 Simulation",
+        url: "/c3-management/simulation",
+        icon: Calculator,
+        requiresPermission: "view_dashboard"
       },
       {
         title: "Settings",
