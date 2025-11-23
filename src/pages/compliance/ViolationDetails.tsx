@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, AlertCircle } from 'lucide-react';
 import { MOCK_CASES, MOCK_CASE_HISTORY, MOCK_NOTICES } from '@/services/mockData/complianceData';
 import { CaseStatus } from '@/types/compliance';
 import { ContributionComponent, COMPONENT_LABELS } from '@/types/contributionComponents';
@@ -17,16 +16,16 @@ import { CreateArrangementDialog } from '@/components/compliance/CreateArrangeme
 import { ArrangementDetailsCard } from '@/components/compliance/ArrangementDetailsCard';
 import { toast } from 'sonner';
 
-export default function CaseDetails() {
+export default function ViolationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [arrangements, setArrangements] = useState<ComponentPaymentArrangement[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  const caseData = MOCK_CASES.find(c => c.id === id);
-  const caseHistory = MOCK_CASE_HISTORY.filter(h => h.caseId === id);
-  const caseNotices = MOCK_NOTICES.filter(n => n.caseId === id);
+  const violationData = MOCK_CASES.find(c => c.id === id);
+  const violationHistory = MOCK_CASE_HISTORY.filter(h => h.caseId === id);
+  const violationNotices = MOCK_NOTICES.filter(n => n.caseId === id);
 
   // Load arrangements
   useEffect(() => {
@@ -35,13 +34,18 @@ export default function CaseDetails() {
     }
   }, [id]);
 
-  if (!caseData) {
+  // Get other violations for the same employer
+  const otherViolations = violationData 
+    ? MOCK_CASES.filter(c => c.employerId === violationData.employerId && c.id !== id)
+    : [];
+
+  if (!violationData) {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Case not found</h2>
-          <Button onClick={() => navigate('/compliance/cases')} className="mt-4">
-            Back to Cases
+          <h2 className="text-2xl font-bold">Violation not found</h2>
+          <Button onClick={() => navigate('/compliance/violations')} className="mt-4">
+            Back to Violations
           </Button>
         </div>
       </div>
@@ -82,35 +86,35 @@ export default function CaseDetails() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title={`Case: ${caseData.caseNumber}`}
-        subtitle={caseData.employerName}
+        title={`Violation: ${violationData.caseNumber}`}
+        subtitle={violationData.employerName}
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance' },
-          { label: 'Cases', href: '/compliance/cases' },
-          { label: caseData.caseNumber }
+          { label: 'Violations', href: '/compliance/violations' },
+          { label: violationData.caseNumber }
         ]}
       />
 
-      {/* Case Header */}
+      {/* Violation Header */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <CardTitle className="text-2xl">{caseData.caseNumber}</CardTitle>
-                <Badge className={getStatusColor(caseData.caseStatus)}>
-                  {caseData.caseStatus}
+                <CardTitle className="text-2xl">{violationData.caseNumber}</CardTitle>
+                <Badge className={getStatusColor(violationData.caseStatus)}>
+                  {violationData.caseStatus}
                 </Badge>
-                <Badge variant="outline">{caseData.caseStage.replace(/_/g, ' ')}</Badge>
+                <Badge variant="outline">{violationData.caseStage.replace(/_/g, ' ')}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Created: {formatDate(caseData.createdDate)} | Last Activity: {formatDate(caseData.lastActivityDate)}
+                Created: {formatDate(violationData.createdDate)} | Last Activity: {formatDate(violationData.lastActivityDate)}
               </p>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Outstanding Balance</div>
               <div className="text-2xl font-bold text-destructive">
-                {formatCurrency(caseData.outstandingBalance)}
+                {formatCurrency(violationData.outstandingBalance)}
               </div>
             </div>
           </div>
@@ -124,7 +128,7 @@ export default function CaseDetails() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Principal</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(caseData.principalAmount)}</div>
+            <div className="text-xl font-bold">{formatCurrency(violationData.principalAmount)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -132,7 +136,7 @@ export default function CaseDetails() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Penalties</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(caseData.penaltyAmount)}</div>
+            <div className="text-xl font-bold">{formatCurrency(violationData.penaltyAmount)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -140,7 +144,7 @@ export default function CaseDetails() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Interest</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(caseData.interestAmount)}</div>
+            <div className="text-xl font-bold">{formatCurrency(violationData.interestAmount)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -148,7 +152,7 @@ export default function CaseDetails() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Due</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(caseData.totalAmountDue)}</div>
+            <div className="text-xl font-bold">{formatCurrency(violationData.totalAmountDue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -156,7 +160,7 @@ export default function CaseDetails() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-green-600">{formatCurrency(caseData.amountPaid)}</div>
+            <div className="text-xl font-bold text-green-600">{formatCurrency(violationData.amountPaid)}</div>
           </CardContent>
         </Card>
       </div>
@@ -174,55 +178,59 @@ export default function CaseDetails() {
           </TabsTrigger>
           <TabsTrigger value="notices">
             <Bell className="h-4 w-4 mr-2" />
-            Notices ({caseNotices.length})
+            Notices ({violationNotices.length})
           </TabsTrigger>
           <TabsTrigger value="financial">
             <DollarSign className="h-4 w-4 mr-2" />
             Financial Details
+          </TabsTrigger>
+          <TabsTrigger value="other-violations">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Other Violations ({otherViolations.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Case Information</CardTitle>
+              <CardTitle>Violation Information</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div>
-                <div className="text-sm font-medium text-muted-foreground">Case Type</div>
-                <div className="text-base">{caseData.caseType.replace(/_/g, ' ')}</div>
+                <div className="text-sm font-medium text-muted-foreground">Violation Type</div>
+                <div className="text-base">{violationData.caseType.replace(/_/g, ' ')}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Priority</div>
-                <Badge variant={caseData.priority === 'URGENT' ? 'destructive' : 'default'}>
-                  {caseData.priority}
+                <Badge variant={violationData.priority === 'URGENT' ? 'destructive' : 'default'}>
+                  {violationData.priority}
                 </Badge>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Employer</div>
-                <div className="text-base">{caseData.employerName}</div>
+                <div className="text-base">{violationData.employerName}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Zone</div>
-                <div className="text-base">{caseData.employerZone}</div>
+                <div className="text-base">{violationData.employerZone}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Assigned Inspector</div>
-                <div className="text-base">{caseData.assignedInspectorName || 'Unassigned'}</div>
+                <div className="text-base">{violationData.assignedInspectorName || 'Unassigned'}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Assigned Date</div>
-                <div className="text-base">{caseData.assignedDate ? formatDate(caseData.assignedDate) : 'N/A'}</div>
+                <div className="text-base">{violationData.assignedDate ? formatDate(violationData.assignedDate) : 'N/A'}</div>
               </div>
               <div className="md:col-span-2">
                 <div className="text-sm font-medium text-muted-foreground">Description</div>
-                <div className="text-base">{caseData.description}</div>
+                <div className="text-base">{violationData.description}</div>
               </div>
-              {caseData.linkedC3Periods && caseData.linkedC3Periods.length > 0 && (
+              {violationData.linkedC3Periods && violationData.linkedC3Periods.length > 0 && (
                 <div className="md:col-span-2">
                   <div className="text-sm font-medium text-muted-foreground">Linked C3 Periods</div>
                   <div className="flex gap-2 mt-1">
-                    {caseData.linkedC3Periods.map(period => (
+                    {violationData.linkedC3Periods.map(period => (
                       <Badge key={period} variant="outline">{period}</Badge>
                     ))}
                   </div>
@@ -235,7 +243,7 @@ export default function CaseDetails() {
         <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Case Stage History</CardTitle>
+              <CardTitle>Violation Stage History</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -250,7 +258,7 @@ export default function CaseDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {caseHistory.map((history) => (
+                  {violationHistory.map((history) => (
                     <TableRow key={history.id}>
                       <TableCell>{formatDate(history.changedDate)}</TableCell>
                       <TableCell>{history.fromStage?.replace(/_/g, ' ') || 'N/A'}</TableCell>
@@ -282,9 +290,9 @@ export default function CaseDetails() {
               </div>
             </CardHeader>
             <CardContent>
-              {caseNotices.length === 0 ? (
+              {violationNotices.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No notices issued for this case
+                  No notices issued for this violation
                 </div>
               ) : (
                 <Table>
@@ -299,7 +307,7 @@ export default function CaseDetails() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {caseNotices.map((notice) => (
+                    {violationNotices.map((notice) => (
                       <TableRow key={notice.id}>
                         <TableCell className="font-medium">{notice.noticeNumber}</TableCell>
                         <TableCell>{notice.noticeType.replace(/_/g, ' ')}</TableCell>
@@ -479,10 +487,10 @@ export default function CaseDetails() {
                   </TableRow>
                   <TableRow className="bg-muted/50 font-bold">
                     <TableCell colSpan={2}>TOTAL</TableCell>
-                    <TableCell className="text-right">{formatCurrency(caseData.principalAmount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(caseData.penaltyAmount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(caseData.interestAmount)}</TableCell>
-                    <TableCell className="text-right text-primary">{formatCurrency(caseData.totalAmountDue)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(violationData.principalAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(violationData.penaltyAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(violationData.interestAmount)}</TableCell>
+                    <TableCell className="text-right text-primary">{formatCurrency(violationData.totalAmountDue)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -498,54 +506,105 @@ export default function CaseDetails() {
               <div className="grid gap-4">
                 <div className="flex justify-between items-center pb-2 border-b font-semibold">
                   <span>Total Amount Due</span>
-                  <span>{formatCurrency(caseData.totalAmountDue)}</span>
+                  <span>{formatCurrency(violationData.totalAmountDue)}</span>
                 </div>
                 <div className="flex justify-between items-center pb-2 border-b text-green-600">
                   <span>Amount Paid</span>
-                  <span className="font-medium">{formatCurrency(caseData.amountPaid)}</span>
+                  <span className="font-medium">{formatCurrency(violationData.amountPaid)}</span>
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold text-destructive">
                   <span>Outstanding Balance</span>
-                  <span>{formatCurrency(caseData.outstandingBalance)}</span>
+                  <span>{formatCurrency(violationData.outstandingBalance)}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="arrangements" className="space-y-4">
+        <TabsContent value="other-violations" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Payment Arrangements</CardTitle>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Arrangement
-                </Button>
-              </div>
+              <CardTitle>Other Violations for {violationData.employerName}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                View all other violations and amounts due for this employer
+              </p>
             </CardHeader>
             <CardContent>
-              {arrangements.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">
-                    No payment arrangements created for this case
-                  </p>
-                  <Button onClick={() => setCreateDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Arrangement
-                  </Button>
+              {otherViolations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No other violations found for this employer
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {arrangements.map((arrangement) => (
-                    <ArrangementDetailsCard 
-                      key={arrangement.id} 
-                      arrangement={arrangement}
-                      onRecordPayment={(installmentId) => {
-                        toast.info('Payment recording not yet implemented');
-                      }}
-                    />
-                  ))}
+                  {/* Summary Cards */}
+                  <div className="grid gap-4 md:grid-cols-3 mb-6">
+                    <Card className="bg-amber-50 border-amber-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Total Other Violations</div>
+                        <div className="text-2xl font-bold">{otherViolations.length}</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Total Outstanding</div>
+                        <div className="text-2xl font-bold text-red-600">
+                          {formatCurrency(otherViolations.reduce((sum, v) => sum + v.outstandingBalance, 0))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Active Violations</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {otherViolations.filter(v => v.caseStatus === CaseStatus.ACTIVE).length}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Violations Table */}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Violation Number</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Stage</TableHead>
+                        <TableHead className="text-right">Outstanding</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {otherViolations.map((violation) => (
+                        <TableRow key={violation.id}>
+                          <TableCell className="font-medium">{violation.caseNumber}</TableCell>
+                          <TableCell>{violation.caseType.replace(/_/g, ' ')}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(violation.caseStatus)}>
+                              {violation.caseStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{violation.caseStage.replace(/_/g, ' ')}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-red-600">
+                            {formatCurrency(violation.outstandingBalance)}
+                          </TableCell>
+                          <TableCell>{formatDate(violation.createdDate)}</TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/compliance/violations/${violation.id}`)}
+                            >
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
@@ -554,12 +613,12 @@ export default function CaseDetails() {
       </Tabs>
 
       {/* Create Arrangement Dialog */}
-      {caseData && (
+      {violationData && (
         <CreateArrangementDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
-          caseId={caseData.id}
-          employerId={caseData.employerId}
+          caseId={violationData.id}
+          employerId={violationData.employerId}
           componentBreakdown={[
             { component: ContributionComponent.SSC, principalAmount: 4166.67, penaltyAmount: 0, interestAmount: 83.33, totalAmount: 4250.00 },
             { component: ContributionComponent.SSF, principalAmount: 0, penaltyAmount: 1250.00, interestAmount: 0, totalAmount: 1250.00 },
