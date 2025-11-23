@@ -1,12 +1,13 @@
-# Export Functionality Implementation Guide
+# Export & Print Implementation Guide
 
-This guide explains how to add Excel and PDF export functionality to all report pages throughout the application.
+This guide explains how to add Excel export, PDF export, and print functionality to report pages throughout the application.
 
 ## Overview
 
-The export system supports:
-- **Excel Export**: Exports tabular data with formulas preserved so users can continue working in Excel
-- **PDF Export**: Exports report data in PDF format with headers, footers, and branding
+All reports should provide three key capabilities:
+1. **Export to Excel** - Data with formulas preserved for user editing
+2. **Export to PDF** - Data-only format with proper formatting
+3. **Print Report** - Browser print functionality
 
 ## Quick Start
 
@@ -54,27 +55,45 @@ const exportData = [
 
 ### 4. Add ExportActions Component
 
-Place the ExportActions component near your PageHeader:
+Place the ExportActions component in your report's header section next to the PageHeader:
 
 ```typescript
-<div className="flex justify-between items-start">
-  <PageHeader
-    title="Your Report Title"
-    subtitle="Report description"
-    breadcrumbs={[...]}
-  />
-  <ExportActions
-    reportTitle="Your Report Title"
-    fileName="report-file-name"
-    data={exportData}
-    columns={exportColumns}
-    additionalInfo={[
-      { label: 'Report Date', value: new Date().toLocaleDateString() },
-      { label: 'Total Records', value: String(exportData.length) }
-    ]}
-  />
-</div>
+export default function YourReport() {
+  return (
+    <div className="container mx-auto p-6 space-y-6" id="your-report-id">
+      <div className="flex justify-between items-start">
+        <PageHeader
+          title="Your Report Title"
+          subtitle="Report description"
+          breadcrumbs={[
+            { label: "Module", href: "#" },
+            { label: "Reports" },
+            { label: "Report Name" }
+          ]}
+        />
+        <ExportActions
+          reportTitle="Your Report Title"
+          fileName="your-report-filename"
+          data={exportData}
+          columns={exportColumns}
+          additionalInfo={[
+            { label: 'Report Date', value: new Date().toLocaleDateString() },
+            { label: 'Total Records', value: String(exportData.length) }
+          ]}
+        />
+      </div>
+
+      <div className="no-print">
+        {/* QueryByFilter or other filter components */}
+      </div>
+
+      {/* Rest of your report content */}
+    </div>
+  );
+}
 ```
+
+> **Important**: Add the `no-print` class to filter panels and action buttons so they don't appear when printing.
 
 ## Excel Formula Support
 
@@ -148,51 +167,111 @@ interface ExportColumn {
 }
 ```
 
+## Print Functionality
+
+The application includes automatic print styles via CSS. To use:
+
+### Hiding Elements from Print
+
+Add the `no-print` class to elements that shouldn't appear when printing:
+
+```tsx
+<div className="no-print">
+  {/* Filter panels, action buttons, etc. */}
+  <QueryByFilter ... />
+  <ExportActions ... />
+</div>
+```
+
+### Print Button
+
+The `ExportActions` component includes a Print button that calls `window.print()`. This triggers the browser's print dialog with optimized styles applied.
+
+### Print Styles
+
+The following CSS is automatically applied during printing:
+- `.no-print` elements are hidden
+- Charts and tables are optimized for printing
+- Page breaks are controlled to avoid splitting content
+- Background colors are adjusted for print
+
+### Testing Print Output
+
+1. Click the Print button
+2. Use "Print Preview" in your browser
+3. Verify layout and content
+4. Adjust page orientation if needed (Portrait/Landscape)
+
 ## Implementation Checklist
 
-For each report page, follow this checklist:
-
+For each report page:
 - [ ] Import `ExportActions` and `ExportColumn`
-- [ ] Define `exportColumns` array matching your table structure
+- [ ] Define `exportColumns` array matching table structure
 - [ ] Prepare `exportData` array with all table data
-- [ ] Add formulas to calculated columns in `exportColumns`
-- [ ] Place `ExportActions` component in header area
-- [ ] Test Excel export and verify formulas work
-- [ ] Test PDF export and verify formatting
-- [ ] Verify all data exports correctly
+- [ ] Add unique `id` to main report container div
+- [ ] Place `ExportActions` component in header section
+- [ ] Add `no-print` class to filters and actions
+- [ ] Test Excel export with formulas
+- [ ] Test PDF export with formatting
+- [ ] Test Print functionality
 
 ## Reports Requiring Export Implementation
 
-### Employer Reports
-- [x] Registered Employers Summary (example implementation)
-- [ ] Active vs Inactive Employers
-- [ ] Employer Contribution Compliance
-- [ ] Top Missing C3 Submissions
-- [ ] All 33 employer reports...
+This export and print functionality should be applied to ALL report pages across the application including:
+
+### Employer Reports (33+ reports)
+- Registered Employers Summary
+- Active vs Inactive Employers  
+- Contribution Compliance
+- Top Missing C3 Submissions
+- All 33 employer reports throughout the module
 
 ### C3 Management Reports
-- [ ] Monthly Collections Report
-- [ ] Contribution Arrears Report
-- [ ] Top Contributors Report
-- [ ] All C3 reports...
+- Monthly Collections Report
+- Contribution Arrears Report
+- Top Contributors Report
+- All C3 reports
 
-### Compliance Reports
-- [ ] Case Analytics
-- [ ] Inspector Performance
-- [ ] Arrears Reports
-- [ ] All compliance reports...
+### Insured Persons Reports (CRD Reports)
+- Insured Persons Summary
+- Active Coverage by Age
+- Contribution History
+- All CRD department reports
+
+### Finance Reports
+- Contributions vs Benefits
+- Cash Flow & Reserves
+- Investments
+- All finance reports
 
 ### Benefits Reports
-- [ ] Payments by Type
-- [ ] Claims Volume
-- [ ] Overpayments
-- [ ] All benefits reports...
+- Payments by Type
+- Claims Volume
+- Overpayments
+- All benefits reports
+
+### Compliance Reports
+- Employer Status
+- Inspection Findings
+- Penalties
+- All compliance reports
 
 ### Internal Audit Reports
-- [ ] Engagement Summary
-- [ ] Open Findings
-- [ ] Resolution History
-- [ ] All audit reports...
+- Engagement Summary
+- Open Findings
+- Resolution History
+- All audit reports
+
+### System Administration Reports
+- Account & Roles
+- Permission Changes
+- Configuration Audit
+- All admin reports
+
+### Legal Reports
+- All legal module reports
+
+Each report should follow the same pattern for consistency and user experience.
 
 ## Advanced Features
 

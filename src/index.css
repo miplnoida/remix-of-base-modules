@@ -161,7 +161,7 @@
 
   /* Print styles for ID cards */
   @media print {
-    .print-hidden {
+    .print-hidden, .no-print {
       display: none !important;
     }
     
@@ -170,6 +170,29 @@
       height: 53.98mm;
       page-break-inside: avoid;
       page-break-after: always;
+    }
+    
+    /* Report printing styles */
+    body {
+      background: white;
+      color: black;
+    }
+    
+    /* Ensure charts and tables print properly */
+    .recharts-wrapper,
+    .recharts-surface {
+      max-width: 100% !important;
+    }
+    
+    /* Page breaks */
+    .page-break {
+      page-break-after: always;
+    }
+    
+    /* Prevent breaking inside elements */
+    .card,
+    table {
+      page-break-inside: avoid;
     }
   }
 }
