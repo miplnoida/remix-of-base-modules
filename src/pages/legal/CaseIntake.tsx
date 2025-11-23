@@ -66,59 +66,59 @@ export default function CaseIntake() {
           <h2 className="text-xl font-semibold mb-4">Legal Action Requisitions</h2>
           
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-max">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Intake ID</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Case No.</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Employer</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Reason</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Period</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Amount</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Submitted By</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Intake ID</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Case No.</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Employer</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Reason</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Period</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Amount</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Submitted By</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground sticky right-0 bg-card z-10">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRequisitions.map((req) => (
                   <tr key={req.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <div className="font-medium">{req.intakeId}</div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       {req.caseNumber ? (
                         <div className="font-medium text-primary">{req.caseNumber}</div>
                       ) : (
                         <div className="text-muted-foreground">-</div>
                       )}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <FileText className="h-4 w-4" />
                         {new Date(req.submissionDate).toLocaleDateString()}
                       </div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 min-w-[180px]">
                       <div className="font-medium">{req.employer.name}</div>
                       <div className="text-xs text-muted-foreground">{req.employer.registrationNumber}</div>
                     </td>
-                    <td className="p-3 max-w-xs">
-                      <div className="text-sm">{req.reason}</div>
+                    <td className="p-3 max-w-[200px]">
+                      <div className="text-sm truncate" title={req.reason}>{req.reason}</div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <div className="text-sm">{req.period}</div>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right whitespace-nowrap">
                       <div className="font-medium">${req.amount.toLocaleString()}</div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <Badge variant="outline" className={getStatusColor(req.status)}>
                         {req.status}
                       </Badge>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap min-w-[140px]">
                       <div className="flex items-center gap-2 text-sm">
                         <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
                           {req.submittedBy.split(' ').map(n => n[0]).join('')}
@@ -126,7 +126,7 @@ export default function CaseIntake() {
                         <span>{req.submittedBy}</span>
                       </div>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right sticky right-0 bg-card z-10">
                       <Button
                         variant="ghost"
                         size="sm"
