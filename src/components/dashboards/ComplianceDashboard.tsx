@@ -4,8 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Clock, FileText, Calendar, TrendingDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MOCK_CASES } from '@/services/mockData/complianceData';
+import { CaseStatus } from '@/types/compliance';
 
 export const ComplianceDashboard = () => {
+  const navigate = useNavigate();
+  
   const complianceMetrics = [
     { label: 'Open Violations', value: '23', status: 'danger', icon: AlertTriangle },
     { label: 'Resolved This Month', value: '157', status: 'success', icon: CheckCircle },
@@ -13,12 +18,18 @@ export const ComplianceDashboard = () => {
     { label: 'Scheduled Inspections', value: '12', status: 'info', icon: Calendar },
   ];
 
-  const violations = [
-    { employer: 'ABC Manufacturing', violation: 'Late contribution payment', severity: 'High', daysOpen: 15, inspector: 'John Smith' },
-    { employer: 'XYZ Services', violation: 'Missing employee records', severity: 'Medium', daysOpen: 8, inspector: 'Jane Doe' },
-    { employer: 'Tech Solutions Inc', violation: 'Incorrect benefit calculations', severity: 'High', daysOpen: 22, inspector: 'Mike Johnson' },
-    { employer: 'Retail Chain Ltd', violation: 'Incomplete documentation', severity: 'Low', daysOpen: 5, inspector: 'Sarah Wilson' },
-  ];
+  // Get recent active violations from MOCK_CASES
+  const recentViolations = MOCK_CASES
+    .filter(c => c.caseStatus === CaseStatus.ACTIVE || c.caseStatus === CaseStatus.OPEN)
+    .slice(0, 4)
+    .map(v => ({
+      id: v.id,
+      employer: v.employerName,
+      violation: v.caseType.replace(/_/g, ' '),
+      severity: v.priority === 'HIGH' || v.priority === 'URGENT' ? 'High' : v.priority === 'MEDIUM' ? 'Medium' : 'Low',
+      daysOpen: Math.floor((new Date().getTime() - new Date(v.createdDate).getTime()) / (1000 * 60 * 60 * 24)),
+      inspector: v.assignedInspectorName || 'Unassigned'
+    }));
 
   const upcomingInspections = [
     { company: 'Global Industries', date: '2024-01-15', type: 'Routine', inspector: 'John Smith' },
@@ -65,8 +76,12 @@ export const ComplianceDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {violations.map((violation, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-2">
+              {recentViolations.map((violation) => (
+                <div 
+                  key={violation.id} 
+                  className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => navigate(`/compliance/violations/${violation.id}`)}
+                >
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">{violation.employer}</h4>
                     <Badge variant={
@@ -76,8 +91,8 @@ export const ComplianceDashboard = () => {
                       {violation.severity}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{violation.violation}</p>
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <p className="text-sm text-muted-foreground">{violation.violation}</p>
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Inspector: {violation.inspector}</span>
                     <span>{violation.daysOpen} days open</span>
                   </div>
