@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, TrendingUp, DollarSign, Users, Plus, Trash2, Download, Save } from "lucide-react";
+import { Calculator, TrendingUp, DollarSign, Users, Plus, Trash2, Download, Save, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,126 +16,212 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
-interface EmployeeEntry {
-  id: string;
-  name: string;
+// EC3 Format Structure based on St. Kitts & Nevis Social Security specification
+interface C3LineItem {
+  lineNumber: number;
   ssn: string;
-  salary: number;
-  ageGroup: string;
-  weeksWorked: number;
-  overtimeHours: number;
-  holidayPay: number;
+  employeeName: string;
+  dateFrom: string;
+  dateTo: string;
+  paidForOthers: boolean; // Y/N
+  payPeriods: number; // Number of pay periods (weeks)
+  holiday: boolean; // Y/N
+  bonus: boolean; // Y/N
+  wagesPaid: number;
+  levy: number;
+  totalSS: number; // Total Social Security contribution
+  overAge: boolean; // Y/N - Over age 62
+  underAge: boolean; // Y/N - Under age 16
+  invalidSSN: boolean; // Y/N
 }
 
 const C3Simulation = () => {
   const { toast } = useToast();
-  const [employees, setEmployees] = useState<EmployeeEntry[]>([
+  const [headerInfo, setHeaderInfo] = useState({
+    registrationNumber: "",
+    period: "",
+    version: "1.0.0",
+    companyName: ""
+  });
+
+  const [lineItems, setLineItems] = useState<C3LineItem[]>([
     {
-      id: "1",
-      name: "",
+      lineNumber: 1,
       ssn: "",
-      salary: 3000,
-      ageGroup: "16-62",
-      weeksWorked: 4,
-      overtimeHours: 0,
-      holidayPay: 0
+      employeeName: "",
+      dateFrom: "",
+      dateTo: "",
+      paidForOthers: false,
+      payPeriods: 4,
+      holiday: false,
+      bonus: false,
+      wagesPaid: 3000,
+      levy: 0,
+      totalSS: 0,
+      overAge: false,
+      underAge: false,
+      invalidSSN: false
     }
   ]);
 
-  const [employerInfo, setEmployerInfo] = useState({
-    employerName: "",
-    employerRegNo: "",
-    period: ""
-  });
-
   // Calculation logic based on St. Kitts & Nevis rules
-  const calculateContributions = (employee: EmployeeEntry) => {
+  const calculateLineContributions = (line: C3LineItem) => {
     const monthlyCap = 6500;
-    const totalGrossSalary = employee.salary + employee.overtimeHours + employee.holidayPay;
-    const insurableEarnings = Math.min(totalGrossSalary, monthlyCap);
+    const insurableEarnings = Math.min(line.wagesPaid, monthlyCap);
     
-    // Rates based on age group (16-62: 5%/5%/1%, otherwise 0%/0%/1%)
-    const isWorking = employee.ageGroup === "16-62";
-    const employeeSSCRate = isWorking ? 0.05 : 0.0;
-    const employerSSCRate = isWorking ? 0.05 : 0.0;
-    const injuryRate = 0.01; // Always applicable
+    // Determine if SS contributions apply (ages 16-62 only)
+    const ssApplies = !line.underAge && !line.overAge;
     
-    const employeeSSC = insurableEarnings * employeeSSCRate;
-    const employerSSC = insurableEarnings * employerSSCRate;
-    const injuryContribution = insurableEarnings * injuryRate;
+    // Social Security: 5% employee + 5% employer = 10% total
+    const socialSecurityRate = ssApplies ? 0.10 : 0.0;
+    const totalSS = insurableEarnings * socialSecurityRate;
     
-    // Levy calculation
-    const levyContribution = insurableEarnings * 0.02;
+    // Employment Injury: 1% (always applicable, paid by employer)
+    const employmentInjury = insurableEarnings * 0.01;
     
-    // Severance
-    const severanceContribution = insurableEarnings * 0.01;
+    // Levy (Housing & Social Development): 2%
+    const levy = insurableEarnings * 0.02;
+    
+    // Severance: 1%
+    const severance = insurableEarnings * 0.01;
+    
+    // Employee portion (5% of SS if applicable)
+    const employeeDeduction = insurableEarnings * (ssApplies ? 0.05 : 0.0);
+    
+    // Employer portion (SS 5% + Injury 1% + Levy 2% + Severance 1%)
+    const employerCost = insurableEarnings * (ssApplies ? 0.05 : 0.0) + employmentInjury + levy + severance;
     
     return {
       insurableEarnings,
-      employeeSSC,
-      employerSSC,
-      injuryContribution,
-      levyContribution,
-      severanceContribution,
-      totalEmployeeDeduction: employeeSSC,
-      totalEmployerCost: employerSSC + injuryContribution + levyContribution + severanceContribution,
-      grandTotal: employeeSSC + employerSSC + injuryContribution + levyContribution + severanceContribution
+      socialSecurity: totalSS,
+      employmentInjury,
+      levy,
+      severance,
+      employeeDeduction,
+      employerCost,
+      grandTotal: totalSS + employmentInjury + levy + severance
     };
   };
 
-  const addEmployee = () => {
-    const newEmployee: EmployeeEntry = {
-      id: Date.now().toString(),
-      name: "",
+  const addLineItem = () => {
+    const newLine: C3LineItem = {
+      lineNumber: lineItems.length + 1,
       ssn: "",
-      salary: 3000,
-      ageGroup: "16-62",
-      weeksWorked: 4,
-      overtimeHours: 0,
-      holidayPay: 0
+      employeeName: "",
+      dateFrom: "",
+      dateTo: "",
+      paidForOthers: false,
+      payPeriods: 4,
+      holiday: false,
+      bonus: false,
+      wagesPaid: 3000,
+      levy: 0,
+      totalSS: 0,
+      overAge: false,
+      underAge: false,
+      invalidSSN: false
     };
-    setEmployees([...employees, newEmployee]);
+    setLineItems([...lineItems, newLine]);
   };
 
-  const removeEmployee = (id: string) => {
-    if (employees.length > 1) {
-      setEmployees(employees.filter(emp => emp.id !== id));
+  const removeLineItem = (lineNumber: number) => {
+    if (lineItems.length > 1) {
+      const filtered = lineItems.filter(item => item.lineNumber !== lineNumber);
+      // Renumber remaining items
+      const renumbered = filtered.map((item, index) => ({
+        ...item,
+        lineNumber: index + 1
+      }));
+      setLineItems(renumbered);
     } else {
       toast({
         title: "Cannot Remove",
-        description: "At least one employee entry is required",
+        description: "At least one line item is required",
         variant: "destructive"
       });
     }
   };
 
-  const updateEmployee = (id: string, field: keyof EmployeeEntry, value: any) => {
-    setEmployees(employees.map(emp => 
-      emp.id === id ? { ...emp, [field]: value } : emp
-    ));
+  const updateLineItem = (lineNumber: number, field: keyof C3LineItem, value: any) => {
+    setLineItems(lineItems.map(item => {
+      if (item.lineNumber === lineNumber) {
+        const updated = { ...item, [field]: value };
+        
+        // Auto-calculate contributions
+        if (field === 'wagesPaid' || field === 'overAge' || field === 'underAge') {
+          const calc = calculateLineContributions(updated);
+          updated.totalSS = calc.socialSecurity;
+          updated.levy = calc.levy;
+        }
+        
+        return updated;
+      }
+      return item;
+    }));
   };
 
-  const calculateTotals = () => {
-    const totals = employees.reduce((acc, emp) => {
-      const calc = calculateContributions(emp);
+  const calculateFooterTotals = () => {
+    const totals = lineItems.reduce((acc, line) => {
+      const calc = calculateLineContributions(line);
       return {
-        totalEmployeeSSC: acc.totalEmployeeSSC + calc.employeeSSC,
-        totalEmployerSSC: acc.totalEmployerSSC + calc.employerSSC,
-        totalInjury: acc.totalInjury + calc.injuryContribution,
-        totalLevy: acc.totalLevy + calc.levyContribution,
-        totalSeverance: acc.totalSeverance + calc.severanceContribution,
+        totalEmployees: acc.totalEmployees + 1,
+        totalWages: acc.totalWages + line.wagesPaid,
+        totalSS: acc.totalSS + calc.socialSecurity,
+        totalLevy: acc.totalLevy + calc.levy,
+        totalSeverance: acc.totalSeverance + calc.severance,
+        totalInjury: acc.totalInjury + calc.employmentInjury,
         grandTotal: acc.grandTotal + calc.grandTotal
       };
     }, {
-      totalEmployeeSSC: 0,
-      totalEmployerSSC: 0,
-      totalInjury: 0,
+      totalEmployees: 0,
+      totalWages: 0,
+      totalSS: 0,
       totalLevy: 0,
       totalSeverance: 0,
+      totalInjury: 0,
       grandTotal: 0
     });
     return totals;
+  };
+
+  const handleGenerateEC3File = () => {
+    // Generate EC3 format file content
+    let ec3Content = "";
+    
+    // Header Record
+    ec3Content += `HDR,${headerInfo.registrationNumber},${headerInfo.period},${headerInfo.version},${headerInfo.companyName}\n`;
+    
+    // Detail Records
+    lineItems.forEach(line => {
+      ec3Content += `LINE,${line.ssn},${line.employeeName},${line.dateFrom},${line.dateTo},`;
+      ec3Content += `${line.paidForOthers ? 'Y' : 'N'},${line.payPeriods},`;
+      ec3Content += `${line.holiday ? 'Y' : 'N'},${line.bonus ? 'Y' : 'N'},`;
+      ec3Content += `${line.wagesPaid.toFixed(2)},${line.levy.toFixed(2)},${line.totalSS.toFixed(2)},`;
+      ec3Content += `${line.overAge ? 'Y' : 'N'},${line.underAge ? 'Y' : 'N'},${line.invalidSSN ? 'Y' : 'N'}\n`;
+    });
+    
+    // Footer Record
+    const totals = calculateFooterTotals();
+    ec3Content += `FTR,${headerInfo.registrationNumber},${headerInfo.period},`;
+    ec3Content += `${lineItems.length},${totals.totalWages.toFixed(2)},${totals.totalSS.toFixed(2)}\n`;
+    
+    // Download file
+    const blob = new Blob([ec3Content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `C3_${headerInfo.registrationNumber}_${headerInfo.period}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "EC3 File Generated",
+      description: "Electronic C3 file has been generated and downloaded",
+    });
   };
 
   const handleSaveSimulation = () => {
@@ -145,46 +231,39 @@ const C3Simulation = () => {
     });
   };
 
-  const handleExportToExcel = () => {
-    toast({
-      title: "Export Initiated",
-      description: "Exporting simulation data to Excel",
-    });
-  };
-
-  const totals = calculateTotals();
+  const totals = calculateFooterTotals();
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title="C3 Simulation"
-        subtitle="Interactive calculation tool for C3 contributions with batch employee entry"
+        title="C3 Simulation (EC3 Format)"
+        subtitle="Official St. Kitts & Nevis Social Security Electronic C3 format"
         breadcrumbs={[
           { label: "C3 Management", href: "/c3-management/dashboard" },
           { label: "C3 Simulation" }
         ]}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Social Security</CardTitle>
+            <CardTitle className="text-sm font-medium">SSC Rate</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">10%</div>
-            <p className="text-xs text-muted-foreground">Combined Rate (5% + 5%)</p>
+            <p className="text-xs text-muted-foreground">5% + 5% (Ages 16-62)</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Employment Injury</CardTitle>
+            <CardTitle className="text-sm font-medium">Injury</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">1%</div>
-            <p className="text-xs text-muted-foreground">Employer Only</p>
+            <p className="text-xs text-muted-foreground">Employer Paid</p>
           </CardContent>
         </Card>
 
@@ -195,184 +274,241 @@ const C3Simulation = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">2%</div>
-            <p className="text-xs text-muted-foreground">Example Rate</p>
+            <p className="text-xs text-muted-foreground">Housing & Development</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Severance</CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">1%</div>
+            <p className="text-xs text-muted-foreground">Employer Paid</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Cap</CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">EC$6,500</div>
-            <p className="text-xs text-muted-foreground">Insurable Earnings Limit</p>
+            <p className="text-xs text-muted-foreground">Insurable Limit</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="batch-entry" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="batch-entry">Batch Entry</TabsTrigger>
-          <TabsTrigger value="quick-calc">Quick Calculator</TabsTrigger>
-          <TabsTrigger value="breakdown">Component Breakdown</TabsTrigger>
-          <TabsTrigger value="examples">Examples</TabsTrigger>
+      <Tabs defaultValue="ec3-entry" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="ec3-entry">EC3 Entry Form</TabsTrigger>
+          <TabsTrigger value="summary">Summary & Totals</TabsTrigger>
+          <TabsTrigger value="format-guide">Format Guide</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="batch-entry" className="space-y-6">
-          {/* Employer Information */}
+        <TabsContent value="ec3-entry" className="space-y-6">
+          {/* Header Record */}
           <Card>
             <CardHeader>
-              <CardTitle>Employer Information</CardTitle>
-              <CardDescription>Enter employer details for this C3 simulation</CardDescription>
+              <CardTitle>Header Record (HDR)</CardTitle>
+              <CardDescription>Employer and period information</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="employer-name">Employer Name</Label>
+                  <Label htmlFor="regno">Registration Number (REGNO) *</Label>
                   <Input
-                    id="employer-name"
-                    value={employerInfo.employerName}
-                    onChange={(e) => setEmployerInfo({...employerInfo, employerName: e.target.value})}
-                    placeholder="Enter employer name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="employer-regno">Registration Number</Label>
-                  <Input
-                    id="employer-regno"
-                    value={employerInfo.employerRegNo}
-                    onChange={(e) => setEmployerInfo({...employerInfo, employerRegNo: e.target.value})}
+                    id="regno"
+                    value={headerInfo.registrationNumber}
+                    onChange={(e) => setHeaderInfo({...headerInfo, registrationNumber: e.target.value})}
                     placeholder="e.g., EMP-12345"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="period">Period</Label>
+                  <Label htmlFor="period">Period (dd/01/yyyy) *</Label>
                   <Input
                     id="period"
                     type="month"
-                    value={employerInfo.period}
-                    onChange={(e) => setEmployerInfo({...employerInfo, period: e.target.value})}
+                    value={headerInfo.period}
+                    onChange={(e) => setHeaderInfo({...headerInfo, period: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="version">Version *</Label>
+                  <Input
+                    id="version"
+                    value={headerInfo.version}
+                    onChange={(e) => setHeaderInfo({...headerInfo, version: e.target.value})}
+                    placeholder="1.0.0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company Name *</Label>
+                  <Input
+                    id="company"
+                    value={headerInfo.companyName}
+                    onChange={(e) => setHeaderInfo({...headerInfo, companyName: e.target.value})}
+                    placeholder="Enter company name"
                   />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Employee Entry Form */}
+          {/* Line Items */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Employee Entries</CardTitle>
-                  <CardDescription>Add employee details for contribution calculation</CardDescription>
+                  <CardTitle>Detail Records (LINE)</CardTitle>
+                  <CardDescription>Employee wage and contribution details</CardDescription>
                 </div>
-                <Button onClick={addEmployee} size="sm">
+                <Button onClick={addLineItem} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Employee
+                  Add Line
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {employees.map((employee, index) => (
-                  <Card key={employee.id} className="p-4">
+                {lineItems.map((line) => (
+                  <Card key={line.lineNumber} className="p-4 bg-muted/30">
                     <div className="flex items-start justify-between mb-4">
-                      <h4 className="font-semibold">Employee #{index + 1}</h4>
-                      {employees.length > 1 && (
+                      <h4 className="font-semibold">Line #{line.lineNumber}</h4>
+                      {lineItems.length > 1 && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeEmployee(employee.id)}
+                          onClick={() => removeLineItem(line.lineNumber)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {/* Row 1 */}
                       <div className="space-y-2">
+                        <Label>SSN</Label>
+                        <Input
+                          value={line.ssn}
+                          onChange={(e) => updateLineItem(line.lineNumber, 'ssn', e.target.value)}
+                          placeholder="XXX-XX-XXXX"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2 md:col-span-2">
                         <Label>Employee Name</Label>
                         <Input
-                          value={employee.name}
-                          onChange={(e) => updateEmployee(employee.id, 'name', e.target.value)}
+                          value={line.employeeName}
+                          onChange={(e) => updateLineItem(line.lineNumber, 'employeeName', e.target.value)}
                           placeholder="Full name"
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label>SSN</Label>
-                        <Input
-                          value={employee.ssn}
-                          onChange={(e) => updateEmployee(employee.id, 'ssn', e.target.value)}
-                          placeholder="XXX-XX-XXXX"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Monthly Salary (EC$)</Label>
+                        <Label>Pay Periods (Weeks)</Label>
                         <Input
                           type="number"
-                          value={employee.salary}
-                          onChange={(e) => updateEmployee(employee.id, 'salary', parseFloat(e.target.value) || 0)}
-                          placeholder="3000"
+                          value={line.payPeriods}
+                          onChange={(e) => updateLineItem(line.lineNumber, 'payPeriods', parseInt(e.target.value) || 0)}
+                          placeholder="4"
+                        />
+                      </div>
+
+                      {/* Row 2 */}
+                      <div className="space-y-2">
+                        <Label>Date From</Label>
+                        <Input
+                          type="date"
+                          value={line.dateFrom}
+                          onChange={(e) => updateLineItem(line.lineNumber, 'dateFrom', e.target.value)}
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label>Age Group</Label>
+                        <Label>Date To</Label>
+                        <Input
+                          type="date"
+                          value={line.dateTo}
+                          onChange={(e) => updateLineItem(line.lineNumber, 'dateTo', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Wages Paid (EC$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={line.wagesPaid}
+                          onChange={(e) => updateLineItem(line.lineNumber, 'wagesPaid', parseFloat(e.target.value) || 0)}
+                          placeholder="3000.00"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Calculated Total SS</Label>
+                        <div className="h-10 flex items-center px-3 bg-background rounded-md border">
+                          <span className="font-semibold text-primary">
+                            EC${calculateLineContributions(line).socialSecurity.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Row 3 - Flags */}
+                      <div className="flex items-center space-x-2 pt-6">
+                        <Checkbox
+                          id={`paid-others-${line.lineNumber}`}
+                          checked={line.paidForOthers}
+                          onCheckedChange={(checked) => updateLineItem(line.lineNumber, 'paidForOthers', checked)}
+                        />
+                        <Label htmlFor={`paid-others-${line.lineNumber}`} className="text-sm">
+                          Paid for Others
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-6">
+                        <Checkbox
+                          id={`holiday-${line.lineNumber}`}
+                          checked={line.holiday}
+                          onCheckedChange={(checked) => updateLineItem(line.lineNumber, 'holiday', checked)}
+                        />
+                        <Label htmlFor={`holiday-${line.lineNumber}`} className="text-sm">
+                          Holiday Pay
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-6">
+                        <Checkbox
+                          id={`bonus-${line.lineNumber}`}
+                          checked={line.bonus}
+                          onCheckedChange={(checked) => updateLineItem(line.lineNumber, 'bonus', checked)}
+                        />
+                        <Label htmlFor={`bonus-${line.lineNumber}`} className="text-sm">
+                          Bonus
+                        </Label>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Age Status</Label>
                         <Select
-                          value={employee.ageGroup}
-                          onValueChange={(value) => updateEmployee(employee.id, 'ageGroup', value)}
+                          value={line.overAge ? 'over' : line.underAge ? 'under' : 'normal'}
+                          onValueChange={(value) => {
+                            updateLineItem(line.lineNumber, 'overAge', value === 'over');
+                            updateLineItem(line.lineNumber, 'underAge', value === 'under');
+                          }}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="under-16">Under 16</SelectItem>
-                            <SelectItem value="16-62">16-62 (Working Age)</SelectItem>
-                            <SelectItem value="over-62">Over 62</SelectItem>
+                            <SelectItem value="under">Under 16</SelectItem>
+                            <SelectItem value="normal">16-62 (Normal)</SelectItem>
+                            <SelectItem value="over">Over 62</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Weeks Worked</Label>
-                        <Input
-                          type="number"
-                          value={employee.weeksWorked}
-                          onChange={(e) => updateEmployee(employee.id, 'weeksWorked', parseFloat(e.target.value) || 0)}
-                          placeholder="4"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Overtime (EC$)</Label>
-                        <Input
-                          type="number"
-                          value={employee.overtimeHours}
-                          onChange={(e) => updateEmployee(employee.id, 'overtimeHours', parseFloat(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Holiday Pay (EC$)</Label>
-                        <Input
-                          type="number"
-                          value={employee.holidayPay}
-                          onChange={(e) => updateEmployee(employee.id, 'holidayPay', parseFloat(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Total Contribution</Label>
-                        <div className="h-10 flex items-center px-3 bg-muted rounded-md">
-                          <span className="font-semibold text-primary">
-                            EC${calculateContributions(employee).grandTotal.toFixed(2)}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </Card>
@@ -381,51 +517,65 @@ const C3Simulation = () => {
             </CardContent>
           </Card>
 
-          {/* Calculation Summary Table */}
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={handleGenerateEC3File}>
+              <Download className="h-4 w-4 mr-2" />
+              Generate EC3 File
+            </Button>
+            <Button onClick={handleSaveSimulation}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Simulation
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="summary" className="space-y-6">
+          {/* Summary Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Calculation Summary</CardTitle>
-              <CardDescription>Detailed breakdown of all employees</CardDescription>
+              <CardTitle>C3 Summary Table</CardTitle>
+              <CardDescription>Complete breakdown of all line items</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Employee</TableHead>
+                      <TableHead>Line</TableHead>
                       <TableHead>SSN</TableHead>
-                      <TableHead className="text-right">Insurable Earnings</TableHead>
-                      <TableHead className="text-right">Employee SSC</TableHead>
-                      <TableHead className="text-right">Employer SSC</TableHead>
-                      <TableHead className="text-right">Injury</TableHead>
-                      <TableHead className="text-right">Levy</TableHead>
-                      <TableHead className="text-right">Severance</TableHead>
+                      <TableHead>Employee Name</TableHead>
+                      <TableHead className="text-right">Wages Paid</TableHead>
+                      <TableHead className="text-right">SS (10%)</TableHead>
+                      <TableHead className="text-right">Levy (2%)</TableHead>
+                      <TableHead className="text-right">Injury (1%)</TableHead>
+                      <TableHead className="text-right">Severance (1%)</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {employees.map((employee) => {
-                      const calc = calculateContributions(employee);
+                    {lineItems.map((line) => {
+                      const calc = calculateLineContributions(line);
                       return (
-                        <TableRow key={employee.id}>
-                          <TableCell className="font-medium">{employee.name || `Employee #${employee.id}`}</TableCell>
-                          <TableCell>{employee.ssn}</TableCell>
-                          <TableCell className="text-right">EC${calc.insurableEarnings.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">EC${calc.employeeSSC.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">EC${calc.employerSSC.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">EC${calc.injuryContribution.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">EC${calc.levyContribution.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">EC${calc.severanceContribution.toFixed(2)}</TableCell>
+                        <TableRow key={line.lineNumber}>
+                          <TableCell>{line.lineNumber}</TableCell>
+                          <TableCell>{line.ssn}</TableCell>
+                          <TableCell className="font-medium">{line.employeeName || `Line ${line.lineNumber}`}</TableCell>
+                          <TableCell className="text-right">EC${line.wagesPaid.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">EC${calc.socialSecurity.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">EC${calc.levy.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">EC${calc.employmentInjury.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">EC${calc.severance.toFixed(2)}</TableCell>
                           <TableCell className="text-right font-semibold">EC${calc.grandTotal.toFixed(2)}</TableCell>
                         </TableRow>
                       );
                     })}
                     <TableRow className="bg-muted/50 font-bold">
-                      <TableCell colSpan={3}>TOTALS</TableCell>
-                      <TableCell className="text-right">EC${totals.totalEmployeeSSC.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">EC${totals.totalEmployerSSC.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">EC${totals.totalInjury.toFixed(2)}</TableCell>
+                      <TableCell colSpan={3}>FOOTER TOTALS (FTR)</TableCell>
+                      <TableCell className="text-right">EC${totals.totalWages.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">EC${totals.totalSS.toFixed(2)}</TableCell>
                       <TableCell className="text-right">EC${totals.totalLevy.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">EC${totals.totalInjury.toFixed(2)}</TableCell>
                       <TableCell className="text-right">EC${totals.totalSeverance.toFixed(2)}</TableCell>
                       <TableCell className="text-right text-primary text-lg">EC${totals.grandTotal.toFixed(2)}</TableCell>
                     </TableRow>
@@ -435,227 +585,128 @@ const C3Simulation = () => {
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={handleExportToExcel}>
-              <Download className="h-4 w-4 mr-2" />
-              Export to Excel
-            </Button>
-            <Button onClick={handleSaveSimulation}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Simulation
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="quick-calc" className="space-y-6">
-          <Card>
+          {/* Control Totals */}
+          <Card className="bg-accent/20">
             <CardHeader>
-              <CardTitle>Quick Contribution Calculator</CardTitle>
-              <CardDescription>Calculate contributions for a single employee</CardDescription>
+              <CardTitle>Footer Record (FTR) - Control Totals</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="quick-salary">Monthly Salary (EC$)</Label>
-                  <Input
-                    id="quick-salary"
-                    type="number"
-                    defaultValue="3000"
-                    placeholder="Enter monthly salary"
-                  />
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Number of Records (NUMRECS)</p>
+                  <p className="text-3xl font-bold text-primary">{totals.totalEmployees}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quick-age">Age Group</Label>
-                  <Select defaultValue="16-62">
-                    <SelectTrigger id="quick-age">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="under-16">Under 16</SelectItem>
-                      <SelectItem value="16-62">16-62 (Working Age)</SelectItem>
-                      <SelectItem value="over-62">Over 62</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Total Wages (CTRLTTL)</p>
+                  <p className="text-3xl font-bold text-primary">EC${totals.totalWages.toFixed(2)}</p>
                 </div>
-              </div>
-              
-              <div className="pt-6 border-t">
-                <h4 className="font-semibold mb-4">Contribution Breakdown</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between p-3 bg-muted rounded-lg">
-                    <span>Employee SSC (5%):</span>
-                    <span className="font-semibold">EC$150.00</span>
-                  </div>
-                  <div className="flex justify-between p-3 bg-muted rounded-lg">
-                    <span>Employer SSC (5%):</span>
-                    <span className="font-semibold">EC$150.00</span>
-                  </div>
-                  <div className="flex justify-between p-3 bg-muted rounded-lg">
-                    <span>Employment Injury (1%):</span>
-                    <span className="font-semibold">EC$30.00</span>
-                  </div>
-                  <div className="flex justify-between p-3 bg-muted rounded-lg">
-                    <span>Levy (2%):</span>
-                    <span className="font-semibold">EC$60.00</span>
-                  </div>
-                  <div className="flex justify-between p-3 bg-muted rounded-lg">
-                    <span>Severance (1%):</span>
-                    <span className="font-semibold">EC$30.00</span>
-                  </div>
-                  <div className="flex justify-between p-3 bg-primary/10 rounded-lg border-2 border-primary">
-                    <span className="font-bold text-lg">Total to SSB:</span>
-                    <span className="font-bold text-lg text-primary">EC$420.00</span>
-                  </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Total SS (TTLSS)</p>
+                  <p className="text-3xl font-bold text-primary">EC${totals.totalSS.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Grand Total to SSB</p>
+                  <p className="text-3xl font-bold text-primary">EC${totals.grandTotal.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="breakdown" className="space-y-4">
+        <TabsContent value="format-guide" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Six Contribution Components</CardTitle>
+              <CardTitle>EC3 Standard File Format v1.0.0</CardTitle>
+              <CardDescription>Official St. Kitts & Nevis Social Security Electronic C3 specification</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Badge variant="outline">SSC</Badge>
-                  Social Security Contributions
+                  <Badge>HDR</Badge>
+                  Header Record
                 </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Mandatory for employees aged 16-62 years. Both employee and employer contribute 5% each on insurable earnings up to EC$6,500 per month.
-                </p>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <p>HDR, REGNO, PERIOD (dd/01/yyyy), VERSION, COMPANY</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Example: HDR,EMP-12345,01/01/2024,1.0.0,ABC Company Ltd
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Badge>LINE</Badge>
+                  Detail Records (Employee Lines)
+                </h3>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between">
-                    <span>Employee Rate:</span>
-                    <span className="font-medium">5%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Employer Rate:</span>
-                    <span className="font-medium">5%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Badge variant="outline">SSF</Badge>
-                  Social Security Penalties
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Penalties of 5% per month on late submissions after grace period.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Badge variant="outline">LVC</Badge>
-                  Housing & Social Development Levy
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Supports housing and social development programs. Calculated as percentage of insurable earnings.
-                </p>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="flex justify-between">
-                    <span>Levy Rate:</span>
-                    <span className="font-medium">2%</span>
+                  <p className="font-mono text-sm">LINE, SSN, Name, DateFrom, DateTo, PaidForOthers(Y/N), PayPeriods, Holiday(Y/N), Bonus(Y/N), WagesPaid, Levy, TotalSS, OverAge(Y/N), UnderAge(Y/N), InvalidSSN(Y/N)</p>
+                  <div className="mt-4 space-y-1 text-sm">
+                    <p><strong>SSN:</strong> Employee Social Security Number (XXX-XX-XXXX)</p>
+                    <p><strong>PayPeriods:</strong> Number of weeks worked in period</p>
+                    <p><strong>WagesPaid:</strong> Total wages subject to contributions (capped at EC$6,500)</p>
+                    <p><strong>TotalSS:</strong> 10% of insurable earnings (5% employee + 5% employer, ages 16-62 only)</p>
+                    <p><strong>Levy:</strong> 2% for Housing & Social Development</p>
+                    <p><strong>OverAge/UnderAge:</strong> Y if outside 16-62 age range (no SS contributions)</p>
                   </div>
                 </div>
               </div>
 
               <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Badge variant="outline">LVF</Badge>
-                  Levy Penalties
+                  <Badge>FTR</Badge>
+                  Footer Record (Control Totals)
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  Penalties on late levy contributions following same structure as SSF.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Badge variant="outline">PEC</Badge>
-                  Severance Contributions
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Protection for employees in case of termination. Paid by employer.
-                </p>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="flex justify-between">
-                    <span>Severance Rate:</span>
-                    <span className="font-medium">1%</span>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <p>FTR, REGNO, PERIOD, NUMRECS, CTRLTTL, TTLSS</p>
+                  <div className="mt-4 space-y-1 text-sm font-sans">
+                    <p><strong>NUMRECS:</strong> Total number of LINE records</p>
+                    <p><strong>CTRLTTL:</strong> Sum of all WagesPaid amounts</p>
+                    <p><strong>TTLSS:</strong> Sum of all TotalSS amounts</p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Badge variant="outline">PEF</Badge>
-                  Severance Penalties
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Penalties on late severance contributions.
-                </p>
+                <h3 className="font-semibold mb-3">Validation Rules</h3>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>File format: Comma-delimited (CSV), CR/LF line endings, no quotes</li>
+                    <li>NUMRECS must match actual number of LINE records</li>
+                    <li>CTRLTTL must equal sum of all WagesPaid values</li>
+                    <li>TTLSS must equal sum of all TotalSS values</li>
+                    <li>SSN format validation (XXX-XX-XXXX)</li>
+                    <li>Date format: dd/MM/yyyy</li>
+                    <li>WagesPaid capped at EC$6,500 per month per employee</li>
+                    <li>Social Security contributions only apply to ages 16-62</li>
+                  </ul>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="examples" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Example Scenarios</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {[
-                { salary: 2000, scenario: "Below Cap Earnings", age: "16-62" },
-                { salary: 5000, scenario: "Mid-Range Earnings", age: "16-62" },
-                { salary: 6500, scenario: "At Monthly Cap", age: "16-62" },
-                { salary: 10000, scenario: "Above Cap (Capped at EC$6,500)", age: "16-62" },
-                { salary: 3000, scenario: "Under Age 16", age: "under-16" },
-                { salary: 3000, scenario: "Over Age 62", age: "over-62" }
-              ].map((example, idx) => {
-                const testEmployee: EmployeeEntry = {
-                  id: idx.toString(),
-                  name: example.scenario,
-                  ssn: "",
-                  salary: example.salary,
-                  ageGroup: example.age,
-                  weeksWorked: 4,
-                  overtimeHours: 0,
-                  holidayPay: 0
-                };
-                const calc = calculateContributions(testEmployee);
-                return (
-                  <div key={idx} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">{example.scenario}</h4>
-                      <Badge>EC${example.salary.toLocaleString()} | {example.age}</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Insurable Earnings:</p>
-                        <p className="font-medium">EC${calc.insurableEarnings.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Employee Deduction:</p>
-                        <p className="font-medium">EC${calc.totalEmployeeDeduction.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Employer Cost:</p>
-                        <p className="font-medium">EC${calc.totalEmployerCost.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Total to SSB:</p>
-                        <p className="font-medium text-primary">EC${calc.grandTotal.toFixed(2)}</p>
-                      </div>
-                    </div>
+              <div>
+                <h3 className="font-semibold mb-3">Contribution Components</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">SSC - Social Security (10%)</h4>
+                    <p className="text-sm">Employee: 5% | Employer: 5%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Ages 16-62 only</p>
                   </div>
-                );
-              })}
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">LVC - Levy (2%)</h4>
+                    <p className="text-sm">Housing & Social Development</p>
+                    <p className="text-xs text-muted-foreground mt-1">All employees</p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">PEC - Severance (1%)</h4>
+                    <p className="text-sm">Employer paid</p>
+                    <p className="text-xs text-muted-foreground mt-1">Termination protection</p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">Employment Injury (1%)</h4>
+                    <p className="text-sm">Employer paid</p>
+                    <p className="text-xs text-muted-foreground mt-1">Work injury insurance</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
