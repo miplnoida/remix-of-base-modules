@@ -277,3 +277,113 @@ export const mockWorkflowRules: LegalWorkflowRule[] = [
     taskTemplateId: 'review_enforcement'
   }
 ];
+
+// ============================================
+// TIMELINES & TRIGGERS (UI ONLY - NO DB YET)
+// ============================================
+
+export interface TimelineTriggerConfig {
+  id: string;
+  stageId: string;
+  statusId: string;
+  graceDays: number;
+  escalationDays: number;
+  reminderEveryDays: number | null;
+  nextStatusId: string | null;
+  sendInternalAlert: boolean;
+  internalNotificationTemplateId: string | null;
+  sendExternalLetter: boolean;
+  letterTemplateId: string | null;
+  createTask: boolean;
+  taskTemplateId: string | null;
+  actionMode: 'suggest' | 'auto_suggest' | 'auto_transition';
+  active: boolean;
+}
+
+export const mockTimelineTriggers: TimelineTriggerConfig[] = [
+  {
+    id: 'trigger-1',
+    stageId: 'stage-1',
+    statusId: 'status-3', // Approved for Legal Action
+    graceDays: 0,
+    escalationDays: 7,
+    reminderEveryDays: 3,
+    nextStatusId: 'status-6', // Filed in Court
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Legal Bring-Up Alert',
+    sendExternalLetter: false,
+    letterTemplateId: null,
+    createTask: true,
+    taskTemplateId: 'prepare_filing',
+    actionMode: 'suggest',
+    active: true
+  },
+  {
+    id: 'trigger-2',
+    stageId: 'stage-2',
+    statusId: 'status-6', // Filed in Court
+    graceDays: 0,
+    escalationDays: 14,
+    reminderEveryDays: null,
+    nextStatusId: 'status-7', // Awaiting Service
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Legal Bring-Up Alert',
+    sendExternalLetter: false,
+    letterTemplateId: null,
+    createTask: true,
+    taskTemplateId: 'track_service',
+    actionMode: 'auto_suggest',
+    active: true
+  },
+  {
+    id: 'trigger-3',
+    stageId: 'stage-4',
+    statusId: 'status-15', // Judgment Granted
+    graceDays: 0,
+    escalationDays: 14,
+    reminderEveryDays: 7,
+    nextStatusId: 'status-20', // Enforcement Pending
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Judgment Follow-Up Alert',
+    sendExternalLetter: true,
+    letterTemplateId: 'Notice of Judgment',
+    createTask: true,
+    taskTemplateId: 'prepare_enforcement',
+    actionMode: 'suggest',
+    active: true
+  },
+  {
+    id: 'trigger-4',
+    stageId: 'stage-2',
+    statusId: 'status-7', // Awaiting Service
+    graceDays: 7,
+    escalationDays: 30,
+    reminderEveryDays: 7,
+    nextStatusId: 'status-9', // Service Failed
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Legal Bring-Up Alert',
+    sendExternalLetter: false,
+    letterTemplateId: null,
+    createTask: true,
+    taskTemplateId: 'retry_service',
+    actionMode: 'suggest',
+    active: true
+  },
+  {
+    id: 'trigger-5',
+    stageId: 'stage-5',
+    statusId: 'status-20', // Enforcement Pending
+    graceDays: 0,
+    escalationDays: 21,
+    reminderEveryDays: 7,
+    nextStatusId: 'status-21', // Writ of Execution Filed
+    sendInternalAlert: true,
+    internalNotificationTemplateId: 'Enforcement Escalation Alert',
+    sendExternalLetter: true,
+    letterTemplateId: 'Final Notice Before Enforcement',
+    createTask: true,
+    taskTemplateId: 'prepare_enforcement',
+    actionMode: 'auto_suggest',
+    active: true
+  }
+];

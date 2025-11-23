@@ -139,18 +139,19 @@ export function WorkflowRulesTab() {
       </div>
 
       <div className="border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left p-4 font-medium">Rule Name</th>
-              <th className="text-left p-4 font-medium">Stage</th>
-              <th className="text-left p-4 font-medium">Status</th>
-              <th className="text-center p-4 font-medium">Days in Status</th>
-              <th className="text-left p-4 font-medium">Actions</th>
-              <th className="text-center p-4 font-medium">Active</th>
-              <th className="text-right p-4 font-medium"></th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-4 font-medium whitespace-nowrap min-w-[200px]">Rule Name</th>
+                <th className="text-left p-4 font-medium whitespace-nowrap">Stage</th>
+                <th className="text-left p-4 font-medium whitespace-nowrap">Status</th>
+                <th className="text-center p-4 font-medium whitespace-nowrap">Days in Status</th>
+                <th className="text-left p-4 font-medium whitespace-nowrap min-w-[150px]">Actions</th>
+                <th className="text-center p-4 font-medium whitespace-nowrap">Active</th>
+                <th className="text-right p-4 font-medium sticky right-0 bg-muted/50 z-10">Actions</th>
+              </tr>
+            </thead>
           <tbody>
             {filteredRules.length === 0 ? (
               <tr>
@@ -161,7 +162,7 @@ export function WorkflowRulesTab() {
             ) : (
               filteredRules.map((rule) => (
                 <tr key={rule.id} className="border-t hover:bg-muted/30 transition-colors">
-                  <td className="p-4">
+                  <td className="p-4 min-w-[200px]">
                     <div className="font-medium">{rule.name}</div>
                     {rule.description && (
                       <div className="text-sm text-muted-foreground mt-1">
@@ -169,28 +170,28 @@ export function WorkflowRulesTab() {
                       </div>
                     )}
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 whitespace-nowrap">
                     <Badge variant="outline" className="font-normal">
                       {getStageName(rule.stageId)}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 whitespace-nowrap">
                     <div className="text-sm">{getStatusName(rule.statusId)}</div>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="p-4 text-center whitespace-nowrap">
                     <Badge variant="secondary">{rule.daysInStatus} days</Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 min-w-[150px]">
                     <div className="text-sm">{getActionsSummary(rule)}</div>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="p-4 text-center whitespace-nowrap">
                     <Switch
                       checked={rule.active}
                       onCheckedChange={() => handleToggleActive(rule.id)}
                     />
                   </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="p-4 text-right sticky right-0 bg-card z-10">
+                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -214,6 +215,7 @@ export function WorkflowRulesTab() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <WorkflowRuleFormDialog
