@@ -4,11 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Plus, MapPin, Clock } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export const InspectorWeeklyPlan = () => {
+  const { toast } = useToast();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedWeek, { weekStartsOn: 1 });
+
+  const handleAddVisit = () => {
+    toast({
+      title: "Add Visit",
+      description: "Visit scheduling feature coming soon",
+    });
+  };
+
+  const handleSubmitPlan = () => {
+    toast({
+      title: "Plan Submitted",
+      description: "Your weekly plan has been submitted for approval",
+    });
+  };
 
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -35,7 +51,7 @@ export const InspectorWeeklyPlan = () => {
             {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
           </p>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={handleAddVisit}>
           <Plus className="h-4 w-4 mr-1" />
           <span className="hidden sm:inline">Add Visit</span>
           <span className="sm:hidden">Add</span>
@@ -91,7 +107,7 @@ export const InspectorWeeklyPlan = () => {
         </CardContent>
       </Card>
 
-      <Button variant="outline" className="w-full">
+      <Button variant="outline" className="w-full" onClick={handleSubmitPlan}>
         Submit Plan for Approval
       </Button>
     </div>
