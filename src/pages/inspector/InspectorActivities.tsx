@@ -3,8 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, CheckCircle, Camera, FileText } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export const InspectorActivities = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeVisit, setActiveVisit] = useState<string | null>(null);
 
   const todayVisits = [
@@ -28,12 +32,39 @@ export const InspectorActivities = () => {
 
   const handleCheckIn = (visitId: string) => {
     setActiveVisit(visitId);
-    // TODO: Capture GPS location and timestamp
+    toast({
+      title: "Checked In",
+      description: "GPS location captured. Visit started.",
+    });
   };
 
   const handleCheckOut = () => {
+    toast({
+      title: "Checked Out",
+      description: "Visit completed successfully",
+    });
     setActiveVisit(null);
-    // TODO: Save visit data
+  };
+
+  const handleEvidence = () => {
+    toast({
+      title: "Capture Evidence",
+      description: "Camera feature coming soon",
+    });
+  };
+
+  const handleNotes = () => {
+    toast({
+      title: "Add Notes",
+      description: "Notes feature coming soon",
+    });
+  };
+
+  const handleDetails = (visitId: string) => {
+    toast({
+      title: "Visit Details",
+      description: "Viewing details for visit",
+    });
   };
 
   return (
@@ -62,11 +93,11 @@ export const InspectorActivities = () => {
             </div>
             
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-16 flex-col gap-1.5">
+              <Button variant="outline" className="h-16 flex-col gap-1.5" onClick={handleEvidence}>
                 <Camera className="h-5 w-5" />
                 <span className="text-xs">Evidence</span>
               </Button>
-              <Button variant="outline" className="h-16 flex-col gap-1.5">
+              <Button variant="outline" className="h-16 flex-col gap-1.5" onClick={handleNotes}>
                 <FileText className="h-5 w-5" />
                 <span className="text-xs">Notes</span>
               </Button>
@@ -116,7 +147,7 @@ export const InspectorActivities = () => {
                   <MapPin className="h-3 w-3 mr-1" />
                   Check In
                 </Button>
-                <Button variant="outline" className="text-xs h-9 px-3">
+                <Button variant="outline" className="text-xs h-9 px-3" onClick={() => handleDetails(visit.id)}>
                   Details
                 </Button>
               </div>

@@ -6,6 +6,8 @@ import { InspectorLayout } from '@/components/inspector/InspectorLayout';
 import { InspectorDashboard } from '@/pages/inspector/InspectorDashboard';
 import { InspectorWeeklyPlan } from '@/pages/inspector/InspectorWeeklyPlan';
 import { InspectorActivities } from '@/pages/inspector/InspectorActivities';
+import { InspectorViolations } from '@/pages/inspector/InspectorViolations';
+import { InspectorReports } from '@/pages/inspector/InspectorReports';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useLegalAuth } from '@/contexts/LegalAuthContext';
@@ -512,8 +514,8 @@ export const AppRoutes = () => {
         <Route path="dashboard" element={<InspectorDashboard />} />
         <Route path="plan" element={<Suspense fallback={<div>Loading...</div>}><InspectorWeeklyPlan /></Suspense>} />
         <Route path="activities" element={<Suspense fallback={<div>Loading...</div>}><InspectorActivities /></Suspense>} />
-        <Route path="violations" element={<div className="p-8 text-center text-muted-foreground">Violations - Coming Soon</div>} />
-        <Route path="reports" element={<div className="p-8 text-center text-muted-foreground">Reports - Coming Soon</div>} />
+        <Route path="violations" element={<Suspense fallback={<div>Loading...</div>}><InspectorViolations /></Suspense>} />
+        <Route path="reports" element={<Suspense fallback={<div>Loading...</div>}><InspectorReports /></Suspense>} />
       </Route>
       <Route path="/demo-login" element={<DummyLoginPage />} />
       <Route path="/components-demo" element={<ProtectedLayout><FoundationComponentsDemo /></ProtectedLayout>} />
