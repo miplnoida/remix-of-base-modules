@@ -5,19 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Plus, MapPin, Clock } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { AddVisitDialog } from './AddVisitDialog';
 
 export const InspectorWeeklyPlan = () => {
   const { toast } = useToast();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
+  const [addVisitOpen, setAddVisitOpen] = useState(false);
   const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedWeek, { weekStartsOn: 1 });
-
-  const handleAddVisit = () => {
-    toast({
-      title: "Add Visit",
-      description: "Visit scheduling feature coming soon",
-    });
-  };
 
   const handleSubmitPlan = () => {
     toast({
@@ -43,7 +38,9 @@ export const InspectorWeeklyPlan = () => {
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <>
+      <AddVisitDialog open={addVisitOpen} onOpenChange={setAddVisitOpen} />
+      <div className="space-y-4 pb-6">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl md:text-2xl font-bold">Weekly Plan</h1>
@@ -51,7 +48,7 @@ export const InspectorWeeklyPlan = () => {
             {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
           </p>
         </div>
-        <Button size="sm" onClick={handleAddVisit}>
+        <Button size="sm" onClick={() => setAddVisitOpen(true)}>
           <Plus className="h-4 w-4 mr-1" />
           <span className="hidden sm:inline">Add Visit</span>
           <span className="sm:hidden">Add</span>
@@ -111,5 +108,6 @@ export const InspectorWeeklyPlan = () => {
         Submit Plan for Approval
       </Button>
     </div>
+    </>
   );
 };

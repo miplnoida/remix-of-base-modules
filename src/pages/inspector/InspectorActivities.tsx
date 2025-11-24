@@ -5,11 +5,18 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, CheckCircle, Camera, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { EvidenceDialog } from './EvidenceDialog';
+import { NotesDialog } from './NotesDialog';
+import { VisitDetailsDialog } from './VisitDetailsDialog';
 
 export const InspectorActivities = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeVisit, setActiveVisit] = useState<string | null>(null);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<any>(null);
 
   const todayVisits = [
     { 
@@ -47,28 +54,24 @@ export const InspectorActivities = () => {
   };
 
   const handleEvidence = () => {
-    toast({
-      title: "Capture Evidence",
-      description: "Camera feature coming soon",
-    });
+    setEvidenceOpen(true);
   };
 
   const handleNotes = () => {
-    toast({
-      title: "Add Notes",
-      description: "Notes feature coming soon",
-    });
+    setNotesOpen(true);
   };
 
-  const handleDetails = (visitId: string) => {
-    toast({
-      title: "Visit Details",
-      description: "Viewing details for visit",
-    });
+  const handleDetails = (visit: any) => {
+    setSelectedVisit(visit);
+    setDetailsOpen(true);
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <>
+      <EvidenceDialog open={evidenceOpen} onOpenChange={setEvidenceOpen} visitId={activeVisit} />
+      <NotesDialog open={notesOpen} onOpenChange={setNotesOpen} visitId={activeVisit} />
+      <VisitDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} visit={selectedVisit} />
+      <div className="space-y-4 pb-6">
       <div>
         <h1 className="text-xl md:text-2xl font-bold">Field Activities</h1>
         <p className="text-muted-foreground text-sm">Check in and execute today's visits</p>
@@ -147,7 +150,7 @@ export const InspectorActivities = () => {
                   <MapPin className="h-3 w-3 mr-1" />
                   Check In
                 </Button>
-                <Button variant="outline" className="text-xs h-9 px-3" onClick={() => handleDetails(visit.id)}>
+                <Button variant="outline" className="text-xs h-9 px-3" onClick={() => handleDetails(visit)}>
                   Details
                 </Button>
               </div>
@@ -156,5 +159,6 @@ export const InspectorActivities = () => {
         ))}
       </div>
     </div>
+    </>
   );
 };
