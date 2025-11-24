@@ -157,6 +157,16 @@ export const LoginScreen = () => {
               </Button>
             </form>
 
+            <div className="mt-4 text-center">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate('/inspector/login')}
+              >
+                Inspector Login →
+              </Button>
+            </div>
+
             <div className="mt-6 pt-6 border-t">
               <p className="text-sm text-gray-600 mb-3">Demo Credentials (password: password123):</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
