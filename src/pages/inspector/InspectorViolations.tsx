@@ -56,7 +56,7 @@ export const InspectorViolations = () => {
     <div className="space-y-4 pb-6">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl md:text-2xl font-bold">Violations</h1>
-        <Button size="sm" onClick={() => navigate('/inspector/violations/new')}>
+        <Button size="sm" onClick={() => navigate('/inspector/violations/record')}>
           <Plus className="h-4 w-4 mr-1" />
           Record
         </Button>

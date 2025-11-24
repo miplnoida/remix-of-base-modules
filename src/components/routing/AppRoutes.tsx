@@ -8,6 +8,7 @@ import { InspectorWeeklyPlan } from '@/pages/inspector/InspectorWeeklyPlan';
 import { InspectorActivities } from '@/pages/inspector/InspectorActivities';
 import { InspectorViolations } from '@/pages/inspector/InspectorViolations';
 import { InspectorReports } from '@/pages/inspector/InspectorReports';
+import { RecordViolationForm } from '@/pages/inspector/RecordViolationForm';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useLegalAuth } from '@/contexts/LegalAuthContext';
@@ -515,6 +516,7 @@ export const AppRoutes = () => {
         <Route path="plan" element={<Suspense fallback={<div>Loading...</div>}><InspectorWeeklyPlan /></Suspense>} />
         <Route path="activities" element={<Suspense fallback={<div>Loading...</div>}><InspectorActivities /></Suspense>} />
         <Route path="violations" element={<Suspense fallback={<div>Loading...</div>}><InspectorViolations /></Suspense>} />
+        <Route path="violations/record" element={<Suspense fallback={<div>Loading...</div>}><RecordViolationForm /></Suspense>} />
         <Route path="reports" element={<Suspense fallback={<div>Loading...</div>}><InspectorReports /></Suspense>} />
       </Route>
       <Route path="/demo-login" element={<DummyLoginPage />} />
