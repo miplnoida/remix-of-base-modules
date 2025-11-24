@@ -27,57 +27,58 @@ export const InspectorWeeklyPlan = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Weekly Plan</h1>
-          <p className="text-muted-foreground">
+    <div className="space-y-4 pb-6">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl md:text-2xl font-bold">Weekly Plan</h1>
+          <p className="text-muted-foreground text-sm">
             {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Visit
+        <Button size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          <span className="hidden sm:inline">Add Visit</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Calendar className="h-4 w-4" />
             This Week's Schedule
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {weekDays.map((day, index) => {
             const dayName = format(day, 'EEEE');
             const visits = mockPlan[dayName as keyof typeof mockPlan] || [];
             
             return (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+              <div key={index} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold">{dayName}</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold text-sm">{dayName}</h3>
+                    <p className="text-xs text-muted-foreground">
                       {format(day, 'MMM d')}
                     </p>
                   </div>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-xs">
                     {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
                   </Badge>
                 </div>
 
                 {visits.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
+                  <div className="text-center py-3 text-muted-foreground text-xs">
                     No visits scheduled
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {visits.map((visit, vIndex) => (
-                      <div key={vIndex} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div key={vIndex} className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                        <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{visit.employer}</p>
+                          <p className="font-medium text-xs truncate">{visit.employer}</p>
                           <p className="text-xs text-muted-foreground">{visit.type} • {visit.time}</p>
                         </div>
                       </div>
@@ -90,13 +91,9 @@ export const InspectorWeeklyPlan = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <Button variant="outline" className="w-full">
-            Submit Plan for Approval
-          </Button>
-        </CardContent>
-      </Card>
+      <Button variant="outline" className="w-full">
+        Submit Plan for Approval
+      </Button>
     </div>
   );
 };

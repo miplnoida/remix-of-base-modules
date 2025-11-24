@@ -37,38 +37,38 @@ export const InspectorActivities = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 pb-6">
       <div>
-        <h1 className="text-2xl font-bold">Field Activities</h1>
-        <p className="text-muted-foreground">Check in and execute today's visits</p>
+        <h1 className="text-xl md:text-2xl font-bold">Field Activities</h1>
+        <p className="text-muted-foreground text-sm">Check in and execute today's visits</p>
       </div>
 
       {activeVisit && (
-        <Card className="border-primary">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
+        <Card className="border-primary shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               Active Visit
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="p-4 bg-primary/5 rounded-lg">
-              <p className="font-medium mb-1">
+            <div className="p-3 bg-primary/5 rounded-lg">
+              <p className="font-medium text-sm mb-0.5">
                 {todayVisits.find(v => v.id === activeVisit)?.employer}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {todayVisits.find(v => v.id === activeVisit)?.address}
               </p>
             </div>
             
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-20 flex-col gap-2">
-                <Camera className="h-6 w-6" />
-                <span className="text-xs">Capture Evidence</span>
+              <Button variant="outline" className="h-16 flex-col gap-1.5">
+                <Camera className="h-5 w-5" />
+                <span className="text-xs">Evidence</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
-                <FileText className="h-6 w-6" />
-                <span className="text-xs">Add Notes</span>
+              <Button variant="outline" className="h-16 flex-col gap-1.5">
+                <FileText className="h-5 w-5" />
+                <span className="text-xs">Notes</span>
               </Button>
             </div>
 
@@ -84,39 +84,39 @@ export const InspectorActivities = () => {
         </Card>
       )}
 
-      <div className="space-y-3">
-        <h2 className="font-semibold">Today's Visits</h2>
+      <div className="space-y-2">
+        <h2 className="font-semibold text-base">Today's Visits</h2>
         {todayVisits.map((visit) => (
           <Card key={visit.id} className={visit.id === activeVisit ? 'opacity-50' : ''}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="font-medium">{visit.employer}</h3>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <Clock className="h-3 w-3" />
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-sm truncate">{visit.employer}</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3 flex-shrink-0" />
                     {visit.scheduledTime}
                   </div>
                 </div>
-                <Badge variant={visit.status === 'ready' ? 'default' : 'secondary'}>
+                <Badge variant={visit.status === 'ready' ? 'default' : 'secondary'} className="text-xs ml-2 flex-shrink-0">
                   {visit.status}
                 </Badge>
               </div>
 
-              <div className="flex items-start gap-2 text-sm text-muted-foreground mb-3">
-                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>{visit.address}</span>
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mb-3">
+                <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-2">{visit.address}</span>
               </div>
 
               <div className="flex gap-2">
                 <Button 
-                  className="flex-1"
+                  className="flex-1 text-xs h-9"
                   disabled={!!activeVisit || visit.status !== 'ready'}
                   onClick={() => handleCheckIn(visit.id)}
                 >
-                  <MapPin className="h-4 w-4 mr-2" />
+                  <MapPin className="h-3 w-3 mr-1" />
                   Check In
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" className="text-xs h-9 px-3">
                   Details
                 </Button>
               </div>

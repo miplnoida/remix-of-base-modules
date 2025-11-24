@@ -60,10 +60,10 @@ export const InspectorLogin = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 bg-card rounded-full flex items-center justify-center p-2 shadow-xl border-4 border-primary/20">
+    <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-3">
+      <div className="w-full max-w-md space-y-4">
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-16 h-16 bg-card rounded-full flex items-center justify-center p-2 shadow-xl border-4 border-primary/20">
             <img 
               src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
               alt="SSB Logo" 
@@ -71,22 +71,22 @@ export const InspectorLogin = () => {
             />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-              <MapPin className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
               SSB Field Inspector
             </h1>
-            <p className="text-muted-foreground text-sm">Compliance & Inspection Portal</p>
+            <p className="text-muted-foreground text-xs">Compliance & Inspection Portal</p>
           </div>
         </div>
 
         <Card className="shadow-2xl">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl text-center">Inspector Sign In</CardTitle>
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="text-lg text-center">Inspector Sign In</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -94,12 +94,12 @@ export const InspectorLogin = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="inspector@ssb.kn"
                   required
-                  className="h-11"
+                  className="h-10"
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-sm">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -108,7 +108,7 @@ export const InspectorLogin = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
                     required
-                    className="h-11 pr-10"
+                    className="h-10 pr-10"
                   />
                   <Button
                     type="button"
@@ -124,41 +124,41 @@ export const InspectorLogin = () => {
 
               {error && (
                 <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
               )}
 
               <Button 
                 type="submit" 
-                className="w-full h-11" 
+                className="w-full h-10" 
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-muted-foreground mb-3">Demo Inspector Accounts:</p>
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-2">Demo Inspector Accounts:</p>
               <div className="space-y-2">
                 {inspectorCredentials.map((cred, index) => (
                   <div 
                     key={index} 
-                    className="text-sm bg-muted/50 p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors" 
+                    className="text-xs bg-muted/50 p-2.5 rounded-lg cursor-pointer hover:bg-muted transition-colors" 
                     onClick={() => setEmail(cred.email)}
                   >
                     <div className="font-medium">{cred.name}</div>
                     <div className="text-xs text-muted-foreground">{cred.role}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{cred.email}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{cred.email}</div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-3">Password: password123</p>
+              <p className="text-xs text-muted-foreground mt-2">Password: password123</p>
             </div>
 
-            <div className="mt-4 text-center">
+            <div className="mt-3 text-center">
               <Button
                 variant="link"
-                className="text-sm"
+                className="text-xs h-auto p-0"
                 onClick={() => navigate('/login')}
               >
                 ← Back to Main Login
