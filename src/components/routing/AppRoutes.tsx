@@ -1,6 +1,11 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
+import { InspectorLogin } from '@/pages/inspector/InspectorLogin';
+import { InspectorLayout } from '@/components/inspector/InspectorLayout';
+import { InspectorDashboard } from '@/pages/inspector/InspectorDashboard';
+import { InspectorWeeklyPlan } from '@/pages/inspector/InspectorWeeklyPlan';
+import { InspectorActivities } from '@/pages/inspector/InspectorActivities';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useLegalAuth } from '@/contexts/LegalAuthContext';
@@ -500,6 +505,16 @@ export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
+      <Route path="/inspector/login" element={<InspectorLogin />} />
+      
+      {/* Inspector Routes */}
+      <Route path="/inspector" element={<InspectorLayout />}>
+        <Route path="dashboard" element={<InspectorDashboard />} />
+        <Route path="plan" element={<Suspense fallback={<div>Loading...</div>}><InspectorWeeklyPlan /></Suspense>} />
+        <Route path="activities" element={<Suspense fallback={<div>Loading...</div>}><InspectorActivities /></Suspense>} />
+        <Route path="violations" element={<div className="p-8 text-center text-muted-foreground">Violations - Coming Soon</div>} />
+        <Route path="reports" element={<div className="p-8 text-center text-muted-foreground">Reports - Coming Soon</div>} />
+      </Route>
       <Route path="/demo-login" element={<DummyLoginPage />} />
       <Route path="/components-demo" element={<ProtectedLayout><FoundationComponentsDemo /></ProtectedLayout>} />
       
