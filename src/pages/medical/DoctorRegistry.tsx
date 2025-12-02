@@ -34,6 +34,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Search, 
   Users, 
@@ -45,7 +47,15 @@ import {
   Eye,
   Edit,
   Key,
-  MapPin
+  MapPin,
+  Monitor,
+  Tablet,
+  Clock,
+  History,
+  LogIn,
+  LogOut,
+  Shield,
+  Activity
 } from "lucide-react";
 import { medicalService } from "@/services/medicalService";
 import { ApprovedDoctor } from "@/types/medical";
@@ -364,75 +374,216 @@ export default function DoctorRegistry() {
 
       {/* View Profile Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Doctor Profile</DialogTitle>
           </DialogHeader>
           {selectedDoctor && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{selectedDoctor.title} {selectedDoctor.firstName} {selectedDoctor.lastName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  {getStatusBadge(selectedDoctor.status)}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="font-medium">{selectedDoctor.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="font-medium">{selectedDoctor.phone}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Registration Number</p>
-                  <p className="font-mono">{selectedDoctor.localRegistrationNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Speciality</p>
-                  <p className="font-medium">{selectedDoctor.speciality}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">License Expiry</p>
-                  <p className="font-medium">{format(new Date(selectedDoctor.licenseExpiryDate), 'MMM d, yyyy')}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Approved Date</p>
-                  <p className="font-medium">{format(new Date(selectedDoctor.approvedDate), 'MMM d, yyyy')}</p>
-                </div>
-              </div>
+            <Tabs defaultValue="profile" className="mt-2">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="access">User Access</TabsTrigger>
+                <TabsTrigger value="audit">Audit History</TabsTrigger>
+              </TabsList>
 
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">Practice Locations</p>
-                <div className="space-y-2">
-                  {selectedDoctor.practiceLocations.map((loc) => (
-                    <div key={loc.id} className="p-3 border rounded-lg">
-                      <p className="font-medium">{loc.facilityName}</p>
-                      <p className="text-sm text-muted-foreground">{loc.address}</p>
-                      <p className="text-sm text-muted-foreground">{loc.island} • {loc.phone}</p>
+              <TabsContent value="profile" className="mt-4">
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Full Name</p>
+                        <p className="font-medium">{selectedDoctor.title} {selectedDoctor.firstName} {selectedDoctor.lastName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        {getStatusBadge(selectedDoctor.status)}
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="font-medium">{selectedDoctor.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="font-medium">{selectedDoctor.phone}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Registration Number</p>
+                        <p className="font-mono">{selectedDoctor.localRegistrationNumber}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Speciality</p>
+                        <p className="font-medium">{selectedDoctor.speciality}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">License Expiry</p>
+                        <p className="font-medium">{format(new Date(selectedDoctor.licenseExpiryDate), 'MMM d, yyyy')}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Approved Date</p>
+                        <p className="font-medium">{format(new Date(selectedDoctor.approvedDate), 'MMM d, yyyy')}</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">Benefit Permissions</p>
-                <div className="flex gap-2">
-                  <Badge variant={selectedDoctor.benefitPermissions.canStartSicknessClaims ? 'default' : 'secondary'}>
-                    Sickness: {selectedDoctor.benefitPermissions.canStartSicknessClaims ? 'Yes' : 'No'}
-                  </Badge>
-                  <Badge variant={selectedDoctor.benefitPermissions.canStartInjuryClaims ? 'default' : 'secondary'}>
-                    Injury: {selectedDoctor.benefitPermissions.canStartInjuryClaims ? 'Yes' : 'No'}
-                  </Badge>
-                  <Badge variant={selectedDoctor.benefitPermissions.canStartMaternityClaims ? 'default' : 'secondary'}>
-                    Maternity: {selectedDoctor.benefitPermissions.canStartMaternityClaims ? 'Yes' : 'No'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">Practice Locations</p>
+                      <div className="space-y-2">
+                        {selectedDoctor.practiceLocations.map((loc) => (
+                          <div key={loc.id} className="p-3 border rounded-lg">
+                            <p className="font-medium">{loc.facilityName}</p>
+                            <p className="text-sm text-muted-foreground">{loc.address}</p>
+                            <div className="flex gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">{loc.island}</Badge>
+                              {loc.isPrimary && <Badge className="text-xs bg-blue-500">Primary</Badge>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">Benefit Permissions</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={selectedDoctor.benefitPermissions.canStartSicknessClaims ? "default" : "outline"} 
+                          className={selectedDoctor.benefitPermissions.canStartSicknessClaims ? "bg-green-500" : ""}>
+                          Sickness: {selectedDoctor.benefitPermissions.canStartSicknessClaims ? 'Yes' : 'No'}
+                        </Badge>
+                        <Badge variant={selectedDoctor.benefitPermissions.canStartInjuryClaims ? "default" : "outline"}
+                          className={selectedDoctor.benefitPermissions.canStartInjuryClaims ? "bg-green-500" : ""}>
+                          Injury: {selectedDoctor.benefitPermissions.canStartInjuryClaims ? 'Yes' : 'No'}
+                        </Badge>
+                        <Badge variant={selectedDoctor.benefitPermissions.canStartMaternityClaims ? "default" : "outline"}
+                          className={selectedDoctor.benefitPermissions.canStartMaternityClaims ? "bg-green-500" : ""}>
+                          Maternity: {selectedDoctor.benefitPermissions.canStartMaternityClaims ? 'Yes' : 'No'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="access" className="mt-4">
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-4">
+                    {/* Account Status */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Account Status
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Account Activated</p>
+                            <Badge className={selectedDoctor.accountActivated ? "bg-green-500" : "bg-amber-500"}>
+                              {selectedDoctor.accountActivated ? 'Yes' : 'Pending Activation'}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">User ID</p>
+                            <p className="font-mono text-sm">{selectedDoctor.userId || 'Not assigned'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Last Login</p>
+                            <p className="font-medium">
+                              {selectedDoctor.lastLoginDate 
+                                ? format(new Date(selectedDoctor.lastLoginDate), 'MMM d, yyyy h:mm a')
+                                : 'Never logged in'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Role</p>
+                            <Badge variant="outline">Doctor</Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Login Sessions */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Activity className="h-4 w-4" />
+                          Recent Sessions
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {[
+                            { device: 'Web Portal', browser: 'Chrome on Windows', ip: '192.168.1.45', time: '2025-01-22T14:30:00Z', active: true },
+                            { device: 'Tablet App', browser: 'iPad Pro', ip: '192.168.1.102', time: '2025-01-22T10:15:00Z', active: false },
+                            { device: 'Web Portal', browser: 'Safari on MacOS', ip: '192.168.1.45', time: '2025-01-21T09:00:00Z', active: false },
+                          ].map((session, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 border rounded-lg">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${session.device === 'Tablet App' ? 'bg-purple-500/10' : 'bg-blue-500/10'}`}>
+                                {session.device === 'Tablet App' 
+                                  ? <Tablet className="h-5 w-5 text-purple-500" />
+                                  : <Monitor className="h-5 w-5 text-blue-500" />
+                                }
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-sm">{session.device}</p>
+                                  {session.active && <Badge className="bg-green-500 text-xs">Active</Badge>}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{session.browser}</p>
+                                <p className="text-xs text-muted-foreground">IP: {session.ip}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(session.time), 'MMM d, h:mm a')}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="audit" className="mt-4">
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-3">
+                    {[
+                      { action: 'Login', description: 'Logged in via Web Portal', time: '2025-01-22T14:30:00Z', icon: LogIn, color: 'text-green-500' },
+                      { action: 'Claim Submitted', description: 'Submitted sickness claim SIC-2025-00267', time: '2025-01-22T14:35:00Z', icon: Activity, color: 'text-blue-500' },
+                      { action: 'Logout', description: 'Logged out from Tablet App', time: '2025-01-22T12:00:00Z', icon: LogOut, color: 'text-gray-500' },
+                      { action: 'Login', description: 'Logged in via Tablet App', time: '2025-01-22T10:15:00Z', icon: LogIn, color: 'text-green-500' },
+                      { action: 'Claim Submitted', description: 'Submitted sickness claim SIC-2025-00234', time: '2025-01-22T10:30:00Z', icon: Activity, color: 'text-blue-500' },
+                      { action: 'Profile Updated', description: 'Updated practice location phone number', time: '2025-01-21T16:00:00Z', icon: Edit, color: 'text-amber-500' },
+                      { action: 'Password Changed', description: 'Password successfully changed', time: '2025-01-21T15:45:00Z', icon: Key, color: 'text-purple-500' },
+                      { action: 'Login', description: 'Logged in via Web Portal', time: '2025-01-21T09:00:00Z', icon: LogIn, color: 'text-green-500' },
+                      { action: 'Account Activated', description: 'Account activated and first login', time: '2024-06-16T10:00:00Z', icon: CheckCircle, color: 'text-green-500' },
+                      { action: 'Account Created', description: 'Doctor account created upon approval', time: '2024-06-15T14:30:00Z', icon: Users, color: 'text-blue-500' },
+                    ].map((log, idx) => {
+                      const Icon = log.icon;
+                      return (
+                        <div key={idx} className="flex items-start gap-3 p-3 border rounded-lg">
+                          <div className={`h-8 w-8 rounded-full bg-muted flex items-center justify-center`}>
+                            <Icon className={`h-4 w-4 ${log.color}`} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{log.action}</p>
+                            <p className="text-xs text-muted-foreground">{log.description}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(log.time), 'MMM d, yyyy')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(log.time), 'h:mm a')}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>

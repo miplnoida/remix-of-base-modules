@@ -277,6 +277,7 @@ import DoctorApplicationsList from '@/pages/medical/DoctorApplicationsList';
 import DoctorApplicationDetail from '@/pages/medical/DoctorApplicationDetail';
 import NewManualApplication from '@/pages/medical/NewManualApplication';
 import DoctorRegistry from '@/pages/medical/DoctorRegistry';
+import ClaimsByDoctors from '@/pages/medical/ClaimsByDoctors';
 
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
@@ -1156,7 +1157,7 @@ export const AppRoutes = () => {
       <Route path="/medical/applications/new" element={<ProtectedLayout><NewManualApplication /></ProtectedLayout>} />
       <Route path="/medical/applications/:id" element={<ProtectedLayout><DoctorApplicationDetail /></ProtectedLayout>} />
       <Route path="/medical/registry" element={<ProtectedLayout><DoctorRegistry /></ProtectedLayout>} />
-      <Route path="/medical/claims" element={<ProtectedLayout><div className="p-6"><h1 className="text-2xl font-bold">Claims by Doctors</h1><p className="text-muted-foreground mt-2">Coming soon - View benefit claims initiated by doctors</p></div></ProtectedLayout>} />
+      <Route path="/medical/claims" element={<ProtectedLayout><ClaimsByDoctors /></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
