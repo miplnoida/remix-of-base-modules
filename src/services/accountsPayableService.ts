@@ -14,6 +14,25 @@ import {
   APItemStatus
 } from '@/types/accountsPayable';
 
+// Exception Types for Verification
+export interface VerificationException {
+  id: string;
+  itemId: string;
+  claimNumber: string;
+  insuredPersonName: string;
+  benefitType: string;
+  ruleCode: string;
+  ruleName: string;
+  severity: 'ERROR' | 'WARNING' | 'INFO';
+  category: 'AMOUNT' | 'DUPLICATE' | 'ELIGIBILITY' | 'CALCULATION' | 'BANK' | 'OVERPAYMENT' | 'DOCUMENT';
+  description: string;
+  expectedValue?: string;
+  actualValue?: string;
+  recommendation: string;
+  autoDetected: boolean;
+  detectedAt: string;
+}
+
 // Mock Data
 const mockDeductions: APDeduction[] = [
   { id: 'ded-1', deductionType: 'OVERPAYMENT_OFFSET', description: 'Overpayment Recovery - Jan 2024', amount: 150.00, referenceId: 'OVP-2024-001' },
@@ -225,6 +244,7 @@ const mockAPBatches: APBatch[] = [
   }
 ];
 
+// Store for dynamically created items
 const mockAPItems: APItem[] = [
   {
     id: 'item-001',
@@ -298,8 +318,125 @@ const mockAPItems: APItem[] = [
     benefitsVerificationStatus: 'PENDING',
     createdAt: '2024-01-30T08:45:00Z',
     source: 'BENEFIT_CLAIM'
+  },
+  {
+    id: 'item-004',
+    batchId: 'batch-004',
+    batchNumber: 'APB-2024-0004',
+    claimId: 'CLM-2024-0013',
+    claimNumber: 'CLM-2024-0013',
+    insuredPersonId: 'IP-013',
+    insuredPersonSSN: '444-55-6666',
+    insuredPersonName: 'Sarah Mitchell',
+    benefitType: 'INVALIDITY',
+    grossAmount: 2200.00,
+    deductions: [{ id: 'ded-4', deductionType: 'CHILD_SUPPORT', description: 'Court Order #CS-2024-101', amount: 200.00 }],
+    netAmount: 2000.00,
+    paymentMethod: 'CHECK',
+    accountingCode: '6100-004',
+    accountingDescription: 'Invalidity Pension Expense',
+    description: 'Monthly Invalidity Pension',
+    status: 'PENDING_VERIFICATION',
+    accountsVerificationStatus: 'PENDING',
+    benefitsVerificationStatus: 'PENDING',
+    createdAt: '2024-01-30T08:45:00Z',
+    source: 'BENEFIT_CLAIM'
+  },
+  {
+    id: 'item-005',
+    batchId: 'batch-004',
+    batchNumber: 'APB-2024-0004',
+    claimId: 'CLM-2024-0014',
+    claimNumber: 'CLM-2024-0014',
+    insuredPersonId: 'IP-014',
+    insuredPersonSSN: '555-66-7777',
+    insuredPersonName: 'Robert Davis',
+    benefitType: 'SURVIVORS',
+    grossAmount: 1800.00,
+    deductions: [],
+    netAmount: 1800.00,
+    paymentMethod: 'DIRECT_DEPOSIT',
+    bankAccountNumber: '****3456',
+    bankName: 'CIBC FirstCaribbean',
+    accountingCode: '6100-005',
+    accountingDescription: 'Survivors Benefit Expense',
+    description: 'Survivors Pension - Monthly',
+    status: 'PENDING_VERIFICATION',
+    accountsVerificationStatus: 'PENDING',
+    benefitsVerificationStatus: 'PENDING',
+    createdAt: '2024-01-30T08:45:00Z',
+    source: 'BENEFIT_CLAIM'
+  },
+  {
+    id: 'item-006',
+    batchId: 'batch-004',
+    batchNumber: 'APB-2024-0004',
+    claimId: 'CLM-2024-0015',
+    claimNumber: 'CLM-2024-0015',
+    insuredPersonId: 'IP-015',
+    insuredPersonSSN: '666-77-8888',
+    insuredPersonName: 'Jennifer White',
+    benefitType: 'FUNERAL_GRANT',
+    grossAmount: 5500.00,
+    deductions: [],
+    netAmount: 5500.00,
+    paymentMethod: 'CHECK',
+    accountingCode: '6100-006',
+    accountingDescription: 'Funeral Grant Expense',
+    description: 'Funeral Grant - Death of Insured',
+    status: 'PENDING_VERIFICATION',
+    accountsVerificationStatus: 'PENDING',
+    benefitsVerificationStatus: 'PENDING',
+    createdAt: '2024-01-30T08:45:00Z',
+    source: 'BENEFIT_CLAIM'
   }
 ];
+
+// Add items to existing batches
+const batchItemsMap: { [batchId: string]: APItem[] } = {};
+mockAPBatches.forEach(batch => {
+  if (batch.id !== 'batch-004') {
+    // Generate mock items for historical batches
+    const itemCount = batch.totalItems;
+    const items: APItem[] = [];
+    const benefitTypes = ['AGE', 'SICKNESS', 'MATERNITY', 'INVALIDITY', 'SURVIVORS', 'FUNERAL_GRANT'];
+    const names = ['Alice Johnson', 'Bob Smith', 'Carol Williams', 'Daniel Brown', 'Eva Davis', 'Frank Miller', 'Grace Lee', 'Henry Wilson', 'Ivy Taylor', 'Jack Anderson', 'Karen Thomas', 'Leo Martinez', 'Maria Garcia', 'Noah Robinson', 'Olivia Clark'];
+    
+    for (let i = 0; i < itemCount; i++) {
+      const grossAmount = 1000 + Math.floor(Math.random() * 4000);
+      const hasDeduction = Math.random() > 0.7;
+      const deductionAmount = hasDeduction ? Math.floor(grossAmount * 0.1) : 0;
+      const paymentMethod = Math.random() > 0.5 ? 'DIRECT_DEPOSIT' : 'CHECK';
+      
+      items.push({
+        id: `${batch.id}-item-${i + 1}`,
+        batchId: batch.id,
+        batchNumber: batch.batchNumber,
+        claimId: `CLM-${batch.id}-${i + 1}`,
+        claimNumber: `CLM-${batch.id}-${i + 1}`,
+        insuredPersonId: `IP-${batch.id}-${i + 1}`,
+        insuredPersonSSN: `${100 + i}-${20 + i}-${3000 + i}`,
+        insuredPersonName: names[i % names.length],
+        benefitType: benefitTypes[i % benefitTypes.length],
+        grossAmount,
+        deductions: hasDeduction ? [{ id: `ded-${batch.id}-${i}`, deductionType: 'OVERPAYMENT_OFFSET', description: 'Prior overpayment recovery', amount: deductionAmount }] : [],
+        netAmount: grossAmount - deductionAmount,
+        paymentMethod: paymentMethod as 'CHECK' | 'DIRECT_DEPOSIT',
+        bankAccountNumber: paymentMethod === 'DIRECT_DEPOSIT' ? `****${1000 + i}` : undefined,
+        bankName: paymentMethod === 'DIRECT_DEPOSIT' ? 'First Caribbean Bank' : undefined,
+        accountingCode: `6100-00${(i % 6) + 1}`,
+        accountingDescription: `${benefitTypes[i % benefitTypes.length]} Expense`,
+        description: `${benefitTypes[i % benefitTypes.length]} Payment`,
+        status: batch.status === 'POSTED' ? 'POSTED' : batch.status === 'PENDING_VERIFICATION' ? 'PENDING_VERIFICATION' : 'READY_FOR_PAYMENT',
+        accountsVerificationStatus: batch.accountsVerifiedAt ? 'APPROVED' : 'PENDING',
+        benefitsVerificationStatus: batch.benefitsVerifiedAt ? 'APPROVED' : 'PENDING',
+        createdAt: batch.createdAt,
+        source: 'BENEFIT_CLAIM'
+      });
+    }
+    batchItemsMap[batch.id] = items;
+  }
+});
 
 const mockCheckPrintJobs: CheckPrintJob[] = [
   {
@@ -437,6 +574,35 @@ const mockAuditLogs: APAuditLog[] = [
   }
 ];
 
+// Verification Rules for automatic exception detection
+const verificationRules = {
+  SICKNESS: {
+    maxWeeklyAmount: 500,
+    maxTotalWeeks: 26,
+    minContributionWeeks: 8
+  },
+  MATERNITY: {
+    maxWeeklyAmount: 600,
+    maxTotalWeeks: 13,
+    minContributionWeeks: 26
+  },
+  AGE: {
+    minAge: 62,
+    maxMonthlyAmount: 3000
+  },
+  INVALIDITY: {
+    maxMonthlyAmount: 2500,
+    minContributionWeeks: 150
+  },
+  FUNERAL_GRANT: {
+    maxAmount: 6000,
+    minContributionWeeks: 26
+  },
+  SURVIVORS: {
+    maxMonthlyAmount: 2000
+  }
+};
+
 // Service Class
 class AccountsPayableService {
   // Pending Payables
@@ -466,9 +632,12 @@ class AccountsPayableService {
     const totalAmount = selectedPayables.reduce((sum, p) => sum + p.payableAmount, 0);
     const totalDeductions = selectedPayables.reduce((sum, p) => sum + p.deductions.reduce((d, ded) => d + ded.amount, 0), 0);
     
+    const batchId = `batch-${Date.now()}`;
+    const batchNumber = `APB-2024-${String(mockAPBatches.length + 1).padStart(4, '0')}`;
+    
     const newBatch: APBatch = {
-      id: `batch-${Date.now()}`,
-      batchNumber: `APB-2024-${String(mockAPBatches.length + 1).padStart(4, '0')}`,
+      id: batchId,
+      batchNumber,
       batchDate: new Date().toISOString().split('T')[0],
       totalItems: selectedPayables.length,
       totalAmount,
@@ -481,22 +650,76 @@ class AccountsPayableService {
       createdAt: new Date().toISOString()
     };
     
+    // Create AP items for the batch
+    const newItems: APItem[] = selectedPayables.map((p, index) => ({
+      id: `${batchId}-item-${index + 1}`,
+      batchId,
+      batchNumber,
+      claimId: p.claimId,
+      claimNumber: p.claimNumber,
+      insuredPersonId: p.insuredPersonId,
+      insuredPersonSSN: p.insuredPersonSSN,
+      insuredPersonName: p.insuredPersonName,
+      benefitType: p.benefitType,
+      grossAmount: p.payableAmount,
+      deductions: p.deductions,
+      netAmount: p.netPayableAmount,
+      paymentMethod: p.paymentMethod as 'CHECK' | 'DIRECT_DEPOSIT',
+      bankAccountNumber: p.bankAccountNumber,
+      bankName: p.bankName,
+      accountingCode: `6100-00${(index % 6) + 1}`,
+      accountingDescription: `${p.benefitType} Expense`,
+      description: p.paymentReason,
+      status: 'PENDING_VERIFICATION' as APItemStatus,
+      accountsVerificationStatus: 'PENDING' as const,
+      benefitsVerificationStatus: 'PENDING' as const,
+      createdAt: new Date().toISOString(),
+      source: p.source
+    }));
+    
+    // Store the items
+    batchItemsMap[batchId] = newItems;
     mockAPBatches.push(newBatch);
+    
     return Promise.resolve(newBatch);
   }
 
   // AP Items
   getAPItemsByBatchId(batchId: string): Promise<APItem[]> {
-    return Promise.resolve(mockAPItems.filter(i => i.batchId === batchId));
+    // Check batch-004 first (pre-existing items in mockAPItems)
+    if (batchId === 'batch-004') {
+      return Promise.resolve(mockAPItems.filter(i => i.batchId === batchId));
+    }
+    // Check dynamically created items
+    if (batchItemsMap[batchId]) {
+      return Promise.resolve([...batchItemsMap[batchId]]);
+    }
+    // Return empty array if no items found
+    return Promise.resolve([]);
   }
 
   getAPItemById(id: string): Promise<APItem | undefined> {
-    return Promise.resolve(mockAPItems.find(i => i.id === id));
+    // Check all sources
+    let item = mockAPItems.find(i => i.id === id);
+    if (!item) {
+      for (const items of Object.values(batchItemsMap)) {
+        item = items.find(i => i.id === id);
+        if (item) break;
+      }
+    }
+    return Promise.resolve(item);
   }
 
   // Verification
   verifyAPItem(itemId: string, verificationType: 'ACCOUNTS' | 'BENEFITS', action: 'APPROVED' | 'REJECTED', notes?: string): Promise<APItem> {
-    const item = mockAPItems.find(i => i.id === itemId);
+    // Find item in all sources
+    let item = mockAPItems.find(i => i.id === itemId);
+    if (!item) {
+      for (const items of Object.values(batchItemsMap)) {
+        item = items.find(i => i.id === itemId);
+        if (item) break;
+      }
+    }
     if (!item) throw new Error('Item not found');
     
     if (verificationType === 'ACCOUNTS') {
@@ -519,6 +742,177 @@ class AccountsPayableService {
     return Promise.resolve(item);
   }
 
+  // Run automatic verification checks
+  runVerificationChecks(batchId: string): Promise<VerificationException[]> {
+    const exceptions: VerificationException[] = [];
+    
+    // Get items for the batch
+    let items: APItem[] = [];
+    if (batchId === 'batch-004') {
+      items = mockAPItems.filter(i => i.batchId === batchId);
+    } else if (batchItemsMap[batchId]) {
+      items = batchItemsMap[batchId];
+    }
+    
+    items.forEach((item, index) => {
+      const rules = verificationRules[item.benefitType as keyof typeof verificationRules];
+      
+      // Check for amount exceeding maximum
+      if (rules) {
+        if ('maxMonthlyAmount' in rules && item.grossAmount > rules.maxMonthlyAmount) {
+          exceptions.push({
+            id: `exc-${Date.now()}-${index}-1`,
+            itemId: item.id,
+            claimNumber: item.claimNumber,
+            insuredPersonName: item.insuredPersonName,
+            benefitType: item.benefitType,
+            ruleCode: 'MAX_AMOUNT_EXCEEDED',
+            ruleName: 'Maximum Amount Exceeded',
+            severity: 'ERROR',
+            category: 'CALCULATION',
+            description: `Payment amount exceeds maximum allowed for ${item.benefitType}`,
+            expectedValue: `Max XCD ${rules.maxMonthlyAmount.toLocaleString()}`,
+            actualValue: `XCD ${item.grossAmount.toLocaleString()}`,
+            recommendation: 'Review benefit calculation and adjust amount',
+            autoDetected: true,
+            detectedAt: new Date().toISOString()
+          });
+        }
+        
+        if ('maxWeeklyAmount' in rules && item.grossAmount / 4 > rules.maxWeeklyAmount) {
+          exceptions.push({
+            id: `exc-${Date.now()}-${index}-2`,
+            itemId: item.id,
+            claimNumber: item.claimNumber,
+            insuredPersonName: item.insuredPersonName,
+            benefitType: item.benefitType,
+            ruleCode: 'WEEKLY_RATE_HIGH',
+            ruleName: 'Weekly Rate Exceeds Limit',
+            severity: 'WARNING',
+            category: 'CALCULATION',
+            description: `Weekly benefit rate may exceed the configured maximum`,
+            expectedValue: `Max XCD ${rules.maxWeeklyAmount}/week`,
+            actualValue: `~XCD ${(item.grossAmount / 4).toFixed(2)}/week`,
+            recommendation: 'Verify weekly calculation is correct',
+            autoDetected: true,
+            detectedAt: new Date().toISOString()
+          });
+        }
+        
+        if ('maxAmount' in rules && item.grossAmount > rules.maxAmount) {
+          exceptions.push({
+            id: `exc-${Date.now()}-${index}-3`,
+            itemId: item.id,
+            claimNumber: item.claimNumber,
+            insuredPersonName: item.insuredPersonName,
+            benefitType: item.benefitType,
+            ruleCode: 'GRANT_AMOUNT_EXCEEDED',
+            ruleName: 'Grant Amount Exceeded',
+            severity: 'ERROR',
+            category: 'CALCULATION',
+            description: `Grant amount exceeds maximum allowed`,
+            expectedValue: `Max XCD ${rules.maxAmount.toLocaleString()}`,
+            actualValue: `XCD ${item.grossAmount.toLocaleString()}`,
+            recommendation: 'Adjust grant amount to within limits',
+            autoDetected: true,
+            detectedAt: new Date().toISOString()
+          });
+        }
+      }
+      
+      // Check for missing bank details for DD
+      if (item.paymentMethod === 'DIRECT_DEPOSIT' && (!item.bankAccountNumber || !item.bankName)) {
+        exceptions.push({
+          id: `exc-${Date.now()}-${index}-4`,
+          itemId: item.id,
+          claimNumber: item.claimNumber,
+          insuredPersonName: item.insuredPersonName,
+          benefitType: item.benefitType,
+          ruleCode: 'MISSING_BANK_DETAILS',
+          ruleName: 'Missing Bank Details',
+          severity: 'ERROR',
+          category: 'BANK',
+          description: 'Direct deposit selected but bank details are incomplete',
+          expectedValue: 'Complete bank account information',
+          actualValue: item.bankAccountNumber ? 'Partial details' : 'No bank details',
+          recommendation: 'Update insured person bank information or change to check',
+          autoDetected: true,
+          detectedAt: new Date().toISOString()
+        });
+      }
+      
+      // Check for potential duplicate payment
+      const duplicates = items.filter(i => 
+        i.insuredPersonSSN === item.insuredPersonSSN && 
+        i.benefitType === item.benefitType && 
+        i.id !== item.id
+      );
+      if (duplicates.length > 0) {
+        exceptions.push({
+          id: `exc-${Date.now()}-${index}-5`,
+          itemId: item.id,
+          claimNumber: item.claimNumber,
+          insuredPersonName: item.insuredPersonName,
+          benefitType: item.benefitType,
+          ruleCode: 'POTENTIAL_DUPLICATE',
+          ruleName: 'Potential Duplicate Payment',
+          severity: 'WARNING',
+          category: 'DUPLICATE',
+          description: `Multiple ${item.benefitType} payments in same batch for this person`,
+          expectedValue: 'Single payment per person per benefit type',
+          actualValue: `${duplicates.length + 1} payments found`,
+          recommendation: 'Verify this is not a duplicate payment',
+          autoDetected: true,
+          detectedAt: new Date().toISOString()
+        });
+      }
+      
+      // Check for overpayment offset
+      if (item.deductions.some(d => d.deductionType === 'OVERPAYMENT_OFFSET')) {
+        exceptions.push({
+          id: `exc-${Date.now()}-${index}-6`,
+          itemId: item.id,
+          claimNumber: item.claimNumber,
+          insuredPersonName: item.insuredPersonName,
+          benefitType: item.benefitType,
+          ruleCode: 'OVERPAYMENT_OFFSET_APPLIED',
+          ruleName: 'Overpayment Offset Applied',
+          severity: 'INFO',
+          category: 'OVERPAYMENT',
+          description: 'This payment has an overpayment offset deduction',
+          expectedValue: 'Verify offset amount is correct',
+          actualValue: `Deducted: XCD ${item.deductions.filter(d => d.deductionType === 'OVERPAYMENT_OFFSET').reduce((s, d) => s + d.amount, 0).toLocaleString()}`,
+          recommendation: 'Confirm overpayment balance after this payment',
+          autoDetected: true,
+          detectedAt: new Date().toISOString()
+        });
+      }
+      
+      // Check for large payments
+      if (item.netAmount > 5000) {
+        exceptions.push({
+          id: `exc-${Date.now()}-${index}-7`,
+          itemId: item.id,
+          claimNumber: item.claimNumber,
+          insuredPersonName: item.insuredPersonName,
+          benefitType: item.benefitType,
+          ruleCode: 'LARGE_PAYMENT',
+          ruleName: 'Large Payment Amount',
+          severity: 'INFO',
+          category: 'AMOUNT',
+          description: 'Payment amount exceeds XCD 5,000 threshold',
+          expectedValue: 'Requires additional review',
+          actualValue: `XCD ${item.netAmount.toLocaleString()}`,
+          recommendation: 'Ensure proper authorization for large payment',
+          autoDetected: true,
+          detectedAt: new Date().toISOString()
+        });
+      }
+    });
+    
+    return Promise.resolve(exceptions);
+  }
+
   // Check Printing
   getCheckPrintJobs(): Promise<CheckPrintJob[]> {
     return Promise.resolve([...mockCheckPrintJobs]);
@@ -528,7 +922,13 @@ class AccountsPayableService {
     const batch = mockAPBatches.find(b => b.id === batchId);
     if (!batch) throw new Error('Batch not found');
     
-    const checkItems = mockAPItems.filter(i => i.batchId === batchId && i.paymentMethod === 'CHECK');
+    let checkItems: APItem[] = [];
+    if (batchId === 'batch-004') {
+      checkItems = mockAPItems.filter(i => i.batchId === batchId && i.paymentMethod === 'CHECK');
+    } else if (batchItemsMap[batchId]) {
+      checkItems = batchItemsMap[batchId].filter(i => i.paymentMethod === 'CHECK');
+    }
+    
     const totalAmount = checkItems.reduce((sum, i) => sum + i.netAmount, 0);
     
     const job: CheckPrintJob = {
@@ -559,7 +959,13 @@ class AccountsPayableService {
     const batch = mockAPBatches.find(b => b.id === batchId);
     if (!batch) throw new Error('Batch not found');
     
-    const ddItems = mockAPItems.filter(i => i.batchId === batchId && i.paymentMethod === 'DIRECT_DEPOSIT');
+    let ddItems: APItem[] = [];
+    if (batchId === 'batch-004') {
+      ddItems = mockAPItems.filter(i => i.batchId === batchId && i.paymentMethod === 'DIRECT_DEPOSIT');
+    } else if (batchItemsMap[batchId]) {
+      ddItems = batchItemsMap[batchId].filter(i => i.paymentMethod === 'DIRECT_DEPOSIT');
+    }
+    
     const totalAmount = ddItems.reduce((sum, i) => sum + i.netAmount, 0);
     
     const ddFile: DDFile = {

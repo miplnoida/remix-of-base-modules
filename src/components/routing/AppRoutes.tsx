@@ -253,6 +253,7 @@ import APDirectDepositGeneration from '@/pages/finance/accounts-payable/DirectDe
 import APPostingHistory from '@/pages/finance/accounts-payable/APPostingHistory';
 import APCorrections from '@/pages/finance/accounts-payable/APCorrections';
 import APReports from '@/pages/finance/accounts-payable/APReports';
+import APVerificationExceptions from '@/pages/finance/accounts-payable/APVerificationExceptions';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
 import CorrespondenceDashboard from '@/pages/correspondence/CorrespondenceDashboard';
 import IncomingCommunications from '@/pages/correspondence/IncomingCommunications';
@@ -951,6 +952,7 @@ export const AppRoutes = () => {
       <Route path="/finance/accounts-payable/create-batch" element={<ProtectedLayout><APCreateBatch /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/batches" element={<ProtectedLayout><APBatchList /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/batch/:batchId" element={<ProtectedLayout><APBatchDetail /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/exceptions/:batchId" element={<ProtectedLayout><APVerificationExceptions /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/accounts-verification" element={<ProtectedLayout><APAccountsVerification /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/benefits-verification" element={<ProtectedLayout><APBenefitsVerification /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/check-printing" element={<ProtectedLayout><APCheckPrinting /></ProtectedLayout>} />
