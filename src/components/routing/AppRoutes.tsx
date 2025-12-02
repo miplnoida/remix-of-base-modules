@@ -240,6 +240,19 @@ import GeneratePayments from '@/pages/finance/accounts-payable/GeneratePayments'
 import PaymentInquiry from '@/pages/finance/accounts-payable/PaymentInquiry';
 import BenefitFinanceMapping from '@/pages/finance/settings/BenefitFinanceMapping';
 import LifeCertificateConfig from '@/pages/nbenefit/config/LifeCertificateConfig';
+
+// Accounts Payable Module
+import APPendingPayables from '@/pages/finance/accounts-payable/PendingPayables';
+import APCreateBatch from '@/pages/finance/accounts-payable/CreateAPBatch';
+import APBatchList from '@/pages/finance/accounts-payable/APBatchList';
+import APBatchDetail from '@/pages/finance/accounts-payable/APBatchDetail';
+import APAccountsVerification from '@/pages/finance/accounts-payable/AccountsVerification';
+import APBenefitsVerification from '@/pages/finance/accounts-payable/BenefitsVerification';
+import APCheckPrinting from '@/pages/finance/accounts-payable/CheckPrinting';
+import APDirectDepositGeneration from '@/pages/finance/accounts-payable/DirectDepositGeneration';
+import APPostingHistory from '@/pages/finance/accounts-payable/APPostingHistory';
+import APCorrections from '@/pages/finance/accounts-payable/APCorrections';
+import APReports from '@/pages/finance/accounts-payable/APReports';
 import InvalidityBenefit from '@/pages/nbenefit/long-term/InvalidityBenefit';
 import CorrespondenceDashboard from '@/pages/correspondence/CorrespondenceDashboard';
 import IncomingCommunications from '@/pages/correspondence/IncomingCommunications';
@@ -934,6 +947,17 @@ export const AppRoutes = () => {
       <Route path="/cashier/c3-payments" element={<ProtectedLayout><C3Payments /></ProtectedLayout>} />
       
       {/* Accounts Payable & Benefit Payments */}
+      <Route path="/finance/accounts-payable/pending" element={<ProtectedLayout><APPendingPayables /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/create-batch" element={<ProtectedLayout><APCreateBatch /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/batches" element={<ProtectedLayout><APBatchList /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/batch/:batchId" element={<ProtectedLayout><APBatchDetail /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/accounts-verification" element={<ProtectedLayout><APAccountsVerification /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/benefits-verification" element={<ProtectedLayout><APBenefitsVerification /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/check-printing" element={<ProtectedLayout><APCheckPrinting /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/dd-generation" element={<ProtectedLayout><APDirectDepositGeneration /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/posting-history" element={<ProtectedLayout><APPostingHistory /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/corrections" element={<ProtectedLayout><APCorrections /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/reports" element={<ProtectedLayout><APReports /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/pay-runs" element={<ProtectedLayout><PayRunList /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/pay-runs/create" element={<ProtectedLayout><CreatePayRun /></ProtectedLayout>} />
       <Route path="/finance/accounts-payable/generate-payments" element={<ProtectedLayout><GeneratePayments /></ProtectedLayout>} />

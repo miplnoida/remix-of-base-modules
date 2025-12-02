@@ -113,9 +113,19 @@ export const financeMenuItems = [
         title: 'Accounts Payable',
         icon: Banknote,
         subItems: [
-          { title: 'Benefit Pay Runs', path: '/finance/accounts-payable/pay-runs', icon: ClipboardList },
-          { title: 'Generate Payments', path: '/finance/accounts-payable/generate-payments', icon: Printer },
-          { title: 'Payment Inquiry', path: '/finance/accounts-payable/payment-inquiry', icon: Search },
+          { title: 'Pending Payables', url: '/finance/accounts-payable/pending', icon: AlertCircle },
+          { title: 'Create AP Batch', url: '/finance/accounts-payable/create-batch', icon: PlusCircle },
+          { title: 'AP Batch List', url: '/finance/accounts-payable/batches', icon: ClipboardList },
+          { title: 'Accounts Verification', url: '/finance/accounts-payable/accounts-verification', icon: CheckSquare },
+          { title: 'Benefits Verification', url: '/finance/accounts-payable/benefits-verification', icon: CheckSquare },
+          { title: 'Check Printing', url: '/finance/accounts-payable/check-printing', icon: Printer },
+          { title: 'Direct Deposit Files', url: '/finance/accounts-payable/dd-generation', icon: Archive },
+          { title: 'AP Posting History', url: '/finance/accounts-payable/posting-history', icon: FileText },
+          { title: 'AP Corrections', url: '/finance/accounts-payable/corrections', icon: AlertCircle },
+          { title: 'AP Reports', url: '/finance/accounts-payable/reports', icon: BarChart3 },
+          { title: 'Benefit Pay Runs', url: '/finance/accounts-payable/pay-runs', icon: ClipboardList },
+          { title: 'Generate Payments', url: '/finance/accounts-payable/generate-payments', icon: Printer },
+          { title: 'Payment Inquiry', url: '/finance/accounts-payable/payment-inquiry', icon: Search },
         ]
       },
       {
