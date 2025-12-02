@@ -9,6 +9,7 @@ import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
 import { nbenefitMenuItems } from './menuItems/nbenefitMenuItems';
 import { correspondenceMenuItems } from './menuItems/correspondenceMenuItems';
 import { legalManagementMenuItems } from './menuItems/legalManagementMenuItems';
+import { medicalMenuItems } from './menuItems/medicalMenuItems';
 
 export const menuItems = [
   ...dashboardMenuItems,
@@ -16,6 +17,7 @@ export const menuItems = [
   ...employersMenuItems,
   ...c3MenuItems,
   ...nbenefitMenuItems,
+  ...medicalMenuItems,
   ...complianceMenuItems,
   ...legalManagementMenuItems,
   ...financeMenuItems,

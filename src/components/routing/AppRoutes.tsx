@@ -272,6 +272,12 @@ import DocumentTemplates from '@/pages/nbenefit/shared/DocumentTemplates';
 import BenefitWorkflows from '@/pages/nbenefit/shared/BenefitWorkflows';
 import BenefitApplicationFormPage from '@/pages/nbenefit/BenefitApplicationFormPage';
 
+// Medical Module
+import DoctorApplicationsList from '@/pages/medical/DoctorApplicationsList';
+import DoctorApplicationDetail from '@/pages/medical/DoctorApplicationDetail';
+import NewManualApplication from '@/pages/medical/NewManualApplication';
+import DoctorRegistry from '@/pages/medical/DoctorRegistry';
+
 import ManageEmployers from '@/pages/employersManagement/ManageEmployers';
 import EmployersDashboard from '@/pages/employersManagement/EmployersDashboard';
 
@@ -1144,6 +1150,13 @@ export const AppRoutes = () => {
       
       {/* Fee Configuration */}
       <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
+
+      {/* Medical Module */}
+      <Route path="/medical/applications" element={<ProtectedLayout><DoctorApplicationsList /></ProtectedLayout>} />
+      <Route path="/medical/applications/new" element={<ProtectedLayout><NewManualApplication /></ProtectedLayout>} />
+      <Route path="/medical/applications/:id" element={<ProtectedLayout><DoctorApplicationDetail /></ProtectedLayout>} />
+      <Route path="/medical/registry" element={<ProtectedLayout><DoctorRegistry /></ProtectedLayout>} />
+      <Route path="/medical/claims" element={<ProtectedLayout><div className="p-6"><h1 className="text-2xl font-bold">Claims by Doctors</h1><p className="text-muted-foreground mt-2">Coming soon - View benefit claims initiated by doctors</p></div></ProtectedLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
