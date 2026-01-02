@@ -1,10 +1,18 @@
+CREATE EXTENSION IF NOT EXISTS "pg_graphql";
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+CREATE EXTENSION IF NOT EXISTS "plpgsql";
+CREATE EXTENSION IF NOT EXISTS "supabase_vault";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+BEGIN;
+
 --
 -- PostgreSQL database dump
 --
 
 
 -- Dumped from database version 17.6
--- Dumped by pg_dump version 17.7
+-- Dumped by pg_dump version 18.1
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -4117,3 +4125,6 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 --
 
 
+
+
+COMMIT;
