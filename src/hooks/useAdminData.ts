@@ -200,7 +200,7 @@ export function useUpdateOfficeLocation() {
 }
 
 // Departments
-export function useDepartments(officeId?: string) {
+export function useDepartments(officeId?: string | null) {
   return useQuery({
     queryKey: ['departments', officeId],
     queryFn: async () => {
@@ -210,7 +210,8 @@ export function useDepartments(officeId?: string) {
       if (error) throw error;
       return data as Department[];
     },
-    enabled: !!officeId || officeId === undefined,
+    // Only fetch when officeId is provided and not empty, or when explicitly undefined (fetch all)
+    enabled: officeId === undefined || (typeof officeId === 'string' && officeId.length > 0),
   });
 }
 
@@ -235,7 +236,47 @@ export function useCreateDepartment() {
   });
 }
 
-// App Modules
+export function useUpdateDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
+      const { data: result, error } = await supabase
+        .from('departments')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
+      toast.success('Department updated successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
+      toast.success('Department deleted successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
 export function useAppModules() {
   return useQuery({
     queryKey: ['app-modules'],
