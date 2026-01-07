@@ -3974,24 +3974,42 @@ export type Database = {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string | null
+          email_enabled: boolean | null
           id: string
+          in_app_enabled: boolean | null
           is_enabled: boolean | null
+          notification_type: string | null
+          preferred_channel: string | null
+          push_enabled: boolean | null
+          sms_enabled: boolean | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
+          email_enabled?: boolean | null
           id?: string
+          in_app_enabled?: boolean | null
           is_enabled?: boolean | null
+          notification_type?: string | null
+          preferred_channel?: string | null
+          push_enabled?: boolean | null
+          sms_enabled?: boolean | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
+          email_enabled?: boolean | null
           id?: string
+          in_app_enabled?: boolean | null
           is_enabled?: boolean | null
+          notification_type?: string | null
+          preferred_channel?: string | null
+          push_enabled?: boolean | null
+          sms_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string
         }
