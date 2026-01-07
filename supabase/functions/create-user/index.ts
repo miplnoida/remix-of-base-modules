@@ -104,10 +104,12 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // Update the profile with additional fields
+    // Upsert the profile with additional fields
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .update({
+      .upsert({
+        id: newUserId,
+        email: email,
         title: title || null,
         first_name,
         last_name,
@@ -121,8 +123,7 @@ serve(async (req) => {
         department_id: department_id || null,
         is_active: true,
         force_password_change: true,
-      })
-      .eq("id", newUserId);
+      });
 
     if (profileError) {
       console.error("Profile update error:", profileError);
