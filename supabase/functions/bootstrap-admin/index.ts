@@ -68,17 +68,18 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // Update profile
+    // Upsert profile (insert or update)
     await supabaseAdmin
       .from("profiles")
-      .update({
+      .upsert({
+        id: newUserId,
+        email: email,
         first_name: first_name || 'System',
         last_name: last_name || 'Admin',
         full_name: `${first_name || 'System'} ${last_name || 'Admin'}`.trim(),
         is_active: true,
         force_password_change: false,
-      })
-      .eq("id", newUserId);
+      });
 
     // Assign Admin role
     const { error: roleError } = await supabaseAdmin
