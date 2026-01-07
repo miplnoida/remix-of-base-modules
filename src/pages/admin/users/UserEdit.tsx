@@ -37,9 +37,9 @@ const UserEdit = () => {
     if (user) {
       setFormData({
         title: user.title || "",
-        first_name: (user as any).first_name || "",
+        first_name: user.first_name || "",
         middle_name: user.middle_name || "",
-        last_name: (user as any).last_name || "",
+        last_name: user.last_name || "",
         full_name: user.full_name || "",
         phone: user.phone || "",
         gender: user.gender || "",
