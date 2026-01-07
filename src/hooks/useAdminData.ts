@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Database } from '@/integrations/supabase/types';
 
 // Types
+export type AppRole = Database['public']['Enums']['app_role'];
+
 export interface OfficeLocation {
   id: string;
   branch_name: string;
@@ -45,6 +48,17 @@ export interface ModuleAction {
   is_enabled: boolean;
 }
 
+// Partial types for nested selects
+interface OfficePartial {
+  id: string;
+  branch_name: string;
+}
+
+interface DepartmentPartial {
+  id: string;
+  name: string;
+}
+
 export interface UserProfile {
   id: string;
   full_name: string | null;
@@ -57,15 +71,15 @@ export interface UserProfile {
   employee_code: string | null;
   office_id: string | null;
   department_id: string | null;
-  is_active: boolean;
-  force_password_change: boolean;
+  is_active: boolean | null;
+  force_password_change: boolean | null;
   last_login: string | null;
-  mfa_enabled: boolean;
-  failed_login_attempts: number;
+  mfa_enabled: boolean | null;
+  failed_login_attempts: number | null;
   locked_until: string | null;
-  office?: OfficeLocation;
-  department?: Department;
-  roles?: { role: string }[];
+  office?: OfficePartial | null;
+  department?: DepartmentPartial | null;
+  roles?: { role: AppRole }[];
 }
 
 export interface AuditLog {
