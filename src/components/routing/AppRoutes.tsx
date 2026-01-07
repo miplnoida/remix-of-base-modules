@@ -481,6 +481,7 @@ import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { ChangePassword as ChangePasswordPage } from '@/pages/auth/ChangePassword';
+import MFAVerify from '@/pages/auth/MFAVerify';
 import BootstrapAdmin from '@/pages/setup/BootstrapAdmin';
 
 // Foundation Components Demo
@@ -568,6 +569,7 @@ export const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
+      <Route path="/mfa-verify" element={<MFAVerify />} />
       <Route path="/inspector/login" element={<InspectorLogin />} />
       
       {/* Inspector Routes */}
