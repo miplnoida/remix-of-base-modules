@@ -1198,6 +1198,7 @@ export const AppRoutes = () => {
       <Route path="/admin/roles-permissions" element={<ProtectedLayout><RolePermissionManagement /></ProtectedLayout>} />
       <Route path="/admin/audit-logs" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
       <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
+      <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
@@ -1205,6 +1206,11 @@ export const AppRoutes = () => {
       
       {/* Profile Routes */}
       <Route path="/profile/change-password" element={<ProtectedLayout><ProfileChangePassword /></ProtectedLayout>} />
+      <Route path="/profile/notifications" element={<ProtectedLayout><NotificationPreferences /></ProtectedLayout>} />
+      <Route path="/profile/sessions" element={<ProtectedLayout><ActiveSessions /></ProtectedLayout>} />
+      
+      {/* Notification Center */}
+      <Route path="/notifications/center" element={<ProtectedLayout><NotificationCenter /></ProtectedLayout>} />
 
       {/* Medical Module */}
       <Route path="/medical/applications" element={<ProtectedLayout><DoctorApplicationsList /></ProtectedLayout>} />

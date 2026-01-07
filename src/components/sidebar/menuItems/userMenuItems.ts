@@ -4,17 +4,18 @@ import {
   Settings, 
   Key,
   Shield,
-  LogOut,
   Users,
   Building2,
   LayoutGrid,
   FileText,
-  Bell
+  Bell,
+  Monitor,
+  Mail
 } from "lucide-react";
 
 export const userMenuItems = [
   {
-    title: "User Profile & Permissions",
+    title: "User Profile & Preferences",
     icon: User,
     subItems: [
       {
@@ -28,6 +29,24 @@ export const userMenuItems = [
         url: "/profile/change-password",
         icon: Key,
         description: "Update account password"
+      },
+      {
+        title: "Notification Preferences",
+        url: "/profile/notifications",
+        icon: Bell,
+        description: "Manage your notification settings"
+      },
+      {
+        title: "Active Sessions",
+        url: "/profile/sessions",
+        icon: Monitor,
+        description: "View and manage login sessions"
+      },
+      {
+        title: "Notification Center",
+        url: "/notifications/center",
+        icon: Mail,
+        description: "View all your notifications"
       }
     ]
   },
@@ -97,6 +116,13 @@ export const userMenuItems = [
         icon: Bell,
         requiresPermission: "manage_users",
         description: "Manage notification templates and logs"
+      },
+      {
+        title: "Notification Providers",
+        url: "/admin/notifications/providers",
+        icon: Mail,
+        requiresPermission: "system_admin",
+        description: "Configure notification providers"
       }
     ]
   }
