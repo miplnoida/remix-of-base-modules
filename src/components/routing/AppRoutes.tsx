@@ -709,7 +709,7 @@ export const AppRoutes = () => {
       {/* User Profile & Permissions Routes */}
       <Route path="/profile" element={<ProtectedLayout><UserProfile /></ProtectedLayout>} />
       <Route path="/profile/change-password" element={<ProtectedLayout><ChangePassword /></ProtectedLayout>} />
-      <Route path="/admin/roles" element={<ProtectedLayout><ManageRoles /></ProtectedLayout>} />
+      <Route path="/profile/roles" element={<ProtectedLayout><ManageRoles /></ProtectedLayout>} />
       <Route path="/admin/security" element={<ProtectedLayout><SecuritySettings /></ProtectedLayout>} />
       <Route path="/admin/settings" element={<ProtectedLayout><SystemSettings /></ProtectedLayout>} />
 
