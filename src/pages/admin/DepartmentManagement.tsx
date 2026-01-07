@@ -29,22 +29,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Plus, Search, Edit, Building2 } from "lucide-react";
-import { useOfficeLocations, useDepartments, useCreateDepartment } from "@/hooks/useAdminData";
+import { Users, Plus, Search, Edit, Building2, Trash2 } from "lucide-react";
+import { useOfficeLocations, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from "@/hooks/useAdminData";
+import type { Department } from "@/hooks/useAdminData";
+
+interface DepartmentWithOffice extends Department {
+  officeName?: string;
+}
 
 const DepartmentManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>("all");
   const [showDialog, setShowDialog] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<DepartmentWithOffice | null>(null);
   const [selectedOfficeForCreate, setSelectedOfficeForCreate] = useState<string>("");
   const [form, setForm] = useState({ name: "", description: "", is_active: true });
 
   const { data: offices = [], isLoading: loadingOffices } = useOfficeLocations();
-  const { data: allDepartments = [], isLoading: loadingDepts } = useDepartments();
   const createDepartment = useCreateDepartment();
+  const updateDepartment = useUpdateDepartment();
+  const deleteDepartment = useDeleteDepartment();
 
-  // Flatten departments from offices or use allDepartments
-  const departments = selectedOfficeId === "all" 
+  // Flatten departments from offices
+  const departments: DepartmentWithOffice[] = selectedOfficeId === "all" 
     ? offices.flatMap(o => (o.departments || []).map(d => ({ ...d, officeName: o.branch_name })))
     : (offices.find(o => o.id === selectedOfficeId)?.departments || []).map(d => ({ 
         ...d, 
@@ -56,24 +63,45 @@ const DepartmentManagement = () => {
     dept.officeName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleOpenDialog = () => {
-    setForm({ name: "", description: "", is_active: true });
-    setSelectedOfficeForCreate(offices[0]?.id || "");
+  const handleOpenDialog = (dept?: DepartmentWithOffice) => {
+    if (dept) {
+      setEditingDepartment(dept);
+      setSelectedOfficeForCreate(dept.office_id);
+      setForm({ name: dept.name, description: dept.description || "", is_active: dept.is_active });
+    } else {
+      setEditingDepartment(null);
+      setSelectedOfficeForCreate(offices[0]?.id || "");
+      setForm({ name: "", description: "", is_active: true });
+    }
     setShowDialog(true);
   };
 
   const handleSave = async () => {
-    if (!selectedOfficeForCreate) return;
-    await createDepartment.mutateAsync({
-      office_id: selectedOfficeForCreate,
-      name: form.name,
-      description: form.description,
-      is_active: form.is_active,
-    });
+    if (editingDepartment) {
+      await updateDepartment.mutateAsync({
+        id: editingDepartment.id,
+        name: form.name,
+        description: form.description,
+        is_active: form.is_active,
+      });
+    } else {
+      if (!selectedOfficeForCreate) return;
+      await createDepartment.mutateAsync({
+        office_id: selectedOfficeForCreate,
+        name: form.name,
+        description: form.description,
+        is_active: form.is_active,
+      });
+    }
     setShowDialog(false);
+    setEditingDepartment(null);
   };
 
-  const isLoading = loadingOffices || loadingDepts;
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this department?")) {
+      await deleteDepartment.mutateAsync(id);
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -82,7 +110,7 @@ const DepartmentManagement = () => {
           <h1 className="text-3xl font-bold text-foreground">Department Management</h1>
           <p className="text-muted-foreground mt-1">Manage departments across office locations</p>
         </div>
-        <Button onClick={handleOpenDialog} disabled={offices.length === 0}>
+        <Button onClick={() => handleOpenDialog()} disabled={offices.length === 0}>
           <Plus className="mr-2 h-4 w-4" />
           Add Department
         </Button>
@@ -148,7 +176,7 @@ const DepartmentManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {loadingOffices ? (
             <div className="text-center py-8">Loading...</div>
           ) : (
             <Table>
@@ -178,9 +206,25 @@ const DepartmentManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon">
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleOpenDialog(dept)}
+                          title="Edit Department"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDelete(dept.id)}
+                          disabled={deleteDepartment.isPending}
+                          title="Delete Department"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -197,17 +241,23 @@ const DepartmentManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Create Department Dialog */}
+      {/* Create/Edit Department Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add Department</DialogTitle>
-            <DialogDescription>Create a new department for an office location</DialogDescription>
+            <DialogTitle>{editingDepartment ? "Edit Department" : "Add Department"}</DialogTitle>
+            <DialogDescription>
+              {editingDepartment ? "Update department details" : "Create a new department for an office location"}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="office">Office Location *</Label>
-              <Select value={selectedOfficeForCreate} onValueChange={setSelectedOfficeForCreate}>
+              <Select 
+                value={selectedOfficeForCreate} 
+                onValueChange={setSelectedOfficeForCreate}
+                disabled={!!editingDepartment}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select office" />
                 </SelectTrigger>
@@ -246,8 +296,11 @@ const DepartmentManagement = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={!form.name || !selectedOfficeForCreate || createDepartment.isPending}>
-              Create Department
+            <Button 
+              onClick={handleSave} 
+              disabled={!form.name || (!editingDepartment && !selectedOfficeForCreate) || createDepartment.isPending || updateDepartment.isPending}
+            >
+              {editingDepartment ? "Update" : "Create"} Department
             </Button>
           </DialogFooter>
         </DialogContent>

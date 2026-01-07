@@ -51,7 +51,13 @@ const UserCreate = () => {
 
     try {
       // Use edge function for secure user creation
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.access_token) {
+        toast.error("You must be logged in to create users. Please log in again.");
+        navigate('/login');
+        return;
+      }
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
@@ -59,7 +65,7 @@ const UserCreate = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             email: formData.email,
@@ -70,10 +76,10 @@ const UserCreate = () => {
             title: formData.title,
             phone: formData.phone,
             gender: formData.gender,
-            date_of_birth: formData.date_of_birth,
-            employee_code: formData.employee_code,
-            office_id: formData.office_id,
-            department_id: formData.department_id,
+            date_of_birth: formData.date_of_birth || null,
+            employee_code: formData.employee_code || null,
+            office_id: formData.office_id || null,
+            department_id: formData.department_id || null,
           }),
         }
       );
@@ -87,6 +93,7 @@ const UserCreate = () => {
       toast.success("User created successfully");
       navigate('/admin/users');
     } catch (error: any) {
+      console.error("Create user error:", error);
       toast.error(error.message || "Failed to create user");
     } finally {
       setIsSubmitting(false);
