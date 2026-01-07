@@ -3760,12 +3760,14 @@ export type Database = {
           email: string | null
           employee_code: string | null
           failed_login_attempts: number | null
+          first_name: string | null
           force_password_change: boolean | null
           full_name: string | null
           gender: string | null
           id: string
           is_active: boolean | null
           last_login: string | null
+          last_name: string | null
           last_password_change: string | null
           locked_until: string | null
           mfa_enabled: boolean | null
@@ -3784,12 +3786,14 @@ export type Database = {
           email?: string | null
           employee_code?: string | null
           failed_login_attempts?: number | null
+          first_name?: string | null
           force_password_change?: boolean | null
           full_name?: string | null
           gender?: string | null
           id: string
           is_active?: boolean | null
           last_login?: string | null
+          last_name?: string | null
           last_password_change?: string | null
           locked_until?: string | null
           mfa_enabled?: boolean | null
@@ -3808,12 +3812,14 @@ export type Database = {
           email?: string | null
           employee_code?: string | null
           failed_login_attempts?: number | null
+          first_name?: string | null
           force_password_change?: boolean | null
           full_name?: string | null
           gender?: string | null
           id?: string
           is_active?: boolean | null
           last_login?: string | null
+          last_name?: string | null
           last_password_change?: string | null
           locked_until?: string | null
           mfa_enabled?: boolean | null
@@ -3924,6 +3930,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system_role: boolean
+          mfa_required: boolean
+          role_name: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_role?: boolean
+          mfa_required?: boolean
+          role_name: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_role?: boolean
+          mfa_required?: boolean
+          role_name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       user_notification_preferences: {
         Row: {
