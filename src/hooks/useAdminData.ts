@@ -62,6 +62,8 @@ interface DepartmentPartial {
 export interface UserProfile {
   id: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string | null;
   title: string | null;
   middle_name: string | null;

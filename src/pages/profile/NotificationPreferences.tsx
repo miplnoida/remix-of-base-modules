@@ -89,7 +89,7 @@ const NotificationPreferences = () => {
       
       const upserts = Object.values(preferences).map(pref => ({
         user_id: user.id,
-        channel: 'email' as const,
+        channel: pref.preferred_channel as 'email' | 'sms' | 'push' | 'in_app',
         notification_type: pref.notification_type,
         email_enabled: pref.email_enabled,
         sms_enabled: pref.sms_enabled,
