@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, AlertTriangle } from 'lucide-react';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -15,67 +15,93 @@ export const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, user } = useAuth();
+  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+  
+  const { login, isAuthenticated, profile } = useSupabaseAuth();
   const navigate = useNavigate();
 
-  // Redirect to dashboard if user is already logged in
+  // Redirect if already authenticated
   useEffect(() => {
-    console.log('LoginScreen useEffect - user:', user);
-    if (user) {
-      console.log('User is logged in, redirecting to dashboard');
-      navigate('/', { replace: true });
+    if (isAuthenticated) {
+      if (profile?.force_password_change) {
+        navigate('/change-password', { state: { required: true }, replace: true });
+      } else if (profile?.mfa_enabled) {
+        navigate('/mfa-verify', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
-  }, [user, navigate]);
+  }, [isAuthenticated, profile, navigate]);
+
+  // Log audit event for login attempts
+  const logLoginAttempt = async (success: boolean, userEmail: string, reason?: string) => {
+    try {
+      await supabase.from('audit_logs').insert({
+        action_type: success ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE',
+        module_name: 'Authentication',
+        entity_type: 'user',
+        user_email: userEmail,
+        metadata: reason ? { reason } : null,
+      });
+    } catch (err) {
+      console.error('Failed to log audit event:', err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
-    console.log('Form submitted, attempting login...');
+    setAttemptsRemaining(null);
 
     try {
-      const success = await login(email, password);
-      console.log('Login result:', success);
+      const result = await login(email, password);
       
-      if (success) {
-        console.log('Login successful, should redirect automatically via useEffect');
-        // The useEffect will handle the redirect when user state updates
+      if (result.success) {
+        await logLoginAttempt(true, email);
+        
+        if (result.requiresPasswordChange) {
+          navigate('/change-password', { state: { required: true }, replace: true });
+        }
+        // Other redirects handled by useEffect
       } else {
-        setError('Invalid credentials. Please try again.');
+        await logLoginAttempt(false, email, result.error);
+        
+        // Check for lockout-related messages
+        if (result.error?.includes('locked')) {
+          setError(result.error);
+        } else if (result.error?.includes('Invalid')) {
+          // Get remaining attempts if available
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('failed_login_attempts')
+            .eq('email', email)
+            .single();
+          
+          if (profileData) {
+            const remaining = 5 - (profileData.failed_login_attempts || 0);
+            if (remaining <= 3 && remaining > 0) {
+              setAttemptsRemaining(remaining);
+            }
+          }
+          setError('Invalid email or password');
+        } else {
+          setError(result.error || 'Login failed');
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('An error occurred during login.');
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const demoCredentials = [
-    { email: 'admin@secureserve.gov', role: 'System Administrator', system: 'SecureServe' },
-    { email: 'accounts@secureserve.gov', role: 'Accounts Manager', system: 'SecureServe' },
-    { email: 'cashier@secureserve.gov', role: 'Cashier Officer', system: 'SecureServe' },
-    { email: 'supervisor@secureserve.gov', role: 'Cashier Supervisor', system: 'SecureServe' },
-    { email: 'hr@secureserve.gov', role: 'HR Manager', system: 'SecureServe' },
-    { email: 'compliance@secureserve.gov', role: 'Compliance Officer', system: 'SecureServe' },
-    { email: 'benefits@secureserve.gov', role: 'Benefits Manager', system: 'SecureServe' },
-    { email: 'legal@secureserve.gov', role: 'Legal Officer', system: 'SecureServe' },
-    // SSB Internal Audit Users
-    { email: 'director@ssb.kn', role: 'Audit Director', system: 'SSB Audit' },
-    { email: 'manager@ssb.kn', role: 'Audit Manager', system: 'SSB Audit' },
-    { email: 'auditor1@ssb.kn', role: 'Senior Auditor (John Doe)', system: 'SSB Audit' },
-    { email: 'auditor2@ssb.kn', role: 'Auditor (Alice Smith)', system: 'SSB Audit' },
-    { email: 'depthead.benefits@ssb.kn', role: 'Benefits Dept Head', system: 'SSB Audit' },
-    { email: 'admin@ssb.kn', role: 'System Administrator', system: 'SSB Audit' }
-  ];
-
-  // Don't render login form if user is already authenticated
-  if (user) {
+  if (isAuthenticated) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-emerald-200 via-emerald-100 to-emerald-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
+      <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center p-4">
         <div className="text-center">
-          <p>Redirecting to dashboard...</p>
+          <p>Redirecting...</p>
         </div>
       </div>
     );
@@ -109,26 +135,34 @@ export const LoginScreen = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="pl-10"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
+                    className="pl-10 pr-10"
                     required
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -148,16 +182,39 @@ export const LoginScreen = () => {
 
               {error && (
                 <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
+              {attemptsRemaining !== null && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Warning: {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining before account lockout.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full bg-emerald-600 hover:bg-emerald-700" 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
+
+              <div className="text-center">
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-primary hover:underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
             </form>
 
-            <div className="mt-4 text-center">
+            <div className="mt-4 pt-4 border-t">
               <Button
                 variant="outline"
                 className="w-full"
@@ -166,29 +223,12 @@ export const LoginScreen = () => {
                 Inspector Login →
               </Button>
             </div>
-
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 mb-3">Demo Credentials (password: password123):</p>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {demoCredentials.map((cred, index) => (
-                  <div key={index} className="text-xs bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100" 
-                       onClick={() => setEmail(cred.email)}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{cred.role}</div>
-                        <div className="text-gray-600">{cred.email}</div>
-                      </div>
-                      <div className="text-[10px] text-gray-500 font-semibold">
-                        {cred.system}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">Click on any credential above to auto-fill the email field</p>
-            </div>
           </CardContent>
         </Card>
+
+        <p className="text-center text-sm text-muted-foreground">
+          © {new Date().getFullYear()} SecureServe. All rights reserved.
+        </p>
       </div>
     </div>
   );

@@ -247,9 +247,20 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Logout function
+  // Logout function with audit logging
   const logout = async () => {
     try {
+      // Log logout event before signing out
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          action_type: 'LOGOUT',
+          module_name: 'Authentication',
+          entity_type: 'user',
+          user_id: user.id,
+          user_email: user.email,
+        });
+      }
+      
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
