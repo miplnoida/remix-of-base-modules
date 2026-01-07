@@ -50,45 +50,42 @@ const UserCreate = () => {
     setIsSubmitting(true);
 
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: `${formData.first_name} ${formData.last_name}`.trim(),
+      // Use edge function for secure user creation
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
           },
-        },
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Update the profile with additional fields
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            title: formData.title || null,
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
             first_name: formData.first_name,
             last_name: formData.last_name,
-            middle_name: formData.middle_name || null,
-            full_name: `${formData.first_name} ${formData.last_name}`.trim(),
-            phone: formData.phone || null,
-            gender: formData.gender || null,
-            date_of_birth: formData.date_of_birth || null,
-            employee_code: formData.employee_code || null,
-            office_id: formData.office_id || null,
-            department_id: formData.department_id || null,
-            is_active: true,
-            force_password_change: true,
-          })
-          .eq('id', authData.user.id);
+            middle_name: formData.middle_name,
+            title: formData.title,
+            phone: formData.phone,
+            gender: formData.gender,
+            date_of_birth: formData.date_of_birth,
+            employee_code: formData.employee_code,
+            office_id: formData.office_id,
+            department_id: formData.department_id,
+          }),
+        }
+      );
 
-        if (profileError) throw profileError;
+      const result = await response.json();
 
-        toast.success("User created successfully");
-        navigate('/admin/users');
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create user');
       }
+
+      toast.success("User created successfully");
+      navigate('/admin/users');
     } catch (error: any) {
       toast.error(error.message || "Failed to create user");
     } finally {

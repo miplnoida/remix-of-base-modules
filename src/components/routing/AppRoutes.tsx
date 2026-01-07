@@ -227,6 +227,7 @@ import RolePermissionManagement from '@/pages/admin/RolePermissionManagement';
 import AuditLogViewer from '@/pages/admin/AuditLogViewer';
 import NotificationManagement from '@/pages/admin/NotificationManagement';
 import OfficeManagement from '@/pages/admin/OfficeManagement';
+import DepartmentManagement from '@/pages/admin/DepartmentManagement';
 import ModuleManagement from '@/pages/admin/ModuleManagement';
 
 // Enterprise Admin - User Management (Separate Screens)
@@ -480,6 +481,7 @@ import DummyLoginPage from '@/pages/auth/DummyLoginPage';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { ChangePassword as ChangePasswordPage } from '@/pages/auth/ChangePassword';
+import BootstrapAdmin from '@/pages/setup/BootstrapAdmin';
 
 // Foundation Components Demo
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
@@ -562,6 +564,7 @@ export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
+      <Route path="/setup" element={<BootstrapAdmin />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
@@ -1200,6 +1203,7 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
       <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
+      <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
       <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />

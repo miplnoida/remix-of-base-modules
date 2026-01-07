@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,113 +18,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
 import { 
   Search, 
   Filter, 
   Download, 
-  CalendarIcon, 
   History,
   User,
   FileText,
   Settings,
   Shield,
-  Database
+  Database,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
+import { useAuditLogs } from "@/hooks/useAdminData";
+
+const PAGE_SIZES = [10, 25, 50, 100];
 
 const AuditLog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [moduleFilter, setModuleFilter] = useState("all");
-  const [userFilter, setUserFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState<Date>();
-  const [dateTo, setDateTo] = useState<Date>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
-  // Mock audit log data
-  const auditLogs = [
-    {
-      id: "AL-001",
-      timestamp: "2024-01-20 14:30:25",
-      user: "admin@secureserve.gov",
-      action: "LOGIN",
-      module: "Authentication",
-      description: "User logged into the system",
-      ipAddress: "192.168.1.100",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      sessionId: "sess_abc123",
-      severity: "info"
-    },
-    {
-      id: "AL-002",
-      timestamp: "2024-01-20 14:32:15",
-      user: "admin@secureserve.gov",
-      action: "CREATE",
-      module: "User Management",
-      description: "Created new user account for john.doe@email.com",
-      ipAddress: "192.168.1.100",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      sessionId: "sess_abc123",
-      severity: "medium"
-    },
-    {
-      id: "AL-003",
-      timestamp: "2024-01-20 14:25:10",
-      user: "hr.manager@secureserve.gov",
-      action: "UPDATE",
-      module: "Benefits Management",
-      description: "Updated benefit application status to APPROVED for application ID BEN-2024-001",
-      ipAddress: "192.168.1.105",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      sessionId: "sess_def456",
-      severity: "medium"
-    },
-    {
-      id: "AL-004",
-      timestamp: "2024-01-20 14:20:45",
-      user: "system",
-      action: "BACKUP",
-      module: "System Administration",
-      description: "Automated daily backup completed successfully",
-      ipAddress: "127.0.0.1",
-      userAgent: "SystemService/1.0",
-      sessionId: "sys_backup_001",
-      severity: "info"
-    },
-    {
-      id: "AL-005",
-      timestamp: "2024-01-20 14:15:30",
-      user: "compliance@secureserve.gov",
-      action: "DELETE",
-      module: "Document Management",
-      description: "Deleted expired document DOC-2023-987",
-      ipAddress: "192.168.1.110",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      sessionId: "sess_ghi789",
-      severity: "high"
-    },
-    {
-      id: "AL-006",
-      timestamp: "2024-01-20 14:10:20",
-      user: "unknown",
-      action: "FAILED_LOGIN",
-      module: "Authentication",
-      description: "Failed login attempt for user admin@secureserve.gov",
-      ipAddress: "203.0.113.45",
-      userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-      sessionId: "failed_attempt_001",
-      severity: "high"
-    }
-  ];
+  const { data: auditLogs = [], isLoading } = useAuditLogs();
 
   const getActionIcon = (action: string) => {
-    switch (action) {
+    switch (action.toUpperCase()) {
       case "LOGIN":
       case "LOGOUT":
         return <User className="h-4 w-4" />;
@@ -142,45 +63,80 @@ const AuditLog = () => {
     }
   };
 
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return <Badge className="bg-red-100 text-red-800">High</Badge>;
-      case "medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
-      default:
-        return <Badge className="bg-blue-100 text-blue-800">Info</Badge>;
+  const getSeverityBadge = (action: string) => {
+    const highSeverity = ["DELETE", "FAILED_LOGIN", "PERMISSION_CHANGE"];
+    const mediumSeverity = ["CREATE", "UPDATE"];
+    
+    if (highSeverity.includes(action.toUpperCase())) {
+      return <Badge className="bg-red-100 text-red-800">High</Badge>;
     }
+    if (mediumSeverity.includes(action.toUpperCase())) {
+      return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
+    }
+    return <Badge className="bg-blue-100 text-blue-800">Info</Badge>;
   };
+
+  // Get unique modules and action types from data
+  const uniqueModules = Array.from(new Set(auditLogs.map(log => log.module_name).filter(Boolean)));
+  const uniqueActions = Array.from(new Set(auditLogs.map(log => log.action_type)));
 
   const filteredLogs = auditLogs.filter(log => {
     const matchesSearch = 
-      log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.ipAddress.includes(searchTerm) ||
-      log.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (log.user_email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.user_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.entity_type?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.entity_id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.ip_address || '').includes(searchTerm);
     
-    const matchesAction = actionFilter === "all" || log.action === actionFilter;
-    const matchesModule = moduleFilter === "all" || log.module === moduleFilter;
-    const matchesUser = userFilter === "all" || log.user === userFilter;
+    const matchesAction = actionFilter === "all" || log.action_type === actionFilter;
+    const matchesModule = moduleFilter === "all" || log.module_name === moduleFilter;
     
-    return matchesSearch && matchesAction && matchesModule && matchesUser;
+    return matchesSearch && matchesAction && matchesModule;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredLogs.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedLogs = filteredLogs.slice(startIndex, startIndex + pageSize);
+
+  const exportLogs = () => {
+    const csvContent = [
+      ['Timestamp', 'User', 'Action', 'Module', 'Entity Type', 'Entity ID', 'IP Address'].join(','),
+      ...filteredLogs.map(log => [
+        log.created_at,
+        log.user_email || log.user_name || 'System',
+        log.action_type,
+        log.module_name || '',
+        log.entity_type || '',
+        log.entity_id || '',
+        log.ip_address || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-log-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Loading audit logs...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-government-700">Audit Log</h1>
-          <p className="text-gray-600 mt-1">Complete system activity log with detailed tracking and filtering capabilities</p>
+          <h1 className="text-3xl font-bold text-foreground">Audit Log</h1>
+          <p className="text-muted-foreground mt-1">Complete system activity log with detailed tracking</p>
         </div>
         
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Log
-          </Button>
-        </div>
+        <Button variant="outline" onClick={exportLogs}>
+          <Download className="h-4 w-4 mr-2" />
+          Export Log
+        </Button>
       </div>
 
       {/* Filters */}
@@ -188,90 +144,52 @@ const AuditLog = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Advanced Filters
+            Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search logs..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-10"
               />
             </div>
             
-            <Select value={actionFilter} onValueChange={setActionFilter}>
+            <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Action Type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Actions</SelectItem>
-                <SelectItem value="LOGIN">Login</SelectItem>
-                <SelectItem value="LOGOUT">Logout</SelectItem>
-                <SelectItem value="CREATE">Create</SelectItem>
-                <SelectItem value="UPDATE">Update</SelectItem>
-                <SelectItem value="DELETE">Delete</SelectItem>
-                <SelectItem value="BACKUP">Backup</SelectItem>
-                <SelectItem value="FAILED_LOGIN">Failed Login</SelectItem>
+                {uniqueActions.map(action => (
+                  <SelectItem key={action} value={action}>{action}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <Select value={moduleFilter} onValueChange={setModuleFilter}>
+            <Select value={moduleFilter} onValueChange={(v) => { setModuleFilter(v); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Module" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Modules</SelectItem>
-                <SelectItem value="Authentication">Authentication</SelectItem>
-                <SelectItem value="User Management">User Management</SelectItem>
-                <SelectItem value="Benefits Management">Benefits Management</SelectItem>
-                <SelectItem value="Document Management">Document Management</SelectItem>
-                <SelectItem value="System Administration">System Administration</SelectItem>
+                {uniqueModules.map(module => (
+                  <SelectItem key={module} value={module!}>{module}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-
-            <Select value={userFilter} onValueChange={setUserFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="User" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Users</SelectItem>
-                <SelectItem value="admin@secureserve.gov">Admin</SelectItem>
-                <SelectItem value="hr.manager@secureserve.gov">HR Manager</SelectItem>
-                <SelectItem value="compliance@secureserve.gov">Compliance</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFrom ? format(dateFrom, "PPP") : "From Date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={dateFrom}
-                  onSelect={setDateFrom}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
 
             <Button variant="outline" onClick={() => {
               setSearchTerm("");
               setActionFilter("all");
               setModuleFilter("all");
-              setUserFilter("all");
-              setDateFrom(undefined);
-              setDateTo(undefined);
+              setCurrentPage(1);
             }}>
-              Clear All
+              Clear Filters
             </Button>
           </div>
         </CardContent>
@@ -293,39 +211,98 @@ const AuditLog = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead>Module</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead>Entity</TableHead>
+                <TableHead>Details</TableHead>
                 <TableHead>IP Address</TableHead>
                 <TableHead>Severity</TableHead>
-                <TableHead>Session ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLogs.map((log) => (
+              {paginatedLogs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="font-mono text-sm">{log.timestamp}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {log.user}
+                      <span className="text-sm">{log.user_email || log.user_name || 'System'}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {getActionIcon(log.action)}
-                      <Badge variant="outline">{log.action}</Badge>
+                      {getActionIcon(log.action_type)}
+                      <Badge variant="outline">{log.action_type}</Badge>
                     </div>
                   </TableCell>
-                  <TableCell>{log.module}</TableCell>
-                  <TableCell className="max-w-xs truncate" title={log.description}>
-                    {log.description}
+                  <TableCell>{log.module_name || '-'}</TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">{log.entity_type}</span>
+                      {log.entity_id && <span className="ml-1 font-mono text-xs">#{log.entity_id.slice(0, 8)}</span>}
+                    </div>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{log.ipAddress}</TableCell>
-                  <TableCell>{getSeverityBadge(log.severity)}</TableCell>
-                  <TableCell className="font-mono text-xs">{log.sessionId}</TableCell>
+                  <TableCell className="max-w-xs">
+                    {log.field_name && (
+                      <span className="text-xs text-muted-foreground">
+                        {log.field_name}: {log.old_value ? `${log.old_value} → ` : ''}{log.new_value || '-'}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{log.ip_address || '-'}</TableCell>
+                  <TableCell>{getSeverityBadge(log.action_type)}</TableCell>
                 </TableRow>
               ))}
+              {paginatedLogs.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    No audit logs found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Show</span>
+              <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map(size => (
+                    <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">entries</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredLogs.length)} of {filteredLogs.length} entries
+              </span>
+              <div className="flex gap-1">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
