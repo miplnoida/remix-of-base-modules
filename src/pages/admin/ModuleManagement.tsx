@@ -35,8 +35,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { LayoutGrid, Plus, Search, Edit, Settings, Eye, Pencil, Trash2, Check } from "lucide-react";
-import { useAppModules, useCreateAppModule, useUpdateAppModule, useCreateModuleAction } from "@/hooks/useAdminData";
+import { LayoutGrid, Plus, Search, Edit, Trash2 } from "lucide-react";
+import { useAppModules, useCreateAppModule, useUpdateAppModule, useDeleteAppModule, useCreateModuleAction, useDeleteModuleAction } from "@/hooks/useAdminData";
 import type { AppModule, ModuleAction } from "@/hooks/useAdminData";
 
 const ModuleManagement = () => {
@@ -64,7 +64,9 @@ const ModuleManagement = () => {
   const { data: modules = [], isLoading } = useAppModules();
   const createModule = useCreateAppModule();
   const updateModule = useUpdateAppModule();
+  const deleteModule = useDeleteAppModule();
   const createAction = useCreateModuleAction();
+  const deleteAction = useDeleteModuleAction();
 
   const filteredModules = modules.filter((module) =>
     module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -250,6 +252,15 @@ const ModuleManagement = () => {
                             <Plus className="h-4 w-4 mr-1" />
                             Add Action
                           </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => deleteModule.mutate(module.id)}
+                            disabled={deleteModule.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
 
@@ -276,9 +287,19 @@ const ModuleManagement = () => {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex justify-end gap-1">
+                                    <Button variant="ghost" size="icon">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => deleteAction.mutate(action.id)}
+                                      disabled={deleteAction.isPending}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}
