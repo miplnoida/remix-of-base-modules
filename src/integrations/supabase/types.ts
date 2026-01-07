@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_modules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          is_enabled: boolean | null
+          name: string
+          parent_id: string | null
+          route: string | null
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          name: string
+          parent_id?: string | null
+          route?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          name?: string
+          parent_id?: string | null
+          route?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_modules_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_interviews: {
         Row: {
           audit_id: string | null
@@ -1975,6 +2031,50 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          office_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          office_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          office_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "office_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspector_activities: {
         Row: {
           action_taken: string | null
@@ -3178,6 +3278,86 @@ export type Database = {
           },
         ]
       }
+      module_actions: {
+        Row: {
+          action_name: string
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_enabled: boolean | null
+          module_id: string
+        }
+        Insert: {
+          action_name: string
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_enabled?: boolean | null
+          module_id: string
+        }
+        Update: {
+          action_name?: string
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_enabled?: boolean | null
+          module_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_actions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      office_locations: {
+        Row: {
+          address: string | null
+          branch_name: string
+          city: string | null
+          country: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          state: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          branch_name: string
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          state?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          branch_name?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          state?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       payment_plan_installments: {
         Row: {
           amount: number
@@ -3231,26 +3411,92 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          date_of_birth: string | null
+          department_id: string | null
           email: string | null
+          employee_code: string | null
+          failed_login_attempts: number | null
+          force_password_change: boolean | null
           full_name: string | null
+          gender: string | null
           id: string
+          is_active: boolean | null
+          last_login: string | null
+          last_password_change: string | null
+          locked_until: string | null
+          mfa_enabled: boolean | null
+          mfa_method: string | null
+          middle_name: string | null
+          office_id: string | null
+          phone: string | null
+          title: string | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           created_at?: string | null
+          date_of_birth?: string | null
+          department_id?: string | null
           email?: string | null
+          employee_code?: string | null
+          failed_login_attempts?: number | null
+          force_password_change?: boolean | null
           full_name?: string | null
+          gender?: string | null
           id: string
+          is_active?: boolean | null
+          last_login?: string | null
+          last_password_change?: string | null
+          locked_until?: string | null
+          mfa_enabled?: boolean | null
+          mfa_method?: string | null
+          middle_name?: string | null
+          office_id?: string | null
+          phone?: string | null
+          title?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           created_at?: string | null
+          date_of_birth?: string | null
+          department_id?: string | null
           email?: string | null
+          employee_code?: string | null
+          failed_login_attempts?: number | null
+          force_password_change?: boolean | null
           full_name?: string | null
+          gender?: string | null
           id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          last_password_change?: string | null
+          locked_until?: string | null
+          mfa_enabled?: boolean | null
+          mfa_method?: string | null
+          middle_name?: string | null
+          office_id?: string | null
+          phone?: string | null
+          title?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "office_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       remittance_schedule: {
         Row: {
