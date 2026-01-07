@@ -4,27 +4,69 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Role } from "@/types/systemAdmin";
-import { useState } from "react";
+import { DbRole, useCreateDbRole, useUpdateDbRole } from "@/hooks/useRolesData";
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 interface RoleFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  role?: Role;
-  onSave: (role: Partial<Role>) => void;
+  role?: DbRole;
 }
 
-export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDialogProps) {
-  const [formData, setFormData] = useState<Partial<Role>>(role || {
-    roleName: "",
+export function RoleFormDialog({ open, onOpenChange, role }: RoleFormDialogProps) {
+  const [formData, setFormData] = useState({
+    role_name: "",
     description: "",
-    isSystemRole: false,
+    is_system_role: false,
+    mfa_required: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const createRole = useCreateDbRole();
+  const updateRole = useUpdateDbRole();
+  const isSubmitting = createRole.isPending || updateRole.isPending;
+
+  useEffect(() => {
+    if (role) {
+      setFormData({
+        role_name: role.role_name,
+        description: role.description || "",
+        is_system_role: role.is_system_role,
+        mfa_required: role.mfa_required,
+      });
+    } else {
+      setFormData({
+        role_name: "",
+        description: "",
+        is_system_role: false,
+        mfa_required: false,
+      });
+    }
+  }, [role, open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    onOpenChange(false);
+    
+    try {
+      if (role) {
+        await updateRole.mutateAsync({
+          id: role.id,
+          role_name: formData.role_name,
+          description: formData.description,
+          mfa_required: formData.mfa_required,
+        });
+      } else {
+        await createRole.mutateAsync({
+          role_name: formData.role_name,
+          description: formData.description,
+          is_system_role: formData.is_system_role,
+          mfa_required: formData.mfa_required,
+        });
+      }
+      onOpenChange(false);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   return (
@@ -38,13 +80,14 @@ export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDia
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="roleName">Role Name *</Label>
+            <Label htmlFor="role_name">Role Name *</Label>
             <Input
-              id="roleName"
+              id="role_name"
               required
-              value={formData.roleName}
-              onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+              value={formData.role_name}
+              onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
               placeholder="e.g., Finance Manager"
+              disabled={role?.is_system_role}
             />
           </div>
 
@@ -62,21 +105,36 @@ export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDia
 
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="isSystemRole">System Role</Label>
-              <p className="text-xs text-muted-foreground">System roles cannot be deleted</p>
+              <Label htmlFor="mfa_required">Require MFA</Label>
+              <p className="text-xs text-muted-foreground">Users with this role must use MFA</p>
             </div>
             <Switch
-              id="isSystemRole"
-              checked={formData.isSystemRole}
-              onCheckedChange={(checked) => setFormData({ ...formData, isSystemRole: checked })}
+              id="mfa_required"
+              checked={formData.mfa_required}
+              onCheckedChange={(checked) => setFormData({ ...formData, mfa_required: checked })}
             />
           </div>
 
+          {!role && (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="is_system_role">System Role</Label>
+                <p className="text-xs text-muted-foreground">System roles cannot be deleted</p>
+              </div>
+              <Switch
+                id="is_system_role"
+                checked={formData.is_system_role}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_system_role: checked })}
+              />
+            </div>
+          )}
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {role ? "Update" : "Create"}
             </Button>
           </DialogFooter>

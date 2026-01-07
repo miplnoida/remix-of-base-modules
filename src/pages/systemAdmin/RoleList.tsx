@@ -4,28 +4,65 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Edit, Shield } from "lucide-react";
-import { roles, rolePermissions, permissions } from "@/services/mockData/systemAdminData";
-import { useToast } from "@/hooks/use-toast";
+import { Search, Plus, Edit, Shield, Trash2, Loader2 } from "lucide-react";
+import { useDbRoles, useRolePermissions, DbRole } from "@/hooks/useRolesData";
 import { RoleFormDialog } from "@/components/systemAdmin/RoleFormDialog";
 import { PermissionsDialog } from "@/components/systemAdmin/PermissionsDialog";
-import { Role } from "@/types/systemAdmin";
+import { DeleteRoleDialog } from "@/components/systemAdmin/DeleteRoleDialog";
 
 export default function RoleList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | undefined>();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<DbRole | undefined>();
+
+  const { data: roles = [], isLoading, error } = useDbRoles();
 
   const filteredRoles = roles.filter(role =>
-    role.roleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    role.description.toLowerCase().includes(searchTerm.toLowerCase())
+    role.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (role.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
-  const getPermissionCount = (roleId: string) => {
-    return rolePermissions.filter(rp => rp.roleId === roleId).length;
+  const handleEdit = (role: DbRole) => {
+    setSelectedRole(role);
+    setFormOpen(true);
   };
+
+  const handlePermissions = (role: DbRole) => {
+    setSelectedRole(role);
+    setPermissionsOpen(true);
+  };
+
+  const handleDelete = (role: DbRole) => {
+    setSelectedRole(role);
+    setDeleteOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setSelectedRole(undefined);
+    setFormOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-destructive">Error loading roles: {error.message}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -34,7 +71,7 @@ export default function RoleList() {
           <h1 className="text-3xl font-bold">Role Management</h1>
           <p className="text-muted-foreground">Manage roles and permissions</p>
         </div>
-        <Button onClick={() => { setSelectedRole(undefined); setFormOpen(true); }}>
+        <Button onClick={handleAddNew}>
           <Plus className="mr-2 h-4 w-4" />
           Add Role
         </Button>
@@ -42,7 +79,7 @@ export default function RoleList() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Roles</CardTitle>
+          <CardTitle>Roles ({roles.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -62,48 +99,83 @@ export default function RoleList() {
               <TableRow>
                 <TableHead>Role Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Permissions</TableHead>
-                <TableHead>System Role</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>MFA Required</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRoles.map((role) => (
-                <TableRow key={role.roleId}>
+                <TableRow key={role.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 text-primary" />
-                      {role.roleName}
+                      {role.role_name}
                     </div>
                   </TableCell>
-                  <TableCell>{role.description}</TableCell>
+                  <TableCell className="max-w-xs truncate">{role.description || '-'}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{getPermissionCount(role.roleId)} permissions</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {role.isSystemRole ? (
+                    {role.is_system_role ? (
                       <Badge className="bg-blue-100 text-blue-800">System</Badge>
                     ) : (
                       <Badge variant="outline">Custom</Badge>
                     )}
-                   </TableCell>
-                   <TableCell>
-                     <div className="flex gap-2">
-                       <Button variant="ghost" size="sm" onClick={() => { setSelectedRole(role); setPermissionsOpen(true); }}>
-                         <Shield className="h-4 w-4" />
-                       </Button>
-                       <Button 
-                         variant="ghost" 
-                         size="sm"
-                         disabled={role.isSystemRole}
-                         onClick={() => { setSelectedRole(role); setFormOpen(true); }}
-                       >
-                         <Edit className="h-4 w-4" />
-                       </Button>
-                     </div>
-                   </TableCell>
+                  </TableCell>
+                  <TableCell>
+                    {role.mfa_required ? (
+                      <Badge variant="default">Required</Badge>
+                    ) : (
+                      <Badge variant="secondary">Optional</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {role.is_active ? (
+                      <Badge variant="default">Active</Badge>
+                    ) : (
+                      <Badge variant="secondary">Inactive</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handlePermissions(role)}
+                        title="Manage Permissions"
+                      >
+                        <Shield className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        disabled={role.is_system_role}
+                        onClick={() => handleEdit(role)}
+                        title="Edit Role"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        disabled={role.is_system_role}
+                        onClick={() => handleDelete(role)}
+                        title="Delete Role"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
+              {filteredRoles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No roles found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -113,20 +185,21 @@ export default function RoleList() {
         open={formOpen}
         onOpenChange={setFormOpen}
         role={selectedRole}
-        onSave={(role) => {
-          toast({
-            title: selectedRole ? "Role Updated" : "Role Created",
-            description: `Role ${role.roleName} has been ${selectedRole ? "updated" : "created"} successfully.`,
-          });
-        }}
       />
 
       {selectedRole && (
-        <PermissionsDialog
-          open={permissionsOpen}
-          onOpenChange={setPermissionsOpen}
-          role={selectedRole}
-        />
+        <>
+          <PermissionsDialog
+            open={permissionsOpen}
+            onOpenChange={setPermissionsOpen}
+            role={selectedRole}
+          />
+          <DeleteRoleDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            role={selectedRole}
+          />
+        </>
       )}
     </div>
   );
