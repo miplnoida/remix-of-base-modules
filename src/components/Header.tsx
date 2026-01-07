@@ -1,9 +1,10 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, User, LogOut, Palette } from "lucide-react";
+import { Settings, User, LogOut, Palette } from "lucide-react";
 import { SocialSecurityIcon } from "@/components/icons/SocialSecurityIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { InAppNotificationBell } from "@/components/notifications/InAppNotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,20 +55,7 @@ export const Header = () => {
 
       <div className="flex items-center gap-3">
         {/* Notifications */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="relative text-gray-600"
-          style={{ color: currentTheme.colors.primary }}
-        >
-          <Bell className="h-5 w-5" />
-          <span 
-            className="absolute -top-1 -right-1 h-3 w-3 rounded-full text-xs flex items-center justify-center text-white"
-            style={{ backgroundColor: currentTheme.colors.accent }}
-          >
-            3
-          </span>
-        </Button>
+        <InAppNotificationBell />
 
         {/* User Menu */}
         <DropdownMenu>

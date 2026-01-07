@@ -245,6 +245,12 @@ import MFASettings from '@/pages/admin/security/MFASettings';
 
 // Profile Pages
 import ProfileChangePassword from '@/pages/profile/ChangePassword';
+import NotificationPreferences from '@/pages/profile/NotificationPreferences';
+import ActiveSessions from '@/pages/profile/ActiveSessions';
+
+// Notification Pages
+import NotificationCenter from '@/pages/notifications/NotificationCenter';
+import ProviderSettings from '@/pages/admin/notifications/ProviderSettings';
 
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
