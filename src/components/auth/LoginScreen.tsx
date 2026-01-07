@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,21 +17,26 @@ export const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   
-  const { login, isAuthenticated, profile } = useSupabaseAuth();
+  const hasRedirected = useRef(false);
+  const { login, isAuthenticated, profile, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      if (profile?.force_password_change) {
+    // Skip if still loading auth state or already redirected
+    if (authLoading || hasRedirected.current) return;
+    
+    if (isAuthenticated && profile) {
+      hasRedirected.current = true;
+      if (profile.force_password_change) {
         navigate('/change-password', { state: { required: true }, replace: true });
-      } else if (profile?.mfa_enabled) {
+      } else if (profile.mfa_enabled) {
         navigate('/mfa-verify', { replace: true });
       } else {
         navigate('/', { replace: true });
       }
     }
-  }, [isAuthenticated, profile, navigate]);
+  }, [isAuthenticated, profile, authLoading, navigate]);
 
   // Log audit event for login attempts
   const logLoginAttempt = async (success: boolean, userEmail: string, reason?: string) => {
@@ -97,7 +102,18 @@ export const LoginScreen = () => {
     }
   };
 
-  if (isAuthenticated) {
+  // Show loading while auth state is being determined
+  if (authLoading) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && !hasRedirected.current) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center p-4">
         <div className="text-center">
