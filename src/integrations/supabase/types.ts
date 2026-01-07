@@ -126,6 +126,63 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          field_name: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          module_name: string | null
+          new_value: string | null
+          old_value: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          module_name?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          module_name?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       bema_activity_log: {
         Row: {
           action: string
@@ -2075,6 +2132,39 @@ export type Database = {
           },
         ]
       }
+      in_app_notifications: {
+        Row: {
+          body: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inspector_activities: {
         Row: {
           action_taken: string | null
@@ -3278,6 +3368,36 @@ export type Database = {
           },
         ]
       }
+      mfa_config: {
+        Row: {
+          allowed_methods: string[] | null
+          created_at: string | null
+          id: string
+          is_required: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_methods?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_methods?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       module_actions: {
         Row: {
           action_name: string
@@ -3316,6 +3436,149 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string | null
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          recipient_address: string
+          recipient_user_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_status"] | null
+          subject: string | null
+          template_id: string | null
+          title: string | null
+          trigger_source: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          recipient_address: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"] | null
+          subject?: string | null
+          template_id?: string | null
+          title?: string | null
+          trigger_source?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          recipient_address?: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"] | null
+          subject?: string | null
+          template_id?: string | null
+          title?: string | null
+          trigger_source?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_providers: {
+        Row: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          config: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          provider_name: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider_name: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider_name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_enabled: boolean | null
+          name: string
+          placeholders: Json | null
+          subject: string | null
+          title: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          name: string
+          placeholders?: Json | null
+          subject?: string | null
+          title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          name?: string
+          placeholders?: Json | null
+          subject?: string | null
+          title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       office_locations: {
         Row: {
           address: string | null
@@ -3353,6 +3616,87 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           state?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      password_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          password_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          password_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          password_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      password_policies: {
+        Row: {
+          created_at: string | null
+          id: string
+          idle_timeout_minutes: number | null
+          is_active: boolean | null
+          lockout_duration_minutes: number | null
+          lockout_threshold: number | null
+          max_age_days: number | null
+          max_concurrent_sessions: number | null
+          min_length: number | null
+          prevent_reuse_count: number | null
+          require_lowercase: boolean | null
+          require_numbers: boolean | null
+          require_special_chars: boolean | null
+          require_uppercase: boolean | null
+          session_timeout_minutes: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          idle_timeout_minutes?: number | null
+          is_active?: boolean | null
+          lockout_duration_minutes?: number | null
+          lockout_threshold?: number | null
+          max_age_days?: number | null
+          max_concurrent_sessions?: number | null
+          min_length?: number | null
+          prevent_reuse_count?: number | null
+          require_lowercase?: boolean | null
+          require_numbers?: boolean | null
+          require_special_chars?: boolean | null
+          require_uppercase?: boolean | null
+          session_timeout_minutes?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          idle_timeout_minutes?: number | null
+          is_active?: boolean | null
+          lockout_duration_minutes?: number | null
+          lockout_threshold?: number | null
+          max_age_days?: number | null
+          max_concurrent_sessions?: number | null
+          min_length?: number | null
+          prevent_reuse_count?: number | null
+          require_lowercase?: boolean | null
+          require_numbers?: boolean | null
+          require_special_chars?: boolean | null
+          require_uppercase?: boolean | null
+          session_timeout_minutes?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -3536,6 +3880,126 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          action_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_granted: boolean | null
+          module_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          action_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_granted?: boolean | null
+          module_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          action_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_granted?: boolean | null
+          module_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "module_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notification_preferences: {
+        Row: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_permission_overrides: {
+        Row: {
+          action_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_granted: boolean
+          module_id: string
+          override_reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_granted: boolean
+          module_id: string
+          override_reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_granted?: boolean
+          module_id?: string
+          override_reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_overrides_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "module_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -3557,16 +4021,70 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_user_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          action_id: string
+          action_name: string
+          is_granted: boolean
+          module_id: string
+          module_name: string
+          source: string
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { _action_name: string; _module_name: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
@@ -3575,6 +4093,19 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          _action_type: string
+          _entity_id?: string
+          _entity_type?: string
+          _field_name?: string
+          _metadata?: Json
+          _module_name?: string
+          _new_value?: string
+          _old_value?: string
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -3695,6 +4226,13 @@ export type Database = {
         | "scouting"
         | "education"
         | "notice_service"
+      notification_channel: "email" | "sms" | "push" | "in_app"
+      notification_status:
+        | "queued"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "cancelled"
       order_status: "Draft" | "Under Review" | "Approved" | "Published"
       party_role:
         | "Primary Respondent"
@@ -3967,6 +4505,8 @@ export const Constants = {
         "education",
         "notice_service",
       ],
+      notification_channel: ["email", "sms", "push", "in_app"],
+      notification_status: ["queued", "sending", "sent", "failed", "cancelled"],
       order_status: ["Draft", "Under Review", "Approved", "Published"],
       party_role: [
         "Primary Respondent",
