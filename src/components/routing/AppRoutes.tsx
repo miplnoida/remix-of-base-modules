@@ -229,7 +229,23 @@ import NotificationManagement from '@/pages/admin/NotificationManagement';
 import OfficeManagement from '@/pages/admin/OfficeManagement';
 import ModuleManagement from '@/pages/admin/ModuleManagement';
 
-// NBenefit Module
+// Enterprise Admin - User Management (Separate Screens)
+import UserList from '@/pages/admin/users/UserList';
+import UserCreate from '@/pages/admin/users/UserCreate';
+import UserView from '@/pages/admin/users/UserView';
+import UserEdit from '@/pages/admin/users/UserEdit';
+import UserRoles from '@/pages/admin/users/UserRoles';
+
+// Enterprise Admin - Role Management
+import AdminRoleList from '@/pages/admin/roles/RoleList';
+
+// Enterprise Admin - Security Settings
+import PasswordPolicySettings from '@/pages/admin/security/PasswordPolicySettings';
+import MFASettings from '@/pages/admin/security/MFASettings';
+
+// Profile Pages
+import ProfileChangePassword from '@/pages/profile/ChangePassword';
+
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
 import EmploymentInjuryBenefit from '@/pages/nbenefit/short-term/EmploymentInjuryBenefit';
@@ -1167,12 +1183,22 @@ export const AppRoutes = () => {
       <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
 
       {/* Enterprise Admin Routes */}
-      <Route path="/admin/users" element={<ProtectedLayout><UserManagementAdmin /></ProtectedLayout>} />
+      <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
+      <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
+      <Route path="/admin/users/:userId" element={<ProtectedLayout><UserView /></ProtectedLayout>} />
+      <Route path="/admin/users/:userId/edit" element={<ProtectedLayout><UserEdit /></ProtectedLayout>} />
+      <Route path="/admin/users/:userId/roles" element={<ProtectedLayout><UserRoles /></ProtectedLayout>} />
+      <Route path="/admin/roles" element={<ProtectedLayout><AdminRoleList /></ProtectedLayout>} />
       <Route path="/admin/roles-permissions" element={<ProtectedLayout><RolePermissionManagement /></ProtectedLayout>} />
       <Route path="/admin/audit-logs" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
       <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
+      <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
+      <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
+      
+      {/* Profile Routes */}
+      <Route path="/profile/change-password" element={<ProtectedLayout><ProfileChangePassword /></ProtectedLayout>} />
 
       {/* Medical Module */}
       <Route path="/medical/applications" element={<ProtectedLayout><DoctorApplicationsList /></ProtectedLayout>} />

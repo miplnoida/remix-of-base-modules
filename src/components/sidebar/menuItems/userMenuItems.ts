@@ -40,7 +40,14 @@ export const userMenuItems = [
         url: "/admin/users",
         icon: Users,
         requiresPermission: "manage_users",
-        description: "Manage system users and roles"
+        description: "Manage system users"
+      },
+      {
+        title: "Role Management",
+        url: "/admin/roles",
+        icon: Shield,
+        requiresPermission: "manage_users",
+        description: "Manage roles and MFA settings"
       },
       {
         title: "Role Permissions",
@@ -62,6 +69,20 @@ export const userMenuItems = [
         icon: LayoutGrid,
         requiresPermission: "system_admin",
         description: "Configure application modules"
+      },
+      {
+        title: "Password Policy",
+        url: "/admin/security/password-policy",
+        icon: Key,
+        requiresPermission: "system_admin",
+        description: "Configure password requirements"
+      },
+      {
+        title: "MFA Settings",
+        url: "/admin/security/mfa",
+        icon: Shield,
+        requiresPermission: "system_admin",
+        description: "Configure multi-factor authentication"
       },
       {
         title: "Audit Logs",
