@@ -1,0 +1,321 @@
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Shield, Plus, Edit, Trash2, Search, Settings } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
+interface Role {
+  id: string;
+  role_name: string;
+  description: string | null;
+  is_active: boolean;
+  is_system_role: boolean;
+  mfa_required: boolean;
+  created_at: string;
+}
+
+const RoleList = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [formData, setFormData] = useState({
+    role_name: "",
+    description: "",
+    is_active: true,
+    is_system_role: false,
+    mfa_required: false,
+  });
+
+  const { data: roles = [], isLoading } = useQuery({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .order('role_name');
+      if (error) throw error;
+      return data as Role[];
+    },
+  });
+
+  const createRole = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const { error } = await supabase.from('roles').insert(data);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Role created successfully');
+      setShowDialog(false);
+      resetForm();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const updateRole = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
+      const { error } = await supabase.from('roles').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Role updated successfully');
+      setShowDialog(false);
+      resetForm();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteRole = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('roles').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Role deleted successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const resetForm = () => {
+    setFormData({
+      role_name: "",
+      description: "",
+      is_active: true,
+      is_system_role: false,
+      mfa_required: false,
+    });
+    setEditingRole(null);
+  };
+
+  const handleEdit = (role: Role) => {
+    setEditingRole(role);
+    setFormData({
+      role_name: role.role_name,
+      description: role.description || "",
+      is_active: role.is_active,
+      is_system_role: role.is_system_role,
+      mfa_required: role.mfa_required,
+    });
+    setShowDialog(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingRole) {
+      updateRole.mutate({ id: editingRole.id, ...formData });
+    } else {
+      createRole.mutate(formData);
+    }
+  };
+
+  const filteredRoles = roles.filter(role =>
+    role.role_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (role.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+  );
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Loading roles...</div>;
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Role Management</h1>
+          <p className="text-muted-foreground mt-1">Create and manage system roles</p>
+        </div>
+        <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Role
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            System Roles
+          </CardTitle>
+          <CardDescription>Manage roles and their MFA requirements</CardDescription>
+          <div className="relative mt-4 w-80">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search roles..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Role Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>System Role</TableHead>
+                <TableHead>MFA Required</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRoles.map(role => (
+                <TableRow key={role.id}>
+                  <TableCell className="font-medium">{role.role_name}</TableCell>
+                  <TableCell className="max-w-[300px] truncate">{role.description || '-'}</TableCell>
+                  <TableCell>
+                    <Badge variant={role.is_active ? "default" : "secondary"}>
+                      {role.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={role.is_system_role ? "outline" : "secondary"}>
+                      {role.is_system_role ? "Yes" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={role.mfa_required ? "destructive" : "secondary"}>
+                      {role.mfa_required ? "Required" : "Optional"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => navigate(`/admin/roles-permissions?role=${role.role_name}`)}
+                        title="Configure Permissions"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(role)} title="Edit Role">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      {!role.is_system_role && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => deleteRole.mutate(role.id)}
+                          title="Delete Role"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredRoles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No roles found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingRole ? "Edit Role" : "Create New Role"}</DialogTitle>
+            <DialogDescription>
+              {editingRole ? "Update role details" : "Create a new system role"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="role_name">Role Name *</Label>
+              <Input
+                id="role_name"
+                required
+                value={formData.role_name}
+                onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
+                placeholder="e.g., Finance Manager"
+                disabled={editingRole?.is_system_role}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the role responsibilities and purpose"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <Label htmlFor="is_active">Active</Label>
+                <p className="text-xs text-muted-foreground">Inactive roles cannot be assigned</p>
+              </div>
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <Label htmlFor="mfa_required">MFA Required</Label>
+                <p className="text-xs text-muted-foreground">Users must enable MFA to use this role</p>
+              </div>
+              <Switch
+                id="mfa_required"
+                checked={formData.mfa_required}
+                onCheckedChange={(checked) => setFormData({ ...formData, mfa_required: checked })}
+              />
+            </div>
+
+            {!editingRole && (
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <Label htmlFor="is_system_role">System Role</Label>
+                  <p className="text-xs text-muted-foreground">System roles cannot be deleted</p>
+                </div>
+                <Switch
+                  id="is_system_role"
+                  checked={formData.is_system_role}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_system_role: checked })}
+                />
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createRole.isPending || updateRole.isPending}>
+                {editingRole ? "Update" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default RoleList;
