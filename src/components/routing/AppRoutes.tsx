@@ -455,6 +455,9 @@ const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
 
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
+import { ForgotPassword } from '@/pages/auth/ForgotPassword';
+import { ResetPassword } from '@/pages/auth/ResetPassword';
+import { ChangePassword as ChangePasswordPage } from '@/pages/auth/ChangePassword';
 
 // Foundation Components Demo
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
@@ -537,6 +540,9 @@ export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/inspector/login" element={<InspectorLogin />} />
       
       {/* Inspector Routes */}
