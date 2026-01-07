@@ -221,6 +221,14 @@ import NotificationTemplates from '@/pages/systemAdmin/NotificationTemplates';
 import NotificationChannelSettings from '@/pages/systemAdmin/NotificationChannelSettings';
 import WorkflowManagement from '@/pages/workflow/WorkflowManagement';
 
+// Enterprise Admin Module
+import UserManagementAdmin from '@/pages/admin/UserManagementAdmin';
+import RolePermissionManagement from '@/pages/admin/RolePermissionManagement';
+import AuditLogViewer from '@/pages/admin/AuditLogViewer';
+import NotificationManagement from '@/pages/admin/NotificationManagement';
+import OfficeManagement from '@/pages/admin/OfficeManagement';
+import ModuleManagement from '@/pages/admin/ModuleManagement';
+
 // NBenefit Module
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
@@ -1151,6 +1159,14 @@ export const AppRoutes = () => {
       
       {/* Fee Configuration */}
       <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
+
+      {/* Enterprise Admin Routes */}
+      <Route path="/admin/users" element={<ProtectedLayout><UserManagementAdmin /></ProtectedLayout>} />
+      <Route path="/admin/roles-permissions" element={<ProtectedLayout><RolePermissionManagement /></ProtectedLayout>} />
+      <Route path="/admin/audit-logs" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
+      <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
+      <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
+      <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
 
       {/* Medical Module */}
       <Route path="/medical/applications" element={<ProtectedLayout><DoctorApplicationsList /></ProtectedLayout>} />
