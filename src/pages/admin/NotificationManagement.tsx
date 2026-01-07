@@ -10,9 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bell, Mail, MessageSquare, Smartphone, Plus, Edit, Send, RotateCcw, X, Search } from "lucide-react";
+import { Bell, Mail, MessageSquare, Smartphone, Plus, Edit, Trash2, RotateCcw, X, Search } from "lucide-react";
 import { toast } from "sonner";
-import { useNotificationTemplates, useCreateNotificationTemplate, useUpdateNotificationTemplate, useNotificationLogs, NotificationTemplate, NotificationLog } from "@/hooks/useAdminData";
+import { useNotificationTemplates, useCreateNotificationTemplate, useUpdateNotificationTemplate, useDeleteNotificationTemplate, useNotificationLogs, NotificationTemplate, NotificationLog } from "@/hooks/useAdminData";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,6 +47,7 @@ const NotificationManagement = () => {
   });
   const createTemplate = useCreateNotificationTemplate();
   const updateTemplate = useUpdateNotificationTemplate();
+  const deleteTemplate = useDeleteNotificationTemplate();
 
   const resendNotification = useMutation({
     mutationFn: async (logId: string) => {
@@ -195,9 +196,19 @@ const NotificationManagement = () => {
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => deleteTemplate.mutate(template.id)}
+                              disabled={deleteTemplate.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

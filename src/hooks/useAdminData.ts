@@ -245,7 +245,11 @@ export function useAppModules() {
         .select('*, module_actions(*)')
         .order('sort_order');
       if (error) throw error;
-      return data as AppModule[];
+      // Map module_actions to actions property expected by components
+      return (data || []).map(module => ({
+        ...module,
+        actions: module.module_actions || [],
+      })) as AppModule[];
     },
   });
 }
@@ -291,6 +295,24 @@ export function useUpdateAppModule() {
   });
 }
 
+export function useDeleteAppModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('app_modules')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-modules'] });
+      toast.success('Module deleted successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
 // Module Actions
 export function useCreateModuleAction() {
   const queryClient = useQueryClient();
@@ -307,6 +329,45 @@ export function useCreateModuleAction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['app-modules'] });
       toast.success('Action created successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateModuleAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<ModuleAction> & { id: string }) => {
+      const { data: result, error } = await supabase
+        .from('module_actions')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-modules'] });
+      toast.success('Action updated successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteModuleAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('module_actions')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-modules'] });
+      toast.success('Action deleted successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -508,6 +569,24 @@ export function useUpdateNotificationTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
       toast.success('Template updated successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteNotificationTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notification_templates')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
+      toast.success('Template deleted successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });

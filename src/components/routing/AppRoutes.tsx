@@ -803,17 +803,23 @@ export const AppRoutes = () => {
       <Route path="/crd/cards" element={<ProtectedLayout><CardManagement /></ProtectedLayout>} />
       <Route path="/crd/reports/printed-spoiled-cards" element={<ProtectedLayout><CRDPrintedSpoiledCardsReport /></ProtectedLayout>} />
 
-      {/* System Administration Routes */}
-      <Route path="/admin/users" element={<ProtectedLayout><UserManagement /></ProtectedLayout>} />
+      {/* System Administration Routes - Using DB-backed Enterprise Admin components */}
+      <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
+      <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
+      <Route path="/admin/users/:userId" element={<ProtectedLayout><UserView /></ProtectedLayout>} />
+      <Route path="/admin/users/:userId/edit" element={<ProtectedLayout><UserEdit /></ProtectedLayout>} />
+      <Route path="/admin/users/:userId/roles" element={<ProtectedLayout><UserRoles /></ProtectedLayout>} />
       <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
-      <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLog /></ProtectedLayout>} />
+      <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
+      <Route path="/admin/audit-logs" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
       <Route path="/admin/scheduler" element={<ProtectedLayout><CentralScheduler /></ProtectedLayout>} />
       <Route path="/admin/backup" element={<ProtectedLayout><BackupRecovery /></ProtectedLayout>} />
       <Route path="/admin/logs" element={<ProtectedLayout><SystemLogs /></ProtectedLayout>} />
       <Route path="/admin/employees" element={<ProtectedLayout><EmployeeList /></ProtectedLayout>} />
       <Route path="/admin/org-units" element={<ProtectedLayout><OrgUnitList /></ProtectedLayout>} />
       <Route path="/admin/positions" element={<ProtectedLayout><PositionList /></ProtectedLayout>} />
-      <Route path="/admin/roles" element={<ProtectedLayout><RoleList /></ProtectedLayout>} />
+      <Route path="/admin/roles" element={<ProtectedLayout><AdminRoleList /></ProtectedLayout>} />
+      <Route path="/admin/roles-permissions" element={<ProtectedLayout><RolePermissionManagement /></ProtectedLayout>} />
       <Route path="/admin/delegations" element={<ProtectedLayout><DelegationList /></ProtectedLayout>} />
       <Route path="/admin/approval-matrix/payment" element={<ProtectedLayout><ApprovalMatrixPayment /></ProtectedLayout>} />
       <Route path="/admin/approval-matrix/fee-waiver" element={<ProtectedLayout><ApprovalMatrixFeeWaiver /></ProtectedLayout>} />
@@ -827,9 +833,16 @@ export const AppRoutes = () => {
       <Route path="/admin/workflow-management/data" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
       <Route path="/admin/workflow-management/templates" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
       <Route path="/admin/workflow-management/settings" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
+      <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
       <Route path="/admin/notifications/log" element={<ProtectedLayout><NotificationLog /></ProtectedLayout>} />
-      <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationTemplates /></ProtectedLayout>} />
+      <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
+      <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
+      <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
+      <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
+      <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
+      <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
+      <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
       <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
 
@@ -1191,22 +1204,7 @@ export const AppRoutes = () => {
       {/* Fee Configuration */}
       <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
 
-      {/* Enterprise Admin Routes */}
-      <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
-      <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
-      <Route path="/admin/users/:userId" element={<ProtectedLayout><UserView /></ProtectedLayout>} />
-      <Route path="/admin/users/:userId/edit" element={<ProtectedLayout><UserEdit /></ProtectedLayout>} />
-      <Route path="/admin/users/:userId/roles" element={<ProtectedLayout><UserRoles /></ProtectedLayout>} />
-      <Route path="/admin/roles" element={<ProtectedLayout><AdminRoleList /></ProtectedLayout>} />
-      <Route path="/admin/roles-permissions" element={<ProtectedLayout><RolePermissionManagement /></ProtectedLayout>} />
-      <Route path="/admin/audit-logs" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
-      <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
-      <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
-      <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
-      <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
-      <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
-      <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
-      <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
+      {/* Enterprise Admin Routes - consolidated above in System Administration Routes */}
       
       {/* Profile Routes */}
       <Route path="/profile/change-password" element={<ProtectedLayout><ProfileChangePassword /></ProtectedLayout>} />
