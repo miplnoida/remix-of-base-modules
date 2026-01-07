@@ -429,7 +429,7 @@ import TemplateManagement from '@/pages/notifications/TemplateManagement';
 import ActionMapping from '@/pages/notifications/ActionMapping';
 import DeliveryManagement from '@/pages/notifications/DeliveryManagement';
 import UserPreferences from '@/pages/notifications/UserPreferences';
-import NotificationCenter from '@/pages/notifications/NotificationCenter';
+// NotificationCenter already imported above
 import ReportsAnalytics from '@/pages/notifications/ReportsAnalytics';
 import Administration from '@/pages/notifications/Administration';
 
