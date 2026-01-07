@@ -1,88 +1,99 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Mail, MessageSquare, Bell, Eye, Filter, Download, AlertCircle, CheckCircle, XCircle, Clock } from "lucide-react";
-import { notificationRequests, notificationMessages } from "@/services/mockData/notificationData";
-import { NotificationMessage, NotificationChannel, SourceModule, NotificationStatus, NotificationPriority } from "@/types/notification";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Mail, MessageSquare, Bell, Smartphone, Eye, Download, 
+  CheckCircle, XCircle, Clock, RotateCcw, X, Search, Filter 
+} from "lucide-react";
+import { useNotificationLogs, useResendNotification, useCancelNotification, NotificationLog as NotificationLogType } from "@/hooks/useAdminData";
+import { format } from "date-fns";
+import { toast } from "sonner";
+
+const CHANNELS = [
+  { value: 'email', label: 'Email', icon: Mail },
+  { value: 'sms', label: 'SMS', icon: MessageSquare },
+  { value: 'push', label: 'Push', icon: Smartphone },
+  { value: 'in_app', label: 'In-App', icon: Bell },
+] as const;
 
 export default function NotificationLog() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [channelFilter, setChannelFilter] = useState<string>("All");
-  const [moduleFilter, setModuleFilter] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<string>("All");
-  const [priorityFilter, setPriorityFilter] = useState<string>("All");
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<NotificationMessage | null>(null);
-  const [selectedTab, setSelectedTab] = useState("requests");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedLog, setSelectedLog] = useState<NotificationLogType | null>(null);
 
-  // Filter requests
-  const filteredRequests = notificationRequests.filter(req => {
-    const matchesSearch = 
-      req.sourceContextReference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.recipients[0]?.partyName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesModule = moduleFilter === "All" || req.sourceModule === moduleFilter;
-    const matchesChannel = channelFilter === "All" || req.channel === channelFilter;
-    const matchesStatus = statusFilter === "All" || req.status === statusFilter;
-    const matchesPriority = priorityFilter === "All" || req.priority === priorityFilter;
-    return matchesSearch && matchesModule && matchesChannel && matchesStatus && matchesPriority;
+  const { data: logs = [], isLoading } = useNotificationLogs({
+    channel: channelFilter !== 'all' ? channelFilter as any : undefined,
+    status: statusFilter !== 'all' ? statusFilter as any : undefined,
   });
+  const resendNotification = useResendNotification();
+  const cancelNotification = useCancelNotification();
 
-  // Filter messages
-  const filteredMessages = notificationMessages.filter(msg => {
-    const matchesSearch = 
-      msg.recipientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      msg.recipientAddress.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesChannel = channelFilter === "All" || msg.channel === channelFilter;
-    const matchesStatus = statusFilter === "All" || msg.status === statusFilter;
-    return matchesSearch && matchesChannel && matchesStatus;
-  });
+  const filteredLogs = logs.filter(log =>
+    searchTerm === "" ||
+    log.recipient_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Statistics
   const stats = {
-    total: notificationRequests.length,
-    sent: notificationMessages.filter(m => ['Sent', 'Delivered'].includes(m.status)).length,
-    failed: notificationMessages.filter(m => m.status === 'Failed').length,
-    pending: notificationRequests.filter(r => ['Pending', 'Queued'].includes(r.status)).length,
+    total: logs.length,
+    sent: logs.filter(l => l.status === 'sent').length,
+    failed: logs.filter(l => l.status === 'failed').length,
+    pending: logs.filter(l => ['queued', 'sending'].includes(l.status)).length,
   };
 
-  const getStatusColor = (status: NotificationStatus) => {
-    const colors: Record<NotificationStatus, string> = {
-      'Pending': 'bg-yellow-100 text-yellow-800',
-      'Queued': 'bg-blue-100 text-blue-800',
-      'InProgress': 'bg-purple-100 text-purple-800',
-      'Sent': 'bg-green-100 text-green-800',
-      'Delivered': 'bg-green-100 text-green-800',
-      'Failed': 'bg-red-100 text-red-800',
-      'Bounced': 'bg-orange-100 text-orange-800',
-      'Cancelled': 'bg-gray-100 text-gray-800',
-      'Completed': 'bg-green-100 text-green-800',
+  const getChannelIcon = (channel: string) => {
+    const ch = CHANNELS.find(c => c.value === channel);
+    return ch ? <ch.icon className="h-4 w-4" /> : null;
+  };
+
+  const getStatusBadge = (status: string) => {
+    const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+      sent: { variant: 'default', label: 'Sent' },
+      queued: { variant: 'secondary', label: 'Queued' },
+      sending: { variant: 'outline', label: 'Sending' },
+      failed: { variant: 'destructive', label: 'Failed' },
+      cancelled: { variant: 'secondary', label: 'Cancelled' },
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    const { variant, label } = config[status] || { variant: 'outline', label: status };
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
-  const getPriorityColor = (priority: NotificationPriority) => {
-    const colors: Record<NotificationPriority, string> = {
-      'Low': 'bg-gray-100 text-gray-800',
-      'Normal': 'bg-blue-100 text-blue-800',
-      'High': 'bg-orange-100 text-orange-800',
-      'Critical': 'bg-red-100 text-red-800',
-    };
-    return colors[priority];
+  const handleExport = () => {
+    const csv = [
+      ['Timestamp', 'Channel', 'Recipient', 'Subject/Title', 'Status', 'Failure Reason'].join(','),
+      ...filteredLogs.map(log => [
+        log.created_at,
+        log.channel,
+        log.recipient_address,
+        log.subject || log.title || '',
+        log.status,
+        log.failure_reason || ''
+      ].map(v => `"${v}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notification-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    toast.success('Logs exported successfully');
   };
 
-  const getChannelIcon = (channel: NotificationChannel) => {
-    switch (channel) {
-      case 'Email': return <Mail className="h-4 w-4" />;
-      case 'SMS': return <MessageSquare className="h-4 w-4" />;
-      case 'Push': return <Bell className="h-4 w-4" />;
-      default: return <Mail className="h-4 w-4" />;
-    }
+  const handleResend = async (logId: string) => {
+    await resendNotification.mutateAsync(logId);
+  };
+
+  const handleCancel = async (logId: string) => {
+    await cancelNotification.mutateAsync(logId);
   };
 
   return (
@@ -90,11 +101,11 @@ export default function NotificationLog() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Notification Log</h1>
-          <p className="text-muted-foreground">Comprehensive tracking of all system notifications</p>
+          <p className="text-muted-foreground">View and manage all notification delivery records</p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={handleExport}>
           <Download className="mr-2 h-4 w-4" />
-          Export Log
+          Export CSV
         </Button>
       </div>
 
@@ -105,7 +116,7 @@ export default function NotificationLog() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold">{stats.total}</div>
-                <p className="text-sm text-muted-foreground">Total Requests</p>
+                <p className="text-sm text-muted-foreground">Total Notifications</p>
               </div>
               <Mail className="h-8 w-8 text-primary" />
             </div>
@@ -116,7 +127,7 @@ export default function NotificationLog() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-green-600">{stats.sent}</div>
-                <p className="text-sm text-muted-foreground">Sent/Delivered</p>
+                <p className="text-sm text-muted-foreground">Sent</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -155,35 +166,26 @@ export default function NotificationLog() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-4">
-            <Input
-              placeholder="Search by reference or recipient..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Select value={moduleFilter} onValueChange={setModuleFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Module" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Modules</SelectItem>
-                <SelectItem value="Compliance">Compliance</SelectItem>
-                <SelectItem value="Benefits">Benefits</SelectItem>
-                <SelectItem value="Finance">Finance</SelectItem>
-                <SelectItem value="Legal">Legal</SelectItem>
-                <SelectItem value="InternalAudit">Internal Audit</SelectItem>
-                <SelectItem value="Scheduler">Scheduler</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by recipient or subject..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <Select value={channelFilter} onValueChange={setChannelFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Channel" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Channels</SelectItem>
-                <SelectItem value="Email">Email</SelectItem>
-                <SelectItem value="SMS">SMS</SelectItem>
-                <SelectItem value="Push">Push</SelectItem>
+                <SelectItem value="all">All Channels</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="push">Push</SelectItem>
+                <SelectItem value="in_app">In-App</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -191,284 +193,165 @@ export default function NotificationLog() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Status</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Sent">Sent</SelectItem>
-                <SelectItem value="Delivered">Delivered</SelectItem>
-                <SelectItem value="Failed">Failed</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Priority</SelectItem>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Normal">Normal</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-                <SelectItem value="Critical">Critical</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="queued">Queued</SelectItem>
+                <SelectItem value="sending">Sending</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList>
-          <TabsTrigger value="requests">Notification Requests</TabsTrigger>
-          <TabsTrigger value="messages">Individual Messages</TabsTrigger>
-        </TabsList>
-
-        {/* Requests Tab */}
-        <TabsContent value="requests">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date/Time</TableHead>
-                    <TableHead>Module</TableHead>
-                    <TableHead>Context</TableHead>
-                    <TableHead>Template</TableHead>
-                    <TableHead>Channel</TableHead>
-                    <TableHead>Recipients</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Success Rate</TableHead>
-                    <TableHead>Requested By</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request.requestId}>
-                      <TableCell className="text-sm">
-                        {new Date(request.requestedDateTime).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{request.sourceModule}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-sm">{request.sourceContextReference}</div>
-                          <div className="text-xs text-muted-foreground">{request.sourceContextType}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{request.templateName || 'Custom'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {getChannelIcon(request.channel)}
-                          <span className="text-sm">{request.channel}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{request.totalRecipients}</TableCell>
-                      <TableCell>
-                        <Badge className={getPriorityColor(request.priority)}>
-                          {request.priority}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(request.status)}>
-                          {request.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <span className="text-green-600 font-medium">{request.successfulSends}</span>
-                          {' / '}
-                          <span className="text-red-600">{request.failedSends}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{request.requestedByUserName}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Messages Tab */}
-        <TabsContent value="messages">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sent Date/Time</TableHead>
-                    <TableHead>Channel</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Subject/Preview</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Attempts</TableHead>
-                    <TableHead>Provider ID</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMessages.map((message) => (
-                    <TableRow key={message.messageId}>
-                      <TableCell className="text-sm">
-                        {message.sentOn ? new Date(message.sentOn).toLocaleString() : 'Not sent'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {getChannelIcon(message.channel)}
-                          <span className="text-sm">{message.channel}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">{message.recipientName}</TableCell>
-                      <TableCell className="text-sm font-mono">{message.recipientAddress}</TableCell>
-                      <TableCell className="max-w-xs truncate text-sm">
-                        {message.subject || message.bodyRendered.substring(0, 50) + '...'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(message.status)}>
-                          {message.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{message.attemptCount}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">{message.providerMessageId || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedMessage(message);
-                            setDetailsOpen(true);
-                          }}
+      {/* Logs Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notification History ({filteredLogs.length} records)</CardTitle>
+          <CardDescription>All notification delivery attempts and their status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">Loading notification logs...</div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No notification logs found.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>Recipient</TableHead>
+                  <TableHead>Subject/Title</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-sm">
+                      {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getChannelIcon(log.channel)}
+                        <span className="capitalize">{log.channel.replace('_', '-')}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{log.recipient_address}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {log.subject || log.title || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {getStatusBadge(log.status)}
+                        {log.failure_reason && (
+                          <p className="text-xs text-destructive">{log.failure_reason}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setSelectedLog(log)}
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                        {(log.status === 'failed' || log.status === 'sent') && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleResend(log.id)}
+                            disabled={resendNotification.isPending}
+                            title="Resend"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {log.status === 'queued' && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleCancel(log.id)}
+                            disabled={cancelNotification.isPending}
+                            title="Cancel"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Message Details Dialog */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      {/* Details Dialog */}
+      <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Notification Message Details</DialogTitle>
-            <DialogDescription>Message ID: {selectedMessage?.messageId}</DialogDescription>
+            <DialogTitle>Notification Details</DialogTitle>
+            <DialogDescription>Full notification record</DialogDescription>
           </DialogHeader>
-          {selectedMessage && (
-            <div className="space-y-4">
+          {selectedLog && (
+            <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Recipient Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Name</p>
-                      <p className="font-medium">{selectedMessage.recipientName}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Address</p>
-                      <p className="font-mono text-sm">{selectedMessage.recipientAddress}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Channel</p>
-                      <Badge>{selectedMessage.channel}</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Delivery Status</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <Badge className={getStatusColor(selectedMessage.status)}>
-                        {selectedMessage.status}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Attempts</p>
-                      <p className="font-medium">{selectedMessage.attemptCount}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Provider Message ID</p>
-                      <p className="font-mono text-xs">{selectedMessage.providerMessageId || 'N/A'}</p>
-                    </div>
-                    {selectedMessage.errorMessage && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Error</p>
-                        <p className="text-sm text-red-600">{selectedMessage.errorMessage}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Message Content</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {selectedMessage.subject && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Subject</p>
-                      <p className="font-medium">{selectedMessage.subject}</p>
-                    </div>
-                  )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Timestamp</p>
+                  <p className="font-medium">{format(new Date(selectedLog.created_at), 'PPpp')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Channel</p>
+                  <div className="flex items-center gap-2">
+                    {getChannelIcon(selectedLog.channel)}
+                    <span className="capitalize">{selectedLog.channel}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Recipient</p>
+                  <p className="font-mono">{selectedLog.recipient_address}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  {getStatusBadge(selectedLog.status)}
+                </div>
+                {selectedLog.sent_at && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Body</p>
-                    <div className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">
-                      {selectedMessage.bodyRendered}
-                    </div>
+                    <p className="text-sm text-muted-foreground">Sent At</p>
+                    <p className="font-medium">{format(new Date(selectedLog.sent_at), 'PPpp')}</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Timeline</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-start gap-3 border-l-2 border-primary pl-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Created</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(selectedMessage.createdOn).toLocaleString()}
-                      </p>
-                    </div>
+                )}
+                {selectedLog.failure_reason && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Failure Reason</p>
+                    <p className="text-destructive">{selectedLog.failure_reason}</p>
                   </div>
-                  {selectedMessage.sentOn && (
-                    <div className="flex items-start gap-3 border-l-2 border-primary pl-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Sent</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(selectedMessage.sentOn).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedMessage.deliveredOn && (
-                    <div className="flex items-start gap-3 border-l-2 border-green-600 pl-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Delivered</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(selectedMessage.deliveredOn).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                )}
+              </div>
+              
+              {(selectedLog.subject || selectedLog.title) && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Subject/Title</p>
+                  <p className="font-medium">{selectedLog.subject || selectedLog.title}</p>
+                </div>
+              )}
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Body</p>
+                <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
+                  {selectedLog.body}
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

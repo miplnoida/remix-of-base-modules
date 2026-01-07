@@ -1,6 +1,8 @@
 import { userMenuItems } from './menuItems/userMenuItems';
+import { systemAdminMenuItems } from './menuItems/systemAdminMenuItems';
 
-// Only Administration menu items are enabled
+// Administration menu items
 export const menuItems = [
-  ...userMenuItems
+  ...userMenuItems,
+  ...systemAdminMenuItems
 ];
