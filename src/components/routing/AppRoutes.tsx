@@ -248,10 +248,13 @@ import MFASettings from '@/pages/admin/security/MFASettings';
 import ProfileChangePassword from '@/pages/profile/ChangePassword';
 import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import ActiveSessions from '@/pages/profile/ActiveSessions';
+import MyProfile from '@/pages/profile/MyProfile';
 
 // Notification Pages
 import NotificationCenter from '@/pages/notifications/NotificationCenter';
 import ProviderSettings from '@/pages/admin/notifications/ProviderSettings';
+import AdminNotificationLogs from '@/pages/admin/NotificationLogs';
+import AdminNotificationTemplates from '@/pages/admin/NotificationTemplates';
 
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
@@ -709,8 +712,10 @@ export const AppRoutes = () => {
       <Route path="/registration/documentation" element={<ProtectedLayout><DocumentationRequirements /></ProtectedLayout>} />
 
       {/* User Profile & Permissions Routes */}
-      <Route path="/profile" element={<ProtectedLayout><UserProfile /></ProtectedLayout>} />
-      <Route path="/profile/change-password" element={<ProtectedLayout><ChangePassword /></ProtectedLayout>} />
+      <Route path="/profile" element={<ProtectedLayout><MyProfile /></ProtectedLayout>} />
+      <Route path="/profile/change-password" element={<ProtectedLayout><ProfileChangePassword /></ProtectedLayout>} />
+      <Route path="/profile/notifications" element={<ProtectedLayout><NotificationPreferences /></ProtectedLayout>} />
+      <Route path="/profile/sessions" element={<ProtectedLayout><ActiveSessions /></ProtectedLayout>} />
       <Route path="/profile/roles" element={<ProtectedLayout><ManageRoles /></ProtectedLayout>} />
       <Route path="/admin/security" element={<ProtectedLayout><SecuritySettings /></ProtectedLayout>} />
       <Route path="/admin/settings" element={<ProtectedLayout><SystemSettings /></ProtectedLayout>} />
@@ -806,6 +811,7 @@ export const AppRoutes = () => {
       <Route path="/crd/reports/printed-spoiled-cards" element={<ProtectedLayout><CRDPrintedSpoiledCardsReport /></ProtectedLayout>} />
 
       {/* System Administration Routes - Using DB-backed Enterprise Admin components */}
+      <Route path="/admin" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
       <Route path="/admin/users/:userId" element={<ProtectedLayout><UserView /></ProtectedLayout>} />
@@ -836,8 +842,9 @@ export const AppRoutes = () => {
       <Route path="/admin/workflow-management/templates" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
       <Route path="/admin/workflow-management/settings" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
       <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
-      <Route path="/admin/notifications/log" element={<ProtectedLayout><NotificationLog /></ProtectedLayout>} />
-      <Route path="/admin/notifications/templates" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
+      <Route path="/admin/notifications/log" element={<ProtectedLayout><AdminNotificationLogs /></ProtectedLayout>} />
+      <Route path="/admin/notifications/logs" element={<ProtectedLayout><AdminNotificationLogs /></ProtectedLayout>} />
+      <Route path="/admin/notifications/templates" element={<ProtectedLayout><AdminNotificationTemplates /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
       <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
