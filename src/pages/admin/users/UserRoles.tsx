@@ -8,11 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Shield, AlertTriangle, Lock } from "lucide-react";
 import { useUserProfile, useAssignRole, useRemoveRole, AppRole } from "@/hooks/useAdminData";
+import { useDbRoles } from "@/hooks/useRolesData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-
-const AVAILABLE_ROLES: AppRole[] = ['Admin', 'Clerk', 'FinanceOfficer', 'LegalOfficer', 'Supervisor', 'ReadOnly'];
 
 interface UserPermissionOverride {
   id: string;
@@ -29,8 +28,8 @@ const UserRoles = () => {
   const { userId } = useParams<{ userId: string }>();
   const queryClient = useQueryClient();
   const { data: user, isLoading } = useUserProfile(userId || '');
+  const { data: dbRoles = [] } = useDbRoles();
   const assignRole = useAssignRole();
-  const removeRole = useRemoveRole();
 
   // Get user's current roles
   const { data: userRoles = [] } = useQuery({
@@ -175,8 +174,9 @@ const UserRoles = () => {
                 </Alert>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {AVAILABLE_ROLES.map(role => {
+                {availableRoles.map(role => {
                   const isAssigned = userRoles.includes(role);
+                  const roleInfo = dbRoles.find(r => r.role_name === role);
                   return (
                     <div key={role} className={`flex items-center justify-between p-4 border rounded-lg ${role === 'Admin' && isAssigned ? 'border-primary/50 bg-primary/5' : ''}`}>
                       <div className="flex items-center gap-3">
@@ -191,12 +191,7 @@ const UserRoles = () => {
                             {role === 'Admin' && <Badge variant="secondary" className="text-xs">Full Access</Badge>}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {role === 'Admin' && 'Full system access - all modules and actions'}
-                            {role === 'Clerk' && 'Data entry and basic operations'}
-                            {role === 'FinanceOfficer' && 'Financial operations'}
-                            {role === 'LegalOfficer' && 'Legal case management'}
-                            {role === 'Supervisor' && 'Team supervision and approvals'}
-                            {role === 'ReadOnly' && 'View-only access'}
+                            {roleInfo?.description || role}
                           </p>
                         </div>
                       </div>
