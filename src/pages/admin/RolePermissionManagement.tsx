@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Save } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Shield, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useAppModules, AppRole } from "@/hooks/useAdminData";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,10 +78,12 @@ const RolePermissionManagement = () => {
   };
 
   const handlePermissionToggle = (moduleId: string, actionId: string) => {
+    if (isAdminRole) return; // Prevent toggling Admin permissions
     const currentlyGranted = isPermissionGranted(moduleId, actionId);
     updatePermission.mutate({ moduleId, actionId, isGranted: !currentlyGranted });
   };
 
+  const isAdminRole = selectedRole === 'Admin';
   const enabledModules = modules.filter(m => m.is_enabled);
 
   if (modulesLoading || permissionsLoading) {
@@ -119,6 +120,15 @@ const RolePermissionManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {isAdminRole && (
+            <Alert className="mb-6 border-primary/50 bg-primary/5">
+              <Lock className="h-4 w-4" />
+              <AlertTitle>Admin Role Permissions</AlertTitle>
+              <AlertDescription>
+                The Admin role has full access to all modules and actions. These permissions are protected and cannot be modified.
+              </AlertDescription>
+            </Alert>
+          )}
           {enabledModules.length === 0 ? (
             <p className="text-muted-foreground">No modules available. Create modules first.</p>
           ) : (
@@ -132,11 +142,14 @@ const RolePermissionManagement = () => {
                         <div key={action.id} className="flex items-center gap-2">
                           <Checkbox 
                             id={`${module.id}-${action.id}`}
-                            checked={isPermissionGranted(module.id, action.id)}
+                            checked={isAdminRole || isPermissionGranted(module.id, action.id)}
                             onCheckedChange={() => handlePermissionToggle(module.id, action.id)}
-                            disabled={updatePermission.isPending}
+                            disabled={updatePermission.isPending || isAdminRole}
                           />
-                          <label htmlFor={`${module.id}-${action.id}`} className="text-sm cursor-pointer">
+                          <label 
+                            htmlFor={`${module.id}-${action.id}`} 
+                            className={`text-sm ${isAdminRole ? 'text-muted-foreground' : 'cursor-pointer'}`}
+                          >
                             {action.display_name}
                           </label>
                         </div>
