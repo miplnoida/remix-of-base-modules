@@ -4291,6 +4291,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_module: {
+        Args: { _module_name: string; _user_id: string }
+        Returns: boolean
+      }
+      get_user_accessible_modules: {
+        Args: { _user_id: string }
+        Returns: {
+          description: string
+          display_name: string
+          icon: string
+          id: string
+          name: string
+          parent_id: string
+          route: string
+          sort_order: number
+        }[]
+      }
       get_user_permissions: {
         Args: { _user_id: string }
         Returns: {
