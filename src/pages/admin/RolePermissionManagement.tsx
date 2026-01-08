@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,10 +6,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useAppModules, AppRole } from "@/hooks/useAdminData";
+import { useDbRoles } from "@/hooks/useRolesData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-const AVAILABLE_ROLES: AppRole[] = ['Admin', 'Clerk', 'FinanceOfficer', 'LegalOfficer', 'Supervisor', 'ReadOnly'];
 
 interface RolePermission {
   id: string;
@@ -20,21 +19,35 @@ interface RolePermission {
 }
 
 const RolePermissionManagement = () => {
-  const [selectedRole, setSelectedRole] = useState<AppRole>('Admin');
+  const [selectedRoleName, setSelectedRoleName] = useState<string>('Admin');
   const queryClient = useQueryClient();
   
+  const { data: dbRoles = [], isLoading: rolesLoading } = useDbRoles();
   const { data: modules = [], isLoading: modulesLoading } = useAppModules();
+
+  // Set initial role once roles are loaded
+  useEffect(() => {
+    if (dbRoles.length > 0 && !selectedRoleName) {
+      const adminRole = dbRoles.find(r => r.role_name === 'Admin');
+      if (adminRole) {
+        setSelectedRoleName(adminRole.role_name);
+      } else {
+        setSelectedRoleName(dbRoles[0].role_name);
+      }
+    }
+  }, [dbRoles, selectedRoleName]);
   
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['role-permissions', selectedRole],
+    queryKey: ['role-permissions', selectedRoleName],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*')
-        .eq('role', selectedRole);
+        .eq('role', selectedRoleName as AppRole);
       if (error) throw error;
       return data as RolePermission[];
     },
+    enabled: !!selectedRoleName,
   });
 
   const updatePermission = useMutation({
@@ -62,12 +75,12 @@ const RolePermissionManagement = () => {
         // Create new
         const { error } = await supabase
           .from('role_permissions')
-          .insert({ role: selectedRole, module_id: moduleId, action_id: actionId, is_granted: isGranted });
+          .insert({ role: selectedRoleName as AppRole, module_id: moduleId, action_id: actionId, is_granted: isGranted });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['role-permissions', selectedRole] });
+      queryClient.invalidateQueries({ queryKey: ['role-permissions', selectedRoleName] });
       toast.success('Permission updated');
     },
     onError: (error: Error) => toast.error(error.message),
@@ -83,10 +96,10 @@ const RolePermissionManagement = () => {
     updatePermission.mutate({ moduleId, actionId, isGranted: !currentlyGranted });
   };
 
-  const isAdminRole = selectedRole === 'Admin';
+  const isAdminRole = selectedRoleName === 'Admin';
   const enabledModules = modules.filter(m => m.is_enabled);
 
-  if (modulesLoading || permissionsLoading) {
+  if (modulesLoading || permissionsLoading || rolesLoading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
 
@@ -107,13 +120,15 @@ const RolePermissionManagement = () => {
           </CardTitle>
           <CardDescription>Select a role and configure which module actions it can access</CardDescription>
           <div className="mt-4">
-            <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
+            <Select value={selectedRoleName} onValueChange={setSelectedRoleName}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {AVAILABLE_ROLES.map(role => (
-                  <SelectItem key={role} value={role}>{role.replace('_', ' ')}</SelectItem>
+                {dbRoles.filter(r => r.is_active).map(role => (
+                  <SelectItem key={role.id} value={role.role_name}>
+                    {role.role_name.replace(/([A-Z])/g, ' $1').trim()}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

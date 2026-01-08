@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Building2, Plus, Search, Edit, MapPin, Users, Trash2 } from "lucide-react";
-import { useOfficeLocations, useCreateOfficeLocation, useUpdateOfficeLocation, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from "@/hooks/useAdminData";
+import { useOfficeLocations, useCreateOfficeLocation, useUpdateOfficeLocation, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, useDepartments } from "@/hooks/useAdminData";
+import { useOfficeDepartments, useSetOfficeDepartments } from "@/hooks/useOfficeDepartments";
 import type { OfficeLocation, Department } from "@/hooks/useAdminData";
+import { MultiSelectCheckbox } from "@/components/ui/multi-select-checkbox";
 
 const OfficeManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,23 +48,38 @@ const OfficeManagement = () => {
     country: "",
     is_active: true,
   });
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
   const [departmentForm, setDepartmentForm] = useState({
     name: "",
     description: "",
     is_active: true,
   });
-
   const { data: offices = [], isLoading } = useOfficeLocations();
+  const { data: allDepartments = [] } = useDepartments(undefined);
+  const { data: officeDepts = [] } = useOfficeDepartments(selectedOffice?.id);
+  const setOfficeDepartments = useSetOfficeDepartments();
   const createOffice = useCreateOfficeLocation();
   const updateOffice = useUpdateOfficeLocation();
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
 
+  // Load selected departments when editing an office
+  useEffect(() => {
+    if (selectedOffice && officeDepts) {
+      setSelectedDepartmentIds(officeDepts.map((od: any) => od.department_id));
+    }
+  }, [selectedOffice, officeDepts]);
+
   const filteredOffices = offices.filter((office) =>
     office.branch_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     office.city?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Get unique departments for multi-select (from department master)
+  const departmentOptions = allDepartments
+    .filter(d => d.is_active)
+    .map(d => ({ value: d.id, label: d.name }));
 
   const handleOpenOfficeDialog = (office?: OfficeLocation) => {
     if (office) {
@@ -75,20 +92,34 @@ const OfficeManagement = () => {
         country: office.country || "",
         is_active: office.is_active,
       });
+      // Department IDs will be loaded via useEffect when officeDepts changes
     } else {
       setSelectedOffice(null);
+      setSelectedDepartmentIds([]);
       setOfficeForm({ branch_name: "", address: "", city: "", state: "", country: "", is_active: true });
     }
     setShowOfficeDialog(true);
   };
 
   const handleSaveOffice = async () => {
+    let officeId = selectedOffice?.id;
     if (selectedOffice) {
       await updateOffice.mutateAsync({ id: selectedOffice.id, ...officeForm });
     } else {
-      await createOffice.mutateAsync(officeForm);
+      const newOffice = await createOffice.mutateAsync(officeForm);
+      officeId = newOffice.id;
     }
+    
+    // Save department associations
+    if (officeId) {
+      await setOfficeDepartments.mutateAsync({ 
+        officeId, 
+        departmentIds: selectedDepartmentIds 
+      });
+    }
+    
     setShowOfficeDialog(false);
+    setSelectedDepartmentIds([]);
   };
 
   const handleOpenDepartmentDialog = (office: OfficeLocation, dept?: Department) => {
@@ -346,6 +377,18 @@ const OfficeManagement = () => {
                 value={officeForm.country}
                 onChange={(e) => setOfficeForm({ ...officeForm, country: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Associated Departments</Label>
+              <MultiSelectCheckbox
+                options={departmentOptions}
+                selected={selectedDepartmentIds}
+                onChange={setSelectedDepartmentIds}
+                placeholder="Select departments..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Select departments from the master list to associate with this office
+              </p>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="is_active">Active</Label>
