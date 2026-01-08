@@ -13,10 +13,12 @@ import {
   Mail
 } from "lucide-react";
 
+// User Profile menu items - always visible to all users regardless of permissions
 export const userMenuItems = [
   {
     title: "User Profile & Preferences",
     icon: User,
+    alwaysVisible: true, // This flag ensures menu is always visible
     subItems: [
       {
         title: "My Profile",

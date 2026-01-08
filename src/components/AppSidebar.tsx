@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNewBenefitAuth } from "@/contexts/NewBenefitAuthContext";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -17,37 +16,25 @@ import {
 } from "@/components/ui/sidebar";
 import { menuItems } from "./sidebar/sidebarMenuItems";
 import SidebarMenuGroup from "./sidebar/SidebarMenuGroup";
-import SidebarMenuLink from "./sidebar/SidebarMenuLink";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { useNavigationMenu } from "@/hooks/useNavigationMenu";
 
-// Type guards to help TypeScript understand the item types
+// Type guards
 type MenuItemWithSubItems = {
   title: string;
   icon: React.ElementType;
+  alwaysVisible?: boolean;
   subItems: Array<{
     title: string;
     url: string;
     icon: React.ElementType;
     requiresPermission?: string;
     description?: string;
-    notificationCount?: number;
   }>;
-};
-
-type MenuItemWithUrl = {
-  title: string;
-  url: string;
-  icon: React.ElementType;
-  description?: string;
 };
 
 const hasSubItems = (item: any): item is MenuItemWithSubItems => {
   return item.subItems && Array.isArray(item.subItems);
-};
-
-const hasUrl = (item: any): item is MenuItemWithUrl => {
-  return typeof item.url === 'string';
 };
 
 export function AppSidebar() {
@@ -56,9 +43,9 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const [openGroups, setOpenGroups] = useState<string[]>(['Dashboard']);
-  const { hasPermission, user } = useAuth();
-  const newBenefitAuth = useNewBenefitAuth();
+  const { user, profile, hasPermission } = useSupabaseAuth();
   const { currentTheme } = useTheme();
+  const { menuItems: dynamicMenuItems, userPermissions, isLoading: navLoading } = useNavigationMenu();
 
   // Auto-expand groups containing active routes
   useEffect(() => {
@@ -79,28 +66,41 @@ export function AppSidebar() {
     );
   };
 
-  const isActive = (path: string) => {
-    if (path === "/person/management") {
-      return currentPath === "/person/management" || currentPath === "/person/register-tabs";
-    }
-    return currentPath === path;
-  };
-  const isGroupActive = (subItems: any[]) =>
-    subItems?.some(item => isActive(item.url));
-
-  // Combined permission checker for both old and new benefit systems
+  // Permission check helper
   const checkPermission = (permission?: string) => {
     if (!permission) return true;
-    
-    // Check new benefit permissions first
-    if (newBenefitAuth.currentUser && newBenefitAuth.hasPermission(permission)) {
-      return true;
-    }
-    
-    // Fallback to old permission system
-    return hasPermission(permission);
+    // Check if user has the permission in their loaded permissions
+    return userPermissions.some(p => 
+      p.module_name === permission || p.action_name === permission
+    );
   };
 
+  // Filter menu items based on permissions
+  const getVisibleMenuItems = () => {
+    return menuItems.filter(item => {
+      // Always show items marked as alwaysVisible (User Profile & Preferences)
+      if ((item as any).alwaysVisible) return true;
+      
+      // Check if item requires permission
+      const requiresPermission = 'requiresPermission' in item ? (item as any).requiresPermission : undefined;
+      if (requiresPermission && !checkPermission(requiresPermission)) {
+        return false;
+      }
+      
+      // For items with subItems, check if at least one sub-item is accessible
+      if (hasSubItems(item)) {
+        const hasAccessibleChild = item.subItems.some(sub => {
+          if (!sub.requiresPermission) return true;
+          return checkPermission(sub.requiresPermission);
+        });
+        return hasAccessibleChild;
+      }
+      
+      return true;
+    });
+  };
+
+  const visibleMenuItems = getVisibleMenuItems();
   return (
     <Sidebar 
       className="border-r border-gray-200 bg-white shadow-lg transition-all duration-200 ease-in-out" 
@@ -147,21 +147,13 @@ export function AppSidebar() {
           <div className="px-3 py-4">
             <SidebarGroup>
               <SidebarMenu className="space-y-1">
-                {menuItems.map((item) => {
-                  // Check permission before rendering (if permission is required)
-                  const requiresPermission = 'requiresPermission' in item ? (item as any).requiresPermission : undefined;
-                  if (requiresPermission && !checkPermission(requiresPermission)) {
-                    return null;
-                  }
-
-                  return (
-                    <SidebarMenuGroup
-                      key={item.title}
-                      item={item}
-                      collapsed={collapsed}
-                    />
-                  );
-                })}
+                {visibleMenuItems.map((item) => (
+                  <SidebarMenuGroup
+                    key={item.title}
+                    item={item}
+                    collapsed={collapsed}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroup>
           </div>
@@ -174,15 +166,15 @@ export function AppSidebar() {
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-government-100 flex items-center justify-center">
               <span className="text-government-600 font-semibold text-sm">
-                {user?.name?.charAt(0) || 'U'}
+                {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </span>
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.name || 'User'}
+                {profile?.full_name || user?.email || 'User'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.role || 'Compliance Officer'}
+                Logged In
               </p>
             </div>
           </div>
