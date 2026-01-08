@@ -30,6 +30,10 @@ const UserRoles = () => {
   const { data: user, isLoading } = useUserProfile(userId || '');
   const { data: dbRoles = [] } = useDbRoles();
   const assignRole = useAssignRole();
+  const removeRole = useRemoveRole();
+  
+  // Derive available roles from database
+  const availableRoles = dbRoles.map(r => r.role_name as AppRole);
 
   // Get user's current roles
   const { data: userRoles = [] } = useQuery({
