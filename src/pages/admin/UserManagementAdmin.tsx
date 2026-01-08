@@ -13,10 +13,13 @@ import { toast } from "sonner";
 import { useUserProfiles, useUpdateUserProfile, useOfficeLocations, useDepartments, useAssignRole, useRemoveRole, useUserRoles, AppRole } from "@/hooks/useAdminData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
 
 const AVAILABLE_ROLES: AppRole[] = ['Admin', 'Clerk', 'FinanceOfficer', 'LegalOfficer', 'Supervisor', 'ReadOnly'];
 
-const UserManagementAdmin = () => {
+const UserManagementContent = () => {
+  const { can } = useActionPermissions(MODULE_NAMES.USER_MANAGEMENT);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -214,20 +217,26 @@ const UserManagementAdmin = () => {
                   <TableCell>{user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} title="Edit User">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleManageRoles(user.id)} title="Manage Roles">
-                        <Shield className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleToggleStatus(user.id, user.is_active)}
-                        title={user.is_active ? "Disable User" : "Enable User"}
-                      >
-                        {user.is_active ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                      </Button>
+                      {can(ACTION_NAMES.EDIT) && (
+                        <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} title="Edit User">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {can(ACTION_NAMES.MANAGE_ROLES) && (
+                        <Button variant="ghost" size="icon" onClick={() => handleManageRoles(user.id)} title="Manage Roles">
+                          <Shield className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {can(ACTION_NAMES.DISABLE_USER) && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleToggleStatus(user.id, user.is_active)}
+                          title={user.is_active ? "Disable User" : "Enable User"}
+                        >
+                          {user.is_active ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -369,6 +378,14 @@ const UserManagementAdmin = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+const UserManagementAdmin = () => {
+  return (
+    <PermissionWrapper moduleName={MODULE_NAMES.USER_MANAGEMENT}>
+      <UserManagementContent />
+    </PermissionWrapper>
   );
 };
 

@@ -40,6 +40,8 @@ import { useAppModules, useCreateAppModule, useUpdateAppModule, useDeleteAppModu
 import type { AppModule, ModuleAction } from "@/hooks/useAdminData";
 import { IconPicker } from "@/components/ui/icon-picker";
 import { cn } from "@/lib/utils";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
 
 // Helper to get Lucide icon by name
 const getIcon = (iconName: string | null) => {
@@ -59,7 +61,9 @@ interface ModuleTreeItemProps {
   onDeleteAction: (id: string) => void;
   expandedModules: Set<string>;
   toggleExpand: (id: string) => void;
+  can: (action: string) => boolean;
 }
+
 
 const ModuleTreeItem = ({
   module,
@@ -72,6 +76,7 @@ const ModuleTreeItem = ({
   onDeleteAction,
   expandedModules,
   toggleExpand,
+  can,
 }: ModuleTreeItemProps) => {
   const hasChildren = children.length > 0;
   const isExpanded = expandedModules.has(module.id);
@@ -125,18 +130,26 @@ const ModuleTreeItem = ({
         </div>
 
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="ghost" onClick={() => onToggle(module)}>
-            {module.is_enabled ? "Disable" : "Enable"}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onEdit(module)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onAddAction(module)}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onDelete(module.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {can(ACTION_NAMES.ENABLE_DISABLE) && (
+            <Button size="sm" variant="ghost" onClick={() => onToggle(module)}>
+              {module.is_enabled ? "Disable" : "Enable"}
+            </Button>
+          )}
+          {can(ACTION_NAMES.EDIT) && (
+            <Button size="sm" variant="ghost" onClick={() => onEdit(module)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {can(ACTION_NAMES.ADD_ACTIONS) && (
+            <Button size="sm" variant="ghost" onClick={() => onAddAction(module)}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
+          {can(ACTION_NAMES.DELETE) && (
+            <Button size="sm" variant="ghost" onClick={() => onDelete(module.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -165,9 +178,11 @@ const ModuleTreeItem = ({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => onDeleteAction(action.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {can(ACTION_NAMES.DELETE) && (
+                      <Button variant="ghost" size="icon" onClick={() => onDeleteAction(action.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -183,7 +198,7 @@ const ModuleTreeItem = ({
             <ModuleTreeItem
               key={child.id}
               module={child}
-              children={[]} // No nested children for now
+              children={[]}
               level={level + 1}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -192,6 +207,7 @@ const ModuleTreeItem = ({
               onDeleteAction={onDeleteAction}
               expandedModules={expandedModules}
               toggleExpand={toggleExpand}
+              can={can}
             />
           ))}
         </div>
@@ -200,7 +216,8 @@ const ModuleTreeItem = ({
   );
 };
 
-const ModuleManagement = () => {
+const ModuleManagementContent = () => {
+  const { can } = useActionPermissions(MODULE_NAMES.MODULE_MANAGEMENT);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModuleDialog, setShowModuleDialog] = useState(false);
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -445,6 +462,7 @@ const ModuleManagement = () => {
                   onDeleteAction={(id) => deleteAction.mutate(id)}
                   expandedModules={expandedModules}
                   toggleExpand={toggleExpand}
+                  can={can}
                 />
               ))}
             </div>
@@ -632,6 +650,14 @@ const ModuleManagement = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+const ModuleManagement = () => {
+  return (
+    <PermissionWrapper moduleName={MODULE_NAMES.MODULE_MANAGEMENT}>
+      <ModuleManagementContent />
+    </PermissionWrapper>
   );
 };
 
