@@ -284,14 +284,16 @@ export default function DocumentCenter() {
               <div>
                 <Label>Document Types</Label>
                 <Select
-                  value={filters.docType?.[0] || ''}
-                  onValueChange={(value) => setFilters({ ...filters, docType: value ? [value] : [] })}
+                  value={filters.docType?.[0] || 'all'}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, docType: value === 'all' ? [] : [value] })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All types</SelectItem>
+                    <SelectItem value="all">All types</SelectItem>
                     {DOC_TYPES.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
@@ -301,14 +303,16 @@ export default function DocumentCenter() {
               <div>
                 <Label>eSign Status</Label>
                 <Select
-                  value={filters.eSignStatus?.[0] || ''}
-                  onValueChange={(value) => setFilters({ ...filters, eSignStatus: value ? [value] : [] })}
+                  value={filters.eSignStatus?.[0] || 'all'}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, eSignStatus: value === 'all' ? [] : [value] })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="all">All statuses</SelectItem>
                     {ESIGN_STATUSES.map(status => (
                       <SelectItem key={status} value={status}>{status}</SelectItem>
                     ))}

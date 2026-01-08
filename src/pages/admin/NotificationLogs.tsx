@@ -164,19 +164,25 @@ const NotificationLogs = () => {
                 className="pl-10"
               />
             </div>
-            <Select value={filters.channel || ''} onValueChange={(v) => setFilters({ ...filters, channel: v || undefined })}>
+            <Select
+              value={filters.channel || 'all'}
+              onValueChange={(v) => setFilters({ ...filters, channel: v === 'all' ? undefined : v })}
+            >
               <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Channels</SelectItem>
+                <SelectItem value="all">All Channels</SelectItem>
                 {CHANNELS.map(channel => (
                   <SelectItem key={channel} value={channel}>{channel.toUpperCase()}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filters.status || ''} onValueChange={(v) => setFilters({ ...filters, status: v || undefined })}>
+            <Select
+              value={filters.status || 'all'}
+              onValueChange={(v) => setFilters({ ...filters, status: v === 'all' ? undefined : v })}
+            >
               <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 {STATUSES.map(status => (
                   <SelectItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</SelectItem>
                 ))}
