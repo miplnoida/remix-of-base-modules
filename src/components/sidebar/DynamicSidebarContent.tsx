@@ -3,12 +3,53 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarMenu } from '@/components/ui/sidebar';
 import SidebarMenuGroup from './SidebarMenuGroup';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, FolderX, RefreshCw } from 'lucide-react';
+import { AlertCircle, FolderX, RefreshCw, User, KeyRound, Bell, MonitorSmartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface DynamicSidebarContentProps {
   collapsed: boolean;
 }
+
+// Default menu items always visible to all users
+const defaultMenuItems: MenuItem[] = [
+  {
+    id: 'user-profile-preferences',
+    title: 'User Profile & Preferences',
+    icon: User,
+    description: 'Manage your profile and preferences',
+    subItems: [
+      {
+        id: 'my-profile',
+        title: 'My Profile',
+        url: '/profile',
+        icon: User,
+        description: 'View and edit your profile',
+      },
+      {
+        id: 'change-password',
+        title: 'Change Password',
+        url: '/profile/change-password',
+        icon: KeyRound,
+        description: 'Update your password',
+      },
+      {
+        id: 'notification-preferences',
+        title: 'Notification Preferences',
+        url: '/profile/notifications',
+        icon: Bell,
+        description: 'Manage notification settings',
+      },
+      {
+        id: 'active-sessions',
+        title: 'Active Sessions',
+        url: '/profile/sessions',
+        icon: MonitorSmartphone,
+        description: 'View and manage active sessions',
+      },
+    ],
+  },
+];
 
 export default function DynamicSidebarContent({ collapsed }: DynamicSidebarContentProps) {
   const { menuItems, isLoading, isError, isEmpty, refetch } = useDynamicNavigation();
@@ -63,7 +104,24 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
   return (
     <ScrollArea className="flex-1 px-3">
       <SidebarMenu className="py-2 space-y-1">
+        {/* Dynamic menu items from permissions */}
         {menuItems.map((item: MenuItem) => (
+          <SidebarMenuGroup 
+            key={item.id} 
+            item={item} 
+            collapsed={collapsed} 
+          />
+        ))}
+        
+        {/* Separator between dynamic and default menus */}
+        {menuItems.length > 0 && (
+          <div className="py-2">
+            <Separator className="bg-border/50" />
+          </div>
+        )}
+        
+        {/* Default menu items - always visible */}
+        {defaultMenuItems.map((item: MenuItem) => (
           <SidebarMenuGroup 
             key={item.id} 
             item={item} 
