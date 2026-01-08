@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, UserPlus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Save, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useOfficeLocations, useDepartments } from "@/hooks/useAdminData";
+import { useDesignations } from "@/hooks/useDesignations";
+import { usePasswordPolicy, validatePassword } from "@/hooks/usePasswordPolicy";
 import { supabase } from "@/integrations/supabase/client";
 
 const UserCreate = () => {
@@ -27,23 +30,30 @@ const UserCreate = () => {
     employee_code: "",
     office_id: "",
     department_id: "",
+    designation_id: "",
     password: "",
     confirm_password: "",
   });
 
   const { data: offices = [] } = useOfficeLocations();
   const { data: departments = [] } = useDepartments(selectedOfficeId);
+  const { data: designations = [] } = useDesignations();
+  const { data: passwordPolicy } = usePasswordPolicy();
+
+  // Validate password against policy
+  const passwordValidation = validatePassword(formData.password, passwordPolicy);
+  const passwordsMatch = formData.password === formData.confirm_password && formData.password.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.password !== formData.confirm_password) {
-      toast.error("Passwords do not match");
+    if (!passwordValidation.isValid) {
+      toast.error("Password does not meet policy requirements");
       return;
     }
 
-    if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    if (!passwordsMatch) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -80,6 +90,7 @@ const UserCreate = () => {
             employee_code: formData.employee_code || null,
             office_id: formData.office_id || null,
             department_id: formData.department_id || null,
+            designation_id: formData.designation_id || null,
           }),
         }
       );
@@ -256,6 +267,22 @@ const UserCreate = () => {
               </div>
             </div>
 
+            {/* Designation */}
+            <div className="space-y-2">
+              <Label htmlFor="designation_id">Designation</Label>
+              <Select 
+                value={formData.designation_id} 
+                onValueChange={(v) => setFormData({...formData, designation_id: v})}
+              >
+                <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                <SelectContent>
+                  {designations.filter(d => d.is_active).map(designation => (
+                    <SelectItem key={designation.id} value={designation.id}>{designation.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Password */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -267,7 +294,6 @@ const UserCreate = () => {
                   value={formData.password} 
                   onChange={(e) => setFormData({...formData, password: e.target.value})} 
                 />
-                <p className="text-xs text-muted-foreground">User will be required to change password on first login</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirm Password *</Label>
@@ -280,6 +306,47 @@ const UserCreate = () => {
                 />
               </div>
             </div>
+
+            {/* Password Requirements */}
+            {formData.password && (
+              <div className="p-4 bg-muted rounded-lg space-y-2">
+                <p className="text-sm font-medium mb-2">Password Requirements:</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.length ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passwordValidation.checks.length ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                    Min {passwordPolicy?.min_length || 8} characters
+                  </div>
+                  {passwordPolicy?.require_uppercase !== false && (
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.uppercase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.checks.uppercase ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                      Uppercase letter
+                    </div>
+                  )}
+                  {passwordPolicy?.require_lowercase !== false && (
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.lowercase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.checks.lowercase ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                      Lowercase letter
+                    </div>
+                  )}
+                  {passwordPolicy?.require_numbers !== false && (
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.number ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.checks.number ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                      Number
+                    </div>
+                  )}
+                  {passwordPolicy?.require_special_chars && (
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.special ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.checks.special ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                      Special character
+                    </div>
+                  )}
+                  <div className={`flex items-center gap-2 text-sm ${passwordsMatch ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passwordsMatch ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                    Passwords match
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-4 pt-4 border-t">

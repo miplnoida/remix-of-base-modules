@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { useUserProfile, useUpdateUserProfile, useOfficeLocations, useDepartments } from "@/hooks/useAdminData";
+import { useDesignations } from "@/hooks/useDesignations";
 
 const UserEdit = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const UserEdit = () => {
   const { data: user, isLoading } = useUserProfile(userId || '');
   const updateUser = useUpdateUserProfile();
   const { data: offices = [] } = useOfficeLocations();
+  const { data: designations = [] } = useDesignations();
   
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>("");
   const { data: departments = [] } = useDepartments(selectedOfficeId);
@@ -31,6 +33,7 @@ const UserEdit = () => {
     employee_code: "",
     office_id: "",
     department_id: "",
+    designation_id: "",
   });
 
   useEffect(() => {
@@ -47,6 +50,7 @@ const UserEdit = () => {
         employee_code: user.employee_code || "",
         office_id: user.office_id || "",
         department_id: user.department_id || "",
+        designation_id: (user as any).designation_id || "",
       });
       setSelectedOfficeId(user.office_id || "");
     }
@@ -234,7 +238,21 @@ const UserEdit = () => {
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Designation */}
+            <div className="space-y-2">
+              <Label htmlFor="designation_id">Designation</Label>
+              <Select 
+                value={formData.designation_id} 
+                onValueChange={(v) => setFormData({...formData, designation_id: v})}
+              >
+                <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                <SelectContent>
+                  {designations.filter(d => d.is_active).map(designation => (
+                    <SelectItem key={designation.id} value={designation.id}>{designation.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex justify-end gap-4 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => navigate(`/admin/users/${userId}`)}>
                 Cancel
