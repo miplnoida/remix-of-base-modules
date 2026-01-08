@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,56 +18,136 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Network, Plus, Edit, Trash2, ChevronRight } from "lucide-react";
+import { Network, Plus, AlertTriangle } from "lucide-react";
 import { useDbRoles } from "@/hooks/useRolesData";
 import { useRoleHierarchy, useUpsertRoleHierarchy, useDeleteRoleHierarchy } from "@/hooks/useRoleHierarchy";
+import { toast } from "sonner";
+import HierarchyTreeView, { HierarchyItem } from "@/components/hierarchy/HierarchyTreeView";
+import RemoveConfirmDialog from "@/components/hierarchy/RemoveConfirmDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const RoleHierarchy = () => {
   const [showDialog, setShowDialog] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"add" | "edit" | "addChild">("add");
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [parentForChild, setParentForChild] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [selectedParent, setSelectedParent] = useState<string>("none");
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [nodeToRemove, setNodeToRemove] = useState<string | null>(null);
 
-  const { data: roles = [], isLoading: loadingRoles } = useDbRoles();
-  const { data: hierarchy = [], isLoading: loadingHierarchy } = useRoleHierarchy();
+  const { data: roles = [], isLoading: loadingRoles, error: rolesError } = useDbRoles();
+  const { data: hierarchy = [], isLoading: loadingHierarchy, error: hierarchyError } = useRoleHierarchy();
   const upsertHierarchy = useUpsertRoleHierarchy();
   const deleteHierarchy = useDeleteRoleHierarchy();
 
   const activeRoles = roles.filter(r => r.is_active);
 
-  // Build hierarchy tree
-  const getChildren = (parentId: string | null): typeof hierarchy => {
-    return hierarchy.filter(h => h.parent_role_id === parentId);
-  };
-
-  const getRootItems = () => {
-    return hierarchy.filter(h => h.parent_role_id === null);
-  };
-
-  const getRoleName = (id: string) => {
+  const getRoleName = useCallback((id: string) => {
     return roles.find(r => r.id === id)?.role_name || 'Unknown';
-  };
+  }, [roles]);
 
-  const isInHierarchy = (roleId: string) => {
+  const isSystemRole = useCallback((id: string) => {
+    return roles.find(r => r.id === id)?.is_system_role || false;
+  }, [roles]);
+
+  const isInHierarchy = useCallback((roleId: string) => {
     return hierarchy.some(h => h.role_id === roleId);
-  };
+  }, [hierarchy]);
+
+  // Check for circular reference
+  const wouldCreateCircle = useCallback((roleId: string, newParentId: string | null): boolean => {
+    if (!newParentId) return false;
+    if (roleId === newParentId) return true;
+    
+    // Check if newParentId is a descendant of roleId
+    const checkDescendants = (parentId: string): boolean => {
+      const children = hierarchy.filter(h => h.parent_role_id === parentId);
+      for (const child of children) {
+        if (child.role_id === newParentId) return true;
+        if (checkDescendants(child.role_id)) return true;
+      }
+      return false;
+    };
+    
+    return checkDescendants(roleId);
+  }, [hierarchy]);
+
+  // Transform hierarchy data for tree view
+  const treeItems: HierarchyItem[] = useMemo(() => {
+    return hierarchy.map(h => ({
+      id: h.id,
+      itemId: h.role_id,
+      parentId: h.parent_role_id,
+      name: getRoleName(h.role_id),
+      level: h.level,
+      isSystemRole: isSystemRole(h.role_id),
+    }));
+  }, [hierarchy, getRoleName, isSystemRole]);
 
   const handleOpenDialog = (roleId?: string) => {
     if (roleId) {
       const existing = hierarchy.find(h => h.role_id === roleId);
+      setDialogMode("edit");
       setEditingRoleId(roleId);
       setSelectedRole(roleId);
       setSelectedParent(existing?.parent_role_id || "none");
+      setParentForChild(null);
     } else {
+      setDialogMode("add");
       setEditingRoleId(null);
       setSelectedRole("");
       setSelectedParent("none");
+      setParentForChild(null);
     }
     setShowDialog(true);
   };
 
+  const handleAddChild = (parentId: string) => {
+    setDialogMode("addChild");
+    setParentForChild(parentId);
+    setSelectedRole("");
+    setSelectedParent(parentId);
+    setEditingRoleId(null);
+    setShowDialog(true);
+  };
+
+  const handleEdit = (roleId: string) => {
+    handleOpenDialog(roleId);
+  };
+
+  const handleRemoveClick = (roleId: string) => {
+    // Check if node has children
+    const hasChildren = hierarchy.some(h => h.parent_role_id === roleId);
+    if (hasChildren) {
+      toast.error("Cannot remove a role that has children. Remove children first.");
+      return;
+    }
+    setNodeToRemove(roleId);
+    setRemoveDialogOpen(true);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!nodeToRemove) return;
+    try {
+      await deleteHierarchy.mutateAsync(nodeToRemove);
+      setRemoveDialogOpen(false);
+      setNodeToRemove(null);
+      setSelectedNodeId(null);
+    } catch (error) {
+      toast.error("Failed to remove role from hierarchy");
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedRole) return;
+
+    // Check for circular reference
+    if (wouldCreateCircle(selectedRole, selectedParent === "none" ? null : selectedParent)) {
+      toast.error("Cannot set parent: This would create a circular hierarchy");
+      return;
+    }
 
     // Calculate level based on parent
     let level = 0;
@@ -76,57 +156,40 @@ const RoleHierarchy = () => {
       level = (parentEntry?.level ?? 0) + 1;
     }
 
-    await upsertHierarchy.mutateAsync({
-      role_id: selectedRole,
-      parent_role_id: selectedParent === "none" ? null : selectedParent,
-      level,
-    });
+    try {
+      await upsertHierarchy.mutateAsync({
+        role_id: selectedRole,
+        parent_role_id: selectedParent === "none" ? null : selectedParent,
+        level,
+      });
 
-    setShowDialog(false);
-    setEditingRoleId(null);
-    setSelectedRole("");
-    setSelectedParent("none");
-  };
-
-  const handleRemove = async (roleId: string) => {
-    await deleteHierarchy.mutateAsync(roleId);
-  };
-
-  const renderHierarchyItem = (item: typeof hierarchy[0], depth: number = 0) => {
-    const children = getChildren(item.role_id);
-    const role = roles.find(r => r.id === item.role_id);
-    
-    return (
-      <div key={item.id}>
-        <div 
-          className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg"
-          style={{ marginLeft: `${depth * 24}px` }}
-        >
-          <div className="flex items-center gap-2">
-            {depth > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-            <span className="font-medium">{getRoleName(item.role_id)}</span>
-            <Badge variant="outline" className="text-xs">Level {item.level}</Badge>
-            {role?.is_system_role && <Badge variant="secondary" className="text-xs">System</Badge>}
-          </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(item.role_id)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleRemove(item.role_id)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        {children.map(child => renderHierarchyItem(child, depth + 1))}
-      </div>
-    );
+      setShowDialog(false);
+      setEditingRoleId(null);
+      setSelectedRole("");
+      setSelectedParent("none");
+      setParentForChild(null);
+    } catch (error) {
+      toast.error("Failed to save hierarchy changes");
+    }
   };
 
   // Get unassigned roles
   const unassignedRoles = activeRoles.filter(r => !isInHierarchy(r.id));
 
-  if (loadingRoles || loadingHierarchy) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+  const isLoading = loadingRoles || loadingHierarchy;
+  const hasError = rolesError || hierarchyError;
+
+  if (hasError) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load hierarchy data. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
@@ -142,25 +205,29 @@ const RoleHierarchy = () => {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-4">
+        <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Network className="h-5 w-5" />
               Hierarchy Structure
             </CardTitle>
-            <CardDescription>Visual representation of role relationships</CardDescription>
+            <CardDescription>
+              Visual representation of role relationships. Click a node to select, use buttons to edit, add children, or remove.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {hierarchy.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No hierarchy defined yet. Add roles to build the structure.
-              </p>
-            ) : (
-              <div className="space-y-1">
-                {getRootItems().map(item => renderHierarchyItem(item))}
-              </div>
-            )}
+            <HierarchyTreeView
+              items={treeItems}
+              isLoading={isLoading}
+              canEdit={true}
+              onEdit={handleEdit}
+              onAddChild={handleAddChild}
+              onRemove={handleRemoveClick}
+              selectedId={selectedNodeId}
+              onSelect={setSelectedNodeId}
+              emptyMessage="No hierarchy defined yet. Add roles to build the structure."
+            />
           </CardContent>
         </Card>
 
@@ -170,16 +237,26 @@ const RoleHierarchy = () => {
             <CardDescription>Roles not in hierarchy</CardDescription>
           </CardHeader>
           <CardContent>
-            {unassignedRoles.length === 0 ? (
+            {isLoading ? (
+              <p className="text-muted-foreground text-sm">Loading...</p>
+            ) : unassignedRoles.length === 0 ? (
               <p className="text-muted-foreground text-sm">All roles are in hierarchy</p>
             ) : (
               <div className="space-y-2">
                 {unassignedRoles.map(r => (
                   <div key={r.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                    <span className="text-sm">{r.role_name}</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-sm truncate">{r.role_name}</span>
+                      {r.is_system_role && (
+                        <Badge variant="secondary" className="text-xs shrink-0">System</Badge>
+                      )}
+                    </div>
                     <Button variant="ghost" size="sm" onClick={() => {
+                      setDialogMode("add");
                       setSelectedRole(r.id);
                       setSelectedParent("none");
+                      setEditingRoleId(null);
+                      setParentForChild(null);
                       setShowDialog(true);
                     }}>
                       Add
@@ -192,12 +269,42 @@ const RoleHierarchy = () => {
         </Card>
       </div>
 
+      {/* Selected Node Info */}
+      {selectedNodeId && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Selected Role</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="font-semibold">{getRoleName(selectedNodeId)}</p>
+                <div className="flex gap-2 mt-1">
+                  <Badge variant="outline">
+                    Level {hierarchy.find(h => h.role_id === selectedNodeId)?.level ?? 0}
+                  </Badge>
+                  {isSystemRole(selectedNodeId) && (
+                    <Badge variant="secondary">System Role</Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingRoleId ? "Edit Hierarchy" : "Add to Hierarchy"}</DialogTitle>
+            <DialogTitle>
+              {dialogMode === "edit" ? "Edit Hierarchy" : dialogMode === "addChild" ? "Add Child Role" : "Add to Hierarchy"}
+            </DialogTitle>
             <DialogDescription>
-              {editingRoleId ? "Update the parent role" : "Select a role and its parent"}
+              {dialogMode === "edit" 
+                ? "Update the parent role" 
+                : dialogMode === "addChild"
+                ? `Add a child under ${getRoleName(parentForChild || "")}`
+                : "Select a role and its parent"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -206,13 +313,13 @@ const RoleHierarchy = () => {
               <Select 
                 value={selectedRole} 
                 onValueChange={setSelectedRole}
-                disabled={!!editingRoleId}
+                disabled={dialogMode === "edit"}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(editingRoleId 
+                  {(dialogMode === "edit" 
                     ? activeRoles 
                     : activeRoles.filter(r => !isInHierarchy(r.id))
                   ).map(r => (
@@ -223,14 +330,18 @@ const RoleHierarchy = () => {
             </div>
             <div className="space-y-2">
               <Label>Parent Role</Label>
-              <Select value={selectedParent} onValueChange={setSelectedParent}>
+              <Select 
+                value={selectedParent} 
+                onValueChange={setSelectedParent}
+                disabled={dialogMode === "addChild"}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select parent (or leave as top-level)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None (Top Level)</SelectItem>
                   {activeRoles
-                    .filter(r => r.id !== selectedRole)
+                    .filter(r => r.id !== selectedRole && isInHierarchy(r.id))
                     .map(r => (
                       <SelectItem key={r.id} value={r.id}>{r.role_name}</SelectItem>
                     ))}
@@ -244,11 +355,20 @@ const RoleHierarchy = () => {
               onClick={handleSave} 
               disabled={!selectedRole || upsertHierarchy.isPending}
             >
-              {editingRoleId ? "Update" : "Add"}
+              {upsertHierarchy.isPending ? "Saving..." : dialogMode === "edit" ? "Update" : "Add"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RemoveConfirmDialog
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+        onConfirm={handleConfirmRemove}
+        itemName={nodeToRemove ? getRoleName(nodeToRemove) : ""}
+        itemType="role"
+        isPending={deleteHierarchy.isPending}
+      />
     </div>
   );
 };
