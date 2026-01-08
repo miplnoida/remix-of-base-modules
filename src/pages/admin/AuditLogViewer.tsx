@@ -109,10 +109,10 @@ const AuditLogViewer = () => {
                 className="pl-10"
               />
             </div>
-            <Select value={filters.actionType || ''} onValueChange={(v) => setFilters({...filters, actionType: v || undefined})}>
+            <Select value={filters.actionType || 'all'} onValueChange={(v) => setFilters({...filters, actionType: v === 'all' ? undefined : v})}>
               <SelectTrigger><SelectValue placeholder="Action Type" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Actions</SelectItem>
+                <SelectItem value="all">All Actions</SelectItem>
                 {ACTION_TYPES.map(type => (
                   <SelectItem key={type} value={type}>{type.replace(/_/g, ' ')}</SelectItem>
                 ))}
