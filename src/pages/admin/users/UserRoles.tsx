@@ -5,7 +5,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Shield, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, Shield, AlertTriangle, Lock } from "lucide-react";
 import { useUserProfile, useAssignRole, useRemoveRole, AppRole } from "@/hooks/useAdminData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -120,6 +121,9 @@ const UserRoles = () => {
     return override ? (override.is_granted ? 'granted' : 'revoked') : null;
   };
 
+  // Check if user has Admin role - Admin users don't need permission overrides
+  const hasAdminRole = userRoles.includes('Admin');
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64">Loading user...</div>;
   }
@@ -143,7 +147,9 @@ const UserRoles = () => {
       <Tabs defaultValue="roles" className="space-y-6">
         <TabsList>
           <TabsTrigger value="roles">Roles</TabsTrigger>
-          <TabsTrigger value="overrides">Permission Overrides</TabsTrigger>
+          <TabsTrigger value="overrides" disabled={hasAdminRole}>
+            Permission Overrides {hasAdminRole && '(N/A for Admin)'}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="roles">
@@ -158,11 +164,21 @@ const UserRoles = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {hasAdminRole && (
+                <Alert className="mb-6 border-primary/50 bg-primary/5">
+                  <Lock className="h-4 w-4" />
+                  <AlertTitle>Admin Role Active</AlertTitle>
+                  <AlertDescription>
+                    This user has the Admin role and automatically has full access to all modules, actions, and features. 
+                    No additional permissions or overrides are required.
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {AVAILABLE_ROLES.map(role => {
                   const isAssigned = userRoles.includes(role);
                   return (
-                    <div key={role} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={role} className={`flex items-center justify-between p-4 border rounded-lg ${role === 'Admin' && isAssigned ? 'border-primary/50 bg-primary/5' : ''}`}>
                       <div className="flex items-center gap-3">
                         <Checkbox 
                           checked={isAssigned}
@@ -170,9 +186,12 @@ const UserRoles = () => {
                           disabled={assignRole.isPending || removeRole.isPending}
                         />
                         <div>
-                          <p className="font-medium">{role.replace(/([A-Z])/g, ' $1').trim()}</p>
+                          <p className="font-medium flex items-center gap-2">
+                            {role.replace(/([A-Z])/g, ' $1').trim()}
+                            {role === 'Admin' && <Badge variant="secondary" className="text-xs">Full Access</Badge>}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {role === 'Admin' && 'Full system access'}
+                            {role === 'Admin' && 'Full system access - all modules and actions'}
                             {role === 'Clerk' && 'Data entry and basic operations'}
                             {role === 'FinanceOfficer' && 'Financial operations'}
                             {role === 'LegalOfficer' && 'Legal case management'}

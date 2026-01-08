@@ -26,6 +26,7 @@ interface SupabaseAuthContextType {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }>;
   logout: () => Promise<void>;
   hasRole: (role: string) => boolean;
@@ -281,9 +282,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return checkRoles.some(role => roles.includes(role));
   };
 
+  // Check if user is Admin
+  const isAdmin = roles.includes('Admin');
+
   // Check if user has permission for a specific module action
   const hasPermission = async (moduleName: string, actionName: string): Promise<boolean> => {
     if (!user) return false;
+    
+    // Admin role always has permission
+    if (isAdmin) return true;
     
     try {
       const { data, error } = await supabase
@@ -308,6 +315,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     session,
     isLoading,
     isAuthenticated: !!session && !!user,
+    isAdmin,
     login,
     logout,
     hasRole,

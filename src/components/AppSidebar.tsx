@@ -43,9 +43,9 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const [openGroups, setOpenGroups] = useState<string[]>(['Dashboard']);
-  const { user, profile, hasPermission } = useSupabaseAuth();
+  const { user, profile } = useSupabaseAuth();
   const { currentTheme } = useTheme();
-  const { menuItems: dynamicMenuItems, userPermissions, isLoading: navLoading } = useNavigationMenu();
+  const { menuItems: dynamicMenuItems, userPermissions, isLoading: navLoading, isAdmin } = useNavigationMenu();
 
   // Auto-expand groups containing active routes
   useEffect(() => {
@@ -66,17 +66,21 @@ export function AppSidebar() {
     );
   };
 
-  // Permission check helper
+  // Permission check helper - Admin always has access
   const checkPermission = (permission?: string) => {
+    if (isAdmin) return true;
     if (!permission) return true;
-    // Check if user has the permission in their loaded permissions
     return userPermissions.some(p => 
       p.module_name === permission || p.action_name === permission
     );
   };
 
-  // Filter menu items based on permissions
+  // Filter menu items based on permissions - Admin sees everything
   const getVisibleMenuItems = () => {
+    if (isAdmin) {
+      return menuItems; // Admin sees all menu items
+    }
+    
     return menuItems.filter(item => {
       // Always show items marked as alwaysVisible (User Profile & Preferences)
       if ((item as any).alwaysVisible) return true;

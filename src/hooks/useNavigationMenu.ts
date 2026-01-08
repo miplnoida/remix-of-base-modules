@@ -30,8 +30,28 @@ const getIcon = (iconName: string | null) => {
   return Icon || LucideIcons.Circle;
 };
 
+// Hook to check if current user is Admin
+export function useIsAdmin() {
+  const { user } = useSupabaseAuth();
+  
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ['is-admin', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { data, error } = await supabase
+        .rpc('is_admin', { _user_id: user.id });
+      if (error) throw error;
+      return data ?? false;
+    },
+    enabled: !!user?.id,
+  });
+
+  return isAdmin;
+}
+
 export function useNavigationMenu() {
   const { user, isAuthenticated } = useSupabaseAuth();
+  const isAdmin = useIsAdmin();
 
   const { data: modules = [], isLoading: modulesLoading } = useQuery({
     queryKey: ['navigation-modules'],
@@ -63,14 +83,52 @@ export function useNavigationMenu() {
   const buildMenuItems = (): MenuItem[] => {
     if (!modules.length) return [];
 
-    // Get modules user has access to (at least 'view' permission)
+    // Admin users see all modules - skip permission filtering
+    if (isAdmin) {
+      const parentModules = modules
+        .filter(m => !m.parent_id && m.is_enabled)
+        .sort((a, b) => a.sort_order - b.sort_order);
+      
+      const childModulesMap = new Map<string, AppModule[]>();
+      
+      modules.forEach(m => {
+        if (m.parent_id) {
+          const children = childModulesMap.get(m.parent_id) || [];
+          children.push(m);
+          childModulesMap.set(m.parent_id, children.sort((a, b) => a.sort_order - b.sort_order));
+        }
+      });
+
+      return parentModules.map(parent => {
+        const children = childModulesMap.get(parent.id) || [];
+        const menuItem: MenuItem = {
+          title: parent.display_name,
+          icon: getIcon(parent.icon),
+          description: parent.description || undefined,
+        };
+
+        if (children.length > 0) {
+          menuItem.subItems = children.map(child => ({
+            title: child.display_name,
+            url: child.route || undefined,
+            icon: getIcon(child.icon),
+            description: child.description || undefined,
+          }));
+        } else if (parent.route) {
+          menuItem.url = parent.route;
+        }
+
+        return menuItem;
+      });
+    }
+
+    // Non-admin users: filter by permissions
     const accessibleModuleIds = new Set(
       userPermissions
         .filter(p => p.action_name === 'view')
         .map(p => p.module_id)
     );
     
-    // Get parent modules and their children
     const parentModules = modules
       .filter(m => !m.parent_id && m.is_enabled)
       .sort((a, b) => a.sort_order - b.sort_order);
@@ -90,12 +148,10 @@ export function useNavigationMenu() {
     parentModules.forEach(parent => {
       const children = childModulesMap.get(parent.id) || [];
       
-      // Filter children by user access (if no permissions yet loaded, show all)
       const accessibleChildren = children.filter(child => 
         userPermissions.length === 0 || accessibleModuleIds.has(child.id)
       );
 
-      // Only show parent if it has accessible children or is directly accessible
       const parentAccessible = userPermissions.length === 0 || accessibleModuleIds.has(parent.id);
       
       if (accessibleChildren.length > 0 || parentAccessible) {
@@ -127,17 +183,20 @@ export function useNavigationMenu() {
     menuItems: buildMenuItems(),
     isLoading: modulesLoading || permissionsLoading,
     userPermissions,
+    isAdmin,
   };
 }
 
 // Hook to check if user has specific permission
 export function useHasPermission(moduleName: string, actionName: string): boolean {
   const { user } = useSupabaseAuth();
+  const isAdmin = useIsAdmin();
   
   const { data: hasPermission = false } = useQuery({
     queryKey: ['has-permission', user?.id, moduleName, actionName],
     queryFn: async () => {
       if (!user?.id) return false;
+      // Admin always has permission - handled by RPC but we can short-circuit here
       const { data, error } = await supabase
         .rpc('has_permission', {
           _user_id: user.id,
@@ -150,12 +209,16 @@ export function useHasPermission(moduleName: string, actionName: string): boolea
     enabled: !!user?.id && !!moduleName && !!actionName,
   });
 
+  // Admin role bypass - always return true
+  if (isAdmin) return true;
+  
   return hasPermission;
 }
 
 // Hook to get all user permissions for a module
 export function useModulePermissions(moduleName: string) {
   const { user } = useSupabaseAuth();
+  const isAdmin = useIsAdmin();
   
   const { data: permissions = [], isLoading } = useQuery({
     queryKey: ['module-permissions', user?.id, moduleName],
@@ -174,6 +237,8 @@ export function useModulePermissions(moduleName: string) {
   return {
     permissions,
     isLoading,
-    hasPermission: (action: string) => permissions.includes(action),
+    isAdmin,
+    // Admin always has all permissions
+    hasPermission: (action: string) => isAdmin || permissions.includes(action),
   };
 }
