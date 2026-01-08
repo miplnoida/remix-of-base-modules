@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
 
 interface Role {
   id: string;
@@ -24,9 +26,10 @@ interface Role {
   created_at: string;
 }
 
-const RoleList = () => {
+const RoleListContent = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { can } = useActionPermissions(MODULE_NAMES.ROLE_MANAGEMENT);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [showCloneDialog, setShowCloneDialog] = useState(false);
@@ -185,10 +188,12 @@ const RoleList = () => {
           <h1 className="text-3xl font-bold text-foreground">Role Management</h1>
           <p className="text-muted-foreground mt-1">Create and manage system roles</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Role
-        </Button>
+        {can(ACTION_NAMES.CREATE_ROLE) && (
+          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Role
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -242,21 +247,27 @@ const RoleList = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => navigate(`/admin/roles-permissions?role=${role.role_name}`)}
-                        title="Configure Permissions"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleClone(role)} title="Clone Role">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(role)} title="Edit Role">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {!role.is_system_role && (
+                      {can(ACTION_NAMES.CONFIGURE_PERMISSIONS) && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => navigate(`/admin/roles-permissions?role=${role.role_name}`)}
+                          title="Configure Permissions"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {can(ACTION_NAMES.CLONE_ROLE) && (
+                        <Button variant="ghost" size="icon" onClick={() => handleClone(role)} title="Clone Role">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {can(ACTION_NAMES.EDIT_ROLE) && (
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(role)} title="Edit Role">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {can(ACTION_NAMES.DELETE_ROLE) && !role.is_system_role && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -398,6 +409,14 @@ const RoleList = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+const RoleList = () => {
+  return (
+    <PermissionWrapper moduleName={MODULE_NAMES.ROLE_MANAGEMENT}>
+      <RoleListContent />
+    </PermissionWrapper>
   );
 };
 
