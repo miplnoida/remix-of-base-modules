@@ -1,4 +1,4 @@
-import { useHasPermission } from "@/hooks/useNavigationMenu";
+import { useHasPermission, useIsAdmin } from "@/hooks/useNavigationMenu";
 import { Button, ButtonProps } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -11,6 +11,7 @@ interface PermissionButtonProps extends ButtonProps {
 
 /**
  * A button that checks permissions before allowing actions.
+ * Admin users always have full access.
  * If user doesn't have permission, button is disabled or hidden.
  */
 export function PermissionButton({
@@ -21,7 +22,17 @@ export function PermissionButton({
   onClick,
   ...props
 }: PermissionButtonProps) {
+  const isAdmin = useIsAdmin();
   const hasPermission = useHasPermission(moduleName, actionName);
+
+  // Admin users always have access
+  if (isAdmin) {
+    return (
+      <Button {...props} onClick={onClick}>
+        {children}
+      </Button>
+    );
+  }
 
   if (hideWhenDisabled && !hasPermission) {
     return null;
