@@ -1,36 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Bell, Search, Save, User } from "lucide-react";
+import { Bell, Mail, MessageSquare, Smartphone, Save, Search, User } from "lucide-react";
 import { useUserProfiles } from "@/hooks/useAdminData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface UserNotificationPreference {
+type Channel = 'email' | 'sms' | 'push' | 'in_app';
+
+interface NotificationPreference {
   id: string;
   user_id: string;
+  notification_type: string;
   email_enabled: boolean;
   sms_enabled: boolean;
   push_enabled: boolean;
   in_app_enabled: boolean;
-  preferred_channel: string | null;
+  preferred_channel: Channel;
 }
+
+const NOTIFICATION_TYPES = [
+  { key: 'system_alerts', label: 'System Alerts', description: 'Critical system notifications and updates' },
+  { key: 'security', label: 'Security', description: 'Login attempts, password changes, security events' },
+  { key: 'account', label: 'Account Updates', description: 'Profile changes, role assignments' },
+  { key: 'workflow', label: 'Workflow', description: 'Task assignments, approvals, reminders' },
+  { key: 'reports', label: 'Reports', description: 'Report generation, scheduled reports' },
+  { key: 'marketing', label: 'Marketing', description: 'News, announcements, feature updates' },
+];
 
 const UserNotificationPreferences = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [preferences, setPreferences] = useState<Record<string, NotificationPreference>>({});
+  const [hasChanges, setHasChanges] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading: loadingUsers } = useUserProfiles();
@@ -40,105 +49,101 @@ const UserNotificationPreferences = () => {
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const { data: preferences, isLoading: loadingPrefs } = useQuery({
-    queryKey: ['user-notification-preferences', selectedUserId],
+  // Fetch user's notification preferences
+  const { data: savedPreferences = [], isLoading: loadingPrefs, refetch: refetchPrefs } = useQuery({
+    queryKey: ['admin-user-notification-preferences', selectedUserId],
     queryFn: async () => {
+      if (!selectedUserId) return [];
       const { data, error } = await supabase
         .from('user_notification_preferences')
         .select('*')
-        .eq('user_id', selectedUserId)
-        .maybeSingle();
+        .eq('user_id', selectedUserId);
       if (error) throw error;
-      return data as UserNotificationPreference | null;
+      return data as NotificationPreference[];
     },
     enabled: !!selectedUserId,
   });
 
-  const [form, setForm] = useState({
-    email_enabled: true,
-    sms_enabled: false,
-    push_enabled: true,
-    in_app_enabled: true,
-    preferred_channel: 'email',
-  });
-
-  // Update form when preferences load
-  useState(() => {
-    if (preferences) {
-      setForm({
-        email_enabled: preferences.email_enabled,
-        sms_enabled: preferences.sms_enabled,
-        push_enabled: preferences.push_enabled,
-        in_app_enabled: preferences.in_app_enabled,
-        preferred_channel: preferences.preferred_channel || 'email',
-      });
-    }
-  });
+  // Initialize preferences when user or saved data changes
+  useEffect(() => {
+    if (!selectedUserId) return;
+    
+    const prefMap: Record<string, NotificationPreference> = {};
+    NOTIFICATION_TYPES.forEach(type => {
+      const saved = savedPreferences?.find(p => p.notification_type === type.key);
+      if (saved) {
+        prefMap[type.key] = saved;
+      } else {
+        prefMap[type.key] = {
+          id: '',
+          user_id: selectedUserId,
+          notification_type: type.key,
+          email_enabled: true,
+          sms_enabled: false,
+          push_enabled: false,
+          in_app_enabled: true,
+          preferred_channel: 'email',
+        };
+      }
+    });
+    setPreferences(prefMap);
+    setHasChanges(false);
+  }, [savedPreferences, selectedUserId]);
 
   const savePreferences = useMutation({
     mutationFn: async () => {
-      if (preferences) {
-        // Update existing
-        const { error } = await supabase
-          .from('user_notification_preferences')
-          .update({
-            email_enabled: form.email_enabled,
-            sms_enabled: form.sms_enabled,
-            push_enabled: form.push_enabled,
-            in_app_enabled: form.in_app_enabled,
-            preferred_channel: form.preferred_channel,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', preferences.id);
-        if (error) throw error;
-      } else {
-        // Create new - use upsert with channel to satisfy required field
-        const { error } = await supabase
-          .from('user_notification_preferences')
-          .insert({
-            user_id: selectedUserId,
-            channel: 'email' as const,
-            email_enabled: form.email_enabled,
-            sms_enabled: form.sms_enabled,
-            push_enabled: form.push_enabled,
-            in_app_enabled: form.in_app_enabled,
-            preferred_channel: form.preferred_channel,
-          });
-        if (error) throw error;
-      }
+      if (!selectedUserId) throw new Error('No user selected');
+      
+      const upserts = Object.values(preferences).map(pref => ({
+        user_id: selectedUserId,
+        channel: pref.preferred_channel as Channel,
+        notification_type: pref.notification_type,
+        email_enabled: pref.email_enabled,
+        sms_enabled: pref.sms_enabled,
+        push_enabled: pref.push_enabled,
+        in_app_enabled: pref.in_app_enabled,
+        preferred_channel: pref.preferred_channel,
+      }));
+
+      const { error } = await supabase
+        .from('user_notification_preferences')
+        .upsert(upserts, { onConflict: 'user_id,notification_type' });
+      
+      if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-user-notification-preferences', selectedUserId] });
       queryClient.invalidateQueries({ queryKey: ['user-notification-preferences', selectedUserId] });
       toast.success('Preferences saved successfully');
+      setHasChanges(false);
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const selectedUser = users.find(u => u.id === selectedUserId);
-
-  // Reset form when user changes or preferences load
-  const handleUserSelect = (userId: string) => {
-    setSelectedUserId(userId);
-    // Reset form to defaults - will be updated by query
-    setForm({
-      email_enabled: true,
-      sms_enabled: false,
-      push_enabled: true,
-      in_app_enabled: true,
-      preferred_channel: 'email',
-    });
+  const updatePreference = (type: string, field: keyof NotificationPreference, value: any) => {
+    setPreferences(prev => ({
+      ...prev,
+      [type]: { ...prev[type], [field]: value },
+    }));
+    setHasChanges(true);
   };
 
-  // Update form when preferences data changes
-  if (preferences && form.email_enabled !== preferences.email_enabled) {
-    setForm({
-      email_enabled: preferences.email_enabled,
-      sms_enabled: preferences.sms_enabled,
-      push_enabled: preferences.push_enabled,
-      in_app_enabled: preferences.in_app_enabled,
-      preferred_channel: preferences.preferred_channel || 'email',
+  const toggleAllForChannel = (channel: Channel, enabled: boolean) => {
+    const field = `${channel}_enabled` as keyof NotificationPreference;
+    const updated = { ...preferences };
+    Object.keys(updated).forEach(key => {
+      (updated[key] as any)[field] = enabled;
     });
-  }
+    setPreferences(updated);
+    setHasChanges(true);
+  };
+
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+    setHasChanges(false);
+  };
+
+  const selectedUser = users.find(u => u.id === selectedUserId);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -147,7 +152,7 @@ const UserNotificationPreferences = () => {
         <p className="text-muted-foreground mt-1">Manage notification settings for specific users</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* User Selection */}
         <Card>
           <CardHeader>
@@ -194,18 +199,31 @@ const UserNotificationPreferences = () => {
           </CardContent>
         </Card>
 
-        {/* Preferences Editor */}
-        <Card className="md:col-span-2">
+        {/* Preferences Editor - Same layout as NotificationPreferences */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notification Preferences
-            </CardTitle>
-            <CardDescription>
-              {selectedUser 
-                ? `Configure notifications for ${selectedUser.full_name || selectedUser.email}` 
-                : 'Select a user to manage their preferences'}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Notification Preferences
+                </CardTitle>
+                <CardDescription>
+                  {selectedUser 
+                    ? `Configure notifications for ${selectedUser.full_name || selectedUser.email}` 
+                    : 'Select a user to manage their preferences'}
+                </CardDescription>
+              </div>
+              {selectedUserId && (
+                <Button 
+                  onClick={() => savePreferences.mutate()} 
+                  disabled={!hasChanges || savePreferences.isPending}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {savePreferences.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {!selectedUserId ? (
@@ -227,79 +245,115 @@ const UserNotificationPreferences = () => {
                       <p className="font-medium">{selectedUser.full_name}</p>
                       <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
                     </div>
-                    {!preferences && (
+                    {savedPreferences.length === 0 && (
                       <Badge variant="outline" className="ml-auto">No preferences set</Badge>
                     )}
                   </div>
                 )}
 
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <Label className="text-base">Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Receive notifications via email</p>
-                    </div>
-                    <Switch
-                      checked={form.email_enabled}
-                      onCheckedChange={(checked) => setForm({ ...form, email_enabled: checked })}
-                    />
-                  </div>
+                {/* Channel Preferences Table - Same as user's NotificationPreferences */}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-64">Notification Type</TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Mail className="h-4 w-4" /> Email
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <MessageSquare className="h-4 w-4" /> SMS
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Smartphone className="h-4 w-4" /> Push
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Bell className="h-4 w-4" /> In-App
+                        </div>
+                      </TableHead>
+                      <TableHead>Preferred</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {NOTIFICATION_TYPES.map((type) => {
+                      const pref = preferences[type.key];
+                      if (!pref) return null;
+                      return (
+                        <TableRow key={type.key}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{type.label}</p>
+                              <p className="text-sm text-muted-foreground">{type.description}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={pref.email_enabled}
+                              onCheckedChange={(v) => updatePreference(type.key, 'email_enabled', v)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={pref.sms_enabled}
+                              onCheckedChange={(v) => updatePreference(type.key, 'sms_enabled', v)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={pref.push_enabled}
+                              onCheckedChange={(v) => updatePreference(type.key, 'push_enabled', v)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={pref.in_app_enabled}
+                              onCheckedChange={(v) => updatePreference(type.key, 'in_app_enabled', v)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={pref.preferred_channel}
+                              onValueChange={(v) => updatePreference(type.key, 'preferred_channel', v as Channel)}
+                            >
+                              <SelectTrigger className="w-28">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="sms">SMS</SelectItem>
+                                <SelectItem value="push">Push</SelectItem>
+                                <SelectItem value="in_app">In-App</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
 
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <Label className="text-base">SMS Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Receive notifications via SMS</p>
-                    </div>
-                    <Switch
-                      checked={form.sms_enabled}
-                      onCheckedChange={(checked) => setForm({ ...form, sms_enabled: checked })}
-                    />
+                {/* Quick Actions */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-3">Quick Actions</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" onClick={() => toggleAllForChannel('email', true)}>
+                      Enable All Email
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => toggleAllForChannel('email', false)}>
+                      Disable All Email
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => toggleAllForChannel('in_app', true)}>
+                      Enable All In-App
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => toggleAllForChannel('in_app', false)}>
+                      Disable All In-App
+                    </Button>
                   </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <Label className="text-base">Push Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
-                    </div>
-                    <Switch
-                      checked={form.push_enabled}
-                      onCheckedChange={(checked) => setForm({ ...form, push_enabled: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <Label className="text-base">In-App Notifications</Label>
-                      <p className="text-sm text-muted-foreground">Receive notifications within the app</p>
-                    </div>
-                    <Switch
-                      checked={form.in_app_enabled}
-                      onCheckedChange={(checked) => setForm({ ...form, in_app_enabled: checked })}
-                    />
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <Label className="text-base">Preferred Channel</Label>
-                    <p className="text-sm text-muted-foreground mb-3">Primary channel for urgent notifications</p>
-                    <Select value={form.preferred_channel} onValueChange={(v) => setForm({ ...form, preferred_channel: v })}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="sms">SMS</SelectItem>
-                        <SelectItem value="push">Push</SelectItem>
-                        <SelectItem value="in_app">In-App</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={() => savePreferences.mutate()} disabled={savePreferences.isPending}>
-                    <Save className="mr-2 h-4 w-4" />
-                    {savePreferences.isPending ? 'Saving...' : 'Save Preferences'}
-                  </Button>
                 </div>
               </div>
             )}

@@ -9,6 +9,7 @@ import {
   Edge,
   BackgroundVariant,
   Panel,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import HierarchyNode, { HierarchyNodeData } from './HierarchyNode';
@@ -162,6 +163,12 @@ export default function HierarchyTreeView({
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
           animated: false,
+          markerEnd: {
+            type: 'arrowclosed' as const,
+            color: 'hsl(var(--primary))',
+            width: 20,
+            height: 20,
+          },
         });
       }
 
