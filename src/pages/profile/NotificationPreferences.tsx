@@ -61,6 +61,9 @@ const NotificationPreferences = () => {
   });
 
   useEffect(() => {
+    // Only run when we have valid data (not null/undefined)
+    if (!savedPreferences || !user?.id) return;
+    
     const prefMap: Record<string, NotificationPreference> = {};
     NOTIFICATION_TYPES.forEach(type => {
       const saved = savedPreferences.find(p => p.notification_type === type.key);
@@ -69,7 +72,7 @@ const NotificationPreferences = () => {
       } else {
         prefMap[type.key] = {
           id: '',
-          user_id: user?.id || '',
+          user_id: user.id,
           notification_type: type.key,
           email_enabled: true,
           sms_enabled: false,
