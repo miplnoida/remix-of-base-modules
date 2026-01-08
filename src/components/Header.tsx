@@ -2,9 +2,10 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Settings, User, LogOut, Palette } from "lucide-react";
 import { SocialSecurityIcon } from "@/components/icons/SocialSecurityIcon";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { InAppNotificationBell } from "@/components/notifications/InAppNotificationBell";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,12 +20,17 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useSupabaseAuth();
   const { currentTheme, setTheme, themes } = useTheme();
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
+
+  const userName = profile?.full_name || user?.email?.split('@')[0] || 'User';
+  const userEmail = user?.email || '';
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
@@ -62,7 +68,7 @@ export const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/placeholder-avatar.jpg" alt={user?.name || 'User'} />
+                <AvatarImage src="/placeholder-avatar.jpg" alt={userName} />
                 <AvatarFallback 
                   className="text-sm font-medium"
                   style={{ 
@@ -70,12 +76,12 @@ export const Header = () => {
                     color: currentTheme.colors.primary
                   }}
                 >
-                  {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                  {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="text-left">
-                <div className="text-sm font-medium text-gray-900">{user?.name || 'Guest User'}</div>
-                <div className="text-xs text-gray-500">{user?.role || 'Administrator'}</div>
+                <div className="text-sm font-medium text-gray-900">{userName}</div>
+                <div className="text-xs text-gray-500">{userEmail}</div>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -83,16 +89,16 @@ export const Header = () => {
           <DropdownMenuContent align="end" className="w-56 bg-white border border-gray-200 shadow-lg">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'Guest User'}</p>
-                <p className="text-xs text-gray-500">{user?.email || 'admin@secureserve.gov'}</p>
+                <p className="text-sm font-medium text-gray-900">{userName}</p>
+                <p className="text-xs text-gray-500">{userEmail}</p>
               </div>
             </DropdownMenuLabel>
             
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
               <User className="mr-2 h-4 w-4" />
-              Profile Settings
+              My Profile
             </DropdownMenuItem>
 
             <DropdownMenuSub>
@@ -131,9 +137,9 @@ export const Header = () => {
               </DropdownMenuSubContent>
             </DropdownMenuSub>
 
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile/change-password')}>
               <Settings className="mr-2 h-4 w-4" />
-              System Settings
+              Change Password
             </DropdownMenuItem>
             
             <DropdownMenuSeparator />
