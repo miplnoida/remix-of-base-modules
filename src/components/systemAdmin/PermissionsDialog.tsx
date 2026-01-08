@@ -2,9 +2,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { DbRole, useRolePermissions, useModulesWithActions, useSaveRolePermissions } from "@/hooks/useRolesData";
 
 interface PermissionsDialogProps {
@@ -60,6 +61,7 @@ export function PermissionsDialog({ open, onOpenChange, role }: PermissionsDialo
   };
 
   const isLoading = loadingPermissions || loadingModules;
+  const isAdminRole = role.role_name === 'Admin';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -75,6 +77,35 @@ export function PermissionsDialog({ open, onOpenChange, role }: PermissionsDialo
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        ) : isAdminRole ? (
+          <>
+            <Alert className="mb-4 border-primary/50 bg-primary/5">
+              <Lock className="h-4 w-4" />
+              <AlertTitle>Protected Permissions</AlertTitle>
+              <AlertDescription>
+                Admin role has full access to all modules. These permissions cannot be modified.
+              </AlertDescription>
+            </Alert>
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-3">
+                {modules.map(module => (
+                  <div key={module.id} className="flex items-start space-x-3 p-3 border rounded-lg bg-muted/30">
+                    <Checkbox
+                      id={module.id}
+                      checked={true}
+                      disabled={true}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor={module.id} className="text-sm font-medium text-muted-foreground">
+                        {module.display_name}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">{module.description || module.name}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </>
         ) : (
           <>
             <div className="flex justify-end mb-2">
@@ -108,11 +139,15 @@ export function PermissionsDialog({ open, onOpenChange, role }: PermissionsDialo
         )}
         
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={savePermissions.isPending}>
-            {savePermissions.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Permissions
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {isAdminRole ? 'Close' : 'Cancel'}
           </Button>
+          {!isAdminRole && (
+            <Button onClick={handleSave} disabled={savePermissions.isPending}>
+              {savePermissions.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Permissions
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
