@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
@@ -11,117 +10,93 @@ import {
   Bell, 
   CheckCircle, 
   Circle, 
-  AlertTriangle, 
-  Info, 
-  DollarSign, 
-  Calendar,
   ExternalLink,
-  Check
+  Check,
+  AlertCircle
 } from "lucide-react";
-import { notificationService } from '@/services/notificationService';
-import { NotificationItem } from '@/types/notifications';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+
+interface NotificationItem {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
 
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [filteredNotifications, setFilteredNotifications] = useState<NotificationItem[]>([]);
+  const { user } = useSupabaseAuth();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ['in-app-notifications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('in_app_notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as NotificationItem[];
+    },
+    enabled: !!user?.id,
+  });
 
-  useEffect(() => {
-    applyFilters();
-  }, [notifications, searchTerm, filterType, filterStatus]);
+  const markAsRead = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('in_app_notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['in-app-notifications', user?.id] });
+      toast({ title: "Success", description: "Notification marked as read" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update notification", variant: "destructive" });
+    },
+  });
 
-  const loadNotifications = async () => {
-    try {
-      const data = await notificationService.getNotifications('1'); // Current user
-      setNotifications(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load notifications",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = notifications;
-
-    if (searchTerm) {
-      filtered = filtered.filter(n => 
-        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.message.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (filterType !== 'all') {
-      filtered = filtered.filter(n => n.type.toLowerCase() === filterType.toLowerCase());
-    }
-
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(n => 
-        filterStatus === 'read' ? n.isRead : !n.isRead
-      );
-    }
-
-    setFilteredNotifications(filtered);
-  };
-
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      await notificationService.markAsRead(id);
-      setNotifications(prev => prev.map(n => 
-        n.id === id ? { ...n, isRead: true } : n
-      ));
-      toast({
-        title: "Success",
-        description: "Notification marked as read",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update notification",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleBulkMarkAsRead = async () => {
-    try {
-      const promises = Array.from(selectedNotifications).map(id => 
-        notificationService.markAsRead(id)
-      );
-      await Promise.all(promises);
-      
-      setNotifications(prev => prev.map(n => 
-        selectedNotifications.has(n.id) ? { ...n, isRead: true } : n
-      ));
+  const markBulkAsRead = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('in_app_notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['in-app-notifications', user?.id] });
       setSelectedNotifications(new Set());
-      
-      toast({
-        title: "Success",
-        description: `${selectedNotifications.size} notifications marked as read`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update notifications",
-        variant: "destructive",
-      });
-    }
-  };
+      toast({ title: "Success", description: `${selectedNotifications.size} notifications marked as read` });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update notifications", variant: "destructive" });
+    },
+  });
+
+  const filteredNotifications = notifications.filter(n => {
+    const matchesSearch = searchTerm === '' ||
+      n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      n.body.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'read' ? n.is_read : !n.is_read);
+    return matchesSearch && matchesStatus;
+  });
 
   const toggleSelectNotification = (id: string) => {
     const newSelected = new Set(selectedNotifications);
@@ -134,38 +109,22 @@ export default function NotificationCenter() {
   };
 
   const selectAll = () => {
-    const unreadIds = filteredNotifications
-      .filter(n => !n.isRead)
-      .map(n => n.id);
+    const unreadIds = filteredNotifications.filter(n => !n.is_read).map(n => n.id);
     setSelectedNotifications(new Set(unreadIds));
   };
 
-  const getNotificationIcon = (type: string, priority: string) => {
-    const iconClass = `h-4 w-4 ${priority === 'High' ? 'text-red-500' : 
-      priority === 'Medium' ? 'text-yellow-500' : 'text-blue-500'}`;
-    
-    switch (type.toLowerCase()) {
-      case 'system':
-        return <AlertTriangle className={iconClass} />;
-      case 'payment':
-        return <DollarSign className={iconClass} />;
-      case 'task':
-        return <Calendar className={iconClass} />;
-      default:
-        return <Info className={iconClass} />;
-    }
-  };
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  const getPriorityBadge = (priority: string) => {
-    const variant = priority === 'High' ? 'destructive' : 
-      priority === 'Medium' ? 'secondary' : 'outline';
-    return <Badge variant={variant}>{priority}</Badge>;
-  };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">Loading notifications...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -190,7 +149,11 @@ export default function NotificationCenter() {
             </div>
             <div className="flex items-center gap-2">
               {selectedNotifications.size > 0 && (
-                <Button onClick={handleBulkMarkAsRead} size="sm">
+                <Button 
+                  onClick={() => markBulkAsRead.mutate(Array.from(selectedNotifications))} 
+                  size="sm"
+                  disabled={markBulkAsRead.isPending}
+                >
                   <Check className="h-4 w-4 mr-2" />
                   Mark Selected as Read ({selectedNotifications.size})
                 </Button>
@@ -209,18 +172,6 @@ export default function NotificationCenter() {
                 className="pl-10"
               />
             </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-                <SelectItem value="payment">Payment</SelectItem>
-                <SelectItem value="task">Task</SelectItem>
-                <SelectItem value="reminder">Reminder</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Filter by status" />
@@ -238,16 +189,21 @@ export default function NotificationCenter() {
 
           <div className="space-y-2">
             {filteredNotifications.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No notifications found</p>
+              <div className="text-center py-12">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No notifications</h3>
+                <p className="text-muted-foreground">
+                  {notifications.length === 0
+                    ? "You don't have any notifications yet."
+                    : "No notifications match your filters."}
+                </p>
               </div>
             ) : (
               filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={`p-4 border rounded-lg transition-colors ${
-                    notification.isRead 
+                    notification.is_read 
                       ? 'bg-muted/30 border-muted' 
                       : 'bg-card border-border shadow-sm'
                   }`}
@@ -261,38 +217,39 @@ export default function NotificationCenter() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        {getNotificationIcon(notification.type, notification.priority)}
-                        <h4 className={`font-medium truncate ${!notification.isRead ? 'font-semibold' : ''}`}>
+                        <Bell className="h-4 w-4 text-primary" />
+                        <h4 className={`font-medium truncate ${!notification.is_read ? 'font-semibold' : ''}`}>
                           {notification.title}
                         </h4>
-                        {getPriorityBadge(notification.priority)}
-                        <Badge variant="outline">{notification.type}</Badge>
-                        {!notification.isRead && (
+                        {!notification.is_read && (
                           <Circle className="h-2 w-2 fill-blue-500 text-blue-500" />
                         )}
                       </div>
                       
                       <p className="text-sm text-muted-foreground mb-2">
-                        {notification.message}
+                        {notification.body}
                       </p>
                       
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
-                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                         </span>
                         <div className="flex items-center gap-2">
-                          {notification.actionUrl && (
-                            <Button variant="link" size="sm" className="h-auto p-0 text-xs">
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              View Details
+                          {notification.link && (
+                            <Button variant="link" size="sm" className="h-auto p-0 text-xs" asChild>
+                              <a href={notification.link}>
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                View Details
+                              </a>
                             </Button>
                           )}
-                          {!notification.isRead && (
+                          {!notification.is_read && (
                             <Button
                               variant="link"
                               size="sm"
                               className="h-auto p-0 text-xs"
-                              onClick={() => handleMarkAsRead(notification.id)}
+                              onClick={() => markAsRead.mutate(notification.id)}
+                              disabled={markAsRead.isPending}
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Mark as Read
