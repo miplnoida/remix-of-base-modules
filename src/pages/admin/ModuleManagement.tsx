@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,20 +30,182 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { LayoutGrid, Plus, Search, Edit, Trash2 } from "lucide-react";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { LayoutGrid, Plus, Search, Edit, Trash2, ChevronRight, ChevronDown, GripVertical } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { useAppModules, useCreateAppModule, useUpdateAppModule, useDeleteAppModule, useCreateModuleAction, useDeleteModuleAction } from "@/hooks/useAdminData";
 import type { AppModule, ModuleAction } from "@/hooks/useAdminData";
+import { IconPicker } from "@/components/ui/icon-picker";
+import { cn } from "@/lib/utils";
+
+// Helper to get Lucide icon by name
+const getIcon = (iconName: string | null) => {
+  if (!iconName) return LucideIcons.Circle;
+  const Icon = (LucideIcons as any)[iconName];
+  return Icon || LucideIcons.Circle;
+};
+
+interface ModuleTreeItemProps {
+  module: AppModule;
+  children: AppModule[];
+  level: number;
+  onEdit: (module: AppModule) => void;
+  onDelete: (id: string) => void;
+  onToggle: (module: AppModule) => void;
+  onAddAction: (module: AppModule) => void;
+  onDeleteAction: (id: string) => void;
+  expandedModules: Set<string>;
+  toggleExpand: (id: string) => void;
+}
+
+const ModuleTreeItem = ({
+  module,
+  children,
+  level,
+  onEdit,
+  onDelete,
+  onToggle,
+  onAddAction,
+  onDeleteAction,
+  expandedModules,
+  toggleExpand,
+}: ModuleTreeItemProps) => {
+  const hasChildren = children.length > 0;
+  const isExpanded = expandedModules.has(module.id);
+  const Icon = getIcon(module.icon);
+
+  return (
+    <div className="border-b last:border-b-0">
+      <div
+        className={cn(
+          "flex items-center gap-2 py-3 px-4 hover:bg-muted/50 transition-colors",
+          level > 0 && "pl-8"
+        )}
+        style={{ paddingLeft: level * 24 + 16 }}
+      >
+        {hasChildren ? (
+          <button
+            onClick={() => toggleExpand(module.id)}
+            className="p-1 hover:bg-muted rounded"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
+        
+        <Icon className="h-5 w-5 text-primary flex-shrink-0" />
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium truncate">{module.display_name}</span>
+            <span className="text-xs text-muted-foreground">({module.name})</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{module.route || "No route"}</span>
+            <span>•</span>
+            <span>Order: {module.sort_order}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Badge variant={module.is_enabled ? "default" : "secondary"} className="text-xs">
+            {module.is_enabled ? "Enabled" : "Disabled"}
+          </Badge>
+          <Badge variant="outline" className="text-xs">
+            {module.actions?.length || 0} Actions
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button size="sm" variant="ghost" onClick={() => onToggle(module)}>
+            {module.is_enabled ? "Disable" : "Enable"}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onEdit(module)}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onAddAction(module)}>
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onDelete(module.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Actions */}
+      {isExpanded && module.actions && module.actions.length > 0 && (
+        <div className="bg-muted/30 border-t" style={{ paddingLeft: (level + 1) * 24 + 40 }}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-32">Action</TableHead>
+                <TableHead>Display Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-24">Status</TableHead>
+                <TableHead className="w-16 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {module.actions.map((action) => (
+                <TableRow key={action.id}>
+                  <TableCell className="font-mono text-xs">{action.action_name}</TableCell>
+                  <TableCell className="font-medium">{action.display_name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{action.description || "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant={action.is_enabled ? "default" : "secondary"} className="text-xs">
+                      {action.is_enabled ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => onDeleteAction(action.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Children */}
+      {isExpanded && hasChildren && (
+        <div>
+          {children.map((child) => (
+            <ModuleTreeItem
+              key={child.id}
+              module={child}
+              children={[]} // No nested children for now
+              level={level + 1}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onToggle={onToggle}
+              onAddAction={onAddAction}
+              onDeleteAction={onDeleteAction}
+              expandedModules={expandedModules}
+              toggleExpand={toggleExpand}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ModuleManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showModuleDialog, setShowModuleDialog] = useState(false);
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [selectedModule, setSelectedModule] = useState<AppModule | null>(null);
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [moduleForm, setModuleForm] = useState({
     name: "",
     display_name: "",
@@ -68,12 +230,49 @@ const ModuleManagement = () => {
   const createAction = useCreateModuleAction();
   const deleteAction = useDeleteModuleAction();
 
-  const filteredModules = modules.filter((module) =>
-    module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    module.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Build tree structure
+  const { parentModules, childModulesMap, filteredParentModules } = useMemo(() => {
+    const parents = modules
+      .filter((m) => !m.parent_id)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    
+    const childMap = new Map<string, AppModule[]>();
+    modules.forEach((m) => {
+      if (m.parent_id) {
+        const children = childMap.get(m.parent_id) || [];
+        children.push(m);
+        childMap.set(m.parent_id, children.sort((a, b) => a.sort_order - b.sort_order));
+      }
+    });
 
-  const parentModules = modules.filter((m) => !m.parent_id);
+    const filtered = parents.filter((module) =>
+      module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (childMap.get(module.id) || []).some(
+        (child) =>
+          child.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          child.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+
+    return {
+      parentModules: parents,
+      childModulesMap: childMap,
+      filteredParentModules: filtered,
+    };
+  }, [modules, searchQuery]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedModules((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
 
   const handleOpenModuleDialog = (module?: AppModule) => {
     if (module) {
@@ -97,7 +296,7 @@ const ModuleManagement = () => {
         icon: "",
         route: "",
         parent_id: null,
-        sort_order: 0,
+        sort_order: modules.length,
         is_enabled: true,
       });
     }
@@ -132,9 +331,11 @@ const ModuleManagement = () => {
 
   const getDefaultActions = () => [
     { action_name: "view", display_name: "View" },
-    { action_name: "add", display_name: "Add" },
+    { action_name: "create", display_name: "Create" },
     { action_name: "edit", display_name: "Edit" },
     { action_name: "delete", display_name: "Delete" },
+    { action_name: "approve", display_name: "Approve" },
+    { action_name: "reject", display_name: "Reject" },
   ];
 
   return (
@@ -197,7 +398,7 @@ const ModuleManagement = () => {
       <Card>
         <CardHeader>
           <CardTitle>Application Modules</CardTitle>
-          <CardDescription>Configure modules that appear in the navigation menu</CardDescription>
+          <CardDescription>Configure modules that appear in the navigation menu (tree view)</CardDescription>
           <div className="flex items-center gap-4 mt-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -208,109 +409,45 @@ const ModuleManagement = () => {
                 className="pl-10"
               />
             </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (expandedModules.size > 0) {
+                  setExpandedModules(new Set());
+                } else {
+                  setExpandedModules(new Set(parentModules.map((m) => m.id)));
+                }
+              }}
+            >
+              {expandedModules.size > 0 ? "Collapse All" : "Expand All"}
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="text-center py-8">Loading...</div>
+          ) : filteredParentModules.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No modules found. Click "Add Module" to create one.
+            </div>
           ) : (
-            <Accordion type="multiple" className="w-full">
-              {filteredModules.map((module) => (
-                <AccordionItem key={module.id} value={module.id}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center justify-between w-full pr-4">
-                      <div className="flex items-center gap-3">
-                        <LayoutGrid className="h-5 w-5 text-primary" />
-                        <div className="text-left">
-                          <p className="font-medium">{module.display_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {module.name} • {module.route || "No route"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={module.is_enabled ? "default" : "secondary"}>
-                          {module.is_enabled ? "Enabled" : "Disabled"}
-                        </Badge>
-                        <Badge variant="outline">{module.actions?.length || 0} Actions</Badge>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="pl-8 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">{module.description || "No description"}</p>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleToggleModule(module)}>
-                            {module.is_enabled ? "Disable" : "Enable"}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleOpenModuleDialog(module)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" onClick={() => handleOpenActionDialog(module)}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add Action
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            onClick={() => deleteModule.mutate(module.id)}
-                            disabled={deleteModule.isPending}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-
-                      {module.actions && module.actions.length > 0 && (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Action Name</TableHead>
-                              <TableHead>Display Name</TableHead>
-                              <TableHead>Description</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {module.actions.map((action) => (
-                              <TableRow key={action.id}>
-                                <TableCell className="font-mono text-sm">{action.action_name}</TableCell>
-                                <TableCell className="font-medium">{action.display_name}</TableCell>
-                                <TableCell className="text-muted-foreground">{action.description || "-"}</TableCell>
-                                <TableCell>
-                                  <Badge variant={action.is_enabled ? "default" : "secondary"}>
-                                    {action.is_enabled ? "Enabled" : "Disabled"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-1">
-                                    <Button variant="ghost" size="icon">
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      onClick={() => deleteAction.mutate(action.id)}
-                                      disabled={deleteAction.isPending}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+            <div className="divide-y">
+              {filteredParentModules.map((module) => (
+                <ModuleTreeItem
+                  key={module.id}
+                  module={module}
+                  children={childModulesMap.get(module.id) || []}
+                  level={0}
+                  onEdit={handleOpenModuleDialog}
+                  onDelete={(id) => deleteModule.mutate(id)}
+                  onToggle={handleToggleModule}
+                  onAddAction={handleOpenActionDialog}
+                  onDeleteAction={(id) => deleteAction.mutate(id)}
+                  expandedModules={expandedModules}
+                  toggleExpand={toggleExpand}
+                />
               ))}
-            </Accordion>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -355,12 +492,11 @@ const ModuleManagement = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="icon">Icon (Lucide name)</Label>
-                <Input
-                  id="icon"
+                <Label htmlFor="icon">Icon</Label>
+                <IconPicker
                   value={moduleForm.icon}
-                  onChange={(e) => setModuleForm({ ...moduleForm, icon: e.target.value })}
-                  placeholder="Users"
+                  onChange={(icon) => setModuleForm({ ...moduleForm, icon })}
+                  placeholder="Select icon..."
                 />
               </div>
               <div className="space-y-2">
@@ -438,13 +574,9 @@ const ModuleManagement = () => {
                 {getDefaultActions().map((action) => (
                   <Button
                     key={action.action_name}
-                    size="sm"
                     variant="outline"
-                    onClick={() => setActionForm({
-                      ...actionForm,
-                      action_name: action.action_name,
-                      display_name: action.display_name,
-                    })}
+                    size="sm"
+                    onClick={() => setActionForm({ ...actionForm, ...action })}
                   >
                     {action.display_name}
                   </Button>
@@ -462,9 +594,9 @@ const ModuleManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="action_display_name">Display Name *</Label>
+                <Label htmlFor="action_display">Display Name *</Label>
                 <Input
-                  id="action_display_name"
+                  id="action_display"
                   value={actionForm.display_name}
                   onChange={(e) => setActionForm({ ...actionForm, display_name: e.target.value })}
                   placeholder="View"
@@ -472,9 +604,9 @@ const ModuleManagement = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="action_description">Description</Label>
+              <Label htmlFor="action_desc">Description</Label>
               <Textarea
-                id="action_description"
+                id="action_desc"
                 value={actionForm.description}
                 onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })}
               />
@@ -494,7 +626,7 @@ const ModuleManagement = () => {
               onClick={handleSaveAction}
               disabled={!actionForm.action_name || !actionForm.display_name || createAction.isPending}
             >
-              Create Action
+              Add Action
             </Button>
           </DialogFooter>
         </DialogContent>
