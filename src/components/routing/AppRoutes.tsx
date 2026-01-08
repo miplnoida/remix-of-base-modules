@@ -17,6 +17,7 @@ import React, { Suspense, lazy } from 'react';
 // Page imports
 import Index from '@/pages/dashboard/Index';
 import NotFound from '@/pages/NotFound';
+import Unauthorized from '@/pages/Unauthorized';
 import ViewInsuredPerson from '@/pages/insuredPersons/ViewInsuredPerson';
 import EditInsuredPerson from '@/pages/insuredPersons/EditInsuredPerson';
 
@@ -1237,6 +1238,9 @@ export const AppRoutes = () => {
       <Route path="/medical/applications/:id" element={<ProtectedLayout><DoctorApplicationDetail /></ProtectedLayout>} />
       <Route path="/medical/registry" element={<ProtectedLayout><DoctorRegistry /></ProtectedLayout>} />
       <Route path="/medical/claims" element={<ProtectedLayout><ClaimsByDoctors /></ProtectedLayout>} />
+
+      {/* Unauthorized */}
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
