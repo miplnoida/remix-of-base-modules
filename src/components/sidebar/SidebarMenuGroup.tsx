@@ -8,14 +8,17 @@ import SidebarMenuLink from "./SidebarMenuLink";
 import { cn } from "@/lib/utils";
 
 interface SubItem {
+  id?: string;
   title: string;
   url?: string;
   icon: React.ElementType;
   requiresPermission?: string;
+  description?: string;
   subItems?: SubItem[];
 }
 
 interface MenuItem {
+  id?: string;
   title: string;
   url?: string;
   icon: React.ElementType;

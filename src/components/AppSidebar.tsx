@@ -1,110 +1,21 @@
-
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { menuItems } from "./sidebar/sidebarMenuItems";
-import SidebarMenuGroup from "./sidebar/SidebarMenuGroup";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useNavigationMenu } from "@/hooks/useNavigationMenu";
-
-// Type guards
-type MenuItemWithSubItems = {
-  title: string;
-  icon: React.ElementType;
-  alwaysVisible?: boolean;
-  subItems: Array<{
-    title: string;
-    url: string;
-    icon: React.ElementType;
-    requiresPermission?: string;
-    description?: string;
-  }>;
-};
-
-const hasSubItems = (item: any): item is MenuItemWithSubItems => {
-  return item.subItems && Array.isArray(item.subItems);
-};
+import DynamicSidebarContent from "./sidebar/DynamicSidebarContent";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
-  const currentPath = location.pathname;
-  const [openGroups, setOpenGroups] = useState<string[]>(['Dashboard']);
   const { user, profile } = useSupabaseAuth();
   const { currentTheme } = useTheme();
-  const { menuItems: dynamicMenuItems, userPermissions, isLoading: navLoading, isAdmin } = useNavigationMenu();
 
-  // Auto-expand groups containing active routes
-  useEffect(() => {
-    const activeGroup = menuItems.find(item => 
-      hasSubItems(item) && item.subItems.some(subItem => subItem.url === currentPath)
-    );
-    
-    if (activeGroup && !openGroups.includes(activeGroup.title)) {
-      setOpenGroups(prev => [...prev, activeGroup.title]);
-    }
-  }, [currentPath, openGroups]);
-
-  const toggleGroup = (title: string) => {
-    setOpenGroups(prev => 
-      prev.includes(title) 
-        ? prev.filter(group => group !== title)
-        : [...prev, title]
-    );
-  };
-
-  // Permission check helper - Admin always has access
-  const checkPermission = (permission?: string) => {
-    if (isAdmin) return true;
-    if (!permission) return true;
-    return userPermissions.some(p => 
-      p.module_name === permission || p.action_name === permission
-    );
-  };
-
-  // Filter menu items based on permissions - Admin sees everything
-  const getVisibleMenuItems = () => {
-    if (isAdmin) {
-      return menuItems; // Admin sees all menu items
-    }
-    
-    return menuItems.filter(item => {
-      // Always show items marked as alwaysVisible (User Profile & Preferences)
-      if ((item as any).alwaysVisible) return true;
-      
-      // Check if item requires permission
-      const requiresPermission = 'requiresPermission' in item ? (item as any).requiresPermission : undefined;
-      if (requiresPermission && !checkPermission(requiresPermission)) {
-        return false;
-      }
-      
-      // For items with subItems, check if at least one sub-item is accessible
-      if (hasSubItems(item)) {
-        const hasAccessibleChild = item.subItems.some(sub => {
-          if (!sub.requiresPermission) return true;
-          return checkPermission(sub.requiresPermission);
-        });
-        return hasAccessibleChild;
-      }
-      
-      return true;
-    });
-  };
-
-  const visibleMenuItems = getVisibleMenuItems();
   return (
     <Sidebar 
       className="border-r border-gray-200 bg-white shadow-lg transition-all duration-200 ease-in-out" 
@@ -145,23 +56,9 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Main Content */}
+      {/* Main Content - Dynamic Navigation */}
       <SidebarContent className="p-0">
-        <ScrollArea className="flex-1">
-          <div className="px-3 py-4">
-            <SidebarGroup>
-              <SidebarMenu className="space-y-1">
-                {visibleMenuItems.map((item) => (
-                  <SidebarMenuGroup
-                    key={item.title}
-                    item={item}
-                    collapsed={collapsed}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          </div>
-        </ScrollArea>
+        <DynamicSidebarContent collapsed={collapsed} />
       </SidebarContent>
 
       {/* Footer Section */}
