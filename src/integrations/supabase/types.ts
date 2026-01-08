@@ -2132,6 +2132,81 @@ export type Database = {
           },
         ]
       }
+      designation_hierarchy: {
+        Row: {
+          created_at: string
+          designation_id: string
+          id: string
+          level: number
+          parent_designation_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          designation_id: string
+          id?: string
+          level?: number
+          parent_designation_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          designation_id?: string
+          id?: string
+          level?: number
+          parent_designation_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "designation_hierarchy_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: true
+            referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "designation_hierarchy_parent_designation_id_fkey"
+            columns: ["parent_designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      designations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       in_app_notifications: {
         Row: {
           body: string
@@ -3579,6 +3654,42 @@ export type Database = {
         }
         Relationships: []
       }
+      office_departments: {
+        Row: {
+          created_at: string
+          department_id: string
+          id: string
+          office_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          id?: string
+          office_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          id?: string
+          office_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_departments_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "office_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       office_locations: {
         Row: {
           address: string | null
@@ -3757,6 +3868,7 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           department_id: string | null
+          designation_id: string | null
           email: string | null
           employee_code: string | null
           failed_login_attempts: number | null
@@ -3783,6 +3895,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           department_id?: string | null
+          designation_id?: string | null
           email?: string | null
           employee_code?: string | null
           failed_login_attempts?: number | null
@@ -3809,6 +3922,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           department_id?: string | null
+          designation_id?: string | null
           email?: string | null
           employee_code?: string | null
           failed_login_attempts?: number | null
@@ -3837,6 +3951,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
             referencedColumns: ["id"]
           },
           {
@@ -3882,6 +4003,48 @@ export type Database = {
             columns: ["contributor_id"]
             isOneToOne: false
             referencedRelation: "contributor_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_hierarchy: {
+        Row: {
+          created_at: string
+          id: string
+          level: number
+          parent_role_id: string | null
+          role_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number
+          parent_role_id?: string | null
+          role_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number
+          parent_role_id?: string | null
+          role_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_hierarchy_parent_role_id_fkey"
+            columns: ["parent_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_hierarchy_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: true
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
