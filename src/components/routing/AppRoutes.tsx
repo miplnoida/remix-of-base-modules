@@ -229,6 +229,10 @@ import NotificationManagement from '@/pages/admin/NotificationManagement';
 import OfficeManagement from '@/pages/admin/OfficeManagement';
 import DepartmentManagement from '@/pages/admin/DepartmentManagement';
 import ModuleManagement from '@/pages/admin/ModuleManagement';
+import DesignationManagement from '@/pages/admin/DesignationManagement';
+import DesignationHierarchy from '@/pages/admin/DesignationHierarchy';
+import RoleHierarchy from '@/pages/admin/RoleHierarchy';
+import UserNotificationPreferences from '@/pages/admin/UserNotificationPreferences';
 
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
@@ -852,6 +856,10 @@ export const AppRoutes = () => {
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
       <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
+      <Route path="/admin/designations" element={<ProtectedLayout><DesignationManagement /></ProtectedLayout>} />
+      <Route path="/admin/designation-hierarchy" element={<ProtectedLayout><DesignationHierarchy /></ProtectedLayout>} />
+      <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
+      <Route path="/admin/user-notification-preferences" element={<ProtectedLayout><UserNotificationPreferences /></ProtectedLayout>} />
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
       <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
 

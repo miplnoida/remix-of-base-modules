@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { usePasswordPolicy, validatePassword } from "@/hooks/usePasswordPolicy";
 
 const ChangePassword = () => {
   const navigate = useNavigate();
@@ -22,17 +23,13 @@ const ChangePassword = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Password validation
-  const passwordChecks = {
-    length: newPassword.length >= 8,
-    uppercase: /[A-Z]/.test(newPassword),
-    lowercase: /[a-z]/.test(newPassword),
-    number: /[0-9]/.test(newPassword),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword),
-    match: newPassword === confirmPassword && newPassword.length > 0,
-  };
+  const { data: passwordPolicy } = usePasswordPolicy();
+  
+  // Password validation using policy
+  const passwordValidation = validatePassword(newPassword, passwordPolicy);
+  const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
 
-  const allValid = Object.values(passwordChecks).every(Boolean) && currentPassword.length > 0;
+  const allValid = passwordValidation.isValid && passwordsMatch && currentPassword.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,12 +195,20 @@ const ChangePassword = () => {
             <div className="p-4 bg-muted rounded-lg space-y-2">
               <p className="text-sm font-medium mb-2">Password Requirements:</p>
               <div className="grid grid-cols-2 gap-2">
-                <CheckItem valid={passwordChecks.length} text="At least 8 characters" />
-                <CheckItem valid={passwordChecks.uppercase} text="One uppercase letter" />
-                <CheckItem valid={passwordChecks.lowercase} text="One lowercase letter" />
-                <CheckItem valid={passwordChecks.number} text="One number" />
-                <CheckItem valid={passwordChecks.special} text="One special character" />
-                <CheckItem valid={passwordChecks.match} text="Passwords match" />
+                <CheckItem valid={passwordValidation.checks.length} text={`At least ${passwordPolicy?.min_length || 8} characters`} />
+                {passwordPolicy?.require_uppercase !== false && (
+                  <CheckItem valid={passwordValidation.checks.uppercase} text="One uppercase letter" />
+                )}
+                {passwordPolicy?.require_lowercase !== false && (
+                  <CheckItem valid={passwordValidation.checks.lowercase} text="One lowercase letter" />
+                )}
+                {passwordPolicy?.require_numbers !== false && (
+                  <CheckItem valid={passwordValidation.checks.number} text="One number" />
+                )}
+                {passwordPolicy?.require_special_chars && (
+                  <CheckItem valid={passwordValidation.checks.special} text="One special character" />
+                )}
+                <CheckItem valid={passwordsMatch} text="Passwords match" />
               </div>
             </div>
 

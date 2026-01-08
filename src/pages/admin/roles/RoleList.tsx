@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Shield, Plus, Edit, Trash2, Search, Settings } from "lucide-react";
+import { Shield, Plus, Edit, Trash2, Search, Settings, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,6 +29,9 @@ const RoleList = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [showDialog, setShowDialog] = useState(false);
+  const [showCloneDialog, setShowCloneDialog] = useState(false);
+  const [cloningRole, setCloningRole] = useState<Role | null>(null);
+  const [cloneRoleName, setCloneRoleName] = useState("");
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [formData, setFormData] = useState({
     role_name: "",
@@ -89,6 +92,50 @@ const RoleList = () => {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const cloneRole = useMutation({
+    mutationFn: async ({ sourceRoleId, newRoleName }: { sourceRoleId: string; newRoleName: string }) => {
+      const sourceRole = roles.find(r => r.id === sourceRoleId);
+      if (!sourceRole) throw new Error('Source role not found');
+
+      // Create the new role
+      const { data: newRole, error: createError } = await supabase
+        .from('roles')
+        .insert({
+          role_name: newRoleName,
+          description: `Cloned from ${sourceRole.role_name}`,
+          is_active: true,
+          is_system_role: false,
+          mfa_required: sourceRole.mfa_required,
+        })
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      return newRole;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Role cloned successfully');
+      setShowCloneDialog(false);
+      setCloningRole(null);
+      setCloneRoleName("");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const handleClone = (role: Role) => {
+    setCloningRole(role);
+    setCloneRoleName(`${role.role_name} (Copy)`);
+    setShowCloneDialog(true);
+  };
+
+  const handleCloneSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cloningRole && cloneRoleName.trim()) {
+      cloneRole.mutate({ sourceRoleId: cloningRole.id, newRoleName: cloneRoleName.trim() });
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -203,6 +250,9 @@ const RoleList = () => {
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleClone(role)} title="Clone Role">
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(role)} title="Edit Role">
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -309,6 +359,39 @@ const RoleList = () => {
               </Button>
               <Button type="submit" disabled={createRole.isPending || updateRole.isPending}>
                 {editingRole ? "Update" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clone Role Dialog */}
+      <Dialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Clone Role</DialogTitle>
+            <DialogDescription>
+              Create a copy of "{cloningRole?.role_name}" with a new name
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCloneSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="clone_role_name">New Role Name *</Label>
+              <Input
+                id="clone_role_name"
+                required
+                value={cloneRoleName}
+                onChange={(e) => setCloneRoleName(e.target.value)}
+                placeholder="Enter new role name"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setShowCloneDialog(false); setCloningRole(null); }}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={cloneRole.isPending || !cloneRoleName.trim()}>
+                <Copy className="h-4 w-4 mr-2" />
+                {cloneRole.isPending ? 'Cloning...' : 'Clone Role'}
               </Button>
             </DialogFooter>
           </form>
