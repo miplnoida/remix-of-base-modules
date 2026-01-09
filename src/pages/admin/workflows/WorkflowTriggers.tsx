@@ -85,6 +85,23 @@ export default function WorkflowTriggers() {
     },
   });
 
+  // Query for module actions based on selected module
+  const { data: moduleActions, isLoading: isLoadingActions } = useQuery({
+    queryKey: ['module-actions', formData.module_id],
+    queryFn: async () => {
+      if (!formData.module_id) return [];
+      const { data, error } = await supabase
+        .from('module_actions')
+        .select('id, action_name, display_name')
+        .eq('module_id', formData.module_id)
+        .eq('is_enabled', true)
+        .order('display_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!formData.module_id,
+  });
+
   const saveTrigger = useSaveWorkflowTrigger();
   const deleteTrigger = useDeleteWorkflowTrigger();
 
@@ -225,7 +242,11 @@ export default function WorkflowTriggers() {
                 <Label>Module *</Label>
                 <Select
                   value={formData.module_id}
-                  onValueChange={(value) => setFormData({ ...formData, module_id: value })}
+                  onValueChange={(value) => setFormData({ 
+                    ...formData, 
+                    module_id: value,
+                    action_name: '' // Reset action when module changes
+                  })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select module" />
@@ -242,11 +263,28 @@ export default function WorkflowTriggers() {
 
               <div className="space-y-2">
                 <Label>Action Name *</Label>
-                <Input
+                <Select
                   value={formData.action_name}
-                  onChange={(e) => setFormData({ ...formData, action_name: e.target.value })}
-                  placeholder="e.g., Submit, Create, Approve"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, action_name: value })}
+                  disabled={!formData.module_id || isLoadingActions}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      !formData.module_id 
+                        ? "Select a module first" 
+                        : isLoadingActions 
+                          ? "Loading actions..." 
+                          : "Select action"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {moduleActions?.map((action) => (
+                      <SelectItem key={action.id} value={action.action_name}>
+                        {action.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
