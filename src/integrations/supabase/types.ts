@@ -4133,6 +4133,60 @@ export type Database = {
         }
         Relationships: []
       }
+      sample_applications: {
+        Row: {
+          amount: number
+          applicant_comments: string | null
+          applicant_email: string | null
+          applicant_id: string | null
+          applicant_name: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          rejection_reason: string | null
+          status: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          amount?: number
+          applicant_comments?: string | null
+          applicant_email?: string | null
+          applicant_id?: string | null
+          applicant_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          rejection_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          amount?: number
+          applicant_comments?: string | null
+          applicant_email?: string | null
+          applicant_id?: string | null
+          applicant_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          rejection_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: []
+      }
       user_notification_preferences: {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
@@ -4812,6 +4866,7 @@ export type Database = {
         | "FinanceOfficer"
         | "ReadOnly"
         | "Admin"
+        | "FinanceManager"
       audit_status:
         | "assigned"
         | "in_progress"
@@ -5098,6 +5153,7 @@ export const Constants = {
         "FinanceOfficer",
         "ReadOnly",
         "Admin",
+        "FinanceManager",
       ],
       audit_status: [
         "assigned",
