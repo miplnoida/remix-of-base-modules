@@ -5,6 +5,7 @@ export interface WorkflowInstanceFilters {
   workflowId?: string;
   status?: string;
   initiator?: string;
+  applicationId?: string;
   dateFrom?: string;
   dateTo?: string;
   search?: string;
@@ -67,6 +68,10 @@ export function useWorkflowInstances(
       
       if (filters.initiator) {
         query = query.ilike('started_by_name', `%${filters.initiator}%`);
+      }
+
+      if (filters.applicationId) {
+        query = query.or(`source_record_id.eq.${filters.applicationId},id.eq.${filters.applicationId}`);
       }
       
       if (filters.dateFrom) {
@@ -219,5 +224,5 @@ export function useWorkflowNames() {
 
 // Get workflow instance status options
 export function useWorkflowStatusOptions() {
-  return ['Pending', 'InProgress', 'Completed', 'Rejected', 'Cancelled'];
+  return ['Pending', 'InProgress', 'Completed', 'Approved', 'Rejected', 'Query', 'Cancelled'];
 }
