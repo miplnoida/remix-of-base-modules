@@ -4286,6 +4286,458 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_action_notifications: {
+        Row: {
+          action_id: string
+          created_at: string | null
+          id: string
+          notification_type: string
+          template_id: string | null
+        }
+        Insert: {
+          action_id: string
+          created_at?: string | null
+          id?: string
+          notification_type: string
+          template_id?: string | null
+        }
+        Update: {
+          action_id?: string
+          created_at?: string | null
+          id?: string
+          notification_type?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_action_notifications_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_definitions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          default_sla_hours: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          process_type: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          default_sla_hours?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          process_type: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          default_sla_hours?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          process_type?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_instances: {
+        Row: {
+          completed_at: string | null
+          current_step_id: string | null
+          due_at: string | null
+          id: string
+          metadata: Json | null
+          source_module: string | null
+          source_record_id: string | null
+          source_record_name: string | null
+          started_at: string | null
+          started_by: string | null
+          started_by_name: string | null
+          status: Database["public"]["Enums"]["workflow_instance_status"] | null
+          workflow_id: string
+          workflow_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step_id?: string | null
+          due_at?: string | null
+          id?: string
+          metadata?: Json | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_record_name?: string | null
+          started_at?: string | null
+          started_by?: string | null
+          started_by_name?: string | null
+          status?:
+            | Database["public"]["Enums"]["workflow_instance_status"]
+            | null
+          workflow_id: string
+          workflow_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step_id?: string | null
+          due_at?: string | null
+          id?: string
+          metadata?: Json | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_record_name?: string | null
+          started_at?: string | null
+          started_by?: string | null
+          started_by_name?: string | null
+          status?:
+            | Database["public"]["Enums"]["workflow_instance_status"]
+            | null
+          workflow_id?: string
+          workflow_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_instances_current_step_id_fkey"
+            columns: ["current_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_logs: {
+        Row: {
+          action: string
+          comments: string | null
+          created_at: string | null
+          id: string
+          instance_id: string
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          step_id: string | null
+          step_name: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          step_id?: string | null
+          step_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          step_id?: string | null
+          step_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_logs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_logs_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_step_actions: {
+        Row: {
+          action_name: string
+          action_type: Database["public"]["Enums"]["workflow_step_action_type"]
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_final_action: boolean | null
+          next_step_id: string | null
+          step_id: string
+        }
+        Insert: {
+          action_name: string
+          action_type?: Database["public"]["Enums"]["workflow_step_action_type"]
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_final_action?: boolean | null
+          next_step_id?: string | null
+          step_id: string
+        }
+        Update: {
+          action_name?: string
+          action_type?: Database["public"]["Enums"]["workflow_step_action_type"]
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_final_action?: boolean | null
+          next_step_id?: string | null
+          step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_actions_next_step_id_fkey"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_steps: {
+        Row: {
+          action_type: string
+          assigned_designation: string | null
+          assigned_role: string | null
+          created_at: string | null
+          id: string
+          is_final_step: boolean | null
+          sla_hours: number | null
+          step_name: string
+          step_number: number
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          action_type?: string
+          assigned_designation?: string | null
+          assigned_role?: string | null
+          created_at?: string | null
+          id?: string
+          is_final_step?: boolean | null
+          sla_hours?: number | null
+          step_name: string
+          step_number: number
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          action_type?: string
+          assigned_designation?: string | null
+          assigned_role?: string | null
+          created_at?: string | null
+          id?: string
+          is_final_step?: boolean | null
+          sla_hours?: number | null
+          step_name?: string
+          step_number?: number
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_tasks: {
+        Row: {
+          action_taken: string | null
+          assigned_designation: string | null
+          assigned_role: string | null
+          assigned_to: string | null
+          assigned_to_name: string | null
+          comments: string | null
+          completed_at: string | null
+          created_at: string | null
+          due_at: string | null
+          id: string
+          instance_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["workflow_task_status"] | null
+          step_id: string
+          step_name: string
+        }
+        Insert: {
+          action_taken?: string | null
+          assigned_designation?: string | null
+          assigned_role?: string | null
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          comments?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          id?: string
+          instance_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["workflow_task_status"] | null
+          step_id: string
+          step_name: string
+        }
+        Update: {
+          action_taken?: string | null
+          assigned_designation?: string | null
+          assigned_role?: string | null
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          comments?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          id?: string
+          instance_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["workflow_task_status"] | null
+          step_id?: string
+          step_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_tasks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_tasks_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_triggers: {
+        Row: {
+          action_name: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          module_id: string | null
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          action_name: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          module_id?: string | null
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          action_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          module_id?: string | null
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_triggers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_triggers_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_triggers_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -4490,6 +4942,28 @@ export type Database = {
       settlement_status: "Proposed" | "Accepted" | "Rejected" | "Completed"
       task_status: "Open" | "In Progress" | "Completed" | "Deferred"
       waiver_status: "pending" | "approved" | "rejected"
+      workflow_instance_status:
+        | "Pending"
+        | "InProgress"
+        | "Completed"
+        | "Rejected"
+        | "Cancelled"
+        | "Escalated"
+      workflow_status: "Draft" | "Active" | "Disabled" | "Archived"
+      workflow_step_action_type:
+        | "Approve"
+        | "Reject"
+        | "SendBack"
+        | "Escalate"
+        | "AutoApprove"
+        | "Review"
+        | "Custom"
+      workflow_task_status:
+        | "Pending"
+        | "InProgress"
+        | "Completed"
+        | "Skipped"
+        | "Cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4765,6 +5239,31 @@ export const Constants = {
       settlement_status: ["Proposed", "Accepted", "Rejected", "Completed"],
       task_status: ["Open", "In Progress", "Completed", "Deferred"],
       waiver_status: ["pending", "approved", "rejected"],
+      workflow_instance_status: [
+        "Pending",
+        "InProgress",
+        "Completed",
+        "Rejected",
+        "Cancelled",
+        "Escalated",
+      ],
+      workflow_status: ["Draft", "Active", "Disabled", "Archived"],
+      workflow_step_action_type: [
+        "Approve",
+        "Reject",
+        "SendBack",
+        "Escalate",
+        "AutoApprove",
+        "Review",
+        "Custom",
+      ],
+      workflow_task_status: [
+        "Pending",
+        "InProgress",
+        "Completed",
+        "Skipped",
+        "Cancelled",
+      ],
     },
   },
 } as const
