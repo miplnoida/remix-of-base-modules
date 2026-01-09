@@ -107,4 +107,10 @@ export const routes = {
   WORKFLOW_LOGS: '/admin/workflow-logs',
   WORKFLOW_ANALYTICS: '/admin/workflow-analytics',
   MY_WORKFLOW_TASKS: '/workflow/my-tasks',
+
+  // Sample Application routes
+  SAMPLE_APPLICATION_LIST: '/sample-applications',
+  SAMPLE_APPLICATION_NEW: '/sample-applications/new',
+  SAMPLE_APPLICATION_VIEW: (id: string) => `/sample-applications/${id}`,
+  SAMPLE_APPLICATION_EDIT: (id: string) => `/sample-applications/${id}/edit`,
 } as const;

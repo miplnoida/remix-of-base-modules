@@ -124,5 +124,10 @@ export const systemAdminMenuItems = [
     title: "My Tasks",
     url: "/workflow/my-tasks",
     icon: ListTodo,
+  },
+  {
+    title: "Sample Application",
+    url: "/sample-applications",
+    icon: FileText,
   }
 ];
