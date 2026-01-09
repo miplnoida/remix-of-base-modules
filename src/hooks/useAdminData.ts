@@ -24,6 +24,7 @@ export interface Department {
   name: string;
   description: string | null;
   is_active: boolean;
+  department_head_user_id?: string | null;
 }
 
 export interface AppModule {
@@ -218,7 +219,7 @@ export function useDepartments(officeId?: string | null) {
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { office_id: string; name: string; description?: string; is_active?: boolean }) => {
+    mutationFn: async (data: { office_id: string; name: string; description?: string; is_active?: boolean; department_head_user_id?: string | null }) => {
       const { data: result, error } = await supabase
         .from('departments')
         .insert(data)
@@ -239,7 +240,7 @@ export function useCreateDepartment() {
 export function useUpdateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean; department_head_user_id?: string | null }) => {
       const { data: result, error } = await supabase
         .from('departments')
         .update(data)

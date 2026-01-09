@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,12 +29,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Plus, Search, Edit, Building2, Trash2 } from "lucide-react";
-import { useOfficeLocations, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from "@/hooks/useAdminData";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Users, Plus, Search, Edit, Building2, Trash2, Check, ChevronsUpDown, UserCircle } from "lucide-react";
+import { useOfficeLocations, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, useUserProfiles } from "@/hooks/useAdminData";
 import type { Department } from "@/hooks/useAdminData";
+import { cn } from "@/lib/utils";
 
 interface DepartmentWithOffice extends Department {
   officeName?: string;
+  department_head_user_id?: string;
+  departmentHeadName?: string;
 }
 
 const DepartmentManagement = () => {
@@ -43,12 +59,27 @@ const DepartmentManagement = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<DepartmentWithOffice | null>(null);
   const [selectedOfficeForCreate, setSelectedOfficeForCreate] = useState<string>("");
-  const [form, setForm] = useState({ name: "", description: "", is_active: true });
+  const [form, setForm] = useState({ name: "", description: "", is_active: true, department_head_user_id: "" });
+  const [headSearchOpen, setHeadSearchOpen] = useState(false);
 
   const { data: offices = [], isLoading: loadingOffices } = useOfficeLocations();
+  const { data: users = [] } = useUserProfiles();
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
+
+  // Filter only active users for department head selection
+  const activeUsers = useMemo(() => 
+    users.filter(u => u.is_active !== false), 
+    [users]
+  );
+
+  // Get user name by ID
+  const getUserName = (userId: string | undefined | null) => {
+    if (!userId) return null;
+    const user = users.find(u => u.id === userId);
+    return user ? (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email) : null;
+  };
 
   // Flatten departments from offices
   const departments: DepartmentWithOffice[] = selectedOfficeId === "all" 
@@ -67,11 +98,16 @@ const DepartmentManagement = () => {
     if (dept) {
       setEditingDepartment(dept);
       setSelectedOfficeForCreate(dept.office_id);
-      setForm({ name: dept.name, description: dept.description || "", is_active: dept.is_active });
+      setForm({ 
+        name: dept.name, 
+        description: dept.description || "", 
+        is_active: dept.is_active,
+        department_head_user_id: dept.department_head_user_id || ""
+      });
     } else {
       setEditingDepartment(null);
       setSelectedOfficeForCreate(offices[0]?.id || "");
-      setForm({ name: "", description: "", is_active: true });
+      setForm({ name: "", description: "", is_active: true, department_head_user_id: "" });
     }
     setShowDialog(true);
   };
@@ -83,6 +119,7 @@ const DepartmentManagement = () => {
         name: form.name,
         description: form.description,
         is_active: form.is_active,
+        department_head_user_id: form.department_head_user_id || null,
       });
     } else {
       if (!selectedOfficeForCreate) return;
@@ -91,6 +128,7 @@ const DepartmentManagement = () => {
         name: form.name,
         description: form.description,
         is_active: form.is_active,
+        department_head_user_id: form.department_head_user_id || null,
       });
     }
     setShowDialog(false);
@@ -184,6 +222,7 @@ const DepartmentManagement = () => {
                 <TableRow>
                   <TableHead>Department Name</TableHead>
                   <TableHead>Office Location</TableHead>
+                  <TableHead>Department Head</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -198,6 +237,16 @@ const DepartmentManagement = () => {
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         {dept.officeName}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {dept.department_head_user_id ? (
+                        <div className="flex items-center gap-2">
+                          <UserCircle className="h-4 w-4 text-muted-foreground" />
+                          <span>{getUserName(dept.department_head_user_id) || 'Unknown'}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{dept.description || "-"}</TableCell>
                     <TableCell>
@@ -230,7 +279,7 @@ const DepartmentManagement = () => {
                 ))}
                 {filteredDepartments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No departments found
                     </TableCell>
                   </TableRow>
@@ -284,6 +333,70 @@ const DepartmentManagement = () => {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Department Head</Label>
+              <Popover open={headSearchOpen} onOpenChange={setHeadSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={headSearchOpen}
+                    className="w-full justify-between"
+                  >
+                    {form.department_head_user_id
+                      ? getUserName(form.department_head_user_id) || "Select user..."
+                      : "Select department head..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search users..." />
+                    <CommandList>
+                      <CommandEmpty>No user found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            setForm({ ...form, department_head_user_id: "" });
+                            setHeadSearchOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !form.department_head_user_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          No department head
+                        </CommandItem>
+                        {activeUsers.map((user) => (
+                          <CommandItem
+                            key={user.id}
+                            value={user.full_name || user.email || user.id}
+                            onSelect={() => {
+                              setForm({ ...form, department_head_user_id: user.id });
+                              setHeadSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                form.department_head_user_id === user.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">
+                The department head will be used for workflow approvals when "Department Head" approver type is selected.
+              </p>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="is_active">Active</Label>
