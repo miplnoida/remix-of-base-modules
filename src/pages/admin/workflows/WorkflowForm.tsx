@@ -48,21 +48,40 @@ interface StepFormData {
   id?: string;
   step_number: number;
   step_name: string;
+  description: string;
   assigned_role: string | null;
   assigned_designation: string | null;
   action_type: string;
   sla_hours: number;
   is_final_step: boolean;
   isOpen: boolean;
+  // New fields for PART 4
+  approver_type: 'role' | 'designation' | 'specific_users' | 'department_head' | 'designation_hierarchy';
+  approver_role_ids: string[];
+  approver_designation_ids: string[];
+  approver_user_ids: string[];
+  parallel_approval: boolean;
+  required_approvals: number;
+  auto_approve_on_timeout: boolean;
+  has_condition: boolean;
+  condition_expression: any;
+  escalation_enabled: boolean;
+  escalation_notification_type: string;
+  escalation_module_id: string | null;
+  escalation_template_id: string | null;
   actions: ActionFormData[];
 }
 
 interface ActionFormData {
   id?: string;
   action_name: string;
-  action_type: string;
+  action_type: 'Approve' | 'Reject' | 'ReviewForPrevious' | 'QueryToApplicant';
   is_final_action: boolean;
   display_order: number;
+  // Notification fields for actions
+  notification_type: string;
+  notification_module_id: string | null;
+  notification_template_id: string | null;
   notifications: NotificationFormData[];
 }
 
@@ -81,6 +100,21 @@ const PROCESS_TYPES = [
   'Expense Claim',
   'Document Review',
   'Custom',
+];
+
+const APPROVER_TYPES = [
+  { value: 'role', label: 'By Role' },
+  { value: 'designation', label: 'By Designation' },
+  { value: 'specific_users', label: 'Specific Users' },
+  { value: 'department_head', label: 'Department Head' },
+  { value: 'designation_hierarchy', label: 'Higher level in Designation Hierarchy' },
+];
+
+const STEP_ACTION_TYPES = [
+  { value: 'Approve', label: 'Approve', description: 'Move to next step or complete workflow' },
+  { value: 'Reject', label: 'Reject', description: 'Reject application and close workflow' },
+  { value: 'ReviewForPrevious', label: 'Review for Previous Reviewer', description: 'Send back to previous step' },
+  { value: 'QueryToApplicant', label: 'Query to Applicant', description: 'Request more info from applicant' },
 ];
 
 const ACTION_TYPES = [
@@ -113,12 +147,42 @@ export default function WorkflowForm() {
   const { data: workflow, isLoading } = useWorkflowWithSteps(isEditing ? id : null);
   const { data: roles } = useDbRoles();
   const { data: designations } = useDesignations();
+  
+  // Fetch active users for specific user assignment
+  const { data: users } = useQuery({
+    queryKey: ['active-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('is_active', true)
+        .order('full_name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch parent modules only
+  const { data: parentModules } = useQuery({
+    queryKey: ['parent-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('id, display_name')
+        .is('parent_id', null)
+        .eq('is_enabled', true)
+        .order('display_name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const { data: templates } = useQuery({
-    queryKey: ['notification-templates'],
+    queryKey: ['notification-templates-with-module'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_templates')
-        .select('id, name')
+        .select('id, name, channel, module_id')
         .order('name');
       if (error) throw error;
       return data || [];
@@ -144,18 +208,36 @@ export default function WorkflowForm() {
           id: step.id,
           step_number: step.step_number,
           step_name: step.step_name,
+          description: (step as any).description || '',
           assigned_role: step.assigned_role,
           assigned_designation: step.assigned_designation,
           action_type: step.action_type,
           sla_hours: step.sla_hours,
           is_final_step: step.is_final_step,
           isOpen: idx === 0,
+          // New fields
+          approver_type: ((step as any).approver_type || 'role') as StepFormData['approver_type'],
+          approver_role_ids: (step as any).approver_role_ids || [],
+          approver_designation_ids: (step as any).approver_designation_ids || [],
+          approver_user_ids: (step as any).approver_user_ids || [],
+          parallel_approval: (step as any).parallel_approval || false,
+          required_approvals: (step as any).required_approvals || 1,
+          auto_approve_on_timeout: (step as any).auto_approve_on_timeout || false,
+          has_condition: (step as any).has_condition || false,
+          condition_expression: (step as any).condition_expression || null,
+          escalation_enabled: (step as any).escalation_enabled || false,
+          escalation_notification_type: (step as any).escalation_notification_type || '',
+          escalation_module_id: (step as any).escalation_module_id || null,
+          escalation_template_id: (step as any).escalation_template_id || null,
           actions: step.actions.map(action => ({
             id: action.id,
             action_name: action.action_name,
-            action_type: action.action_type,
+            action_type: action.action_type as ActionFormData['action_type'],
             is_final_action: action.is_final_action,
             display_order: action.display_order,
+            notification_type: (action as any).notification_type || '',
+            notification_module_id: (action as any).notification_module_id || null,
+            notification_template_id: (action as any).notification_template_id || null,
             notifications: action.notifications.map(n => ({
               id: n.id,
               notification_type: n.notification_type,
@@ -174,18 +256,35 @@ export default function WorkflowForm() {
       {
         step_number: newStepNumber,
         step_name: `Step ${newStepNumber}`,
+        description: '',
         assigned_role: null,
         assigned_designation: null,
         action_type: 'Review',
         sla_hours: 24,
         is_final_step: false,
         isOpen: true,
+        approver_type: 'role',
+        approver_role_ids: [],
+        approver_designation_ids: [],
+        approver_user_ids: [],
+        parallel_approval: false,
+        required_approvals: 1,
+        auto_approve_on_timeout: false,
+        has_condition: false,
+        condition_expression: null,
+        escalation_enabled: false,
+        escalation_notification_type: '',
+        escalation_module_id: null,
+        escalation_template_id: null,
         actions: [
           {
             action_name: 'Approve',
             action_type: 'Approve',
             is_final_action: false,
             display_order: 0,
+            notification_type: '',
+            notification_module_id: null,
+            notification_template_id: null,
             notifications: [],
           },
         ],
@@ -220,9 +319,12 @@ export default function WorkflowForm() {
     const newSteps = [...steps];
     newSteps[stepIndex].actions.push({
       action_name: 'New Action',
-      action_type: 'Custom',
+      action_type: 'Approve',
       is_final_action: false,
       display_order: newSteps[stepIndex].actions.length,
+      notification_type: '',
+      notification_module_id: null,
+      notification_template_id: null,
       notifications: [],
     });
     setSteps(newSteps);
@@ -492,88 +594,211 @@ export default function WorkflowForm() {
                       </CardHeader>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className="space-y-4 pt-0">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Step Name *</Label>
-                            <Input
-                              value={step.step_name}
-                              onChange={(e) => updateStep(stepIndex, 'step_name', e.target.value)}
-                              placeholder="Enter step name"
-                            />
+                      <CardContent className="space-y-6 pt-0">
+                        {/* Step Identity Section */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-sm border-b pb-2">Step Identity</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Step Name *</Label>
+                              <Input
+                                value={step.step_name}
+                                onChange={(e) => updateStep(stepIndex, 'step_name', e.target.value)}
+                                placeholder="Enter step name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Step Order</Label>
+                              <Input
+                                type="number"
+                                value={step.step_number}
+                                onChange={(e) => {
+                                  const newOrder = parseInt(e.target.value);
+                                  if (newOrder > 0 && newOrder <= steps.length) {
+                                    const newSteps = [...steps];
+                                    newSteps.forEach(s => {
+                                      if (s.step_number >= newOrder && s !== step) {
+                                        s.step_number = s.step_number + 1;
+                                      }
+                                    });
+                                    step.step_number = newOrder;
+                                    newSteps.sort((a, b) => a.step_number - b.step_number);
+                                    setSteps(newSteps);
+                                  }
+                                }}
+                                min={1}
+                                max={steps.length}
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
-                            <Label>Action Type</Label>
+                            <Label>Description</Label>
+                            <Textarea
+                              value={step.description}
+                              onChange={(e) => updateStep(stepIndex, 'description', e.target.value)}
+                              placeholder="Enter step description"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Approver Configuration Section */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-sm border-b pb-2">Approver Configuration</h4>
+                          <div className="space-y-2">
+                            <Label>Approver Type *</Label>
                             <Select
-                              value={step.action_type}
-                              onValueChange={(value) => updateStep(stepIndex, 'action_type', value)}
+                              value={step.approver_type}
+                              onValueChange={(value: StepFormData['approver_type']) => updateStep(stepIndex, 'approver_type', value)}
                             >
                               <SelectTrigger>
-                                <SelectValue />
+                                <SelectValue placeholder="Select approver type" />
                               </SelectTrigger>
                               <SelectContent>
-                                {ACTION_TYPES.map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type}
+                                {APPROVER_TYPES.map((type) => (
+                                  <SelectItem key={type.value} value={type.value}>
+                                    {type.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Assigned Role</Label>
-                            <Select
-                              value={step.assigned_role || '__none__'}
-                              onValueChange={(value) => updateStep(stepIndex, 'assigned_role', value === '__none__' ? null : value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">None</SelectItem>
+                          {/* Dynamic Approver Selection based on type */}
+                          {step.approver_type === 'role' && (
+                            <div className="space-y-2">
+                              <Label>Select Roles</Label>
+                              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                                 {roles?.map((role) => (
-                                  <SelectItem key={role.id} value={role.role_name}>
+                                  <label key={role.id} className="flex items-center gap-2 text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={step.approver_role_ids.includes(role.id)}
+                                      onChange={(e) => {
+                                        const ids = e.target.checked 
+                                          ? [...step.approver_role_ids, role.id]
+                                          : step.approver_role_ids.filter(id => id !== role.id);
+                                        updateStep(stepIndex, 'approver_role_ids', ids);
+                                      }}
+                                      className="rounded"
+                                    />
                                     {role.role_name}
-                                  </SelectItem>
+                                  </label>
                                 ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Assigned Designation</Label>
-                            <Select
-                              value={step.assigned_designation || '__none__'}
-                              onValueChange={(value) => updateStep(stepIndex, 'assigned_designation', value === '__none__' ? null : value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select designation" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">None</SelectItem>
+                              </div>
+                            </div>
+                          )}
+
+                          {step.approver_type === 'designation' && (
+                            <div className="space-y-2">
+                              <Label>Select Designations</Label>
+                              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                                 {designations?.map((des) => (
-                                  <SelectItem key={des.id} value={des.name}>
+                                  <label key={des.id} className="flex items-center gap-2 text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={step.approver_designation_ids.includes(des.id)}
+                                      onChange={(e) => {
+                                        const ids = e.target.checked 
+                                          ? [...step.approver_designation_ids, des.id]
+                                          : step.approver_designation_ids.filter(id => id !== des.id);
+                                        updateStep(stepIndex, 'approver_designation_ids', ids);
+                                      }}
+                                      className="rounded"
+                                    />
                                     {des.name}
-                                  </SelectItem>
+                                  </label>
                                 ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {step.approver_type === 'specific_users' && (
+                            <div className="space-y-2">
+                              <Label>Select Users</Label>
+                              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-md">
+                                {users?.map((user) => (
+                                  <label key={user.id} className="flex items-center gap-2 text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={step.approver_user_ids.includes(user.id)}
+                                      onChange={(e) => {
+                                        const ids = e.target.checked 
+                                          ? [...step.approver_user_ids, user.id]
+                                          : step.approver_user_ids.filter(id => id !== user.id);
+                                        updateStep(stepIndex, 'approver_user_ids', ids);
+                                      }}
+                                      className="rounded"
+                                    />
+                                    {user.full_name || user.email}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {step.approver_type === 'department_head' && (
+                            <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                              The department head of the applicant's department will be resolved at runtime.
+                            </p>
+                          )}
+
+                          {step.approver_type === 'designation_hierarchy' && (
+                            <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                              Approvers will be resolved from higher levels in the applicant's designation hierarchy.
+                            </p>
+                          )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>SLA (hours)</Label>
-                            <Input
-                              type="number"
-                              value={step.sla_hours}
-                              onChange={(e) => updateStep(stepIndex, 'sla_hours', parseInt(e.target.value) || 24)}
-                              min={1}
+                        {/* Parallel Approval Section */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-sm border-b pb-2">Parallel Approval</h4>
+                          <div className="flex items-center gap-4">
+                            <Switch
+                              checked={step.parallel_approval}
+                              onCheckedChange={(checked) => updateStep(stepIndex, 'parallel_approval', checked)}
                             />
+                            <Label>Enable Parallel Approval</Label>
                           </div>
-                          <div className="flex items-center space-x-2 pt-8">
+                          {step.parallel_approval && (
+                            <div className="space-y-2">
+                              <Label>Required Approvals</Label>
+                              <Input
+                                type="number"
+                                value={step.required_approvals}
+                                onChange={(e) => updateStep(stepIndex, 'required_approvals', parseInt(e.target.value) || 1)}
+                                min={1}
+                                className="w-32"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Step completes when this number of approvers approve.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* SLA Controls Section */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-sm border-b pb-2">SLA Controls</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Step SLA (hours)</Label>
+                              <Input
+                                type="number"
+                                value={step.sla_hours}
+                                onChange={(e) => updateStep(stepIndex, 'sla_hours', parseInt(e.target.value) || 24)}
+                                min={1}
+                              />
+                            </div>
+                            <div className="flex items-center gap-4 pt-6">
+                              <Switch
+                                checked={step.auto_approve_on_timeout}
+                                onCheckedChange={(checked) => updateStep(stepIndex, 'auto_approve_on_timeout', checked)}
+                              />
+                              <Label>Auto-approve on timeout</Label>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
                             <Switch
                               checked={step.is_final_step}
                               onCheckedChange={(checked) => updateStep(stepIndex, 'is_final_step', checked)}
@@ -582,10 +807,109 @@ export default function WorkflowForm() {
                           </div>
                         </div>
 
-                        {/* Step Actions */}
-                        <div className="space-y-3 mt-4">
+                        {/* Conditional Step Section */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-sm border-b pb-2">Conditional Step</h4>
+                          <div className="flex items-center gap-4">
+                            <Switch
+                              checked={step.has_condition}
+                              onCheckedChange={(checked) => updateStep(stepIndex, 'has_condition', checked)}
+                            />
+                            <Label>Step has condition</Label>
+                          </div>
+                          {step.has_condition && (
+                            <div className="space-y-2">
+                              <Label>Condition Expression (JSON)</Label>
+                              <Textarea
+                                value={step.condition_expression ? JSON.stringify(step.condition_expression, null, 2) : ''}
+                                onChange={(e) => {
+                                  try {
+                                    const parsed = e.target.value ? JSON.parse(e.target.value) : null;
+                                    updateStep(stepIndex, 'condition_expression', parsed);
+                                  } catch {
+                                    // Invalid JSON, don't update
+                                  }
+                                }}
+                                placeholder='{"field": "invoice_amount", "operator": ">", "value": 10000}'
+                                rows={3}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Define conditions on application data. If true, step is auto-approved.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Escalation on SLA Breach Section */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-sm border-b pb-2">Escalation on SLA Breach</h4>
+                          <div className="flex items-center gap-4">
+                            <Switch
+                              checked={step.escalation_enabled}
+                              onCheckedChange={(checked) => updateStep(stepIndex, 'escalation_enabled', checked)}
+                            />
+                            <Label>Enable Escalation</Label>
+                          </div>
+                          {step.escalation_enabled && (
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <Label>Notification Type</Label>
+                                <Select
+                                  value={step.escalation_notification_type}
+                                  onValueChange={(value) => updateStep(stepIndex, 'escalation_notification_type', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {NOTIFICATION_TYPES.map((type) => (
+                                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Module</Label>
+                                <Select
+                                  value={step.escalation_module_id || '__none__'}
+                                  onValueChange={(value) => updateStep(stepIndex, 'escalation_module_id', value === '__none__' ? null : value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select module" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">None</SelectItem>
+                                    {parentModules?.map((m) => (
+                                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Template</Label>
+                                <Select
+                                  value={step.escalation_template_id || '__none__'}
+                                  onValueChange={(value) => updateStep(stepIndex, 'escalation_template_id', value === '__none__' ? null : value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select template" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">None</SelectItem>
+                                    {templates?.filter(t => !step.escalation_module_id || t.module_id === step.escalation_module_id).map((t) => (
+                                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Step Actions - PART 5 */}
+                        <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <Label className="text-base font-semibold">Step Actions</Label>
+                            <h4 className="font-semibold text-sm border-b pb-2 flex-1">Step Actions</h4>
                             <Button variant="outline" size="sm" onClick={() => addAction(stepIndex)}>
                               <Plus className="h-3 w-3 mr-1" />
                               Add Action
@@ -593,109 +917,123 @@ export default function WorkflowForm() {
                           </div>
                           
                           {step.actions.map((action, actionIndex) => (
-                            <Card key={actionIndex} className="bg-muted/30">
-                              <CardContent className="pt-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <div className="grid grid-cols-2 gap-3 flex-1">
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Action Name</Label>
-                                      <Input
-                                        value={action.action_name}
-                                        onChange={(e) => updateAction(stepIndex, actionIndex, 'action_name', e.target.value)}
-                                        placeholder="Action name"
-                                        className="h-8"
-                                      />
+                            <Card key={actionIndex} className="bg-muted/30 border-l-4 border-l-blue-400">
+                              <CardContent className="pt-4 space-y-4">
+                                <div className="flex justify-between items-start gap-4">
+                                  <div className="flex-1 space-y-4">
+                                    {/* Action Identity */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label>Action Name</Label>
+                                        <Input
+                                          value={action.action_name}
+                                          onChange={(e) => updateAction(stepIndex, actionIndex, 'action_name', e.target.value)}
+                                          placeholder="Action name"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Action Type *</Label>
+                                        <Select
+                                          value={action.action_type}
+                                          onValueChange={(value: ActionFormData['action_type']) => updateAction(stepIndex, actionIndex, 'action_type', value)}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {STEP_ACTION_TYPES.map((type) => (
+                                              <SelectItem key={type.value} value={type.value}>
+                                                <div className="flex flex-col">
+                                                  <span>{type.label}</span>
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                          {STEP_ACTION_TYPES.find(t => t.value === action.action_type)?.description}
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Action Type</Label>
-                                      <Select
-                                        value={action.action_type}
-                                        onValueChange={(value) => updateAction(stepIndex, actionIndex, 'action_type', value)}
-                                      >
-                                        <SelectTrigger className="h-8">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {ACTION_TYPES.map((type) => (
-                                            <SelectItem key={type} value={type}>
-                                              {type}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+
+                                    {/* Action Notification Configuration */}
+                                    <div className="space-y-3 p-3 bg-background rounded-md border">
+                                      <Label className="text-sm font-medium">Action Notification</Label>
+                                      <div className="grid grid-cols-3 gap-3">
+                                        <div className="space-y-1">
+                                          <Label className="text-xs">Type</Label>
+                                          <Select
+                                            value={action.notification_type || '__none__'}
+                                            onValueChange={(value) => updateAction(stepIndex, actionIndex, 'notification_type', value === '__none__' ? '' : value)}
+                                          >
+                                            <SelectTrigger className="h-8">
+                                              <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">None</SelectItem>
+                                              {NOTIFICATION_TYPES.map((type) => (
+                                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <Label className="text-xs">Module</Label>
+                                          <Select
+                                            value={action.notification_module_id || '__none__'}
+                                            onValueChange={(value) => updateAction(stepIndex, actionIndex, 'notification_module_id', value === '__none__' ? null : value)}
+                                          >
+                                            <SelectTrigger className="h-8">
+                                              <SelectValue placeholder="Select module" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">None</SelectItem>
+                                              {parentModules?.map((m) => (
+                                                <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <Label className="text-xs">Template</Label>
+                                          <Select
+                                            value={action.notification_template_id || '__none__'}
+                                            onValueChange={(value) => updateAction(stepIndex, actionIndex, 'notification_template_id', value === '__none__' ? null : value)}
+                                          >
+                                            <SelectTrigger className="h-8">
+                                              <SelectValue placeholder="Select template" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="__none__">None</SelectItem>
+                                              {templates?.filter(t => !action.notification_module_id || t.module_id === action.notification_module_id).map((t) => (
+                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        Notification sent when this action is executed.
+                                      </p>
                                     </div>
                                   </div>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
                                     onClick={() => removeAction(stepIndex, actionIndex)}
                                   >
-                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
-                                </div>
-
-                                {/* Notifications */}
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <Label className="text-xs">Notifications</Label>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-xs"
-                                      onClick={() => addNotification(stepIndex, actionIndex)}
-                                    >
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Add
-                                    </Button>
-                                  </div>
-                                  {action.notifications.map((notif, notifIndex) => (
-                                    <div key={notifIndex} className="flex gap-2 items-center">
-                                      <Select
-                                        value={notif.notification_type}
-                                        onValueChange={(value) => updateNotification(stepIndex, actionIndex, notifIndex, 'notification_type', value)}
-                                      >
-                                        <SelectTrigger className="h-7 w-24">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {NOTIFICATION_TYPES.map((type) => (
-                                            <SelectItem key={type} value={type}>
-                                              {type}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <Select
-                                        value={notif.template_id || '__none__'}
-                                        onValueChange={(value) => updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', value === '__none__' ? null : value)}
-                                      >
-                                        <SelectTrigger className="h-7 flex-1">
-                                          <SelectValue placeholder="Select template" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="__none__">None</SelectItem>
-                                          {templates?.map((t) => (
-                                            <SelectItem key={t.id} value={t.id}>
-                                              {t.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => removeNotification(stepIndex, actionIndex, notifIndex)}
-                                      >
-                                        <Trash2 className="h-3 w-3 text-destructive" />
-                                      </Button>
-                                    </div>
-                                  ))}
                                 </div>
                               </CardContent>
                             </Card>
                           ))}
+                          
+                          {step.actions.length === 0 && (
+                            <div className="text-center py-4 text-muted-foreground text-sm border rounded-md border-dashed">
+                              No actions defined. Click "Add Action" to create step actions.
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </CollapsibleContent>

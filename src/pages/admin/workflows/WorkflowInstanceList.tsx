@@ -54,8 +54,12 @@ const WorkflowInstanceList: React.FC = () => {
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">In Progress</Badge>;
       case 'Completed':
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>;
+      case 'Approved':
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Approved</Badge>;
       case 'Rejected':
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejected</Badge>;
+      case 'Query':
+        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Query</Badge>;
       case 'Cancelled':
         return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Cancelled</Badge>;
       default:
