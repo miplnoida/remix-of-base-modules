@@ -77,6 +77,8 @@ export const MODULE_NAMES = {
   WORKFLOW_TASKS: 'workflow_tasks',
   WORKFLOW_LOGS: 'workflow_logs',
   WORKFLOW_ANALYTICS: 'workflow_analytics',
+  APPLICATIONS_REVIEW: 'applications_review',
+  WORKFLOW_INSTANCES: 'workflow_instances',
   // Sample Application module
   SAMPLE_APPLICATION: 'sample_application',
 } as const;

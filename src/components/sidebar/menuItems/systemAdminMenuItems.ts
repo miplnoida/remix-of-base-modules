@@ -12,7 +12,9 @@ import {
   GitBranch,
   Play,
   ListTodo,
-  BarChart3
+  BarChart3,
+  ClipboardCheck,
+  Layers
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -59,6 +61,12 @@ export const systemAdminMenuItems = [
             title: "Workflow Management",
             url: "/admin/workflows",
             icon: GitBranch,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Instances",
+            url: "/admin/workflow-instances",
+            icon: Layers,
             requiresPermission: "system_administration"
           },
           {
@@ -124,6 +132,11 @@ export const systemAdminMenuItems = [
     title: "My Tasks",
     url: "/workflow/my-tasks",
     icon: ListTodo,
+  },
+  {
+    title: "Applications for Review",
+    url: "/workflow/applications-review",
+    icon: ClipboardCheck,
   },
   {
     title: "Sample Application",

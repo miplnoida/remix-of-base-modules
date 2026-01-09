@@ -241,7 +241,10 @@ import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
 import WorkflowTriggers from '@/pages/admin/workflows/WorkflowTriggers';
 import WorkflowLogs from '@/pages/admin/workflows/WorkflowLogs';
 import WorkflowAnalytics from '@/pages/admin/workflows/WorkflowAnalytics';
+import WorkflowInstanceList from '@/pages/admin/workflows/WorkflowInstanceList';
+import WorkflowInstanceDetail from '@/pages/admin/workflows/WorkflowInstanceDetail';
 import MyWorkflowTasks from '@/pages/workflow/MyWorkflowTasks';
+import ApplicationsReview from '@/pages/workflow/ApplicationsReview';
 
 // Sample Application
 import SampleApplicationList from '@/pages/sample-application/SampleApplicationList';
@@ -1267,6 +1270,13 @@ export const AppRoutes = () => {
       <Route path="/sample-applications/new" element={<ProtectedLayout><SampleApplicationForm /></ProtectedLayout>} />
       <Route path="/sample-applications/:id" element={<ProtectedLayout><SampleApplicationView /></ProtectedLayout>} />
       <Route path="/sample-applications/:id/edit" element={<ProtectedLayout><SampleApplicationForm /></ProtectedLayout>} />
+
+      {/* Applications for Review */}
+      <Route path="/workflow/applications-review" element={<ProtectedLayout><ApplicationsReview /></ProtectedLayout>} />
+
+      {/* Workflow Instances */}
+      <Route path="/admin/workflow-instances" element={<ProtectedLayout><WorkflowInstanceList /></ProtectedLayout>} />
+      <Route path="/admin/workflow-instances/:id" element={<ProtectedLayout><WorkflowInstanceDetail /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />

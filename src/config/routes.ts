@@ -107,6 +107,9 @@ export const routes = {
   WORKFLOW_LOGS: '/admin/workflow-logs',
   WORKFLOW_ANALYTICS: '/admin/workflow-analytics',
   MY_WORKFLOW_TASKS: '/workflow/my-tasks',
+  APPLICATIONS_REVIEW: '/workflow/applications-review',
+  WORKFLOW_INSTANCES: '/admin/workflow-instances',
+  WORKFLOW_INSTANCE_DETAIL: (id: string) => `/admin/workflow-instances/${id}`,
 
   // Sample Application routes
   SAMPLE_APPLICATION_LIST: '/sample-applications',
