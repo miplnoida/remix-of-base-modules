@@ -98,4 +98,13 @@ export const routes = {
   BEMA_ADMIN_TEMPLATES: '/bema/admin/templates',
   BEMA_ADMIN_ROLES: '/bema/admin/roles',
   BEMA_ADMIN_LOGS: '/bema/admin/logs',
+  
+  // Workflow Engine routes
+  WORKFLOW_MANAGEMENT: '/admin/workflows',
+  WORKFLOW_CREATE: '/admin/workflows/new',
+  WORKFLOW_EDIT: (id: string) => `/admin/workflows/${id}`,
+  WORKFLOW_TRIGGERS: '/admin/workflow-triggers',
+  WORKFLOW_LOGS: '/admin/workflow-logs',
+  WORKFLOW_ANALYTICS: '/admin/workflow-analytics',
+  MY_WORKFLOW_TASKS: '/workflow/my-tasks',
 } as const;

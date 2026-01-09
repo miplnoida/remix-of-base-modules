@@ -8,7 +8,11 @@ import {
   Building2,
   ShieldCheck,
   Bell,
-  Boxes
+  Boxes,
+  GitBranch,
+  Play,
+  ListTodo,
+  BarChart3
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -45,6 +49,37 @@ export const systemAdminMenuItems = [
         url: "/admin/departments",
         icon: UserCog,
         requiresPermission: "system_administration"
+      },
+      {
+        title: "Workflow Engine",
+        icon: GitBranch,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Workflow Management",
+            url: "/admin/workflows",
+            icon: GitBranch,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Triggers",
+            url: "/admin/workflow-triggers",
+            icon: Play,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Logs",
+            url: "/admin/workflow-logs",
+            icon: History,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Analytics",
+            url: "/admin/workflow-analytics",
+            icon: BarChart3,
+            requiresPermission: "system_administration"
+          }
+        ]
       },
       {
         title: "Notifications",
@@ -84,5 +119,10 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration"
       }
     ]
+  },
+  {
+    title: "My Tasks",
+    url: "/workflow/my-tasks",
+    icon: ListTodo,
   }
 ];

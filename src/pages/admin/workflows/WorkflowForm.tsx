@@ -39,7 +39,7 @@ import {
   WorkflowStepAction,
   WorkflowActionNotification,
 } from '@/hooks/useWorkflows';
-import { useDbRoles } from '@/hooks/useRoles';
+import { useDbRoles } from '@/hooks/useRolesData';
 import { useDesignations } from '@/hooks/useDesignations';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -322,6 +322,7 @@ export default function WorkflowForm() {
           actions: step.actions.map(action => ({
             action_name: action.action_name,
             action_type: action.action_type as any,
+            next_step_id: null,
             is_final_action: action.is_final_action,
             display_order: action.display_order,
             notifications: action.notifications,
@@ -534,8 +535,8 @@ export default function WorkflowForm() {
                               <SelectContent>
                                 <SelectItem value="">None</SelectItem>
                                 {roles?.map((role) => (
-                                  <SelectItem key={role.id} value={role.name}>
-                                    {role.name}
+                                  <SelectItem key={role.id} value={role.role_name}>
+                                    {role.role_name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

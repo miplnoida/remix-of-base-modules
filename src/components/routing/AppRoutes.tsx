@@ -235,6 +235,14 @@ import DesignationHierarchy from '@/pages/admin/DesignationHierarchy';
 import RoleHierarchy from '@/pages/admin/RoleHierarchy';
 import UserNotificationPreferences from '@/pages/admin/UserNotificationPreferences';
 
+// Workflow Engine
+import WorkflowList from '@/pages/admin/workflows/WorkflowList';
+import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
+import WorkflowTriggers from '@/pages/admin/workflows/WorkflowTriggers';
+import WorkflowLogs from '@/pages/admin/workflows/WorkflowLogs';
+import WorkflowAnalytics from '@/pages/admin/workflows/WorkflowAnalytics';
+import MyWorkflowTasks from '@/pages/workflow/MyWorkflowTasks';
+
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
 import UserCreate from '@/pages/admin/users/UserCreate';
@@ -861,6 +869,16 @@ export const AppRoutes = () => {
       <Route path="/admin/designation-hierarchy" element={<ProtectedLayout><DesignationHierarchy /></ProtectedLayout>} />
       <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
       <Route path="/admin/user-notification-preferences" element={<ProtectedLayout><UserNotificationPreferences /></ProtectedLayout>} />
+      
+      {/* Workflow Engine Routes */}
+      <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />
+      <Route path="/admin/workflows/new" element={<ProtectedLayout><WorkflowForm /></ProtectedLayout>} />
+      <Route path="/admin/workflows/:id" element={<ProtectedLayout><WorkflowForm /></ProtectedLayout>} />
+      <Route path="/admin/workflow-triggers" element={<ProtectedLayout><WorkflowTriggers /></ProtectedLayout>} />
+      <Route path="/admin/workflow-logs" element={<ProtectedLayout><WorkflowLogs /></ProtectedLayout>} />
+      <Route path="/admin/workflow-analytics" element={<ProtectedLayout><WorkflowAnalytics /></ProtectedLayout>} />
+      <Route path="/workflow/my-tasks" element={<ProtectedLayout><MyWorkflowTasks /></ProtectedLayout>} />
+      
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
       <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
 

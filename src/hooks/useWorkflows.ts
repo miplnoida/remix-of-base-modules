@@ -351,15 +351,25 @@ export function useSaveWorkflowSteps() {
         // Insert actions for this step
         if (step.actions && step.actions.length > 0) {
           for (const action of step.actions) {
+            const insertData: {
+              step_id: string;
+              action_name: string;
+              action_type: string;
+              next_step_id: string | null;
+              is_final_action: boolean;
+              display_order: number;
+            } = {
+              step_id: savedStep.id,
+              action_name: action.action_name,
+              action_type: action.action_type,
+              next_step_id: action.next_step_id || null,
+              is_final_action: action.is_final_action,
+              display_order: action.display_order,
+            };
+            
             const { data: savedAction, error: actionError } = await supabase
               .from('workflow_step_actions')
-              .insert({
-                step_id: savedStep.id,
-                action_name: action.action_name,
-                action_type: action.action_type,
-                is_final_action: action.is_final_action,
-                display_order: action.display_order,
-              })
+              .insert(insertData as any)
               .select()
               .single();
             
