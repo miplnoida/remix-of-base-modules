@@ -25,6 +25,8 @@ interface NotificationTemplate {
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
+  module_id: string | null;
+  module?: { id: string; display_name: string } | null;
 }
 
 const CHANNELS = ['email', 'sms', 'push', 'in_app'] as const;
@@ -34,6 +36,7 @@ const NotificationTemplates = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
+  const [selectedModuleFilter, setSelectedModuleFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -47,6 +50,22 @@ const NotificationTemplates = () => {
     title: '',
     body: '',
     is_enabled: true,
+    module_id: '',
+  });
+
+  // Fetch parent modules only (where parent_id is null)
+  const { data: parentModules = [] } = useQuery({
+    queryKey: ['parent-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('id, display_name')
+        .is('parent_id', null)
+        .eq('is_enabled', true)
+        .order('display_name');
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: templates = [], isLoading } = useQuery({
@@ -54,7 +73,7 @@ const NotificationTemplates = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_templates')
-        .select('*')
+        .select('*, module:app_modules(id, display_name)')
         .order('name');
       if (error) throw error;
       return data as NotificationTemplate[];
@@ -72,6 +91,7 @@ const NotificationTemplates = () => {
         body: formData.body,
         placeholders: placeholders.map(p => ({ key: p })),
         is_enabled: formData.is_enabled,
+        module_id: formData.module_id || null,
         created_by: user?.id,
         updated_by: user?.id,
       });
@@ -100,6 +120,7 @@ const NotificationTemplates = () => {
           body: formData.body,
           placeholders: placeholders.map(p => ({ key: p })),
           is_enabled: formData.is_enabled,
+          module_id: formData.module_id || null,
           updated_by: user?.id,
           updated_at: new Date().toISOString(),
         })
@@ -160,7 +181,7 @@ const NotificationTemplates = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', channel: 'email', subject: '', title: '', body: '', is_enabled: true });
+    setFormData({ name: '', channel: 'email', subject: '', title: '', body: '', is_enabled: true, module_id: '' });
   };
 
   const openEdit = (template: NotificationTemplate) => {
@@ -172,6 +193,7 @@ const NotificationTemplates = () => {
       title: template.title || '',
       body: template.body,
       is_enabled: template.is_enabled,
+      module_id: template.module_id || '',
     });
     setIsEditOpen(true);
   };
@@ -202,8 +224,17 @@ const NotificationTemplates = () => {
     const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.body.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesChannel = selectedChannel === 'all' || t.channel === selectedChannel;
-    return matchesSearch && matchesChannel;
+    const matchesModule = selectedModuleFilter === 'all' || t.module_id === selectedModuleFilter;
+    return matchesSearch && matchesChannel && matchesModule;
   });
+
+  // Group templates by module for display
+  const groupedTemplates = filteredTemplates.reduce((acc, template) => {
+    const moduleName = template.module?.display_name || 'Unassigned';
+    if (!acc[moduleName]) acc[moduleName] = [];
+    acc[moduleName].push(template);
+    return acc;
+  }, {} as Record<string, NotificationTemplate[]>);
 
   if (isLoading) {
     return <div className="container mx-auto p-6">Loading templates...</div>;
@@ -224,8 +255,8 @@ const NotificationTemplates = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search templates..."
@@ -234,6 +265,17 @@ const NotificationTemplates = () => {
                 className="pl-10"
               />
             </div>
+            <Select value={selectedModuleFilter} onValueChange={setSelectedModuleFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by module" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Modules</SelectItem>
+                {parentModules.map(m => (
+                  <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={selectedChannel} onValueChange={setSelectedChannel}>
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -268,44 +310,54 @@ const NotificationTemplates = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template) => (
-            <Card key={template.id} className="group hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {getChannelIcon(template.channel)}
-                    {template.name}
-                  </CardTitle>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" onClick={() => { setSelectedTemplate(template); setIsPreviewOpen(true); }}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => openTest(template)}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(template)}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTemplate.mutate(template.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Badge variant={template.is_enabled ? "default" : "secondary"}>
-                    {template.is_enabled ? 'Active' : 'Inactive'}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize">{template.channel}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">{template.body}</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Placeholders: {template.placeholders?.length || 0}
-                </p>
-              </CardContent>
-            </Card>
+        <div className="space-y-6">
+          {Object.entries(groupedTemplates).sort(([a], [b]) => a === 'Unassigned' ? 1 : b === 'Unassigned' ? -1 : a.localeCompare(b)).map(([moduleName, moduleTemplates]) => (
+            <div key={moduleName}>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Badge variant="outline">{moduleName}</Badge>
+                <span className="text-sm text-muted-foreground font-normal">({moduleTemplates.length} template{moduleTemplates.length !== 1 ? 's' : ''})</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {moduleTemplates.map((template) => (
+                  <Card key={template.id} className="group hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {getChannelIcon(template.channel)}
+                          {template.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" onClick={() => { setSelectedTemplate(template); setIsPreviewOpen(true); }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openTest(template)}>
+                            <Send className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(template)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTemplate.mutate(template.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant={template.is_enabled ? "default" : "secondary"}>
+                          {template.is_enabled ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge variant="outline" className="capitalize">{template.channel}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{template.body}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Placeholders: {template.placeholders?.length || 0}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -324,18 +376,27 @@ const NotificationTemplates = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>Name *</Label>
                 <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Channel</Label>
-                <Select value={formData.channel} onValueChange={(v: any) => setFormData({ ...formData, channel: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label>Module *</Label>
+                <Select value={formData.module_id} onValueChange={(v) => setFormData({ ...formData, module_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                   <SelectContent>
-                    {CHANNELS.map(c => <SelectItem key={c} value={c}>{c.toUpperCase()}</SelectItem>)}
+                    {parentModules.map(m => <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Channel</Label>
+              <Select value={formData.channel} onValueChange={(v: any) => setFormData({ ...formData, channel: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CHANNELS.map(c => <SelectItem key={c} value={c}>{c.toUpperCase()}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             {(formData.channel === 'email' || formData.channel === 'push') && (
               <div className="space-y-2">
@@ -373,7 +434,7 @@ const NotificationTemplates = () => {
             </Button>
             <Button
               onClick={() => isCreateOpen ? createTemplate.mutate() : updateTemplate.mutate()}
-              disabled={!formData.name || !formData.body}
+              disabled={!formData.name || !formData.body || !formData.module_id}
             >
               {isCreateOpen ? 'Create' : 'Update'}
             </Button>

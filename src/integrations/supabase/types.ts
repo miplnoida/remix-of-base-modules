@@ -2092,6 +2092,7 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
+          department_head_user_id: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -2103,6 +2104,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          department_head_user_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -2114,6 +2116,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by?: string | null
+          department_head_user_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -2123,6 +2126,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "departments_department_head_user_id_fkey"
+            columns: ["department_head_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "departments_office_id_fkey"
             columns: ["office_id"]
@@ -3617,6 +3627,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_enabled: boolean | null
+          module_id: string | null
           name: string
           placeholders: Json | null
           subject: string | null
@@ -3631,6 +3642,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_enabled?: boolean | null
+          module_id?: string | null
           name: string
           placeholders?: Json | null
           subject?: string | null
@@ -3645,6 +3657,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_enabled?: boolean | null
+          module_id?: string | null
           name?: string
           placeholders?: Json | null
           subject?: string | null
@@ -3652,7 +3665,15 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       office_departments: {
         Row: {
@@ -4572,6 +4593,9 @@ export type Database = {
           id: string
           is_final_action: boolean | null
           next_step_id: string | null
+          notification_module_id: string | null
+          notification_template_id: string | null
+          notification_type: string | null
           step_id: string
         }
         Insert: {
@@ -4582,6 +4606,9 @@ export type Database = {
           id?: string
           is_final_action?: boolean | null
           next_step_id?: string | null
+          notification_module_id?: string | null
+          notification_template_id?: string | null
+          notification_type?: string | null
           step_id: string
         }
         Update: {
@@ -4592,6 +4619,9 @@ export type Database = {
           id?: string
           is_final_action?: boolean | null
           next_step_id?: string | null
+          notification_module_id?: string | null
+          notification_template_id?: string | null
+          notification_type?: string | null
           step_id?: string
         }
         Relationships: [
@@ -4600,6 +4630,20 @@ export type Database = {
             columns: ["next_step_id"]
             isOneToOne: false
             referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_actions_notification_module_id_fkey"
+            columns: ["notification_module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_actions_notification_template_id_fkey"
+            columns: ["notification_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
             referencedColumns: ["id"]
           },
           {
@@ -4614,11 +4658,25 @@ export type Database = {
       workflow_steps: {
         Row: {
           action_type: string
+          approver_designation_ids: string[] | null
+          approver_role_ids: string[] | null
+          approver_type: string | null
+          approver_user_ids: string[] | null
           assigned_designation: string | null
           assigned_role: string | null
+          auto_approve_on_timeout: boolean | null
+          condition_expression: Json | null
           created_at: string | null
+          description: string | null
+          escalation_enabled: boolean | null
+          escalation_module_id: string | null
+          escalation_notification_type: string | null
+          escalation_template_id: string | null
+          has_condition: boolean | null
           id: string
           is_final_step: boolean | null
+          parallel_approval: boolean | null
+          required_approvals: number | null
           sla_hours: number | null
           step_name: string
           step_number: number
@@ -4627,11 +4685,25 @@ export type Database = {
         }
         Insert: {
           action_type?: string
+          approver_designation_ids?: string[] | null
+          approver_role_ids?: string[] | null
+          approver_type?: string | null
+          approver_user_ids?: string[] | null
           assigned_designation?: string | null
           assigned_role?: string | null
+          auto_approve_on_timeout?: boolean | null
+          condition_expression?: Json | null
           created_at?: string | null
+          description?: string | null
+          escalation_enabled?: boolean | null
+          escalation_module_id?: string | null
+          escalation_notification_type?: string | null
+          escalation_template_id?: string | null
+          has_condition?: boolean | null
           id?: string
           is_final_step?: boolean | null
+          parallel_approval?: boolean | null
+          required_approvals?: number | null
           sla_hours?: number | null
           step_name: string
           step_number: number
@@ -4640,11 +4712,25 @@ export type Database = {
         }
         Update: {
           action_type?: string
+          approver_designation_ids?: string[] | null
+          approver_role_ids?: string[] | null
+          approver_type?: string | null
+          approver_user_ids?: string[] | null
           assigned_designation?: string | null
           assigned_role?: string | null
+          auto_approve_on_timeout?: boolean | null
+          condition_expression?: Json | null
           created_at?: string | null
+          description?: string | null
+          escalation_enabled?: boolean | null
+          escalation_module_id?: string | null
+          escalation_notification_type?: string | null
+          escalation_template_id?: string | null
+          has_condition?: boolean | null
           id?: string
           is_final_step?: boolean | null
+          parallel_approval?: boolean | null
+          required_approvals?: number | null
           sla_hours?: number | null
           step_name?: string
           step_number?: number
@@ -4652,6 +4738,20 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_steps_escalation_module_id_fkey"
+            columns: ["escalation_module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_steps_escalation_template_id_fkey"
+            columns: ["escalation_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_steps_workflow_id_fkey"
             columns: ["workflow_id"]
@@ -5004,6 +5104,8 @@ export type Database = {
         | "Rejected"
         | "Cancelled"
         | "Escalated"
+        | "Approved"
+        | "Query"
       workflow_status: "Draft" | "Active" | "Disabled" | "Archived"
       workflow_step_action_type:
         | "Approve"
@@ -5302,6 +5404,8 @@ export const Constants = {
         "Rejected",
         "Cancelled",
         "Escalated",
+        "Approved",
+        "Query",
       ],
       workflow_status: ["Draft", "Active", "Disabled", "Archived"],
       workflow_step_action_type: [
