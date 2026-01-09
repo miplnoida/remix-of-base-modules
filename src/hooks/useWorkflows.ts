@@ -485,13 +485,13 @@ export function useMyWorkflowTasks() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return [];
       
+      // RLS policy handles role-based filtering
       const { data, error } = await supabase
         .from('workflow_tasks')
         .select(`
           *,
           workflow_instance:workflow_instances(*)
         `)
-        .or(`assigned_to.eq.${user.user.id},status.eq.Pending`)
         .in('status', ['Pending', 'InProgress'])
         .order('created_at', { ascending: false });
       

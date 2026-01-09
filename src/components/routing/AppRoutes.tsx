@@ -243,6 +243,11 @@ import WorkflowLogs from '@/pages/admin/workflows/WorkflowLogs';
 import WorkflowAnalytics from '@/pages/admin/workflows/WorkflowAnalytics';
 import MyWorkflowTasks from '@/pages/workflow/MyWorkflowTasks';
 
+// Sample Application
+import SampleApplicationList from '@/pages/sample-application/SampleApplicationList';
+import SampleApplicationForm from '@/pages/sample-application/SampleApplicationForm';
+import SampleApplicationView from '@/pages/sample-application/SampleApplicationView';
+
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
 import UserCreate from '@/pages/admin/users/UserCreate';
@@ -1256,6 +1261,12 @@ export const AppRoutes = () => {
       <Route path="/medical/applications/:id" element={<ProtectedLayout><DoctorApplicationDetail /></ProtectedLayout>} />
       <Route path="/medical/registry" element={<ProtectedLayout><DoctorRegistry /></ProtectedLayout>} />
       <Route path="/medical/claims" element={<ProtectedLayout><ClaimsByDoctors /></ProtectedLayout>} />
+
+      {/* Sample Application Module */}
+      <Route path="/sample-applications" element={<ProtectedLayout><SampleApplicationList /></ProtectedLayout>} />
+      <Route path="/sample-applications/new" element={<ProtectedLayout><SampleApplicationForm /></ProtectedLayout>} />
+      <Route path="/sample-applications/:id" element={<ProtectedLayout><SampleApplicationView /></ProtectedLayout>} />
+      <Route path="/sample-applications/:id/edit" element={<ProtectedLayout><SampleApplicationForm /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />

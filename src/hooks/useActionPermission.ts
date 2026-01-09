@@ -77,6 +77,8 @@ export const MODULE_NAMES = {
   WORKFLOW_TASKS: 'workflow_tasks',
   WORKFLOW_LOGS: 'workflow_logs',
   WORKFLOW_ANALYTICS: 'workflow_analytics',
+  // Sample Application module
+  SAMPLE_APPLICATION: 'sample_application',
 } as const;
 
 /**
@@ -125,4 +127,6 @@ export const ACTION_NAMES = {
   DELETE_DESIGNATION: 'delete-designation',
   // Workflow actions
   VIEW_ANALYTICS: 'view-analytics',
+  // Sample Application actions  
+  SUBMIT: 'submit',
 } as const;
