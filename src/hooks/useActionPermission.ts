@@ -71,6 +71,12 @@ export const MODULE_NAMES = {
   OFFICE_MANAGEMENT: 'office_management',
   DEPARTMENT_MANAGEMENT: 'department_management',
   DESIGNATION_MANAGEMENT: 'designation_management',
+  // Workflow modules
+  WORKFLOW_MANAGEMENT: 'workflow_management',
+  WORKFLOW_TRIGGERS: 'workflow_triggers',
+  WORKFLOW_TASKS: 'workflow_tasks',
+  WORKFLOW_LOGS: 'workflow_logs',
+  WORKFLOW_ANALYTICS: 'workflow_analytics',
 } as const;
 
 /**
@@ -78,6 +84,11 @@ export const MODULE_NAMES = {
  */
 export const ACTION_NAMES = {
   VIEW: 'view',
+  CREATE: 'create',
+  EDIT: 'edit',
+  DELETE: 'delete',
+  DISABLE: 'disable',
+  EXPORT: 'export',
   CREATE_ROLE: 'create-role',
   CONFIGURE_PERMISSIONS: 'configure-permissions',
   CLONE_ROLE: 'clone-role',
@@ -85,8 +96,6 @@ export const ACTION_NAMES = {
   DELETE_ROLE: 'delete-role',
   ADD_MODULE: 'add-module',
   ENABLE_DISABLE: 'enable-disable',
-  EDIT: 'edit',
-  DELETE: 'delete',
   ADD_ACTIONS: 'add-actions',
   CREATE_USER: 'create-user',
   VIEW_USER: 'view-user',
@@ -114,4 +123,6 @@ export const ACTION_NAMES = {
   DELETE_DEPARTMENT: 'delete-department',
   EDIT_DESIGNATION: 'edit-designation',
   DELETE_DESIGNATION: 'delete-designation',
+  // Workflow actions
+  VIEW_ANALYTICS: 'view-analytics',
 } as const;
