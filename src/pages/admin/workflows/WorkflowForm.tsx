@@ -526,14 +526,14 @@ export default function WorkflowForm() {
                           <div className="space-y-2">
                             <Label>Assigned Role</Label>
                             <Select
-                              value={step.assigned_role || ''}
-                              onValueChange={(value) => updateStep(stepIndex, 'assigned_role', value || null)}
+                              value={step.assigned_role || '__none__'}
+                              onValueChange={(value) => updateStep(stepIndex, 'assigned_role', value === '__none__' ? null : value)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select role" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="__none__">None</SelectItem>
                                 {roles?.map((role) => (
                                   <SelectItem key={role.id} value={role.role_name}>
                                     {role.role_name}
@@ -545,14 +545,14 @@ export default function WorkflowForm() {
                           <div className="space-y-2">
                             <Label>Assigned Designation</Label>
                             <Select
-                              value={step.assigned_designation || ''}
-                              onValueChange={(value) => updateStep(stepIndex, 'assigned_designation', value || null)}
+                              value={step.assigned_designation || '__none__'}
+                              onValueChange={(value) => updateStep(stepIndex, 'assigned_designation', value === '__none__' ? null : value)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select designation" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="__none__">None</SelectItem>
                                 {designations?.map((des) => (
                                   <SelectItem key={des.id} value={des.name}>
                                     {des.name}
@@ -667,14 +667,14 @@ export default function WorkflowForm() {
                                         </SelectContent>
                                       </Select>
                                       <Select
-                                        value={notif.template_id || ''}
-                                        onValueChange={(value) => updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', value || null)}
+                                        value={notif.template_id || '__none__'}
+                                        onValueChange={(value) => updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', value === '__none__' ? null : value)}
                                       >
                                         <SelectTrigger className="h-7 flex-1">
                                           <SelectValue placeholder="Select template" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="">None</SelectItem>
+                                          <SelectItem value="__none__">None</SelectItem>
                                           {templates?.map((t) => (
                                             <SelectItem key={t.id} value={t.id}>
                                               {t.name}
