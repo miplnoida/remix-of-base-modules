@@ -479,7 +479,7 @@ export function useUserProfile(userId: string) {
         .select(`
           *,
           office:office_locations(id, branch_name),
-          department:departments(id, name)
+          department:departments!profiles_department_id_fkey(id, name)
         `)
         .eq('id', userId)
         .single();
