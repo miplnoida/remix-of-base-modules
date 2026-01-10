@@ -110,6 +110,8 @@ export interface NotificationTemplate {
   body: string;
   placeholders: Record<string, string> | null;
   is_enabled: boolean;
+  module_id: string | null;
+  module?: { id: string; display_name: string } | null;
 }
 
 export interface NotificationLog {
@@ -603,7 +605,7 @@ export function useNotificationTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_templates')
-        .select('*')
+        .select('*, module:app_modules(id, display_name)')
         .order('name');
       if (error) throw error;
       return data as NotificationTemplate[];
@@ -614,11 +616,11 @@ export function useNotificationTemplates() {
 export function useCreateNotificationTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { name: string; channel: 'email' | 'sms' | 'push' | 'in_app'; body: string; subject?: string; title?: string; is_enabled?: boolean }) => {
+    mutationFn: async (data: { name: string; channel: 'email' | 'sms' | 'push' | 'in_app'; body: string; subject?: string; title?: string; is_enabled?: boolean; module_id?: string | null }) => {
       const { data: result, error } = await supabase
         .from('notification_templates')
         .insert(data)
-        .select()
+        .select('*, module:app_modules(id, display_name)')
         .single();
       if (error) throw error;
       return result;
