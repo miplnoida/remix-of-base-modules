@@ -328,101 +328,178 @@ export function useSaveWorkflowSteps() {
         }>
       }> 
     }) => {
-      // Delete existing steps (cascade will delete actions and notifications)
-      await supabase
+      // IMPORTANT: Do NOT delete all steps for existing workflows.
+      // Existing workflow instances reference workflow_steps.id via FK (e.g. workflow_instances.current_step_id).
+
+      const { data: existingSteps, error: existingStepsError } = await supabase
         .from('workflow_steps')
-        .delete()
+        .select('id')
         .eq('workflow_id', workflowId);
-      
-      // Insert new steps
-      for (const step of steps) {
-        const { data: savedStep, error: stepError } = await supabase
+
+      if (existingStepsError) throw existingStepsError;
+
+      const incomingStepIds = new Set(
+        steps.map((s) => s.id).filter(Boolean) as string[]
+      );
+
+      const stepIdsToDelete = (existingSteps || [])
+        .map((s) => s.id)
+        .filter((id) => !incomingStepIds.has(id));
+
+      // Delete only steps removed by admin (and only if not referenced)
+      if (stepIdsToDelete.length > 0) {
+        const { error: deleteStepsError } = await supabase
           .from('workflow_steps')
-          .insert({
-            workflow_id: workflowId,
-            step_number: step.step_number,
-            step_name: step.step_name,
-            description: (step as any).description || null,
-            assigned_role: step.assigned_role,
-            assigned_designation: step.assigned_designation,
-            action_type: step.action_type,
-            sla_hours: step.sla_hours,
-            is_final_step: step.is_final_step,
-            // New approver fields
-            approver_type: (step as any).approver_type || 'role',
-            approver_role_ids: (step as any).approver_role_ids || null,
-            approver_designation_ids: (step as any).approver_designation_ids || null,
-            approver_user_ids: (step as any).approver_user_ids || null,
-            parallel_approval: (step as any).parallel_approval || false,
-            required_approvals: (step as any).required_approvals || 1,
-            auto_approve_on_timeout: (step as any).auto_approve_on_timeout || false,
-            has_condition: (step as any).has_condition || false,
-            condition_expression: (step as any).condition_expression || null,
-            escalation_enabled: (step as any).escalation_enabled || false,
-            escalation_notification_type: (step as any).escalation_notification_type || null,
-            escalation_module_id: (step as any).escalation_module_id || null,
-            escalation_template_id: (step as any).escalation_template_id || null,
-          })
-          .select()
-          .single();
-        
-        if (stepError) throw stepError;
-        
-        // Insert actions for this step
-        if (step.actions && step.actions.length > 0) {
-          for (const action of step.actions) {
-            const insertData: {
-              step_id: string;
-              action_name: string;
-              action_type: string;
-              next_step_type: string;
-              next_step_id: string | null;
-              end_state: string | null;
-              is_final_action: boolean;
-              display_order: number;
-              notification_type: string | null;
-              notification_module_id: string | null;
-              notification_template_id: string | null;
-            } = {
-              step_id: savedStep.id,
-              action_name: action.action_name,
-              action_type: action.action_type,
-              next_step_type: (action as any).next_step_type || 'next_step',
-              next_step_id: action.next_step_id || null,
-              end_state: (action as any).end_state || null,
-              is_final_action: action.is_final_action,
-              display_order: action.display_order,
-              notification_type: (action as any).notification_type || null,
-              notification_module_id: (action as any).notification_module_id || null,
-              notification_template_id: (action as any).notification_template_id || null,
-            };
-            
-            const { data: savedAction, error: actionError } = await supabase
+          .delete()
+          .in('id', stepIdsToDelete);
+
+        if (deleteStepsError) {
+          // FK violation: step is referenced by existing workflow instances/tasks
+          if ((deleteStepsError as any).code === '23503') {
+            throw new Error(
+              'Cannot delete one or more steps because they are referenced by existing workflow instances. You can still edit step details, but removing steps that have been used is not allowed.'
+            );
+          }
+          throw deleteStepsError;
+        }
+      }
+
+      // Upsert / insert steps, then sync actions + notifications per step
+      for (const step of steps) {
+        let stepId = step.id;
+
+        const stepPayload = {
+          workflow_id: workflowId,
+          step_number: step.step_number,
+          step_name: step.step_name,
+          description: (step as any).description || null,
+          assigned_role: step.assigned_role,
+          assigned_designation: step.assigned_designation,
+          action_type: step.action_type,
+          sla_hours: step.sla_hours,
+          is_final_step: step.is_final_step,
+          // New approver fields
+          approver_type: (step as any).approver_type || 'role',
+          approver_role_ids: (step as any).approver_role_ids || null,
+          approver_designation_ids: (step as any).approver_designation_ids || null,
+          approver_user_ids: (step as any).approver_user_ids || null,
+          parallel_approval: (step as any).parallel_approval || false,
+          required_approvals: (step as any).required_approvals || 1,
+          auto_approve_on_timeout: (step as any).auto_approve_on_timeout || false,
+          has_condition: (step as any).has_condition || false,
+          condition_expression: (step as any).condition_expression || null,
+          escalation_enabled: (step as any).escalation_enabled || false,
+          escalation_notification_type: (step as any).escalation_notification_type || null,
+          escalation_module_id: (step as any).escalation_module_id || null,
+          escalation_template_id: (step as any).escalation_template_id || null,
+        };
+
+        if (stepId) {
+          const { error: stepUpsertError } = await supabase
+            .from('workflow_steps')
+            .upsert({ id: stepId, ...stepPayload } as any);
+
+          if (stepUpsertError) throw stepUpsertError;
+        } else {
+          const { data: insertedStep, error: stepInsertError } = await supabase
+            .from('workflow_steps')
+            .insert(stepPayload as any)
+            .select('id')
+            .single();
+
+          if (stepInsertError) throw stepInsertError;
+          stepId = insertedStep.id;
+        }
+
+        // Sync actions for this step
+        const stepActions = step.actions || [];
+
+        const { data: existingActions, error: existingActionsError } = await supabase
+          .from('workflow_step_actions')
+          .select('id')
+          .eq('step_id', stepId);
+
+        if (existingActionsError) throw existingActionsError;
+
+        const incomingActionIds = new Set(
+          stepActions.map((a) => (a as any).id).filter(Boolean) as string[]
+        );
+
+        const actionIdsToDelete = (existingActions || [])
+          .map((a) => a.id)
+          .filter((id) => !incomingActionIds.has(id));
+
+        if (actionIdsToDelete.length > 0) {
+          // delete child notifications first
+          const { error: delNotifsError } = await supabase
+            .from('workflow_action_notifications')
+            .delete()
+            .in('action_id', actionIdsToDelete);
+          if (delNotifsError) throw delNotifsError;
+
+          const { error: delActionsError } = await supabase
+            .from('workflow_step_actions')
+            .delete()
+            .in('id', actionIdsToDelete);
+          if (delActionsError) throw delActionsError;
+        }
+
+        for (const action of stepActions) {
+          let actionId = (action as any).id as string | undefined;
+
+          const actionPayload = {
+            step_id: stepId,
+            action_name: action.action_name,
+            action_type: action.action_type,
+            next_step_type: (action as any).next_step_type || 'next_step',
+            next_step_id: action.next_step_id || null,
+            end_state: (action as any).end_state || null,
+            is_final_action: action.is_final_action,
+            display_order: action.display_order,
+            notification_type: (action as any).notification_type || null,
+            notification_module_id: (action as any).notification_module_id || null,
+            notification_template_id: (action as any).notification_template_id || null,
+          };
+
+          if (actionId) {
+            const { error: actionUpsertError } = await supabase
               .from('workflow_step_actions')
-              .insert(insertData as any)
-              .select()
+              .upsert({ id: actionId, ...actionPayload } as any);
+            if (actionUpsertError) throw actionUpsertError;
+          } else {
+            const { data: insertedAction, error: actionInsertError } = await supabase
+              .from('workflow_step_actions')
+              .insert(actionPayload as any)
+              .select('id')
               .single();
-            
-            if (actionError) throw actionError;
-            
-            // Insert notifications for this action
-            if (action.notifications && action.notifications.length > 0) {
-              const { error: notifError } = await supabase
-                .from('workflow_action_notifications')
-                .insert(
-                  action.notifications.map(n => ({
-                    action_id: savedAction.id,
-                    notification_type: n.notification_type,
-                    template_id: n.template_id,
-                  }))
-                );
-              
-              if (notifError) throw notifError;
-            }
+
+            if (actionInsertError) throw actionInsertError;
+            actionId = insertedAction.id;
+          }
+
+          // Replace notifications for this action (simple + reliable)
+          const { error: deleteExistingNotifsError } = await supabase
+            .from('workflow_action_notifications')
+            .delete()
+            .eq('action_id', actionId);
+          if (deleteExistingNotifsError) throw deleteExistingNotifsError;
+
+          if ((action as any).notifications && (action as any).notifications.length > 0) {
+            const { error: notifError } = await supabase
+              .from('workflow_action_notifications')
+              .insert(
+                (action as any).notifications.map((n: any) => ({
+                  action_id: actionId,
+                  notification_type: n.notification_type,
+                  template_id: n.template_id,
+                }))
+              );
+
+            if (notifError) throw notifError;
           }
         }
       }
-      
+
       return true;
     },
     onSuccess: (_, variables) => {
