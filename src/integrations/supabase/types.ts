@@ -4590,9 +4590,11 @@ export type Database = {
           action_type: Database["public"]["Enums"]["workflow_step_action_type"]
           created_at: string | null
           display_order: number | null
+          end_state: Database["public"]["Enums"]["workflow_end_state"] | null
           id: string
           is_final_action: boolean | null
           next_step_id: string | null
+          next_step_type: Database["public"]["Enums"]["next_step_type"] | null
           notification_module_id: string | null
           notification_template_id: string | null
           notification_type: string | null
@@ -4603,9 +4605,11 @@ export type Database = {
           action_type?: Database["public"]["Enums"]["workflow_step_action_type"]
           created_at?: string | null
           display_order?: number | null
+          end_state?: Database["public"]["Enums"]["workflow_end_state"] | null
           id?: string
           is_final_action?: boolean | null
           next_step_id?: string | null
+          next_step_type?: Database["public"]["Enums"]["next_step_type"] | null
           notification_module_id?: string | null
           notification_template_id?: string | null
           notification_type?: string | null
@@ -4616,9 +4620,11 @@ export type Database = {
           action_type?: Database["public"]["Enums"]["workflow_step_action_type"]
           created_at?: string | null
           display_order?: number | null
+          end_state?: Database["public"]["Enums"]["workflow_end_state"] | null
           id?: string
           is_final_action?: boolean | null
           next_step_id?: string | null
+          next_step_type?: Database["public"]["Enums"]["next_step_type"] | null
           notification_module_id?: string | null
           notification_template_id?: string | null
           notification_type?: string | null
@@ -5077,6 +5083,11 @@ export type Database = {
         | "scouting"
         | "education"
         | "notice_service"
+      next_step_type:
+        | "next_step"
+        | "specific_step"
+        | "end_workflow"
+        | "send_back_to_applicant"
       notification_channel: "email" | "sms" | "push" | "in_app"
       notification_status:
         | "queued"
@@ -5097,6 +5108,7 @@ export type Database = {
       settlement_status: "Proposed" | "Accepted" | "Rejected" | "Completed"
       task_status: "Open" | "In Progress" | "Completed" | "Deferred"
       waiver_status: "pending" | "approved" | "rejected"
+      workflow_end_state: "Approved" | "Rejected"
       workflow_instance_status:
         | "Pending"
         | "InProgress"
@@ -5381,6 +5393,12 @@ export const Constants = {
         "education",
         "notice_service",
       ],
+      next_step_type: [
+        "next_step",
+        "specific_step",
+        "end_workflow",
+        "send_back_to_applicant",
+      ],
       notification_channel: ["email", "sms", "push", "in_app"],
       notification_status: ["queued", "sending", "sent", "failed", "cancelled"],
       order_status: ["Draft", "Under Review", "Approved", "Published"],
@@ -5397,6 +5415,7 @@ export const Constants = {
       settlement_status: ["Proposed", "Accepted", "Rejected", "Completed"],
       task_status: ["Open", "In Progress", "Completed", "Deferred"],
       waiver_status: ["pending", "approved", "rejected"],
+      workflow_end_state: ["Approved", "Rejected"],
       workflow_instance_status: [
         "Pending",
         "InProgress",

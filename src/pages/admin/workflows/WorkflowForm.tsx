@@ -78,6 +78,10 @@ interface ActionFormData {
   action_type: 'Approve' | 'Reject' | 'ReviewForPrevious' | 'QueryToApplicant';
   is_final_action: boolean;
   display_order: number;
+  // Next step routing configuration
+  next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
+  next_step_id: string | null;
+  end_state: 'Approved' | 'Rejected' | null;
   // Notification fields for actions
   notification_type: string;
   notification_module_id: string | null;
@@ -115,6 +119,13 @@ const STEP_ACTION_TYPES = [
   { value: 'Reject', label: 'Reject', description: 'Reject application and close workflow' },
   { value: 'ReviewForPrevious', label: 'Review for Previous Reviewer', description: 'Send back to previous step' },
   { value: 'QueryToApplicant', label: 'Query to Applicant', description: 'Request more info from applicant' },
+];
+
+const NEXT_STEP_TYPES = [
+  { value: 'next_step', label: 'Next Step', description: 'Continue to the next step in sequence' },
+  { value: 'specific_step', label: 'Specific Step', description: 'Go to a specific step' },
+  { value: 'end_workflow', label: 'End Workflow', description: 'Complete the workflow with final status' },
+  { value: 'send_back_to_applicant', label: 'Send Back to Applicant', description: 'Request applicant to provide more info' },
 ];
 
 const ACTION_TYPES = [
@@ -235,6 +246,9 @@ export default function WorkflowForm() {
             action_type: action.action_type as ActionFormData['action_type'],
             is_final_action: action.is_final_action,
             display_order: action.display_order,
+            next_step_type: ((action as any).next_step_type || 'next_step') as ActionFormData['next_step_type'],
+            next_step_id: (action as any).next_step_id || null,
+            end_state: ((action as any).end_state || null) as ActionFormData['end_state'],
             notification_type: (action as any).notification_type || '',
             notification_module_id: (action as any).notification_module_id || null,
             notification_template_id: (action as any).notification_template_id || null,
@@ -282,6 +296,9 @@ export default function WorkflowForm() {
             action_type: 'Approve',
             is_final_action: false,
             display_order: 0,
+            next_step_type: 'next_step',
+            next_step_id: null,
+            end_state: null,
             notification_type: '',
             notification_module_id: null,
             notification_template_id: null,
@@ -322,6 +339,9 @@ export default function WorkflowForm() {
       action_type: 'Approve',
       is_final_action: false,
       display_order: newSteps[stepIndex].actions.length,
+      next_step_type: 'next_step',
+      next_step_id: null,
+      end_state: null,
       notification_type: '',
       notification_module_id: null,
       notification_template_id: null,
@@ -439,9 +459,14 @@ export default function WorkflowForm() {
           actions: step.actions.map(action => ({
             action_name: action.action_name,
             action_type: action.action_type as any,
-            next_step_id: null,
+            next_step_type: action.next_step_type,
+            next_step_id: action.next_step_id,
+            end_state: action.end_state,
             is_final_action: action.is_final_action,
             display_order: action.display_order,
+            notification_type: action.notification_type || null,
+            notification_module_id: action.notification_module_id,
+            notification_template_id: action.notification_template_id,
             notifications: action.notifications,
           })),
         })),
@@ -971,7 +996,114 @@ export default function WorkflowForm() {
                                       </div>
                                     </div>
 
-                                    {/* Action Notification Configuration */}
+                                    {/* Next Step Routing Configuration */}
+                                    <div className="space-y-3 p-3 bg-background rounded-md border border-primary/20">
+                                      <Label className="text-sm font-medium text-primary">Next Step Routing *</Label>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                          <Label className="text-xs">What happens next?</Label>
+                                          <Select
+                                            value={action.next_step_type}
+                                            onValueChange={(value: ActionFormData['next_step_type']) => {
+                                              updateAction(stepIndex, actionIndex, 'next_step_type', value);
+                                              // Reset related fields when type changes
+                                              if (value !== 'specific_step') {
+                                                updateAction(stepIndex, actionIndex, 'next_step_id', null);
+                                              }
+                                              if (value !== 'end_workflow') {
+                                                updateAction(stepIndex, actionIndex, 'end_state', null);
+                                              } else {
+                                                // Set default end_state based on action type
+                                                updateAction(stepIndex, actionIndex, 'end_state', action.action_type === 'Reject' ? 'Rejected' : 'Approved');
+                                              }
+                                            }}
+                                          >
+                                            <SelectTrigger className="h-8">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {NEXT_STEP_TYPES.map((type) => (
+                                                <SelectItem key={type.value} value={type.value}>
+                                                  {type.label}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <p className="text-xs text-muted-foreground">
+                                            {NEXT_STEP_TYPES.find(t => t.value === action.next_step_type)?.description}
+                                          </p>
+                                        </div>
+                                        
+                                        {/* Specific Step Selector */}
+                                        {action.next_step_type === 'specific_step' && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Select Step</Label>
+                                            <Select
+                                              value={action.next_step_id || '__none__'}
+                                              onValueChange={(value) => updateAction(stepIndex, actionIndex, 'next_step_id', value === '__none__' ? null : value)}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Select step" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">Select a step...</SelectItem>
+                                                {steps.map((s, idx) => (
+                                                  <SelectItem key={idx} value={s.id || `temp-${idx}`} disabled={!s.id}>
+                                                    Step {s.step_number}: {s.step_name}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        )}
+                                        
+                                        {/* End State Selector */}
+                                        {action.next_step_type === 'end_workflow' && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">End State</Label>
+                                            <Select
+                                              value={action.end_state || 'Approved'}
+                                              onValueChange={(value: 'Approved' | 'Rejected') => updateAction(stepIndex, actionIndex, 'end_state', value)}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="Approved">Mark as Approved</SelectItem>
+                                                <SelectItem value="Rejected">Mark as Rejected</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Send Back to Applicant - show restart step option */}
+                                        {action.next_step_type === 'send_back_to_applicant' && (
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Restart From Step</Label>
+                                            <Select
+                                              value={action.next_step_id || '__first__'}
+                                              onValueChange={(value) => updateAction(stepIndex, actionIndex, 'next_step_id', value === '__first__' ? null : value)}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__first__">First Step (default)</SelectItem>
+                                                {steps.map((s, idx) => (
+                                                  <SelectItem key={idx} value={s.id || `temp-${idx}`} disabled={!s.id}>
+                                                    Step {s.step_number}: {s.step_name}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">
+                                              When applicant resubmits, workflow will restart from this step.
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
                                     <div className="space-y-3 p-3 bg-background rounded-md border">
                                       <Label className="text-sm font-medium">Action Notification</Label>
                                       <div className="grid grid-cols-3 gap-3">
