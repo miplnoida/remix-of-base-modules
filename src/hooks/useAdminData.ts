@@ -151,10 +151,25 @@ export function useOfficeLocations() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('office_locations')
-        .select('*, departments(*)')
+        .select(`
+          *,
+          departments(
+            id,
+            office_id,
+            name,
+            description,
+            is_active,
+            department_head_user_id,
+            created_at,
+            updated_at
+          )
+        `)
         .order('branch_name');
-      if (error) throw error;
-      return data as OfficeLocation[];
+      if (error) {
+        console.error('Error fetching office locations:', error);
+        throw error;
+      }
+      return (data || []) as OfficeLocation[];
     },
   });
 }
@@ -423,13 +438,34 @@ export function useUserProfiles() {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          *,
+          id,
+          full_name,
+          first_name,
+          last_name,
+          middle_name,
+          email,
+          title,
+          phone,
+          gender,
+          date_of_birth,
+          employee_code,
+          office_id,
+          department_id,
+          is_active,
+          force_password_change,
+          last_login,
+          mfa_enabled,
+          failed_login_attempts,
+          locked_until,
           office:office_locations(id, branch_name),
           department:departments(id, name)
         `)
         .order('full_name');
-      if (error) throw error;
-      return data as UserProfile[];
+      if (error) {
+        console.error('Error fetching user profiles:', error);
+        throw error;
+      }
+      return (data || []) as UserProfile[];
     },
   });
 }
