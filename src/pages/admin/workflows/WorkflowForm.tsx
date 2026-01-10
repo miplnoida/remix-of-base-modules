@@ -603,37 +603,58 @@ export default function WorkflowForm() {
                   open={step.isOpen}
                   onOpenChange={(open) => updateStep(stepIndex, 'isOpen', open)}
                 >
-                  <Card className="border-l-4 border-l-primary">
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <GripVertical className="h-4 w-4 text-muted-foreground" />
-                            {step.isOpen ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                            <Badge variant="outline">Step {step.step_number}</Badge>
-                            <span className="font-medium">{step.step_name}</span>
-                            {step.is_final_step && (
-                              <Badge variant="secondary">Final Step</Badge>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeStep(stepIndex);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
+                  <Card className="overflow-hidden shadow-md border-0">
+                    <div className="flex">
+                      {/* Vertical Step Name Label */}
+                      <div className="bg-primary flex items-center justify-center w-12 min-h-[80px] relative">
+                        <span 
+                          className="text-primary-foreground font-bold text-xs tracking-wider uppercase whitespace-nowrap"
+                          style={{ 
+                            writingMode: 'vertical-rl', 
+                            transform: 'rotate(180deg)',
+                            letterSpacing: '0.1em'
+                          }}
+                        >
+                          {step.step_name}
+                        </span>
+                      </div>
+                      
+                      {/* Step Content */}
+                      <div className="flex-1 bg-card">
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                {step.isOpen ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                <Badge variant="outline" className="bg-primary/10 border-primary text-primary">
+                                  Step {step.step_number}
+                                </Badge>
+                                <span className="font-semibold text-foreground">{step.step_name}</span>
+                                {step.is_final_step && (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                    Final Step
+                                  </Badge>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeStep(stepIndex);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
                       <CardContent className="space-y-6 pt-0">
                         {/* Step Identity Section */}
                         <div className="space-y-4">
@@ -1184,6 +1205,8 @@ export default function WorkflowForm() {
                         </div>
                       </CardContent>
                     </CollapsibleContent>
+                      </div>
+                    </div>
                   </Card>
                 </Collapsible>
               ))
