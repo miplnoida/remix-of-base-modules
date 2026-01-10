@@ -337,11 +337,26 @@ export function useSaveWorkflowSteps() {
             workflow_id: workflowId,
             step_number: step.step_number,
             step_name: step.step_name,
+            description: (step as any).description || null,
             assigned_role: step.assigned_role,
             assigned_designation: step.assigned_designation,
             action_type: step.action_type,
             sla_hours: step.sla_hours,
             is_final_step: step.is_final_step,
+            // New approver fields
+            approver_type: (step as any).approver_type || 'role',
+            approver_role_ids: (step as any).approver_role_ids || null,
+            approver_designation_ids: (step as any).approver_designation_ids || null,
+            approver_user_ids: (step as any).approver_user_ids || null,
+            parallel_approval: (step as any).parallel_approval || false,
+            required_approvals: (step as any).required_approvals || 1,
+            auto_approve_on_timeout: (step as any).auto_approve_on_timeout || false,
+            has_condition: (step as any).has_condition || false,
+            condition_expression: (step as any).condition_expression || null,
+            escalation_enabled: (step as any).escalation_enabled || false,
+            escalation_notification_type: (step as any).escalation_notification_type || null,
+            escalation_module_id: (step as any).escalation_module_id || null,
+            escalation_template_id: (step as any).escalation_template_id || null,
           })
           .select()
           .single();
