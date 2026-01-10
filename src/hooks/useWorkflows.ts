@@ -34,9 +34,14 @@ export interface WorkflowStepAction {
   step_id: string;
   action_name: string;
   action_type: string;
+  next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
   next_step_id: string | null;
+  end_state: 'Approved' | 'Rejected' | null;
   is_final_action: boolean;
   display_order: number;
+  notification_type: string | null;
+  notification_module_id: string | null;
+  notification_template_id: string | null;
   created_at: string;
 }
 
@@ -370,16 +375,26 @@ export function useSaveWorkflowSteps() {
               step_id: string;
               action_name: string;
               action_type: string;
+              next_step_type: string;
               next_step_id: string | null;
+              end_state: string | null;
               is_final_action: boolean;
               display_order: number;
+              notification_type: string | null;
+              notification_module_id: string | null;
+              notification_template_id: string | null;
             } = {
               step_id: savedStep.id,
               action_name: action.action_name,
               action_type: action.action_type,
+              next_step_type: (action as any).next_step_type || 'next_step',
               next_step_id: action.next_step_id || null,
+              end_state: (action as any).end_state || null,
               is_final_action: action.is_final_action,
               display_order: action.display_order,
+              notification_type: (action as any).notification_type || null,
+              notification_module_id: (action as any).notification_module_id || null,
+              notification_template_id: (action as any).notification_template_id || null,
             };
             
             const { data: savedAction, error: actionError } = await supabase
@@ -566,15 +581,110 @@ export function useProcessWorkflowTask() {
           comments,
         });
       
-      // Handle workflow progression based on action
-      if (action === 'Approve' || action === 'AutoApprove') {
-        // Find next step
-        const { data: currentStep } = await supabase
+      // Get the current step's action configuration
+      const { data: stepAction } = await supabase
+        .from('workflow_step_actions')
+        .select('*')
+        .eq('step_id', task.step_id)
+        .eq('action_type', action as any)
+        .single();
+      
+      // Get current step info
+      const { data: currentStep } = await supabase
+        .from('workflow_steps')
+        .select('*')
+        .eq('id', task.step_id)
+        .single();
+      
+      // Determine routing based on action configuration
+      const nextStepType = (stepAction as any)?.next_step_type || 'next_step';
+      const configuredNextStepId = stepAction?.next_step_id;
+      const endState = (stepAction as any)?.end_state;
+      
+      if (nextStepType === 'end_workflow') {
+        // End the workflow with specified state
+        const finalStatus = endState === 'Rejected' ? 'Rejected' : 'Completed';
+        await supabase
+          .from('workflow_instances')
+          .update({
+            status: finalStatus,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', task.instance_id);
+          
+        // Update the source record status if applicable
+        const workflowInstance = task.workflow_instance;
+        if (workflowInstance?.source_record_id && workflowInstance?.source_module) {
+          // Update sample_applications status based on end state
+          if (workflowInstance.source_module === 'sample_applications') {
+            await supabase
+              .from('sample_applications')
+              .update({ 
+                status: endState === 'Rejected' ? 'Rejected' : 'Approved',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', workflowInstance.source_record_id);
+          }
+        }
+      } else if (nextStepType === 'send_back_to_applicant') {
+        // Put workflow in Query state (awaiting info from applicant)
+        const existingMetadata = (task.workflow_instance?.metadata as Record<string, any>) || {};
+        await supabase
+          .from('workflow_instances')
+          .update({
+            status: 'Query',
+            metadata: {
+              ...existingMetadata,
+              awaiting_applicant_info: true,
+              restart_step_id: configuredNextStepId, // Step to restart from after resubmission
+            },
+          })
+          .eq('id', task.instance_id);
+          
+        // Update the source record status
+        const workflowInstance = task.workflow_instance;
+        if (workflowInstance?.source_record_id && workflowInstance?.source_module) {
+          if (workflowInstance.source_module === 'sample_applications') {
+            await supabase
+              .from('sample_applications')
+              .update({ 
+                status: 'Query' as any, // ProvideInfo state for applicant
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', workflowInstance.source_record_id);
+          }
+        }
+      } else if (nextStepType === 'specific_step' && configuredNextStepId) {
+        // Go to specific configured step
+        const { data: targetStep } = await supabase
           .from('workflow_steps')
           .select('*')
-          .eq('id', task.step_id)
+          .eq('id', configuredNextStepId)
           .single();
         
+        if (targetStep) {
+          await supabase
+            .from('workflow_tasks')
+            .insert({
+              instance_id: task.instance_id,
+              step_id: targetStep.id,
+              step_name: targetStep.step_name,
+              assigned_role: targetStep.assigned_role,
+              assigned_designation: targetStep.assigned_designation,
+              status: 'Pending',
+              due_at: new Date(Date.now() + targetStep.sla_hours * 60 * 60 * 1000).toISOString(),
+            });
+          
+          await supabase
+            .from('workflow_instances')
+            .update({ 
+              current_step_id: targetStep.id,
+              status: 'InProgress'
+            })
+            .eq('id', task.instance_id);
+        }
+      } else {
+        // Default: next_step - continue to sequential next step
         if (currentStep?.is_final_step) {
           // Complete the workflow
           await supabase
@@ -584,6 +694,20 @@ export function useProcessWorkflowTask() {
               completed_at: new Date().toISOString(),
             })
             .eq('id', task.instance_id);
+            
+          // Update source record
+          const workflowInstance = task.workflow_instance;
+          if (workflowInstance?.source_record_id && workflowInstance?.source_module) {
+            if (workflowInstance.source_module === 'sample_applications') {
+              await supabase
+                .from('sample_applications')
+                .update({ 
+                  status: 'Approved',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', workflowInstance.source_record_id);
+            }
+          }
         } else {
           // Find and create next step task
           const { data: nextStep } = await supabase
@@ -612,14 +736,6 @@ export function useProcessWorkflowTask() {
               .eq('id', task.instance_id);
           }
         }
-      } else if (action === 'Reject') {
-        await supabase
-          .from('workflow_instances')
-          .update({
-            status: 'Rejected',
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', task.instance_id);
       }
       
       return task;
@@ -627,6 +743,7 @@ export function useProcessWorkflowTask() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-workflow-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['sample-applications'] });
       toast({ title: 'Success', description: 'Task processed successfully' });
     },
     onError: (error: Error) => {
