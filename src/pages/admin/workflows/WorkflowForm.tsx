@@ -603,16 +603,22 @@ export default function WorkflowForm() {
                   open={step.isOpen}
                   onOpenChange={(open) => updateStep(stepIndex, 'isOpen', open)}
                 >
-                  <Card className="overflow-hidden shadow-md border-0">
+                  <Card className="overflow-hidden shadow-lg border-0 rounded-lg">
                     <div className="flex">
-                      {/* Vertical Step Name Label */}
-                      <div className="bg-primary flex items-center justify-center w-12 min-h-[80px] relative">
+                      {/* Vertical Step Name Label - Highlighted like reference image */}
+                      <div 
+                        className="bg-violet-600 flex items-center justify-center w-14 min-h-[100px] shrink-0"
+                        style={{ 
+                          background: 'linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(262 83% 45%) 100%)'
+                        }}
+                      >
                         <span 
-                          className="text-primary-foreground font-bold text-xs tracking-wider uppercase whitespace-nowrap"
+                          className="text-white font-bold text-sm tracking-widest uppercase whitespace-nowrap px-3 py-2"
                           style={{ 
                             writingMode: 'vertical-rl', 
                             transform: 'rotate(180deg)',
-                            letterSpacing: '0.1em'
+                            letterSpacing: '0.15em',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
                           }}
                         >
                           {step.step_name}
