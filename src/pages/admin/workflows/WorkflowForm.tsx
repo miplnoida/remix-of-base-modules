@@ -605,11 +605,20 @@ export default function WorkflowForm() {
                 >
                   <Card className="overflow-hidden shadow-lg border-0 rounded-lg">
                     <div className="flex">
-                      {/* Vertical Step Name Label - Highlighted like reference image */}
+                      {/* Vertical Step Name Label - Different color for each step */}
                       <div 
-                        className="bg-violet-600 flex items-center justify-center w-14 min-h-[100px] shrink-0"
+                        className="flex items-center justify-center w-14 min-h-[100px] shrink-0"
                         style={{ 
-                          background: 'linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(262 83% 45%) 100%)'
+                          backgroundColor: [
+                            '#7c3aed', // violet
+                            '#2563eb', // blue
+                            '#059669', // emerald
+                            '#d97706', // amber
+                            '#dc2626', // red
+                            '#0891b2', // cyan
+                            '#c026d3', // fuchsia
+                            '#4f46e5', // indigo
+                          ][stepIndex % 8]
                         }}
                       >
                         <span 
@@ -618,7 +627,6 @@ export default function WorkflowForm() {
                             writingMode: 'vertical-rl', 
                             transform: 'rotate(180deg)',
                             letterSpacing: '0.15em',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
                           }}
                         >
                           {step.step_name}
