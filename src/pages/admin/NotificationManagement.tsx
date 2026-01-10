@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { useNotificationTemplates, useCreateNotificationTemplate, useUpdateNotificationTemplate, useDeleteNotificationTemplate, useNotificationLogs, NotificationTemplate, NotificationLog } from "@/hooks/useAdminData";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const CHANNELS = [
   { value: 'email', label: 'Email', icon: Mail },
@@ -38,6 +38,22 @@ const NotificationManagement = () => {
     title: "",
     body: "",
     is_enabled: true,
+    module_id: "" as string,
+  });
+
+  // Fetch parent modules (where parent_id is null)
+  const { data: parentModules = [] } = useQuery({
+    queryKey: ['parent-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('id, display_name')
+        .is('parent_id', null)
+        .eq('is_enabled', true)
+        .order('display_name');
+      if (error) throw error;
+      return data;
+    },
   });
 
   const queryClient = useQueryClient();
@@ -91,20 +107,25 @@ const NotificationManagement = () => {
         title: template.title || "",
         body: template.body,
         is_enabled: template.is_enabled,
+        module_id: template.module_id || "",
       });
     } else {
       setEditingTemplate(null);
-      setTemplateForm({ name: "", channel: "email", subject: "", title: "", body: "", is_enabled: true });
+      setTemplateForm({ name: "", channel: "email", subject: "", title: "", body: "", is_enabled: true, module_id: "" });
     }
     setShowTemplateDialog(true);
   };
 
   const handleSaveTemplate = async () => {
     try {
+      const payload = {
+        ...templateForm,
+        module_id: templateForm.module_id || null,
+      };
       if (editingTemplate) {
-        await updateTemplate.mutateAsync({ id: editingTemplate.id, ...templateForm });
+        await updateTemplate.mutateAsync({ id: editingTemplate.id, ...payload });
       } else {
-        await createTemplate.mutateAsync(templateForm);
+        await createTemplate.mutateAsync(payload);
       }
       setShowTemplateDialog(false);
     } catch (error) {
@@ -172,6 +193,7 @@ const NotificationManagement = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Module</TableHead>
                       <TableHead>Channel</TableHead>
                       <TableHead>Subject/Title</TableHead>
                       <TableHead>Status</TableHead>
@@ -182,6 +204,11 @@ const NotificationManagement = () => {
                     {templates.map((template) => (
                       <TableRow key={template.id}>
                         <TableCell className="font-medium">{template.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {template.module?.display_name || 'Unassigned'}
+                          </Badge>
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getChannelIcon(template.channel)}
@@ -325,7 +352,7 @@ const NotificationManagement = () => {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Template Name</Label>
+                <Label>Template Name *</Label>
                 <Input 
                   value={templateForm.name} 
                   onChange={(e) => setTemplateForm({...templateForm, name: e.target.value})}
@@ -333,24 +360,38 @@ const NotificationManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Channel</Label>
+                <Label>Module *</Label>
                 <Select 
-                  value={templateForm.channel} 
-                  onValueChange={(v) => setTemplateForm({...templateForm, channel: v as any})}
+                  value={templateForm.module_id} 
+                  onValueChange={(v) => setTemplateForm({...templateForm, module_id: v})}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                   <SelectContent>
-                    {CHANNELS.map(ch => (
-                      <SelectItem key={ch.value} value={ch.value}>
-                        <div className="flex items-center gap-2">
-                          <ch.icon className="h-4 w-4" />
-                          {ch.label}
-                        </div>
-                      </SelectItem>
+                    {parentModules.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Channel</Label>
+              <Select 
+                value={templateForm.channel} 
+                onValueChange={(v) => setTemplateForm({...templateForm, channel: v as any})}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CHANNELS.map(ch => (
+                    <SelectItem key={ch.value} value={ch.value}>
+                      <div className="flex items-center gap-2">
+                        <ch.icon className="h-4 w-4" />
+                        {ch.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {templateForm.channel === 'email' && (
               <div className="space-y-2">
