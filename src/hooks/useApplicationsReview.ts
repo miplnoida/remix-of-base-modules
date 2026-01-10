@@ -405,7 +405,117 @@ export function useProcessReviewAction() {
         .select('*')
         .eq('action_id', actionId);
       
-      // TODO: Send notifications via notification module
+      // Process and log each notification
+      if (notifications && notifications.length > 0) {
+        for (const notification of notifications) {
+          try {
+            // Fetch the notification template
+            const { data: template } = await supabase
+              .from('notification_templates')
+              .select('*')
+              .eq('id', notification.template_id)
+              .single();
+            
+            if (template) {
+              // Get applicant/recipient information from the source record
+              let recipientEmail = '';
+              let recipientUserId: string | null = null;
+              let mergeData: Record<string, string> = {
+                application_title: task.workflow_instance?.source_record_name || 'Application',
+                reviewer_name: profile?.full_name || 'Reviewer',
+                comments: comments || '',
+              };
+              
+              // Get applicant info from sample_applications if available
+              if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
+                const { data: application } = await supabase
+                  .from('sample_applications')
+                  .select('applicant_name, applicant_email, title')
+                  .eq('id', task.workflow_instance.source_record_id)
+                  .single();
+                
+                if (application) {
+                  recipientEmail = application.applicant_email || '';
+                  mergeData.applicant_name = application.applicant_name || 'Applicant';
+                  mergeData.application_title = application.title || mergeData.application_title;
+                }
+              }
+              
+              // If no applicant email, try to get from workflow starter
+              if (!recipientEmail && task.workflow_instance?.started_by) {
+                const { data: starterProfile } = await supabase
+                  .from('profiles')
+                  .select('email, full_name')
+                  .eq('id', task.workflow_instance.started_by)
+                  .single();
+                
+                if (starterProfile) {
+                  recipientEmail = starterProfile.email || '';
+                  recipientUserId = task.workflow_instance.started_by;
+                  mergeData.applicant_name = starterProfile.full_name || mergeData.applicant_name;
+                }
+              }
+              
+              // Substitute placeholders in subject and body
+              let subject = template.subject || '';
+              let body = template.body || '';
+              
+              Object.entries(mergeData).forEach(([key, value]) => {
+                const placeholder = `{{${key}}}`;
+                subject = subject.replace(new RegExp(placeholder, 'g'), value);
+                body = body.replace(new RegExp(placeholder, 'g'), value);
+              });
+              
+              // Add rejection reason placeholder if applicable
+              if (endState === 'Rejected' || actionType.toLowerCase() === 'reject') {
+                const rejectionReason = comments || 'No reason provided';
+                subject = subject.replace(/{{rejection_reason}}/g, rejectionReason);
+                body = body.replace(/{{rejection_reason}}/g, rejectionReason);
+              }
+              
+              // Log the notification
+              // Map notification type to valid channel enum
+              const channelMap: Record<string, 'email' | 'sms' | 'push' | 'in_app'> = {
+                'email': 'email',
+                'sms': 'sms',
+                'push': 'push',
+                'in_app': 'in_app',
+                'in-app': 'in_app',
+              };
+              const channel = channelMap[(notification.notification_type?.toLowerCase() || 'email')] || 'email';
+              
+              await supabase
+                .from('notification_logs')
+                .insert({
+                  template_id: template.id,
+                  channel,
+                  recipient_user_id: recipientUserId,
+                  recipient_address: recipientEmail || 'no-email@system.local',
+                  subject,
+                  title: template.title || template.name,
+                  body,
+                  status: 'queued' as const,
+                  triggered_by: user.user?.id,
+                  trigger_source: `workflow_action:${actionId}`,
+                  metadata: {
+                    workflow_id: task.workflow_instance?.workflow_id,
+                    workflow_name: task.workflow_instance?.workflow_name,
+                    instance_id: task.instance_id,
+                    step_id: task.step_id,
+                    step_name: task.step_name,
+                    action_name: actionName,
+                    action_type: actionType,
+                  },
+                });
+              
+              console.log('[Notification] Logged notification:', template.name, 'to:', recipientEmail);
+            }
+          } catch (notifError) {
+            console.error('[Notification] Error processing notification:', notifError);
+            // Don't throw - notifications shouldn't block workflow
+          }
+        }
+      }
       
       return task;
     },
