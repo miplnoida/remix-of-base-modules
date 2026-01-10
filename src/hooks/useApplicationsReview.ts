@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
+export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
+export type EndState = 'Approved' | 'Rejected' | null;
+
 export interface ApplicationForReview {
   id: string;
   instance_id: string;
@@ -41,6 +44,8 @@ export interface ApplicationForReview {
     action_name: string;
     action_type: string;
     next_step_id: string | null;
+    next_step_type: NextStepType;
+    end_state: EndState;
     is_final_action: boolean;
     display_order: number;
   }>;
@@ -178,7 +183,9 @@ export function useProcessReviewAction() {
       actionId,
       actionName,
       actionType,
+      nextStepType,
       nextStepId,
+      endState,
       isFinalAction,
       comments 
     }: { 
@@ -186,7 +193,9 @@ export function useProcessReviewAction() {
       actionId: string;
       actionName: string;
       actionType: string;
+      nextStepType: NextStepType;
       nextStepId: string | null;
+      endState: EndState;
       isFinalAction: boolean;
       comments?: string;
     }) => {
@@ -232,92 +241,129 @@ export function useProcessReviewAction() {
           old_status: task.status,
           new_status: 'Completed',
           comments,
-          metadata: { action_id: actionId, action_type: actionType },
+          metadata: { action_id: actionId, action_type: actionType, next_step_type: nextStepType },
         });
       
-      // Handle workflow progression based on action type
-      if (actionType === 'approve' || actionType === 'forward') {
-        if (isFinalAction) {
-          // Complete the workflow
-          await supabase
-            .from('workflow_instances')
-            .update({
-              status: 'Completed',
-              completed_at: new Date().toISOString(),
-            })
-            .eq('id', task.instance_id);
-          
-          // Update source application status if applicable
-          if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
-            await supabase
-              .from('sample_applications')
-              .update({ status: 'Approved' })
-              .eq('id', task.workflow_instance.source_record_id);
-          }
-        } else if (nextStepId) {
-          // Create task for next step
-          const { data: nextStep } = await supabase
-            .from('workflow_steps')
-            .select('*')
-            .eq('id', nextStepId)
-            .single();
-          
-          if (nextStep) {
-            await supabase
-              .from('workflow_tasks')
-              .insert({
-                instance_id: task.instance_id,
-                step_id: nextStep.id,
-                step_name: nextStep.step_name,
-                assigned_role: nextStep.assigned_role,
-                assigned_designation: nextStep.assigned_designation,
-                status: 'Pending',
-                due_at: new Date(Date.now() + nextStep.sla_hours * 60 * 60 * 1000).toISOString(),
-              });
+      // Handle workflow progression based on next_step_type
+      const handleNextStep = async () => {
+        switch (nextStepType) {
+          case 'specific_step':
+            // Navigate to specific step
+            if (nextStepId) {
+              const { data: nextStep } = await supabase
+                .from('workflow_steps')
+                .select('*')
+                .eq('id', nextStepId)
+                .single();
+              
+              if (nextStep) {
+                await supabase
+                  .from('workflow_tasks')
+                  .insert({
+                    instance_id: task.instance_id,
+                    step_id: nextStep.id,
+                    step_name: nextStep.step_name,
+                    assigned_role: nextStep.assigned_role,
+                    assigned_designation: nextStep.assigned_designation,
+                    status: 'Pending',
+                    due_at: new Date(Date.now() + (nextStep.sla_hours || 24) * 60 * 60 * 1000).toISOString(),
+                  });
+                
+                await supabase
+                  .from('workflow_instances')
+                  .update({ current_step_id: nextStep.id })
+                  .eq('id', task.instance_id);
+              }
+            }
+            break;
             
-            await supabase
-              .from('workflow_instances')
-              .update({ current_step_id: nextStep.id })
-              .eq('id', task.instance_id);
-          }
-        } else {
-          // Find next step by step number
-          const { data: currentStep } = await supabase
-            .from('workflow_steps')
-            .select('*')
-            .eq('id', task.step_id)
-            .single();
-          
-          if (currentStep && !currentStep.is_final_step) {
-            const { data: nextStep } = await supabase
+          case 'next_step':
+            // Find and navigate to next step by step number
+            const { data: currentStep } = await supabase
               .from('workflow_steps')
               .select('*')
-              .eq('workflow_id', task.workflow_instance.workflow_id)
-              .eq('step_number', currentStep.step_number + 1)
+              .eq('id', task.step_id)
               .single();
             
-            if (nextStep) {
-              await supabase
-                .from('workflow_tasks')
-                .insert({
-                  instance_id: task.instance_id,
-                  step_id: nextStep.id,
-                  step_name: nextStep.step_name,
-                  assigned_role: nextStep.assigned_role,
-                  assigned_designation: nextStep.assigned_designation,
-                  status: 'Pending',
-                  due_at: new Date(Date.now() + nextStep.sla_hours * 60 * 60 * 1000).toISOString(),
-                });
+            if (currentStep && !currentStep.is_final_step) {
+              const { data: nextStep } = await supabase
+                .from('workflow_steps')
+                .select('*')
+                .eq('workflow_id', task.workflow_instance.workflow_id)
+                .eq('step_number', currentStep.step_number + 1)
+                .single();
               
-              await supabase
-                .from('workflow_instances')
-                .update({ current_step_id: nextStep.id })
-                .eq('id', task.instance_id);
+              if (nextStep) {
+                await supabase
+                  .from('workflow_tasks')
+                  .insert({
+                    instance_id: task.instance_id,
+                    step_id: nextStep.id,
+                    step_name: nextStep.step_name,
+                    assigned_role: nextStep.assigned_role,
+                    assigned_designation: nextStep.assigned_designation,
+                    status: 'Pending',
+                    due_at: new Date(Date.now() + (nextStep.sla_hours || 24) * 60 * 60 * 1000).toISOString(),
+                  });
+                
+                await supabase
+                  .from('workflow_instances')
+                  .update({ current_step_id: nextStep.id })
+                  .eq('id', task.instance_id);
+              } else {
+                // No next step found - complete workflow
+                await supabase
+                  .from('workflow_instances')
+                  .update({
+                    status: 'Completed',
+                    completed_at: new Date().toISOString(),
+                  })
+                  .eq('id', task.instance_id);
+              }
             }
-          }
+            break;
+            
+          case 'end_workflow':
+            // Complete the workflow with specified end state
+            const finalStatus = endState === 'Rejected' ? 'Rejected' : 'Completed';
+            await supabase
+              .from('workflow_instances')
+              .update({
+                status: finalStatus,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', task.instance_id);
+            
+            // Update source application status if applicable
+            if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
+              await supabase
+                .from('sample_applications')
+                .update({ status: endState || 'Approved' })
+                .eq('id', task.workflow_instance.source_record_id);
+            }
+            break;
+            
+          case 'send_back_to_applicant':
+            // Send back to applicant - set workflow to Pending and update source record
+            await supabase
+              .from('workflow_instances')
+              .update({ status: 'Pending' })
+              .eq('id', task.instance_id);
+            
+            // Update source application status
+            if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
+              await supabase
+                .from('sample_applications')
+                .update({ status: 'More Info Requested' })
+                .eq('id', task.workflow_instance.source_record_id);
+            }
+            break;
         }
-      } else if (actionType === 'reject') {
-        // Reject the workflow
+      };
+      
+      // Handle based on action type for backwards compatibility with legacy data
+      if (actionType.toLowerCase() === 'reject' && nextStepType !== 'end_workflow') {
+        // Legacy reject behavior - end workflow with rejection
         await supabase
           .from('workflow_instances')
           .update({
@@ -326,27 +372,31 @@ export function useProcessReviewAction() {
           })
           .eq('id', task.instance_id);
         
-        // Update source application status
         if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
           await supabase
             .from('sample_applications')
             .update({ status: 'Rejected' })
             .eq('id', task.workflow_instance.source_record_id);
         }
-      } else if (actionType === 'return' || actionType === 'request_info') {
-        // Return to previous step or request more info
+      } else if (isFinalAction) {
+        // Handle final action
         await supabase
           .from('workflow_instances')
-          .update({ status: 'Pending' })
+          .update({
+            status: endState === 'Rejected' ? 'Rejected' : 'Completed',
+            completed_at: new Date().toISOString(),
+          })
           .eq('id', task.instance_id);
         
-        // Update source application status
         if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
           await supabase
             .from('sample_applications')
-            .update({ status: 'More Info Requested' })
+            .update({ status: endState || 'Approved' })
             .eq('id', task.workflow_instance.source_record_id);
         }
+      } else {
+        // Use the next step type routing
+        await handleNextStep();
       }
       
       // Trigger notifications
@@ -356,7 +406,6 @@ export function useProcessReviewAction() {
         .eq('action_id', actionId);
       
       // TODO: Send notifications via notification module
-      // This would integrate with notification_templates and notification_logs
       
       return task;
     },

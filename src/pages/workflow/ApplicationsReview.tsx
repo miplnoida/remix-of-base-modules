@@ -47,7 +47,9 @@ import {
   useApplicationsForReview, 
   useReviewStepNames, 
   useProcessReviewAction,
-  ApplicationForReview 
+  ApplicationForReview,
+  NextStepType,
+  EndState
 } from '@/hooks/useApplicationsReview';
 
 const ApplicationsReview: React.FC = () => {
@@ -62,7 +64,9 @@ const ApplicationsReview: React.FC = () => {
     id: string;
     name: string;
     type: string;
+    nextStepType: NextStepType;
     nextStepId: string | null;
+    endState: EndState;
     isFinalAction: boolean;
   } | null>(null);
   const [comments, setComments] = useState('');
@@ -74,14 +78,24 @@ const ApplicationsReview: React.FC = () => {
 
   const handleOpenActionModal = (
     task: ApplicationForReview, 
-    action: { id: string; action_name: string; action_type: string; next_step_id: string | null; is_final_action: boolean }
+    action: { 
+      id: string; 
+      action_name: string; 
+      action_type: string; 
+      next_step_type: NextStepType;
+      next_step_id: string | null; 
+      end_state: EndState;
+      is_final_action: boolean 
+    }
   ) => {
     setSelectedTask(task);
     setSelectedAction({
       id: action.id,
       name: action.action_name,
       type: action.action_type,
+      nextStepType: action.next_step_type || 'next_step',
       nextStepId: action.next_step_id,
+      endState: action.end_state,
       isFinalAction: action.is_final_action,
     });
     setComments('');
@@ -96,7 +110,9 @@ const ApplicationsReview: React.FC = () => {
       actionId: selectedAction.id,
       actionName: selectedAction.name,
       actionType: selectedAction.type,
+      nextStepType: selectedAction.nextStepType,
       nextStepId: selectedAction.nextStepId,
+      endState: selectedAction.endState,
       isFinalAction: selectedAction.isFinalAction,
       comments: comments || undefined,
     });
