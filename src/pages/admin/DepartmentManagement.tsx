@@ -47,9 +47,9 @@ import { useOfficeLocations, useCreateDepartment, useUpdateDepartment, useDelete
 import type { Department } from "@/hooks/useAdminData";
 import { cn } from "@/lib/utils";
 
-interface DepartmentWithOffice extends Department {
+interface DepartmentWithOffice extends Omit<Department, 'department_head_user_id'> {
   officeName?: string;
-  department_head_user_id?: string;
+  department_head_user_id?: string | null;
   departmentHeadName?: string;
 }
 
