@@ -434,6 +434,7 @@ export default function WorkflowForm() {
       await saveSteps.mutateAsync({
         workflowId: workflowId!,
         steps: steps.map(step => ({
+          id: step.id,
           step_number: step.step_number,
           step_name: step.step_name,
           description: step.description || null,
@@ -457,6 +458,7 @@ export default function WorkflowForm() {
           escalation_module_id: step.escalation_module_id,
           escalation_template_id: step.escalation_template_id,
           actions: step.actions.map(action => ({
+            id: action.id,
             action_name: action.action_name,
             action_type: action.action_type as any,
             next_step_type: action.next_step_type,
