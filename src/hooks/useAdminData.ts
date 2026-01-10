@@ -458,7 +458,7 @@ export function useUserProfiles() {
           failed_login_attempts,
           locked_until,
           office:office_locations(id, branch_name),
-          department:departments(id, name)
+          department:departments!profiles_department_id_fkey(id, name)
         `)
         .order('full_name');
       if (error) {

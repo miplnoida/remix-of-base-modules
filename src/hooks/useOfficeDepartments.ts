@@ -15,7 +15,7 @@ export function useOfficeDepartments(officeId?: string) {
     queryFn: async () => {
       let query = supabase
         .from('office_departments')
-        .select('*, department:departments(*)');
+        .select('*, department:departments!office_departments_department_id_fkey(*)');
       
       if (officeId) {
         query = query.eq('office_id', officeId);
