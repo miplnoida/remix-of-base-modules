@@ -43,6 +43,7 @@ import { useDbRoles } from '@/hooks/useRolesData';
 import { useDesignations } from '@/hooks/useDesignations';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useModuleTables } from '@/hooks/useModuleTables';
 
 interface StepFormData {
   id?: string;
@@ -151,6 +152,8 @@ export default function WorkflowForm() {
     process_type: '',
     default_sla_hours: 24,
     is_active: false,
+    secured_module_id: null as string | null,
+    secured_table: null as string | null,
   });
 
   const [steps, setSteps] = useState<StepFormData[]>([]);
@@ -204,6 +207,9 @@ export default function WorkflowForm() {
   const updateWorkflow = useUpdateWorkflow();
   const saveSteps = useSaveWorkflowSteps();
 
+  // Fetch tables for selected module
+  const { data: moduleTables } = useModuleTables(formData.secured_module_id || undefined);
+
   useEffect(() => {
     if (workflow) {
       setFormData({
@@ -212,6 +218,8 @@ export default function WorkflowForm() {
         process_type: workflow.process_type,
         default_sla_hours: workflow.default_sla_hours,
         is_active: workflow.is_active,
+        secured_module_id: (workflow as any).secured_module_id || null,
+        secured_table: (workflow as any).secured_table || null,
       });
 
       setSteps(
@@ -575,6 +583,67 @@ export default function WorkflowForm() {
                 />
                 <Label htmlFor="active">Active</Label>
               </div>
+            </div>
+
+            {/* Security Binding Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="font-semibold text-sm">Data Security Binding</h4>
+              <p className="text-sm text-muted-foreground">
+                Bind this workflow to a module and table to enforce row-level and field-level security policies on workflow tasks.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Secured Module</Label>
+                  <Select
+                    value={formData.secured_module_id || ''}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      secured_module_id: value || null,
+                      secured_table: null // Reset table when module changes
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select module (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {parentModules?.map((module) => (
+                        <SelectItem key={module.id} value={module.id}>
+                          {module.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Secured Table</Label>
+                  <Select
+                    value={formData.secured_table || ''}
+                    onValueChange={(value) => setFormData({ ...formData, secured_table: value || null })}
+                    disabled={!formData.secured_module_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.secured_module_id ? "Select table" : "Select a module first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {moduleTables?.map((table) => (
+                        <SelectItem key={table.table_name} value={table.table_name}>
+                          {table.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {formData.secured_module_id && formData.secured_table && (
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="text-sm">
+                    <strong>Security Active:</strong> Workflow tasks will be filtered by data access policies. 
+                    Reviewers will only see tasks for records they have permission to access.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

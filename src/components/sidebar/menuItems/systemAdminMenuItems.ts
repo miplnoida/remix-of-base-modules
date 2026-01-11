@@ -14,7 +14,9 @@ import {
   ListTodo,
   BarChart3,
   ClipboardCheck,
-  Layers
+  Layers,
+  Lock,
+  CheckSquare
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -85,6 +87,18 @@ export const systemAdminMenuItems = [
             title: "Workflow Analytics",
             url: "/admin/workflow-analytics",
             icon: BarChart3,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Security",
+            url: "/admin/workflow-security",
+            icon: Lock,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Secured Approvals",
+            url: "/admin/workflow-secured-approvals",
+            icon: CheckSquare,
             requiresPermission: "system_administration"
           }
         ]
