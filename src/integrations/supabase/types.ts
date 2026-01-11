@@ -2088,6 +2088,120 @@ export type Database = {
           },
         ]
       }
+      data_policy_audit_log: {
+        Row: {
+          access_granted: boolean | null
+          action: string
+          created_at: string | null
+          denial_reason: string | null
+          id: string
+          module_name: string | null
+          record_id: string | null
+          rules_applied: Json | null
+          target_table: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_granted?: boolean | null
+          action: string
+          created_at?: string | null
+          denial_reason?: string | null
+          id?: string
+          module_name?: string | null
+          record_id?: string | null
+          rules_applied?: Json | null
+          target_table?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_granted?: boolean | null
+          action?: string
+          created_at?: string | null
+          denial_reason?: string | null
+          id?: string
+          module_name?: string | null
+          record_id?: string | null
+          rules_applied?: Json | null
+          target_table?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      data_scope_rules: {
+        Row: {
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          condition_type: Database["public"]["Enums"]["data_scope_condition_type"]
+          condition_value: string | null
+          created_at: string | null
+          created_by: string | null
+          custom_sql: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          module_id: string | null
+          priority: number
+          role_id: string | null
+          target_table: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          condition_type: Database["public"]["Enums"]["data_scope_condition_type"]
+          condition_value?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_sql?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_id?: string | null
+          priority?: number
+          role_id?: string | null
+          target_table: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          condition_type?: Database["public"]["Enums"]["data_scope_condition_type"]
+          condition_value?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_sql?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_id?: string | null
+          priority?: number
+          role_id?: string | null
+          target_table?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_scope_rules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_scope_rules_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string | null
@@ -2216,6 +2330,75 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      field_security_rules: {
+        Row: {
+          can_edit: boolean
+          can_view: boolean
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          field_name: string
+          id: string
+          is_active: boolean
+          masking_type: Database["public"]["Enums"]["field_masking_type"]
+          module_id: string | null
+          priority: number
+          role_id: string | null
+          target_table: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          field_name: string
+          id?: string
+          is_active?: boolean
+          masking_type?: Database["public"]["Enums"]["field_masking_type"]
+          module_id?: string | null
+          priority?: number
+          role_id?: string | null
+          target_table: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          field_name?: string
+          id?: string
+          is_active?: boolean
+          masking_type?: Database["public"]["Enums"]["field_masking_type"]
+          module_id?: string | null
+          priority?: number
+          role_id?: string | null
+          target_table?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_security_rules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_security_rules_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       in_app_notifications: {
         Row: {
@@ -4656,6 +4839,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_data_overrides: {
+        Row: {
+          condition_sql: string | null
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          field_name: string | null
+          id: string
+          is_active: boolean
+          module_id: string | null
+          override_type: string
+          reason: string | null
+          record_ids: string[] | null
+          target_table: string
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          condition_sql?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          field_name?: string | null
+          id?: string
+          is_active?: boolean
+          module_id?: string | null
+          override_type: string
+          reason?: string | null
+          record_ids?: string[] | null
+          target_table: string
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          condition_sql?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          field_name?: string | null
+          id?: string
+          is_active?: boolean
+          module_id?: string | null
+          override_type?: string
+          reason?: string | null
+          record_ids?: string[] | null
+          target_table?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_data_overrides_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
@@ -5590,6 +5835,12 @@ export type Database = {
         | "suspended"
       compliance_registration_type: "employer" | "self_employed" | "voluntary"
       contribution_category: "cat_a" | "cat_b" | "cat_c" | "cat_d" | "cat_e"
+      data_scope_condition_type:
+        | "owner"
+        | "department"
+        | "office"
+        | "created_by"
+        | "custom_sql"
       document_type:
         | "Filings"
         | "Evidence"
@@ -5597,6 +5848,7 @@ export type Database = {
         | "Orders"
         | "Correspondence"
         | "Internal"
+      field_masking_type: "none" | "partial" | "full"
       inspector_activity_type:
         | "inspection"
         | "audit"
@@ -5898,6 +6150,13 @@ export const Constants = {
       ],
       compliance_registration_type: ["employer", "self_employed", "voluntary"],
       contribution_category: ["cat_a", "cat_b", "cat_c", "cat_d", "cat_e"],
+      data_scope_condition_type: [
+        "owner",
+        "department",
+        "office",
+        "created_by",
+        "custom_sql",
+      ],
       document_type: [
         "Filings",
         "Evidence",
@@ -5906,6 +6165,7 @@ export const Constants = {
         "Correspondence",
         "Internal",
       ],
+      field_masking_type: ["none", "partial", "full"],
       inspector_activity_type: [
         "inspection",
         "audit",
