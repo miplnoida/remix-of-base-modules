@@ -4078,7 +4078,7 @@ export type Database = {
           id: string
           is_granted: boolean | null
           module_id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role_id: string
         }
         Insert: {
           action_id: string
@@ -4087,7 +4087,7 @@ export type Database = {
           id?: string
           is_granted?: boolean | null
           module_id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role_id: string
         }
         Update: {
           action_id?: string
@@ -4096,7 +4096,7 @@ export type Database = {
           id?: string
           is_granted?: boolean | null
           module_id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string
         }
         Relationships: [
           {
@@ -4111,6 +4111,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -5416,6 +5423,10 @@ export type Database = {
       can_access_module: {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
+      }
+      clone_role: {
+        Args: { new_role_name: string; source_role_id: string }
+        Returns: string
       }
       get_user_accessible_modules: {
         Args: { _user_id: string }
