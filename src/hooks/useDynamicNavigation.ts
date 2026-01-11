@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { logError as logSystemError, logTechnical } from '@/services/systemLoggerService';
 import { 
   LayoutDashboard, Users, Settings, Shield, Building2, FileText,
   ClipboardList, Bell, Key, UserCog, Briefcase, FolderTree,
@@ -173,14 +174,50 @@ export function useDynamicNavigation() {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      const startTime = performance.now();
+      
       // Call the RPC function using raw SQL to avoid type issues
       const { data, error } = await supabase
         .rpc('get_user_accessible_modules' as any, { _user_id: user.id });
 
+      const executionTime = Math.round(performance.now() - startTime);
+
       if (error) {
         console.error('Failed to fetch accessible modules:', error);
+        
+        // Log the API error to system_error_logs
+        await logSystemError({
+          api_name: 'get_user_accessible_modules',
+          module: 'Navigation',
+          error_type: error.code || 'API_ERROR',
+          error_message: error.message,
+          stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
+          severity: 'error',
+          payload_json: { user_id: user.id, error_code: error.code },
+        }, user.id);
+
+        // Also log as technical log with failed status
+        await logTechnical({
+          api_name: 'get_user_accessible_modules',
+          module: 'Navigation',
+          execution_time_ms: executionTime,
+          status: 'failed',
+          severity: 'error',
+          request_payload: { user_id: user.id },
+          response_payload: { error: error.message, code: error.code },
+        }, user.id);
+
         throw error;
       }
+
+      // Log successful API call
+      await logTechnical({
+        api_name: 'get_user_accessible_modules',
+        module: 'Navigation',
+        execution_time_ms: executionTime,
+        status: 'success',
+        severity: 'info',
+      }, user.id);
 
       return buildMenuTree((data as ModuleRow[]) || []);
     },
@@ -212,14 +249,38 @@ export function useCanAccessModule(moduleName: string) {
       if (!user?.id) return false;
       if (isAdmin) return true;
 
+      const startTime = performance.now();
+      
       const { data, error } = await supabase
         .rpc('can_access_module' as any, { 
           _user_id: user.id, 
           _module_name: moduleName 
         });
 
+      const executionTime = Math.round(performance.now() - startTime);
+
       if (error) {
         console.error('Failed to check module access:', error);
+        
+        // Log the API error
+        await logSystemError({
+          api_name: 'can_access_module',
+          module: 'Authorization',
+          error_type: error.code || 'API_ERROR',
+          error_message: error.message,
+          stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
+          severity: 'error',
+          payload_json: { user_id: user.id, module_name: moduleName, error_code: error.code },
+        }, user.id);
+
+        await logTechnical({
+          api_name: 'can_access_module',
+          module: 'Authorization',
+          execution_time_ms: executionTime,
+          status: 'failed',
+          severity: 'error',
+        }, user.id);
+
         return false;
       }
 
