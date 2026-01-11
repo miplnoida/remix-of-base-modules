@@ -22,19 +22,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useSampleApplications, useDeleteSampleApplication } from '@/hooks/useSampleApplications';
+import { useSampleApplications, useDeleteSampleApplication, type SampleApplication } from '@/hooks/useSampleApplications';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useHasPermission } from '@/hooks/useNavigationMenu';
 import { format } from 'date-fns';
 
 export default function SampleApplicationList() {
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  
+
+  const { user } = useSupabaseAuth();
+  const canDeleteAny = useHasPermission('sample_application', 'delete');
+  const canEditAny = useHasPermission('sample_application', 'edit');
+
   const { data: applications, isLoading } = useSampleApplications();
   const deleteApplication = useDeleteSampleApplication();
 
+  const canEdit = (status: string) => status === 'Draft' || status === 'MoreInfoRequested';
+
+  const canEditRow = (app: SampleApplication) =>
+    canEdit(app.status) && (!!user?.id && (app.applicant_id === user.id || canEditAny));
+
+  const canDeleteRow = (app: SampleApplication) =>
+    app.status === 'Draft' && (!!user?.id && (app.applicant_id === user.id || canDeleteAny));
+
   const handleDelete = async () => {
-    if (deleteId) {
+    if (!deleteId) return;
+    try {
       await deleteApplication.mutateAsync(deleteId);
+    } finally {
       setDeleteId(null);
     }
   };
@@ -58,7 +74,6 @@ export default function SampleApplicationList() {
     }
   };
 
-  const canEdit = (status: string) => status === 'Draft' || status === 'MoreInfoRequested';
 
   return (
     <div className="space-y-6">
@@ -129,28 +144,26 @@ export default function SampleApplicationList() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {canEdit(app.status) && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/sample-applications/${app.id}/edit`)}
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {app.status === 'Draft' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteId(app.id)}
-                              title="Delete"
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </>
+                      {canEditRow(app) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/sample-applications/${app.id}/edit`)}
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteRow(app) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(app.id)}
+                          title="Delete"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </TableCell>
