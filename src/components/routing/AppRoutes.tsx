@@ -274,6 +274,16 @@ import MyProfile from '@/pages/profile/MyProfile';
 // Notification Pages
 import NotificationCenter from '@/pages/notifications/NotificationCenter';
 import ProviderSettings from '@/pages/admin/notifications/ProviderSettings';
+
+// System Monitoring & Logs
+import TechnicalLogs from '@/pages/system-logs/TechnicalLogs';
+import ErrorLogs from '@/pages/system-logs/ErrorLogs';
+import BusinessEvents from '@/pages/system-logs/BusinessEvents';
+import AuditTrail from '@/pages/system-logs/AuditTrail';
+import SecurityLogs from '@/pages/system-logs/SecurityLogs';
+import IntegrationLogs from '@/pages/system-logs/IntegrationLogs';
+import PerformanceMonitor from '@/pages/system-logs/PerformanceMonitor';
+import SystemWorkflowLogs from '@/pages/system-logs/WorkflowLogs';
 import AdminNotificationLogs from '@/pages/admin/NotificationLogs';
 import AdminNotificationTemplates from '@/pages/admin/NotificationTemplates';
 
@@ -1277,6 +1287,16 @@ export const AppRoutes = () => {
       {/* Workflow Instances */}
       <Route path="/admin/workflow-instances" element={<ProtectedLayout><WorkflowInstanceList /></ProtectedLayout>} />
       <Route path="/admin/workflow-instances/:id" element={<ProtectedLayout><WorkflowInstanceDetail /></ProtectedLayout>} />
+
+      {/* System Monitoring & Logs */}
+      <Route path="/system-logs/technical" element={<ProtectedLayout><TechnicalLogs /></ProtectedLayout>} />
+      <Route path="/system-logs/errors" element={<ProtectedLayout><ErrorLogs /></ProtectedLayout>} />
+      <Route path="/system-logs/business" element={<ProtectedLayout><BusinessEvents /></ProtectedLayout>} />
+      <Route path="/system-logs/audit" element={<ProtectedLayout><AuditTrail /></ProtectedLayout>} />
+      <Route path="/system-logs/security" element={<ProtectedLayout><SecurityLogs /></ProtectedLayout>} />
+      <Route path="/system-logs/integration" element={<ProtectedLayout><IntegrationLogs /></ProtectedLayout>} />
+      <Route path="/system-logs/performance" element={<ProtectedLayout><PerformanceMonitor /></ProtectedLayout>} />
+      <Route path="/system-logs/workflows" element={<ProtectedLayout><SystemWorkflowLogs /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />
