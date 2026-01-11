@@ -4,12 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { ModuleTreeSelector } from './ModuleTreeSelector';
+import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 
 interface Props {
   open: boolean;
@@ -36,13 +38,12 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
     }
   });
 
-  const { data: modules } = useQuery({
-    queryKey: ['modules-dropdown'],
-    queryFn: async () => {
-      const { data } = await supabase.from('app_modules').select('id, display_name').eq('is_enabled', true);
-      return data || [];
-    }
-  });
+  const moduleId = form.watch('module_id');
+  const targetTable = form.watch('target_table');
+  const conditionType = form.watch('condition_type');
+
+  const { data: tables, isLoading: tablesLoading } = useModuleTables(moduleId);
+  const { data: columns, isLoading: columnsLoading } = useTableColumns(targetTable);
 
   const { data: roles } = useQuery({
     queryKey: ['roles-dropdown'],
@@ -51,6 +52,21 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
       return data || [];
     }
   });
+
+  // Reset target_table when module changes
+  useEffect(() => {
+    if (moduleId && !rule) {
+      form.setValue('target_table', '');
+      form.setValue('condition_value', '');
+    }
+  }, [moduleId, form, rule]);
+
+  // Reset condition_value when target_table changes
+  useEffect(() => {
+    if (targetTable && !rule) {
+      form.setValue('condition_value', '');
+    }
+  }, [targetTable, form, rule]);
 
   useEffect(() => {
     if (rule) {
@@ -75,10 +91,21 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
         can_delete: false, is_active: true, priority: 100, description: ''
       });
     }
-  }, [rule, form]);
+  }, [rule, form, open]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      // Validation
+      if (!data.module_id) {
+        throw new Error('Please select a module');
+      }
+      if (!data.target_table) {
+        throw new Error('Please select a target table');
+      }
+      if (!data.role_id) {
+        throw new Error('Please select a role');
+      }
+      
       const payload = { ...data, module_id: data.module_id || null };
       if (rule?.id) {
         const { error } = await supabase.from('data_scope_rules').update(payload).eq('id', rule.id);
@@ -107,19 +134,39 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="module_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Module</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {modules?.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Module *</FormLabel>
+                  <FormControl>
+                    <ModuleTreeSelector 
+                      value={field.value} 
+                      onChange={field.onChange}
+                      placeholder="Select leaf module..."
+                    />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="target_table" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Target Table *</FormLabel>
-                  <FormControl><Input {...field} placeholder="e.g., invoices" /></FormControl>
+                  <Select 
+                    value={field.value} 
+                    onValueChange={field.onChange}
+                    disabled={!moduleId || tablesLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={tablesLoading ? "Loading..." : "Select table..."} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {tables?.map((t) => (
+                        <SelectItem key={t.table_name} value={t.table_name}>
+                          {t.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="role_id" render={({ field }) => (
@@ -131,6 +178,7 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
                       {roles?.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.role_name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="condition_type" render={({ field }) => (
@@ -146,23 +194,52 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
                       <SelectItem value="custom_sql">Custom SQL</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
                 </FormItem>
               )} />
             </div>
+            
             <FormField control={form.control} name="condition_value" render={({ field }) => (
               <FormItem>
-                <FormLabel>Condition Value</FormLabel>
-                <FormControl><Input {...field} placeholder="e.g., user.department_id" /></FormControl>
+                <FormLabel>Condition Value (Column)</FormLabel>
+                {conditionType === 'custom_sql' ? (
+                  <FormControl>
+                    <Input {...field} placeholder="Enter condition value..." />
+                  </FormControl>
+                ) : (
+                  <Select 
+                    value={field.value} 
+                    onValueChange={field.onChange}
+                    disabled={!targetTable || columnsLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={columnsLoading ? "Loading..." : "Select column..."} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {columns?.map((c) => (
+                        <SelectItem key={c.column_name} value={c.column_name}>
+                          {c.column_name} ({c.data_type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <FormMessage />
               </FormItem>
             )} />
-            {form.watch('condition_type') === 'custom_sql' && (
+
+            {conditionType === 'custom_sql' && (
               <FormField control={form.control} name="custom_sql" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Custom SQL</FormLabel>
                   <FormControl><Textarea {...field} rows={3} placeholder="WHERE clause..." /></FormControl>
+                  <FormMessage />
                 </FormItem>
               )} />
             )}
+
             <div className="grid grid-cols-4 gap-4">
               <FormField control={form.control} name="can_view" render={({ field }) => (
                 <FormItem className="flex items-center gap-2">
@@ -189,18 +266,21 @@ export function DataScopeRuleDialog({ open, onOpenChange, rule }: Props) {
                 </FormItem>
               )} />
             </div>
+
             <FormField control={form.control} name="priority" render={({ field }) => (
               <FormItem>
                 <FormLabel>Priority</FormLabel>
                 <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} /></FormControl>
               </FormItem>
             )} />
+
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl><Textarea {...field} rows={2} /></FormControl>
               </FormItem>
             )} />
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save'}</Button>

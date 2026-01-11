@@ -3704,6 +3704,41 @@ export type Database = {
           },
         ]
       }
+      module_tables: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          id: string
+          module_id: string | null
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string
+          module_id?: string | null
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string
+          module_id?: string | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_tables_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           body: string
@@ -5682,6 +5717,27 @@ export type Database = {
       clone_role: {
         Args: { new_role_name: string; source_role_id: string }
         Returns: string
+      }
+      get_all_public_tables: {
+        Args: never
+        Returns: {
+          table_name: string
+        }[]
+      }
+      get_module_tables: {
+        Args: { _module_id: string }
+        Returns: {
+          display_name: string
+          table_name: string
+        }[]
+      }
+      get_table_columns: {
+        Args: { _table_name: string }
+        Returns: {
+          column_name: string
+          data_type: string
+          is_nullable: boolean
+        }[]
       }
       get_user_accessible_modules: {
         Args: { _user_id: string }

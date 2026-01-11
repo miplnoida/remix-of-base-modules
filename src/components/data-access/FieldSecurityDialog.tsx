@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { ModuleTreeSelector } from './ModuleTreeSelector';
+import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 
 interface Props {
   open: boolean;
@@ -32,13 +34,11 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
     }
   });
 
-  const { data: modules } = useQuery({
-    queryKey: ['modules-dropdown'],
-    queryFn: async () => {
-      const { data } = await supabase.from('app_modules').select('id, display_name').eq('is_enabled', true);
-      return data || [];
-    }
-  });
+  const moduleId = form.watch('module_id');
+  const targetTable = form.watch('target_table');
+
+  const { data: tables, isLoading: tablesLoading } = useModuleTables(moduleId);
+  const { data: columns, isLoading: columnsLoading } = useTableColumns(targetTable);
 
   const { data: roles } = useQuery({
     queryKey: ['roles-dropdown'],
@@ -47,6 +47,21 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
       return data || [];
     }
   });
+
+  // Reset target_table when module changes
+  useEffect(() => {
+    if (moduleId && !rule) {
+      form.setValue('target_table', '');
+      form.setValue('field_name', '');
+    }
+  }, [moduleId, form, rule]);
+
+  // Reset field_name when target_table changes
+  useEffect(() => {
+    if (targetTable && !rule) {
+      form.setValue('field_name', '');
+    }
+  }, [targetTable, form, rule]);
 
   useEffect(() => {
     if (rule) {
@@ -67,10 +82,24 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
         can_view: true, can_edit: false, masking_type: 'none', is_active: true, priority: 100
       });
     }
-  }, [rule, form]);
+  }, [rule, form, open]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      // Validation
+      if (!data.module_id) {
+        throw new Error('Please select a module');
+      }
+      if (!data.target_table) {
+        throw new Error('Please select a table');
+      }
+      if (!data.field_name) {
+        throw new Error('Please select a field');
+      }
+      if (!data.role_id) {
+        throw new Error('Please select a role');
+      }
+      
       const payload = { ...data, module_id: data.module_id || null };
       if (rule?.id) {
         const { error } = await supabase.from('field_security_rules').update(payload).eq('id', rule.id);
@@ -98,27 +127,68 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
           <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
             <FormField control={form.control} name="module_id" render={({ field }) => (
               <FormItem>
-                <FormLabel>Module</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    {modules?.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Module *</FormLabel>
+                <FormControl>
+                  <ModuleTreeSelector 
+                    value={field.value} 
+                    onChange={field.onChange}
+                    placeholder="Select leaf module..."
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )} />
+
             <FormField control={form.control} name="target_table" render={({ field }) => (
               <FormItem>
                 <FormLabel>Table *</FormLabel>
-                <FormControl><Input {...field} placeholder="e.g., employees" /></FormControl>
+                <Select 
+                  value={field.value} 
+                  onValueChange={field.onChange}
+                  disabled={!moduleId || tablesLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={tablesLoading ? "Loading..." : "Select table..."} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {tables?.map((t) => (
+                      <SelectItem key={t.table_name} value={t.table_name}>
+                        {t.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
               </FormItem>
             )} />
+
             <FormField control={form.control} name="field_name" render={({ field }) => (
               <FormItem>
                 <FormLabel>Field Name *</FormLabel>
-                <FormControl><Input {...field} placeholder="e.g., salary" /></FormControl>
+                <Select 
+                  value={field.value} 
+                  onValueChange={field.onChange}
+                  disabled={!targetTable || columnsLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={columnsLoading ? "Loading..." : "Select field..."} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {columns?.map((c) => (
+                      <SelectItem key={c.column_name} value={c.column_name}>
+                        {c.column_name} ({c.data_type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
               </FormItem>
             )} />
+
             <FormField control={form.control} name="role_id" render={({ field }) => (
               <FormItem>
                 <FormLabel>Role *</FormLabel>
@@ -128,8 +198,10 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
                     {roles?.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.role_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <FormMessage />
               </FormItem>
             )} />
+
             <div className="grid grid-cols-3 gap-4">
               <FormField control={form.control} name="can_view" render={({ field }) => (
                 <FormItem className="flex items-center gap-2">
@@ -150,6 +222,7 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
                 </FormItem>
               )} />
             </div>
+
             <FormField control={form.control} name="masking_type" render={({ field }) => (
               <FormItem>
                 <FormLabel>Masking Type</FormLabel>
@@ -163,6 +236,16 @@ export function FieldSecurityDialog({ open, onOpenChange, rule }: Props) {
                 </Select>
               </FormItem>
             )} />
+
+            <FormField control={form.control} name="priority" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
+                </FormControl>
+              </FormItem>
+            )} />
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save'}</Button>
