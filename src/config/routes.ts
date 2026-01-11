@@ -116,4 +116,11 @@ export const routes = {
   SAMPLE_APPLICATION_NEW: '/sample-applications/new',
   SAMPLE_APPLICATION_VIEW: (id: string) => `/sample-applications/${id}`,
   SAMPLE_APPLICATION_EDIT: (id: string) => `/sample-applications/${id}/edit`,
+
+  // Data Access Control routes
+  DATA_ACCESS_SCOPE_RULES: '/admin/data-access/scope-rules',
+  DATA_ACCESS_FIELD_SECURITY: '/admin/data-access/field-security',
+  DATA_ACCESS_ROLE_POLICIES: '/admin/data-access/role-policies',
+  DATA_ACCESS_USER_OVERRIDES: '/admin/data-access/user-overrides',
+  DATA_ACCESS_TEST_CONSOLE: '/admin/data-access/test-console',
 } as const;

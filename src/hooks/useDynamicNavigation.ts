@@ -42,6 +42,8 @@ const iconMap: Record<string, LucideIcon> = {
   'settings': Settings,
   'settings2': Settings2,
   'shield': Shield,
+  'shieldcheck': Shield,
+  'shield-check': Shield,
   'building': Building,
   'building2': Building2,
   'file-text': FileText,
@@ -99,6 +101,9 @@ const iconMap: Record<string, LucideIcon> = {
   'link': Link,
   'gitbranch': GitBranch,
   'git-branch': GitBranch,
+  'rows3': Layers,
+  'testtube': Activity,
+  'test-tube': Activity,
 };
 
 // Map icon name string to Lucide icon component
