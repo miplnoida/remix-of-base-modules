@@ -230,15 +230,6 @@ export const LoginScreen = () => {
               </div>
             </form>
 
-            <div className="mt-4 pt-4 border-t">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate('/inspector/login')}
-              >
-                Inspector Login →
-              </Button>
-            </div>
           </CardContent>
         </Card>
 

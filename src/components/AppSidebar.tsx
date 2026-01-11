@@ -49,9 +49,6 @@ export function AppSidebar() {
                 </div>
               )}
             </div>
-            <SidebarTrigger 
-              className="text-white hover:bg-white/20 h-8 w-8 transition-colors" 
-            />
           </div>
         </div>
       </SidebarHeader>
