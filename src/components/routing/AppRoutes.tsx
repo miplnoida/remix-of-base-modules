@@ -241,6 +241,8 @@ import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
 import WorkflowTriggers from '@/pages/admin/workflows/WorkflowTriggers';
 import WorkflowLogs from '@/pages/admin/workflows/WorkflowLogs';
 import WorkflowAnalytics from '@/pages/admin/workflows/WorkflowAnalytics';
+import WorkflowSecuritySettings from '@/pages/admin/workflows/WorkflowSecuritySettings';
+import SecuredWorkflowApprovals from '@/pages/admin/workflows/SecuredWorkflowApprovals';
 import WorkflowInstanceList from '@/pages/admin/workflows/WorkflowInstanceList';
 import WorkflowInstanceDetail from '@/pages/admin/workflows/WorkflowInstanceDetail';
 import MyWorkflowTasks from '@/pages/workflow/MyWorkflowTasks';
@@ -902,6 +904,8 @@ export const AppRoutes = () => {
       <Route path="/admin/workflow-triggers" element={<ProtectedLayout><WorkflowTriggers /></ProtectedLayout>} />
       <Route path="/admin/workflow-logs" element={<ProtectedLayout><WorkflowLogs /></ProtectedLayout>} />
       <Route path="/admin/workflow-analytics" element={<ProtectedLayout><WorkflowAnalytics /></ProtectedLayout>} />
+      <Route path="/admin/workflow-security" element={<ProtectedLayout><WorkflowSecuritySettings /></ProtectedLayout>} />
+      <Route path="/admin/workflow-secured-approvals" element={<ProtectedLayout><SecuredWorkflowApprovals /></ProtectedLayout>} />
       <Route path="/workflow/my-tasks" element={<ProtectedLayout><MyWorkflowTasks /></ProtectedLayout>} />
       
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
