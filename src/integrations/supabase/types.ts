@@ -5131,6 +5131,8 @@ export type Database = {
           is_active: boolean | null
           name: string
           process_type: string
+          secured_module_id: string | null
+          secured_table: string | null
           updated_at: string | null
           version: number | null
         }
@@ -5143,6 +5145,8 @@ export type Database = {
           is_active?: boolean | null
           name: string
           process_type: string
+          secured_module_id?: string | null
+          secured_table?: string | null
           updated_at?: string | null
           version?: number | null
         }
@@ -5155,6 +5159,8 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           process_type?: string
+          secured_module_id?: string | null
+          secured_table?: string | null
           updated_at?: string | null
           version?: number | null
         }
@@ -5164,6 +5170,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_definitions_secured_module_id_fkey"
+            columns: ["secured_module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -5377,6 +5390,78 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_security_audit_log: {
+        Row: {
+          access_granted: boolean
+          action: string
+          created_at: string
+          denial_reason: string | null
+          fields_edited: string[] | null
+          fields_viewed: string[] | null
+          id: string
+          ip_address: string | null
+          record_id: string | null
+          record_table: string | null
+          rules_applied: Json | null
+          user_agent: string | null
+          user_id: string | null
+          user_name: string | null
+          workflow_definition_id: string | null
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          access_granted?: boolean
+          action: string
+          created_at?: string
+          denial_reason?: string | null
+          fields_edited?: string[] | null
+          fields_viewed?: string[] | null
+          id?: string
+          ip_address?: string | null
+          record_id?: string | null
+          record_table?: string | null
+          rules_applied?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          workflow_definition_id?: string | null
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          access_granted?: boolean
+          action?: string
+          created_at?: string
+          denial_reason?: string | null
+          fields_edited?: string[] | null
+          fields_viewed?: string[] | null
+          id?: string
+          ip_address?: string | null
+          record_id?: string | null
+          record_table?: string | null
+          rules_applied?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          workflow_definition_id?: string | null
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_security_audit_log_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_security_audit_log_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -5714,9 +5799,30 @@ export type Database = {
         }
         Returns: Json
       }
+      check_workflow_task_access: {
+        Args: {
+          _action?: string
+          _user_id: string
+          _workflow_instance_id: string
+        }
+        Returns: Json
+      }
       clone_role: {
         Args: { new_role_name: string; source_role_id: string }
         Returns: string
+      }
+      find_eligible_approver: {
+        Args: {
+          _exclude_users?: string[]
+          _step_id: string
+          _workflow_instance_id: string
+        }
+        Returns: {
+          access_details: Json
+          has_data_access: boolean
+          user_id: string
+          user_name: string
+        }[]
       }
       get_all_public_tables: {
         Args: never
@@ -5805,8 +5911,30 @@ export type Database = {
         }
         Returns: string
       }
+      log_workflow_security_event: {
+        Args: {
+          _access_granted?: boolean
+          _action: string
+          _denial_reason?: string
+          _fields_edited?: string[]
+          _fields_viewed?: string[]
+          _record_id?: string
+          _rules_applied?: Json
+          _user_id: string
+          _workflow_instance_id: string
+        }
+        Returns: string
+      }
       test_data_policy: {
         Args: { _action: string; _module_name: string; _test_user_id: string }
+        Returns: Json
+      }
+      test_workflow_policy: {
+        Args: {
+          _record_id?: string
+          _test_user_id: string
+          _workflow_id: string
+        }
         Returns: Json
       }
     }
