@@ -85,8 +85,19 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    if (!resendResponse.ok) {
-      throw new Error(emailResult.error?.message || emailResult.message || "Failed to send email");
+    if (!resendResponse.ok || (emailResult as any)?.error) {
+      const errMsg = (emailResult as any)?.error?.message || (emailResult as any)?.message || "Failed to send email";
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: errMsg,
+          provider_status: resendResponse.status,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     return new Response(
