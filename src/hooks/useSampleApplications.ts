@@ -274,15 +274,24 @@ export function useSubmitSampleApplication() {
 // Delete sample application (only drafts)
 export function useDeleteSampleApplication() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      // IMPORTANT: PostgREST can return 204 even when 0 rows were deleted (e.g., RLS blocked).
+      // Request the deleted row back and verify we actually deleted something.
+      const { data, error } = await supabase
         .from('sample_applications')
         .delete()
-        .eq('id', id);
-      
+        .eq('id', id)
+        .select('id');
+
       if (error) throw error;
+
+      if (!data || data.length === 0) {
+        throw new Error('Delete failed: you may not have permission, or the record no longer exists.');
+      }
+
+      return data[0].id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sample-applications'] });
