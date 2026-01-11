@@ -18,7 +18,7 @@ import type { AppModule } from "@/hooks/useAdminData";
 
 interface RolePermission {
   id: string;
-  role: AppRole;
+  role_id: string;
   module_id: string;
   action_id: string;
   is_granted: boolean;
@@ -168,7 +168,7 @@ const ModuleTreeItem = ({
 };
 
 const RolePermissionManagement = () => {
-  const [selectedRoleName, setSelectedRoleName] = useState<string>('Admin');
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
@@ -178,27 +178,29 @@ const RolePermissionManagement = () => {
 
   // Set initial role once roles are loaded
   useEffect(() => {
-    if (dbRoles.length > 0 && !selectedRoleName) {
+    if (dbRoles.length > 0 && !selectedRoleId) {
       const adminRole = dbRoles.find(r => r.role_name === 'Admin');
       if (adminRole) {
-        setSelectedRoleName(adminRole.role_name);
+        setSelectedRoleId(adminRole.id);
       } else {
-        setSelectedRoleName(dbRoles[0].role_name);
+        setSelectedRoleId(dbRoles[0].id);
       }
     }
-  }, [dbRoles, selectedRoleName]);
+  }, [dbRoles, selectedRoleId]);
+
+  const selectedRole = dbRoles.find(r => r.id === selectedRoleId);
   
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['role-permissions', selectedRoleName],
+    queryKey: ['role-permissions', selectedRoleId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*')
-        .eq('role', selectedRoleName as AppRole);
+        .eq('role_id', selectedRoleId);
       if (error) throw error;
       return data as RolePermission[];
     },
-    enabled: !!selectedRoleName,
+    enabled: !!selectedRoleId,
   });
 
   // Build tree structure
@@ -268,15 +270,15 @@ const RolePermissionManagement = () => {
           if (error) throw error;
         }
       } else if (isGranted) {
-        // Create new
+        // Create new using role_id
         const { error } = await supabase
           .from('role_permissions')
-          .insert({ role: selectedRoleName as AppRole, module_id: moduleId, action_id: actionId, is_granted: isGranted });
+          .insert({ role_id: selectedRoleId, module_id: moduleId, action_id: actionId, is_granted: isGranted });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['role-permissions', selectedRoleName] });
+      queryClient.invalidateQueries({ queryKey: ['role-permissions', selectedRoleId] });
       toast.success('Permission updated');
     },
     onError: (error: Error) => toast.error(error.message),
@@ -292,7 +294,7 @@ const RolePermissionManagement = () => {
     updatePermission.mutate({ moduleId, actionId, isGranted: !currentlyGranted });
   };
 
-  const isAdminRole = selectedRoleName === 'Admin';
+  const isAdminRole = selectedRole?.role_name === 'Admin';
 
   if (modulesLoading || permissionsLoading || rolesLoading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
@@ -315,13 +317,13 @@ const RolePermissionManagement = () => {
           </CardTitle>
           <CardDescription>Select a role and configure which module actions it can access</CardDescription>
           <div className="mt-4 flex flex-col sm:flex-row gap-4">
-            <Select value={selectedRoleName} onValueChange={setSelectedRoleName}>
+            <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
                 {dbRoles.filter(r => r.is_active).map(role => (
-                  <SelectItem key={role.id} value={role.role_name}>
+                  <SelectItem key={role.id} value={role.id}>
                     {role.role_name.replace(/([A-Z])/g, ' $1').trim()}
                   </SelectItem>
                 ))}

@@ -19,7 +19,7 @@ export interface DbRole {
 
 export interface DbRolePermission {
   id: string;
-  role: AppRole;
+  role_id: string;
   module_id: string;
   action_id: string | null;
   is_granted: boolean;
@@ -124,25 +124,20 @@ export function useDeleteDbRole() {
   });
 }
 
-// Fetch role permissions by role name (app_role enum)
+// Fetch role permissions by role id (uuid FK)
 export function useRolePermissions(roleId: string) {
-  const { data: roles } = useDbRoles();
-  const role = roles?.find(r => r.id === roleId);
-  
   return useQuery({
     queryKey: ['role-permissions', roleId],
     queryFn: async () => {
-      if (!role) return [];
-      // Map role_name to app_role enum value
-      const appRole = role.role_name as AppRole;
+      if (!roleId) return [];
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*')
-        .eq('role', appRole);
+        .eq('role_id', roleId);
       if (error) throw error;
       return data as DbRolePermission[];
     },
-    enabled: !!roleId && !!role,
+    enabled: !!roleId,
   });
 }
 
@@ -174,29 +169,25 @@ export function useModulesWithActions() {
 // Save role permissions
 export function useSaveRolePermissions() {
   const queryClient = useQueryClient();
-  const { data: roles } = useDbRoles();
   
   return useMutation({
-    mutationFn: async ({ roleId, permissions }: { roleId: string; permissions: { module_id: string; is_granted: boolean }[] }) => {
-      const role = roles?.find(r => r.id === roleId);
-      if (!role) throw new Error('Role not found');
-      
-      const appRole = role.role_name as AppRole;
+    mutationFn: async ({ roleId, permissions }: { roleId: string; permissions: { module_id: string; action_id?: string | null; is_granted: boolean }[] }) => {
+      if (!roleId) throw new Error('Role ID is required');
       
       // First delete all existing permissions for this role
       const { error: deleteError } = await supabase
         .from('role_permissions')
         .delete()
-        .eq('role', appRole);
+        .eq('role_id', roleId);
       
       if (deleteError) throw deleteError;
 
       // Then insert new permissions
       if (permissions.length > 0) {
         const permissionsToInsert = permissions.map(p => ({
-          role: appRole,
+          role_id: roleId,
           module_id: p.module_id,
-          action_id: null,
+          action_id: p.action_id || null,
           is_granted: p.is_granted,
         }));
 
