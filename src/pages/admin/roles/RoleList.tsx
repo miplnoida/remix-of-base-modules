@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
+import { useSystemLogger } from "@/hooks/useSystemLogger";
 
 interface Role {
   id: string;
@@ -30,6 +31,7 @@ const RoleListContent = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { can } = useActionPermissions(MODULE_NAMES.ROLE_MANAGEMENT);
+  const { logBusinessEvent, logAudit, logTechnical, startNewCorrelation } = useSystemLogger();
   const [searchQuery, setSearchQuery] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [showCloneDialog, setShowCloneDialog] = useState(false);
@@ -58,8 +60,39 @@ const RoleListContent = () => {
 
   const createRole = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('roles').insert(data);
+      startNewCorrelation();
+      const startTime = performance.now();
+      const { data: result, error } = await supabase.from('roles').insert(data).select().single();
       if (error) throw error;
+      
+      const executionTime = Math.round(performance.now() - startTime);
+      logTechnical({
+        api_name: 'roles.insert',
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: result?.id,
+        execution_time_ms: executionTime,
+        status: 'success',
+        severity: 'info',
+      });
+      
+      logBusinessEvent({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: result?.id,
+        action: 'CREATE',
+        description: `Created role: ${data.role_name}`,
+      });
+      
+      logAudit({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: result?.id,
+        action: 'CREATE',
+        after_value: data,
+      });
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
@@ -72,8 +105,41 @@ const RoleListContent = () => {
 
   const updateRole = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & typeof formData) => {
+      startNewCorrelation();
+      // Get before value for audit
+      const { data: beforeData } = await supabase.from('roles').select('*').eq('id', id).single();
+      
+      const startTime = performance.now();
       const { error } = await supabase.from('roles').update(data).eq('id', id);
       if (error) throw error;
+      
+      const executionTime = Math.round(performance.now() - startTime);
+      logTechnical({
+        api_name: 'roles.update',
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: id,
+        execution_time_ms: executionTime,
+        status: 'success',
+        severity: 'info',
+      });
+      
+      logBusinessEvent({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: id,
+        action: 'UPDATE',
+        description: `Updated role: ${data.role_name}`,
+      });
+      
+      logAudit({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: id,
+        action: 'UPDATE',
+        before_value: beforeData,
+        after_value: data,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
@@ -86,8 +152,40 @@ const RoleListContent = () => {
 
   const deleteRole = useMutation({
     mutationFn: async (id: string) => {
+      startNewCorrelation();
+      // Get before value for audit
+      const { data: beforeData } = await supabase.from('roles').select('*').eq('id', id).single();
+      
+      const startTime = performance.now();
       const { error } = await supabase.from('roles').delete().eq('id', id);
       if (error) throw error;
+      
+      const executionTime = Math.round(performance.now() - startTime);
+      logTechnical({
+        api_name: 'roles.delete',
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: id,
+        execution_time_ms: executionTime,
+        status: 'success',
+        severity: 'info',
+      });
+      
+      logBusinessEvent({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: id,
+        action: 'DELETE',
+        description: `Deleted role: ${beforeData?.role_name}`,
+      });
+      
+      logAudit({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: id,
+        action: 'DELETE',
+        before_value: beforeData,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
@@ -98,6 +196,11 @@ const RoleListContent = () => {
 
   const cloneRole = useMutation({
     mutationFn: async ({ sourceRoleId, newRoleName }: { sourceRoleId: string; newRoleName: string }) => {
+      startNewCorrelation();
+      // Get source role for logging
+      const { data: sourceRole } = await supabase.from('roles').select('*').eq('id', sourceRoleId).single();
+      
+      const startTime = performance.now();
       // Use the database function to clone role with permissions atomically
       const { data, error } = await supabase.rpc('clone_role', {
         source_role_id: sourceRoleId,
@@ -105,6 +208,35 @@ const RoleListContent = () => {
       });
       
       if (error) throw error;
+      
+      const executionTime = Math.round(performance.now() - startTime);
+      logTechnical({
+        api_name: 'clone_role',
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: data,
+        execution_time_ms: executionTime,
+        status: 'success',
+        severity: 'info',
+      });
+      
+      logBusinessEvent({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: data,
+        action: 'CLONE',
+        description: `Cloned role "${sourceRole?.role_name}" to "${newRoleName}"`,
+      });
+      
+      logAudit({
+        module: 'RoleManagement',
+        entity_type: 'role',
+        entity_id: data,
+        action: 'CLONE',
+        before_value: { source_role: sourceRole },
+        after_value: { new_role_name: newRoleName },
+      });
+      
       return data;
     },
     onSuccess: () => {
