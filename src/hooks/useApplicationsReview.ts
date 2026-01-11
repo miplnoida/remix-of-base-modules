@@ -521,7 +521,7 @@ export function useProcessReviewAction() {
               };
               const channel = channelMap[(notification.notification_type?.toLowerCase() || 'email')] || 'email';
 
-              const { error: logError } = await supabase
+              const { data: logData, error: logError } = await supabase
                 .from('notification_logs')
                 .insert({
                   template_id: template.id,
@@ -543,10 +543,37 @@ export function useProcessReviewAction() {
                     action_name: actionName,
                     action_type: actionType,
                   },
-                });
+                })
+                .select()
+                .single();
 
               if (logError) {
                 console.error('[Notification] Failed to insert notification log:', logError);
+              } else if (logData && recipientEmail && channel === 'email') {
+                // Immediately send email via edge function
+                try {
+                  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+                  
+                  const sendResponse = await fetch(`${supabaseUrl}/functions/v1/send-notification`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${supabaseKey}`,
+                    },
+                    body: JSON.stringify({
+                      notification_log_id: logData.id,
+                      recipient_email: recipientEmail,
+                      subject,
+                      body,
+                    }),
+                  });
+                  
+                  const sendResult = await sendResponse.json();
+                  console.log('[Notification] Send result:', sendResult);
+                } catch (sendError) {
+                  console.error('[Notification] Failed to send email:', sendError);
+                }
               }
             }
           } catch (notifError) {
