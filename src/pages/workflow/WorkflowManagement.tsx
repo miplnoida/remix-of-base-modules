@@ -10,6 +10,7 @@ import WorkflowStepsManager from "@/components/workflow/WorkflowStepsManager";
 import WorkflowExecutionMonitor from "@/components/workflow/WorkflowExecutionMonitor";
 import WorkflowAnalytics from "@/components/workflow/WorkflowAnalytics";
 import WorkflowApprovals from "@/components/workflow/WorkflowApprovals";
+import SecuredWorkflowApprovals from "@/components/workflow/SecuredWorkflowApprovals";
 import WorkflowActivityFeed from "@/components/workflow/WorkflowActivityFeed";
 import WorkflowDelegation from "@/components/workflow/WorkflowDelegation";
 import WorkflowPerformanceReports from "@/components/workflow/WorkflowPerformanceReports";
@@ -17,6 +18,7 @@ import WorkflowSLAConfig from "@/components/workflow/WorkflowSLAConfig";
 import WorkflowSLAMonitor from "@/components/workflow/WorkflowSLAMonitor";
 import WorkflowWebhooks from "@/components/workflow/WorkflowWebhooks";
 import WorkflowEmailReports from "@/components/workflow/WorkflowEmailReports";
+import WorkflowSecuritySettings from "@/components/workflow/WorkflowSecuritySettings";
 
 export default function WorkflowManagement() {
   const [activeTab, setActiveTab] = useState("designer");
@@ -31,18 +33,20 @@ export default function WorkflowManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+        <TabsList className="grid w-full grid-cols-7 lg:grid-cols-14">
           <TabsTrigger value="designer">Designer</TabsTrigger>
           <TabsTrigger value="workflows">Workflows</TabsTrigger>
           <TabsTrigger value="steps">Steps</TabsTrigger>
           <TabsTrigger value="execution">Execution</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
+          <TabsTrigger value="secured-queue">Secured Queue</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="delegation">Delegation</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="sla">SLA</TabsTrigger>
           <TabsTrigger value="data">Data</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -70,6 +74,10 @@ export default function WorkflowManagement() {
           <WorkflowApprovals />
         </TabsContent>
 
+        <TabsContent value="secured-queue" className="mt-6">
+          <SecuredWorkflowApprovals />
+        </TabsContent>
+
         <TabsContent value="activity" className="mt-6">
           <WorkflowActivityFeed />
         </TabsContent>
@@ -91,6 +99,10 @@ export default function WorkflowManagement() {
 
         <TabsContent value="data" className="mt-6">
           <WorkflowData />
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-6">
+          <WorkflowSecuritySettings />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

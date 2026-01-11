@@ -11,7 +11,7 @@ import { Shield, Lock, Edit, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkflowDefinitionsWithSecurity, useUpdateWorkflowSecurity } from '@/hooks/useWorkflowSecurity';
 import { useModuleTables } from '@/hooks/useModuleTables';
-import ModuleTreeSelector from '@/components/data-access/ModuleTreeSelector';
+import { ModuleTreeSelector } from '@/components/data-access/ModuleTreeSelector';
 
 interface EditDialogProps {
   workflow: any;
@@ -24,7 +24,7 @@ function EditSecurityDialog({ workflow, open, onOpenChange }: EditDialogProps) {
   const [selectedTable, setSelectedTable] = useState<string>(workflow?.secured_table || '');
   
   const updateSecurity = useUpdateWorkflowSecurity();
-  const { tables, isLoading: tablesLoading } = useModuleTables(selectedModuleId);
+  const { data: tables = [], isLoading: tablesLoading } = useModuleTables(selectedModuleId);
 
   const handleSave = async () => {
     await updateSecurity.mutateAsync({
@@ -58,7 +58,7 @@ function EditSecurityDialog({ workflow, open, onOpenChange }: EditDialogProps) {
             <label className="text-sm font-medium">Secured Module</label>
             <ModuleTreeSelector
               value={selectedModuleId}
-              onSelect={handleModuleSelect}
+              onChange={handleModuleSelect}
               placeholder="Select module..."
             />
             <p className="text-xs text-muted-foreground">
@@ -73,8 +73,8 @@ function EditSecurityDialog({ workflow, open, onOpenChange }: EditDialogProps) {
                 <SelectValue placeholder={tablesLoading ? "Loading tables..." : "Select table..."} />
               </SelectTrigger>
               <SelectContent>
-                {tables.map((table: string) => (
-                  <SelectItem key={table} value={table}>{table}</SelectItem>
+                {tables.map((table: any) => (
+                  <SelectItem key={table.table_name} value={table.table_name}>{table.display_name || table.table_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
