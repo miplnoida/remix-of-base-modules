@@ -5669,6 +5669,16 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      check_row_access: {
+        Args: {
+          _action: string
+          _module_name: string
+          _record?: Json
+          _table_name: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       clone_role: {
         Args: { new_role_name: string; source_role_id: string }
         Returns: string
@@ -5695,6 +5705,16 @@ export type Database = {
           module_id: string
           module_name: string
           source: string
+        }[]
+      }
+      get_visible_fields: {
+        Args: { _module_name: string; _table_name: string; _user_id: string }
+        Returns: {
+          can_edit: boolean
+          can_view: boolean
+          field_name: string
+          masking_type: string
+          rule_source: string
         }[]
       }
       has_any_role: {
@@ -5728,6 +5748,10 @@ export type Database = {
           _old_value?: string
         }
         Returns: string
+      }
+      test_data_policy: {
+        Args: { _action: string; _module_name: string; _test_user_id: string }
+        Returns: Json
       }
     }
     Enums: {

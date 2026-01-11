@@ -251,6 +251,13 @@ import SampleApplicationList from '@/pages/sample-application/SampleApplicationL
 import SampleApplicationForm from '@/pages/sample-application/SampleApplicationForm';
 import SampleApplicationView from '@/pages/sample-application/SampleApplicationView';
 
+// Data Access Control
+import DataScopeRules from '@/pages/admin/data-access/DataScopeRules';
+import FieldSecurity from '@/pages/admin/data-access/FieldSecurity';
+import RoleDataPolicies from '@/pages/admin/data-access/RoleDataPolicies';
+import UserDataOverrides from '@/pages/admin/data-access/UserDataOverrides';
+import PolicyTestConsole from '@/pages/admin/data-access/PolicyTestConsole';
+
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
 import UserCreate from '@/pages/admin/users/UserCreate';
@@ -1297,6 +1304,13 @@ export const AppRoutes = () => {
       <Route path="/system-logs/integration" element={<ProtectedLayout><IntegrationLogs /></ProtectedLayout>} />
       <Route path="/system-logs/performance" element={<ProtectedLayout><PerformanceMonitor /></ProtectedLayout>} />
       <Route path="/system-logs/workflows" element={<ProtectedLayout><SystemWorkflowLogs /></ProtectedLayout>} />
+
+      {/* Data Access Control */}
+      <Route path="/admin/data-access/scope-rules" element={<ProtectedLayout><DataScopeRules /></ProtectedLayout>} />
+      <Route path="/admin/data-access/field-security" element={<ProtectedLayout><FieldSecurity /></ProtectedLayout>} />
+      <Route path="/admin/data-access/role-policies" element={<ProtectedLayout><RoleDataPolicies /></ProtectedLayout>} />
+      <Route path="/admin/data-access/user-overrides" element={<ProtectedLayout><UserDataOverrides /></ProtectedLayout>} />
+      <Route path="/admin/data-access/test-console" element={<ProtectedLayout><PolicyTestConsole /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />

@@ -42,7 +42,8 @@ export default function PolicyTestConsole() {
 
     setTesting(true);
     try {
-      const { data, error } = await supabase.rpc('test_data_policy', {
+      // Use type assertion for new RPC function not yet in generated types
+      const { data, error } = await (supabase.rpc as any)('test_data_policy', {
         _test_user_id: selectedUser,
         _module_name: selectedModule,
         _action: selectedAction
