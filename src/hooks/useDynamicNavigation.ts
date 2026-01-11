@@ -8,6 +8,7 @@ import {
   Settings2, Boxes, PenTool, Mail, Building, CheckCircle, FileCheck,
   AlertTriangle, DollarSign, CreditCard, Receipt, Wallet, TrendingUp,
   PieChart, BarChart2, UserPlus, UserCheck, FilePlus, Search,
+  Monitor, FileCode, History, Link, GitBranch,
   type LucideIcon
 } from 'lucide-react';
 
@@ -90,6 +91,13 @@ const iconMap: Record<string, LucideIcon> = {
   'fileplus': FilePlus,
   'file-plus': FilePlus,
   'search': Search,
+  'monitor': Monitor,
+  'filecode': FileCode,
+  'file-code': FileCode,
+  'history': History,
+  'link': Link,
+  'gitbranch': GitBranch,
+  'git-branch': GitBranch,
 };
 
 // Map icon name string to Lucide icon component
