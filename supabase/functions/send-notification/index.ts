@@ -69,8 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (!resendResponse.ok || emailResult.error) {
         updateData.status = 'failed';
-        updateData.error_message = emailResult.error?.message || emailResult.message || 'Unknown error';
-        updateData.retry_count = 1;
+        updateData.failure_reason = emailResult.error?.message || emailResult.message || 'Unknown error';
       } else {
         updateData.status = 'sent';
         updateData.external_message_id = emailResult.id;
