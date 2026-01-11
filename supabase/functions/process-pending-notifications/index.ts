@@ -12,11 +12,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -35,76 +30,31 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${pendingNotifications?.length || 0} pending notifications`);
 
+    // Since no email provider is configured, we just log the pending notifications
+    // This function can be extended to integrate with any email service in the future
     const results = [];
 
     for (const notification of pendingNotifications || []) {
-      try {
-        console.log(`Processing notification ${notification.id} to ${notification.recipient_address}`);
-
-        // Send via Resend REST API
-        const resendResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "SSBM Workflow System <onboarding@resend.dev>",
-            to: [notification.recipient_address],
-            subject: notification.subject || "Notification",
-            html: notification.body || "",
-          }),
-        });
-
-        const emailResult = await resendResponse.json();
-
-        if (!resendResponse.ok || emailResult.error) {
-          // Update as failed
-          await supabase
-            .from('notification_logs')
-            .update({
-              status: 'failed',
-              error_message: emailResult.error?.message || emailResult.message || 'Unknown error',
-              retry_count: (notification.retry_count || 0) + 1,
-              sent_at: new Date().toISOString(),
-            })
-            .eq('id', notification.id);
-
-          results.push({ id: notification.id, status: 'failed', error: emailResult.error?.message || emailResult.message });
-        } else {
-          // Update as sent
-          await supabase
-            .from('notification_logs')
-            .update({
-              status: 'sent',
-              sent_at: new Date().toISOString(),
-              external_message_id: emailResult.id,
-            })
-            .eq('id', notification.id);
-
-          results.push({ id: notification.id, status: 'sent', message_id: emailResult.id });
-        }
-      } catch (err: any) {
-        console.error(`Failed to process notification ${notification.id}:`, err);
-        
-        await supabase
-          .from('notification_logs')
-          .update({
-            status: 'failed',
-            error_message: err.message,
-            retry_count: (notification.retry_count || 0) + 1,
-          })
-          .eq('id', notification.id);
-
-        results.push({ id: notification.id, status: 'failed', error: err.message });
-      }
+      console.log(`Notification ${notification.id}:`);
+      console.log(`  To: ${notification.recipient_address}`);
+      console.log(`  Subject: ${notification.subject}`);
+      console.log(`  Status: ${notification.status}`);
+      
+      results.push({ 
+        id: notification.id, 
+        status: notification.status,
+        recipient: notification.recipient_address,
+        subject: notification.subject,
+        message: 'Email provider not configured - notification remains in queue'
+      });
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        processed: results.length,
-        results 
+        message: 'Pending notifications retrieved (email provider not configured)',
+        pending_count: results.length,
+        notifications: results 
       }),
       {
         status: 200,
