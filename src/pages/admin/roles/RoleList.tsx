@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Shield, Plus, Edit, Trash2, Search, Settings, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -115,11 +116,37 @@ const RoleListContent = () => {
         .single();
       
       if (createError) throw createError;
+
+      // Fetch permissions from source role using role_name (app_role enum)
+      const { data: sourcePermissions, error: fetchError } = await supabase
+        .from('role_permissions')
+        .select('*')
+        .eq('role', sourceRole.role_name as Database['public']['Enums']['app_role']);
+      
+      if (fetchError) throw fetchError;
+
+      // Copy permissions to new role if any exist
+      if (sourcePermissions && sourcePermissions.length > 0) {
+        const newPermissions = sourcePermissions.map(p => ({
+          role: newRoleName as Database['public']['Enums']['app_role'],
+          module_id: p.module_id,
+          action_id: p.action_id,
+          is_granted: p.is_granted,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('role_permissions')
+          .insert(newPermissions);
+        
+        if (insertError) throw insertError;
+      }
+
       return newRole;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
-      toast.success('Role cloned successfully');
+      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      toast.success('Role cloned successfully with all permissions');
       setShowCloneDialog(false);
       setCloningRole(null);
       setCloneRoleName("");
