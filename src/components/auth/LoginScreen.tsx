@@ -8,6 +8,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Lock, Mail, AlertTriangle } from 'lucide-react';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  logSecurity, 
+  logError as logSystemError, 
+  startNewCorrelation 
+} from '@/services/systemLoggerService';
+import { getDeviceInfo } from '@/services/correlationIdService';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -38,18 +44,37 @@ export const LoginScreen = () => {
     }
   }, [isAuthenticated, profile, authLoading, navigate]);
 
-  // Log audit event for login attempts
-  const logLoginAttempt = async (success: boolean, userEmail: string, reason?: string) => {
+  // Log login attempt to system logs
+  const logLoginAttempt = async (success: boolean, userEmail: string, userId?: string, reason?: string) => {
     try {
+      startNewCorrelation();
+      
+      // Log to system security logs
+      await logSecurity({
+        event_type: success ? 'login' : 'failed_login',
+        user_name: userEmail,
+        success,
+        module: 'Authentication',
+        api_name: 'login',
+        severity: success ? 'info' : 'warning',
+        payload_json: { 
+          reason, 
+          device: getDeviceInfo(),
+          timestamp: new Date().toISOString()
+        },
+      }, userId);
+
+      // Also log to legacy audit_logs for backwards compatibility
       await supabase.from('audit_logs').insert({
         action_type: success ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE',
         module_name: 'Authentication',
         entity_type: 'user',
         user_email: userEmail,
+        user_id: userId,
         metadata: reason ? { reason } : null,
       });
     } catch (err) {
-      console.error('Failed to log audit event:', err);
+      console.error('Failed to log login event:', err);
     }
   };
 
@@ -63,14 +88,16 @@ export const LoginScreen = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        await logLoginAttempt(true, email);
+        // Get the user ID after successful login
+        const { data: { user } } = await supabase.auth.getUser();
+        await logLoginAttempt(true, email, user?.id);
         
         if (result.requiresPasswordChange) {
           navigate('/change-password', { state: { required: true }, replace: true });
         }
         // Other redirects handled by useEffect
       } else {
-        await logLoginAttempt(false, email, result.error);
+        await logLoginAttempt(false, email, undefined, result.error);
         
         // Check for lockout-related messages
         if (result.error?.includes('locked')) {
@@ -94,8 +121,19 @@ export const LoginScreen = () => {
           setError(result.error || 'Login failed');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
+      
+      // Log the error to system error logs
+      await logSystemError({
+        error_type: 'LoginError',
+        error_message: err?.message || 'Unknown login error',
+        stack_trace: err?.stack,
+        module: 'Authentication',
+        api_name: 'login',
+        severity: 'error',
+      });
+      
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);

@@ -11,33 +11,36 @@ import { LegalCaseProvider } from '@/contexts/LegalCaseContext';
 import { LegalRoleProvider } from '@/contexts/LegalRoleContext';
 import { SupabaseAuthProvider } from '@/contexts/SupabaseAuthContext';
 import { AppRoutes } from '@/components/routing/AppRoutes';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import './App.css';
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <SupabaseAuthProvider>
-          <AuthProvider>
-            <NewBenefitAuthProvider>
-              <LegalAuthProvider>
-                <LegalCaseProvider>
-                  <Router>
-                    <div className="min-h-screen bg-background">
-                      <AppRoutes />
-                      <Toaster />
-                      <SonnerToaster />
-                    </div>
-                  </Router>
-                </LegalCaseProvider>
-              </LegalAuthProvider>
-            </NewBenefitAuthProvider>
-          </AuthProvider>
-        </SupabaseAuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <SupabaseAuthProvider>
+            <AuthProvider>
+              <NewBenefitAuthProvider>
+                <LegalAuthProvider>
+                  <LegalCaseProvider>
+                    <Router>
+                      <div className="min-h-screen bg-background">
+                        <AppRoutes />
+                        <Toaster />
+                        <SonnerToaster />
+                      </div>
+                    </Router>
+                  </LegalCaseProvider>
+                </LegalAuthProvider>
+              </NewBenefitAuthProvider>
+            </AuthProvider>
+          </SupabaseAuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

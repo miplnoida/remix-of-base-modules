@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { logSecurity, logBusinessEvent, startNewCorrelation } from '@/services/systemLoggerService';
+import { getDeviceInfo } from '@/services/correlationIdService';
 
 interface UserProfile {
   id: string;
@@ -251,8 +253,24 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Logout function with audit logging
   const logout = async () => {
     try {
-      // Log logout event before signing out
+      startNewCorrelation();
+      
+      // Log logout event to system security logs
       if (user) {
+        await logSecurity({
+          event_type: 'logout',
+          user_name: user.email || profile?.full_name || 'Unknown',
+          success: true,
+          module: 'Authentication',
+          api_name: 'logout',
+          severity: 'info',
+          payload_json: {
+            device: getDeviceInfo(),
+            timestamp: new Date().toISOString(),
+          },
+        }, user.id);
+
+        // Also log to legacy audit_logs for backwards compatibility
         await supabase.from('audit_logs').insert({
           action_type: 'LOGOUT',
           module_name: 'Authentication',
