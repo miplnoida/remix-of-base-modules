@@ -595,10 +595,10 @@ export default function WorkflowForm() {
                 <div className="space-y-2">
                   <Label>Secured Module</Label>
                   <Select
-                    value={formData.secured_module_id || ''}
+                    value={formData.secured_module_id || '__none__'}
                     onValueChange={(value) => setFormData({ 
                       ...formData, 
-                      secured_module_id: value || null,
+                      secured_module_id: value === '__none__' ? null : value,
                       secured_table: null // Reset table when module changes
                     })}
                   >
@@ -606,7 +606,7 @@ export default function WorkflowForm() {
                       <SelectValue placeholder="Select module (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {parentModules?.map((module) => (
                         <SelectItem key={module.id} value={module.id}>
                           {module.display_name}
@@ -618,15 +618,15 @@ export default function WorkflowForm() {
                 <div className="space-y-2">
                   <Label>Secured Table</Label>
                   <Select
-                    value={formData.secured_table || ''}
-                    onValueChange={(value) => setFormData({ ...formData, secured_table: value || null })}
+                    value={formData.secured_table || '__none__'}
+                    onValueChange={(value) => setFormData({ ...formData, secured_table: value === '__none__' ? null : value })}
                     disabled={!formData.secured_module_id}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={formData.secured_module_id ? "Select table" : "Select a module first"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {moduleTables?.map((table) => (
                         <SelectItem key={table.table_name} value={table.table_name}>
                           {table.display_name}
