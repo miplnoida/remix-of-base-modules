@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -10,6 +9,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LegalCaseProvider } from '@/contexts/LegalCaseContext';
 import { LegalRoleProvider } from '@/contexts/LegalRoleContext';
 import { SupabaseAuthProvider } from '@/contexts/SupabaseAuthContext';
+import { SystemLoggingProvider } from '@/providers/SystemLoggingProvider';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import './App.css';
@@ -27,11 +27,13 @@ function App() {
                 <LegalAuthProvider>
                   <LegalCaseProvider>
                     <Router>
-                      <div className="min-h-screen bg-background">
-                        <AppRoutes />
-                        <Toaster />
-                        <SonnerToaster />
-                      </div>
+                      <SystemLoggingProvider>
+                        <div className="min-h-screen bg-background">
+                          <AppRoutes />
+                          <Toaster />
+                          <SonnerToaster />
+                        </div>
+                      </SystemLoggingProvider>
                     </Router>
                   </LegalCaseProvider>
                 </LegalAuthProvider>
