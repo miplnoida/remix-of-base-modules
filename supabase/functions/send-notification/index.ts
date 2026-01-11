@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-correlation-id",
 };
 
 interface SendNotificationRequest {
@@ -15,11 +15,32 @@ interface SendNotificationRequest {
   from_email?: string;
 }
 
+// Helper function to log to system tables
+async function logToSystem(
+  supabase: any,
+  tableName: string,
+  data: Record<string, any>,
+  correlationId: string
+) {
+  try {
+    await supabase.from(tableName).insert({
+      ...data,
+      correlation_id: correlationId,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error(`Failed to log to ${tableName}:`, error);
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startTime = performance.now();
+  const correlationId = req.headers.get("x-correlation-id") || crypto.randomUUID();
 
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -43,6 +64,15 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending email to:", recipient_email);
     console.log("Subject:", subject);
 
+    // Log technical call start
+    await logToSystem(supabase, 'system_technical_logs', {
+      api_name: 'send-notification',
+      module: 'Notifications',
+      severity: 'info',
+      status: 'started',
+      payload_json: { recipient_email, subject, notification_log_id },
+    }, correlationId);
+
     // Send email via Resend REST API
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -59,7 +89,23 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const emailResult = await resendResponse.json();
+    const executionTime = Math.round(performance.now() - startTime);
     console.log("Resend response:", emailResult);
+
+    // Log integration call
+    await logToSystem(supabase, 'system_integration_logs', {
+      external_service: 'Resend',
+      module: 'Notifications',
+      api_name: 'send-email',
+      request_data: { recipient_email, subject, from_name, from_email },
+      response_data: emailResult,
+      status: resendResponse.ok ? 'success' : 'failed',
+      severity: resendResponse.ok ? 'info' : 'error',
+      payload_json: { 
+        execution_time_ms: executionTime,
+        http_status: resendResponse.status,
+      },
+    }, correlationId);
 
     // Update notification log if ID provided
     if (notification_log_id) {
@@ -85,8 +131,38 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Log technical call completion
+    await logToSystem(supabase, 'system_technical_logs', {
+      api_name: 'send-notification',
+      module: 'Notifications',
+      severity: resendResponse.ok ? 'info' : 'error',
+      status: resendResponse.ok ? 'success' : 'failed',
+      execution_time_ms: executionTime,
+      payload_json: { 
+        recipient_email, 
+        subject, 
+        message_id: emailResult.id,
+        http_status: resendResponse.status,
+      },
+    }, correlationId);
+
     if (!resendResponse.ok || (emailResult as any)?.error) {
       const errMsg = (emailResult as any)?.error?.message || (emailResult as any)?.message || "Failed to send email";
+      
+      // Log error
+      await logToSystem(supabase, 'system_error_logs', {
+        api_name: 'send-notification',
+        module: 'Notifications',
+        error_type: 'EmailSendError',
+        error_message: errMsg,
+        severity: 'error',
+        payload_json: { 
+          recipient_email, 
+          http_status: resendResponse.status,
+          response: emailResult,
+        },
+      }, correlationId);
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -111,7 +187,28 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
+    const executionTime = Math.round(performance.now() - startTime);
     console.error("Error sending notification:", error);
+
+    // Try to log error
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      await logToSystem(supabase, 'system_error_logs', {
+        api_name: 'send-notification',
+        module: 'Notifications',
+        error_type: error?.name || 'NotificationError',
+        error_message: error.message,
+        stack_trace: error?.stack,
+        severity: 'critical',
+        payload_json: { execution_time_ms: executionTime },
+      }, correlationId);
+    } catch (logError) {
+      console.error("Failed to log error:", logError);
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
