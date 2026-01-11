@@ -1,15 +1,17 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { ModuleTreeSelector } from './ModuleTreeSelector';
+import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 
 interface Props {
   open: boolean;
@@ -33,13 +35,27 @@ export function UserOverrideDialog({ open, onOpenChange, override, userId }: Pro
     }
   });
 
-  const { data: modules } = useQuery({
-    queryKey: ['modules-dropdown'],
-    queryFn: async () => {
-      const { data } = await supabase.from('app_modules').select('id, display_name').eq('is_enabled', true);
-      return data || [];
+  const moduleId = form.watch('module_id');
+  const targetTable = form.watch('target_table');
+  const overrideType = form.watch('override_type');
+
+  const { data: tables, isLoading: tablesLoading } = useModuleTables(moduleId);
+  const { data: columns, isLoading: columnsLoading } = useTableColumns(targetTable);
+
+  // Reset target_table when module changes
+  useEffect(() => {
+    if (moduleId && !override) {
+      form.setValue('target_table', '');
+      form.setValue('field_name', '');
     }
-  });
+  }, [moduleId, form, override]);
+
+  // Reset field_name when target_table changes
+  useEffect(() => {
+    if (targetTable && !override) {
+      form.setValue('field_name', '');
+    }
+  }, [targetTable, form, override]);
 
   useEffect(() => {
     if (override) {
@@ -59,10 +75,21 @@ export function UserOverrideDialog({ open, onOpenChange, override, userId }: Pro
         field_name: '', condition_sql: '', reason: '', is_active: true, expires_at: ''
       });
     }
-  }, [override, form]);
+  }, [override, form, open]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      // Validation
+      if (!data.module_id) {
+        throw new Error('Please select a module');
+      }
+      if (!data.target_table) {
+        throw new Error('Please select a target table');
+      }
+      if ((data.override_type === 'field_allow' || data.override_type === 'field_block') && !data.field_name) {
+        throw new Error('Please select a field for field-level overrides');
+      }
+      
       const payload = {
         ...data,
         user_id: userId,
@@ -86,7 +113,7 @@ export function UserOverrideDialog({ open, onOpenChange, override, userId }: Pro
     onError: (err: any) => toast.error(err.message)
   });
 
-  const overrideType = form.watch('override_type');
+  const isFieldOverride = overrideType === 'field_allow' || overrideType === 'field_block';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,50 +135,98 @@ export function UserOverrideDialog({ open, onOpenChange, override, userId }: Pro
                     <SelectItem value="field_block">Field Block (hide field)</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormMessage />
               </FormItem>
             )} />
+
             <FormField control={form.control} name="module_id" render={({ field }) => (
               <FormItem>
-                <FormLabel>Module</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    {modules?.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Module *</FormLabel>
+                <FormControl>
+                  <ModuleTreeSelector 
+                    value={field.value} 
+                    onChange={field.onChange}
+                    placeholder="Select leaf module..."
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )} />
+
             <FormField control={form.control} name="target_table" render={({ field }) => (
               <FormItem>
                 <FormLabel>Target Table *</FormLabel>
-                <FormControl><Input {...field} placeholder="e.g., invoices" /></FormControl>
+                <Select 
+                  value={field.value} 
+                  onValueChange={field.onChange}
+                  disabled={!moduleId || tablesLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={tablesLoading ? "Loading..." : "Select table..."} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {tables?.map((t) => (
+                      <SelectItem key={t.table_name} value={t.table_name}>
+                        {t.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
               </FormItem>
             )} />
-            {(overrideType === 'field_allow' || overrideType === 'field_block') && (
+
+            {isFieldOverride && (
               <FormField control={form.control} name="field_name" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Field Name</FormLabel>
-                  <FormControl><Input {...field} placeholder="e.g., salary" /></FormControl>
+                  <FormLabel>Field Name *</FormLabel>
+                  <Select 
+                    value={field.value} 
+                    onValueChange={field.onChange}
+                    disabled={!targetTable || columnsLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={columnsLoading ? "Loading..." : "Select field..."} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {columns?.map((c) => (
+                        <SelectItem key={c.column_name} value={c.column_name}>
+                          {c.column_name} ({c.data_type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )} />
             )}
+
             <FormField control={form.control} name="condition_sql" render={({ field }) => (
               <FormItem>
                 <FormLabel>Condition SQL</FormLabel>
                 <FormControl><Textarea {...field} rows={2} placeholder="Optional SQL condition" /></FormControl>
+                <FormMessage />
               </FormItem>
             )} />
+
             <FormField control={form.control} name="reason" render={({ field }) => (
               <FormItem>
                 <FormLabel>Reason</FormLabel>
                 <FormControl><Input {...field} placeholder="Why this override?" /></FormControl>
+                <FormMessage />
               </FormItem>
             )} />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="expires_at" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Expires At</FormLabel>
                   <FormControl><Input type="date" {...field} /></FormControl>
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="is_active" render={({ field }) => (
@@ -161,6 +236,7 @@ export function UserOverrideDialog({ open, onOpenChange, override, userId }: Pro
                 </FormItem>
               )} />
             </div>
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save'}</Button>
