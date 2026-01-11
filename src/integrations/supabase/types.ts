@@ -4208,6 +4208,447 @@ export type Database = {
         }
         Relationships: []
       }
+      system_audit_trail: {
+        Row: {
+          action: string | null
+          after_value: Json | null
+          api_name: string | null
+          before_value: Json | null
+          correlation_id: string | null
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          session_id: string | null
+          severity: string | null
+          timestamp: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action?: string | null
+          after_value?: Json | null
+          api_name?: string | null
+          before_value?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string | null
+          after_value?: Json | null
+          api_name?: string | null
+          before_value?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      system_business_events: {
+        Row: {
+          action: string | null
+          api_name: string | null
+          correlation_id: string | null
+          created_at: string
+          description: string | null
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          performed_by: string | null
+          session_id: string | null
+          severity: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          description?: string | null
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          performed_by?: string | null
+          session_id?: string | null
+          severity?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          description?: string | null
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          performed_by?: string | null
+          session_id?: string | null
+          severity?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_error_logs: {
+        Row: {
+          api_name: string | null
+          correlation_id: string | null
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          error_type: string | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          session_id: string | null
+          severity: string | null
+          stack_trace: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_integration_logs: {
+        Row: {
+          api_name: string | null
+          correlation_id: string | null
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          external_service: string | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          request_data: Json | null
+          response_data: Json | null
+          retry_count: number | null
+          session_id: string | null
+          severity: string | null
+          status: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          external_service?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          request_data?: Json | null
+          response_data?: Json | null
+          retry_count?: number | null
+          session_id?: string | null
+          severity?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          external_service?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          request_data?: Json | null
+          response_data?: Json | null
+          retry_count?: number | null
+          session_id?: string | null
+          severity?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_performance_metrics: {
+        Row: {
+          api_name: string | null
+          correlation_id: string | null
+          cpu_usage_percent: number | null
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          execution_time_ms: number | null
+          id: string
+          ip_address: string | null
+          memory_usage_mb: number | null
+          module: string | null
+          payload_json: Json | null
+          session_id: string | null
+          severity: string | null
+          status: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          correlation_id?: string | null
+          cpu_usage_percent?: number | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          ip_address?: string | null
+          memory_usage_mb?: number | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          correlation_id?: string | null
+          cpu_usage_percent?: number | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          ip_address?: string | null
+          memory_usage_mb?: number | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_security_logs: {
+        Row: {
+          api_name: string | null
+          correlation_id: string | null
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          session_id: string | null
+          severity: string | null
+          success: boolean | null
+          timestamp: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          success?: boolean | null
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          success?: boolean | null
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      system_technical_logs: {
+        Row: {
+          api_name: string | null
+          correlation_id: string | null
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          execution_time_ms: number | null
+          headers: Json | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          request_payload: Json | null
+          response_payload: Json | null
+          session_id: string | null
+          severity: string | null
+          stack_trace: string | null
+          status: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          execution_time_ms?: number | null
+          headers?: Json | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          execution_time_ms?: number | null
+          headers?: Json | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_notification_preferences: {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
@@ -4439,6 +4880,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workflow_execution_logs: {
+        Row: {
+          api_name: string | null
+          application_id: string | null
+          correlation_id: string | null
+          created_at: string
+          current_step: string | null
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          module: string | null
+          payload_json: Json | null
+          session_id: string | null
+          severity: string | null
+          status: string | null
+          step_history: Json | null
+          step_number: number | null
+          timestamp: string
+          user_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          application_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          current_step?: string | null
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          status?: string | null
+          step_history?: Json | null
+          step_number?: number | null
+          timestamp?: string
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          application_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          current_step?: string | null
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string | null
+          payload_json?: Json | null
+          session_id?: string | null
+          severity?: string | null
+          status?: string | null
+          step_history?: Json | null
+          step_number?: number | null
+          timestamp?: string
+          user_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: []
       }
       workflow_instances: {
         Row: {
