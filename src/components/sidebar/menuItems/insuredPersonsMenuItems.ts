@@ -44,6 +44,12 @@ export const insuredPersonsMenuItems = [
         requiresPermission: "manage_insured_persons",
         subItems: [
           {
+            title: "IP Registration",
+            url: "/ip-registration",
+            icon: PlusCircle,
+            requiresPermission: "manage_insured_persons"
+          },
+          {
             title: "Pending Reviews",
             url: "/person/pending-reviews",
             icon: List,
