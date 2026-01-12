@@ -19,46 +19,55 @@ export interface IPFormData {
   id?: string;
   unique_uuid: string;
   application_id: string;
-  ssn?: string;
-  title?: string;
-  first_name?: string;
-  middle_name?: string;
-  last_name?: string;
-  suffix?: string;
-  maiden_name?: string;
-  alias?: string;
-  gender?: string;
-  date_of_birth?: string;
-  marital_status?: string;
-  date_married?: string;
-  height_feet?: number;
-  height_inches?: number;
-  birth_place?: string;
-  nationality?: string;
-  eye_color?: string;
-  resident_address_1?: string;
-  resident_address_2?: string;
-  postal_district?: string;
-  mailing_address?: string;
-  email?: string;
-  telephone?: string;
-  mobile?: string;
-  occupation?: string;
-  work_permit_status?: string;
-  npf_status?: string;
-  application_date?: string;
-  date_resident?: string;
-  place_of_residence?: string;
-  work_permit_expiry?: string;
-  citizenship?: string;
-  signature_on_file?: string;
-  marital_doc_type?: string;
-  birth_doc_type?: string;
-  death_doc_type?: string;
-  name_doc_type?: string;
+  ssn?: string | null;
+  title?: string | null;
+  first_name?: string | null;
+  middle_name?: string | null;
+  last_name?: string | null;
+  suffix?: string | null;
+  maiden_name?: string | null;
+  alias?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  marital_status?: string | null;
+  date_married?: string | null;
+  height_feet?: number | null;
+  height_inches?: number | null;
+  birth_place?: string | null;
+  nationality?: string | null;
+  eye_color?: string | null;
+  resident_address_1?: string | null;
+  resident_address_2?: string | null;
+  postal_district?: string | null;
+  mailing_address?: string | null;
+  email?: string | null;
+  telephone?: string | null;
+  mobile?: string | null;
+  occupation?: string | null;
+  work_permit_status?: string | null;
+  npf_status?: string | null;
+  application_date?: string | null;
+  date_resident?: string | null;
+  place_of_residence?: string | null;
+  work_permit_expiry?: string | null;
+  citizenship?: string | null;
+  signature_on_file?: string | null;
+  marital_doc_type?: string | null;
+  birth_doc_type?: string | null;
+  death_doc_type?: string | null;
+  name_doc_type?: string | null;
   status: string;
-  created_by?: string;
-  created_at?: string;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_by?: string | null;
+  updated_at?: string | null;
+  submitted_by?: string | null;
+  submitted_at?: string | null;
+  verified_by?: string | null;
+  date_verified?: string | null;
+  rejected_by?: string | null;
+  date_rejected?: string | null;
+  rejection_reason?: string | null;
 }
 
 interface ValidationErrors {
@@ -100,13 +109,17 @@ export default function IPRegistrationForm() {
     setLoading(true);
     try {
       // Try temp table first
-      let { data, error } = await supabase
+      const { data: tmpData, error: tmpError } = await supabase
         .from('tmp_ip_master')
         .select('*')
         .eq('unique_uuid', uniqueUuid)
         .single();
 
-      if (error || !data) {
+      let recordData: any = null;
+
+      if (!tmpError && tmpData) {
+        recordData = tmpData;
+      } else {
         // Try master table
         const { data: masterData, error: masterError } = await supabase
           .from('ip_master')
@@ -115,10 +128,55 @@ export default function IPRegistrationForm() {
           .single();
         
         if (masterError) throw masterError;
-        data = masterData;
+        recordData = masterData;
       }
 
-      setFormData(data as unknown as IPFormData);
+      // Cast the data to IPFormData
+      setFormData({
+        id: recordData.id,
+        unique_uuid: recordData.unique_uuid,
+        application_id: recordData.application_id,
+        ssn: recordData.ssn,
+        title: recordData.title,
+        first_name: recordData.first_name,
+        middle_name: recordData.middle_name,
+        last_name: recordData.last_name,
+        suffix: recordData.suffix,
+        maiden_name: recordData.maiden_name,
+        alias: recordData.alias,
+        gender: recordData.gender,
+        date_of_birth: recordData.date_of_birth,
+        marital_status: recordData.marital_status,
+        date_married: recordData.date_married,
+        height_feet: recordData.height_feet,
+        height_inches: recordData.height_inches,
+        birth_place: recordData.birth_place,
+        nationality: recordData.nationality,
+        eye_color: recordData.eye_color,
+        resident_address_1: recordData.resident_address_1,
+        resident_address_2: recordData.resident_address_2,
+        postal_district: recordData.postal_district,
+        mailing_address: recordData.mailing_address,
+        email: recordData.email,
+        telephone: recordData.telephone,
+        mobile: recordData.mobile,
+        occupation: recordData.occupation,
+        work_permit_status: recordData.work_permit_status,
+        npf_status: recordData.npf_status,
+        application_date: recordData.application_date,
+        date_resident: recordData.date_resident,
+        place_of_residence: recordData.place_of_residence,
+        work_permit_expiry: recordData.work_permit_expiry,
+        citizenship: recordData.citizenship,
+        signature_on_file: recordData.signature_on_file,
+        marital_doc_type: recordData.marital_doc_type,
+        birth_doc_type: recordData.birth_doc_type,
+        death_doc_type: recordData.death_doc_type,
+        name_doc_type: recordData.name_doc_type,
+        status: recordData.status,
+        created_by: recordData.created_by,
+        created_at: recordData.created_at,
+      });
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load registration data');

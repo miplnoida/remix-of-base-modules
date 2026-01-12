@@ -268,6 +268,10 @@ import DependencyScan from '@/pages/admin/system-cleanup/DependencyScan';
 import CleanupReview from '@/pages/admin/system-cleanup/CleanupReview';
 import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 
+// IP Registration Module
+import IPRegistrationList from '@/pages/ip-registration/IPRegistrationList';
+import IPRegistrationForm from '@/pages/ip-registration/IPRegistrationForm';
+
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
 import UserCreate from '@/pages/admin/users/UserCreate';
@@ -1331,6 +1335,11 @@ export const AppRoutes = () => {
       <Route path="/admin/system-cleanup/dependency-scan" element={<ProtectedLayout><DependencyScan /></ProtectedLayout>} />
       <Route path="/admin/system-cleanup/cleanup-review" element={<ProtectedLayout><CleanupReview /></ProtectedLayout>} />
       <Route path="/admin/system-cleanup/rollback" element={<ProtectedLayout><RollbackScreen /></ProtectedLayout>} />
+
+      {/* IP Registration Module */}
+      <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
+      <Route path="/ip-registration/edit/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
+      <Route path="/ip-registration/view/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />
