@@ -296,8 +296,9 @@ const DataMigration = () => {
       setImportProgress(20);
 
       // Call the edge function for faster import with service role
+      // Pass the full seed data object which contains tableOrder and data properties
       const { data: response, error } = await supabase.functions.invoke("import-seed-data", {
-        body: { data },
+        body: { seedData: data },
       });
 
       setImportProgress(80);

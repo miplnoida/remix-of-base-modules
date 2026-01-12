@@ -16,11 +16,15 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: seedData } = await req.json();
+    const body = await req.json();
+    
+    // Accept both { data: seedData } and { seedData } formats
+    const seedData = body.data || body.seedData || body;
     
     if (!seedData || !seedData.data || !seedData.tableOrder) {
+      console.error("Invalid format received:", JSON.stringify(Object.keys(body)));
       return new Response(
-        JSON.stringify({ error: "Invalid seed data format" }),
+        JSON.stringify({ error: "Invalid seed data format. Expected { tableOrder: [...], data: {...} }" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
