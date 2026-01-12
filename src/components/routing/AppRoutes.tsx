@@ -234,6 +234,7 @@ import DesignationManagement from '@/pages/admin/DesignationManagement';
 import DesignationHierarchy from '@/pages/admin/DesignationHierarchy';
 import RoleHierarchy from '@/pages/admin/RoleHierarchy';
 import UserNotificationPreferences from '@/pages/admin/UserNotificationPreferences';
+import DataMigration from '@/pages/admin/DataMigration';
 
 // Workflow Engine
 import WorkflowList from '@/pages/admin/workflows/WorkflowList';
@@ -896,6 +897,7 @@ export const AppRoutes = () => {
       <Route path="/admin/designation-hierarchy" element={<ProtectedLayout><DesignationHierarchy /></ProtectedLayout>} />
       <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
       <Route path="/admin/user-notification-preferences" element={<ProtectedLayout><UserNotificationPreferences /></ProtectedLayout>} />
+      <Route path="/admin/data-migration" element={<ProtectedLayout><DataMigration /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
       <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />
