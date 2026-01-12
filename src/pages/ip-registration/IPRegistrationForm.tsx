@@ -1,0 +1,752 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Check, Circle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import BasicDetailsTab from './tabs/BasicDetailsTab';
+import AddressContactTab from './tabs/AddressContactTab';
+import RelationsTab from './tabs/RelationsTab';
+import EmploymentTab from './tabs/EmploymentTab';
+import DocumentVerificationTab from './tabs/DocumentVerificationTab';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+
+export interface IPFormData {
+  id?: string;
+  unique_uuid: string;
+  application_id: string;
+  ssn?: string;
+  title?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  suffix?: string;
+  maiden_name?: string;
+  alias?: string;
+  gender?: string;
+  date_of_birth?: string;
+  marital_status?: string;
+  date_married?: string;
+  height_feet?: number;
+  height_inches?: number;
+  birth_place?: string;
+  nationality?: string;
+  eye_color?: string;
+  resident_address_1?: string;
+  resident_address_2?: string;
+  postal_district?: string;
+  mailing_address?: string;
+  email?: string;
+  telephone?: string;
+  mobile?: string;
+  occupation?: string;
+  work_permit_status?: string;
+  npf_status?: string;
+  application_date?: string;
+  date_resident?: string;
+  place_of_residence?: string;
+  work_permit_expiry?: string;
+  citizenship?: string;
+  signature_on_file?: string;
+  marital_doc_type?: string;
+  birth_doc_type?: string;
+  death_doc_type?: string;
+  name_doc_type?: string;
+  status: string;
+  created_by?: string;
+  created_at?: string;
+}
+
+interface ValidationErrors {
+  [key: string]: string;
+}
+
+const tabSteps = [
+  { id: 'basic', label: 'Basic Details', icon: User },
+  { id: 'address', label: 'Address & Contact', icon: User },
+  { id: 'relations', label: 'Relations', icon: Users },
+  { id: 'employment', label: 'Employment Details', icon: Building },
+  { id: 'documents', label: 'Document Verification', icon: FileText },
+];
+
+export default function IPRegistrationForm() {
+  const { uniqueUuid } = useParams<{ uniqueUuid: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isViewMode = window.location.pathname.includes('/view/');
+  const action = searchParams.get('action');
+  
+  const [formData, setFormData] = useState<IPFormData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
+  const [completedTabs, setCompletedTabs] = useState<string[]>([]);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [duplicates, setDuplicates] = useState<any[]>([]);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const fetchData = useCallback(async () => {
+    if (!uniqueUuid) return;
+    
+    setLoading(true);
+    try {
+      // Try temp table first
+      let { data, error } = await supabase
+        .from('tmp_ip_master')
+        .select('*')
+        .eq('unique_uuid', uniqueUuid)
+        .single();
+
+      if (error || !data) {
+        // Try master table
+        const { data: masterData, error: masterError } = await supabase
+          .from('ip_master')
+          .select('*')
+          .eq('unique_uuid', uniqueUuid)
+          .single();
+        
+        if (masterError) throw masterError;
+        data = masterData;
+      }
+
+      setFormData(data as unknown as IPFormData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load registration data');
+      navigate('/ip-registration');
+    } finally {
+      setLoading(false);
+    }
+  }, [uniqueUuid, navigate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (action === 'submit') {
+      setShowSubmitConfirm(true);
+    } else if (action === 'approve') {
+      setShowApproveConfirm(true);
+    } else if (action === 'reject') {
+      setShowRejectDialog(true);
+    }
+  }, [action]);
+
+  const autoSave = useCallback(async (data: Partial<IPFormData>) => {
+    if (!formData || isViewMode || formData.status !== 'D') return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('tmp_ip_master')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id,
+        })
+        .eq('unique_uuid', formData.unique_uuid);
+
+      if (error) throw error;
+      
+      setFormData(prev => prev ? { ...prev, ...data } : null);
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      toast.error('Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  }, [formData, isViewMode, user?.id]);
+
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    if (!formData) return;
+    
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+
+    // Check for duplicates on key fields
+    if (['first_name', 'last_name', 'date_of_birth', 'gender'].includes(field)) {
+      checkDuplicates(newData);
+    }
+  }, [formData, errors]);
+
+  const checkDuplicates = async (data: IPFormData) => {
+    if (!data.first_name || !data.last_name || !data.date_of_birth || !data.gender) return;
+
+    try {
+      const { data: dups, error } = await supabase
+        .rpc('check_ip_duplicates', {
+          p_first_name: data.first_name,
+          p_last_name: data.last_name,
+          p_dob: data.date_of_birth,
+          p_gender: data.gender,
+          p_exclude_uuid: data.unique_uuid,
+        });
+
+      if (error) throw error;
+      
+      if (dups && dups.length > 0) {
+        setDuplicates(dups);
+        setShowDuplicateWarning(true);
+      }
+    } catch (error) {
+      console.error('Duplicate check error:', error);
+    }
+  };
+
+  const handleTabChange = (newTab: string) => {
+    // Auto-save before changing tabs
+    if (formData && !isViewMode && formData.status === 'D') {
+      autoSave(formData);
+    }
+    
+    // Mark current tab as completed
+    if (!completedTabs.includes(activeTab)) {
+      setCompletedTabs(prev => [...prev, activeTab]);
+    }
+    
+    setActiveTab(newTab);
+  };
+
+  const validateAllTabs = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // Basic Details validation
+    if (!formData?.first_name) newErrors.first_name = 'First name is required';
+    if (!formData?.last_name) newErrors.last_name = 'Last name is required';
+    if (!formData?.gender) newErrors.gender = 'Gender is required';
+    if (!formData?.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
+    if (!formData?.marital_status) newErrors.marital_status = 'Marital status is required';
+    if (!formData?.nationality) newErrors.nationality = 'Nationality is required';
+    if (!formData?.birth_place) newErrors.birth_place = 'Birth place is required';
+    if (!formData?.title) newErrors.title = 'Title is required';
+
+    // Marital status validation
+    if ((formData?.marital_status === 'Married' || formData?.marital_status === 'Common Law') && !formData?.date_married) {
+      newErrors.date_married = 'Date married is required';
+    }
+    if (formData?.date_married && formData?.date_of_birth) {
+      if (new Date(formData.date_married) <= new Date(formData.date_of_birth)) {
+        newErrors.date_married = 'Date married must be after date of birth';
+      }
+    }
+
+    // Employment validation for non-citizens
+    if (formData?.citizenship === 'N' && formData?.place_of_residence === 'RES') {
+      if (!formData?.work_permit_status) newErrors.work_permit_status = 'Work permit is required for non-citizen residents';
+      if (!formData?.work_permit_expiry) {
+        newErrors.work_permit_expiry = 'Work permit expiry is required';
+      } else if (new Date(formData.work_permit_expiry) <= new Date()) {
+        newErrors.work_permit_expiry = 'Work permit expiry must be a future date';
+      }
+    }
+
+    // Document verification
+    if (!formData?.birth_doc_type) newErrors.birth_doc_type = 'Birth status verification is required';
+    if (!formData?.name_doc_type) newErrors.name_doc_type = 'Name status verification is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!formData) return;
+
+    if (!validateAllTabs()) {
+      toast.error('Please fix validation errors before submitting');
+      setShowSubmitConfirm(false);
+      return;
+    }
+
+    try {
+      // Generate SSN
+      const { data: ssnData, error: ssnError } = await supabase
+        .rpc('generate_ip_ssn');
+      
+      if (ssnError) throw ssnError;
+
+      // Move to ip_master - create clean object for insert
+      const insertData = {
+        unique_uuid: formData.unique_uuid,
+        application_id: formData.application_id,
+        ssn: ssnData,
+        title: formData.title,
+        first_name: formData.first_name || '',
+        middle_name: formData.middle_name,
+        last_name: formData.last_name || '',
+        suffix: formData.suffix,
+        maiden_name: formData.maiden_name,
+        alias: formData.alias,
+        gender: formData.gender || '',
+        date_of_birth: formData.date_of_birth || new Date().toISOString().split('T')[0],
+        marital_status: formData.marital_status || '',
+        date_married: formData.date_married,
+        height_feet: formData.height_feet,
+        height_inches: formData.height_inches,
+        birth_place: formData.birth_place,
+        nationality: formData.nationality || '',
+        eye_color: formData.eye_color,
+        resident_address_1: formData.resident_address_1,
+        resident_address_2: formData.resident_address_2,
+        postal_district: formData.postal_district,
+        mailing_address: formData.mailing_address,
+        email: formData.email,
+        telephone: formData.telephone,
+        mobile: formData.mobile,
+        occupation: formData.occupation,
+        work_permit_status: formData.work_permit_status,
+        npf_status: formData.npf_status,
+        application_date: formData.application_date,
+        date_resident: formData.date_resident,
+        place_of_residence: formData.place_of_residence,
+        work_permit_expiry: formData.work_permit_expiry,
+        citizenship: formData.citizenship,
+        signature_on_file: formData.signature_on_file,
+        marital_doc_type: formData.marital_doc_type,
+        birth_doc_type: formData.birth_doc_type,
+        death_doc_type: formData.death_doc_type,
+        name_doc_type: formData.name_doc_type,
+        status: 'P',
+        created_by: formData.created_by,
+      };
+
+      const { data: insertedRecord, error: insertError } = await supabase
+        .from('ip_master')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Move dependents
+      const { data: deps } = await supabase
+        .from('tmp_ip_dependents')
+        .select('*')
+        .eq('unique_uuid', formData.unique_uuid);
+
+      if (deps && deps.length > 0) {
+        await supabase.from('ip_depend').insert(
+          deps.map(d => ({ ...d, ip_id: formData.id }))
+        );
+      }
+
+      // Move notes
+      const { data: notes } = await supabase
+        .from('tmp_ip_notes')
+        .select('*')
+        .eq('unique_uuid', formData.unique_uuid);
+
+      if (notes && notes.length > 0) {
+        await supabase.from('ip_notes').insert(
+          notes.map(n => ({ ...n, ip_id: formData.id }))
+        );
+      }
+
+      // Delete from temp tables
+      await supabase.from('tmp_ip_master').delete().eq('unique_uuid', formData.unique_uuid);
+
+      toast.success(`Registration submitted successfully. SSN: ${ssnData}`);
+      navigate('/ip-registration');
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Failed to submit registration');
+    } finally {
+      setShowSubmitConfirm(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!formData) return;
+
+    try {
+      const { error } = await supabase
+        .from('ip_master')
+        .update({
+          status: 'V',
+          verified_by: user?.id,
+          date_verified: new Date().toISOString(),
+        })
+        .eq('unique_uuid', formData.unique_uuid);
+
+      if (error) throw error;
+
+      // Log audit
+      await supabase.from('ip_audit_log').insert({
+        table_name: 'ip_master',
+        record_id: formData.id,
+        unique_uuid: formData.unique_uuid,
+        action: 'APPROVE',
+        changed_by: user?.id,
+      });
+
+      toast.success('Registration approved successfully');
+      navigate('/ip-registration');
+    } catch (error) {
+      console.error('Approve error:', error);
+      toast.error('Failed to approve registration');
+    } finally {
+      setShowApproveConfirm(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!formData || !rejectReason) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('ip_master')
+        .update({
+          status: 'R',
+          rejected_by: user?.id,
+          date_rejected: new Date().toISOString(),
+          rejection_reason: rejectReason,
+        })
+        .eq('unique_uuid', formData.unique_uuid);
+
+      if (error) throw error;
+
+      // Add rejection note
+      await supabase.from('ip_notes').insert({
+        ip_id: formData.id,
+        unique_uuid: formData.unique_uuid,
+        note_type: 'Rejection',
+        note_content: rejectReason,
+        created_by: user?.id,
+      });
+
+      // Log audit
+      await supabase.from('ip_audit_log').insert({
+        table_name: 'ip_master',
+        record_id: formData.id,
+        unique_uuid: formData.unique_uuid,
+        action: 'REJECT',
+        new_value: rejectReason,
+        changed_by: user?.id,
+      });
+
+      toast.success('Registration rejected');
+      navigate('/ip-registration');
+    } catch (error) {
+      console.error('Reject error:', error);
+      toast.error('Failed to reject registration');
+    } finally {
+      setShowRejectDialog(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!formData) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Registration not found</p>
+          <Button onClick={() => navigate('/ip-registration')} className="mt-4">
+            Back to List
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const isEditable = !isViewMode && formData.status === 'D';
+  const canApprove = formData.status === 'P' && formData.created_by !== user?.id;
+
+  return (
+    <div className="container mx-auto p-4 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/ip-registration')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="h-6 w-px bg-border" />
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+              {isViewMode ? 'View' : 'Register'} Insured Person
+            </h1>
+            <p className="text-muted-foreground">
+              Application ID: {formData.application_id} | Status: {formData.status}
+              {formData.ssn && ` | SSN: ${formData.ssn}`}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {saving && (
+            <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              Saving...
+            </span>
+          )}
+          {isEditable && (
+            <Button onClick={() => setShowSubmitConfirm(true)}>
+              Submit
+            </Button>
+          )}
+          {canApprove && (
+            <>
+              <Button onClick={() => setShowApproveConfirm(true)} className="bg-green-600 hover:bg-green-700">
+                Approve
+              </Button>
+              <Button variant="destructive" onClick={() => setShowRejectDialog(true)}>
+                Reject
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Main Tabs */}
+      <Card>
+        <CardContent className="p-6">
+          <Tabs value="register" className="w-full">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="register" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Register Person</span>
+              </TabsTrigger>
+              <TabsTrigger value="dependent" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Dependent</span>
+              </TabsTrigger>
+              <TabsTrigger value="notes" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Notes</span>
+              </TabsTrigger>
+              <TabsTrigger value="npf" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                <span className="hidden sm:inline">NPF</span>
+              </TabsTrigger>
+              <TabsTrigger value="photo" className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                <span className="hidden sm:inline">Photo</span>
+              </TabsTrigger>
+              <TabsTrigger value="caricom" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <span className="hidden sm:inline">Caricom</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="register" className="mt-6">
+              {/* Step Progress */}
+              <div className="flex items-center mb-6">
+                {tabSteps.map((step, index) => (
+                  <React.Fragment key={step.id}>
+                    <button
+                      onClick={() => handleTabChange(step.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
+                        activeTab === step.id
+                          ? 'bg-primary text-primary-foreground'
+                          : completedTabs.includes(step.id)
+                          ? 'bg-primary/80 text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {completedTabs.includes(step.id) ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Circle className="h-4 w-4" />
+                      )}
+                      <span className="hidden md:inline">{step.label}</span>
+                      <span className="md:hidden">{index + 1}</span>
+                    </button>
+                    {index < tabSteps.length - 1 && (
+                      <div className={`flex-1 h-1 mx-2 ${
+                        completedTabs.includes(step.id) ? 'bg-primary' : 'bg-muted'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              {activeTab === 'basic' && (
+                <BasicDetailsTab
+                  formData={formData}
+                  onChange={handleFieldChange}
+                  onSave={autoSave}
+                  errors={errors}
+                  isEditable={isEditable}
+                />
+              )}
+              {activeTab === 'address' && (
+                <AddressContactTab
+                  formData={formData}
+                  onChange={handleFieldChange}
+                  onSave={autoSave}
+                  errors={errors}
+                  isEditable={isEditable}
+                />
+              )}
+              {activeTab === 'relations' && (
+                <RelationsTab
+                  uniqueUuid={formData.unique_uuid}
+                  isEditable={isEditable}
+                />
+              )}
+              {activeTab === 'employment' && (
+                <EmploymentTab
+                  formData={formData}
+                  onChange={handleFieldChange}
+                  onSave={autoSave}
+                  errors={errors}
+                  isEditable={isEditable}
+                />
+              )}
+              {activeTab === 'documents' && (
+                <DocumentVerificationTab
+                  formData={formData}
+                  onChange={handleFieldChange}
+                  onSave={autoSave}
+                  errors={errors}
+                  isEditable={isEditable}
+                />
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
+                    if (currentIndex > 0) {
+                      handleTabChange(tabSteps[currentIndex - 1].id);
+                    }
+                  }}
+                  disabled={activeTab === 'basic'}
+                >
+                  ← Back
+                </Button>
+                <Button
+                  onClick={() => {
+                    const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
+                    if (currentIndex < tabSteps.length - 1) {
+                      handleTabChange(tabSteps[currentIndex + 1].id);
+                    }
+                  }}
+                  disabled={activeTab === 'documents'}
+                >
+                  Save & Continue →
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Duplicate Warning Dialog */}
+      <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Potential Duplicates Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              The following records have similar information:
+              <ul className="mt-2 space-y-1">
+                {duplicates.map((dup, i) => (
+                  <li key={i} className="text-sm">
+                    SSN: {dup.ssn} - {dup.full_name} ({dup.match_score}% match)
+                  </li>
+                ))}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDuplicateWarning(false)}>
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Registration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will submit the registration for verification. A 6-digit SSN will be generated.
+              You will not be able to edit after submission.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit}>Submit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Approve Confirmation Dialog */}
+      <AlertDialog open={showApproveConfirm} onOpenChange={setShowApproveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve Registration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the registration as verified.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApprove}>Approve</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Dialog */}
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject Registration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please provide a reason for rejection. This will be recorded in the notes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Enter rejection reason..."
+            className="mt-4"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReject} className="bg-destructive text-destructive-foreground">
+              Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

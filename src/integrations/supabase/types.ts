@@ -2618,6 +2618,402 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_audit_log: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string | null
+          field_name: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          record_id: string
+          table_name: string
+          unique_uuid: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id: string
+          table_name: string
+          unique_uuid?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string
+          table_name?: string
+          unique_uuid?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      ip_depend: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          date_of_birth: string | null
+          email: string | null
+          first_name: string | null
+          gender: string | null
+          id: string
+          ip_id: string | null
+          last_name: string | null
+          middle_name: string | null
+          phone: string | null
+          relation_type: string
+          ssn: string | null
+          status: string | null
+          unique_uuid: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          ip_id?: string | null
+          last_name?: string | null
+          middle_name?: string | null
+          phone?: string | null
+          relation_type: string
+          ssn?: string | null
+          status?: string | null
+          unique_uuid: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          ip_id?: string | null
+          last_name?: string | null
+          middle_name?: string | null
+          phone?: string | null
+          relation_type?: string
+          ssn?: string | null
+          status?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_depend_ip_id_fkey"
+            columns: ["ip_id"]
+            isOneToOne: false
+            referencedRelation: "ip_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ip_documents: {
+        Row: {
+          document_name: string
+          document_type: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_temp: boolean | null
+          mime_type: string | null
+          unique_uuid: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          document_name: string
+          document_type: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_temp?: boolean | null
+          mime_type?: string | null
+          unique_uuid: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          document_name?: string
+          document_type?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_temp?: boolean | null
+          mime_type?: string | null
+          unique_uuid?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      ip_master: {
+        Row: {
+          alias: string | null
+          application_date: string | null
+          application_id: string
+          birth_doc_type: string | null
+          birth_place: string | null
+          citizenship: string | null
+          created_at: string | null
+          created_by: string | null
+          date_married: string | null
+          date_of_birth: string
+          date_rejected: string | null
+          date_resident: string | null
+          date_verified: string | null
+          death_doc_type: string | null
+          email: string | null
+          eye_color: string | null
+          first_name: string
+          gender: string
+          height_feet: number | null
+          height_inches: number | null
+          id: string
+          last_name: string
+          maiden_name: string | null
+          mailing_address: string | null
+          marital_doc_type: string | null
+          marital_status: string
+          middle_name: string | null
+          mobile: string | null
+          name_doc_type: string | null
+          nationality: string
+          npf_status: string | null
+          occupation: string | null
+          place_of_residence: string | null
+          postal_district: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          resident_address_1: string | null
+          resident_address_2: string | null
+          signature_on_file: string | null
+          ssn: string | null
+          status: string
+          suffix: string | null
+          telephone: string | null
+          title: string | null
+          unique_uuid: string
+          updated_at: string | null
+          updated_by: string | null
+          verified_by: string | null
+          work_permit_expiry: string | null
+          work_permit_status: string | null
+        }
+        Insert: {
+          alias?: string | null
+          application_date?: string | null
+          application_id: string
+          birth_doc_type?: string | null
+          birth_place?: string | null
+          citizenship?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_married?: string | null
+          date_of_birth: string
+          date_rejected?: string | null
+          date_resident?: string | null
+          date_verified?: string | null
+          death_doc_type?: string | null
+          email?: string | null
+          eye_color?: string | null
+          first_name: string
+          gender: string
+          height_feet?: number | null
+          height_inches?: number | null
+          id?: string
+          last_name: string
+          maiden_name?: string | null
+          mailing_address?: string | null
+          marital_doc_type?: string | null
+          marital_status: string
+          middle_name?: string | null
+          mobile?: string | null
+          name_doc_type?: string | null
+          nationality: string
+          npf_status?: string | null
+          occupation?: string | null
+          place_of_residence?: string | null
+          postal_district?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          resident_address_1?: string | null
+          resident_address_2?: string | null
+          signature_on_file?: string | null
+          ssn?: string | null
+          status?: string
+          suffix?: string | null
+          telephone?: string | null
+          title?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          verified_by?: string | null
+          work_permit_expiry?: string | null
+          work_permit_status?: string | null
+        }
+        Update: {
+          alias?: string | null
+          application_date?: string | null
+          application_id?: string
+          birth_doc_type?: string | null
+          birth_place?: string | null
+          citizenship?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_married?: string | null
+          date_of_birth?: string
+          date_rejected?: string | null
+          date_resident?: string | null
+          date_verified?: string | null
+          death_doc_type?: string | null
+          email?: string | null
+          eye_color?: string | null
+          first_name?: string
+          gender?: string
+          height_feet?: number | null
+          height_inches?: number | null
+          id?: string
+          last_name?: string
+          maiden_name?: string | null
+          mailing_address?: string | null
+          marital_doc_type?: string | null
+          marital_status?: string
+          middle_name?: string | null
+          mobile?: string | null
+          name_doc_type?: string | null
+          nationality?: string
+          npf_status?: string | null
+          occupation?: string | null
+          place_of_residence?: string | null
+          postal_district?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          resident_address_1?: string | null
+          resident_address_2?: string | null
+          signature_on_file?: string | null
+          ssn?: string | null
+          status?: string
+          suffix?: string | null
+          telephone?: string | null
+          title?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          verified_by?: string | null
+          work_permit_expiry?: string | null
+          work_permit_status?: string | null
+        }
+        Relationships: []
+      }
+      ip_name: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          ip_id: string | null
+          previous_first_name: string | null
+          previous_last_name: string | null
+          previous_middle_name: string | null
+          reason: string | null
+          unique_uuid: string
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          ip_id?: string | null
+          previous_first_name?: string | null
+          previous_last_name?: string | null
+          previous_middle_name?: string | null
+          reason?: string | null
+          unique_uuid: string
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          ip_id?: string | null
+          previous_first_name?: string | null
+          previous_last_name?: string | null
+          previous_middle_name?: string | null
+          reason?: string | null
+          unique_uuid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_name_ip_id_fkey"
+            columns: ["ip_id"]
+            isOneToOne: false
+            referencedRelation: "ip_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ip_notes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          ip_id: string | null
+          note_content: string
+          note_type: string | null
+          unique_uuid: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          ip_id?: string | null
+          note_content: string
+          note_type?: string | null
+          unique_uuid: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          ip_id?: string | null
+          note_content?: string
+          note_type?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_notes_ip_id_fkey"
+            columns: ["ip_id"]
+            isOneToOne: false
+            referencedRelation: "ip_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_admin_audit: {
         Row: {
           action: string
@@ -3663,6 +4059,57 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      mi_tb_del_ip_depend: {
+        Row: {
+          address: string | null
+          date_of_birth: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          first_name: string | null
+          gender: string | null
+          id: string
+          ip_id: string | null
+          last_name: string | null
+          middle_name: string | null
+          original_id: string
+          relation_type: string | null
+          unique_uuid: string
+        }
+        Insert: {
+          address?: string | null
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          ip_id?: string | null
+          last_name?: string | null
+          middle_name?: string | null
+          original_id: string
+          relation_type?: string | null
+          unique_uuid: string
+        }
+        Update: {
+          address?: string | null
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          ip_id?: string | null
+          last_name?: string | null
+          middle_name?: string | null
+          original_id?: string
+          relation_type?: string | null
+          unique_uuid?: string
         }
         Relationships: []
       }
@@ -4874,6 +5321,268 @@ export type Database = {
         }
         Relationships: []
       }
+      tmp_ip_dependents: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          date_of_birth: string | null
+          email: string | null
+          first_name: string | null
+          gender: string | null
+          id: string
+          last_name: string | null
+          middle_name: string | null
+          phone: string | null
+          relation_type: string
+          ssn: string | null
+          status: string | null
+          tmp_ip_id: string | null
+          unique_uuid: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          last_name?: string | null
+          middle_name?: string | null
+          phone?: string | null
+          relation_type: string
+          ssn?: string | null
+          status?: string | null
+          tmp_ip_id?: string | null
+          unique_uuid: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          last_name?: string | null
+          middle_name?: string | null
+          phone?: string | null
+          relation_type?: string
+          ssn?: string | null
+          status?: string | null
+          tmp_ip_id?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmp_ip_dependents_tmp_ip_id_fkey"
+            columns: ["tmp_ip_id"]
+            isOneToOne: false
+            referencedRelation: "tmp_ip_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmp_ip_master: {
+        Row: {
+          alias: string | null
+          application_date: string | null
+          application_id: string
+          birth_doc_type: string | null
+          birth_place: string | null
+          citizenship: string | null
+          created_at: string | null
+          created_by: string | null
+          date_married: string | null
+          date_of_birth: string | null
+          date_resident: string | null
+          death_doc_type: string | null
+          email: string | null
+          eye_color: string | null
+          first_name: string | null
+          gender: string | null
+          height_feet: number | null
+          height_inches: number | null
+          id: string
+          last_name: string | null
+          maiden_name: string | null
+          mailing_address: string | null
+          marital_doc_type: string | null
+          marital_status: string | null
+          middle_name: string | null
+          mobile: string | null
+          name_doc_type: string | null
+          nationality: string | null
+          npf_status: string | null
+          occupation: string | null
+          place_of_residence: string | null
+          postal_district: string | null
+          resident_address_1: string | null
+          resident_address_2: string | null
+          signature_on_file: string | null
+          ssn: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          suffix: string | null
+          telephone: string | null
+          title: string | null
+          unique_uuid: string
+          updated_at: string | null
+          updated_by: string | null
+          work_permit_expiry: string | null
+          work_permit_status: string | null
+        }
+        Insert: {
+          alias?: string | null
+          application_date?: string | null
+          application_id: string
+          birth_doc_type?: string | null
+          birth_place?: string | null
+          citizenship?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_married?: string | null
+          date_of_birth?: string | null
+          date_resident?: string | null
+          death_doc_type?: string | null
+          email?: string | null
+          eye_color?: string | null
+          first_name?: string | null
+          gender?: string | null
+          height_feet?: number | null
+          height_inches?: number | null
+          id?: string
+          last_name?: string | null
+          maiden_name?: string | null
+          mailing_address?: string | null
+          marital_doc_type?: string | null
+          marital_status?: string | null
+          middle_name?: string | null
+          mobile?: string | null
+          name_doc_type?: string | null
+          nationality?: string | null
+          npf_status?: string | null
+          occupation?: string | null
+          place_of_residence?: string | null
+          postal_district?: string | null
+          resident_address_1?: string | null
+          resident_address_2?: string | null
+          signature_on_file?: string | null
+          ssn?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          suffix?: string | null
+          telephone?: string | null
+          title?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          work_permit_expiry?: string | null
+          work_permit_status?: string | null
+        }
+        Update: {
+          alias?: string | null
+          application_date?: string | null
+          application_id?: string
+          birth_doc_type?: string | null
+          birth_place?: string | null
+          citizenship?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_married?: string | null
+          date_of_birth?: string | null
+          date_resident?: string | null
+          death_doc_type?: string | null
+          email?: string | null
+          eye_color?: string | null
+          first_name?: string | null
+          gender?: string | null
+          height_feet?: number | null
+          height_inches?: number | null
+          id?: string
+          last_name?: string | null
+          maiden_name?: string | null
+          mailing_address?: string | null
+          marital_doc_type?: string | null
+          marital_status?: string | null
+          middle_name?: string | null
+          mobile?: string | null
+          name_doc_type?: string | null
+          nationality?: string | null
+          npf_status?: string | null
+          occupation?: string | null
+          place_of_residence?: string | null
+          postal_district?: string | null
+          resident_address_1?: string | null
+          resident_address_2?: string | null
+          signature_on_file?: string | null
+          ssn?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          suffix?: string | null
+          telephone?: string | null
+          title?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          work_permit_expiry?: string | null
+          work_permit_status?: string | null
+        }
+        Relationships: []
+      }
+      tmp_ip_notes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          note_content: string
+          note_type: string | null
+          tmp_ip_id: string | null
+          unique_uuid: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          note_content: string
+          note_type?: string | null
+          tmp_ip_id?: string | null
+          unique_uuid: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          note_content?: string
+          note_type?: string | null
+          tmp_ip_id?: string | null
+          unique_uuid?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmp_ip_notes_tmp_ip_id_fkey"
+            columns: ["tmp_ip_id"]
+            isOneToOne: false
+            referencedRelation: "tmp_ip_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_data_overrides: {
         Row: {
           condition_sql: string | null
@@ -5789,6 +6498,23 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      check_ip_duplicates: {
+        Args: {
+          p_dob: string
+          p_exclude_uuid?: string
+          p_first_name: string
+          p_gender: string
+          p_last_name: string
+        }
+        Returns: {
+          date_of_birth: string
+          full_name: string
+          gender: string
+          id: string
+          match_score: number
+          ssn: string
+        }[]
+      }
       check_row_access: {
         Args: {
           _action: string
@@ -5824,6 +6550,8 @@ export type Database = {
           user_name: string
         }[]
       }
+      generate_application_id: { Args: never; Returns: string }
+      generate_ip_ssn: { Args: never; Returns: string }
       get_all_public_tables: {
         Args: never
         Returns: {
