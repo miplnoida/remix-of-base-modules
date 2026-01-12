@@ -293,69 +293,49 @@ const DataMigration = () => {
         throw new Error("Invalid export file format");
       }
 
+      setImportProgress(20);
+
+      // Call the edge function for faster import with service role
+      const { data: response, error } = await supabase.functions.invoke("import-seed-data", {
+        body: { data },
+      });
+
+      setImportProgress(80);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Convert edge function response to our result format
       const results: ImportResult[] = [];
-      const tablesToImport = data.tableOrder.filter((t: string) => 
-        TABLE_IMPORT_ORDER.includes(t)
-      );
-      
-      // Sort by import order
-      tablesToImport.sort((a: string, b: string) => 
-        TABLE_IMPORT_ORDER.indexOf(a) - TABLE_IMPORT_ORDER.indexOf(b)
-      );
-
-      for (let i = 0; i < tablesToImport.length; i++) {
-        const table = tablesToImport[i];
-        const tableData = data.data[table];
-        
-        setImportProgress(Math.round(((i + 1) / tablesToImport.length) * 100));
-
-        if (!tableData || tableData.length === 0) {
-          results.push({ table, success: true, inserted: 0 });
-          continue;
-        }
-
-        try {
-          // Use upsert with onConflict to handle existing records
-          const { error, data: insertedData } = await supabase
-            .from(table as any)
-            .upsert(tableData, { 
-              onConflict: "id",
-              ignoreDuplicates: false 
-            })
-            .select();
-
-          if (error) {
-            results.push({ 
-              table, 
-              success: false, 
-              inserted: 0, 
-              error: error.message 
-            });
-          } else {
-            results.push({ 
-              table, 
-              success: true, 
-              inserted: insertedData?.length || tableData.length 
-            });
-          }
-        } catch (err: any) {
-          results.push({ 
-            table, 
-            success: false, 
-            inserted: 0, 
-            error: err.message || "Unknown error" 
+      if (response?.results) {
+        for (const [table, result] of Object.entries(response.results as Record<string, { success: number; errors: string[] }>)) {
+          results.push({
+            table,
+            success: result.errors.length === 0,
+            inserted: result.success,
+            error: result.errors.length > 0 ? result.errors.join("; ") : undefined,
           });
         }
       }
 
+      // Sort results by import order
+      results.sort((a, b) => {
+        const aIndex = TABLE_IMPORT_ORDER.indexOf(a.table);
+        const bIndex = TABLE_IMPORT_ORDER.indexOf(b.table);
+        return aIndex - bIndex;
+      });
+
       setImportResults(results);
+      setImportProgress(100);
       
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter(r => r.success && r.inserted > 0).length;
       const failCount = results.filter(r => !r.success).length;
+      const totalRecords = results.reduce((sum, r) => sum + r.inserted, 0);
       
       toast({
         title: "Import Complete",
-        description: `${successCount} tables imported successfully${failCount > 0 ? `, ${failCount} failed` : ""}`,
+        description: `${successCount} tables imported with ${totalRecords} total records${failCount > 0 ? `, ${failCount} had errors` : ""}`,
         variant: failCount > 0 ? "destructive" : "default",
       });
     } catch (error: any) {
@@ -367,7 +347,29 @@ const DataMigration = () => {
       });
     } finally {
       setIsImporting(false);
-      setImportProgress(100);
+    }
+  };
+
+  const handleLoadSeedFile = async () => {
+    try {
+      const response = await fetch("/seed-data-2026-01-12-2.json");
+      if (!response.ok) {
+        throw new Error("Failed to load seed file");
+      }
+      const blob = await response.blob();
+      const file = new File([blob], "seed-data-2026-01-12-2.json", { type: "application/json" });
+      setImportFile(file);
+      setImportResults([]);
+      toast({
+        title: "Seed File Loaded",
+        description: "The seed data file is ready to import",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Load Failed",
+        description: error.message || "Failed to load seed file",
+        variant: "destructive",
+      });
     }
   };
 
@@ -506,6 +508,16 @@ const DataMigration = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Quick Load Seed File */}
+            <Button 
+              variant="outline" 
+              className="w-full mb-4" 
+              onClick={handleLoadSeedFile}
+            >
+              <FileJson className="mr-2 h-4 w-4" />
+              Load Seed Data File
+            </Button>
+
             {/* File Upload Area */}
             <div
               className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
