@@ -261,6 +261,13 @@ import RoleDataPolicies from '@/pages/admin/data-access/RoleDataPolicies';
 import UserDataOverrides from '@/pages/admin/data-access/UserDataOverrides';
 import PolicyTestConsole from '@/pages/admin/data-access/PolicyTestConsole';
 
+// System Cleanup
+import SystemCleanupDashboard from '@/pages/admin/system-cleanup/SystemCleanupDashboard';
+import ActiveModulesInventory from '@/pages/admin/system-cleanup/ActiveModulesInventory';
+import DependencyScan from '@/pages/admin/system-cleanup/DependencyScan';
+import CleanupReview from '@/pages/admin/system-cleanup/CleanupReview';
+import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
+
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
 import UserCreate from '@/pages/admin/users/UserCreate';
@@ -1317,6 +1324,13 @@ export const AppRoutes = () => {
       <Route path="/admin/data-access/role-policies" element={<ProtectedLayout><RoleDataPolicies /></ProtectedLayout>} />
       <Route path="/admin/data-access/user-overrides" element={<ProtectedLayout><UserDataOverrides /></ProtectedLayout>} />
       <Route path="/admin/data-access/test-console" element={<ProtectedLayout><PolicyTestConsole /></ProtectedLayout>} />
+
+      {/* System Cleanup & Refactoring */}
+      <Route path="/admin/system-cleanup" element={<ProtectedLayout><SystemCleanupDashboard /></ProtectedLayout>} />
+      <Route path="/admin/system-cleanup/modules-inventory" element={<ProtectedLayout><ActiveModulesInventory /></ProtectedLayout>} />
+      <Route path="/admin/system-cleanup/dependency-scan" element={<ProtectedLayout><DependencyScan /></ProtectedLayout>} />
+      <Route path="/admin/system-cleanup/cleanup-review" element={<ProtectedLayout><CleanupReview /></ProtectedLayout>} />
+      <Route path="/admin/system-cleanup/rollback" element={<ProtectedLayout><RollbackScreen /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />

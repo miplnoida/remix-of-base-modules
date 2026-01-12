@@ -16,7 +16,10 @@ import {
   ClipboardCheck,
   Layers,
   Lock,
-  CheckSquare
+  CheckSquare,
+  Trash2,
+  Search,
+  RotateCcw
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -139,6 +142,43 @@ export const systemAdminMenuItems = [
         url: "/admin/audit-log",
         icon: History,
         requiresPermission: "system_administration"
+      },
+      {
+        title: "System Cleanup",
+        icon: Trash2,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Cleanup Dashboard",
+            url: "/admin/system-cleanup",
+            icon: Trash2,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Modules Inventory",
+            url: "/admin/system-cleanup/modules-inventory",
+            icon: Layers,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Dependency Scan",
+            url: "/admin/system-cleanup/dependency-scan",
+            icon: Search,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Cleanup Review",
+            url: "/admin/system-cleanup/cleanup-review",
+            icon: Trash2,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Rollback & Recovery",
+            url: "/admin/system-cleanup/rollback",
+            icon: RotateCcw,
+            requiresPermission: "system_administration"
+          }
+        ]
       }
     ]
   },
