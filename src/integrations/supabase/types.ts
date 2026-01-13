@@ -5798,6 +5798,47 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_action_field_updates: {
+        Row: {
+          action_id: string
+          created_at: string
+          created_by: string | null
+          display_order: number | null
+          field_name: string
+          field_value: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          field_name: string
+          field_value: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          field_name?: string
+          field_value?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_action_field_updates_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_action_notifications: {
         Row: {
           action_id: string

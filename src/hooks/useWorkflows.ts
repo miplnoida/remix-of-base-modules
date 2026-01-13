@@ -165,7 +165,7 @@ export function useWorkflowWithSteps(workflowId: string | null) {
             .eq('step_id', step.id)
             .order('display_order', { ascending: true });
           
-          // Fetch notifications for each action
+          // Fetch notifications and field updates for each action
           const actionsWithNotifications = await Promise.all(
             (actions || []).map(async (action: WorkflowStepAction) => {
               const { data: notifications } = await supabase
@@ -173,7 +173,13 @@ export function useWorkflowWithSteps(workflowId: string | null) {
                 .select('*')
                 .eq('action_id', action.id);
               
-              return { ...action, notifications: notifications || [] };
+              const { data: fieldUpdates } = await supabase
+                .from('workflow_action_field_updates')
+                .select('*')
+                .eq('action_id', action.id)
+                .order('display_order', { ascending: true });
+              
+              return { ...action, notifications: notifications || [], fieldUpdates: fieldUpdates || [] };
             })
           );
           
@@ -502,6 +508,30 @@ export function useSaveWorkflowSteps() {
               );
 
             if (notifError) throw notifError;
+          }
+
+          // Replace field updates for this action
+          const { error: deleteExistingFieldUpdatesError } = await supabase
+            .from('workflow_action_field_updates')
+            .delete()
+            .eq('action_id', actionId);
+          if (deleteExistingFieldUpdatesError) throw deleteExistingFieldUpdatesError;
+
+          if ((action as any).fieldUpdates && (action as any).fieldUpdates.length > 0) {
+            const { data: user } = await supabase.auth.getUser();
+            const { error: fieldUpdateError } = await supabase
+              .from('workflow_action_field_updates')
+              .insert(
+                (action as any).fieldUpdates.map((fu: any, idx: number) => ({
+                  action_id: actionId,
+                  field_name: fu.field_name,
+                  field_value: fu.field_value,
+                  display_order: idx,
+                  created_by: user.user?.id,
+                }))
+              );
+
+            if (fieldUpdateError) throw fieldUpdateError;
           }
         }
       }
