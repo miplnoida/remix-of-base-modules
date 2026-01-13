@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Eye, AlertCircle, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, Eye, AlertCircle, HelpCircle, Database, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +24,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ColumnInfo } from '@/hooks/useModuleTables';
 
 export interface FieldUpdate {
   id?: string;
@@ -38,6 +59,7 @@ interface ActionFieldUpdatesEditorProps {
   fieldUpdates: FieldUpdate[];
   onChange: (updates: FieldUpdate[]) => void;
   validTableColumns?: string[];
+  tableColumns?: ColumnInfo[];
   targetTable?: string;
   disabled?: boolean;
 }
@@ -52,15 +74,36 @@ const SUPPORTED_PLACEHOLDERS = [
   { placeholder: '{{step_name}}', description: 'The name of the current workflow step' },
 ];
 
+const getDataTypeBadgeVariant = (dataType: string): "default" | "secondary" | "outline" | "destructive" => {
+  if (dataType.includes('uuid')) return 'outline';
+  if (dataType.includes('timestamp') || dataType.includes('date')) return 'secondary';
+  if (dataType.includes('int') || dataType.includes('numeric') || dataType.includes('decimal')) return 'default';
+  return 'secondary';
+};
+
+const formatDataType = (dataType: string): string => {
+  if (dataType.includes('timestamp')) return 'timestamp';
+  if (dataType.includes('character varying')) return 'varchar';
+  if (dataType.includes('text')) return 'text';
+  if (dataType.includes('uuid')) return 'uuid';
+  if (dataType.includes('boolean')) return 'bool';
+  if (dataType.includes('integer')) return 'int';
+  if (dataType.includes('numeric') || dataType.includes('decimal')) return 'number';
+  if (dataType.includes('json')) return 'json';
+  return dataType.slice(0, 10);
+};
+
 export default function ActionFieldUpdatesEditor({
   fieldUpdates,
   onChange,
   validTableColumns = [],
+  tableColumns = [],
   targetTable,
   disabled = false,
 }: ActionFieldUpdatesEditorProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [errors, setErrors] = useState<Record<number, string>>({});
+  const [openPopovers, setOpenPopovers] = useState<Record<number, boolean>>({});
 
   const addFieldUpdate = () => {
     const newUpdate: FieldUpdate = {
@@ -90,13 +133,18 @@ export default function ActionFieldUpdatesEditor({
     // Validate field name if columns are provided
     if (field === 'field_name' && validTableColumns.length > 0) {
       const newErrors = { ...errors };
-      if (value && !validTableColumns.includes(value.toLowerCase())) {
+      if (value && !validTableColumns.includes(value)) {
         newErrors[index] = `"${value}" is not a valid column in ${targetTable || 'the target table'}`;
       } else {
         delete newErrors[index];
       }
       setErrors(newErrors);
     }
+  };
+
+  const selectColumn = (index: number, columnName: string) => {
+    updateField(index, 'field_name', columnName);
+    setOpenPopovers({ ...openPopovers, [index]: false });
   };
 
   const resolvePlaceholder = (placeholder: string): string => {
@@ -130,6 +178,11 @@ export default function ActionFieldUpdatesEditor({
   };
 
   const hasErrors = Object.keys(errors).length > 0;
+  const hasColumns = tableColumns.length > 0;
+
+  const getColumnInfo = (columnName: string): ColumnInfo | undefined => {
+    return tableColumns.find(c => c.column_name === columnName);
+  };
 
   return (
     <div className="space-y-4">
@@ -174,6 +227,27 @@ export default function ActionFieldUpdatesEditor({
         </div>
       </div>
 
+      {/* Target Table Info */}
+      {targetTable ? (
+        <div className="flex items-center gap-2 text-sm bg-muted/50 px-3 py-2 rounded-md">
+          <Database className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Target Table:</span>
+          <Badge variant="secondary">{targetTable}</Badge>
+          {hasColumns && (
+            <span className="text-xs text-muted-foreground ml-2">
+              ({tableColumns.length} columns available)
+            </span>
+          )}
+        </div>
+      ) : (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            No secured table configured. Select a module and table in the workflow settings to enable field name suggestions.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {fieldUpdates.length > 0 ? (
         <div className="border rounded-md">
           <Table>
@@ -189,13 +263,67 @@ export default function ActionFieldUpdatesEditor({
                 <TableRow key={index}>
                   <TableCell>
                     <div className="space-y-1">
-                      <Input
-                        value={update.field_name}
-                        onChange={(e) => updateField(index, 'field_name', e.target.value)}
-                        placeholder="e.g., status"
-                        disabled={disabled}
-                        className={errors[index] ? 'border-destructive' : ''}
-                      />
+                      {hasColumns ? (
+                        <Popover 
+                          open={openPopovers[index]} 
+                          onOpenChange={(open) => setOpenPopovers({ ...openPopovers, [index]: open })}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openPopovers[index]}
+                              className={`w-full justify-between h-9 font-normal ${errors[index] ? 'border-destructive' : ''}`}
+                              disabled={disabled}
+                            >
+                              {update.field_name ? (
+                                <div className="flex items-center gap-2">
+                                  <span>{update.field_name}</span>
+                                  {getColumnInfo(update.field_name) && (
+                                    <Badge variant={getDataTypeBadgeVariant(getColumnInfo(update.field_name)!.data_type)} className="text-[10px] h-4 px-1">
+                                      {formatDataType(getColumnInfo(update.field_name)!.data_type)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">Select column...</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search columns..." />
+                              <CommandList>
+                                <CommandEmpty>No column found.</CommandEmpty>
+                                <CommandGroup>
+                                  {tableColumns.map((col) => (
+                                    <CommandItem
+                                      key={col.column_name}
+                                      value={col.column_name}
+                                      onSelect={() => selectColumn(index, col.column_name)}
+                                    >
+                                      <div className="flex items-center justify-between w-full">
+                                        <span>{col.column_name}</span>
+                                        <Badge variant={getDataTypeBadgeVariant(col.data_type)} className="text-[10px] h-4 px-1 ml-2">
+                                          {formatDataType(col.data_type)}
+                                        </Badge>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Input
+                          value={update.field_name}
+                          onChange={(e) => updateField(index, 'field_name', e.target.value)}
+                          placeholder="e.g., status"
+                          disabled={disabled}
+                          className={errors[index] ? 'border-destructive' : ''}
+                        />
+                      )}
                       {errors[index] && (
                         <p className="text-xs text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
@@ -272,6 +400,11 @@ export default function ActionFieldUpdatesEditor({
             <DialogTitle>Field Updates Preview</DialogTitle>
             <DialogDescription>
               Preview of field values that will be applied when this action is executed.
+              {targetTable && (
+                <span className="block mt-1">
+                  Target: <Badge variant="secondary" className="ml-1">{targetTable}</Badge>
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="border rounded-md">

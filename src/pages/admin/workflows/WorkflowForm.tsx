@@ -44,7 +44,7 @@ import { useDesignations } from '@/hooks/useDesignations';
 import { useQuery } from '@tanstack/react-query';
 import ActionFieldUpdatesEditor from '@/components/workflow/ActionFieldUpdatesEditor';
 import { supabase } from '@/integrations/supabase/client';
-import { useModuleTables } from '@/hooks/useModuleTables';
+import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 
 interface StepFormData {
   id?: string;
@@ -219,6 +219,9 @@ export default function WorkflowForm() {
 
   // Fetch tables for selected module
   const { data: moduleTables } = useModuleTables(formData.secured_module_id || undefined);
+  
+  // Fetch columns for the secured table (used for field updates validation)
+  const { data: securedTableColumns } = useTableColumns(formData.secured_table);
 
   useEffect(() => {
     if (workflow) {
@@ -1289,6 +1292,8 @@ export default function WorkflowForm() {
                                         fieldUpdates={action.fieldUpdates}
                                         onChange={(updates) => updateAction(stepIndex, actionIndex, 'fieldUpdates', updates)}
                                         targetTable={formData.secured_table || undefined}
+                                        validTableColumns={securedTableColumns?.map(c => c.column_name) || []}
+                                        tableColumns={securedTableColumns || []}
                                       />
                                     </div>
                                   </div>
