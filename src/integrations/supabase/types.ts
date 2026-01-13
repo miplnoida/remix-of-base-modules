@@ -6640,7 +6640,7 @@ export type Database = {
         }[]
       }
       get_table_columns: {
-        Args: { _table_name: string }
+        Args: { p_table_name: string }
         Returns: {
           column_name: string
           data_type: string
