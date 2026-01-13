@@ -29,22 +29,28 @@ export function BusinessObjectRootDisplay({
         <Database className="h-4 w-4" />
         Business Object Root (Read-only)
       </h4>
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Primary Table:</span>
-          <Badge variant="secondary">{primaryTable}</Badge>
+      <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col gap-1 min-w-[120px]">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Database className="h-3 w-3" />
+            Primary Table
+          </span>
+          <Badge variant="secondary" className="w-fit">{primaryTable}</Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <Key className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Primary Key:</span>
-          <Badge variant="outline">{primaryKeyColumn || 'id'}</Badge>
+        <div className="flex flex-col gap-1 min-w-[80px]">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Key className="h-3 w-3" />
+            Primary Key
+          </span>
+          <Badge variant="outline" className="w-fit">{primaryKeyColumn || 'id'}</Badge>
         </div>
         {businessKeyColumn && (
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Business Key:</span>
-            <Badge variant="outline">{businessKeyColumn}</Badge>
+          <div className="flex flex-col gap-1 min-w-[80px]">
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Tag className="h-3 w-3" />
+              Business Key
+            </span>
+            <Badge variant="outline" className="w-fit">{businessKeyColumn}</Badge>
           </div>
         )}
       </div>
