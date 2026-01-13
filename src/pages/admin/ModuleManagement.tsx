@@ -608,9 +608,15 @@ const ModuleManagementContent = () => {
                 primaryTable={moduleForm.primary_table}
                 primaryKeyColumn={moduleForm.primary_key_column}
                 businessKeyColumn={moduleForm.business_key_column}
-                onPrimaryTableChange={(value) => setModuleForm({ ...moduleForm, primary_table: value })}
-                onPrimaryKeyColumnChange={(value) => setModuleForm({ ...moduleForm, primary_key_column: value })}
-                onBusinessKeyColumnChange={(value) => setModuleForm({ ...moduleForm, business_key_column: value })}
+                onPrimaryTableChange={(value) =>
+                  setModuleForm((prev) => ({ ...prev, primary_table: value }))
+                }
+                onPrimaryKeyColumnChange={(value) =>
+                  setModuleForm((prev) => ({ ...prev, primary_key_column: value }))
+                }
+                onBusinessKeyColumnChange={(value) =>
+                  setModuleForm((prev) => ({ ...prev, business_key_column: value }))
+                }
                 showTitle={false}
               />
             </div>
