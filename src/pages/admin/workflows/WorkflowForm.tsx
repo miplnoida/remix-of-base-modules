@@ -42,6 +42,7 @@ import {
 import { useDbRoles } from '@/hooks/useRolesData';
 import { useDesignations } from '@/hooks/useDesignations';
 import { useQuery } from '@tanstack/react-query';
+import ActionFieldUpdatesEditor from '@/components/workflow/ActionFieldUpdatesEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useModuleTables } from '@/hooks/useModuleTables';
 
@@ -73,6 +74,13 @@ interface StepFormData {
   actions: ActionFormData[];
 }
 
+interface FieldUpdateFormData {
+  id?: string;
+  field_name: string;
+  field_value: string;
+  display_order: number;
+}
+
 interface ActionFormData {
   id?: string;
   action_name: string;
@@ -88,6 +96,8 @@ interface ActionFormData {
   notification_module_id: string | null;
   notification_template_id: string | null;
   notifications: NotificationFormData[];
+  // Field updates to apply when action is executed
+  fieldUpdates: FieldUpdateFormData[];
 }
 
 interface NotificationFormData {
@@ -265,6 +275,7 @@ export default function WorkflowForm() {
               notification_type: n.notification_type,
               template_id: n.template_id,
             })),
+            fieldUpdates: (action as any).fieldUpdates || [],
           })),
         }))
       );
@@ -311,6 +322,7 @@ export default function WorkflowForm() {
             notification_module_id: null,
             notification_template_id: null,
             notifications: [],
+            fieldUpdates: [],
           },
         ],
       },
@@ -354,6 +366,7 @@ export default function WorkflowForm() {
       notification_module_id: null,
       notification_template_id: null,
       notifications: [],
+      fieldUpdates: [],
     });
     setSteps(newSteps);
   };
@@ -1268,6 +1281,15 @@ export default function WorkflowForm() {
                                       <p className="text-xs text-muted-foreground">
                                         Notification sent when this action is executed.
                                       </p>
+                                    </div>
+
+                                    {/* Action Field Updates Section */}
+                                    <div className="space-y-3 p-3 bg-background rounded-md border border-orange-200 dark:border-orange-800">
+                                      <ActionFieldUpdatesEditor
+                                        fieldUpdates={action.fieldUpdates}
+                                        onChange={(updates) => updateAction(stepIndex, actionIndex, 'fieldUpdates', updates)}
+                                        targetTable={formData.secured_table || undefined}
+                                      />
                                     </div>
                                   </div>
                                   <Button
