@@ -160,15 +160,15 @@ export function BusinessObjectRootConfig({
             Business Key Column
           </Label>
           <Select
-            value={businessKeyColumn || ''}
-            onValueChange={onBusinessKeyColumnChange}
+            value={businessKeyColumn || '__none__'}
+            onValueChange={(value) => onBusinessKeyColumnChange(value === '__none__' ? '' : value)}
             disabled={disabled || !primaryTable}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select business key" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {columnOptions.map((column: string) => (
                 <SelectItem key={column} value={column}>
                   {column}
