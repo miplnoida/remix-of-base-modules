@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Trash2, Edit, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -35,10 +35,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from '@/hooks/useActionPermission';
 import {
@@ -50,6 +50,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { BusinessObjectRootDisplay } from '@/components/workflow/BusinessObjectRootDisplay';
+import { useModuleBusinessObjectRoot } from '@/hooks/useBusinessObjectRoot';
 
 interface TriggerFormData {
   id?: string;
@@ -73,17 +75,20 @@ export default function WorkflowTriggers() {
   const { data: triggers, isLoading } = useWorkflowTriggers();
   const { data: workflows } = useWorkflowDefinitions();
   const { data: modules } = useQuery({
-    queryKey: ['app-modules'],
+    queryKey: ['app-modules-with-root'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('app_modules')
-        .select('id, name, display_name')
+        .select('id, name, display_name, primary_table, primary_key_column, business_key_column')
         .eq('is_enabled', true)
         .order('display_name');
       if (error) throw error;
       return data;
     },
   });
+
+  // Get selected module's Business Object Root info
+  const { data: selectedModuleRoot } = useModuleBusinessObjectRoot(formData.module_id || undefined);
 
   // Query for module actions based on selected module
   const { data: moduleActions, isLoading: isLoadingActions } = useQuery({
@@ -253,13 +258,37 @@ export default function WorkflowTriggers() {
                   </SelectTrigger>
                   <SelectContent>
                     {modules?.map((module) => (
-                      <SelectItem key={module.id} value={module.id}>
+                      <SelectItem 
+                        key={module.id} 
+                        value={module.id}
+                        disabled={!module.primary_table}
+                      >
                         {module.display_name}
+                        {!module.primary_table && ' (No Business Object Root)'}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {formData.module_id && !selectedModuleRoot?.primary_table && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      This module does not have a Business Object Root configured. 
+                      Please configure it in Module Management first.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
               </div>
+
+              {/* Business Object Root Display - Read Only */}
+              {formData.module_id && selectedModuleRoot?.primary_table && (
+                <BusinessObjectRootDisplay
+                  primaryTable={selectedModuleRoot.primary_table}
+                  primaryKeyColumn={selectedModuleRoot.primary_key_column}
+                  businessKeyColumn={selectedModuleRoot.business_key_column}
+                />
+              )}
 
               <div className="space-y-2">
                 <Label>Action Name *</Label>
@@ -320,7 +349,12 @@ export default function WorkflowTriggers() {
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={!formData.module_id || !formData.action_name || !formData.workflow_id}
+                disabled={
+                  !formData.module_id || 
+                  !formData.action_name || 
+                  !formData.workflow_id ||
+                  (formData.module_id && !selectedModuleRoot?.primary_table)
+                }
               >
                 Save
               </Button>

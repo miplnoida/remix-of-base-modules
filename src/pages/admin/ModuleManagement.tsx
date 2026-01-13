@@ -42,6 +42,7 @@ import { IconPicker } from "@/components/ui/icon-picker";
 import { cn } from "@/lib/utils";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
+import { BusinessObjectRootConfig } from "@/components/admin/BusinessObjectRootConfig";
 
 // Helper to get Lucide icon by name
 const getIcon = (iconName: string | null) => {
@@ -232,6 +233,9 @@ const ModuleManagementContent = () => {
     parent_id: null as string | null,
     sort_order: 0,
     is_enabled: true,
+    primary_table: "",
+    primary_key_column: "id",
+    business_key_column: "",
   });
   const [actionForm, setActionForm] = useState({
     action_name: "",
@@ -303,6 +307,9 @@ const ModuleManagementContent = () => {
         parent_id: module.parent_id,
         sort_order: module.sort_order,
         is_enabled: module.is_enabled,
+        primary_table: (module as any).primary_table || "",
+        primary_key_column: (module as any).primary_key_column || "id",
+        business_key_column: (module as any).business_key_column || "",
       });
     } else {
       setSelectedModule(null);
@@ -315,6 +322,9 @@ const ModuleManagementContent = () => {
         parent_id: null,
         sort_order: modules.length,
         is_enabled: true,
+        primary_table: "",
+        primary_key_column: "id",
+        business_key_column: "",
       });
     }
     setShowModuleDialog(true);
@@ -561,6 +571,19 @@ const ModuleManagementContent = () => {
                 id="is_enabled"
                 checked={moduleForm.is_enabled}
                 onCheckedChange={(checked) => setModuleForm({ ...moduleForm, is_enabled: checked })}
+              />
+            </div>
+
+            {/* Business Object Root Configuration */}
+            <div className="border-t pt-4 mt-4">
+              <BusinessObjectRootConfig
+                primaryTable={moduleForm.primary_table}
+                primaryKeyColumn={moduleForm.primary_key_column}
+                businessKeyColumn={moduleForm.business_key_column}
+                onPrimaryTableChange={(value) => setModuleForm({ ...moduleForm, primary_table: value })}
+                onPrimaryKeyColumnChange={(value) => setModuleForm({ ...moduleForm, primary_key_column: value })}
+                onBusinessKeyColumnChange={(value) => setModuleForm({ ...moduleForm, business_key_column: value })}
+                showTitle={true}
               />
             </div>
           </div>

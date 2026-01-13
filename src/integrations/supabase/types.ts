@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       app_modules: {
         Row: {
+          business_key_column: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -25,12 +26,15 @@ export type Database = {
           is_enabled: boolean | null
           name: string
           parent_id: string | null
+          primary_key_column: string | null
+          primary_table: string | null
           route: string | null
           sort_order: number | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
+          business_key_column?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -40,12 +44,15 @@ export type Database = {
           is_enabled?: boolean | null
           name: string
           parent_id?: string | null
+          primary_key_column?: string | null
+          primary_table?: string | null
           route?: string | null
           sort_order?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
+          business_key_column?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -55,6 +62,8 @@ export type Database = {
           is_enabled?: boolean | null
           name?: string
           parent_id?: string | null
+          primary_key_column?: string | null
+          primary_table?: string | null
           route?: string | null
           sort_order?: number | null
           updated_at?: string | null
@@ -6002,11 +6011,16 @@ export type Database = {
       }
       workflow_instances: {
         Row: {
+          business_key_column: string | null
+          business_key_value: string | null
           completed_at: string | null
           current_step_id: string | null
           due_at: string | null
           id: string
           metadata: Json | null
+          primary_key_column: string | null
+          primary_key_value: string | null
+          primary_table: string | null
           source_module: string | null
           source_record_id: string | null
           source_record_name: string | null
@@ -6018,11 +6032,16 @@ export type Database = {
           workflow_name: string
         }
         Insert: {
+          business_key_column?: string | null
+          business_key_value?: string | null
           completed_at?: string | null
           current_step_id?: string | null
           due_at?: string | null
           id?: string
           metadata?: Json | null
+          primary_key_column?: string | null
+          primary_key_value?: string | null
+          primary_table?: string | null
           source_module?: string | null
           source_record_id?: string | null
           source_record_name?: string | null
@@ -6036,11 +6055,16 @@ export type Database = {
           workflow_name: string
         }
         Update: {
+          business_key_column?: string | null
+          business_key_value?: string | null
           completed_at?: string | null
           current_step_id?: string | null
           due_at?: string | null
           id?: string
           metadata?: Json | null
+          primary_key_column?: string | null
+          primary_key_value?: string | null
+          primary_table?: string | null
           source_module?: string | null
           source_record_id?: string | null
           source_record_name?: string | null
@@ -6535,6 +6559,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_workflow_field_updates: {
+        Args: {
+          p_action_id: string
+          p_instance_id: string
+          p_user_id?: string
+          p_user_name?: string
+        }
+        Returns: Json
+      }
       can_access_module: {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
@@ -6692,6 +6725,10 @@ export type Database = {
           _user_id: string
           _workflow_instance_id: string
         }
+        Returns: string
+      }
+      resolve_root_placeholders: {
+        Args: { p_instance_id: string; p_template: string }
         Returns: string
       }
       test_data_policy: {
