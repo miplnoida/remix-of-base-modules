@@ -16,8 +16,8 @@ export function usePublicTables() {
   return useQuery({
     queryKey: ['public-tables'],
     queryFn: async () => {
-      // Try the RPC function first
-      const { data, error } = await supabase.rpc('get_public_tables' as any);
+      // Try the RPC function first - use get_all_public_tables
+      const { data, error } = await supabase.rpc('get_all_public_tables' as any);
       
       if (error || !data) {
         console.error('Error fetching tables:', error);
