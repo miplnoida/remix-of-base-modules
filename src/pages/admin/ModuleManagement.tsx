@@ -480,102 +480,130 @@ const ModuleManagementContent = () => {
         </CardContent>
       </Card>
 
-      {/* Module Dialog */}
+      {/* Module Dialog - Improved Design */}
       <Dialog open={showModuleDialog} onOpenChange={setShowModuleDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedModule ? "Edit Module" : "Add Module"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-primary" />
+              {selectedModule ? "Edit Module" : "Create New Module"}
+            </DialogTitle>
             <DialogDescription>
-              {selectedModule ? "Update module configuration" : "Create a new application module"}
+              {selectedModule ? "Update module configuration and settings" : "Configure a new application module"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          
+          <div className="space-y-6 py-4">
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm">System Name *</Label>
+                  <Input
+                    id="name"
+                    value={moduleForm.name}
+                    onChange={(e) => setModuleForm({ ...moduleForm, name: e.target.value })}
+                    placeholder="user_management"
+                    className="h-9"
+                  />
+                  <p className="text-xs text-muted-foreground">Unique identifier (no spaces)</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="display_name" className="text-sm">Display Name *</Label>
+                  <Input
+                    id="display_name"
+                    value={moduleForm.display_name}
+                    onChange={(e) => setModuleForm({ ...moduleForm, display_name: e.target.value })}
+                    placeholder="User Management"
+                    className="h-9"
+                  />
+                  <p className="text-xs text-muted-foreground">Shown in navigation menu</p>
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="name">System Name *</Label>
-                <Input
-                  id="name"
-                  value={moduleForm.name}
-                  onChange={(e) => setModuleForm({ ...moduleForm, name: e.target.value })}
-                  placeholder="user_management"
+                <Label htmlFor="description" className="text-sm">Description</Label>
+                <Textarea
+                  id="description"
+                  value={moduleForm.description}
+                  onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
+                  placeholder="Brief description of the module's purpose"
+                  rows={2}
+                  className="resize-none"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="display_name">Display Name *</Label>
-                <Input
-                  id="display_name"
-                  value={moduleForm.display_name}
-                  onChange={(e) => setModuleForm({ ...moduleForm, display_name: e.target.value })}
-                  placeholder="User Management"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={moduleForm.description}
-                onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="icon">Icon</Label>
-                <IconPicker
-                  value={moduleForm.icon}
-                  onChange={(icon) => setModuleForm({ ...moduleForm, icon })}
-                  placeholder="Select icon..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="route">Route</Label>
-                <Input
-                  id="route"
-                  value={moduleForm.route}
-                  onChange={(e) => setModuleForm({ ...moduleForm, route: e.target.value })}
-                  placeholder="/admin/users"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="parent">Parent Module</Label>
-                <Select
-                  value={moduleForm.parent_id || "none"}
-                  onValueChange={(v) => setModuleForm({ ...moduleForm, parent_id: v === "none" ? null : v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="None (top level)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None (top level)</SelectItem>
-                    {parentModules.filter((m) => m.id !== selectedModule?.id).map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sort_order">Sort Order</Label>
-                <Input
-                  id="sort_order"
-                  type="number"
-                  value={moduleForm.sort_order}
-                  onChange={(e) => setModuleForm({ ...moduleForm, sort_order: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="is_enabled">Enabled</Label>
-              <Switch
-                id="is_enabled"
-                checked={moduleForm.is_enabled}
-                onCheckedChange={(checked) => setModuleForm({ ...moduleForm, is_enabled: checked })}
-              />
             </div>
 
-            {/* Business Object Root Configuration */}
-            <div className="border-t pt-4 mt-4">
+            {/* Navigation & Display Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">Navigation & Display</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="icon" className="text-sm">Icon</Label>
+                  <IconPicker
+                    value={moduleForm.icon}
+                    onChange={(icon) => setModuleForm({ ...moduleForm, icon })}
+                    placeholder="Select icon..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="route" className="text-sm">Route</Label>
+                  <Input
+                    id="route"
+                    value={moduleForm.route}
+                    onChange={(e) => setModuleForm({ ...moduleForm, route: e.target.value })}
+                    placeholder="/admin/users"
+                    className="h-9"
+                  />
+                  <p className="text-xs text-muted-foreground">URL path for this module</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="parent" className="text-sm">Parent Module</Label>
+                  <Select
+                    value={moduleForm.parent_id || "none"}
+                    onValueChange={(v) => setModuleForm({ ...moduleForm, parent_id: v === "none" ? null : v })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="None (top level)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="none">None (top level)</SelectItem>
+                      {parentModules.filter((m) => m.id !== selectedModule?.id).map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sort_order" className="text-sm">Sort Order</Label>
+                  <Input
+                    id="sort_order"
+                    type="number"
+                    value={moduleForm.sort_order}
+                    onChange={(e) => setModuleForm({ ...moduleForm, sort_order: parseInt(e.target.value) || 0 })}
+                    className="h-9"
+                  />
+                  <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between bg-muted/50 p-3 rounded-md">
+                <div>
+                  <Label htmlFor="is_enabled" className="text-sm font-medium">Module Enabled</Label>
+                  <p className="text-xs text-muted-foreground">Toggle to enable/disable this module</p>
+                </div>
+                <Switch
+                  id="is_enabled"
+                  checked={moduleForm.is_enabled}
+                  onCheckedChange={(checked) => setModuleForm({ ...moduleForm, is_enabled: checked })}
+                />
+              </div>
+            </div>
+
+            {/* Business Object Root Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">Business Object Root (for Workflow Integration)</h3>
               <BusinessObjectRootConfig
                 primaryTable={moduleForm.primary_table}
                 primaryKeyColumn={moduleForm.primary_key_column}
@@ -583,11 +611,12 @@ const ModuleManagementContent = () => {
                 onPrimaryTableChange={(value) => setModuleForm({ ...moduleForm, primary_table: value })}
                 onPrimaryKeyColumnChange={(value) => setModuleForm({ ...moduleForm, primary_key_column: value })}
                 onBusinessKeyColumnChange={(value) => setModuleForm({ ...moduleForm, business_key_column: value })}
-                showTitle={true}
+                showTitle={false}
               />
             </div>
           </div>
-          <DialogFooter>
+          
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setShowModuleDialog(false)}>Cancel</Button>
             <Button
               onClick={handleSaveModule}
