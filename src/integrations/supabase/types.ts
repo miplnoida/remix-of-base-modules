@@ -2674,61 +2674,109 @@ export type Database = {
           address: string | null
           created_at: string | null
           created_by: string | null
+          date_modified: string | null
           date_of_birth: string | null
+          date_of_death: string | null
+          depend_addr1: string | null
+          depend_addr2: string | null
+          depend_id: string | null
+          depend_ssn: string | null
+          dob: string | null
           email: string | null
           first_name: string | null
+          firstname: string | null
           gender: string | null
           id: string
+          invalid: string | null
           ip_id: string | null
           last_name: string | null
           middle_name: string | null
+          middle_name_dep: string | null
           phone: string | null
+          relation: string | null
           relation_type: string
+          school_child: string | null
+          sex: string | null
           ssn: string | null
           status: string | null
+          surname: string | null
+          tran_code: string | null
           unique_uuid: string
           updated_at: string | null
           updated_by: string | null
+          userid: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string | null
           created_by?: string | null
+          date_modified?: string | null
           date_of_birth?: string | null
+          date_of_death?: string | null
+          depend_addr1?: string | null
+          depend_addr2?: string | null
+          depend_id?: string | null
+          depend_ssn?: string | null
+          dob?: string | null
           email?: string | null
           first_name?: string | null
+          firstname?: string | null
           gender?: string | null
           id?: string
+          invalid?: string | null
           ip_id?: string | null
           last_name?: string | null
           middle_name?: string | null
+          middle_name_dep?: string | null
           phone?: string | null
+          relation?: string | null
           relation_type: string
+          school_child?: string | null
+          sex?: string | null
           ssn?: string | null
           status?: string | null
+          surname?: string | null
+          tran_code?: string | null
           unique_uuid: string
           updated_at?: string | null
           updated_by?: string | null
+          userid?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string | null
           created_by?: string | null
+          date_modified?: string | null
           date_of_birth?: string | null
+          date_of_death?: string | null
+          depend_addr1?: string | null
+          depend_addr2?: string | null
+          depend_id?: string | null
+          depend_ssn?: string | null
+          dob?: string | null
           email?: string | null
           first_name?: string | null
+          firstname?: string | null
           gender?: string | null
           id?: string
+          invalid?: string | null
           ip_id?: string | null
           last_name?: string | null
           middle_name?: string | null
+          middle_name_dep?: string | null
           phone?: string | null
+          relation?: string | null
           relation_type?: string
+          school_child?: string | null
+          sex?: string | null
           ssn?: string | null
           status?: string | null
+          surname?: string | null
+          tran_code?: string | null
           unique_uuid?: string
           updated_at?: string | null
           updated_by?: string | null
+          userid?: string | null
         }
         Relationships: [
           {
@@ -2784,51 +2832,124 @@ export type Database = {
           alias: string | null
           application_date: string | null
           application_id: string
+          asp_num: string | null
+          ben_addr1: string | null
+          ben_addr2: string | null
+          beneficiary: string | null
           birth_doc_type: string | null
           birth_place: string | null
+          birth_place_code: string | null
+          card_expiration: string | null
           citizenship: string | null
+          citizenship_flag: string | null
+          contact: string | null
+          contact_addr1: string | null
+          contact_addr2: string | null
+          contact_email: string | null
+          contact_mobile: string | null
+          contact_phone: string | null
+          contact_relation: string | null
           created_at: string | null
           created_by: string | null
+          date_card_recvd: string | null
+          date_died: string | null
           date_married: string | null
+          date_modified: string | null
           date_of_birth: string
+          date_of_entry: string | null
+          date_of_residency: string | null
           date_rejected: string | null
           date_resident: string | null
           date_verified: string | null
+          date_witnessed: string | null
           death_doc_type: string | null
+          deb_crd_amount: number | null
+          delivery_zone: string | null
+          district: string | null
+          dob: string | null
           email: string | null
+          email_addr: string | null
+          entered_by: string | null
           eye_color: string | null
+          eyecolor: string | null
+          father_name: string | null
           first_name: string
+          firstname: string | null
           gender: string
           height_feet: number | null
           height_inches: number | null
+          heightfeet: number | null
+          heightinches: number | null
           id: string
+          ip_code: string | null
+          ip_signature: string | null
           last_name: string
           maiden_name: string | null
+          mail_addr1: string | null
+          mail_addr2: string | null
           mailing_address: string | null
           marital_doc_type: string | null
           marital_status: string
           middle_name: string | null
           mobile: string | null
+          mother_name: string | null
           name_doc_type: string | null
+          name_prefix: string | null
+          name_suffix: string | null
           nationality: string
+          nationality_code: string | null
+          npf: string | null
           npf_status: string | null
           occupation: string | null
+          old_card_attached: string | null
+          perm_card_date: string | null
+          phone: string | null
+          phone_mobile: string | null
+          photo_location: string | null
           place_of_residence: string | null
+          place_of_residence_code: string | null
           postal_district: string | null
+          previous_name: string | null
+          primary_occup: string | null
+          registration_date: string | null
           rejected_by: string | null
           rejection_reason: string | null
+          resident_addr1: string | null
+          resident_addr2: string | null
           resident_address_1: string | null
           resident_address_2: string | null
+          self_ref_no: string | null
+          sex: string | null
+          signature_location: string | null
           signature_on_file: string | null
+          spouse_addr1: string | null
+          spouse_addr2: string | null
+          spouse_dob: string | null
+          spouse_name: string | null
+          spouse_ssn: string | null
           ssn: string | null
           status: string
           suffix: string | null
+          surname: string | null
           telephone: string | null
+          temp_card_date: string | null
+          termination_code: string | null
+          termination_date: string | null
           title: string | null
+          tran_code: string | null
           unique_uuid: string
           updated_at: string | null
           updated_by: string | null
+          userid: string | null
           verified_by: string | null
+          verify_birth_code: string | null
+          verify_death_code: string | null
+          verify_marital_code: string | null
+          verify_name_code: string | null
+          vol_contrib: string | null
+          witness_name: string | null
+          work_permit: string | null
+          work_permit_expiration: string | null
           work_permit_expiry: string | null
           work_permit_status: string | null
         }
@@ -2836,51 +2957,124 @@ export type Database = {
           alias?: string | null
           application_date?: string | null
           application_id: string
+          asp_num?: string | null
+          ben_addr1?: string | null
+          ben_addr2?: string | null
+          beneficiary?: string | null
           birth_doc_type?: string | null
           birth_place?: string | null
+          birth_place_code?: string | null
+          card_expiration?: string | null
           citizenship?: string | null
+          citizenship_flag?: string | null
+          contact?: string | null
+          contact_addr1?: string | null
+          contact_addr2?: string | null
+          contact_email?: string | null
+          contact_mobile?: string | null
+          contact_phone?: string | null
+          contact_relation?: string | null
           created_at?: string | null
           created_by?: string | null
+          date_card_recvd?: string | null
+          date_died?: string | null
           date_married?: string | null
+          date_modified?: string | null
           date_of_birth: string
+          date_of_entry?: string | null
+          date_of_residency?: string | null
           date_rejected?: string | null
           date_resident?: string | null
           date_verified?: string | null
+          date_witnessed?: string | null
           death_doc_type?: string | null
+          deb_crd_amount?: number | null
+          delivery_zone?: string | null
+          district?: string | null
+          dob?: string | null
           email?: string | null
+          email_addr?: string | null
+          entered_by?: string | null
           eye_color?: string | null
+          eyecolor?: string | null
+          father_name?: string | null
           first_name: string
+          firstname?: string | null
           gender: string
           height_feet?: number | null
           height_inches?: number | null
+          heightfeet?: number | null
+          heightinches?: number | null
           id?: string
+          ip_code?: string | null
+          ip_signature?: string | null
           last_name: string
           maiden_name?: string | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
           mailing_address?: string | null
           marital_doc_type?: string | null
           marital_status: string
           middle_name?: string | null
           mobile?: string | null
+          mother_name?: string | null
           name_doc_type?: string | null
+          name_prefix?: string | null
+          name_suffix?: string | null
           nationality: string
+          nationality_code?: string | null
+          npf?: string | null
           npf_status?: string | null
           occupation?: string | null
+          old_card_attached?: string | null
+          perm_card_date?: string | null
+          phone?: string | null
+          phone_mobile?: string | null
+          photo_location?: string | null
           place_of_residence?: string | null
+          place_of_residence_code?: string | null
           postal_district?: string | null
+          previous_name?: string | null
+          primary_occup?: string | null
+          registration_date?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          resident_addr1?: string | null
+          resident_addr2?: string | null
           resident_address_1?: string | null
           resident_address_2?: string | null
+          self_ref_no?: string | null
+          sex?: string | null
+          signature_location?: string | null
           signature_on_file?: string | null
+          spouse_addr1?: string | null
+          spouse_addr2?: string | null
+          spouse_dob?: string | null
+          spouse_name?: string | null
+          spouse_ssn?: string | null
           ssn?: string | null
           status?: string
           suffix?: string | null
+          surname?: string | null
           telephone?: string | null
+          temp_card_date?: string | null
+          termination_code?: string | null
+          termination_date?: string | null
           title?: string | null
+          tran_code?: string | null
           unique_uuid?: string
           updated_at?: string | null
           updated_by?: string | null
+          userid?: string | null
           verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_death_code?: string | null
+          verify_marital_code?: string | null
+          verify_name_code?: string | null
+          vol_contrib?: string | null
+          witness_name?: string | null
+          work_permit?: string | null
+          work_permit_expiration?: string | null
           work_permit_expiry?: string | null
           work_permit_status?: string | null
         }
@@ -2888,51 +3082,124 @@ export type Database = {
           alias?: string | null
           application_date?: string | null
           application_id?: string
+          asp_num?: string | null
+          ben_addr1?: string | null
+          ben_addr2?: string | null
+          beneficiary?: string | null
           birth_doc_type?: string | null
           birth_place?: string | null
+          birth_place_code?: string | null
+          card_expiration?: string | null
           citizenship?: string | null
+          citizenship_flag?: string | null
+          contact?: string | null
+          contact_addr1?: string | null
+          contact_addr2?: string | null
+          contact_email?: string | null
+          contact_mobile?: string | null
+          contact_phone?: string | null
+          contact_relation?: string | null
           created_at?: string | null
           created_by?: string | null
+          date_card_recvd?: string | null
+          date_died?: string | null
           date_married?: string | null
+          date_modified?: string | null
           date_of_birth?: string
+          date_of_entry?: string | null
+          date_of_residency?: string | null
           date_rejected?: string | null
           date_resident?: string | null
           date_verified?: string | null
+          date_witnessed?: string | null
           death_doc_type?: string | null
+          deb_crd_amount?: number | null
+          delivery_zone?: string | null
+          district?: string | null
+          dob?: string | null
           email?: string | null
+          email_addr?: string | null
+          entered_by?: string | null
           eye_color?: string | null
+          eyecolor?: string | null
+          father_name?: string | null
           first_name?: string
+          firstname?: string | null
           gender?: string
           height_feet?: number | null
           height_inches?: number | null
+          heightfeet?: number | null
+          heightinches?: number | null
           id?: string
+          ip_code?: string | null
+          ip_signature?: string | null
           last_name?: string
           maiden_name?: string | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
           mailing_address?: string | null
           marital_doc_type?: string | null
           marital_status?: string
           middle_name?: string | null
           mobile?: string | null
+          mother_name?: string | null
           name_doc_type?: string | null
+          name_prefix?: string | null
+          name_suffix?: string | null
           nationality?: string
+          nationality_code?: string | null
+          npf?: string | null
           npf_status?: string | null
           occupation?: string | null
+          old_card_attached?: string | null
+          perm_card_date?: string | null
+          phone?: string | null
+          phone_mobile?: string | null
+          photo_location?: string | null
           place_of_residence?: string | null
+          place_of_residence_code?: string | null
           postal_district?: string | null
+          previous_name?: string | null
+          primary_occup?: string | null
+          registration_date?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          resident_addr1?: string | null
+          resident_addr2?: string | null
           resident_address_1?: string | null
           resident_address_2?: string | null
+          self_ref_no?: string | null
+          sex?: string | null
+          signature_location?: string | null
           signature_on_file?: string | null
+          spouse_addr1?: string | null
+          spouse_addr2?: string | null
+          spouse_dob?: string | null
+          spouse_name?: string | null
+          spouse_ssn?: string | null
           ssn?: string | null
           status?: string
           suffix?: string | null
+          surname?: string | null
           telephone?: string | null
+          temp_card_date?: string | null
+          termination_code?: string | null
+          termination_date?: string | null
           title?: string | null
+          tran_code?: string | null
           unique_uuid?: string
           updated_at?: string | null
           updated_by?: string | null
+          userid?: string | null
           verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_death_code?: string | null
+          verify_marital_code?: string | null
+          verify_name_code?: string | null
+          vol_contrib?: string | null
+          witness_name?: string | null
+          work_permit?: string | null
+          work_permit_expiration?: string | null
           work_permit_expiry?: string | null
           work_permit_status?: string | null
         }
@@ -2988,30 +3255,45 @@ export type Database = {
           created_by: string | null
           id: string
           ip_id: string | null
+          note: string | null
           note_content: string
+          note_date: string | null
+          note_seq: number
+          note_tran_code: string | null
           note_type: string | null
           unique_uuid: string
           updated_at: string | null
+          userid: string | null
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
           id?: string
           ip_id?: string | null
+          note?: string | null
           note_content: string
+          note_date?: string | null
+          note_seq?: number
+          note_tran_code?: string | null
           note_type?: string | null
           unique_uuid: string
           updated_at?: string | null
+          userid?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
           id?: string
           ip_id?: string | null
+          note?: string | null
           note_content?: string
+          note_date?: string | null
+          note_seq?: number
+          note_tran_code?: string | null
           note_type?: string | null
           unique_uuid?: string
           updated_at?: string | null
+          userid?: string | null
         }
         Relationships: [
           {
@@ -5330,6 +5612,108 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_country: {
+        Row: {
+          caricom: number | null
+          code: string
+          description: string | null
+          nationality: string | null
+          oecs: number | null
+        }
+        Insert: {
+          caricom?: number | null
+          code: string
+          description?: string | null
+          nationality?: string | null
+          oecs?: number | null
+        }
+        Update: {
+          caricom?: number | null
+          code?: string
+          description?: string | null
+          nationality?: string | null
+          oecs?: number | null
+        }
+        Relationships: []
+      }
+      tb_dependent_relation: {
+        Row: {
+          code: string
+          description: string
+        }
+        Insert: {
+          code: string
+          description: string
+        }
+        Update: {
+          code?: string
+          description?: string
+        }
+        Relationships: []
+      }
+      tb_eye_color: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
+      tb_occup: {
+        Row: {
+          code: string
+          long_description: string | null
+          short_description: string | null
+        }
+        Insert: {
+          code: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Update: {
+          code?: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_postal_district: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
+      tb_verify: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
       tmp_ip_dependents: {
         Row: {
           address: string | null
@@ -6626,6 +7010,7 @@ export type Database = {
       }
       generate_application_id: { Args: never; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
+      generate_temp_ssn: { Args: never; Returns: string }
       get_all_public_tables: {
         Args: never
         Returns: {
