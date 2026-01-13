@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
-import { Plus, Edit, Trash2, MapPin, Mail, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Mail } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import PhoneInput, { parsePhoneNumber, combinePhoneNumber } from '@/components/shared/PhoneInput';
 
 interface AddressContactTabProps {
   formData: IPFormData;
@@ -13,6 +14,7 @@ interface AddressContactTabProps {
   onSave: (data: Partial<IPFormData>) => void;
   errors: Record<string, string>;
   isEditable: boolean;
+  clearError: (field: string) => void;
 }
 
 type AddressType = 'resident' | 'mailing' | 'email';
@@ -29,10 +31,31 @@ interface AddressData {
   };
 }
 
-export default function AddressContactTab({ formData, onChange, onSave, errors, isEditable }: AddressContactTabProps) {
+export default function AddressContactTab({ 
+  formData, 
+  onChange, 
+  onSave, 
+  errors, 
+  isEditable,
+  clearError 
+}: AddressContactTabProps) {
   const [editingAddress, setEditingAddress] = useState<AddressType | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [tempAddress, setTempAddress] = useState<any>({});
+  
+  // Parse phone numbers from storage
+  const telephoneParsed = parsePhoneNumber(formData.telephone || '');
+  const mobileParsed = parsePhoneNumber(formData.mobile || '');
+  
+  const [telephoneCountry, setTelephoneCountry] = useState(telephoneParsed.countryCode);
+  const [telephoneNumber, setTelephoneNumber] = useState(telephoneParsed.phoneNumber);
+  const [mobileCountry, setMobileCountry] = useState(mobileParsed.countryCode);
+  const [mobileNumber, setMobileNumber] = useState(mobileParsed.phoneNumber);
+
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    onChange(field, value);
+    clearError(field);
+  }, [onChange, clearError]);
 
   const addresses: AddressData[] = [
     {
@@ -70,13 +93,13 @@ export default function AddressContactTab({ formData, onChange, onSave, errors, 
         resident_address_2: tempAddress.line2,
         postal_district: tempAddress.postal,
       };
-      Object.entries(updates).forEach(([key, value]) => onChange(key, value));
+      Object.entries(updates).forEach(([key, value]) => handleFieldChange(key, value));
       onSave(updates);
     } else if (editingAddress === 'mailing') {
-      onChange('mailing_address', tempAddress.value);
+      handleFieldChange('mailing_address', tempAddress.value);
       onSave({ mailing_address: tempAddress.value });
     } else if (editingAddress === 'email') {
-      onChange('email', tempAddress.value);
+      handleFieldChange('email', tempAddress.value);
       onSave({ email: tempAddress.value });
     }
     setEditingAddress(null);
@@ -88,10 +111,44 @@ export default function AddressContactTab({ formData, onChange, onSave, errors, 
     setTempAddress(address.fields);
   };
 
-  const handleBlur = (field: string) => {
+  const handleTelephoneBlur = () => {
     if (isEditable) {
-      onSave({ [field]: formData[field as keyof IPFormData] });
+      const combined = combinePhoneNumber(telephoneCountry, telephoneNumber);
+      onSave({ telephone: combined });
     }
+  };
+
+  const handleMobileBlur = () => {
+    if (isEditable) {
+      const combined = combinePhoneNumber(mobileCountry, mobileNumber);
+      onSave({ mobile: combined });
+    }
+  };
+
+  const handleTelephoneCountryChange = (code: string) => {
+    setTelephoneCountry(code);
+    const combined = combinePhoneNumber(code, telephoneNumber);
+    handleFieldChange('telephone', combined);
+    onSave({ telephone: combined });
+  };
+
+  const handleTelephoneNumberChange = (number: string) => {
+    setTelephoneNumber(number);
+    const combined = combinePhoneNumber(telephoneCountry, number);
+    handleFieldChange('telephone', combined);
+  };
+
+  const handleMobileCountryChange = (code: string) => {
+    setMobileCountry(code);
+    const combined = combinePhoneNumber(code, mobileNumber);
+    handleFieldChange('mobile', combined);
+    onSave({ mobile: combined });
+  };
+
+  const handleMobileNumberChange = (number: string) => {
+    setMobileNumber(number);
+    const combined = combinePhoneNumber(mobileCountry, number);
+    handleFieldChange('mobile', combined);
   };
 
   return (
@@ -145,15 +202,15 @@ export default function AddressContactTab({ formData, onChange, onSave, errors, 
                         size="icon"
                         onClick={() => {
                           if (address.type === 'resident') {
-                            onChange('resident_address_1', '');
-                            onChange('resident_address_2', '');
-                            onChange('postal_district', '');
+                            handleFieldChange('resident_address_1', '');
+                            handleFieldChange('resident_address_2', '');
+                            handleFieldChange('postal_district', '');
                             onSave({ resident_address_1: '', resident_address_2: '', postal_district: '' });
                           } else if (address.type === 'mailing') {
-                            onChange('mailing_address', '');
+                            handleFieldChange('mailing_address', '');
                             onSave({ mailing_address: '' });
                           } else {
-                            onChange('email', '');
+                            handleFieldChange('email', '');
                             onSave({ email: '' });
                           }
                         }}
@@ -174,28 +231,29 @@ export default function AddressContactTab({ formData, onChange, onSave, errors, 
         <h2 className="text-xl font-semibold">Contact Information</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="telephone">Telephone Number</Label>
-            <Input
-              id="telephone"
-              value={formData.telephone || ''}
-              onChange={(e) => onChange('telephone', e.target.value)}
-              onBlur={() => handleBlur('telephone')}
-              placeholder="Enter Telephone Number"
-              disabled={!isEditable}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="mobile">Mobile Number</Label>
-            <Input
-              id="mobile"
-              value={formData.mobile || ''}
-              onChange={(e) => onChange('mobile', e.target.value)}
-              onBlur={() => handleBlur('mobile')}
-              placeholder="Enter Mobile Number"
-              disabled={!isEditable}
-            />
-          </div>
+          <PhoneInput
+            id="telephone"
+            label="Telephone Number"
+            countryCode={telephoneCountry}
+            phoneNumber={telephoneNumber}
+            onCountryCodeChange={handleTelephoneCountryChange}
+            onPhoneNumberChange={handleTelephoneNumberChange}
+            onBlur={handleTelephoneBlur}
+            disabled={!isEditable}
+            error={errors.telephone}
+          />
+          
+          <PhoneInput
+            id="mobile"
+            label="Mobile Number"
+            countryCode={mobileCountry}
+            phoneNumber={mobileNumber}
+            onCountryCodeChange={handleMobileCountryChange}
+            onPhoneNumberChange={handleMobileNumberChange}
+            onBlur={handleMobileBlur}
+            disabled={!isEditable}
+            error={errors.mobile}
+          />
         </div>
       </div>
 

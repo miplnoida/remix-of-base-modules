@@ -225,13 +225,7 @@ export default function IPRegistrationForm() {
     }
   }, [formData, isViewMode, user?.id]);
 
-  const handleFieldChange = useCallback((field: string, value: any) => {
-    if (!formData) return;
-    
-    const newData = { ...formData, [field]: value };
-    setFormData(newData);
-    
-    // Clear error for this field
+  const clearError = useCallback((field: string) => {
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -239,12 +233,22 @@ export default function IPRegistrationForm() {
         return newErrors;
       });
     }
+  }, [errors]);
+
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    if (!formData) return;
+    
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    
+    // Clear error for this field
+    clearError(field);
 
     // Check for duplicates on key fields
     if (['first_name', 'last_name', 'date_of_birth', 'gender'].includes(field)) {
       checkDuplicates(newData);
     }
-  }, [formData, errors]);
+  }, [formData, clearError]);
 
   const checkDuplicates = async (data: IPFormData) => {
     if (!data.first_name || !data.last_name || !data.date_of_birth || !data.gender) return;
@@ -658,6 +662,7 @@ export default function IPRegistrationForm() {
                   onSave={autoSave}
                   errors={errors}
                   isEditable={isEditable}
+                  clearError={clearError}
                 />
               )}
               {activeTab === 'address' && (
@@ -667,6 +672,7 @@ export default function IPRegistrationForm() {
                   onSave={autoSave}
                   errors={errors}
                   isEditable={isEditable}
+                  clearError={clearError}
                 />
               )}
               {activeTab === 'relations' && (
@@ -682,6 +688,7 @@ export default function IPRegistrationForm() {
                   onSave={autoSave}
                   errors={errors}
                   isEditable={isEditable}
+                  clearError={clearError}
                 />
               )}
               {activeTab === 'documents' && (

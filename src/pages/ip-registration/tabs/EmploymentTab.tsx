@@ -1,8 +1,9 @@
-import React from 'react';
-import { Input } from '@/components/ui/input';
+import React, { useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { IPFormData } from '../IPRegistrationForm';
+import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { format, isValid } from 'date-fns';
 
 interface EmploymentTabProps {
   formData: IPFormData;
@@ -10,6 +11,7 @@ interface EmploymentTabProps {
   onSave: (data: Partial<IPFormData>) => void;
   errors: Record<string, string>;
   isEditable: boolean;
+  clearError: (field: string) => void;
 }
 
 const occupations = [
@@ -23,15 +25,44 @@ const occupations = [
 const workPermitStatuses = ['Yes', 'No', 'Pending', 'Expired', 'Not Applicable'];
 const npfStatuses = ['Active', 'Inactive', 'Pending', 'Exempt'];
 const placeOfResidences = ['RES', 'NON-RES', 'Visitor'];
-const citizenshipStatuses = ['Y', 'N']; // Y = Citizen, N = Non-Citizen
 const signatureStatuses = ['Yes', 'No', 'Pending'];
 
-export default function EmploymentTab({ formData, onChange, onSave, errors, isEditable }: EmploymentTabProps) {
-  const handleBlur = (field: string) => {
-    if (isEditable) {
-      onSave({ [field]: formData[field as keyof IPFormData] });
-    }
-  };
+// Convert ISO date string to Date object
+const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
+  if (!dateStr) return undefined;
+  const date = new Date(dateStr);
+  return isValid(date) ? date : undefined;
+};
+
+// Convert Date object to ISO date string (yyyy-MM-dd)
+const formatToISO = (date: Date | undefined): string | null => {
+  if (!date || !isValid(date)) return null;
+  return format(date, 'yyyy-MM-dd');
+};
+
+export default function EmploymentTab({ 
+  formData, 
+  onChange, 
+  onSave, 
+  errors, 
+  isEditable,
+  clearError 
+}: EmploymentTabProps) {
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    onChange(field, value);
+    clearError(field);
+  }, [onChange, clearError]);
+
+  const handleSelectChange = useCallback((field: string, value: string) => {
+    handleFieldChange(field, value);
+    onSave({ [field]: value });
+  }, [handleFieldChange, onSave]);
+
+  const handleDateChange = useCallback((field: string, date: Date | undefined) => {
+    const isoDate = formatToISO(date);
+    handleFieldChange(field, isoDate);
+    onSave({ [field]: isoDate });
+  }, [handleFieldChange, onSave]);
 
   const requiresWorkPermit = formData.citizenship === 'N' && formData.place_of_residence === 'RES';
 
@@ -45,7 +76,7 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
           <Label htmlFor="occupation">Occupation</Label>
           <Select 
             value={formData.occupation || ''} 
-            onValueChange={(v) => { onChange('occupation', v); onSave({ occupation: v }); }}
+            onValueChange={(v) => handleSelectChange('occupation', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -65,17 +96,17 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
           </Label>
           <Select 
             value={formData.work_permit_status || ''} 
-            onValueChange={(v) => { onChange('work_permit_status', v); onSave({ work_permit_status: v }); }}
+            onValueChange={(v) => handleSelectChange('work_permit_status', v)}
             disabled={!isEditable}
           >
-            <SelectTrigger className={errors.work_permit_status ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.work_permit_status ? 'border-destructive focus-visible:ring-destructive' : ''}>
               <SelectValue placeholder="Select Work Permit Status" />
             </SelectTrigger>
             <SelectContent>
               {workPermitStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          {errors.work_permit_status && <p className="text-xs text-destructive">{errors.work_permit_status}</p>}
+          {errors.work_permit_status && <p className="text-xs text-destructive mt-1">{errors.work_permit_status}</p>}
         </div>
 
         {/* NPF */}
@@ -83,7 +114,7 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
           <Label htmlFor="npf_status">NPF</Label>
           <Select 
             value={formData.npf_status || ''} 
-            onValueChange={(v) => { onChange('npf_status', v); onSave({ npf_status: v }); }}
+            onValueChange={(v) => handleSelectChange('npf_status', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -98,12 +129,10 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
         {/* Application Date */}
         <div className="space-y-2">
           <Label htmlFor="application_date">Application Date</Label>
-          <Input
-            id="application_date"
-            type="date"
-            value={formData.application_date || ''}
-            onChange={(e) => onChange('application_date', e.target.value)}
-            onBlur={() => handleBlur('application_date')}
+          <DatePickerWithDropdowns
+            date={parseISODate(formData.application_date)}
+            onSelect={(date) => handleDateChange('application_date', date)}
+            placeholder="Select Application Date"
             disabled={!isEditable}
           />
         </div>
@@ -111,12 +140,10 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
         {/* Date Resident */}
         <div className="space-y-2">
           <Label htmlFor="date_resident">Date Resident</Label>
-          <Input
-            id="date_resident"
-            type="date"
-            value={formData.date_resident || ''}
-            onChange={(e) => onChange('date_resident', e.target.value)}
-            onBlur={() => handleBlur('date_resident')}
+          <DatePickerWithDropdowns
+            date={parseISODate(formData.date_resident)}
+            onSelect={(date) => handleDateChange('date_resident', date)}
+            placeholder="Select Date Resident"
             disabled={!isEditable}
           />
         </div>
@@ -126,7 +153,7 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
           <Label htmlFor="place_of_residence">Place of Residence</Label>
           <Select 
             value={formData.place_of_residence || ''} 
-            onValueChange={(v) => { onChange('place_of_residence', v); onSave({ place_of_residence: v }); }}
+            onValueChange={(v) => handleSelectChange('place_of_residence', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -144,16 +171,14 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
             Work Permit Expiration
             {requiresWorkPermit && <span className="text-destructive"> *</span>}
           </Label>
-          <Input
-            id="work_permit_expiry"
-            type="date"
-            value={formData.work_permit_expiry || ''}
-            onChange={(e) => onChange('work_permit_expiry', e.target.value)}
-            onBlur={() => handleBlur('work_permit_expiry')}
+          <DatePickerWithDropdowns
+            date={parseISODate(formData.work_permit_expiry)}
+            onSelect={(date) => handleDateChange('work_permit_expiry', date)}
+            placeholder="Select Expiry Date"
             disabled={!isEditable}
-            className={errors.work_permit_expiry ? 'border-destructive' : ''}
+            minDate={new Date()}
+            error={errors.work_permit_expiry}
           />
-          {errors.work_permit_expiry && <p className="text-xs text-destructive">{errors.work_permit_expiry}</p>}
         </div>
       </div>
 
@@ -165,7 +190,7 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
           <Label htmlFor="citizenship">Citizenship</Label>
           <Select 
             value={formData.citizenship || ''} 
-            onValueChange={(v) => { onChange('citizenship', v); onSave({ citizenship: v }); }}
+            onValueChange={(v) => handleSelectChange('citizenship', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -183,7 +208,7 @@ export default function EmploymentTab({ formData, onChange, onSave, errors, isEd
           <Label htmlFor="signature_on_file">Signature on File</Label>
           <Select 
             value={formData.signature_on_file || ''} 
-            onValueChange={(v) => { onChange('signature_on_file', v); onSave({ signature_on_file: v }); }}
+            onValueChange={(v) => handleSelectChange('signature_on_file', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
