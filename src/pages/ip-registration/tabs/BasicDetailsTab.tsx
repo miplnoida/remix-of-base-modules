@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { IPFormData } from '../IPRegistrationForm';
-import { differenceInYears } from 'date-fns';
+import { differenceInYears, parse, format, isValid } from 'date-fns';
+import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
 
 interface BasicDetailsTabProps {
   formData: IPFormData;
@@ -11,6 +12,7 @@ interface BasicDetailsTabProps {
   onSave: (data: Partial<IPFormData>) => void;
   errors: Record<string, string>;
   isEditable: boolean;
+  clearError: (field: string) => void;
 }
 
 const titles = ['Mr', 'Mrs', 'Ms', 'Miss', 'Dr', 'Hon', 'Rev'];
@@ -21,17 +23,55 @@ const nationalities = ['Jamaican', 'American', 'British', 'Canadian', 'Indian', 
 const birthPlaces = ['Kingston', 'St. Andrew', 'St. Catherine', 'Clarendon', 'Manchester', 'St. Elizabeth', 'Westmoreland', 'Hanover', 'St. James', 'Trelawny', 'St. Ann', 'St. Mary', 'Portland', 'St. Thomas'];
 const eyeColors = ['Brown', 'Black', 'Blue', 'Green', 'Hazel', 'Gray'];
 
-export default function BasicDetailsTab({ formData, onChange, onSave, errors, isEditable }: BasicDetailsTabProps) {
+// Convert ISO date string to Date object
+const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
+  if (!dateStr) return undefined;
+  const date = new Date(dateStr);
+  return isValid(date) ? date : undefined;
+};
+
+// Convert Date object to ISO date string (yyyy-MM-dd)
+const formatToISO = (date: Date | undefined): string | null => {
+  if (!date || !isValid(date)) return null;
+  return format(date, 'yyyy-MM-dd');
+};
+
+export default function BasicDetailsTab({ 
+  formData, 
+  onChange, 
+  onSave, 
+  errors, 
+  isEditable,
+  clearError 
+}: BasicDetailsTabProps) {
   const age = useMemo(() => {
     if (!formData.date_of_birth) return null;
-    return differenceInYears(new Date(), new Date(formData.date_of_birth));
+    const dob = new Date(formData.date_of_birth);
+    if (!isValid(dob)) return null;
+    return differenceInYears(new Date(), dob);
   }, [formData.date_of_birth]);
 
-  const handleBlur = (field: string) => {
+  const handleBlur = useCallback((field: string) => {
     if (isEditable) {
       onSave({ [field]: formData[field as keyof IPFormData] });
     }
-  };
+  }, [isEditable, formData, onSave]);
+
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    onChange(field, value);
+    clearError(field);
+  }, [onChange, clearError]);
+
+  const handleSelectChange = useCallback((field: string, value: string) => {
+    handleFieldChange(field, value);
+    onSave({ [field]: value });
+  }, [handleFieldChange, onSave]);
+
+  const handleDateChange = useCallback((field: string, date: Date | undefined) => {
+    const isoDate = formatToISO(date);
+    handleFieldChange(field, isoDate);
+    onSave({ [field]: isoDate });
+  }, [handleFieldChange, onSave]);
 
   const requiresDateMarried = formData.marital_status === 'Married' || formData.marital_status === 'Common Law';
 
@@ -45,17 +85,17 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.title || ''} 
-            onValueChange={(v) => { onChange('title', v); onSave({ title: v }); }}
+            onValueChange={(v) => handleSelectChange('title', v)}
             disabled={!isEditable}
           >
-            <SelectTrigger className={errors.title ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.title ? 'border-destructive focus-visible:ring-destructive' : ''}>
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {titles.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
-          {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
+          {errors.title && <p className="text-xs text-destructive mt-1">{errors.title}</p>}
         </div>
 
         {/* First Name */}
@@ -67,14 +107,14 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Input
             id="first_name"
             value={formData.first_name || ''}
-            onChange={(e) => onChange('first_name', e.target.value.slice(0, 25))}
+            onChange={(e) => handleFieldChange('first_name', e.target.value.slice(0, 25))}
             onBlur={() => handleBlur('first_name')}
             placeholder="Enter First Name"
             maxLength={25}
             disabled={!isEditable}
-            className={errors.first_name ? 'border-destructive' : ''}
+            className={errors.first_name ? 'border-destructive focus-visible:ring-destructive' : ''}
           />
-          {errors.first_name && <p className="text-xs text-destructive">{errors.first_name}</p>}
+          {errors.first_name && <p className="text-xs text-destructive mt-1">{errors.first_name}</p>}
         </div>
 
         {/* Middle Name */}
@@ -86,7 +126,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Input
             id="middle_name"
             value={formData.middle_name || ''}
-            onChange={(e) => onChange('middle_name', e.target.value.slice(0, 25))}
+            onChange={(e) => handleFieldChange('middle_name', e.target.value.slice(0, 25))}
             onBlur={() => handleBlur('middle_name')}
             placeholder="Enter Middle Name"
             maxLength={25}
@@ -103,14 +143,14 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Input
             id="last_name"
             value={formData.last_name || ''}
-            onChange={(e) => onChange('last_name', e.target.value.slice(0, 25))}
+            onChange={(e) => handleFieldChange('last_name', e.target.value.slice(0, 25))}
             onBlur={() => handleBlur('last_name')}
             placeholder="Enter Surname"
             maxLength={25}
             disabled={!isEditable}
-            className={errors.last_name ? 'border-destructive' : ''}
+            className={errors.last_name ? 'border-destructive focus-visible:ring-destructive' : ''}
           />
-          {errors.last_name && <p className="text-xs text-destructive">{errors.last_name}</p>}
+          {errors.last_name && <p className="text-xs text-destructive mt-1">{errors.last_name}</p>}
         </div>
 
         {/* Suffix */}
@@ -118,7 +158,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="suffix">Suffix</Label>
           <Select 
             value={formData.suffix || ''} 
-            onValueChange={(v) => { onChange('suffix', v); onSave({ suffix: v }); }}
+            onValueChange={(v) => handleSelectChange('suffix', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -139,7 +179,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Input
             id="maiden_name"
             value={formData.maiden_name || ''}
-            onChange={(e) => onChange('maiden_name', e.target.value.slice(0, 25))}
+            onChange={(e) => handleFieldChange('maiden_name', e.target.value.slice(0, 25))}
             onBlur={() => handleBlur('maiden_name')}
             placeholder="Enter Maiden Name"
             maxLength={25}
@@ -156,7 +196,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Input
             id="alias"
             value={formData.alias || ''}
-            onChange={(e) => onChange('alias', e.target.value.slice(0, 25))}
+            onChange={(e) => handleFieldChange('alias', e.target.value.slice(0, 25))}
             onBlur={() => handleBlur('alias')}
             placeholder="Enter Alias"
             maxLength={25}
@@ -171,37 +211,37 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="gender">Gender <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.gender || ''} 
-            onValueChange={(v) => { onChange('gender', v); onSave({ gender: v }); }}
+            onValueChange={(v) => handleSelectChange('gender', v)}
             disabled={!isEditable}
           >
-            <SelectTrigger className={errors.gender ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.gender ? 'border-destructive focus-visible:ring-destructive' : ''}>
               <SelectValue placeholder="Select Gender" />
             </SelectTrigger>
             <SelectContent>
               {genders.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
             </SelectContent>
           </Select>
-          {errors.gender && <p className="text-xs text-destructive">{errors.gender}</p>}
+          {errors.gender && <p className="text-xs text-destructive mt-1">{errors.gender}</p>}
         </div>
 
         {/* Date of Birth */}
         <div className="space-y-2">
           <Label htmlFor="date_of_birth">Date of Birth <span className="text-destructive">*</span></Label>
           <div className="flex gap-2 items-center">
-            <Input
-              id="date_of_birth"
-              type="date"
-              value={formData.date_of_birth || ''}
-              onChange={(e) => onChange('date_of_birth', e.target.value)}
-              onBlur={() => handleBlur('date_of_birth')}
-              disabled={!isEditable}
-              className={errors.date_of_birth ? 'border-destructive' : ''}
-            />
+            <div className="flex-1">
+              <DatePickerWithDropdowns
+                date={parseISODate(formData.date_of_birth)}
+                onSelect={(date) => handleDateChange('date_of_birth', date)}
+                placeholder="Select Date of Birth"
+                disabled={!isEditable}
+                maxDate={new Date()}
+                error={errors.date_of_birth}
+              />
+            </div>
             {age !== null && (
               <span className="text-sm text-muted-foreground whitespace-nowrap">Age: {age}</span>
             )}
           </div>
-          {errors.date_of_birth && <p className="text-xs text-destructive">{errors.date_of_birth}</p>}
         </div>
 
         {/* Marital Status */}
@@ -209,17 +249,17 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="marital_status">Marital Status <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.marital_status || ''} 
-            onValueChange={(v) => { onChange('marital_status', v); onSave({ marital_status: v }); }}
+            onValueChange={(v) => handleSelectChange('marital_status', v)}
             disabled={!isEditable}
           >
-            <SelectTrigger className={errors.marital_status ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.marital_status ? 'border-destructive focus-visible:ring-destructive' : ''}>
               <SelectValue placeholder="Select Marital Status" />
             </SelectTrigger>
             <SelectContent>
               {maritalStatuses.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
             </SelectContent>
           </Select>
-          {errors.marital_status && <p className="text-xs text-destructive">{errors.marital_status}</p>}
+          {errors.marital_status && <p className="text-xs text-destructive mt-1">{errors.marital_status}</p>}
         </div>
       </div>
 
@@ -228,16 +268,15 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="date_married">Date Married <span className="text-destructive">*</span></Label>
-            <Input
-              id="date_married"
-              type="date"
-              value={formData.date_married || ''}
-              onChange={(e) => onChange('date_married', e.target.value)}
-              onBlur={() => handleBlur('date_married')}
+            <DatePickerWithDropdowns
+              date={parseISODate(formData.date_married)}
+              onSelect={(date) => handleDateChange('date_married', date)}
+              placeholder="Select Date Married"
               disabled={!isEditable}
-              className={errors.date_married ? 'border-destructive' : ''}
+              minDate={parseISODate(formData.date_of_birth)}
+              maxDate={new Date()}
+              error={errors.date_married}
             />
-            {errors.date_married && <p className="text-xs text-destructive">{errors.date_married}</p>}
           </div>
         </div>
       )}
@@ -253,7 +292,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
               min={0}
               max={8}
               value={formData.height_feet || ''}
-              onChange={(e) => onChange('height_feet', parseInt(e.target.value) || null)}
+              onChange={(e) => handleFieldChange('height_feet', parseInt(e.target.value) || null)}
               onBlur={() => handleBlur('height_feet')}
               disabled={!isEditable}
             />
@@ -263,7 +302,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
               min={0}
               max={11}
               value={formData.height_inches || ''}
-              onChange={(e) => onChange('height_inches', parseInt(e.target.value) || null)}
+              onChange={(e) => handleFieldChange('height_inches', parseInt(e.target.value) || null)}
               onBlur={() => handleBlur('height_inches')}
               disabled={!isEditable}
             />
@@ -275,17 +314,17 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="birth_place">Birth Place <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.birth_place || ''} 
-            onValueChange={(v) => { onChange('birth_place', v); onSave({ birth_place: v }); }}
+            onValueChange={(v) => handleSelectChange('birth_place', v)}
             disabled={!isEditable}
           >
-            <SelectTrigger className={errors.birth_place ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.birth_place ? 'border-destructive focus-visible:ring-destructive' : ''}>
               <SelectValue placeholder="Select Birth Place" />
             </SelectTrigger>
             <SelectContent>
               {birthPlaces.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
             </SelectContent>
           </Select>
-          {errors.birth_place && <p className="text-xs text-destructive">{errors.birth_place}</p>}
+          {errors.birth_place && <p className="text-xs text-destructive mt-1">{errors.birth_place}</p>}
         </div>
 
         {/* Nationality */}
@@ -293,17 +332,17 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="nationality">Nationality <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.nationality || ''} 
-            onValueChange={(v) => { onChange('nationality', v); onSave({ nationality: v }); }}
+            onValueChange={(v) => handleSelectChange('nationality', v)}
             disabled={!isEditable}
           >
-            <SelectTrigger className={errors.nationality ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.nationality ? 'border-destructive focus-visible:ring-destructive' : ''}>
               <SelectValue placeholder="Select Nationality" />
             </SelectTrigger>
             <SelectContent>
               {nationalities.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
             </SelectContent>
           </Select>
-          {errors.nationality && <p className="text-xs text-destructive">{errors.nationality}</p>}
+          {errors.nationality && <p className="text-xs text-destructive mt-1">{errors.nationality}</p>}
         </div>
       </div>
 
@@ -313,7 +352,7 @@ export default function BasicDetailsTab({ formData, onChange, onSave, errors, is
           <Label htmlFor="eye_color">Eye Color</Label>
           <Select 
             value={formData.eye_color || ''} 
-            onValueChange={(v) => { onChange('eye_color', v); onSave({ eye_color: v }); }}
+            onValueChange={(v) => handleSelectChange('eye_color', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>

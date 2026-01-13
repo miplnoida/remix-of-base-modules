@@ -8,6 +8,9 @@
  * - QueryByFilter: Collapsible multi-criteria filter system
  * - ColumnSelector: Dynamic table column visibility control
  * - ExportButton: CSV/Excel/JSON export with one click
+ * - PhoneInput: Phone input with country code dropdown (XXX-XXX-XXXX format)
+ * - DatePickerWithDropdowns: Date picker with month/year dropdown selectors
+ * - SuccessAnimation: Animated success checkmark for step transitions
  */
 
 export { StatusBadge } from "./StatusBadge";
@@ -25,3 +28,7 @@ export { ColumnSelector } from "./ColumnSelector";
 export type { Column } from "./ColumnSelector";
 
 export { ExportButton } from "./ExportButton";
+
+export { default as PhoneInput, combinePhoneNumber, parsePhoneNumber } from './PhoneInput';
+export { default as DatePickerWithDropdowns } from './DatePickerWithDropdowns';
+export { default as SuccessAnimation } from './SuccessAnimation';
