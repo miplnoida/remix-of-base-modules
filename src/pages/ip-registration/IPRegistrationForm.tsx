@@ -14,6 +14,7 @@ import EmploymentTab from './tabs/EmploymentTab';
 import DocumentVerificationTab from './tabs/DocumentVerificationTab';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import SuccessAnimation from '@/components/shared/SuccessAnimation';
 
 export interface IPFormData {
   id?: string;
@@ -102,7 +103,8 @@ export default function IPRegistrationForm() {
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
-
+  const [showStepSuccess, setShowStepSuccess] = useState(false);
+  const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
   const fetchData = useCallback(async () => {
     if (!uniqueUuid) return;
     
@@ -280,13 +282,23 @@ export default function IPRegistrationForm() {
       autoSave(formData);
     }
     
-    // Mark current tab as completed
+    // Mark current tab as completed and show success animation
     if (!completedTabs.includes(activeTab)) {
       setCompletedTabs(prev => [...prev, activeTab]);
+      // Show success animation before switching
+      setPendingTabChange(newTab);
+      setShowStepSuccess(true);
+    } else {
+      setActiveTab(newTab);
     }
-    
-    setActiveTab(newTab);
   };
+
+  const handleSuccessComplete = useCallback(() => {
+    if (pendingTabChange) {
+      setActiveTab(pendingTabChange);
+      setPendingTabChange(null);
+    }
+  }, [pendingTabChange]);
 
   const validateAllTabs = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -333,7 +345,19 @@ export default function IPRegistrationForm() {
     if (!formData) return;
 
     if (!validateAllTabs()) {
-      toast.error('Please fix validation errors before submitting');
+      const firstError = Object.values(errors)[0] || 'Please check the form for valid information!';
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { 
+          backgroundColor: 'hsl(var(--destructive))', 
+          color: 'white',
+        },
+        classNames: {
+          toast: '!bg-destructive',
+          title: '!text-white',
+          description: '!text-white !opacity-100'
+        }
+      });
       setShowSubmitConfirm(false);
       return;
     }
@@ -545,6 +569,14 @@ export default function IPRegistrationForm() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
+      {/* Success Animation for Tab Transitions */}
+      <SuccessAnimation
+        show={showStepSuccess}
+        onComplete={handleSuccessComplete}
+        duration={1000}
+        message="Step completed"
+      />
+      
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -698,6 +730,7 @@ export default function IPRegistrationForm() {
                   onSave={autoSave}
                   errors={errors}
                   isEditable={isEditable}
+                  clearError={clearError}
                 />
               )}
 

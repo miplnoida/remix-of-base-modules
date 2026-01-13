@@ -16,6 +16,7 @@ interface DocumentVerificationTabProps {
   onSave: (data: Partial<IPFormData>) => void;
   errors: Record<string, string>;
   isEditable: boolean;
+  clearError?: (field: string) => void;
 }
 
 interface UploadedDocument {
@@ -32,7 +33,7 @@ const birthDocTypes = ['Birth Certificate', 'Passport', 'Hospital Record', 'Bapt
 const deathDocTypes = ['Death Certificate', 'Coroner Report', 'Hospital Record', 'Not Applicable'];
 const nameDocTypes = ['Birth Certificate', 'Passport', 'Driver License', 'National ID', 'Deed Poll'];
 
-export default function DocumentVerificationTab({ formData, onChange, onSave, errors, isEditable }: DocumentVerificationTabProps) {
+export default function DocumentVerificationTab({ formData, onChange, onSave, errors, isEditable, clearError }: DocumentVerificationTabProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -158,7 +159,11 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           <Label htmlFor="marital_doc_type">Marital Status Verification</Label>
           <Select 
             value={formData.marital_doc_type || ''} 
-            onValueChange={(v) => { onChange('marital_doc_type', v); onSave({ marital_doc_type: v }); }}
+            onValueChange={(v) => { 
+              onChange('marital_doc_type', v); 
+              onSave({ marital_doc_type: v }); 
+              clearError?.('marital_doc_type');
+            }}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -177,7 +182,11 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           </Label>
           <Select 
             value={formData.birth_doc_type || ''} 
-            onValueChange={(v) => { onChange('birth_doc_type', v); onSave({ birth_doc_type: v }); }}
+            onValueChange={(v) => { 
+              onChange('birth_doc_type', v); 
+              onSave({ birth_doc_type: v }); 
+              clearError?.('birth_doc_type');
+            }}
             disabled={!isEditable}
           >
             <SelectTrigger className={errors.birth_doc_type ? 'border-destructive' : ''}>
@@ -195,7 +204,11 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           <Label htmlFor="death_doc_type">Death Status Verification</Label>
           <Select 
             value={formData.death_doc_type || ''} 
-            onValueChange={(v) => { onChange('death_doc_type', v); onSave({ death_doc_type: v }); }}
+            onValueChange={(v) => { 
+              onChange('death_doc_type', v); 
+              onSave({ death_doc_type: v }); 
+              clearError?.('death_doc_type');
+            }}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -214,7 +227,11 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           </Label>
           <Select 
             value={formData.name_doc_type || ''} 
-            onValueChange={(v) => { onChange('name_doc_type', v); onSave({ name_doc_type: v }); }}
+            onValueChange={(v) => { 
+              onChange('name_doc_type', v); 
+              onSave({ name_doc_type: v }); 
+              clearError?.('name_doc_type');
+            }}
             disabled={!isEditable}
           >
             <SelectTrigger className={errors.name_doc_type ? 'border-destructive' : ''}>

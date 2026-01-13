@@ -146,7 +146,18 @@ export default function RelationsTab({ uniqueUuid, isEditable }: RelationsTabPro
 
   const handleSave = async () => {
     if (!formData.relation_type || !formData.first_name || !formData.last_name) {
-      toast.error('Please fill in required fields');
+      toast.error('Please check the form for valid information!', {
+        description: 'Relation type, first name, and last name are required.',
+        style: { 
+          backgroundColor: 'hsl(var(--destructive))', 
+          color: 'white',
+        },
+        classNames: {
+          toast: '!bg-destructive',
+          title: '!text-white',
+          description: '!text-white !opacity-100'
+        }
+      });
       return;
     }
 
@@ -308,7 +319,7 @@ export default function RelationsTab({ uniqueUuid, isEditable }: RelationsTabPro
             <DialogTitle>{selectedRelation ? 'Edit' : 'Add'} Relation</DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form noValidate className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Relation Type <span className="text-destructive">*</span></Label>
               <Select 
@@ -413,7 +424,7 @@ export default function RelationsTab({ uniqueUuid, isEditable }: RelationsTabPro
                 placeholder="Enter address"
               />
             </div>
-          </div>
+          </form>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
