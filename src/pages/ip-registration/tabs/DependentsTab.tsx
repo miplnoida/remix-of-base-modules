@@ -166,26 +166,29 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
         toast.success('Dependent updated');
       } else {
         // Insert new into ip_depend
+        // Note: Using type assertion because unique_uuid exists in DB but not in generated types
+        const insertData = {
+          unique_uuid: uniqueUuid,
+          depend_ssn: formData.depend_ssn,
+          surname: formData.surname,
+          firstname: formData.firstname,
+          middle_name_dep: formData.middle_name_dep,
+          dob: formData.dob || null,
+          sex: formData.sex,
+          relation: formData.relation,
+          depend_addr1: formData.depend_addr1,
+          depend_addr2: formData.depend_addr2,
+          school_child: formData.school_child || 'N',
+          invalid: formData.invalid || 'N',
+          status: 'A',
+          tran_code: 'ADD',
+          date_modified: new Date().toISOString(),
+          userid: user?.id,
+        };
+
         const { error } = await supabase
           .from('ip_depend')
-          .insert({
-            unique_uuid: uniqueUuid,
-            depend_ssn: formData.depend_ssn,
-            surname: formData.surname,
-            firstname: formData.firstname,
-            middle_name_dep: formData.middle_name_dep,
-            dob: formData.dob || null,
-            sex: formData.sex,
-            relation: formData.relation,
-            depend_addr1: formData.depend_addr1,
-            depend_addr2: formData.depend_addr2,
-            school_child: formData.school_child || 'N',
-            invalid: formData.invalid || 'N',
-            status: 'A',
-            tran_code: 'ADD',
-            date_modified: new Date().toISOString(),
-            userid: user?.id,
-          });
+          .insert(insertData as any);
 
         if (error) throw error;
         toast.success('Dependent added');
