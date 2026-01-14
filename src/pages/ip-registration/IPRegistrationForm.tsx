@@ -89,6 +89,7 @@ export default function IPRegistrationForm() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isViewMode = window.location.pathname.includes('/view/');
+  const isNewMode = window.location.pathname.includes('/new');
   const action = searchParams.get('action');
   
   const [formData, setFormData] = useState<IPFormData | null>(null);
@@ -105,6 +106,46 @@ export default function IPRegistrationForm() {
   const [rejectReason, setRejectReason] = useState('');
   const [showStepSuccess, setShowStepSuccess] = useState(false);
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
+
+  // Create a new draft registration
+  const createNewDraft = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Generate application ID
+      const { data: appIdData, error: appIdError } = await supabase
+        .rpc('generate_application_id');
+      
+      if (appIdError) throw appIdError;
+
+      const newUuid = crypto.randomUUID();
+      
+      // Create new draft record
+      const { data, error } = await supabase
+        .from('tmp_ip_master')
+        .insert({
+          unique_uuid: newUuid,
+          application_id: appIdData,
+          status: 'D',
+          created_by: user?.id,
+          application_date: new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success(`Draft created: ${appIdData}`);
+      // Navigate to edit mode with the new UUID
+      navigate(`/ip-registration/edit/${newUuid}`, { replace: true });
+    } catch (error) {
+      console.error('Error creating draft:', error);
+      toast.error('Failed to create new registration');
+      navigate('/ip-registration');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, navigate]);
+
   const fetchData = useCallback(async () => {
     if (!uniqueUuid) return;
     
@@ -189,8 +230,15 @@ export default function IPRegistrationForm() {
   }, [uniqueUuid, navigate]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isNewMode) {
+      createNewDraft();
+    } else if (uniqueUuid) {
+      fetchData();
+    } else {
+      // No UUID and not new mode - redirect to list
+      navigate('/ip-registration');
+    }
+  }, [isNewMode, uniqueUuid, fetchData, createNewDraft, navigate]);
 
   useEffect(() => {
     if (action === 'submit') {

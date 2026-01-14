@@ -100,37 +100,8 @@ export default function IPRegistrationList() {
     fetchRecords();
   }, []);
 
-  const handleNewRegistration = async () => {
-    try {
-      // Generate application ID
-      const { data: appIdData, error: appIdError } = await supabase
-        .rpc('generate_application_id');
-      
-      if (appIdError) throw appIdError;
-
-      const uniqueUuid = crypto.randomUUID();
-      
-      // Create new draft record
-      const { data, error } = await supabase
-        .from('tmp_ip_master')
-        .insert({
-          unique_uuid: uniqueUuid,
-          application_id: appIdData,
-          status: 'D',
-          created_by: user?.id,
-          application_date: new Date().toISOString().split('T')[0],
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success(`Draft created: ${appIdData}`);
-      navigate(`/ip-registration/edit/${data.unique_uuid}`);
-    } catch (error) {
-      console.error('Error creating draft:', error);
-      toast.error('Failed to create new registration');
-    }
+  const handleNewRegistration = () => {
+    navigate('/ip-registration/new');
   };
 
   const filteredRecords = records.filter(record => {

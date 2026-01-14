@@ -1336,8 +1336,9 @@ export const AppRoutes = () => {
       <Route path="/admin/system-cleanup/cleanup-review" element={<ProtectedLayout><CleanupReview /></ProtectedLayout>} />
       <Route path="/admin/system-cleanup/rollback" element={<ProtectedLayout><RollbackScreen /></ProtectedLayout>} />
 
-      {/* IP Registration Module */}
+      {/* IP Registration Module - Primary route */}
       <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
+      <Route path="/ip-registration/new" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
       <Route path="/ip-registration/edit/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
       <Route path="/ip-registration/view/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
 
