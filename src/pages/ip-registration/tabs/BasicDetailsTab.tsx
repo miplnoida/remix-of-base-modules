@@ -3,8 +3,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { IPFormData } from '../IPRegistrationForm';
-import { differenceInYears, parse, format, isValid } from 'date-fns';
+import { differenceInYears, format, isValid } from 'date-fns';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { useCountries, useEyeColors } from '@/hooks/useIPMasterLookups';
 
 interface BasicDetailsTabProps {
   formData: IPFormData;
@@ -19,9 +20,6 @@ const titles = ['Mr', 'Mrs', 'Ms', 'Miss', 'Dr', 'Hon', 'Rev'];
 const suffixes = ['Jr', 'Sr', 'I', 'II', 'III', 'IV'];
 const genders = ['Male', 'Female'];
 const maritalStatuses = ['Single', 'Married', 'Common Law', 'Divorced', 'Widowed', 'Separated'];
-const nationalities = ['Jamaican', 'American', 'British', 'Canadian', 'Indian', 'Other'];
-const birthPlaces = ['Kingston', 'St. Andrew', 'St. Catherine', 'Clarendon', 'Manchester', 'St. Elizabeth', 'Westmoreland', 'Hanover', 'St. James', 'Trelawny', 'St. Ann', 'St. Mary', 'Portland', 'St. Thomas'];
-const eyeColors = ['Brown', 'Black', 'Blue', 'Green', 'Hazel', 'Gray'];
 
 // Convert ISO date string to Date object
 const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
@@ -44,6 +42,10 @@ export default function BasicDetailsTab({
   isEditable,
   clearError 
 }: BasicDetailsTabProps) {
+  // Fetch countries and eye colors from master tables
+  const { data: countries, isLoading: countriesLoading } = useCountries();
+  const { data: eyeColors, isLoading: eyeColorsLoading } = useEyeColors();
+
   const age = useMemo(() => {
     if (!formData.date_of_birth) return null;
     const dob = new Date(formData.date_of_birth);
@@ -309,37 +311,45 @@ export default function BasicDetailsTab({
           </div>
         </div>
 
-        {/* Birth Place */}
+        {/* Birth Place - from tb_country */}
         <div className="space-y-2">
           <Label htmlFor="birth_place">Birth Place <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.birth_place || ''} 
             onValueChange={(v) => handleSelectChange('birth_place', v)}
-            disabled={!isEditable}
+            disabled={!isEditable || countriesLoading}
           >
             <SelectTrigger className={errors.birth_place ? 'border-destructive focus-visible:ring-destructive' : ''}>
-              <SelectValue placeholder="Select Birth Place" />
+              <SelectValue placeholder={countriesLoading ? 'Loading...' : 'Select Birth Place'} />
             </SelectTrigger>
             <SelectContent>
-              {birthPlaces.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+              {countries?.map(c => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.description || c.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.birth_place && <p className="text-xs text-destructive mt-1">{errors.birth_place}</p>}
         </div>
 
-        {/* Nationality */}
+        {/* Nationality - from tb_country */}
         <div className="space-y-2">
           <Label htmlFor="nationality">Nationality <span className="text-destructive">*</span></Label>
           <Select 
             value={formData.nationality || ''} 
             onValueChange={(v) => handleSelectChange('nationality', v)}
-            disabled={!isEditable}
+            disabled={!isEditable || countriesLoading}
           >
             <SelectTrigger className={errors.nationality ? 'border-destructive focus-visible:ring-destructive' : ''}>
-              <SelectValue placeholder="Select Nationality" />
+              <SelectValue placeholder={countriesLoading ? 'Loading...' : 'Select Nationality'} />
             </SelectTrigger>
             <SelectContent>
-              {nationalities.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+              {countries?.map(c => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.nationality || c.description || c.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.nationality && <p className="text-xs text-destructive mt-1">{errors.nationality}</p>}
@@ -347,19 +357,23 @@ export default function BasicDetailsTab({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Eye Color */}
+        {/* Eye Color - from tb_eye_color */}
         <div className="space-y-2">
           <Label htmlFor="eye_color">Eye Color</Label>
           <Select 
             value={formData.eye_color || ''} 
             onValueChange={(v) => handleSelectChange('eye_color', v)}
-            disabled={!isEditable}
+            disabled={!isEditable || eyeColorsLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Eye Color" />
+              <SelectValue placeholder={eyeColorsLoading ? 'Loading...' : 'Select Eye Color'} />
             </SelectTrigger>
             <SelectContent>
-              {eyeColors.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              {eyeColors?.map(e => (
+                <SelectItem key={e.code} value={e.code}>
+                  {e.description || e.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

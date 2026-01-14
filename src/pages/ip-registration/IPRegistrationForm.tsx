@@ -91,6 +91,7 @@ export default function IPRegistrationForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: ipStatuses } = useIPStatuses();
   const isViewMode = window.location.pathname.includes('/view/');
   const isNewMode = window.location.pathname.includes('/new');
   const action = searchParams.get('action');
@@ -99,6 +100,7 @@ export default function IPRegistrationForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  const [activeMainTab, setActiveMainTab] = useState('register');
   const [completedTabs, setCompletedTabs] = useState<string[]>([]);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [duplicates, setDuplicates] = useState<any[]>([]);
@@ -109,6 +111,7 @@ export default function IPRegistrationForm() {
   const [rejectReason, setRejectReason] = useState('');
   const [showStepSuccess, setShowStepSuccess] = useState(false);
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   // Create a new draft registration
   const createNewDraft = useCallback(async () => {
@@ -254,7 +257,12 @@ export default function IPRegistrationForm() {
   }, [action]);
 
   const autoSave = useCallback(async (data: Partial<IPFormData>) => {
-    if (!formData || isViewMode || formData.status !== 'D') return;
+    // Don't save in view mode
+    if (isViewMode) return;
+    // Don't save if user hasn't interacted yet (prevents initial save)
+    if (!hasUserInteracted) return;
+    // Only save drafts
+    if (!formData || formData.status !== 'D') return;
     
     setSaving(true);
     try {
@@ -276,7 +284,7 @@ export default function IPRegistrationForm() {
     } finally {
       setSaving(false);
     }
-  }, [formData, isViewMode, user?.id]);
+  }, [formData, isViewMode, user?.id, hasUserInteracted]);
 
   const clearError = useCallback((field: string) => {
     if (errors[field]) {
@@ -291,6 +299,11 @@ export default function IPRegistrationForm() {
   const handleFieldChange = useCallback((field: string, value: any) => {
     if (!formData) return;
     
+    // Mark that user has interacted (enables auto-save)
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+    
     const newData = { ...formData, [field]: value };
     setFormData(newData);
     
@@ -301,7 +314,7 @@ export default function IPRegistrationForm() {
     if (['first_name', 'last_name', 'date_of_birth', 'gender'].includes(field)) {
       checkDuplicates(newData);
     }
-  }, [formData, clearError]);
+  }, [formData, clearError, hasUserInteracted]);
 
   const checkDuplicates = async (data: IPFormData) => {
     if (!data.first_name || !data.last_name || !data.date_of_birth || !data.gender) return;
@@ -653,7 +666,7 @@ export default function IPRegistrationForm() {
               {isViewMode ? 'View' : 'Register'} Insured Person
             </h1>
             <p className="text-muted-foreground">
-              Application ID: {formData.application_id} | Status: {formData.status}
+              Application ID: {formData.application_id} | Status: {ipStatuses ? getStatusDescription(formData.status, ipStatuses) : formData.status}
               {formData.ssn && ` | SSN: ${formData.ssn}`}
             </p>
           </div>
@@ -686,7 +699,7 @@ export default function IPRegistrationForm() {
       {/* Main Tabs */}
       <Card>
         <CardContent className="p-6">
-          <Tabs value="register" className="w-full">
+          <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="register" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -808,17 +821,74 @@ export default function IPRegistrationForm() {
                 >
                   ← Back
                 </Button>
-                <Button
-                  onClick={() => {
-                    const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
-                    if (currentIndex < tabSteps.length - 1) {
-                      handleTabChange(tabSteps[currentIndex + 1].id);
-                    }
-                  }}
-                  disabled={activeTab === 'documents'}
-                >
-                  Save & Continue →
-                </Button>
+                {/* Hide Save & Continue in View mode or on last tab */}
+                {!isViewMode && activeTab !== 'documents' && (
+                  <Button
+                    onClick={() => {
+                      const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
+                      if (currentIndex < tabSteps.length - 1) {
+                        handleTabChange(tabSteps[currentIndex + 1].id);
+                      }
+                    }}
+                  >
+                    Save & Continue →
+                  </Button>
+                )}
+                {/* Show Next button in View mode */}
+                {isViewMode && activeTab !== 'documents' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
+                      if (currentIndex < tabSteps.length - 1) {
+                        handleTabChange(tabSteps[currentIndex + 1].id);
+                      }
+                    }}
+                  >
+                    Next →
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Dependent Tab */}
+            <TabsContent value="dependent" className="mt-6">
+              <DependentsTab
+                uniqueUuid={formData.unique_uuid}
+                ssn={formData.ssn}
+                recordStatus={formData.status}
+                isEditable={isEditable}
+              />
+            </TabsContent>
+
+            {/* Notes Tab */}
+            <TabsContent value="notes" className="mt-6">
+              <NotesTab
+                uniqueUuid={formData.unique_uuid}
+                ssn={formData.ssn}
+                recordStatus={formData.status}
+                isEditable={isEditable}
+              />
+            </TabsContent>
+
+            {/* NPF Tab - Placeholder */}
+            <TabsContent value="npf" className="mt-6">
+              <div className="text-center py-8 text-muted-foreground">
+                NPF information will be displayed here.
+              </div>
+            </TabsContent>
+
+            {/* Photo Tab - Placeholder */}
+            <TabsContent value="photo" className="mt-6">
+              <div className="text-center py-8 text-muted-foreground">
+                Photo management will be displayed here.
+              </div>
+            </TabsContent>
+
+            {/* Caricom Tab - Placeholder */}
+            <TabsContent value="caricom" className="mt-6">
+              <div className="text-center py-8 text-muted-foreground">
+                CARICOM information will be displayed here.
               </div>
             </TabsContent>
           </Tabs>
