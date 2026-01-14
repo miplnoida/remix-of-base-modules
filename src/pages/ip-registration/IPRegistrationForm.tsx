@@ -173,28 +173,14 @@ export default function IPRegistrationForm() {
     
     setLoading(true);
     try {
-      // Try temp table first
-      const { data: tmpData, error: tmpError } = await supabase
-        .from('tmp_ip_master')
+      // All records are now in ip_master table (including drafts)
+      const { data: recordData, error } = await supabase
+        .from('ip_master')
         .select('*')
         .eq('unique_uuid', uniqueUuid)
         .single();
 
-      let recordData: any = null;
-
-      if (!tmpError && tmpData) {
-        recordData = tmpData;
-      } else {
-        // Try master table
-        const { data: masterData, error: masterError } = await supabase
-          .from('ip_master')
-          .select('*')
-          .eq('unique_uuid', uniqueUuid)
-          .single();
-        
-        if (masterError) throw masterError;
-        recordData = masterData;
-      }
+      if (error) throw error;
 
       // Cast the data to IPFormData
       setFormData({
@@ -351,7 +337,7 @@ export default function IPRegistrationForm() {
     return true;
   }, [formData, activeTab]);
 
-  // Save data to database (for drafts)
+  // Save data to database (for drafts) - now saves directly to ip_master
   const saveToDatabase = useCallback(async (data: Partial<IPFormData>, showSuccessMessage = true): Promise<boolean> => {
     if (isViewMode || !formData) return false;
     
@@ -361,18 +347,25 @@ export default function IPRegistrationForm() {
     setSaving(true);
     try {
       if (isNewRecord) {
-        // First save - insert new record with status Z
+        // First save - insert new record with status Z directly to ip_master
         const insertData = {
           unique_uuid: formData.unique_uuid,
           application_id: formData.application_id,
           status: 'Z', // Draft status
           created_by: user?.id,
           application_date: formData.application_date || new Date().toISOString().split('T')[0],
+          // Provide required fields with defaults
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          gender: data.gender || '',
+          date_of_birth: data.date_of_birth || new Date().toISOString().split('T')[0],
+          marital_status: data.marital_status || '',
+          nationality: data.nationality || '',
           ...data,
         };
 
         const { data: insertedData, error } = await supabase
-          .from('tmp_ip_master')
+          .from('ip_master')
           .insert(insertData)
           .select()
           .single();
@@ -391,9 +384,9 @@ export default function IPRegistrationForm() {
           setTimeout(() => { hasShownSuccessRef.current = false; }, 1000);
         }
       } else {
-        // Update existing record
+        // Update existing record in ip_master
         const { error } = await supabase
-          .from('tmp_ip_master')
+          .from('ip_master')
           .update({
             ...data,
             updated_at: new Date().toISOString(),
@@ -589,105 +582,18 @@ export default function IPRegistrationForm() {
       
       if (ssnError) throw ssnError;
 
-      // Move to ip_master - create clean object for insert
-      const insertData = {
-        unique_uuid: formData.unique_uuid,
-        application_id: formData.application_id,
-        ssn: ssnData,
-        title: formData.title,
-        first_name: formData.first_name || '',
-        middle_name: formData.middle_name,
-        last_name: formData.last_name || '',
-        suffix: formData.suffix,
-        maiden_name: formData.maiden_name,
-        alias: formData.alias,
-        gender: formData.gender || '',
-        date_of_birth: formData.date_of_birth || new Date().toISOString().split('T')[0],
-        marital_status: formData.marital_status || '',
-        date_married: formData.date_married,
-        height_feet: formData.height_feet,
-        height_inches: formData.height_inches,
-        birth_place: formData.birth_place,
-        nationality: formData.nationality || '',
-        eye_color: formData.eye_color,
-        resident_address_1: formData.resident_address_1,
-        resident_address_2: formData.resident_address_2,
-        postal_district: formData.postal_district,
-        mailing_address: formData.mailing_address,
-        email: formData.email,
-        telephone: formData.telephone,
-        mobile: formData.mobile,
-        occupation: formData.occupation,
-        work_permit_status: formData.work_permit_status,
-        npf_status: formData.npf_status,
-        application_date: formData.application_date,
-        date_resident: formData.date_resident,
-        place_of_residence: formData.place_of_residence,
-        work_permit_expiry: formData.work_permit_expiry,
-        citizenship: formData.citizenship,
-        signature_on_file: formData.signature_on_file,
-        marital_doc_type: formData.marital_doc_type,
-        birth_doc_type: formData.birth_doc_type,
-        death_doc_type: formData.death_doc_type,
-        name_doc_type: formData.name_doc_type,
-        // Relations fields
-        contact: formData.contact,
-        contact_relation: formData.contact_relation,
-        contact_addr1: formData.contact_addr1,
-        contact_addr2: formData.contact_addr2,
-        contact_phone: formData.contact_phone,
-        contact_mobile: formData.contact_mobile,
-        contact_email: formData.contact_email,
-        father_name: formData.father_name,
-        mother_name: formData.mother_name,
-        spouse_name: formData.spouse_name,
-        spouse_addr1: formData.spouse_addr1,
-        spouse_addr2: formData.spouse_addr2,
-        spouse_ssn: formData.spouse_ssn,
-        spouse_dob: formData.spouse_dob,
-        witness_name: formData.witness_name,
-        date_witnessed: formData.date_witnessed,
-        beneficiary: formData.beneficiary,
-        ben_addr1: formData.ben_addr1,
-        ben_addr2: formData.ben_addr2,
-        status: 'P',
-        created_by: formData.created_by,
-        submitted_by: user?.id,
-        submitted_at: new Date().toISOString(),
-      };
-
-      const { error: insertError } = await supabase
+      // Update the existing ip_master record with SSN and status change to Pending
+      const { error: updateError } = await supabase
         .from('ip_master')
-        .insert(insertData);
-
-      if (insertError) throw insertError;
-
-      // Move dependents
-      const { data: deps } = await supabase
-        .from('tmp_ip_dependents')
-        .select('*')
+        .update({
+          ssn: ssnData,
+          status: 'P',
+          submitted_by: user?.id,
+          submitted_at: new Date().toISOString(),
+        })
         .eq('unique_uuid', formData.unique_uuid);
 
-      if (deps && deps.length > 0) {
-        await supabase.from('ip_depend').insert(
-          deps.map(d => ({ ...d, ip_id: formData.id }))
-        );
-      }
-
-      // Move notes
-      const { data: notes } = await supabase
-        .from('tmp_ip_notes')
-        .select('*')
-        .eq('unique_uuid', formData.unique_uuid);
-
-      if (notes && notes.length > 0) {
-        await supabase.from('ip_notes').insert(
-          notes.map(n => ({ ...n, ip_id: formData.id }))
-        );
-      }
-
-      // Delete from temp tables
-      await supabase.from('tmp_ip_master').delete().eq('unique_uuid', formData.unique_uuid);
+      if (updateError) throw updateError;
 
       toast.success(`Registration submitted successfully. SSN: ${ssnData}`);
       navigate('/ip-registration');
