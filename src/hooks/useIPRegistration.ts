@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -7,7 +7,6 @@ import {
   IPDependentData, 
   IPNoteData,
   initialIPMasterFormData,
-  initialIPDependentData 
 } from '@/types/ipRegistration';
 
 interface UseIPRegistrationOptions {
@@ -27,6 +26,9 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
   const [saveSuccessAnimation, setSaveSuccessAnimation] = useState(false);
   const [currentTab, setCurrentTab] = useState('basic');
   const [enabledTabs, setEnabledTabs] = useState<string[]>(['basic']);
+  
+  // Ref to prevent duplicate saves
+  const isSavingRef = useRef(false);
 
   // Fetch existing IP record
   const { data: ipRecord, isLoading: isLoadingIP } = useQuery({
@@ -205,9 +207,16 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
     return data;
   };
 
+  // Show success animation helper
+  const showSuccessAnimation = useCallback(() => {
+    setSaveSuccessAnimation(true);
+    setTimeout(() => setSaveSuccessAnimation(false), 2000);
+  }, []);
+
   // Save Basic Details (create new record)
   const saveBasicDetails = useCallback(async () => {
-    if (isSaving) return null;
+    if (isSavingRef.current) return null;
+    isSavingRef.current = true;
     setIsSaving(true);
 
     try {
@@ -271,6 +280,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
           description: `Temporary SSN assigned: ${ssnToUse}`,
         });
 
+        showSuccessAnimation();
         return ssnToUse;
       } else {
         const { error } = await supabase
@@ -285,6 +295,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
           description: 'Changes saved successfully.',
         });
 
+        showSuccessAnimation();
         return ssnToUse;
       }
     } catch (error: any) {
@@ -296,14 +307,14 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       return null;
     } finally {
       setIsSaving(false);
-      setSaveSuccessAnimation(true);
-      setTimeout(() => setSaveSuccessAnimation(false), 2000);
+      isSavingRef.current = false;
     }
-  }, [formData, isNewRecord, isSaving, toast]);
+  }, [formData, isNewRecord, toast, showSuccessAnimation]);
 
   // Save Address & Contact
   const saveAddressContact = useCallback(async () => {
-    if (isSaving || !formData.ssn) return;
+    if (isSavingRef.current || !formData.ssn) return;
+    isSavingRef.current = true;
     setIsSaving(true);
 
     try {
@@ -331,10 +342,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Address & Contact Saved',
-        description: 'Changes saved successfully.',
-      });
+      showSuccessAnimation();
     } catch (error: any) {
       toast({
         title: 'Error saving',
@@ -343,14 +351,14 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       });
     } finally {
       setIsSaving(false);
-      setSaveSuccessAnimation(true);
-      setTimeout(() => setSaveSuccessAnimation(false), 2000);
+      isSavingRef.current = false;
     }
-  }, [formData, isSaving, toast]);
+  }, [formData, toast, showSuccessAnimation]);
 
   // Save Relations
   const saveRelations = useCallback(async () => {
-    if (isSaving || !formData.ssn) return;
+    if (isSavingRef.current || !formData.ssn) return;
+    isSavingRef.current = true;
     setIsSaving(true);
 
     try {
@@ -382,10 +390,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Relations Saved',
-        description: 'Changes saved successfully.',
-      });
+      showSuccessAnimation();
     } catch (error: any) {
       toast({
         title: 'Error saving',
@@ -394,14 +399,14 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       });
     } finally {
       setIsSaving(false);
-      setSaveSuccessAnimation(true);
-      setTimeout(() => setSaveSuccessAnimation(false), 2000);
+      isSavingRef.current = false;
     }
-  }, [formData, isSaving, toast]);
+  }, [formData, toast, showSuccessAnimation]);
 
   // Save Employment Details
   const saveEmploymentDetails = useCallback(async () => {
-    if (isSaving || !formData.ssn) return;
+    if (isSavingRef.current || !formData.ssn) return;
+    isSavingRef.current = true;
     setIsSaving(true);
 
     try {
@@ -432,10 +437,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Employment Details Saved',
-        description: 'Changes saved successfully.',
-      });
+      showSuccessAnimation();
     } catch (error: any) {
       toast({
         title: 'Error saving',
@@ -444,14 +446,14 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       });
     } finally {
       setIsSaving(false);
-      setSaveSuccessAnimation(true);
-      setTimeout(() => setSaveSuccessAnimation(false), 2000);
+      isSavingRef.current = false;
     }
-  }, [formData, isSaving, toast]);
+  }, [formData, toast, showSuccessAnimation]);
 
   // Save Verification
   const saveVerification = useCallback(async () => {
-    if (isSaving || !formData.ssn) return;
+    if (isSavingRef.current || !formData.ssn) return;
+    isSavingRef.current = true;
     setIsSaving(true);
 
     try {
@@ -475,10 +477,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Verification Saved',
-        description: 'Changes saved successfully.',
-      });
+      showSuccessAnimation();
     } catch (error: any) {
       toast({
         title: 'Error saving',
@@ -487,10 +486,9 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       });
     } finally {
       setIsSaving(false);
-      setSaveSuccessAnimation(true);
-      setTimeout(() => setSaveSuccessAnimation(false), 2000);
+      isSavingRef.current = false;
     }
-  }, [formData, isSaving, toast]);
+  }, [formData, toast, showSuccessAnimation]);
 
   // Save current tab data
   const saveCurrentTab = useCallback(async () => {
@@ -513,9 +511,9 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
     return formData.ssn;
   }, [currentTab, saveBasicDetails, saveAddressContact, saveRelations, saveEmploymentDetails, saveVerification, formData.ssn]);
 
-  // Handle tab change with auto-save
-  const handleTabChange = useCallback(async (newTab: string) => {
-    if (currentTab !== newTab && formData.ssn) {
+  // Handle tab change with auto-save (optional skip for view mode)
+  const handleTabChange = useCallback(async (newTab: string, skipSave?: boolean) => {
+    if (currentTab !== newTab && formData.ssn && !skipSave) {
       await saveCurrentTab();
     }
     setCurrentTab(newTab);
@@ -532,7 +530,10 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       return false;
     }
 
+    if (isSavingRef.current) return false;
+    isSavingRef.current = true;
     setIsSaving(true);
+    
     try {
       // Save all pending changes first
       await saveCurrentTab();
@@ -567,6 +568,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       return false;
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   }, [formData.ssn, saveCurrentTab, toast, queryClient]);
 
@@ -576,6 +578,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
 
     try {
       const dependentData = {
+        ssn: formData.ssn, // Link to parent IP record
         depend_id: dependent.depend_id,
         depend_ssn: dependent.depend_ssn,
         surname: dependent.surname,
@@ -590,6 +593,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
         invalid: dependent.invalid,
         status: 'P',
         date_modified: new Date().toISOString(),
+        unique_uuid: formData.ssn,
         // Legacy columns
         first_name: dependent.firstname,
         last_name: dependent.surname,

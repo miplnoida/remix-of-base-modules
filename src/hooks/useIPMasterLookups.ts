@@ -35,6 +35,11 @@ export interface PostalDistrictType {
   description: string | null;
 }
 
+export interface IPStatusType {
+  code: string;
+  description: string;
+}
+
 export const useOccupations = () => {
   return useQuery({
     queryKey: ['tb_occup'],
@@ -123,4 +128,25 @@ export const usePostalDistricts = () => {
     },
     staleTime: 1000 * 60 * 30,
   });
+};
+
+export const useIPStatuses = () => {
+  return useQuery({
+    queryKey: ['ip_status'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ip_status')
+        .select('*')
+        .order('code');
+      if (error) throw error;
+      return data as IPStatusType[];
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};
+
+// Helper function to get status description from code
+export const getStatusDescription = (code: string, statuses: IPStatusType[]): string => {
+  const status = statuses.find(s => s.code === code);
+  return status?.description || code;
 };
