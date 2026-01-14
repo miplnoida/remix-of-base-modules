@@ -3305,6 +3305,21 @@ export type Database = {
           },
         ]
       }
+      ip_status: {
+        Row: {
+          code: string
+          description: string
+        }
+        Insert: {
+          code: string
+          description: string
+        }
+        Update: {
+          code?: string
+          description?: string
+        }
+        Relationships: []
+      }
       legal_admin_audit: {
         Row: {
           action: string

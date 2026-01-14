@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Save, Send, Loader2, CheckCircle2, Lock } from 'lucide-react';
 import { useIPRegistration } from '@/hooks/useIPRegistration';
+import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { BasicDetailsTab } from './BasicDetailsTab';
 import { AddressContactTab } from './AddressContactTab';
 import { RelationsTab } from './RelationsTab';
@@ -18,6 +19,8 @@ export const IPRegistrationForm: React.FC = () => {
   const [searchParams] = useSearchParams();
   const ssnParam = searchParams.get('ssn');
   const modeParam = searchParams.get('mode') as 'create' | 'edit' | 'view' || 'create';
+
+  const { data: statuses = [] } = useIPStatuses();
 
   const {
     formData,
@@ -42,6 +45,9 @@ export const IPRegistrationForm: React.FC = () => {
     mode: ssnParam ? modeParam : 'create',
   });
 
+  // Check if we're in view mode
+  const isViewMode = modeParam === 'view';
+
   // Update URL when SSN is assigned
   useEffect(() => {
     if (formData.ssn && !ssnParam) {
@@ -50,17 +56,36 @@ export const IPRegistrationForm: React.FC = () => {
   }, [formData.ssn, ssnParam, navigate]);
 
   const handleSave = async () => {
+    // Don't save in view mode
+    if (isViewMode) return;
+    
     if (currentTab === 'basic') {
       await saveBasicDetails();
     }
   };
 
   const handleSubmit = async () => {
+    // Don't submit in view mode
+    if (isViewMode) return;
+    
     const success = await submitRegistration();
     if (success) {
       navigate('/person/directory');
     }
   };
+
+  // Handle tab change - don't save in view mode
+  const onTabChange = async (newTab: string) => {
+    if (isViewMode) {
+      // In view mode, just switch tabs without saving
+      handleTabChange(newTab, true); // Pass skipSave flag
+    } else {
+      handleTabChange(newTab);
+    }
+  };
+
+  // Get status description from ip_status table
+  const statusDescription = getStatusDescription(formData.status, statuses);
 
   if (isLoading) {
     return (
@@ -82,31 +107,42 @@ export const IPRegistrationForm: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">
-              {isNewRecord ? 'New Insured Person Registration' : `Edit Registration: ${formData.ssn}`}
+              {isViewMode 
+                ? `View Registration: ${formData.ssn}` 
+                : isNewRecord 
+                  ? 'New Insured Person Registration' 
+                  : `Edit Registration: ${formData.ssn}`
+              }
             </h1>
             <p className="text-sm text-muted-foreground">
-              {formData.status === 'Z' && 'Draft - Complete all sections and submit for verification'}
-              {formData.status === 'P' && 'Pending Verification - Record locked for editing'}
-              {formData.status === 'A' && 'Approved - Record is active'}
+              {isViewMode && 'View Mode - Read Only'}
+              {!isViewMode && formData.status === 'Z' && 'Draft - Complete all sections and submit for verification'}
+              {!isViewMode && formData.status === 'P' && 'Pending Verification - Record locked for editing'}
+              {!isViewMode && formData.status === 'A' && 'Active - Record is active'}
+              {!isViewMode && formData.status === 'V' && 'Verified - Record has been verified'}
             </p>
           </div>
         </div>
 
         {/* Status Badge */}
         <div className="flex items-center gap-2">
-          {formData.status === 'Z' && (
-            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Draft</span>
-          )}
-          {formData.status === 'P' && (
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Pending
-            </span>
-          )}
-          {formData.status === 'A' && (
-            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Approved
-            </span>
-          )}
+          <span className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
+            formData.status === 'Z' ? 'bg-yellow-100 text-yellow-800' :
+            formData.status === 'P' ? 'bg-blue-100 text-blue-800' :
+            formData.status === 'A' ? 'bg-green-100 text-green-800' :
+            formData.status === 'V' ? 'bg-emerald-100 text-emerald-800' :
+            formData.status === 'E' ? 'bg-purple-100 text-purple-800' :
+            formData.status === 'C' ? 'bg-gray-100 text-gray-800' :
+            formData.status === 'T' ? 'bg-red-100 text-red-800' :
+            formData.status === 'I' ? 'bg-orange-100 text-orange-800' :
+            formData.status === 'S' ? 'bg-amber-100 text-amber-800' :
+            formData.status === 'D' ? 'bg-rose-100 text-rose-800' :
+            'bg-muted text-muted-foreground'
+          }`}>
+            {(formData.status === 'P' || !isEditable) && <Lock className="h-3 w-3" />}
+            {formData.status === 'A' && <CheckCircle2 className="h-3 w-3" />}
+            {statusDescription}
+          </span>
         </div>
       </div>
 
@@ -120,8 +156,18 @@ export const IPRegistrationForm: React.FC = () => {
         </Alert>
       )}
 
+      {/* View Mode Warning */}
+      {isViewMode && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Lock className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-700">
+            You are viewing this record in read-only mode. No changes will be saved.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Not Editable Warning */}
-      {!isEditable && (
+      {!isEditable && !isViewMode && (
         <Alert className="bg-amber-50 border-amber-200">
           <Lock className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-700">
@@ -131,7 +177,7 @@ export const IPRegistrationForm: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <Tabs value={currentTab} onValueChange={handleTabChange}>
+      <Tabs value={currentTab} onValueChange={onTabChange}>
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="basic" disabled={!enabledTabs.includes('basic')}>
             Basic Details
@@ -160,7 +206,7 @@ export const IPRegistrationForm: React.FC = () => {
           <BasicDetailsTab
             formData={formData}
             updateField={updateField}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
 
@@ -168,7 +214,7 @@ export const IPRegistrationForm: React.FC = () => {
           <AddressContactTab
             formData={formData}
             updateField={updateField}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
 
@@ -176,7 +222,7 @@ export const IPRegistrationForm: React.FC = () => {
           <RelationsTab
             formData={formData}
             updateField={updateField}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
 
@@ -184,7 +230,7 @@ export const IPRegistrationForm: React.FC = () => {
           <EmploymentDetailsTab
             formData={formData}
             updateField={updateField}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
 
@@ -193,7 +239,7 @@ export const IPRegistrationForm: React.FC = () => {
             dependents={dependents}
             onAddDependent={addDependent}
             onDeleteDependent={deleteDependent}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
 
@@ -201,7 +247,7 @@ export const IPRegistrationForm: React.FC = () => {
           <NotesTab
             notes={notes}
             onAddNote={addNote}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
 
@@ -209,21 +255,24 @@ export const IPRegistrationForm: React.FC = () => {
           <VerificationTab
             formData={formData}
             updateField={updateField}
-            isEditable={isEditable}
+            isEditable={isEditable && !isViewMode}
           />
         </TabsContent>
       </Tabs>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Hidden in View Mode */}
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
-          {isNewRecord 
-            ? 'Save Basic Details to enable other tabs and get a temporary SSN.'
-            : `SSN: ${formData.ssn} | Status: ${formData.status === 'Z' ? 'Draft' : formData.status === 'P' ? 'Pending' : 'Approved'}`
+          {isViewMode 
+            ? `SSN: ${formData.ssn} | Status: ${statusDescription}`
+            : isNewRecord 
+              ? 'Save Basic Details to enable other tabs and get a temporary SSN.'
+              : `SSN: ${formData.ssn} | Status: ${statusDescription}`
           }
         </div>
         <div className="flex gap-3">
-          {isEditable && (
+          {/* Only show action buttons if NOT in view mode and record is editable */}
+          {!isViewMode && isEditable && (
             <>
               <Button
                 variant="outline"
@@ -255,14 +304,16 @@ export const IPRegistrationForm: React.FC = () => {
         </div>
       </div>
 
-      {/* Info Notice */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <AlertDescription className="text-blue-700">
-          <strong>Workflow:</strong> New registrations start as Draft (Z). Upon submission, status changes to Pending (P) 
-          and the record is locked for verification. After verification by a supervisor, status changes to Approved (A) 
-          and a permanent SSN is assigned.
-        </AlertDescription>
-      </Alert>
+      {/* Info Notice - Hidden in View Mode */}
+      {!isViewMode && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertDescription className="text-blue-700">
+            <strong>Workflow:</strong> New registrations start as Draft (Z). Upon submission, status changes to Pending (P) 
+            and the record is locked for verification. After verification by a supervisor, status changes to Verified (V) 
+            and a permanent SSN is assigned.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };

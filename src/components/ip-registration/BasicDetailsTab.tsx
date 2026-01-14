@@ -201,7 +201,7 @@ export const BasicDetailsTab: React.FC<BasicDetailsTabProps> = ({
               <SelectContent className="bg-background z-50 max-h-[200px]">
                 {countries.map((country) => (
                   <SelectItem key={country.code} value={country.code}>
-                    {country.nationality || country.description}
+                    {country.description}
                   </SelectItem>
                 ))}
               </SelectContent>
