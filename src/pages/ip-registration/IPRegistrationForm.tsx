@@ -12,9 +12,12 @@ import AddressContactTab from './tabs/AddressContactTab';
 import RelationsTab from './tabs/RelationsTab';
 import EmploymentTab from './tabs/EmploymentTab';
 import DocumentVerificationTab from './tabs/DocumentVerificationTab';
+import DependentsTab from './tabs/DependentsTab';
+import NotesTab from './tabs/NotesTab';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import SuccessAnimation from '@/components/shared/SuccessAnimation';
+import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
 
 export interface IPFormData {
   id?: string;
@@ -325,8 +328,17 @@ export default function IPRegistrationForm() {
   };
 
   const handleTabChange = (newTab: string) => {
-    // Auto-save before changing tabs
-    if (formData && !isViewMode && formData.status === 'D') {
+    // In View mode, don't save - just switch tabs
+    if (isViewMode) {
+      if (!completedTabs.includes(activeTab)) {
+        setCompletedTabs(prev => [...prev, activeTab]);
+      }
+      setActiveTab(newTab);
+      return;
+    }
+    
+    // Auto-save before changing tabs (only in edit mode for drafts)
+    if (formData && formData.status === 'D') {
       autoSave(formData);
     }
     
