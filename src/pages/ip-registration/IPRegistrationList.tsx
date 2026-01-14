@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Eye, Edit, Send, CheckCircle, XCircle, Search, 
-  RotateCcw, Filter, Download, Columns, ChevronUp, ChevronDown,
+  RotateCcw, Filter, Download, ChevronUp, ChevronDown,
   UserPlus, Key, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,6 +18,13 @@ import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
+import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
+
+// Status codes by tab
+const PENDING_STATUSES = ['Z', 'P'];
+const REGISTERED_STATUSES = ['E', 'V', 'A'];
+const INACTIVE_STATUSES = ['C', 'T', 'I', 'S'];
+const EXCLUDED_STATUS = 'D'; // Deleted - never show
 
 interface IPRecord {
   id: string;
@@ -41,8 +48,28 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   Z: { label: 'Draft', variant: 'secondary' },
   P: { label: 'Pending', variant: 'default' },
   V: { label: 'Verified', variant: 'outline' },
+  E: { label: 'Employed', variant: 'default' },
+  A: { label: 'Active', variant: 'default' },
+  C: { label: 'Ceased', variant: 'destructive' },
+  T: { label: 'Terminated', variant: 'destructive' },
+  I: { label: 'Inactive', variant: 'secondary' },
+  S: { label: 'Suspended', variant: 'destructive' },
   R: { label: 'Rejected', variant: 'destructive' },
 };
+
+// Default columns configuration
+const defaultColumns: Column[] = [
+  { key: 'application_id', label: 'Application ID/SSN', visible: true, locked: true },
+  { key: 'last_name', label: 'Sur Name', visible: true },
+  { key: 'first_name', label: 'First Name', visible: true },
+  { key: 'middle_name', label: 'Middle Name', visible: true },
+  { key: 'status', label: 'Status', visible: true },
+  { key: 'date_of_birth', label: 'Date Of Birth', visible: true },
+  { key: 'gender', label: 'Gender', visible: true },
+  { key: 'nationality', label: 'Nationality', visible: true },
+  { key: 'created_at', label: 'Registration Date', visible: true },
+  { key: 'telephone', label: 'Phone Num', visible: true },
+];
 
 export default function IPRegistrationList() {
   const navigate = useNavigate();
@@ -54,6 +81,7 @@ export default function IPRegistrationList() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [pageSize, setPageSize] = useState(10);
+  const [columns, setColumns] = useState<Column[]>(defaultColumns);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -66,23 +94,83 @@ export default function IPRegistrationList() {
     status: '',
   });
 
-  const fetchRecords = async () => {
+  // Get status codes for current tab
+  const getStatusesForTab = useCallback((tab: string): string[] => {
+    switch (tab) {
+      case 'pending':
+        return PENDING_STATUSES;
+      case 'registered':
+        return REGISTERED_STATUSES;
+      case 'inactive':
+        return INACTIVE_STATUSES;
+      default:
+        return [];
+    }
+  }, []);
+
+  // Fetch records with filters applied at database level
+  const fetchRecords = useCallback(async (applyFilters = false) => {
     setLoading(true);
     try {
-      // Fetch from tmp_ip_master (drafts and pending)
-      const { data: tmpData, error: tmpError } = await supabase
+      const tabStatuses = getStatusesForTab(activeTab);
+      
+      // Build base query for tmp_ip_master
+      let tmpQuery = supabase
         .from('tmp_ip_master')
         .select('*')
-        .order('created_at', { ascending: false });
+        .neq('status', EXCLUDED_STATUS);
       
-      if (tmpError) throw tmpError;
-
-      // Fetch from ip_master (verified and rejected)
-      const { data: masterData, error: masterError } = await supabase
+      // Build base query for ip_master
+      let masterQuery = supabase
         .from('ip_master')
         .select('*')
-        .order('created_at', { ascending: false });
+        .neq('status', EXCLUDED_STATUS);
+
+      // Apply filters if search was triggered
+      if (applyFilters) {
+        if (filters.ssn) {
+          tmpQuery = tmpQuery.ilike('ssn', `%${filters.ssn}%`);
+          masterQuery = masterQuery.ilike('ssn', `%${filters.ssn}%`);
+        }
+        if (filters.dob) {
+          tmpQuery = tmpQuery.eq('date_of_birth', filters.dob);
+          masterQuery = masterQuery.eq('date_of_birth', filters.dob);
+        }
+        if (filters.surname) {
+          tmpQuery = tmpQuery.ilike('last_name', `%${filters.surname}%`);
+          masterQuery = masterQuery.ilike('last_name', `%${filters.surname}%`);
+        }
+        if (filters.firstName) {
+          tmpQuery = tmpQuery.ilike('first_name', `%${filters.firstName}%`);
+          masterQuery = masterQuery.ilike('first_name', `%${filters.firstName}%`);
+        }
+        if (filters.phone) {
+          tmpQuery = tmpQuery.ilike('telephone', `%${filters.phone}%`);
+          masterQuery = masterQuery.ilike('telephone', `%${filters.phone}%`);
+        }
+        if (filters.gender && filters.gender !== 'all') {
+          tmpQuery = tmpQuery.eq('gender', filters.gender);
+          masterQuery = masterQuery.eq('gender', filters.gender);
+        }
+        if (filters.status && filters.status !== 'all') {
+          tmpQuery = tmpQuery.eq('status', filters.status);
+          masterQuery = masterQuery.eq('status', filters.status);
+        }
+      }
+
+      // Apply tab-based status filter
+      if (tabStatuses.length > 0) {
+        tmpQuery = tmpQuery.in('status', tabStatuses);
+        masterQuery = masterQuery.in('status', tabStatuses);
+      }
+
+      // Execute queries
+      const [{ data: tmpData, error: tmpError }, { data: masterData, error: masterError }] = await Promise.all([
+        tmpQuery.order('created_at', { ascending: false }),
+        masterQuery.order('created_at', { ascending: false })
+      ]);
       
+      if (tmpError) throw tmpError;
       if (masterError) throw masterError;
 
       // Combine and mark records
@@ -96,48 +184,67 @@ export default function IPRegistrationList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, filters, getStatusesForTab]);
 
+  // Refetch when tab changes
   useEffect(() => {
-    fetchRecords();
-  }, []);
+    fetchRecords(false);
+  }, [activeTab]);
+
+  // Handle search button click
+  const handleSearch = () => {
+    fetchRecords(true);
+  };
 
   const handleNewRegistration = () => {
     navigate('/ip-registration/new');
   };
 
-  const filteredRecords = records.filter(record => {
-    // Tab filter
-    if (activeTab === 'pending' && record.status !== 'P' && record.status !== 'Z') return false;
-    if (activeTab === 'registered' && record.status !== 'V') return false;
-    if (activeTab === 'inactive' && record.status !== 'R') return false;
-
-    // Search filter
-    if (searchText) {
-      const search = searchText.toLowerCase();
+  // Quick search filter (client-side for instant feedback)
+  const filteredRecords = useMemo(() => {
+    if (!searchText) return records;
+    
+    const search = searchText.toLowerCase();
+    return records.filter(record => {
       const fullName = `${record.first_name || ''} ${record.middle_name || ''} ${record.last_name || ''}`.toLowerCase();
-      if (!record.application_id?.toLowerCase().includes(search) &&
-          !record.ssn?.toLowerCase().includes(search) &&
-          !fullName.includes(search) &&
-          !record.telephone?.toLowerCase().includes(search)) {
-        return false;
+      return (
+        record.application_id?.toLowerCase().includes(search) ||
+        record.ssn?.toLowerCase().includes(search) ||
+        fullName.includes(search) ||
+        record.telephone?.toLowerCase().includes(search)
+      );
+    });
+  }, [records, searchText]);
+
+  // Calculate counts from all available records (need separate queries for accurate counts)
+  const [tabCounts, setTabCounts] = useState({ pending: 0, registered: 0, inactive: 0 });
+  
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        // Fetch counts from both tables
+        const [tmpResult, masterResult] = await Promise.all([
+          supabase.from('tmp_ip_master').select('status').neq('status', EXCLUDED_STATUS),
+          supabase.from('ip_master').select('status').neq('status', EXCLUDED_STATUS)
+        ]);
+        
+        const allRecords = [...(tmpResult.data || []), ...(masterResult.data || [])];
+        
+        setTabCounts({
+          pending: allRecords.filter(r => PENDING_STATUSES.includes(r.status)).length,
+          registered: allRecords.filter(r => REGISTERED_STATUSES.includes(r.status)).length,
+          inactive: allRecords.filter(r => INACTIVE_STATUSES.includes(r.status)).length,
+        });
+      } catch (error) {
+        console.error('Error fetching counts:', error);
       }
-    }
+    };
+    
+    fetchCounts();
+  }, [records]); // Refetch counts when records change
 
-    // Advanced filters
-    if (filters.ssn && !record.ssn?.includes(filters.ssn)) return false;
-    if (filters.surname && !record.last_name?.toLowerCase().includes(filters.surname.toLowerCase())) return false;
-    if (filters.firstName && !record.first_name?.toLowerCase().includes(filters.firstName.toLowerCase())) return false;
-    if (filters.phone && !record.telephone?.includes(filters.phone)) return false;
-    if (filters.gender && filters.gender !== 'all' && record.gender !== filters.gender) return false;
-    if (filters.status && filters.status !== 'all' && record.status !== filters.status) return false;
-
-    return true;
-  });
-
-  const pendingCount = records.filter(r => r.status === 'P' || r.status === 'Z').length;
-  const registeredCount = records.filter(r => r.status === 'V').length;
-  const inactiveCount = records.filter(r => r.status === 'R').length;
+  // Get visible columns
+  const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
 
   const canEdit = (record: IPRecord) => record.status === 'Z';
   const canSubmit = (record: IPRecord) => record.status === 'Z';
@@ -175,7 +282,15 @@ export default function IPRegistrationList() {
       status: '',
     });
     setSearchText('');
+    fetchRecords(false); // Reload without filters
   };
+
+  // Get statuses available for current tab (for dropdown)
+  const getAvailableStatuses = useCallback(() => {
+    const tabStatuses = getStatusesForTab(activeTab);
+    if (!ipStatuses) return [];
+    return ipStatuses.filter(s => tabStatuses.includes(s.code));
+  }, [activeTab, ipStatuses, getStatusesForTab]);
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -194,15 +309,15 @@ export default function IPRegistrationList() {
         <TabsList className="grid w-full grid-cols-3 max-w-2xl">
           <TabsTrigger value="pending" className="flex items-center gap-2">
             <Key className="h-4 w-4" />
-            Pending Verification ({pendingCount})
+            Pending Verification ({tabCounts.pending})
           </TabsTrigger>
           <TabsTrigger value="registered" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Registered Insured Person ({registeredCount})
+            Registered Insured Person ({tabCounts.registered})
           </TabsTrigger>
           <TabsTrigger value="inactive" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Inactive Insured Person ({inactiveCount})
+            Inactive Insured Person ({tabCounts.inactive})
           </TabsTrigger>
         </TabsList>
 
@@ -283,15 +398,16 @@ export default function IPRegistrationList() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="Z">Draft</SelectItem>
-                        <SelectItem value="P">Pending</SelectItem>
-                        <SelectItem value="V">Verified</SelectItem>
-                        <SelectItem value="R">Rejected</SelectItem>
+                        {getAvailableStatuses().map(status => (
+                          <SelectItem key={status.code} value={status.code}>
+                            {status.description}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="flex items-end gap-2">
-                    <Button className="flex items-center gap-2">
+                    <Button className="flex items-center gap-2" onClick={handleSearch}>
                       <Search className="h-4 w-4" />
                       Search
                     </Button>
@@ -342,10 +458,10 @@ export default function IPRegistrationList() {
                   <Download className="h-4 w-4" />
                   Export
                 </Button>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Columns className="h-4 w-4" />
-                  Columns
-                </Button>
+                <ColumnSelector 
+                  columns={columns} 
+                  onColumnChange={setColumns}
+                />
               </div>
             </div>
 
@@ -354,55 +470,46 @@ export default function IPRegistrationList() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Application ID/SSN</TableHead>
-                    <TableHead>Sur Name</TableHead>
-                    <TableHead>First Name</TableHead>
-                    <TableHead>Middle Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date Of Birth</TableHead>
-                    <TableHead>Gender</TableHead>
-                    <TableHead>Nationality</TableHead>
-                    <TableHead>Registration Date</TableHead>
-                    <TableHead>Phone Num</TableHead>
+                    {visibleColumns.map(col => (
+                      <TableHead key={col.key}>{col.label}</TableHead>
+                    ))}
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8">
+                      <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8">
                         Loading...
                       </TableCell>
                     </TableRow>
                   ) : filteredRecords.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
                         No records found
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredRecords.slice(0, pageSize).map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium">
-                          {record.ssn || record.application_id}
-                        </TableCell>
-                        <TableCell>{record.last_name || '-'}</TableCell>
-                        <TableCell>{record.first_name || '-'}</TableCell>
-                        <TableCell>{record.middle_name || '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant={statusConfig[record.status]?.variant || 'default'}>
-                            {ipStatuses ? getStatusDescription(record.status, ipStatuses) : (statusConfig[record.status]?.label || record.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {record.date_of_birth ? format(new Date(record.date_of_birth), 'dd/MM/yyyy') : '-'}
-                        </TableCell>
-                        <TableCell>{record.gender || '-'}</TableCell>
-                        <TableCell>{record.nationality || '-'}</TableCell>
-                        <TableCell>
-                          {format(new Date(record.created_at), 'dd/MM/yyyy')}
-                        </TableCell>
-                        <TableCell>{record.telephone || '-'}</TableCell>
+                        {visibleColumns.map(col => (
+                          <TableCell key={col.key} className={col.key === 'application_id' ? 'font-medium' : ''}>
+                            {col.key === 'application_id' && (record.ssn || record.application_id)}
+                            {col.key === 'last_name' && (record.last_name || '-')}
+                            {col.key === 'first_name' && (record.first_name || '-')}
+                            {col.key === 'middle_name' && (record.middle_name || '-')}
+                            {col.key === 'status' && (
+                              <Badge variant={statusConfig[record.status]?.variant || 'default'}>
+                                {ipStatuses ? getStatusDescription(record.status, ipStatuses) : (statusConfig[record.status]?.label || record.status)}
+                              </Badge>
+                            )}
+                            {col.key === 'date_of_birth' && (record.date_of_birth ? format(new Date(record.date_of_birth), 'dd/MM/yyyy') : '-')}
+                            {col.key === 'gender' && (record.gender || '-')}
+                            {col.key === 'nationality' && (record.nationality || '-')}
+                            {col.key === 'created_at' && format(new Date(record.created_at), 'dd/MM/yyyy')}
+                            {col.key === 'telephone' && (record.telephone || '-')}
+                          </TableCell>
+                        ))}
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Button
