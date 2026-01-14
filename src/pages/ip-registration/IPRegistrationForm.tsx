@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,26 @@ export interface IPFormData {
   birth_doc_type?: string | null;
   death_doc_type?: string | null;
   name_doc_type?: string | null;
+  // Relations fields stored in ip_master
+  contact?: string | null;
+  contact_relation?: string | null;
+  contact_addr1?: string | null;
+  contact_addr2?: string | null;
+  contact_phone?: string | null;
+  contact_mobile?: string | null;
+  contact_email?: string | null;
+  father_name?: string | null;
+  mother_name?: string | null;
+  spouse_name?: string | null;
+  spouse_addr1?: string | null;
+  spouse_addr2?: string | null;
+  spouse_ssn?: string | null;
+  spouse_dob?: string | null;
+  witness_name?: string | null;
+  date_witnessed?: string | null;
+  beneficiary?: string | null;
+  ben_addr1?: string | null;
+  ben_addr2?: string | null;
   status: string;
   created_by?: string | null;
   created_at?: string | null;
@@ -86,6 +106,14 @@ const tabSteps = [
   { id: 'documents', label: 'Document Verification', icon: FileText },
 ];
 
+// Initial empty form data for new registrations
+const getInitialFormData = (): IPFormData => ({
+  unique_uuid: crypto.randomUUID(),
+  application_id: '',
+  status: 'Z', // Draft status
+  application_date: new Date().toISOString().split('T')[0],
+});
+
 export default function IPRegistrationForm() {
   const { uniqueUuid } = useParams<{ uniqueUuid: string }>();
   const [searchParams] = useSearchParams();
@@ -111,10 +139,11 @@ export default function IPRegistrationForm() {
   const [rejectReason, setRejectReason] = useState('');
   const [showStepSuccess, setShowStepSuccess] = useState(false);
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [isNewRecord, setIsNewRecord] = useState(false);
+  const hasShownSuccessRef = useRef(false);
 
-  // Create a new draft registration
-  const createNewDraft = useCallback(async () => {
+  // Initialize form for new mode (no DB save until explicit save)
+  const initializeNewForm = useCallback(async () => {
     setLoading(true);
     try {
       // Generate application ID
@@ -123,29 +152,16 @@ export default function IPRegistrationForm() {
       
       if (appIdError) throw appIdError;
 
-      const newUuid = crypto.randomUUID();
+      // Create form data in memory only - NO database insert
+      const newFormData = getInitialFormData();
+      newFormData.application_id = appIdData;
+      newFormData.created_by = user?.id;
       
-      // Create new draft record
-      const { data, error } = await supabase
-        .from('tmp_ip_master')
-        .insert({
-          unique_uuid: newUuid,
-          application_id: appIdData,
-          status: 'D',
-          created_by: user?.id,
-          application_date: new Date().toISOString().split('T')[0],
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success(`Draft created: ${appIdData}`);
-      // Navigate to edit mode with the new UUID
-      navigate(`/ip-registration/edit/${newUuid}`, { replace: true });
+      setFormData(newFormData);
+      setIsNewRecord(true);
     } catch (error) {
-      console.error('Error creating draft:', error);
-      toast.error('Failed to create new registration');
+      console.error('Error initializing form:', error);
+      toast.error('Failed to initialize new registration');
       navigate('/ip-registration');
     } finally {
       setLoading(false);
@@ -222,10 +238,31 @@ export default function IPRegistrationForm() {
         birth_doc_type: recordData.birth_doc_type,
         death_doc_type: recordData.death_doc_type,
         name_doc_type: recordData.name_doc_type,
+        // Relations fields
+        contact: recordData.contact,
+        contact_relation: recordData.contact_relation,
+        contact_addr1: recordData.contact_addr1,
+        contact_addr2: recordData.contact_addr2,
+        contact_phone: recordData.contact_phone,
+        contact_mobile: recordData.contact_mobile,
+        contact_email: recordData.contact_email,
+        father_name: recordData.father_name,
+        mother_name: recordData.mother_name,
+        spouse_name: recordData.spouse_name,
+        spouse_addr1: recordData.spouse_addr1,
+        spouse_addr2: recordData.spouse_addr2,
+        spouse_ssn: recordData.spouse_ssn,
+        spouse_dob: recordData.spouse_dob,
+        witness_name: recordData.witness_name,
+        date_witnessed: recordData.date_witnessed,
+        beneficiary: recordData.beneficiary,
+        ben_addr1: recordData.ben_addr1,
+        ben_addr2: recordData.ben_addr2,
         status: recordData.status,
         created_by: recordData.created_by,
         created_at: recordData.created_at,
       });
+      setIsNewRecord(false);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load registration data');
@@ -237,14 +274,13 @@ export default function IPRegistrationForm() {
 
   useEffect(() => {
     if (isNewMode) {
-      createNewDraft();
+      initializeNewForm();
     } else if (uniqueUuid) {
       fetchData();
     } else {
-      // No UUID and not new mode - redirect to list
       navigate('/ip-registration');
     }
-  }, [isNewMode, uniqueUuid, fetchData, createNewDraft, navigate]);
+  }, [isNewMode, uniqueUuid, fetchData, initializeNewForm, navigate]);
 
   useEffect(() => {
     if (action === 'submit') {
@@ -256,35 +292,134 @@ export default function IPRegistrationForm() {
     }
   }, [action]);
 
-  const autoSave = useCallback(async (data: Partial<IPFormData>) => {
-    // Don't save in view mode
-    if (isViewMode) return;
-    // Don't save if user hasn't interacted yet (prevents initial save)
-    if (!hasUserInteracted) return;
-    // Only save drafts
-    if (!formData || formData.status !== 'D') return;
+  // Validate current tab before saving
+  const validateCurrentTab = useCallback((): boolean => {
+    if (!formData) return false;
+    const newErrors: ValidationErrors = {};
+
+    if (activeTab === 'basic') {
+      if (!formData.first_name?.trim()) newErrors.first_name = 'First name is required';
+      if (!formData.last_name?.trim()) newErrors.last_name = 'Last name is required';
+      if (!formData.gender) newErrors.gender = 'Gender is required';
+      if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
+      if (!formData.marital_status) newErrors.marital_status = 'Marital status is required';
+      if (!formData.nationality) newErrors.nationality = 'Nationality is required';
+      if (!formData.birth_place) newErrors.birth_place = 'Birth place is required';
+      if (!formData.title) newErrors.title = 'Title is required';
+
+      if ((formData.marital_status === 'Married' || formData.marital_status === 'Common Law') && !formData.date_married) {
+        newErrors.date_married = 'Date married is required';
+      }
+    }
+
+    if (activeTab === 'employment') {
+      if (formData.citizenship === 'N' && formData.place_of_residence === 'RES') {
+        if (!formData.work_permit_status || formData.work_permit_status === 'N') {
+          newErrors.work_permit_status = 'Work permit is required for non-citizen residents';
+        }
+        if (!formData.work_permit_expiry) {
+          newErrors.work_permit_expiry = 'Work permit expiry is required';
+        } else if (new Date(formData.work_permit_expiry) <= new Date()) {
+          newErrors.work_permit_expiry = 'Work permit expiry must be a future date';
+        }
+      }
+    }
+
+    if (activeTab === 'documents') {
+      if (!formData.birth_doc_type) newErrors.birth_doc_type = 'Birth status verification is required';
+      if (!formData.name_doc_type) newErrors.name_doc_type = 'Name status verification is required';
+    }
+
+    setErrors(prev => ({ ...prev, ...newErrors }));
+    
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { 
+          backgroundColor: 'hsl(var(--destructive))', 
+          color: 'white',
+        },
+        classNames: {
+          toast: '!bg-destructive',
+          title: '!text-white',
+          description: '!text-white !opacity-100'
+        }
+      });
+      return false;
+    }
+    return true;
+  }, [formData, activeTab]);
+
+  // Save data to database (for drafts)
+  const saveToDatabase = useCallback(async (data: Partial<IPFormData>, showSuccessMessage = true): Promise<boolean> => {
+    if (isViewMode || !formData) return false;
+    
+    // Only save drafts (status Z or D)
+    if (formData.status !== 'Z' && formData.status !== 'D') return false;
     
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('tmp_ip_master')
-        .update({
+      if (isNewRecord) {
+        // First save - insert new record with status Z
+        const insertData = {
+          unique_uuid: formData.unique_uuid,
+          application_id: formData.application_id,
+          status: 'Z', // Draft status
+          created_by: user?.id,
+          application_date: formData.application_date || new Date().toISOString().split('T')[0],
           ...data,
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id,
-        })
-        .eq('unique_uuid', formData.unique_uuid);
+        };
 
-      if (error) throw error;
-      
-      setFormData(prev => prev ? { ...prev, ...data } : null);
+        const { data: insertedData, error } = await supabase
+          .from('tmp_ip_master')
+          .insert(insertData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        setFormData(prev => prev ? { ...prev, ...insertedData, id: insertedData.id } : null);
+        setIsNewRecord(false);
+        
+        // Navigate to edit mode with the new UUID
+        navigate(`/ip-registration/edit/${formData.unique_uuid}`, { replace: true });
+        
+        if (showSuccessMessage && !hasShownSuccessRef.current) {
+          toast.success('Draft saved successfully');
+          hasShownSuccessRef.current = true;
+          setTimeout(() => { hasShownSuccessRef.current = false; }, 1000);
+        }
+      } else {
+        // Update existing record
+        const { error } = await supabase
+          .from('tmp_ip_master')
+          .update({
+            ...data,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id,
+          })
+          .eq('unique_uuid', formData.unique_uuid);
+
+        if (error) throw error;
+        
+        setFormData(prev => prev ? { ...prev, ...data } : null);
+        
+        if (showSuccessMessage && !hasShownSuccessRef.current) {
+          toast.success('Changes saved');
+          hasShownSuccessRef.current = true;
+          setTimeout(() => { hasShownSuccessRef.current = false; }, 1000);
+        }
+      }
+      return true;
     } catch (error) {
-      console.error('Auto-save error:', error);
+      console.error('Save error:', error);
       toast.error('Failed to save changes');
+      return false;
     } finally {
       setSaving(false);
     }
-  }, [formData, isViewMode, user?.id, hasUserInteracted]);
+  }, [formData, isViewMode, isNewRecord, user?.id, navigate]);
 
   const clearError = useCallback((field: string) => {
     if (errors[field]) {
@@ -299,22 +434,16 @@ export default function IPRegistrationForm() {
   const handleFieldChange = useCallback((field: string, value: any) => {
     if (!formData) return;
     
-    // Mark that user has interacted (enables auto-save)
-    if (!hasUserInteracted) {
-      setHasUserInteracted(true);
-    }
-    
     const newData = { ...formData, [field]: value };
     setFormData(newData);
     
-    // Clear error for this field
     clearError(field);
 
     // Check for duplicates on key fields
     if (['first_name', 'last_name', 'date_of_birth', 'gender'].includes(field)) {
       checkDuplicates(newData);
     }
-  }, [formData, clearError, hasUserInteracted]);
+  }, [formData, clearError]);
 
   const checkDuplicates = async (data: IPFormData) => {
     if (!data.first_name || !data.last_name || !data.date_of_birth || !data.gender) return;
@@ -340,30 +469,40 @@ export default function IPRegistrationForm() {
     }
   };
 
+  // Handle "Save & Continue" button click
+  const handleSaveAndContinue = useCallback(async () => {
+    // Don't save in view mode
+    if (isViewMode) return;
+    
+    // Validate current tab
+    if (!validateCurrentTab()) return;
+    
+    // Save to database
+    const saved = await saveToDatabase(formData || {});
+    if (!saved && !isNewRecord) return;
+
+    // Mark current tab as completed
+    if (!completedTabs.includes(activeTab)) {
+      setCompletedTabs(prev => [...prev, activeTab]);
+    }
+
+    // Move to next tab
+    const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
+    if (currentIndex < tabSteps.length - 1) {
+      setPendingTabChange(tabSteps[currentIndex + 1].id);
+      setShowStepSuccess(true);
+    }
+  }, [isViewMode, validateCurrentTab, saveToDatabase, formData, completedTabs, activeTab, isNewRecord]);
+
   const handleTabChange = (newTab: string) => {
     // In View mode, don't save - just switch tabs
     if (isViewMode) {
-      if (!completedTabs.includes(activeTab)) {
-        setCompletedTabs(prev => [...prev, activeTab]);
-      }
       setActiveTab(newTab);
       return;
     }
     
-    // Auto-save before changing tabs (only in edit mode for drafts)
-    if (formData && formData.status === 'D') {
-      autoSave(formData);
-    }
-    
-    // Mark current tab as completed and show success animation
-    if (!completedTabs.includes(activeTab)) {
-      setCompletedTabs(prev => [...prev, activeTab]);
-      // Show success animation before switching
-      setPendingTabChange(newTab);
-      setShowStepSuccess(true);
-    } else {
-      setActiveTab(newTab);
-    }
+    // For direct tab clicks (not save & continue), just switch without saving
+    setActiveTab(newTab);
   };
 
   const handleSuccessComplete = useCallback(() => {
@@ -398,7 +537,9 @@ export default function IPRegistrationForm() {
 
     // Employment validation for non-citizens
     if (formData?.citizenship === 'N' && formData?.place_of_residence === 'RES') {
-      if (!formData?.work_permit_status) newErrors.work_permit_status = 'Work permit is required for non-citizen residents';
+      if (!formData?.work_permit_status || formData?.work_permit_status === 'N') {
+        newErrors.work_permit_status = 'Work permit is required for non-citizen residents';
+      }
       if (!formData?.work_permit_expiry) {
         newErrors.work_permit_expiry = 'Work permit expiry is required';
       } else if (new Date(formData.work_permit_expiry) <= new Date()) {
@@ -436,6 +577,12 @@ export default function IPRegistrationForm() {
     }
 
     try {
+      // First ensure the record is saved
+      if (isNewRecord) {
+        const saved = await saveToDatabase(formData, false);
+        if (!saved) throw new Error('Failed to save draft');
+      }
+
       // Generate SSN
       const { data: ssnData, error: ssnError } = await supabase
         .rpc('generate_ip_ssn');
@@ -483,15 +630,35 @@ export default function IPRegistrationForm() {
         birth_doc_type: formData.birth_doc_type,
         death_doc_type: formData.death_doc_type,
         name_doc_type: formData.name_doc_type,
+        // Relations fields
+        contact: formData.contact,
+        contact_relation: formData.contact_relation,
+        contact_addr1: formData.contact_addr1,
+        contact_addr2: formData.contact_addr2,
+        contact_phone: formData.contact_phone,
+        contact_mobile: formData.contact_mobile,
+        contact_email: formData.contact_email,
+        father_name: formData.father_name,
+        mother_name: formData.mother_name,
+        spouse_name: formData.spouse_name,
+        spouse_addr1: formData.spouse_addr1,
+        spouse_addr2: formData.spouse_addr2,
+        spouse_ssn: formData.spouse_ssn,
+        spouse_dob: formData.spouse_dob,
+        witness_name: formData.witness_name,
+        date_witnessed: formData.date_witnessed,
+        beneficiary: formData.beneficiary,
+        ben_addr1: formData.ben_addr1,
+        ben_addr2: formData.ben_addr2,
         status: 'P',
         created_by: formData.created_by,
+        submitted_by: user?.id,
+        submitted_at: new Date().toISOString(),
       };
 
-      const { data: insertedRecord, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('ip_master')
-        .insert(insertData)
-        .select()
-        .single();
+        .insert(insertData);
 
       if (insertError) throw insertError;
 
@@ -637,7 +804,7 @@ export default function IPRegistrationForm() {
     );
   }
 
-  const isEditable = !isViewMode && formData.status === 'D';
+  const isEditable = !isViewMode && (formData.status === 'Z' || formData.status === 'D');
   const canApprove = formData.status === 'P' && formData.created_by !== user?.id;
 
   return (
@@ -646,7 +813,7 @@ export default function IPRegistrationForm() {
       <SuccessAnimation
         show={showStepSuccess}
         onComplete={handleSuccessComplete}
-        duration={1000}
+        duration={800}
         message="Step completed"
       />
       
@@ -663,7 +830,7 @@ export default function IPRegistrationForm() {
           <div className="h-6 w-px bg-border" />
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
-              {isViewMode ? 'View' : 'Register'} Insured Person
+              {isViewMode ? 'View' : isNewRecord ? 'New' : 'Edit'} Insured Person
             </h1>
             <p className="text-muted-foreground">
               Application ID: {formData.application_id} | Status: {ipStatuses ? getStatusDescription(formData.status, ipStatuses) : formData.status}
@@ -764,7 +931,7 @@ export default function IPRegistrationForm() {
                 <BasicDetailsTab
                   formData={formData}
                   onChange={handleFieldChange}
-                  onSave={autoSave}
+                  onSave={() => {}} // No auto-save on field change
                   errors={errors}
                   isEditable={isEditable}
                   clearError={clearError}
@@ -774,7 +941,7 @@ export default function IPRegistrationForm() {
                 <AddressContactTab
                   formData={formData}
                   onChange={handleFieldChange}
-                  onSave={autoSave}
+                  onSave={() => {}}
                   errors={errors}
                   isEditable={isEditable}
                   clearError={clearError}
@@ -782,7 +949,8 @@ export default function IPRegistrationForm() {
               )}
               {activeTab === 'relations' && (
                 <RelationsTab
-                  uniqueUuid={formData.unique_uuid}
+                  formData={formData}
+                  onChange={handleFieldChange} 
                   isEditable={isEditable}
                 />
               )}
@@ -790,7 +958,7 @@ export default function IPRegistrationForm() {
                 <EmploymentTab
                   formData={formData}
                   onChange={handleFieldChange}
-                  onSave={autoSave}
+                  onSave={() => {}}
                   errors={errors}
                   isEditable={isEditable}
                   clearError={clearError}
@@ -800,7 +968,7 @@ export default function IPRegistrationForm() {
                 <DocumentVerificationTab
                   formData={formData}
                   onChange={handleFieldChange}
-                  onSave={autoSave}
+                  onSave={() => {}}
                   errors={errors}
                   isEditable={isEditable}
                   clearError={clearError}
@@ -821,16 +989,9 @@ export default function IPRegistrationForm() {
                 >
                   ← Back
                 </Button>
-                {/* Hide Save & Continue in View mode or on last tab */}
-                {!isViewMode && activeTab !== 'documents' && (
-                  <Button
-                    onClick={() => {
-                      const currentIndex = tabSteps.findIndex(t => t.id === activeTab);
-                      if (currentIndex < tabSteps.length - 1) {
-                        handleTabChange(tabSteps[currentIndex + 1].id);
-                      }
-                    }}
-                  >
+                {/* Show Save & Continue in Edit mode (not on last tab) */}
+                {isEditable && activeTab !== 'documents' && (
+                  <Button onClick={handleSaveAndContinue}>
                     Save & Continue →
                   </Button>
                 )}
@@ -846,6 +1007,12 @@ export default function IPRegistrationForm() {
                     }}
                   >
                     Next →
+                  </Button>
+                )}
+                {/* Save button on last tab */}
+                {isEditable && activeTab === 'documents' && (
+                  <Button onClick={() => saveToDatabase(formData)}>
+                    Save
                   </Button>
                 )}
               </div>
@@ -969,7 +1136,7 @@ export default function IPRegistrationForm() {
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReject} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction onClick={handleReject} className="bg-destructive">
               Reject
             </AlertDialogAction>
           </AlertDialogFooter>

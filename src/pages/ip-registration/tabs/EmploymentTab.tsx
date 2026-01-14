@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { IPFormData } from '../IPRegistrationForm';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
 import { format, isValid } from 'date-fns';
+import { useOccupations, useCountries } from '@/hooks/useIPMasterLookups';
 
 interface EmploymentTabProps {
   formData: IPFormData;
@@ -13,19 +14,6 @@ interface EmploymentTabProps {
   isEditable: boolean;
   clearError: (field: string) => void;
 }
-
-const occupations = [
-  'Accountant', 'Administrator', 'Architect', 'Artist', 'Business Owner', 
-  'Clerk', 'Doctor', 'Driver', 'Engineer', 'Farmer', 'Fisherman',
-  'Lawyer', 'Manager', 'Mechanic', 'Nurse', 'Police Officer',
-  'Sales Representative', 'Secretary', 'Self-Employed', 'Student',
-  'Teacher', 'Technician', 'Unemployed', 'Other'
-];
-
-const workPermitStatuses = ['Yes', 'No', 'Pending', 'Expired', 'Not Applicable'];
-const npfStatuses = ['Active', 'Inactive', 'Pending', 'Exempt'];
-const placeOfResidences = ['RES', 'NON-RES', 'Visitor'];
-const signatureStatuses = ['Yes', 'No', 'Pending'];
 
 // Convert ISO date string to Date object
 const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
@@ -48,6 +36,10 @@ export default function EmploymentTab({
   isEditable,
   clearError 
 }: EmploymentTabProps) {
+  // Fetch from master tables
+  const { data: occupations, isLoading: occupationsLoading } = useOccupations();
+  const { data: countries, isLoading: countriesLoading } = useCountries();
+
   const handleFieldChange = useCallback((field: string, value: any) => {
     onChange(field, value);
     clearError(field);
@@ -55,14 +47,12 @@ export default function EmploymentTab({
 
   const handleSelectChange = useCallback((field: string, value: string) => {
     handleFieldChange(field, value);
-    onSave({ [field]: value });
-  }, [handleFieldChange, onSave]);
+  }, [handleFieldChange]);
 
   const handleDateChange = useCallback((field: string, date: Date | undefined) => {
     const isoDate = formatToISO(date);
     handleFieldChange(field, isoDate);
-    onSave({ [field]: isoDate });
-  }, [handleFieldChange, onSave]);
+  }, [handleFieldChange]);
 
   const requiresWorkPermit = formData.citizenship === 'N' && formData.place_of_residence === 'RES';
 
@@ -71,24 +61,28 @@ export default function EmploymentTab({
       <h2 className="text-xl font-semibold">Employment Details</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Occupation */}
+        {/* Occupation - from tb_occup */}
         <div className="space-y-2">
           <Label htmlFor="occupation">Occupation</Label>
           <Select 
             value={formData.occupation || ''} 
             onValueChange={(v) => handleSelectChange('occupation', v)}
-            disabled={!isEditable}
+            disabled={!isEditable || occupationsLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Occupation" />
+              <SelectValue placeholder={occupationsLoading ? 'Loading...' : 'Select Occupation'} />
             </SelectTrigger>
             <SelectContent>
-              {occupations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+              {occupations?.map(o => (
+                <SelectItem key={o.code} value={o.code}>
+                  {o.short_description || o.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Work Permit */}
+        {/* Work Permit - Yes/No storing Y/N */}
         <div className="space-y-2">
           <Label htmlFor="work_permit_status">
             Work Permit
@@ -103,13 +97,14 @@ export default function EmploymentTab({
               <SelectValue placeholder="Select Work Permit Status" />
             </SelectTrigger>
             <SelectContent>
-              {workPermitStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="Y">Yes</SelectItem>
+              <SelectItem value="N">No</SelectItem>
             </SelectContent>
           </Select>
           {errors.work_permit_status && <p className="text-xs text-destructive mt-1">{errors.work_permit_status}</p>}
         </div>
 
-        {/* NPF */}
+        {/* NPF - Yes/No storing Y/N */}
         <div className="space-y-2">
           <Label htmlFor="npf_status">NPF</Label>
           <Select 
@@ -121,7 +116,8 @@ export default function EmploymentTab({
               <SelectValue placeholder="Select NPF Status" />
             </SelectTrigger>
             <SelectContent>
-              {npfStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="Y">Yes</SelectItem>
+              <SelectItem value="N">No</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -148,19 +144,25 @@ export default function EmploymentTab({
           />
         </div>
 
-        {/* Place of Residence */}
+        {/* Place of Residence - from tb_country */}
         <div className="space-y-2">
           <Label htmlFor="place_of_residence">Place of Residence</Label>
           <Select 
             value={formData.place_of_residence || ''} 
             onValueChange={(v) => handleSelectChange('place_of_residence', v)}
-            disabled={!isEditable}
+            disabled={!isEditable || countriesLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Place of Residence" />
+              <SelectValue placeholder={countriesLoading ? 'Loading...' : 'Select Place of Residence'} />
             </SelectTrigger>
             <SelectContent>
-              {placeOfResidences.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              <SelectItem value="RES">Resident</SelectItem>
+              <SelectItem value="NON-RES">Non-Resident</SelectItem>
+              {countries?.map(c => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.description || c.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -185,7 +187,7 @@ export default function EmploymentTab({
       <h2 className="text-xl font-semibold mt-8">Additional Information</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Citizenship */}
+        {/* Citizenship - Yes/No storing Y/N */}
         <div className="space-y-2">
           <Label htmlFor="citizenship">Citizenship</Label>
           <Select 
@@ -197,13 +199,13 @@ export default function EmploymentTab({
               <SelectValue placeholder="Select Citizenship Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Y">Citizen</SelectItem>
-              <SelectItem value="N">Non-Citizen</SelectItem>
+              <SelectItem value="Y">Yes</SelectItem>
+              <SelectItem value="N">No</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Signature on File */}
+        {/* Signature on File - Yes/No storing Y/N */}
         <div className="space-y-2">
           <Label htmlFor="signature_on_file">Signature on File</Label>
           <Select 
@@ -215,7 +217,8 @@ export default function EmploymentTab({
               <SelectValue placeholder="Select Signature Status" />
             </SelectTrigger>
             <SelectContent>
-              {signatureStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="Y">Yes</SelectItem>
+              <SelectItem value="N">No</SelectItem>
             </SelectContent>
           </Select>
         </div>
