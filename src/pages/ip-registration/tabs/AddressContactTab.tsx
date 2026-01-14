@@ -157,12 +157,7 @@ export default function AddressContactTab({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Address Information</h2>
-          {isEditable && (
-            <Button variant="outline" size="sm" onClick={() => setShowAddDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Address
-            </Button>
-          )}
+          {/* Add New Address button removed as per requirement */}
         </div>
 
         <div className="space-y-4">

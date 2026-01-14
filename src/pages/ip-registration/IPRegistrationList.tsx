@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
 
 interface IPRecord {
   id: string;
@@ -46,6 +47,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 export default function IPRegistrationList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: ipStatuses } = useIPStatuses();
   const [records, setRecords] = useState<IPRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
@@ -389,7 +391,7 @@ export default function IPRegistrationList() {
                         <TableCell>{record.middle_name || '-'}</TableCell>
                         <TableCell>
                           <Badge variant={statusConfig[record.status]?.variant || 'default'}>
-                            {statusConfig[record.status]?.label || record.status}
+                            {ipStatuses ? getStatusDescription(record.status, ipStatuses) : (statusConfig[record.status]?.label || record.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>
