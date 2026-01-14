@@ -38,7 +38,7 @@ interface IPRecord {
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  D: { label: 'Draft', variant: 'secondary' },
+  Z: { label: 'Draft', variant: 'secondary' },
   P: { label: 'Pending', variant: 'default' },
   V: { label: 'Verified', variant: 'outline' },
   R: { label: 'Rejected', variant: 'destructive' },
@@ -108,7 +108,7 @@ export default function IPRegistrationList() {
 
   const filteredRecords = records.filter(record => {
     // Tab filter
-    if (activeTab === 'pending' && record.status !== 'P' && record.status !== 'D') return false;
+    if (activeTab === 'pending' && record.status !== 'P' && record.status !== 'Z') return false;
     if (activeTab === 'registered' && record.status !== 'V') return false;
     if (activeTab === 'inactive' && record.status !== 'R') return false;
 
@@ -135,12 +135,12 @@ export default function IPRegistrationList() {
     return true;
   });
 
-  const pendingCount = records.filter(r => r.status === 'P' || r.status === 'D').length;
+  const pendingCount = records.filter(r => r.status === 'P' || r.status === 'Z').length;
   const registeredCount = records.filter(r => r.status === 'V').length;
   const inactiveCount = records.filter(r => r.status === 'R').length;
 
-  const canEdit = (record: IPRecord) => record.status === 'D';
-  const canSubmit = (record: IPRecord) => record.status === 'D';
+  const canEdit = (record: IPRecord) => record.status === 'Z';
+  const canSubmit = (record: IPRecord) => record.status === 'Z';
   const canApprove = (record: IPRecord) => record.status === 'P' && record.created_by !== user?.id;
   const canReject = (record: IPRecord) => record.status === 'P' && record.created_by !== user?.id;
 
@@ -283,7 +283,7 @@ export default function IPRegistrationList() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="D">Draft</SelectItem>
+                        <SelectItem value="Z">Draft</SelectItem>
                         <SelectItem value="P">Pending</SelectItem>
                         <SelectItem value="V">Verified</SelectItem>
                         <SelectItem value="R">Rejected</SelectItem>
