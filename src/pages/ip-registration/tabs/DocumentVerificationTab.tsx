@@ -9,6 +9,7 @@ import { IPFormData } from '../IPRegistrationForm';
 import { Upload, File, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
 
 interface DocumentVerificationTabProps {
   formData: IPFormData;
@@ -28,16 +29,14 @@ interface UploadedDocument {
   uploaded_at: string;
 }
 
-const maritalDocTypes = ['Marriage Certificate', 'Divorce Decree', 'Death Certificate of Spouse', 'Affidavit', 'Not Applicable'];
-const birthDocTypes = ['Birth Certificate', 'Passport', 'Hospital Record', 'Baptismal Certificate'];
-const deathDocTypes = ['Death Certificate', 'Coroner Report', 'Hospital Record', 'Not Applicable'];
-const nameDocTypes = ['Birth Certificate', 'Passport', 'Driver License', 'National ID', 'Deed Poll'];
-
 export default function DocumentVerificationTab({ formData, onChange, onSave, errors, isEditable, clearError }: DocumentVerificationTabProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Fetch verification types from tb_verify
+  const { data: verifyTypes, isLoading: verifyLoading } = useVerifyTypes();
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -149,96 +148,101 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const handleSelectChange = useCallback((field: string, value: string) => {
+    onChange(field, value);
+    clearError?.(field);
+  }, [onChange, clearError]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Document Verification</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Marital Status Verification */}
+        {/* Marital Status Verification - from tb_verify */}
         <div className="space-y-2">
           <Label htmlFor="marital_doc_type">Marital Status Verification</Label>
           <Select 
             value={formData.marital_doc_type || ''} 
-            onValueChange={(v) => { 
-              onChange('marital_doc_type', v); 
-              onSave({ marital_doc_type: v }); 
-              clearError?.('marital_doc_type');
-            }}
-            disabled={!isEditable}
+            onValueChange={(v) => handleSelectChange('marital_doc_type', v)}
+            disabled={!isEditable || verifyLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Document Type" />
+              <SelectValue placeholder={verifyLoading ? 'Loading...' : 'Select Document Type'} />
             </SelectTrigger>
             <SelectContent>
-              {maritalDocTypes.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              {verifyTypes?.map(v => (
+                <SelectItem key={v.code} value={v.code}>
+                  {v.description || v.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Birth Status Verification */}
+        {/* Birth Status Verification - from tb_verify */}
         <div className="space-y-2">
           <Label htmlFor="birth_doc_type">
             Birth Status Verification <span className="text-destructive">*</span>
           </Label>
           <Select 
             value={formData.birth_doc_type || ''} 
-            onValueChange={(v) => { 
-              onChange('birth_doc_type', v); 
-              onSave({ birth_doc_type: v }); 
-              clearError?.('birth_doc_type');
-            }}
-            disabled={!isEditable}
+            onValueChange={(v) => handleSelectChange('birth_doc_type', v)}
+            disabled={!isEditable || verifyLoading}
           >
             <SelectTrigger className={errors.birth_doc_type ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Select Document Type" />
+              <SelectValue placeholder={verifyLoading ? 'Loading...' : 'Select Document Type'} />
             </SelectTrigger>
             <SelectContent>
-              {birthDocTypes.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              {verifyTypes?.map(v => (
+                <SelectItem key={v.code} value={v.code}>
+                  {v.description || v.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.birth_doc_type && <p className="text-xs text-destructive">{errors.birth_doc_type}</p>}
         </div>
 
-        {/* Death Status Verification */}
+        {/* Death Status Verification - from tb_verify */}
         <div className="space-y-2">
           <Label htmlFor="death_doc_type">Death Status Verification</Label>
           <Select 
             value={formData.death_doc_type || ''} 
-            onValueChange={(v) => { 
-              onChange('death_doc_type', v); 
-              onSave({ death_doc_type: v }); 
-              clearError?.('death_doc_type');
-            }}
-            disabled={!isEditable}
+            onValueChange={(v) => handleSelectChange('death_doc_type', v)}
+            disabled={!isEditable || verifyLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Document Type" />
+              <SelectValue placeholder={verifyLoading ? 'Loading...' : 'Select Document Type'} />
             </SelectTrigger>
             <SelectContent>
-              {deathDocTypes.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              {verifyTypes?.map(v => (
+                <SelectItem key={v.code} value={v.code}>
+                  {v.description || v.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Name Status Verification */}
+        {/* Name Status Verification - from tb_verify */}
         <div className="space-y-2">
           <Label htmlFor="name_doc_type">
             Name Status Verification <span className="text-destructive">*</span>
           </Label>
           <Select 
             value={formData.name_doc_type || ''} 
-            onValueChange={(v) => { 
-              onChange('name_doc_type', v); 
-              onSave({ name_doc_type: v }); 
-              clearError?.('name_doc_type');
-            }}
-            disabled={!isEditable}
+            onValueChange={(v) => handleSelectChange('name_doc_type', v)}
+            disabled={!isEditable || verifyLoading}
           >
             <SelectTrigger className={errors.name_doc_type ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Select Document Type" />
+              <SelectValue placeholder={verifyLoading ? 'Loading...' : 'Select Document Type'} />
             </SelectTrigger>
             <SelectContent>
-              {nameDocTypes.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              {verifyTypes?.map(v => (
+                <SelectItem key={v.code} value={v.code}>
+                  {v.description || v.code}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.name_doc_type && <p className="text-xs text-destructive">{errors.name_doc_type}</p>}
