@@ -261,6 +261,12 @@ import RoleDataPolicies from '@/pages/admin/data-access/RoleDataPolicies';
 import UserDataOverrides from '@/pages/admin/data-access/UserDataOverrides';
 import PolicyTestConsole from '@/pages/admin/data-access/PolicyTestConsole';
 
+// Identity Management
+import IdentityUsers from '@/pages/admin/identity/IdentityUsers';
+import IdentityRoles from '@/pages/admin/identity/IdentityRoles';
+import IdentityUserRoles from '@/pages/admin/identity/IdentityUserRoles';
+import IdentityMapping from '@/pages/admin/identity/IdentityMapping';
+
 // System Cleanup
 import SystemCleanupDashboard from '@/pages/admin/system-cleanup/SystemCleanupDashboard';
 import ActiveModulesInventory from '@/pages/admin/system-cleanup/ActiveModulesInventory';
@@ -920,6 +926,12 @@ export const AppRoutes = () => {
       <Route path="/admin/workflow-security" element={<ProtectedLayout><WorkflowSecuritySettings /></ProtectedLayout>} />
       <Route path="/admin/workflow-secured-approvals" element={<ProtectedLayout><SecuredWorkflowApprovals /></ProtectedLayout>} />
       <Route path="/workflow/my-tasks" element={<ProtectedLayout><MyWorkflowTasks /></ProtectedLayout>} />
+      
+      {/* Identity Management Routes */}
+      <Route path="/admin/identity/users" element={<ProtectedLayout><IdentityUsers /></ProtectedLayout>} />
+      <Route path="/admin/identity/roles" element={<ProtectedLayout><IdentityRoles /></ProtectedLayout>} />
+      <Route path="/admin/identity/user-roles" element={<ProtectedLayout><IdentityUserRoles /></ProtectedLayout>} />
+      <Route path="/admin/identity/mapping" element={<ProtectedLayout><IdentityMapping /></ProtectedLayout>} />
       
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
       <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />

@@ -117,6 +117,12 @@ export const routes = {
   SAMPLE_APPLICATION_VIEW: (id: string) => `/sample-applications/${id}`,
   SAMPLE_APPLICATION_EDIT: (id: string) => `/sample-applications/${id}/edit`,
 
+  // Identity Management routes
+  IDENTITY_USERS: '/admin/identity/users',
+  IDENTITY_ROLES: '/admin/identity/roles',
+  IDENTITY_USER_ROLES: '/admin/identity/user-roles',
+  IDENTITY_MAPPING: '/admin/identity/mapping',
+
   // Data Access Control routes
   DATA_ACCESS_SCOPE_RULES: '/admin/data-access/scope-rules',
   DATA_ACCESS_FIELD_SECURITY: '/admin/data-access/field-security',
