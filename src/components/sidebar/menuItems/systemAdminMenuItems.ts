@@ -19,7 +19,10 @@ import {
   CheckSquare,
   Trash2,
   Search,
-  RotateCcw
+  RotateCcw,
+  Fingerprint,
+  UserCheck,
+  Link2
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -56,6 +59,37 @@ export const systemAdminMenuItems = [
         url: "/admin/departments",
         icon: UserCog,
         requiresPermission: "system_administration"
+      },
+      {
+        title: "Identity Management",
+        icon: Fingerprint,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Identity Users",
+            url: "/admin/identity/users",
+            icon: Users,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Identity Roles",
+            url: "/admin/identity/roles",
+            icon: ShieldCheck,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "User Role Assignments",
+            url: "/admin/identity/user-roles",
+            icon: UserCheck,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Identity Mapping",
+            url: "/admin/identity/mapping",
+            icon: Link2,
+            requiresPermission: "system_administration"
+          }
+        ]
       },
       {
         title: "Workflow Engine",
