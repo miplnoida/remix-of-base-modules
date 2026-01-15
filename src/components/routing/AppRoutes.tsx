@@ -266,6 +266,7 @@ import IdentityUsers from '@/pages/admin/identity/IdentityUsers';
 import IdentityRoles from '@/pages/admin/identity/IdentityRoles';
 import IdentityUserRoles from '@/pages/admin/identity/IdentityUserRoles';
 import IdentityMapping from '@/pages/admin/identity/IdentityMapping';
+import IdentityClaims from '@/pages/admin/identity/IdentityClaims';
 
 // System Cleanup
 import SystemCleanupDashboard from '@/pages/admin/system-cleanup/SystemCleanupDashboard';
@@ -932,6 +933,7 @@ export const AppRoutes = () => {
       <Route path="/admin/identity/roles" element={<ProtectedLayout><IdentityRoles /></ProtectedLayout>} />
       <Route path="/admin/identity/user-roles" element={<ProtectedLayout><IdentityUserRoles /></ProtectedLayout>} />
       <Route path="/admin/identity/mapping" element={<ProtectedLayout><IdentityMapping /></ProtectedLayout>} />
+      <Route path="/admin/identity/claims" element={<ProtectedLayout><IdentityClaims /></ProtectedLayout>} />
       
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
       <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />

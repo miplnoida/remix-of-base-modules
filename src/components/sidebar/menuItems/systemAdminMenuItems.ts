@@ -22,7 +22,8 @@ import {
   RotateCcw,
   Fingerprint,
   UserCheck,
-  Link2
+  Link2,
+  Tag
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -87,6 +88,12 @@ export const systemAdminMenuItems = [
             title: "Identity Mapping",
             url: "/admin/identity/mapping",
             icon: Link2,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "User & Role Claims",
+            url: "/admin/identity/claims",
+            icon: Tag,
             requiresPermission: "system_administration"
           }
         ]
