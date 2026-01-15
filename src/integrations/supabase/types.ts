@@ -79,6 +79,341 @@ export type Database = {
           },
         ]
       }
+      AspNetRoleClaims: {
+        Row: {
+          ClaimType: string | null
+          ClaimValue: string | null
+          created_at: string
+          Id: number
+          RoleId: string
+        }
+        Insert: {
+          ClaimType?: string | null
+          ClaimValue?: string | null
+          created_at?: string
+          Id?: number
+          RoleId: string
+        }
+        Update: {
+          ClaimType?: string | null
+          ClaimValue?: string | null
+          created_at?: string
+          Id?: number
+          RoleId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AspNetRoleClaims_RoleId_fkey"
+            columns: ["RoleId"]
+            isOneToOne: false
+            referencedRelation: "AspNetRoles"
+            referencedColumns: ["Id"]
+          },
+        ]
+      }
+      AspNetRoles: {
+        Row: {
+          ConcurrencyStamp: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          Id: string
+          is_active: boolean
+          is_privileged: boolean
+          Name: string
+          NormalizedName: string
+          require_mfa: boolean
+          session_timeout_minutes: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ConcurrencyStamp?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          Id?: string
+          is_active?: boolean
+          is_privileged?: boolean
+          Name: string
+          NormalizedName: string
+          require_mfa?: boolean
+          session_timeout_minutes?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ConcurrencyStamp?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          Id?: string
+          is_active?: boolean
+          is_privileged?: boolean
+          Name?: string
+          NormalizedName?: string
+          require_mfa?: boolean
+          session_timeout_minutes?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      AspNetUserClaims: {
+        Row: {
+          ClaimType: string | null
+          ClaimValue: string | null
+          created_at: string
+          Id: number
+          UserId: string
+        }
+        Insert: {
+          ClaimType?: string | null
+          ClaimValue?: string | null
+          created_at?: string
+          Id?: number
+          UserId: string
+        }
+        Update: {
+          ClaimType?: string | null
+          ClaimValue?: string | null
+          created_at?: string
+          Id?: number
+          UserId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AspNetUserClaims_UserId_fkey"
+            columns: ["UserId"]
+            isOneToOne: false
+            referencedRelation: "AspNetUsers"
+            referencedColumns: ["Id"]
+          },
+        ]
+      }
+      AspNetUserLogins: {
+        Row: {
+          created_at: string
+          LoginProvider: string
+          ProviderDisplayName: string | null
+          ProviderKey: string
+          UserId: string
+        }
+        Insert: {
+          created_at?: string
+          LoginProvider: string
+          ProviderDisplayName?: string | null
+          ProviderKey: string
+          UserId: string
+        }
+        Update: {
+          created_at?: string
+          LoginProvider?: string
+          ProviderDisplayName?: string | null
+          ProviderKey?: string
+          UserId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AspNetUserLogins_UserId_fkey"
+            columns: ["UserId"]
+            isOneToOne: false
+            referencedRelation: "AspNetUsers"
+            referencedColumns: ["Id"]
+          },
+        ]
+      }
+      AspNetUserRoles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          expires_at: string | null
+          RoleId: string
+          UserId: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          expires_at?: string | null
+          RoleId: string
+          UserId: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          expires_at?: string | null
+          RoleId?: string
+          UserId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AspNetUserRoles_RoleId_fkey"
+            columns: ["RoleId"]
+            isOneToOne: false
+            referencedRelation: "AspNetRoles"
+            referencedColumns: ["Id"]
+          },
+          {
+            foreignKeyName: "AspNetUserRoles_UserId_fkey"
+            columns: ["UserId"]
+            isOneToOne: false
+            referencedRelation: "AspNetUsers"
+            referencedColumns: ["Id"]
+          },
+        ]
+      }
+      AspNetUsers: {
+        Row: {
+          AccessFailedCount: number
+          ConcurrencyStamp: string | null
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          department_id: string | null
+          designation_id: string | null
+          Email: string | null
+          EmailConfirmed: boolean
+          employee_code: string | null
+          first_name: string | null
+          force_password_change: boolean
+          full_name: string | null
+          gender: string | null
+          Id: string
+          is_active: boolean
+          last_login: string | null
+          last_name: string | null
+          last_password_change: string | null
+          LockoutEnabled: boolean
+          LockoutEnd: string | null
+          mfa_method: string | null
+          middle_name: string | null
+          NormalizedEmail: string | null
+          NormalizedUserName: string | null
+          office_id: string | null
+          PasswordHash: string | null
+          PhoneNumber: string | null
+          PhoneNumberConfirmed: boolean
+          SecurityStamp: string | null
+          title: string | null
+          TwoFactorEnabled: boolean
+          updated_at: string
+          updated_by: string | null
+          user_code: string | null
+          UserName: string | null
+        }
+        Insert: {
+          AccessFailedCount?: number
+          ConcurrencyStamp?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          department_id?: string | null
+          designation_id?: string | null
+          Email?: string | null
+          EmailConfirmed?: boolean
+          employee_code?: string | null
+          first_name?: string | null
+          force_password_change?: boolean
+          full_name?: string | null
+          gender?: string | null
+          Id?: string
+          is_active?: boolean
+          last_login?: string | null
+          last_name?: string | null
+          last_password_change?: string | null
+          LockoutEnabled?: boolean
+          LockoutEnd?: string | null
+          mfa_method?: string | null
+          middle_name?: string | null
+          NormalizedEmail?: string | null
+          NormalizedUserName?: string | null
+          office_id?: string | null
+          PasswordHash?: string | null
+          PhoneNumber?: string | null
+          PhoneNumberConfirmed?: boolean
+          SecurityStamp?: string | null
+          title?: string | null
+          TwoFactorEnabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_code?: string | null
+          UserName?: string | null
+        }
+        Update: {
+          AccessFailedCount?: number
+          ConcurrencyStamp?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          department_id?: string | null
+          designation_id?: string | null
+          Email?: string | null
+          EmailConfirmed?: boolean
+          employee_code?: string | null
+          first_name?: string | null
+          force_password_change?: boolean
+          full_name?: string | null
+          gender?: string | null
+          Id?: string
+          is_active?: boolean
+          last_login?: string | null
+          last_name?: string | null
+          last_password_change?: string | null
+          LockoutEnabled?: boolean
+          LockoutEnd?: string | null
+          mfa_method?: string | null
+          middle_name?: string | null
+          NormalizedEmail?: string | null
+          NormalizedUserName?: string | null
+          office_id?: string | null
+          PasswordHash?: string | null
+          PhoneNumber?: string | null
+          PhoneNumberConfirmed?: boolean
+          SecurityStamp?: string | null
+          title?: string | null
+          TwoFactorEnabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_code?: string | null
+          UserName?: string | null
+        }
+        Relationships: []
+      }
+      AspNetUserTokens: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          LoginProvider: string
+          Name: string
+          UserId: string
+          Value: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          LoginProvider: string
+          Name: string
+          UserId: string
+          Value?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          LoginProvider?: string
+          Name?: string
+          UserId?: string
+          Value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AspNetUserTokens_UserId_fkey"
+            columns: ["UserId"]
+            isOneToOne: false
+            referencedRelation: "AspNetUsers"
+            referencedColumns: ["Id"]
+          },
+        ]
+      }
       audit_interviews: {
         Row: {
           audit_id: string | null
@@ -6009,6 +6344,44 @@ export type Database = {
           },
         ]
       }
+      user_identity_map: {
+        Row: {
+          generated_user_code: string
+          id: string
+          identity_user_id: string
+          legacy_user_id: string
+          migration_date: string
+          migration_notes: string | null
+          supabase_auth_id: string | null
+        }
+        Insert: {
+          generated_user_code: string
+          id?: string
+          identity_user_id: string
+          legacy_user_id: string
+          migration_date?: string
+          migration_notes?: string | null
+          supabase_auth_id?: string | null
+        }
+        Update: {
+          generated_user_code?: string
+          id?: string
+          identity_user_id?: string
+          legacy_user_id?: string
+          migration_date?: string
+          migration_notes?: string | null
+          supabase_auth_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_identity_map_identity_user_id_fkey"
+            columns: ["identity_user_id"]
+            isOneToOne: true
+            referencedRelation: "AspNetUsers"
+            referencedColumns: ["Id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
@@ -6983,6 +7356,14 @@ export type Database = {
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
+      generate_user_code: {
+        Args: {
+          p_first_name: string
+          p_last_name: string
+          p_middle_name: string
+        }
+        Returns: string
+      }
       get_all_public_tables: {
         Args: never
         Returns: {
@@ -7054,6 +7435,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      identity_has_role: {
+        Args: { _role_name: string; _user_id: string }
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }

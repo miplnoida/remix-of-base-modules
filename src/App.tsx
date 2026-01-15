@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LegalCaseProvider } from '@/contexts/LegalCaseContext';
 import { LegalRoleProvider } from '@/contexts/LegalRoleContext';
 import { SupabaseAuthProvider } from '@/contexts/SupabaseAuthContext';
+import { IdentityAuthProvider } from '@/contexts/IdentityAuthContext';
 import { SystemLoggingProvider } from '@/providers/SystemLoggingProvider';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -22,23 +23,25 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <SupabaseAuthProvider>
-            <AuthProvider>
-              <NewBenefitAuthProvider>
-                <LegalAuthProvider>
-                  <LegalCaseProvider>
-                    <Router>
-                      <SystemLoggingProvider>
-                        <div className="min-h-screen bg-background">
-                          <AppRoutes />
-                          <Toaster />
-                          <SonnerToaster />
-                        </div>
-                      </SystemLoggingProvider>
-                    </Router>
-                  </LegalCaseProvider>
-                </LegalAuthProvider>
-              </NewBenefitAuthProvider>
-            </AuthProvider>
+            <IdentityAuthProvider>
+              <AuthProvider>
+                <NewBenefitAuthProvider>
+                  <LegalAuthProvider>
+                    <LegalCaseProvider>
+                      <Router>
+                        <SystemLoggingProvider>
+                          <div className="min-h-screen bg-background">
+                            <AppRoutes />
+                            <Toaster />
+                            <SonnerToaster />
+                          </div>
+                        </SystemLoggingProvider>
+                      </Router>
+                    </LegalCaseProvider>
+                  </LegalAuthProvider>
+                </NewBenefitAuthProvider>
+              </AuthProvider>
+            </IdentityAuthProvider>
           </SupabaseAuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
