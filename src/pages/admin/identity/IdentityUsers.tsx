@@ -41,11 +41,11 @@ interface AspNetUser {
   title: string | null;
 }
 
-// Generate a unique user code
+// Generate a unique user code (DB column is varchar(5))
 const generateUserCode = (firstName: string, lastName: string) => {
-  const prefix = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}${randomPart}`;
+  const prefix = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase(); // 2 chars
+  const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase(); // 3 chars
+  return `${prefix}${randomPart}`; // 5 chars total
 };
 
 const IdentityUsersContent = () => {
