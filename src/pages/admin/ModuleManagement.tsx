@@ -252,7 +252,7 @@ const ModuleManagementContent = () => {
   const deleteAction = useDeleteModuleAction();
 
   // Build tree structure
-  const { parentModules, childModulesMap, filteredParentModules } = useMemo(() => {
+  const { parentModules, childModulesMap, filteredParentModules, availableParentModules } = useMemo(() => {
     const parents = modules
       .filter((m) => !m.parent_id)
       .sort((a, b) => a.sort_order - b.sort_order);
@@ -276,10 +276,16 @@ const ModuleManagementContent = () => {
       )
     );
 
+    // Only modules without routes can be parent modules (container/folder modules)
+    const availableParents = modules
+      .filter((m) => !m.route || m.route.trim() === '')
+      .sort((a, b) => a.sort_order - b.sort_order);
+
     return {
       parentModules: parents,
       childModulesMap: childMap,
       filteredParentModules: filtered,
+      availableParentModules: availableParents,
     };
   }, [modules, searchQuery]);
 
@@ -570,7 +576,7 @@ const ModuleManagementContent = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="none">None (top level)</SelectItem>
-                      {parentModules.filter((m) => m.id !== selectedModule?.id).map((m) => (
+                      {availableParentModules.filter((m) => m.id !== selectedModule?.id).map((m) => (
                         <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
                       ))}
                     </SelectContent>
