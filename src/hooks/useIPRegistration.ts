@@ -577,13 +577,17 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
     if (!formData.ssn) return;
 
     try {
+      // Generate depend_id using the stored procedure
+      const { data: nextIdData } = await supabase.rpc('generate_depend_id', { p_ssn: formData.ssn });
+      const dependId = nextIdData || '000001';
+
       const dependentData = {
-        ssn: formData.ssn, // Link to parent IP record
-        depend_id: dependent.depend_id,
+        ssn: formData.ssn,
+        depend_id: dependId,
         depend_ssn: dependent.depend_ssn,
         surname: dependent.surname,
         firstname: dependent.firstname,
-        middle_name_dep: dependent.middle_name_dep,
+        middle_name: dependent.middle_name_dep,
         dob: dependent.dob || null,
         sex: dependent.sex,
         relation: dependent.relation,
@@ -593,26 +597,15 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
         invalid: dependent.invalid,
         status: 'P',
         date_modified: new Date().toISOString(),
-        unique_uuid: formData.ssn,
-        // Legacy columns
-        first_name: dependent.firstname,
-        last_name: dependent.surname,
-        middle_name: dependent.middle_name_dep,
-        date_of_birth: dependent.dob || null,
-        gender: dependent.sex,
-        relation_type: dependent.relation,
-        address: dependent.depend_addr1,
       };
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('ip_depend')
-        .insert([dependentData as any])
-        .select()
-        .single();
+        .insert([dependentData as any]);
 
       if (error) throw error;
 
-      setDependents(prev => [...prev, { ...dependent, id: data.id }]);
+      setDependents(prev => [...prev, { ...dependent, depend_id: dependId }]);
       
       toast({
         title: 'Dependent Added',
@@ -630,14 +623,17 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
   // Soft delete dependent
   const deleteDependent = useCallback(async (dependentId: string) => {
     try {
+      // dependentId now contains "ssn-depend_id" format
+      const [ssn, dependId] = dependentId.split('-');
       const { error } = await supabase
         .from('ip_depend')
-        .update({ status: 'D', date_modified: new Date().toISOString() })
-        .eq('id', dependentId);
+        .update({ status: 'D', date_modified: new Date().toISOString() } as any)
+        .eq('ssn', ssn)
+        .eq('depend_id', dependId);
 
       if (error) throw error;
 
-      setDependents(prev => prev.filter(d => d.id !== dependentId));
+      setDependents(prev => prev.filter(d => `${d.ssn}-${d.depend_id}` !== dependentId));
       
       toast({
         title: 'Dependent Removed',
@@ -658,27 +654,25 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
 
     try {
       const noteData = {
-        unique_uuid: formData.ssn,
+        ssn: formData.ssn,
         note: noteContent,
         note_date: new Date().toISOString(),
-        note_content: noteContent, // Legacy column
-        created_at: new Date().toISOString(),
+        note_tran_code: 'ADD',
       };
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('ip_notes')
-        .insert([noteData as any])
-        .select()
-        .single();
+        .insert([noteData as any]);
 
       if (error) throw error;
 
       setNotes(prev => [{ 
-        id: data.id, 
-        note_date: data.note_date, 
+        ssn: formData.ssn, 
+        note_date: new Date().toISOString(), 
         note: noteContent,
         userid: '',
         note_tran_code: 'ADD',
+        note_seq: 0,
       }, ...prev]);
       
       toast({

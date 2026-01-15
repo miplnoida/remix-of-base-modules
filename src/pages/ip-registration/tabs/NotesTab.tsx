@@ -17,15 +17,12 @@ interface NotesTabProps {
 }
 
 interface Note {
-  id: string;
-  note_date?: string;
-  note?: string;
-  note_content?: string;
-  note_type?: string;
-  userid?: string;
-  created_by?: string;
-  note_seq?: number;
-  created_at?: string;
+  ssn: string;
+  note_date: string;
+  note_seq: number;
+  note?: string | null;
+  userid?: string | null;
+  note_tran_code?: string | null;
 }
 
 export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: NotesTabProps) {
@@ -35,25 +32,30 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
   const [newNote, setNewNote] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Always use ip_notes table now (drafts are in ip_master, not tmp tables)
+  // Fetch notes from ip_notes using SSN
   const fetchNotes = useCallback(async () => {
+    if (!ssn) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('ip_notes')
         .select('*')
-        .eq('unique_uuid', uniqueUuid)
+        .eq('ssn', ssn)
         .order('note_date', { ascending: false });
 
       if (error) throw error;
-      setNotes(data || []);
+      setNotes((data || []) as Note[]);
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast.error('Failed to load notes');
     } finally {
       setLoading(false);
     }
-  }, [uniqueUuid]);
+  }, [ssn]);
 
   useEffect(() => {
     fetchNotes();
@@ -65,26 +67,24 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
       return;
     }
 
+    if (!ssn) {
+      toast.error('Please complete basic details and get an SSN first');
+      return;
+    }
+
     setSaving(true);
     try {
-      // Get the next sequence number
-      const nextSeq = notes.length > 0 
-        ? Math.max(...notes.map(n => n.note_seq || 0)) + 1 
-        : 1;
+      const insertData = {
+        ssn: ssn,
+        note: newNote.trim().slice(0, 100),
+        note_date: new Date().toISOString(),
+        note_tran_code: 'ADD',
+        userid: user?.id?.substring(0, 5),
+      };
 
       const { error } = await supabase
         .from('ip_notes')
-        .insert({
-          unique_uuid: uniqueUuid,
-          note_content: newNote.trim().slice(0, 100),
-          note: newNote.trim().slice(0, 100),
-          note_type: 'General',
-          note_date: new Date().toISOString(),
-          note_seq: nextSeq,
-          note_tran_code: 'ADD',
-          userid: user?.id,
-          created_by: user?.id,
-        });
+        .insert(insertData as any);
 
       if (error) throw error;
 
@@ -99,8 +99,18 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
     }
   };
 
-  const getNoteContent = (note: Note) => note.note_content || note.note || '';
-  const getNoteDate = (note: Note) => note.note_date || note.created_at;
+  if (!ssn) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Notes</h2>
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Please complete Basic Details and submit the form to get an SSN before adding notes.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -157,19 +167,18 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
       ) : (
         <div className="space-y-4">
           {notes.map((note) => (
-            <Card key={note.id}>
+            <Card key={`${note.ssn}-${note.note_date}-${note.note_seq}`}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-muted rounded-full">
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm">{getNoteContent(note)}</p>
+                    <p className="text-sm">{note.note}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      {getNoteDate(note) && (
-                        <span>{format(new Date(getNoteDate(note)!), 'dd/MM/yyyy HH:mm')}</span>
+                      {note.note_date && (
+                        <span>{format(new Date(note.note_date), 'dd/MM/yyyy HH:mm')}</span>
                       )}
-                      {note.note_type && <span>Type: {note.note_type}</span>}
                       {note.note_seq && <span>Seq: {note.note_seq}</span>}
                     </div>
                   </div>
