@@ -305,9 +305,8 @@ export default function IPRegistrationForm() {
         }
         if (!formData.work_permit_expiry) {
           newErrors.work_permit_expiry = 'Work permit expiry is required';
-        } else if (new Date(formData.work_permit_expiry) <= new Date()) {
-          newErrors.work_permit_expiry = 'Work permit expiry must be a future date';
         }
+        // No future date validation for work permit expiry
       }
     }
 
@@ -347,10 +346,17 @@ export default function IPRegistrationForm() {
     setSaving(true);
     try {
       if (isNewRecord) {
+        // Generate temporary SSN for new drafts
+        const { data: tempSsnData, error: ssnError } = await supabase
+          .rpc('generate_temp_ssn');
+        
+        if (ssnError) throw ssnError;
+
         // First save - insert new record with status Z directly to ip_master
         const insertData = {
           unique_uuid: formData.unique_uuid,
           application_id: formData.application_id,
+          ssn: tempSsnData, // Temporary SSN for dependents/notes
           status: 'Z', // Draft status
           created_by: user?.id,
           application_date: formData.application_date || new Date().toISOString().split('T')[0],
@@ -372,7 +378,7 @@ export default function IPRegistrationForm() {
 
         if (error) throw error;
         
-        setFormData(prev => prev ? { ...prev, ...insertedData, id: insertedData.id } : null);
+        setFormData(prev => prev ? { ...prev, ...insertedData, id: insertedData.id, ssn: insertedData.ssn } : null);
         setIsNewRecord(false);
         
         // Navigate to edit mode with the new UUID
@@ -535,9 +541,8 @@ export default function IPRegistrationForm() {
       }
       if (!formData?.work_permit_expiry) {
         newErrors.work_permit_expiry = 'Work permit expiry is required';
-      } else if (new Date(formData.work_permit_expiry) <= new Date()) {
-        newErrors.work_permit_expiry = 'Work permit expiry must be a future date';
       }
+      // No future date validation for work permit expiry
     }
 
     // Document verification
@@ -858,6 +863,8 @@ export default function IPRegistrationForm() {
                   formData={formData}
                   onChange={handleFieldChange} 
                   isEditable={isEditable}
+                  uniqueUuid={formData.unique_uuid}
+                  onRefresh={fetchData}
                 />
               )}
               {activeTab === 'employment' && (

@@ -174,7 +174,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
 
   const handleSave = async () => {
     if (!ssn) {
-      toast.error('Please complete basic details and get an SSN first');
+      toast.error('Please save the basic details first to get an SSN');
       return;
     }
 
@@ -281,7 +281,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
         <h2 className="text-xl font-semibold">Dependents</h2>
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            Please complete Basic Details and submit the form to get an SSN before adding dependents.
+            Please save the Basic Details first to enable adding dependents.
           </CardContent>
         </Card>
       </div>

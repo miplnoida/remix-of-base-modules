@@ -68,7 +68,7 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
     }
 
     if (!ssn) {
-      toast.error('Please complete basic details and get an SSN first');
+      toast.error('Please save the basic details first to get an SSN');
       return;
     }
 
@@ -105,7 +105,7 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
         <h2 className="text-xl font-semibold">Notes</h2>
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            Please complete Basic Details and submit the form to get an SSN before adding notes.
+            Please save the Basic Details first to enable adding notes.
           </CardContent>
         </Card>
       </div>

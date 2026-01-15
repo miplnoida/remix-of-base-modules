@@ -156,8 +156,6 @@ export default function EmploymentTab({
               <SelectValue placeholder={countriesLoading ? 'Loading...' : 'Select Place of Residence'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="RES">Resident</SelectItem>
-              <SelectItem value="NON-RES">Non-Resident</SelectItem>
               {countries?.map(c => (
                 <SelectItem key={c.code} value={c.code}>
                   {c.description || c.code}
@@ -167,7 +165,7 @@ export default function EmploymentTab({
           </Select>
         </div>
 
-        {/* Work Permit Expiration */}
+        {/* Work Permit Expiration - No date validation */}
         <div className="space-y-2">
           <Label htmlFor="work_permit_expiry">
             Work Permit Expiration
@@ -178,7 +176,6 @@ export default function EmploymentTab({
             onSelect={(date) => handleDateChange('work_permit_expiry', date)}
             placeholder="Select Expiry Date"
             disabled={!isEditable}
-            minDate={new Date()}
             error={errors.work_permit_expiry}
           />
         </div>
