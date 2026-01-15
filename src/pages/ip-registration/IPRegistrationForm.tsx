@@ -182,12 +182,29 @@ export default function IPRegistrationForm() {
 
       if (error) throw error;
 
+      let currentSsn = recordData.ssn;
+
+      // Generate temp SSN for draft records (status Z) that don't have one
+      if ((recordData.status === 'Z' || recordData.status === 'D') && !currentSsn) {
+        const { data: tempSsnData, error: ssnError } = await supabase.rpc('generate_temp_ssn');
+        
+        if (!ssnError && tempSsnData) {
+          // Update the record with the temp SSN
+          await supabase
+            .from('ip_master')
+            .update({ ssn: tempSsnData })
+            .eq('unique_uuid', uniqueUuid);
+          
+          currentSsn = tempSsnData;
+        }
+      }
+
       // Cast the data to IPFormData
       setFormData({
         id: recordData.id,
         unique_uuid: recordData.unique_uuid,
         application_id: recordData.application_id,
-        ssn: recordData.ssn,
+        ssn: currentSsn,
         title: recordData.title,
         first_name: recordData.first_name,
         middle_name: recordData.middle_name,
