@@ -88,14 +88,13 @@ export interface IPMasterFormData {
 }
 
 export interface IPDependentData {
-  id?: string;
-  ip_id?: string;
-  unique_uuid?: string;
+  ssn?: string;
   depend_id: string;
   depend_ssn: string;
   surname: string;
   firstname: string;
-  middle_name_dep: string;
+  middle_name_dep?: string;
+  middle_name?: string;
   dob: string;
   sex: string; // M/F/N
   relation: string; // 3-char relation code
@@ -111,14 +110,12 @@ export interface IPDependentData {
 }
 
 export interface IPNoteData {
-  id?: string;
-  ip_id?: string;
-  unique_uuid?: string;
+  ssn: string;
   note_date: string;
   note: string;
   userid: string;
   note_tran_code: string;
-  note_seq?: number;
+  note_seq: number;
 }
 
 // Initial form state

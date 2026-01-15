@@ -192,13 +192,13 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
           ) : (
             <div className="space-y-3">
               {dependents.map((dep, index) => (
-                <div key={dep.id || index} className="border rounded-lg p-4 relative">
+                <div key={dep.depend_id || index} className="border rounded-lg p-4 relative">
                   {isEditable && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="absolute top-2 right-2 text-destructive"
-                      onClick={() => dep.id && onDeleteDependent(dep.id)}
+                      onClick={() => dep.depend_id && onDeleteDependent(dep.ssn ? `${dep.ssn}-${dep.depend_id}` : dep.depend_id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -145,6 +145,28 @@ export const useIPStatuses = () => {
   });
 };
 
+// Relation types from tb_relation
+export interface RelationType {
+  code: string;
+  description: string;
+  surv_type: string | null;
+}
+
+export const useRelations = () => {
+  return useQuery({
+    queryKey: ['tb_relation'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_relation')
+        .select('*')
+        .order('description');
+      if (error) throw error;
+      return data as RelationType[];
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};
+
 // Helper function to get status description from code
 export const getStatusDescription = (code: string, statuses: IPStatusType[]): string => {
   const status = statuses.find(s => s.code === code);

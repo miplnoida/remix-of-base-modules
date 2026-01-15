@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
-import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { Plus, Users, Edit2 } from 'lucide-react';
+import AddRelationDialog from '../components/AddRelationDialog';
 import { format, isValid } from 'date-fns';
 
 interface RelationsTabProps {
@@ -12,313 +14,237 @@ interface RelationsTabProps {
   isEditable: boolean;
 }
 
-type RelationType = 'contact' | 'parent' | 'spouse' | 'witness' | 'beneficiary';
+// Helper to check if relation has data
+const hasContactData = (formData: IPFormData) => 
+  formData.contact || formData.contact_relation || formData.contact_addr1 || formData.contact_phone;
 
-const relationTypes: { value: RelationType; label: string }[] = [
-  { value: 'contact', label: 'Contact' },
-  { value: 'parent', label: 'Parent' },
-  { value: 'spouse', label: 'Spouse' },
-  { value: 'witness', label: 'Witness' },
-  { value: 'beneficiary', label: 'Beneficiary' },
-];
+const hasParentData = (formData: IPFormData) => 
+  formData.father_name || formData.mother_name;
 
-// Convert ISO date string to Date object
-const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
-  if (!dateStr) return undefined;
-  const date = new Date(dateStr);
-  return isValid(date) ? date : undefined;
-};
+const hasSpouseData = (formData: IPFormData) => 
+  formData.spouse_name || formData.spouse_ssn || formData.spouse_addr1;
 
-// Convert Date object to ISO date string (yyyy-MM-dd)
-const formatToISO = (date: Date | undefined): string | null => {
-  if (!date || !isValid(date)) return null;
-  return format(date, 'yyyy-MM-dd');
-};
+const hasWitnessData = (formData: IPFormData) => 
+  formData.witness_name || formData.date_witnessed;
+
+const hasBeneficiaryData = (formData: IPFormData) => 
+  formData.beneficiary || formData.ben_addr1;
 
 export default function RelationsTab({ formData, onChange, isEditable }: RelationsTabProps) {
-  // Determine which relation type has data
-  const getActiveRelationType = (): RelationType => {
-    if (formData.contact) return 'contact';
-    if (formData.father_name || formData.mother_name) return 'parent';
-    if (formData.spouse_name) return 'spouse';
-    if (formData.witness_name) return 'witness';
-    if (formData.beneficiary) return 'beneficiary';
-    return 'contact'; // Default
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  const handleSaveRelation = useCallback((relationType: string, data: Record<string, any>) => {
+    // Update form data with the relation fields
+    Object.entries(data).forEach(([field, value]) => {
+      if (value !== undefined) {
+        onChange(field, value);
+      }
+    });
+  }, [onChange]);
+
+  const formatDate = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return isValid(date) ? format(date, 'dd/MM/yyyy') : '-';
   };
 
-  const [relationType, setRelationType] = useState<RelationType>(getActiveRelationType());
-
-  const handleRelationTypeChange = useCallback((value: string) => {
-    setRelationType(value as RelationType);
-  }, []);
-
-  const handleFieldChange = useCallback((field: string, value: any) => {
-    onChange(field, value);
-  }, [onChange]);
-
-  const handleDateChange = useCallback((field: string, date: Date | undefined) => {
-    const isoDate = formatToISO(date);
-    onChange(field, isoDate);
-  }, [onChange]);
+  const renderRelationCard = (
+    title: string,
+    hasData: boolean,
+    content: React.ReactNode
+  ) => {
+    if (!hasData) return null;
+    
+    return (
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">{content}</CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Relations</h2>
-      
-      {/* Relation Type Selector */}
-      <div className="space-y-2 max-w-xs">
-        <Label htmlFor="relation_type">Relation Type</Label>
-        <Select 
-          value={relationType} 
-          onValueChange={handleRelationTypeChange}
-          disabled={!isEditable}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select relation type" />
-          </SelectTrigger>
-          <SelectContent>
-            {relationTypes.map(rt => (
-              <SelectItem key={rt.value} value={rt.value}>{rt.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Relations</h2>
+        {isEditable && (
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Relation
+          </Button>
+        )}
       </div>
 
-      {/* Contact Fields */}
-      {relationType === 'contact' && (
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-medium">Contact Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="contact">Contact Name</Label>
-              <Input
-                id="contact"
-                value={formData.contact || ''}
-                onChange={(e) => handleFieldChange('contact', e.target.value)}
-                placeholder="Enter contact name"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_relation">Relation</Label>
-              <Input
-                id="contact_relation"
-                value={formData.contact_relation || ''}
-                onChange={(e) => handleFieldChange('contact_relation', e.target.value)}
-                placeholder="e.g., Brother, Friend"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_addr1">Address Line 1</Label>
-              <Input
-                id="contact_addr1"
-                value={formData.contact_addr1 || ''}
-                onChange={(e) => handleFieldChange('contact_addr1', e.target.value)}
-                placeholder="Enter address line 1"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_addr2">Address Line 2</Label>
-              <Input
-                id="contact_addr2"
-                value={formData.contact_addr2 || ''}
-                onChange={(e) => handleFieldChange('contact_addr2', e.target.value)}
-                placeholder="Enter address line 2"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_phone">Phone</Label>
-              <Input
-                id="contact_phone"
-                value={formData.contact_phone || ''}
-                onChange={(e) => handleFieldChange('contact_phone', e.target.value)}
-                placeholder="Enter phone number"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_mobile">Mobile</Label>
-              <Input
-                id="contact_mobile"
-                value={formData.contact_mobile || ''}
-                onChange={(e) => handleFieldChange('contact_mobile', e.target.value)}
-                placeholder="Enter mobile number"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="contact_email">Email</Label>
-              <Input
-                id="contact_email"
-                type="email"
-                value={formData.contact_email || ''}
-                onChange={(e) => handleFieldChange('contact_email', e.target.value)}
-                placeholder="Enter email address"
-                disabled={!isEditable}
-              />
-            </div>
+      {/* Display existing relations */}
+      <div className="space-y-4">
+        {/* Contact */}
+        {hasContactData(formData) && renderRelationCard(
+          'Contact',
+          true,
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            {formData.contact && (
+              <div>
+                <span className="text-muted-foreground">Name:</span>{' '}
+                <span className="font-medium">{formData.contact}</span>
+              </div>
+            )}
+            {formData.contact_relation && (
+              <div>
+                <span className="text-muted-foreground">Relationship:</span>{' '}
+                <span className="font-medium">{formData.contact_relation}</span>
+              </div>
+            )}
+            {formData.contact_phone && (
+              <div>
+                <span className="text-muted-foreground">Phone:</span>{' '}
+                <span className="font-medium">{formData.contact_phone}</span>
+              </div>
+            )}
+            {formData.contact_mobile && (
+              <div>
+                <span className="text-muted-foreground">Mobile:</span>{' '}
+                <span className="font-medium">{formData.contact_mobile}</span>
+              </div>
+            )}
+            {formData.contact_email && (
+              <div>
+                <span className="text-muted-foreground">Email:</span>{' '}
+                <span className="font-medium">{formData.contact_email}</span>
+              </div>
+            )}
+            {(formData.contact_addr1 || formData.contact_addr2) && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Address:</span>{' '}
+                <span className="font-medium">
+                  {[formData.contact_addr1, formData.contact_addr2].filter(Boolean).join(', ')}
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Parent Fields */}
-      {relationType === 'parent' && (
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-medium">Parent Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="father_name">Father's Name</Label>
-              <Input
-                id="father_name"
-                value={formData.father_name || ''}
-                onChange={(e) => handleFieldChange('father_name', e.target.value)}
-                placeholder="Enter father's name"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mother_name">Mother's Name</Label>
-              <Input
-                id="mother_name"
-                value={formData.mother_name || ''}
-                onChange={(e) => handleFieldChange('mother_name', e.target.value)}
-                placeholder="Enter mother's name"
-                disabled={!isEditable}
-              />
-            </div>
+        {/* Parents */}
+        {hasParentData(formData) && renderRelationCard(
+          'Parents',
+          true,
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {formData.father_name && (
+              <div>
+                <span className="text-muted-foreground">Father:</span>{' '}
+                <span className="font-medium">{formData.father_name}</span>
+              </div>
+            )}
+            {formData.mother_name && (
+              <div>
+                <span className="text-muted-foreground">Mother:</span>{' '}
+                <span className="font-medium">{formData.mother_name}</span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Spouse Fields */}
-      {relationType === 'spouse' && (
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-medium">Spouse Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="spouse_name">Spouse Name</Label>
-              <Input
-                id="spouse_name"
-                value={formData.spouse_name || ''}
-                onChange={(e) => handleFieldChange('spouse_name', e.target.value)}
-                placeholder="Enter spouse name"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spouse_ssn">Spouse SSN</Label>
-              <Input
-                id="spouse_ssn"
-                value={formData.spouse_ssn || ''}
-                onChange={(e) => handleFieldChange('spouse_ssn', e.target.value)}
-                placeholder="Enter spouse SSN"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spouse_addr1">Address Line 1</Label>
-              <Input
-                id="spouse_addr1"
-                value={formData.spouse_addr1 || ''}
-                onChange={(e) => handleFieldChange('spouse_addr1', e.target.value)}
-                placeholder="Enter address line 1"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spouse_addr2">Address Line 2</Label>
-              <Input
-                id="spouse_addr2"
-                value={formData.spouse_addr2 || ''}
-                onChange={(e) => handleFieldChange('spouse_addr2', e.target.value)}
-                placeholder="Enter address line 2"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spouse_dob">Spouse Date of Birth</Label>
-              <DatePickerWithDropdowns
-                date={parseISODate(formData.spouse_dob)}
-                onSelect={(date) => handleDateChange('spouse_dob', date)}
-                placeholder="Select date of birth"
-                disabled={!isEditable}
-                maxDate={new Date()}
-              />
-            </div>
+        {/* Spouse */}
+        {hasSpouseData(formData) && renderRelationCard(
+          'Spouse',
+          true,
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            {formData.spouse_name && (
+              <div>
+                <span className="text-muted-foreground">Name:</span>{' '}
+                <span className="font-medium">{formData.spouse_name}</span>
+              </div>
+            )}
+            {formData.spouse_ssn && (
+              <div>
+                <span className="text-muted-foreground">SSN:</span>{' '}
+                <span className="font-medium">{formData.spouse_ssn}</span>
+              </div>
+            )}
+            {formData.spouse_dob && (
+              <div>
+                <span className="text-muted-foreground">DOB:</span>{' '}
+                <span className="font-medium">{formatDate(formData.spouse_dob)}</span>
+              </div>
+            )}
+            {(formData.spouse_addr1 || formData.spouse_addr2) && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Address:</span>{' '}
+                <span className="font-medium">
+                  {[formData.spouse_addr1, formData.spouse_addr2].filter(Boolean).join(', ')}
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Witness Fields */}
-      {relationType === 'witness' && (
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-medium">Witness Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="witness_name">Witness Name</Label>
-              <Input
-                id="witness_name"
-                value={formData.witness_name || ''}
-                onChange={(e) => handleFieldChange('witness_name', e.target.value)}
-                placeholder="Enter witness name"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="date_witnessed">Date Witnessed</Label>
-              <DatePickerWithDropdowns
-                date={parseISODate(formData.date_witnessed)}
-                onSelect={(date) => handleDateChange('date_witnessed', date)}
-                placeholder="Select date witnessed"
-                disabled={!isEditable}
-                maxDate={new Date()}
-              />
-            </div>
+        {/* Witness */}
+        {hasWitnessData(formData) && renderRelationCard(
+          'Witness',
+          true,
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {formData.witness_name && (
+              <div>
+                <span className="text-muted-foreground">Name:</span>{' '}
+                <span className="font-medium">{formData.witness_name}</span>
+              </div>
+            )}
+            {formData.date_witnessed && (
+              <div>
+                <span className="text-muted-foreground">Date Witnessed:</span>{' '}
+                <span className="font-medium">{formatDate(formData.date_witnessed)}</span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Beneficiary Fields */}
-      {relationType === 'beneficiary' && (
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-medium">Beneficiary Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="beneficiary">Beneficiary Name</Label>
-              <Input
-                id="beneficiary"
-                value={formData.beneficiary || ''}
-                onChange={(e) => handleFieldChange('beneficiary', e.target.value)}
-                placeholder="Enter beneficiary name"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ben_addr1">Address Line 1</Label>
-              <Input
-                id="ben_addr1"
-                value={formData.ben_addr1 || ''}
-                onChange={(e) => handleFieldChange('ben_addr1', e.target.value)}
-                placeholder="Enter address line 1"
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ben_addr2">Address Line 2</Label>
-              <Input
-                id="ben_addr2"
-                value={formData.ben_addr2 || ''}
-                onChange={(e) => handleFieldChange('ben_addr2', e.target.value)}
-                placeholder="Enter address line 2"
-                disabled={!isEditable}
-              />
-            </div>
+        {/* Beneficiary */}
+        {hasBeneficiaryData(formData) && renderRelationCard(
+          'Beneficiary',
+          true,
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {formData.beneficiary && (
+              <div>
+                <span className="text-muted-foreground">Name:</span>{' '}
+                <span className="font-medium">{formData.beneficiary}</span>
+              </div>
+            )}
+            {(formData.ben_addr1 || formData.ben_addr2) && (
+              <div>
+                <span className="text-muted-foreground">Address:</span>{' '}
+                <span className="font-medium">
+                  {[formData.ben_addr1, formData.ben_addr2].filter(Boolean).join(', ')}
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* No relations message */}
+        {!hasContactData(formData) && 
+         !hasParentData(formData) && 
+         !hasSpouseData(formData) && 
+         !hasWitnessData(formData) && 
+         !hasBeneficiaryData(formData) && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              No relations added yet. Click "Add Relation" to add one.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Add Relation Dialog */}
+      <AddRelationDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onSave={handleSaveRelation}
+        existingData={formData}
+      />
     </div>
   );
 }
