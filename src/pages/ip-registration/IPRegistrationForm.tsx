@@ -660,12 +660,12 @@ export default function IPRegistrationForm() {
 
       // Add rejection note
       await supabase.from('ip_notes').insert({
-        ip_id: formData.id,
-        unique_uuid: formData.unique_uuid,
-        note_type: 'Rejection',
-        note_content: rejectReason,
-        created_by: user?.id,
-      });
+        ssn: formData.ssn,
+        note: rejectReason,
+        note_date: new Date().toISOString(),
+        note_tran_code: 'REJ',
+        userid: user?.id?.substring(0, 5),
+      } as any);
 
       // Log audit
       await supabase.from('ip_audit_log').insert({

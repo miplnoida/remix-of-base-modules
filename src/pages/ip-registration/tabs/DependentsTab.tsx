@@ -12,7 +12,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDependentRelations } from '@/hooks/useIPMasterLookups';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
 
 interface DependentsTabProps {
@@ -23,30 +22,39 @@ interface DependentsTabProps {
 }
 
 interface Dependent {
-  id: string;
-  depend_ssn?: string;
-  surname?: string;
-  firstname?: string;
-  middle_name_dep?: string;
-  dob?: string;
-  sex?: string;
-  relation?: string;
-  depend_addr1?: string;
-  depend_addr2?: string;
-  school_child?: string;
-  invalid?: string;
-  status?: string;
-  date_modified?: string;
+  ssn: string;
+  depend_id: string;
+  depend_ssn?: string | null;
+  surname?: string | null;
+  firstname?: string | null;
+  middle_name?: string | null;
+  dob?: string | null;
+  sex?: string | null;
+  relation?: string | null;
+  depend_addr1?: string | null;
+  depend_addr2?: string | null;
+  school_child?: string | null;
+  invalid?: string | null;
+  status?: string | null;
+  date_modified?: string | null;
+  date_of_death?: string | null;
+}
+
+interface RelationType {
+  code: string;
+  description: string;
+  surv_type?: string | null;
 }
 
 const genders = [
   { value: 'M', label: 'Male' },
   { value: 'F', label: 'Female' },
+  { value: 'N', label: 'Not-Specified' },
 ];
 
 export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditable }: DependentsTabProps) {
   const { user } = useAuth();
-  const { data: dependentRelations, isLoading: relationsLoading } = useDependentRelations();
+  const [relations, setRelations] = useState<RelationType[]>([]);
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -54,30 +62,51 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
   const [selectedDependent, setSelectedDependent] = useState<Dependent | null>(null);
   const [formData, setFormData] = useState<Partial<Dependent>>({});
 
-  // Always use ip_depend table now (drafts are in ip_master, not tmp tables)
+  // Fetch relations from tb_relation
+  const fetchRelations = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tb_relation')
+        .select('*')
+        .order('description');
+
+      if (error) throw error;
+      setRelations(data || []);
+    } catch (error) {
+      console.error('Error fetching relations:', error);
+    }
+  }, []);
+
+  // Fetch dependents from ip_depend using SSN
   const fetchDependents = useCallback(async () => {
+    if (!ssn) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('ip_depend')
         .select('*')
-        .eq('unique_uuid', uniqueUuid)
+        .eq('ssn', ssn)
         .neq('status', 'D')
-        .order('date_modified', { ascending: false });
+        .order('depend_id', { ascending: true });
 
       if (error) throw error;
-      setDependents(data || []);
+      setDependents((data || []) as Dependent[]);
     } catch (error) {
       console.error('Error fetching dependents:', error);
       toast.error('Failed to load dependents');
     } finally {
       setLoading(false);
     }
-  }, [uniqueUuid]);
+  }, [ssn]);
 
   useEffect(() => {
+    fetchRelations();
     fetchDependents();
-  }, [fetchDependents]);
+  }, [fetchRelations, fetchDependents]);
 
   const handleAdd = () => {
     setSelectedDependent(null);
@@ -85,7 +114,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       depend_ssn: '',
       surname: '',
       firstname: '',
-      middle_name_dep: '',
+      middle_name: '',
       dob: '',
       sex: '',
       relation: '',
@@ -93,6 +122,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       depend_addr2: '',
       school_child: 'N',
       invalid: 'N',
+      date_of_death: '',
     });
     setShowDialog(true);
   };
@@ -109,13 +139,14 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
   };
 
   const confirmDelete = async () => {
-    if (!selectedDependent) return;
+    if (!selectedDependent || !ssn) return;
 
     try {
       const { error } = await supabase
         .from('ip_depend')
-        .update({ status: 'D', date_modified: new Date().toISOString() })
-        .eq('id', selectedDependent.id);
+        .update({ status: 'D', date_modified: new Date().toISOString() } as any)
+        .eq('ssn', ssn)
+        .eq('depend_id', selectedDependent.depend_id);
 
       if (error) throw error;
 
@@ -130,7 +161,23 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
     }
   };
 
+  // Validate SSN input (exactly 6 numeric digits)
+  const validateDependentSSN = (value: string): boolean => {
+    return /^\d{0,6}$/.test(value);
+  };
+
+  const handleSSNChange = (value: string) => {
+    if (validateDependentSSN(value)) {
+      setFormData({ ...formData, depend_ssn: value });
+    }
+  };
+
   const handleSave = async () => {
+    if (!ssn) {
+      toast.error('Please complete basic details and get an SSN first');
+      return;
+    }
+
     if (!formData.surname || !formData.firstname) {
       toast.error('Please check the form for valid information!', {
         description: 'Surname and first name are required.',
@@ -140,39 +187,51 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       return;
     }
 
+    // Validate depend_ssn if provided
+    if (formData.depend_ssn && formData.depend_ssn.length !== 6) {
+      toast.error('Dependent SSN must be exactly 6 digits');
+      return;
+    }
+
     try {
       if (selectedDependent) {
-        // Update existing in ip_depend
+        // Update existing
         const { error } = await supabase
           .from('ip_depend')
           .update({
-            depend_ssn: formData.depend_ssn,
+            depend_ssn: formData.depend_ssn || null,
             surname: formData.surname,
             firstname: formData.firstname,
-            middle_name_dep: formData.middle_name_dep,
-            dob: formData.dob,
+            middle_name: formData.middle_name,
+            dob: formData.dob || null,
             sex: formData.sex,
             relation: formData.relation,
             depend_addr1: formData.depend_addr1,
             depend_addr2: formData.depend_addr2,
             school_child: formData.school_child,
             invalid: formData.invalid,
+            date_of_death: formData.date_of_death || null,
             date_modified: new Date().toISOString(),
-            userid: user?.id,
-          })
-          .eq('id', selectedDependent.id);
+            userid: user?.id?.substring(0, 5),
+          } as any)
+          .eq('ssn', ssn)
+          .eq('depend_id', selectedDependent.depend_id);
 
         if (error) throw error;
         toast.success('Dependent updated');
       } else {
-        // Insert new into ip_depend
-        // Note: Using type assertion because unique_uuid exists in DB but not in generated types
+        // Generate depend_id
+        const { data: nextIdData } = await supabase.rpc('generate_depend_id', { p_ssn: ssn });
+        const dependId = nextIdData || '000001';
+
+        // Insert new
         const insertData = {
-          unique_uuid: uniqueUuid,
-          depend_ssn: formData.depend_ssn,
+          ssn: ssn,
+          depend_id: dependId,
+          depend_ssn: formData.depend_ssn || null,
           surname: formData.surname,
           firstname: formData.firstname,
-          middle_name_dep: formData.middle_name_dep,
+          middle_name: formData.middle_name,
           dob: formData.dob || null,
           sex: formData.sex,
           relation: formData.relation,
@@ -180,10 +239,11 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
           depend_addr2: formData.depend_addr2,
           school_child: formData.school_child || 'N',
           invalid: formData.invalid || 'N',
+          date_of_death: formData.date_of_death || null,
           status: 'A',
           tran_code: 'ADD',
           date_modified: new Date().toISOString(),
-          userid: user?.id,
+          userid: user?.id?.substring(0, 5),
         };
 
         const { error } = await supabase
@@ -203,17 +263,30 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
   };
 
   const getRelationLabel = (code: string) => {
-    const relation = dependentRelations?.find(r => r.code === code);
+    const relation = relations?.find(r => r.code === code);
     return relation?.description || code;
   };
 
   const getDisplayName = (dep: Dependent) => {
-    return `${dep.firstname || ''} ${dep.middle_name_dep || ''} ${dep.surname || ''}`.trim();
+    return `${dep.firstname || ''} ${dep.middle_name || ''} ${dep.surname || ''}`.trim();
   };
 
   const getAddress = (dep: Dependent) => {
     return [dep.depend_addr1, dep.depend_addr2].filter(Boolean).join(', ');
   };
+
+  if (!ssn) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Dependents</h2>
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Please complete Basic Details and submit the form to get an SSN before adding dependents.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -240,7 +313,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       ) : (
         <div className="space-y-4">
           {dependents.map((dependent) => (
-            <Card key={dependent.id}>
+            <Card key={`${dependent.ssn}-${dependent.depend_id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -255,12 +328,15 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
                           <p>Date of Birth: {format(new Date(dependent.dob), 'dd/MM/yyyy')}</p>
                         )}
                         {dependent.sex && (
-                          <p>Gender: {dependent.sex === 'M' ? 'Male' : dependent.sex === 'F' ? 'Female' : dependent.sex}</p>
+                          <p>Gender: {genders.find(g => g.value === dependent.sex)?.label || dependent.sex}</p>
                         )}
                         {dependent.relation && (
                           <p>Relation: {getRelationLabel(dependent.relation)}</p>
                         )}
                         {getAddress(dependent) && <p>Address: {getAddress(dependent)}</p>}
+                        {dependent.date_of_death && (
+                          <p className="text-destructive">Date of Death: {format(new Date(dependent.date_of_death), 'dd/MM/yyyy')}</p>
+                        )}
                         <div className="flex gap-4">
                           {dependent.school_child === 'Y' && <span className="text-primary">School Child</span>}
                           {dependent.invalid === 'Y' && <span className="text-destructive">Invalid</span>}
@@ -294,12 +370,13 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
           
           <form noValidate className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Dependent SSN</Label>
+              <Label>Dependent SSN (6 digits)</Label>
               <Input
                 value={formData.depend_ssn || ''}
-                onChange={(e) => setFormData({ ...formData, depend_ssn: e.target.value })}
-                placeholder="Enter SSN"
+                onChange={(e) => handleSSNChange(e.target.value)}
+                placeholder="Enter 6-digit SSN"
                 maxLength={6}
+                inputMode="numeric"
               />
             </div>
 
@@ -308,13 +385,12 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
               <Select 
                 value={formData.relation || ''} 
                 onValueChange={(v) => setFormData({ ...formData, relation: v })}
-                disabled={relationsLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select relation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {dependentRelations?.map(r => (
+                  {relations?.map(r => (
                     <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
                   ))}
                 </SelectContent>
@@ -334,8 +410,8 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
             <div className="space-y-2">
               <Label>Middle Name</Label>
               <Input
-                value={formData.middle_name_dep || ''}
-                onChange={(e) => setFormData({ ...formData, middle_name_dep: e.target.value })}
+                value={formData.middle_name || ''}
+                onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
                 placeholder="Enter middle name"
                 maxLength={25}
               />
@@ -347,7 +423,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
                 value={formData.surname || ''}
                 onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
                 placeholder="Enter surname"
-                maxLength={25}
+                maxLength={50}
               />
             </div>
 
@@ -374,6 +450,16 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
                   {genders.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Date of Death</Label>
+              <DatePickerWithDropdowns
+                date={formData.date_of_death ? new Date(formData.date_of_death) : undefined}
+                onSelect={(date) => setFormData({ ...formData, date_of_death: date ? format(date, 'yyyy-MM-dd') : '' })}
+                placeholder="Select date of death"
+                maxDate={new Date()}
+              />
             </div>
 
             <div className="space-y-2 md:col-span-2">

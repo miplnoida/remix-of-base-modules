@@ -2671,120 +2671,79 @@ export type Database = {
       }
       ip_depend: {
         Row: {
-          address: string | null
-          created_at: string | null
-          created_by: string | null
           date_modified: string | null
-          date_of_birth: string | null
           date_of_death: string | null
           depend_addr1: string | null
           depend_addr2: string | null
-          depend_id: string | null
+          depend_id: string
           depend_ssn: string | null
           dob: string | null
-          email: string | null
-          first_name: string | null
           firstname: string | null
-          gender: string | null
-          id: string
           invalid: string | null
-          ip_id: string | null
-          last_name: string | null
           middle_name: string | null
-          middle_name_dep: string | null
-          phone: string | null
           relation: string | null
-          relation_type: string
           school_child: string | null
           sex: string | null
-          ssn: string | null
+          ssn: string
           status: string | null
           surname: string | null
           tran_code: string | null
-          unique_uuid: string
-          updated_at: string | null
-          updated_by: string | null
           userid: string | null
         }
         Insert: {
-          address?: string | null
-          created_at?: string | null
-          created_by?: string | null
           date_modified?: string | null
-          date_of_birth?: string | null
           date_of_death?: string | null
           depend_addr1?: string | null
           depend_addr2?: string | null
-          depend_id?: string | null
+          depend_id: string
           depend_ssn?: string | null
           dob?: string | null
-          email?: string | null
-          first_name?: string | null
           firstname?: string | null
-          gender?: string | null
-          id?: string
           invalid?: string | null
-          ip_id?: string | null
-          last_name?: string | null
           middle_name?: string | null
-          middle_name_dep?: string | null
-          phone?: string | null
           relation?: string | null
-          relation_type: string
           school_child?: string | null
           sex?: string | null
-          ssn?: string | null
+          ssn: string
           status?: string | null
           surname?: string | null
           tran_code?: string | null
-          unique_uuid: string
-          updated_at?: string | null
-          updated_by?: string | null
           userid?: string | null
         }
         Update: {
-          address?: string | null
-          created_at?: string | null
-          created_by?: string | null
           date_modified?: string | null
-          date_of_birth?: string | null
           date_of_death?: string | null
           depend_addr1?: string | null
           depend_addr2?: string | null
-          depend_id?: string | null
+          depend_id?: string
           depend_ssn?: string | null
           dob?: string | null
-          email?: string | null
-          first_name?: string | null
           firstname?: string | null
-          gender?: string | null
-          id?: string
           invalid?: string | null
-          ip_id?: string | null
-          last_name?: string | null
           middle_name?: string | null
-          middle_name_dep?: string | null
-          phone?: string | null
           relation?: string | null
-          relation_type?: string
           school_child?: string | null
           sex?: string | null
-          ssn?: string | null
+          ssn?: string
           status?: string | null
           surname?: string | null
           tran_code?: string | null
-          unique_uuid?: string
-          updated_at?: string | null
-          updated_by?: string | null
           userid?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ip_depend_ip_id_fkey"
-            columns: ["ip_id"]
+            foreignKeyName: "fk_ip_depend_ssn"
+            columns: ["ssn"]
             isOneToOne: false
             referencedRelation: "ip_master"
-            referencedColumns: ["id"]
+            referencedColumns: ["ssn"]
+          },
+          {
+            foreignKeyName: "ip_depend_relation_fkey"
+            columns: ["relation"]
+            isOneToOne: false
+            referencedRelation: "tb_relation"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -3251,57 +3210,36 @@ export type Database = {
       }
       ip_notes: {
         Row: {
-          created_at: string | null
-          created_by: string | null
-          id: string
-          ip_id: string | null
           note: string | null
-          note_content: string
-          note_date: string | null
+          note_date: string
           note_seq: number
           note_tran_code: string | null
-          note_type: string | null
-          unique_uuid: string
-          updated_at: string | null
+          ssn: string
           userid: string | null
         }
         Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          ip_id?: string | null
           note?: string | null
-          note_content: string
-          note_date?: string | null
+          note_date?: string
           note_seq?: number
           note_tran_code?: string | null
-          note_type?: string | null
-          unique_uuid: string
-          updated_at?: string | null
+          ssn: string
           userid?: string | null
         }
         Update: {
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          ip_id?: string | null
           note?: string | null
-          note_content?: string
-          note_date?: string | null
+          note_date?: string
           note_seq?: number
           note_tran_code?: string | null
-          note_type?: string | null
-          unique_uuid?: string
-          updated_at?: string | null
+          ssn?: string
           userid?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ip_notes_ip_id_fkey"
-            columns: ["ip_id"]
+            foreignKeyName: "fk_ip_notes_ssn"
+            columns: ["ssn"]
             isOneToOne: false
             referencedRelation: "ip_master"
-            referencedColumns: ["id"]
+            referencedColumns: ["ssn"]
           },
         ]
       }
@@ -5714,6 +5652,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_relation: {
+        Row: {
+          code: string
+          description: string
+          surv_type: string | null
+        }
+        Insert: {
+          code: string
+          description: string
+          surv_type?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string
+          surv_type?: string | null
+        }
+        Relationships: []
+      }
       tb_verify: {
         Row: {
           code: string
@@ -7024,6 +6980,7 @@ export type Database = {
         }[]
       }
       generate_application_id: { Args: never; Returns: string }
+      generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
       get_all_public_tables: {
