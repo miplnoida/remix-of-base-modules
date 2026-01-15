@@ -4,15 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
-import { Plus, Users, Edit2 } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import AddRelationDialog from '../components/AddRelationDialog';
 import { format, isValid } from 'date-fns';
-
-interface RelationsTabProps {
-  formData: IPFormData;
-  onChange: (field: string, value: any) => void;
-  isEditable: boolean;
-}
 
 // Helper to check if relation has data
 const hasContactData = (formData: IPFormData) => 
@@ -30,7 +24,15 @@ const hasWitnessData = (formData: IPFormData) =>
 const hasBeneficiaryData = (formData: IPFormData) => 
   formData.beneficiary || formData.ben_addr1;
 
-export default function RelationsTab({ formData, onChange, isEditable }: RelationsTabProps) {
+interface RelationsTabProps {
+  formData: IPFormData;
+  onChange: (field: string, value: any) => void;
+  isEditable: boolean;
+  uniqueUuid: string;
+  onRefresh?: () => void;
+}
+
+export default function RelationsTab({ formData, onChange, isEditable, uniqueUuid, onRefresh }: RelationsTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const handleSaveRelation = useCallback((relationType: string, data: Record<string, any>) => {
@@ -40,7 +42,11 @@ export default function RelationsTab({ formData, onChange, isEditable }: Relatio
         onChange(field, value);
       }
     });
-  }, [onChange]);
+    // Trigger a refresh if callback provided
+    if (onRefresh) {
+      onRefresh();
+    }
+  }, [onChange, onRefresh]);
 
   const formatDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return '-';
@@ -243,6 +249,7 @@ export default function RelationsTab({ formData, onChange, isEditable }: Relatio
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
         onSave={handleSaveRelation}
+        uniqueUuid={uniqueUuid}
         existingData={formData}
       />
     </div>
