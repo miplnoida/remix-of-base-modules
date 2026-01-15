@@ -375,6 +375,18 @@ export function useDeleteAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check if module has child modules
+      const { data: children, error: checkError } = await supabase
+        .from('app_modules')
+        .select('id')
+        .eq('parent_id', id);
+      
+      if (checkError) throw checkError;
+      
+      if (children && children.length > 0) {
+        throw new Error('Cannot delete module with child modules. Please delete or reassign child modules first.');
+      }
+      
       const { error } = await supabase
         .from('app_modules')
         .delete()
