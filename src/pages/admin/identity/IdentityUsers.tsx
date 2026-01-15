@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye, RefreshCw, KeyRound } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, Search, Edit, Lock, Unlock, Shield, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions } from "@/hooks/useActionPermission";
@@ -35,13 +36,23 @@ interface AspNetUser {
   force_password_change: boolean;
   created_at: string;
   last_login: string | null;
+  gender: string | null;
+  title: string | null;
 }
+
+// Generate a unique user code
+const generateUserCode = (firstName: string, lastName: string) => {
+  const prefix = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}${randomPart}`;
+};
 
 const IdentityUsersContent = () => {
   const { can } = useActionPermissions(MODULE_NAME);
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AspNetUser | null>(null);
   const [formData, setFormData] = useState({
     first_name: "",
@@ -51,6 +62,19 @@ const IdentityUsersContent = () => {
     is_active: true,
     TwoFactorEnabled: false,
     force_password_change: false,
+  });
+  const [createFormData, setCreateFormData] = useState({
+    Email: "",
+    first_name: "",
+    middle_name: "",
+    last_name: "",
+    title: "",
+    PhoneNumber: "",
+    gender: "",
+    is_active: true,
+    TwoFactorEnabled: false,
+    force_password_change: true,
+    EmailConfirmed: false,
   });
 
   // Fetch users from AspNetUsers
@@ -91,6 +115,50 @@ const IdentityUsersContent = () => {
     },
   });
 
+  // Create user mutation
+  const createUser = useMutation({
+    mutationFn: async () => {
+      const userCode = generateUserCode(createFormData.first_name, createFormData.last_name);
+      const fullName = [createFormData.first_name, createFormData.middle_name, createFormData.last_name].filter(Boolean).join(" ");
+      
+      const { error } = await supabase
+        .from("AspNetUsers")
+        .insert({
+          Email: createFormData.Email,
+          UserName: createFormData.Email,
+          NormalizedEmail: createFormData.Email.toUpperCase(),
+          NormalizedUserName: createFormData.Email.toUpperCase(),
+          first_name: createFormData.first_name,
+          middle_name: createFormData.middle_name || null,
+          last_name: createFormData.last_name,
+          full_name: fullName,
+          title: createFormData.title || null,
+          PhoneNumber: createFormData.PhoneNumber || null,
+          gender: createFormData.gender || null,
+          user_code: userCode,
+          is_active: createFormData.is_active,
+          TwoFactorEnabled: createFormData.TwoFactorEnabled,
+          force_password_change: createFormData.force_password_change,
+          EmailConfirmed: createFormData.EmailConfirmed,
+          LockoutEnabled: true,
+          AccessFailedCount: 0,
+          SecurityStamp: crypto.randomUUID(),
+          ConcurrencyStamp: crypto.randomUUID(),
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["identity-users"] });
+      toast.success("Identity user created successfully");
+      setShowCreateDialog(false);
+      resetCreateForm();
+    },
+    onError: (error) => {
+      toast.error(`Failed to create user: ${error.message}`);
+    },
+  });
+
   // Unlock user mutation
   const unlockUser = useMutation({
     mutationFn: async (userId: string) => {
@@ -128,6 +196,30 @@ const IdentityUsersContent = () => {
       toast.error(`Failed to update status: ${error.message}`);
     },
   });
+
+  const resetCreateForm = () => {
+    setCreateFormData({
+      Email: "",
+      first_name: "",
+      middle_name: "",
+      last_name: "",
+      title: "",
+      PhoneNumber: "",
+      gender: "",
+      is_active: true,
+      TwoFactorEnabled: false,
+      force_password_change: true,
+      EmailConfirmed: false,
+    });
+  };
+
+  const handleCreate = () => {
+    if (!createFormData.Email || !createFormData.first_name || !createFormData.last_name) {
+      toast.error("Email, first name, and last name are required");
+      return;
+    }
+    createUser.mutate();
+  };
 
   const filteredUsers = users.filter(user =>
     (user.full_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
@@ -191,10 +283,18 @@ const IdentityUsersContent = () => {
           <h1 className="text-3xl font-bold text-foreground">Identity Users</h1>
           <p className="text-muted-foreground">Manage users in the Microsoft Identity system</p>
         </div>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {can("create") && (
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Identity User
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -400,6 +500,125 @@ const IdentityUsersContent = () => {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={updateUser.isPending}>
               {updateUser.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => { setShowCreateDialog(open); if (!open) resetCreateForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Identity User</DialogTitle>
+            <DialogDescription>
+              Create a new user in the Microsoft Identity system. A user code will be auto-generated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Email <span className="text-destructive">*</span></Label>
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={createFormData.Email}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, Email: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>First Name <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="John"
+                  value={createFormData.first_name}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="Doe"
+                  value={createFormData.last_name}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Middle Name</Label>
+                <Input
+                  placeholder="Optional"
+                  value={createFormData.middle_name}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, middle_name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  placeholder="Mr./Mrs./Dr."
+                  value={createFormData.title}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input
+                  placeholder="+1 (555) 123-4567"
+                  value={createFormData.PhoneNumber}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, PhoneNumber: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Gender</Label>
+                <Select
+                  value={createFormData.gender}
+                  onValueChange={(value) => setCreateFormData(prev => ({ ...prev, gender: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Male</SelectItem>
+                    <SelectItem value="F">Female</SelectItem>
+                    <SelectItem value="N">Not-Specified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Active Status</Label>
+              <Switch
+                checked={createFormData.is_active}
+                onCheckedChange={(checked) => setCreateFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Email Confirmed</Label>
+              <Switch
+                checked={createFormData.EmailConfirmed}
+                onCheckedChange={(checked) => setCreateFormData(prev => ({ ...prev, EmailConfirmed: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Two-Factor Authentication</Label>
+              <Switch
+                checked={createFormData.TwoFactorEnabled}
+                onCheckedChange={(checked) => setCreateFormData(prev => ({ ...prev, TwoFactorEnabled: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Force Password Change</Label>
+              <Switch
+                checked={createFormData.force_password_change}
+                onCheckedChange={(checked) => setCreateFormData(prev => ({ ...prev, force_password_change: checked }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowCreateDialog(false); resetCreateForm(); }}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={createUser.isPending}>
+              {createUser.isPending ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
