@@ -14,6 +14,7 @@ import { UserPlus, Search, Edit, Lock, Unlock, Shield, RefreshCw } from "lucide-
 import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions } from "@/hooks/useActionPermission";
+import { useSystemLogger } from "@/hooks/useSystemLogger";
 import { format } from "date-fns";
 
 const MODULE_NAME = "identity_users";
@@ -50,6 +51,7 @@ const generateUserCode = (firstName: string, lastName: string) => {
 const IdentityUsersContent = () => {
   const { can } = useActionPermissions(MODULE_NAME);
   const queryClient = useQueryClient();
+  const { logError, startNewCorrelation } = useSystemLogger();
   const [searchQuery, setSearchQuery] = useState("");
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -110,7 +112,17 @@ const IdentityUsersContent = () => {
       toast.success("User updated successfully");
       setShowEditDialog(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      logError({
+        api_name: 'AspNetUsers.update',
+        module: MODULE_NAME,
+        entity_type: 'identity_user',
+        entity_id: selectedUser?.Id,
+        error_type: error?.name || 'UpdateError',
+        error_message: error?.message || 'Failed to update identity user',
+        stack_trace: error?.stack,
+        severity: 'error',
+      });
       toast.error(`Failed to update user: ${error.message}`);
     },
   });
@@ -118,6 +130,7 @@ const IdentityUsersContent = () => {
   // Create user mutation
   const createUser = useMutation({
     mutationFn: async () => {
+      startNewCorrelation();
       const userCode = generateUserCode(createFormData.first_name, createFormData.last_name);
       const fullName = [createFormData.first_name, createFormData.middle_name, createFormData.last_name].filter(Boolean).join(" ");
       
@@ -154,7 +167,21 @@ const IdentityUsersContent = () => {
       setShowCreateDialog(false);
       resetCreateForm();
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      logError({
+        api_name: 'AspNetUsers.insert',
+        module: MODULE_NAME,
+        entity_type: 'identity_user',
+        error_type: error?.name || 'CreateError',
+        error_message: error?.message || 'Failed to create identity user',
+        stack_trace: error?.stack,
+        severity: 'error',
+        payload_json: {
+          email: createFormData.Email,
+          first_name: createFormData.first_name,
+          last_name: createFormData.last_name,
+        },
+      });
       toast.error(`Failed to create user: ${error.message}`);
     },
   });
@@ -173,7 +200,16 @@ const IdentityUsersContent = () => {
       queryClient.invalidateQueries({ queryKey: ["identity-users"] });
       toast.success("User unlocked successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      logError({
+        api_name: 'AspNetUsers.unlock',
+        module: MODULE_NAME,
+        entity_type: 'identity_user',
+        error_type: error?.name || 'UnlockError',
+        error_message: error?.message || 'Failed to unlock identity user',
+        stack_trace: error?.stack,
+        severity: 'error',
+      });
       toast.error(`Failed to unlock user: ${error.message}`);
     },
   });
@@ -192,7 +228,16 @@ const IdentityUsersContent = () => {
       queryClient.invalidateQueries({ queryKey: ["identity-users"] });
       toast.success("User status updated");
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      logError({
+        api_name: 'AspNetUsers.toggleStatus',
+        module: MODULE_NAME,
+        entity_type: 'identity_user',
+        error_type: error?.name || 'ToggleStatusError',
+        error_message: error?.message || 'Failed to toggle identity user status',
+        stack_trace: error?.stack,
+        severity: 'error',
+      });
       toast.error(`Failed to update status: ${error.message}`);
     },
   });
