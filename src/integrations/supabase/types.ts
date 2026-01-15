@@ -7437,10 +7437,15 @@ export type Database = {
         }
         Returns: boolean
       }
-      identity_has_role: {
-        Args: { _role_name: string; _user_id: string }
-        Returns: boolean
-      }
+      identity_current_identity_user_id: { Args: never; Returns: string }
+      identity_current_user_code: { Args: never; Returns: string }
+      identity_has_role:
+        | {
+            Args: { _identity_user_id: string; _role_name: string }
+            Returns: boolean
+          }
+        | { Args: { _role_name: string; _user_id: string }; Returns: boolean }
+      identity_is_admin: { Args: never; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
