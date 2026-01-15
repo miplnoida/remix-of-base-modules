@@ -7,14 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,20 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { LayoutGrid, Plus, Search, Edit, Trash2, ChevronRight, ChevronDown, GripVertical } from "lucide-react";
+import { LayoutGrid, Plus, Search, Edit, Trash2, ChevronRight, ChevronDown, Settings } from "lucide-react";
 import * as LucideIcons from "lucide-react";
-import { useAppModules, useCreateAppModule, useUpdateAppModule, useDeleteAppModule, useCreateModuleAction, useDeleteModuleAction } from "@/hooks/useAdminData";
-import type { AppModule, ModuleAction } from "@/hooks/useAdminData";
+import { useAppModules, useCreateAppModule, useUpdateAppModule, useDeleteAppModule } from "@/hooks/useAdminData";
+import type { AppModule } from "@/hooks/useAdminData";
 import { IconPicker } from "@/components/ui/icon-picker";
 import { cn } from "@/lib/utils";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
 import { BusinessObjectRootConfig } from "@/components/admin/BusinessObjectRootConfig";
+import { ModuleActionsDialog } from "@/components/admin/ModuleActionsDialog";
 
 // Helper to get Lucide icon by name
 const getIcon = (iconName: string | null) => {
@@ -51,50 +39,120 @@ const getIcon = (iconName: string | null) => {
   return Icon || LucideIcons.Circle;
 };
 
+// Tree node structure for n-level support
+interface ModuleTreeNode extends AppModule {
+  children: ModuleTreeNode[];
+}
+
+// Build recursive tree from flat module list
+function buildModuleTree(modules: AppModule[]): ModuleTreeNode[] {
+  const moduleMap = new Map<string, ModuleTreeNode>();
+  const roots: ModuleTreeNode[] = [];
+
+  // Create tree nodes for each module
+  modules.forEach((m) => {
+    moduleMap.set(m.id, { ...m, children: [] });
+  });
+
+  // Build parent-child relationships
+  modules.forEach((m) => {
+    const node = moduleMap.get(m.id)!;
+    if (m.parent_id && moduleMap.has(m.parent_id)) {
+      const parent = moduleMap.get(m.parent_id)!;
+      parent.children.push(node);
+    } else if (!m.parent_id) {
+      roots.push(node);
+    }
+  });
+
+  // Sort children by sort_order
+  const sortChildren = (nodes: ModuleTreeNode[]) => {
+    nodes.sort((a, b) => a.sort_order - b.sort_order);
+    nodes.forEach((n) => sortChildren(n.children));
+  };
+  sortChildren(roots);
+
+  return roots;
+}
+
+// Filter tree based on search query
+function filterTree(nodes: ModuleTreeNode[], query: string): ModuleTreeNode[] {
+  if (!query) return nodes;
+
+  const lowerQuery = query.toLowerCase();
+
+  const matchesSearch = (node: ModuleTreeNode): boolean => {
+    return (
+      node.display_name.toLowerCase().includes(lowerQuery) ||
+      node.name.toLowerCase().includes(lowerQuery)
+    );
+  };
+
+  const filterNode = (node: ModuleTreeNode): ModuleTreeNode | null => {
+    const filteredChildren = node.children
+      .map((child) => filterNode(child))
+      .filter((n): n is ModuleTreeNode => n !== null);
+
+    if (matchesSearch(node) || filteredChildren.length > 0) {
+      return { ...node, children: filteredChildren };
+    }
+    return null;
+  };
+
+  return nodes
+    .map((node) => filterNode(node))
+    .filter((n): n is ModuleTreeNode => n !== null);
+}
+
+// Get all module IDs for expand all
+function getAllModuleIds(nodes: ModuleTreeNode[]): string[] {
+  const ids: string[] = [];
+  const traverse = (node: ModuleTreeNode) => {
+    ids.push(node.id);
+    node.children.forEach(traverse);
+  };
+  nodes.forEach(traverse);
+  return ids;
+}
+
 interface ModuleTreeItemProps {
-  module: AppModule;
-  children: AppModule[];
+  node: ModuleTreeNode;
   level: number;
   onEdit: (module: AppModule) => void;
   onDelete: (id: string) => void;
   onToggle: (module: AppModule) => void;
-  onAddAction: (module: AppModule) => void;
-  onDeleteAction: (id: string) => void;
+  onManageActions: (module: AppModule) => void;
   expandedModules: Set<string>;
   toggleExpand: (id: string) => void;
   can: (action: string) => boolean;
 }
 
-
 const ModuleTreeItem = ({
-  module,
-  children,
+  node,
   level,
   onEdit,
   onDelete,
   onToggle,
-  onAddAction,
-  onDeleteAction,
+  onManageActions,
   expandedModules,
   toggleExpand,
   can,
 }: ModuleTreeItemProps) => {
-  const hasChildren = children.length > 0;
-  const isExpanded = expandedModules.has(module.id);
-  const Icon = getIcon(module.icon);
+  const hasChildren = node.children.length > 0;
+  const isExpanded = expandedModules.has(node.id);
+  const Icon = getIcon(node.icon);
 
   return (
     <div className="border-b last:border-b-0">
       <div
         className={cn(
-          "flex items-center gap-2 py-3 px-4 hover:bg-muted/50 transition-colors",
-          level > 0 && "pl-8"
+          "flex items-center gap-2 py-3 px-4 hover:bg-muted/50 transition-colors"
         )}
         style={{ paddingLeft: level * 24 + 16 }}
       >
         {hasChildren ? (
           <button
-            onClick={() => toggleExpand(module.id)}
+            onClick={() => toggleExpand(node.id)}
             className="p-1 hover:bg-muted rounded"
           >
             {isExpanded ? (
@@ -106,106 +164,71 @@ const ModuleTreeItem = ({
         ) : (
           <div className="w-6" />
         )}
-        
+
         <Icon className="h-5 w-5 text-primary flex-shrink-0" />
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{module.display_name}</span>
-            <span className="text-xs text-muted-foreground">({module.name})</span>
+            <span className="font-medium truncate">{node.display_name}</span>
+            <span className="text-xs text-muted-foreground">({node.name})</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{module.route || "No route"}</span>
+            <span>{node.route || "No route"}</span>
             <span>•</span>
-            <span>Order: {module.sort_order}</span>
+            <span>Order: {node.sort_order}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant={module.is_enabled ? "default" : "secondary"} className="text-xs">
-            {module.is_enabled ? "Enabled" : "Disabled"}
+          <Badge variant={node.is_enabled ? "default" : "secondary"} className="text-xs">
+            {node.is_enabled ? "Enabled" : "Disabled"}
           </Badge>
           <Badge variant="outline" className="text-xs">
-            {module.actions?.length || 0} Actions
+            {node.actions?.length || 0} Actions
           </Badge>
         </div>
 
         <div className="flex items-center gap-1">
           {can(ACTION_NAMES.ENABLE_DISABLE) && (
-            <Button size="sm" variant="ghost" onClick={() => onToggle(module)}>
-              {module.is_enabled ? "Disable" : "Enable"}
+            <Button size="sm" variant="ghost" onClick={() => onToggle(node)}>
+              {node.is_enabled ? "Disable" : "Enable"}
             </Button>
           )}
           {can(ACTION_NAMES.EDIT) && (
-            <Button size="sm" variant="ghost" onClick={() => onEdit(module)}>
+            <Button size="sm" variant="ghost" onClick={() => onEdit(node)}>
               <Edit className="h-4 w-4" />
             </Button>
           )}
           {can(ACTION_NAMES.ADD_ACTIONS) && (
-            <Button size="sm" variant="ghost" onClick={() => onAddAction(module)}>
-              <Plus className="h-4 w-4" />
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onManageActions(node)}
+              title="Manage Actions"
+            >
+              <Settings className="h-4 w-4" />
             </Button>
           )}
           {can(ACTION_NAMES.DELETE) && (
-            <Button size="sm" variant="ghost" onClick={() => onDelete(module.id)}>
+            <Button size="sm" variant="ghost" onClick={() => onDelete(node.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
 
-      {/* Actions */}
-      {isExpanded && module.actions && module.actions.length > 0 && (
-        <div className="bg-muted/30 border-t" style={{ paddingLeft: (level + 1) * 24 + 40 }}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-32">Action</TableHead>
-                <TableHead>Display Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="w-24">Status</TableHead>
-                <TableHead className="w-16 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {module.actions.map((action) => (
-                <TableRow key={action.id}>
-                  <TableCell className="font-mono text-xs">{action.action_name}</TableCell>
-                  <TableCell className="font-medium">{action.display_name}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{action.description || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant={action.is_enabled ? "default" : "secondary"} className="text-xs">
-                      {action.is_enabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {can(ACTION_NAMES.DELETE) && (
-                      <Button variant="ghost" size="icon" onClick={() => onDeleteAction(action.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {/* Children */}
+      {/* Recursively render children */}
       {isExpanded && hasChildren && (
         <div>
-          {children.map((child) => (
+          {node.children.map((child) => (
             <ModuleTreeItem
               key={child.id}
-              module={child}
-              children={[]}
+              node={child}
               level={level + 1}
               onEdit={onEdit}
               onDelete={onDelete}
               onToggle={onToggle}
-              onAddAction={onAddAction}
-              onDeleteAction={onDeleteAction}
+              onManageActions={onManageActions}
               expandedModules={expandedModules}
               toggleExpand={toggleExpand}
               can={can}
@@ -221,7 +244,7 @@ const ModuleManagementContent = () => {
   const { can } = useActionPermissions(MODULE_NAMES.MODULE_MANAGEMENT);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModuleDialog, setShowModuleDialog] = useState(false);
-  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [showActionsDialog, setShowActionsDialog] = useState(false);
   const [selectedModule, setSelectedModule] = useState<AppModule | null>(null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [moduleForm, setModuleForm] = useState({
@@ -237,55 +260,29 @@ const ModuleManagementContent = () => {
     primary_key_column: "id",
     business_key_column: "",
   });
-  const [actionForm, setActionForm] = useState({
-    action_name: "",
-    display_name: "",
-    description: "",
-    is_enabled: true,
-  });
 
   const { data: modules = [], isLoading } = useAppModules();
   const createModule = useCreateAppModule();
   const updateModule = useUpdateAppModule();
   const deleteModule = useDeleteAppModule();
-  const createAction = useCreateModuleAction();
-  const deleteAction = useDeleteModuleAction();
 
-  // Build tree structure
-  const { parentModules, childModulesMap, filteredParentModules, availableParentModules } = useMemo(() => {
-    const parents = modules
-      .filter((m) => !m.parent_id)
-      .sort((a, b) => a.sort_order - b.sort_order);
-    
-    const childMap = new Map<string, AppModule[]>();
-    modules.forEach((m) => {
-      if (m.parent_id) {
-        const children = childMap.get(m.parent_id) || [];
-        children.push(m);
-        childMap.set(m.parent_id, children.sort((a, b) => a.sort_order - b.sort_order));
-      }
-    });
-
-    const filtered = parents.filter((module) =>
-      module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (childMap.get(module.id) || []).some(
-        (child) =>
-          child.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          child.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
+  // Build n-level tree structure
+  const { moduleTree, filteredTree, availableParentModules, allModuleIds } = useMemo(() => {
+    const tree = buildModuleTree(modules);
+    const filtered = filterTree(tree, searchQuery);
 
     // Only modules without routes can be parent modules (container/folder modules)
     const availableParents = modules
-      .filter((m) => !m.route || m.route.trim() === '')
+      .filter((m) => !m.route || m.route.trim() === "")
       .sort((a, b) => a.sort_order - b.sort_order);
 
+    const allIds = getAllModuleIds(tree);
+
     return {
-      parentModules: parents,
-      childModulesMap: childMap,
-      filteredParentModules: filtered,
+      moduleTree: tree,
+      filteredTree: filtered,
       availableParentModules: availableParents,
+      allModuleIds: allIds,
     };
   }, [modules, searchQuery]);
 
@@ -345,31 +342,25 @@ const ModuleManagementContent = () => {
     setShowModuleDialog(false);
   };
 
-  const handleOpenActionDialog = (module: AppModule) => {
+  const handleManageActions = (module: AppModule) => {
     setSelectedModule(module);
-    setActionForm({ action_name: "", display_name: "", description: "", is_enabled: true });
-    setShowActionDialog(true);
-  };
-
-  const handleSaveAction = async () => {
-    if (selectedModule) {
-      await createAction.mutateAsync({ module_id: selectedModule.id, ...actionForm });
-      setShowActionDialog(false);
-    }
+    setShowActionsDialog(true);
   };
 
   const handleToggleModule = async (module: AppModule) => {
     await updateModule.mutateAsync({ id: module.id, is_enabled: !module.is_enabled });
   };
 
-  const getDefaultActions = () => [
-    { action_name: "view", display_name: "View" },
-    { action_name: "create", display_name: "Create" },
-    { action_name: "edit", display_name: "Edit" },
-    { action_name: "delete", display_name: "Delete" },
-    { action_name: "approve", display_name: "Approve" },
-    { action_name: "reject", display_name: "Reject" },
-  ];
+  // Get display path for parent modules in dropdown
+  const getModulePath = (moduleId: string): string => {
+    const paths: string[] = [];
+    let current = modules.find((m) => m.id === moduleId);
+    while (current) {
+      paths.unshift(current.display_name);
+      current = modules.find((m) => m.id === current?.parent_id);
+    }
+    return paths.join(" → ");
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -431,7 +422,7 @@ const ModuleManagementContent = () => {
       <Card>
         <CardHeader>
           <CardTitle>Application Modules</CardTitle>
-          <CardDescription>Configure modules that appear in the navigation menu (tree view)</CardDescription>
+          <CardDescription>Configure modules that appear in the navigation menu (n-level tree view)</CardDescription>
           <div className="flex items-center gap-4 mt-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -448,7 +439,7 @@ const ModuleManagementContent = () => {
                 if (expandedModules.size > 0) {
                   setExpandedModules(new Set());
                 } else {
-                  setExpandedModules(new Set(parentModules.map((m) => m.id)));
+                  setExpandedModules(new Set(allModuleIds));
                 }
               }}
             >
@@ -459,23 +450,21 @@ const ModuleManagementContent = () => {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : filteredParentModules.length === 0 ? (
+          ) : filteredTree.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No modules found. Click "Add Module" to create one.
             </div>
           ) : (
             <div className="divide-y">
-              {filteredParentModules.map((module) => (
+              {filteredTree.map((node) => (
                 <ModuleTreeItem
-                  key={module.id}
-                  module={module}
-                  children={childModulesMap.get(module.id) || []}
+                  key={node.id}
+                  node={node}
                   level={0}
                   onEdit={handleOpenModuleDialog}
                   onDelete={(id) => deleteModule.mutate(id)}
                   onToggle={handleToggleModule}
-                  onAddAction={handleOpenActionDialog}
-                  onDeleteAction={(id) => deleteAction.mutate(id)}
+                  onManageActions={handleManageActions}
                   expandedModules={expandedModules}
                   toggleExpand={toggleExpand}
                   can={can}
@@ -486,7 +475,7 @@ const ModuleManagementContent = () => {
         </CardContent>
       </Card>
 
-      {/* Module Dialog - Improved Design */}
+      {/* Module Dialog */}
       <Dialog open={showModuleDialog} onOpenChange={setShowModuleDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -498,7 +487,7 @@ const ModuleManagementContent = () => {
               {selectedModule ? "Update module configuration and settings" : "Configure a new application module"}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {/* Basic Information Section */}
             <div className="space-y-4">
@@ -576,9 +565,13 @@ const ModuleManagementContent = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="none">None (top level)</SelectItem>
-                      {availableParentModules.filter((m) => m.id !== selectedModule?.id).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
-                      ))}
+                      {availableParentModules
+                        .filter((m) => m.id !== selectedModule?.id)
+                        .map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {getModulePath(m.id)}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -627,7 +620,7 @@ const ModuleManagementContent = () => {
               />
             </div>
           </div>
-          
+
           <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setShowModuleDialog(false)}>Cancel</Button>
             <Button
@@ -640,79 +633,14 @@ const ModuleManagementContent = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Action Dialog */}
-      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Action</DialogTitle>
-            <DialogDescription>
-              Add an action to {selectedModule?.display_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Quick Add</Label>
-              <div className="flex flex-wrap gap-2">
-                {getDefaultActions().map((action) => (
-                  <Button
-                    key={action.action_name}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActionForm({ ...actionForm, ...action })}
-                  >
-                    {action.display_name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="action_name">Action Name *</Label>
-                <Input
-                  id="action_name"
-                  value={actionForm.action_name}
-                  onChange={(e) => setActionForm({ ...actionForm, action_name: e.target.value })}
-                  placeholder="view"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="action_display">Display Name *</Label>
-                <Input
-                  id="action_display"
-                  value={actionForm.display_name}
-                  onChange={(e) => setActionForm({ ...actionForm, display_name: e.target.value })}
-                  placeholder="View"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="action_desc">Description</Label>
-              <Textarea
-                id="action_desc"
-                value={actionForm.description}
-                onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="action_enabled">Enabled</Label>
-              <Switch
-                id="action_enabled"
-                checked={actionForm.is_enabled}
-                onCheckedChange={(checked) => setActionForm({ ...actionForm, is_enabled: checked })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowActionDialog(false)}>Cancel</Button>
-            <Button
-              onClick={handleSaveAction}
-              disabled={!actionForm.action_name || !actionForm.display_name || createAction.isPending}
-            >
-              Add Action
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Module Actions Dialog */}
+      <ModuleActionsDialog
+        open={showActionsDialog}
+        onOpenChange={setShowActionsDialog}
+        module={selectedModule}
+        canEdit={can(ACTION_NAMES.EDIT)}
+        canDelete={can(ACTION_NAMES.DELETE)}
+      />
     </div>
   );
 };
