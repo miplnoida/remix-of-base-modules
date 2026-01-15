@@ -2,23 +2,24 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Plus, Eye, Edit, Send, CheckCircle, XCircle, Search, 
-  RotateCcw, Filter, Download, ChevronUp, ChevronDown,
+  Eye, Edit, Send, CheckCircle, Trash2, Search, 
+  Filter, Download, ChevronUp, ChevronDown,
   UserPlus, Key, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
+import { useIPStatuses, useCountries, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 // Status codes by tab
 const PENDING_STATUSES = ['Z', 'P'];
@@ -31,17 +32,23 @@ interface IPRecord {
   unique_uuid: string;
   application_id: string;
   ssn: string | null;
+  firstname: string | null;
   first_name: string | null;
   middle_name: string | null;
+  surname: string | null;
   last_name: string | null;
+  dob: string | null;
   date_of_birth: string | null;
+  sex: string | null;
   gender: string | null;
+  nationality_code: string | null;
   nationality: string | null;
+  phone: string | null;
   telephone: string | null;
   status: string;
   created_by: string | null;
   created_at: string;
-  is_temp: boolean;
+  registration_date: string | null;
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -57,17 +64,15 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   R: { label: 'Rejected', variant: 'destructive' },
 };
 
-// Default columns configuration
+// Default columns configuration - merged Full Name column
 const defaultColumns: Column[] = [
   { key: 'application_id', label: 'Application ID/SSN', visible: true, locked: true },
-  { key: 'last_name', label: 'Sur Name', visible: true },
-  { key: 'first_name', label: 'First Name', visible: true },
-  { key: 'middle_name', label: 'Middle Name', visible: true },
+  { key: 'full_name', label: 'Full Name', visible: true },
   { key: 'status', label: 'Status', visible: true },
   { key: 'date_of_birth', label: 'Date Of Birth', visible: true },
   { key: 'gender', label: 'Gender', visible: true },
   { key: 'nationality', label: 'Nationality', visible: true },
-  { key: 'created_at', label: 'Registration Date', visible: true },
+  { key: 'registration_date', label: 'Registration Date', visible: true },
   { key: 'telephone', label: 'Phone Num', visible: true },
 ];
 
@@ -75,6 +80,7 @@ export default function IPRegistrationList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: ipStatuses } = useIPStatuses();
+  const { data: countries } = useCountries();
   const [records, setRecords] = useState<IPRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
@@ -82,6 +88,7 @@ export default function IPRegistrationList() {
   const [searchText, setSearchText] = useState('');
   const [pageSize, setPageSize] = useState(10);
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
+  const [deleteRecord, setDeleteRecord] = useState<IPRecord | null>(null);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -93,6 +100,9 @@ export default function IPRegistrationList() {
     gender: '',
     status: '',
   });
+
+  // Tab counts
+  const [tabCounts, setTabCounts] = useState({ pending: 0, registered: 0, inactive: 0 });
 
   // Get status codes for current tab
   const getStatusesForTab = useCallback((tab: string): string[] => {
@@ -108,20 +118,29 @@ export default function IPRegistrationList() {
     }
   }, []);
 
-  // Fetch records with filters applied at database level
+  // Get country description from code
+  const getCountryDescription = useCallback((code: string | null): string => {
+    if (!code || !countries) return code || '-';
+    const country = countries.find(c => c.code === code);
+    return country?.description || country?.nationality || code;
+  }, [countries]);
+
+  // Get full name from record
+  const getFullName = (record: IPRecord): string => {
+    const firstName = record.firstname || record.first_name || '';
+    const middleName = record.middle_name || '';
+    const lastName = record.surname || record.last_name || '';
+    return [firstName, middleName, lastName].filter(Boolean).join(' ') || '-';
+  };
+
+  // Fetch records ONLY from ip_master (no tmp_ip_master)
   const fetchRecords = useCallback(async (applyFilters = false) => {
     setLoading(true);
     try {
       const tabStatuses = getStatusesForTab(activeTab);
       
-      // Build base query for tmp_ip_master
-      let tmpQuery = supabase
-        .from('tmp_ip_master')
-        .select('*')
-        .neq('status', EXCLUDED_STATUS);
-      
-      // Build base query for ip_master
-      let masterQuery = supabase
+      // Build base query for ip_master only
+      let query = supabase
         .from('ip_master')
         .select('*')
         .neq('status', EXCLUDED_STATUS);
@@ -129,55 +148,40 @@ export default function IPRegistrationList() {
       // Apply filters if search was triggered
       if (applyFilters) {
         if (filters.ssn) {
-          tmpQuery = tmpQuery.ilike('ssn', `%${filters.ssn}%`);
-          masterQuery = masterQuery.ilike('ssn', `%${filters.ssn}%`);
+          // Search both SSN and Application ID
+          query = query.or(`ssn.ilike.%${filters.ssn}%,application_id.ilike.%${filters.ssn}%`);
         }
         if (filters.dob) {
-          tmpQuery = tmpQuery.eq('date_of_birth', filters.dob);
-          masterQuery = masterQuery.eq('date_of_birth', filters.dob);
+          query = query.or(`dob.eq.${filters.dob},date_of_birth.eq.${filters.dob}`);
         }
         if (filters.surname) {
-          tmpQuery = tmpQuery.ilike('last_name', `%${filters.surname}%`);
-          masterQuery = masterQuery.ilike('last_name', `%${filters.surname}%`);
+          query = query.or(`surname.ilike.%${filters.surname}%,last_name.ilike.%${filters.surname}%`);
         }
         if (filters.firstName) {
-          tmpQuery = tmpQuery.ilike('first_name', `%${filters.firstName}%`);
-          masterQuery = masterQuery.ilike('first_name', `%${filters.firstName}%`);
+          query = query.or(`firstname.ilike.%${filters.firstName}%,first_name.ilike.%${filters.firstName}%`);
         }
         if (filters.phone) {
-          tmpQuery = tmpQuery.ilike('telephone', `%${filters.phone}%`);
-          masterQuery = masterQuery.ilike('telephone', `%${filters.phone}%`);
+          query = query.or(`phone.ilike.%${filters.phone}%,telephone.ilike.%${filters.phone}%`);
         }
         if (filters.gender && filters.gender !== 'all') {
-          tmpQuery = tmpQuery.eq('gender', filters.gender);
-          masterQuery = masterQuery.eq('gender', filters.gender);
+          query = query.or(`sex.eq.${filters.gender},gender.eq.${filters.gender}`);
         }
         if (filters.status && filters.status !== 'all') {
-          tmpQuery = tmpQuery.eq('status', filters.status);
-          masterQuery = masterQuery.eq('status', filters.status);
+          query = query.eq('status', filters.status);
         }
       }
 
       // Apply tab-based status filter
       if (tabStatuses.length > 0) {
-        tmpQuery = tmpQuery.in('status', tabStatuses);
-        masterQuery = masterQuery.in('status', tabStatuses);
+        query = query.in('status', tabStatuses);
       }
 
-      // Execute queries
-      const [{ data: tmpData, error: tmpError }, { data: masterData, error: masterError }] = await Promise.all([
-        tmpQuery.order('created_at', { ascending: false }),
-        masterQuery.order('created_at', { ascending: false })
-      ]);
+      // Execute query
+      const { data, error } = await query.order('created_at', { ascending: false });
       
-      if (tmpError) throw tmpError;
-      if (masterError) throw masterError;
+      if (error) throw error;
 
-      // Combine and mark records
-      const tmpRecords: IPRecord[] = (tmpData || []).map(r => ({ ...r, is_temp: true }));
-      const masterRecords: IPRecord[] = (masterData || []).map(r => ({ ...r, is_temp: false }));
-      
-      setRecords([...tmpRecords, ...masterRecords]);
+      setRecords((data || []) as IPRecord[]);
     } catch (error) {
       console.error('Error fetching records:', error);
       toast.error('Failed to load records');
@@ -186,10 +190,32 @@ export default function IPRegistrationList() {
     }
   }, [activeTab, filters, getStatusesForTab]);
 
+  // Fetch tab counts
+  const fetchCounts = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ip_master')
+        .select('status')
+        .neq('status', EXCLUDED_STATUS);
+
+      if (error) throw error;
+
+      const allRecords = data || [];
+      setTabCounts({
+        pending: allRecords.filter(r => PENDING_STATUSES.includes(r.status)).length,
+        registered: allRecords.filter(r => REGISTERED_STATUSES.includes(r.status)).length,
+        inactive: allRecords.filter(r => INACTIVE_STATUSES.includes(r.status)).length,
+      });
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  }, []);
+
   // Refetch when tab changes
   useEffect(() => {
     fetchRecords(false);
-  }, [activeTab]);
+    fetchCounts();
+  }, [activeTab, fetchRecords, fetchCounts]);
 
   // Handle search button click
   const handleSearch = () => {
@@ -206,50 +232,24 @@ export default function IPRegistrationList() {
     
     const search = searchText.toLowerCase();
     return records.filter(record => {
-      const fullName = `${record.first_name || ''} ${record.middle_name || ''} ${record.last_name || ''}`.toLowerCase();
+      const fullName = getFullName(record).toLowerCase();
       return (
         record.application_id?.toLowerCase().includes(search) ||
         record.ssn?.toLowerCase().includes(search) ||
         fullName.includes(search) ||
-        record.telephone?.toLowerCase().includes(search)
+        (record.phone || record.telephone)?.toLowerCase().includes(search)
       );
     });
   }, [records, searchText]);
 
-  // Calculate counts from all available records (need separate queries for accurate counts)
-  const [tabCounts, setTabCounts] = useState({ pending: 0, registered: 0, inactive: 0 });
-  
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        // Fetch counts from both tables
-        const [tmpResult, masterResult] = await Promise.all([
-          supabase.from('tmp_ip_master').select('status').neq('status', EXCLUDED_STATUS),
-          supabase.from('ip_master').select('status').neq('status', EXCLUDED_STATUS)
-        ]);
-        
-        const allRecords = [...(tmpResult.data || []), ...(masterResult.data || [])];
-        
-        setTabCounts({
-          pending: allRecords.filter(r => PENDING_STATUSES.includes(r.status)).length,
-          registered: allRecords.filter(r => REGISTERED_STATUSES.includes(r.status)).length,
-          inactive: allRecords.filter(r => INACTIVE_STATUSES.includes(r.status)).length,
-        });
-      } catch (error) {
-        console.error('Error fetching counts:', error);
-      }
-    };
-    
-    fetchCounts();
-  }, [records]); // Refetch counts when records change
-
   // Get visible columns
   const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
 
+  // Action button logic
   const canEdit = (record: IPRecord) => record.status === 'Z';
+  const canDelete = (record: IPRecord) => record.status === 'Z' || record.status === 'P';
   const canSubmit = (record: IPRecord) => record.status === 'Z';
-  const canApprove = (record: IPRecord) => record.status === 'P' && record.created_by !== user?.id;
-  const canReject = (record: IPRecord) => record.status === 'P' && record.created_by !== user?.id;
+  const canApprove = (record: IPRecord) => record.status === 'P';
 
   const handleView = (record: IPRecord) => {
     navigate(`/ip-registration/view/${record.unique_uuid}`);
@@ -267,8 +267,30 @@ export default function IPRegistrationList() {
     navigate(`/ip-registration/view/${record.unique_uuid}?action=approve`);
   };
 
-  const handleReject = async (record: IPRecord) => {
-    navigate(`/ip-registration/view/${record.unique_uuid}?action=reject`);
+  const handleDeleteClick = (record: IPRecord) => {
+    setDeleteRecord(record);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteRecord) return;
+
+    try {
+      const { error } = await supabase
+        .from('ip_master')
+        .update({ status: 'D' })
+        .eq('unique_uuid', deleteRecord.unique_uuid);
+
+      if (error) throw error;
+
+      toast.success('Record deleted successfully');
+      fetchRecords(false);
+      fetchCounts();
+    } catch (error) {
+      console.error('Error deleting record:', error);
+      toast.error('Failed to delete record');
+    } finally {
+      setDeleteRecord(null);
+    }
   };
 
   const resetFilters = () => {
@@ -282,7 +304,7 @@ export default function IPRegistrationList() {
       status: '',
     });
     setSearchText('');
-    fetchRecords(false); // Reload without filters
+    fetchRecords(false);
   };
 
   // Get statuses available for current tab (for dropdown)
@@ -291,6 +313,33 @@ export default function IPRegistrationList() {
     if (!ipStatuses) return [];
     return ipStatuses.filter(s => tabStatuses.includes(s.code));
   }, [activeTab, ipStatuses, getStatusesForTab]);
+
+  // Get registration date display - only show for non-draft/pending statuses
+  const getRegistrationDate = (record: IPRecord): string => {
+    if (record.status === 'Z' || record.status === 'P') {
+      return '-';
+    }
+    if (record.registration_date) {
+      return format(new Date(record.registration_date), 'dd/MM/yyyy');
+    }
+    return '-';
+  };
+
+  // Get date of birth
+  const getDateOfBirth = (record: IPRecord): string => {
+    const dob = record.dob || record.date_of_birth;
+    if (!dob) return '-';
+    return format(new Date(dob), 'dd/MM/yyyy');
+  };
+
+  // Get gender display
+  const getGenderDisplay = (record: IPRecord): string => {
+    const gender = record.sex || record.gender;
+    if (gender === 'M') return 'Male';
+    if (gender === 'F') return 'Female';
+    if (gender === 'N') return 'Not-Specified';
+    return gender || '-';
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -338,9 +387,9 @@ export default function IPRegistrationList() {
               <CollapsibleContent>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border rounded-lg">
                   <div>
-                    <label className="text-sm font-medium">SSN No.</label>
+                    <label className="text-sm font-medium">SSN / Application ID</label>
                     <Input 
-                      placeholder="Enter 6-Digit SSN" 
+                      placeholder="Enter SSN or Application ID" 
                       value={filters.ssn}
                       onChange={(e) => setFilters({ ...filters, ssn: e.target.value })}
                     />
@@ -385,8 +434,9 @@ export default function IPRegistrationList() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="M">Male</SelectItem>
+                        <SelectItem value="F">Female</SelectItem>
+                        <SelectItem value="N">Not-Specified</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -495,19 +545,17 @@ export default function IPRegistrationList() {
                         {visibleColumns.map(col => (
                           <TableCell key={col.key} className={col.key === 'application_id' ? 'font-medium' : ''}>
                             {col.key === 'application_id' && (record.ssn || record.application_id)}
-                            {col.key === 'last_name' && (record.last_name || '-')}
-                            {col.key === 'first_name' && (record.first_name || '-')}
-                            {col.key === 'middle_name' && (record.middle_name || '-')}
+                            {col.key === 'full_name' && getFullName(record)}
                             {col.key === 'status' && (
                               <Badge variant={statusConfig[record.status]?.variant || 'default'}>
                                 {ipStatuses ? getStatusDescription(record.status, ipStatuses) : (statusConfig[record.status]?.label || record.status)}
                               </Badge>
                             )}
-                            {col.key === 'date_of_birth' && (record.date_of_birth ? format(new Date(record.date_of_birth), 'dd/MM/yyyy') : '-')}
-                            {col.key === 'gender' && (record.gender || '-')}
-                            {col.key === 'nationality' && (record.nationality || '-')}
-                            {col.key === 'created_at' && format(new Date(record.created_at), 'dd/MM/yyyy')}
-                            {col.key === 'telephone' && (record.telephone || '-')}
+                            {col.key === 'date_of_birth' && getDateOfBirth(record)}
+                            {col.key === 'gender' && getGenderDisplay(record)}
+                            {col.key === 'nationality' && getCountryDescription(record.nationality_code || record.nationality)}
+                            {col.key === 'registration_date' && getRegistrationDate(record)}
+                            {col.key === 'telephone' && (record.phone || record.telephone || '-')}
                           </TableCell>
                         ))}
                         <TableCell>
@@ -532,7 +580,7 @@ export default function IPRegistrationList() {
                             )}
                             {canSubmit(record) && (
                               <Button
-                                variant="destructive"
+                                variant="default"
                                 size="icon"
                                 onClick={() => handleSubmit(record)}
                                 title="Submit"
@@ -551,14 +599,14 @@ export default function IPRegistrationList() {
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                             )}
-                            {canReject(record) && (
+                            {canDelete(record) && (
                               <Button
                                 variant="destructive"
                                 size="icon"
-                                onClick={() => handleReject(record)}
-                                title="Reject"
+                                onClick={() => handleDeleteClick(record)}
+                                title="Delete"
                               >
-                                <XCircle className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
@@ -572,6 +620,24 @@ export default function IPRegistrationList() {
           </CardContent>
         </Card>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteRecord} onOpenChange={(open) => !open && setDeleteRecord(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this record? This action will mark the record as deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

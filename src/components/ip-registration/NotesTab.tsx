@@ -72,7 +72,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({
           ) : (
             <div className="space-y-3">
               {notes.map((note, index) => (
-                <div key={note.id || index} className="border rounded-lg p-4">
+                <div key={`${note.ssn}-${note.note_date}-${note.note_seq || index}`} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-sm text-muted-foreground">
                       {note.note_date 

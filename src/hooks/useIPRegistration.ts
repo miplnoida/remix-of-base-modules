@@ -70,10 +70,10 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       const { data, error } = await supabase
         .from('ip_notes')
         .select('*')
-        .eq('unique_uuid', ssn)
+        .eq('ssn', ssn)
         .order('note_date', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as any[];
     },
     enabled: !!ssn && mode !== 'create',
   });
@@ -184,14 +184,12 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
   useEffect(() => {
     if (notesData) {
       setNotes(notesData.map((n: any) => ({
-        id: n.id,
-        ip_id: n.ip_id,
-        unique_uuid: n.unique_uuid,
+        ssn: n.ssn || '',
         note_date: n.note_date || n.created_at || '',
         note: n.note || n.note_content || '',
         userid: n.userid || '',
         note_tran_code: n.note_tran_code || n.note_type || '',
-        note_seq: n.note_seq,
+        note_seq: n.note_seq || 0,
       })));
     }
   }, [notesData]);
