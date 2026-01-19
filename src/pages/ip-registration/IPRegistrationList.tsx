@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIPStatuses, useCountries, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 
 // Status codes by tab
 const PENDING_STATUSES = ['Z', 'P'];
@@ -89,6 +90,8 @@ export default function IPRegistrationList() {
   const [pageSize, setPageSize] = useState(10);
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
   const [deleteRecord, setDeleteRecord] = useState<IPRecord | null>(null);
+  const [submitRecord, setSubmitRecord] = useState<IPRecord | null>(null);
+  const { submitIPRegistration, isSubmitting } = useIPRegistrationSubmit();
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -260,7 +263,30 @@ export default function IPRegistrationList() {
   };
 
   const handleSubmit = async (record: IPRecord) => {
-    navigate(`/ip-registration/edit/${record.unique_uuid}?action=submit`);
+    setSubmitRecord(record);
+  };
+
+  const confirmSubmit = async () => {
+    if (!submitRecord || !user?.id) return;
+
+    const result = await submitIPRegistration(submitRecord.unique_uuid, user.id);
+    
+    if (result.success) {
+      toast.success(result.message);
+      fetchRecords(false);
+      fetchCounts();
+    } else if (result.errors) {
+      const firstError = Object.values(result.errors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
+      });
+    } else {
+      toast.error(result.message || 'Failed to submit registration');
+    }
+    
+    setSubmitRecord(null);
   };
 
   const handleApprove = async (record: IPRecord) => {
@@ -620,6 +646,25 @@ export default function IPRegistrationList() {
           </CardContent>
         </Card>
       </Tabs>
+
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={!!submitRecord} onOpenChange={(open) => !open && setSubmitRecord(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Registration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will submit the registration for verification. A 6-digit SSN will be generated.
+              You will not be able to edit after submission.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteRecord} onOpenChange={(open) => !open && setDeleteRecord(null)}>
