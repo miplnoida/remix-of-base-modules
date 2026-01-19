@@ -3246,7 +3246,6 @@ export type Database = {
           work_permit_expiration: string | null
           work_permit_expiry: string | null
           work_permit_status: string | null
-          workflow_instance_id: string | null
         }
         Insert: {
           alias?: string | null
@@ -3372,7 +3371,6 @@ export type Database = {
           work_permit_expiration?: string | null
           work_permit_expiry?: string | null
           work_permit_status?: string | null
-          workflow_instance_id?: string | null
         }
         Update: {
           alias?: string | null
@@ -3498,17 +3496,8 @@ export type Database = {
           work_permit_expiration?: string | null
           work_permit_expiry?: string | null
           work_permit_status?: string | null
-          workflow_instance_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "ip_master_workflow_instance_id_fkey"
-            columns: ["workflow_instance_id"]
-            isOneToOne: false
-            referencedRelation: "workflow_instances"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ip_name: {
         Row: {
