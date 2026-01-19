@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from '@/components/ui/textarea';
 import SuccessAnimation from '@/components/shared/SuccessAnimation';
 import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
+import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 
 export interface IPFormData {
   id?: string;
@@ -528,68 +529,11 @@ export default function IPRegistrationForm() {
     }
   }, [pendingTabChange]);
 
-  const validateAllTabs = (): boolean => {
-    const newErrors: ValidationErrors = {};
-
-    // Basic Details validation
-    if (!formData?.first_name) newErrors.first_name = 'First name is required';
-    if (!formData?.last_name) newErrors.last_name = 'Last name is required';
-    if (!formData?.gender) newErrors.gender = 'Gender is required';
-    if (!formData?.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
-    if (!formData?.marital_status) newErrors.marital_status = 'Marital status is required';
-    if (!formData?.nationality) newErrors.nationality = 'Nationality is required';
-    if (!formData?.birth_place) newErrors.birth_place = 'Birth place is required';
-    if (!formData?.title) newErrors.title = 'Title is required';
-
-    // Marital status validation
-    if ((formData?.marital_status === 'Married' || formData?.marital_status === 'Common Law') && !formData?.date_married) {
-      newErrors.date_married = 'Date married is required';
-    }
-    if (formData?.date_married && formData?.date_of_birth) {
-      if (new Date(formData.date_married) <= new Date(formData.date_of_birth)) {
-        newErrors.date_married = 'Date married must be after date of birth';
-      }
-    }
-
-    // Employment validation for non-citizens
-    if (formData?.citizenship === 'N' && formData?.place_of_residence === 'RES') {
-      if (!formData?.work_permit_status || formData?.work_permit_status === 'N') {
-        newErrors.work_permit_status = 'Work permit is required for non-citizen residents';
-      }
-      if (!formData?.work_permit_expiry) {
-        newErrors.work_permit_expiry = 'Work permit expiry is required';
-      }
-      // No future date validation for work permit expiry
-    }
-
-    // Document verification
-    if (!formData?.birth_doc_type) newErrors.birth_doc_type = 'Birth status verification is required';
-    if (!formData?.name_doc_type) newErrors.name_doc_type = 'Name status verification is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  // Use the unified submit hook
+  const { submitIPRegistration, isSubmitting: isSubmittingHook } = useIPRegistrationSubmit();
 
   const handleSubmit = async () => {
     if (!formData) return;
-
-    if (!validateAllTabs()) {
-      const firstError = Object.values(errors)[0] || 'Please check the form for valid information!';
-      toast.error('Please check the form for valid information!', {
-        description: firstError,
-        style: { 
-          backgroundColor: 'hsl(var(--destructive))', 
-          color: 'white',
-        },
-        classNames: {
-          toast: '!bg-destructive',
-          title: '!text-white',
-          description: '!text-white !opacity-100'
-        }
-      });
-      setShowSubmitConfirm(false);
-      return;
-    }
 
     try {
       // First ensure the record is saved
@@ -598,27 +542,23 @@ export default function IPRegistrationForm() {
         if (!saved) throw new Error('Failed to save draft');
       }
 
-      // Generate SSN
-      const { data: ssnData, error: ssnError } = await supabase
-        .rpc('generate_ip_ssn');
+      // Use the unified submit function
+      const result = await submitIPRegistration(formData.unique_uuid, user?.id);
       
-      if (ssnError) throw ssnError;
-
-      // Update the existing ip_master record with SSN and status change to Pending
-      const { error: updateError } = await supabase
-        .from('ip_master')
-        .update({
-          ssn: ssnData,
-          status: 'P',
-          submitted_by: user?.id,
-          submitted_at: new Date().toISOString(),
-        })
-        .eq('unique_uuid', formData.unique_uuid);
-
-      if (updateError) throw updateError;
-
-      toast.success(`Registration submitted successfully. SSN: ${ssnData}`);
-      navigate('/ip-registration');
+      if (result.success) {
+        toast.success(result.message);
+        navigate('/ip-registration');
+      } else if (result.errors) {
+        setErrors(result.errors);
+        const firstError = Object.values(result.errors)[0];
+        toast.error('Please check the form for valid information!', {
+          description: firstError,
+          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+          classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
+        });
+      } else {
+        toast.error(result.message || 'Failed to submit registration');
+      }
     } catch (error) {
       console.error('Submit error:', error);
       toast.error('Failed to submit registration');
