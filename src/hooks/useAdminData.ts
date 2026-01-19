@@ -317,34 +317,17 @@ export function useCreateAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { name: string; display_name: string; description?: string; icon?: string; route?: string; parent_id?: string | null; sort_order?: number; is_enabled?: boolean }) => {
-      // Create the module
       const { data: result, error } = await supabase
         .from('app_modules')
         .insert(data)
         .select()
         .single();
       if (error) throw error;
-
-      // Automatically create default "View" action for the new module
-      const { error: actionError } = await supabase
-        .from('module_actions')
-        .insert({
-          module_id: result.id,
-          action_name: 'view',
-          display_name: 'View',
-          description: 'View access to this module',
-          is_enabled: true,
-        });
-      if (actionError) {
-        console.error('Failed to create default View action:', actionError);
-        // Don't throw - module was created successfully, action is optional
-      }
-
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['app-modules'] });
-      toast.success('Module created successfully with default View action');
+      toast.success('Module created successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -375,18 +358,6 @@ export function useDeleteAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // Check if module has child modules
-      const { data: children, error: checkError } = await supabase
-        .from('app_modules')
-        .select('id')
-        .eq('parent_id', id);
-      
-      if (checkError) throw checkError;
-      
-      if (children && children.length > 0) {
-        throw new Error('Cannot delete module with child modules. Please delete or reassign child modules first.');
-      }
-      
       const { error } = await supabase
         .from('app_modules')
         .delete()
