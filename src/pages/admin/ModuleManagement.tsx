@@ -634,75 +634,182 @@ const ModuleManagementContent = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Action Dialog */}
+      {/* Action Dialog - Enhanced with existing actions list */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Action</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Manage Actions
+            </DialogTitle>
             <DialogDescription>
-              Add an action to {selectedModule?.display_name}
+              View existing actions and add new ones to {selectedModule?.display_name}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Quick Add</Label>
-              <div className="flex flex-wrap gap-2">
-                {getDefaultActions().map((action) => (
-                  <Button
-                    key={action.action_name}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActionForm({ ...actionForm, ...action })}
-                  >
-                    {action.display_name}
-                  </Button>
-                ))}
-              </div>
+          
+          <div className="space-y-6 py-4">
+            {/* Existing Actions Section */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">
+                Existing Actions ({selectedModule?.actions?.length || 0})
+              </h3>
+              {selectedModule?.actions && selectedModule.actions.length > 0 ? (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-32">Action Name</TableHead>
+                        <TableHead>Display Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="w-24">Status</TableHead>
+                        <TableHead className="w-16 text-right">Remove</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedModule.actions.map((action) => (
+                        <TableRow key={action.id}>
+                          <TableCell className="font-mono text-xs">{action.action_name}</TableCell>
+                          <TableCell className="font-medium">{action.display_name}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{action.description || "-"}</TableCell>
+                          <TableCell>
+                            <Badge variant={action.is_enabled ? "default" : "secondary"} className="text-xs">
+                              {action.is_enabled ? "Enabled" : "Disabled"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {can(ACTION_NAMES.DELETE) && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => deleteAction.mutate(action.id)}
+                                className="h-8 w-8"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground text-sm bg-muted/30 rounded-md">
+                  No actions defined yet. Add your first action below.
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Add New Action Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">Add New Action</h3>
+              
+              {/* Quick Add Buttons - Filter out existing actions */}
               <div className="space-y-2">
-                <Label htmlFor="action_name">Action Name *</Label>
-                <Input
-                  id="action_name"
-                  value={actionForm.action_name}
-                  onChange={(e) => setActionForm({ ...actionForm, action_name: e.target.value })}
-                  placeholder="view"
+                <Label className="text-sm text-muted-foreground">Quick Add (click to populate form)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {getDefaultActions()
+                    .filter((action) => 
+                      !selectedModule?.actions?.some(
+                        (existing) => existing.action_name.toLowerCase() === action.action_name.toLowerCase()
+                      )
+                    )
+                    .map((action) => (
+                      <Button
+                        key={action.action_name}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActionForm({ ...actionForm, ...action })}
+                        className="text-xs"
+                      >
+                        + {action.display_name}
+                      </Button>
+                    ))}
+                  {getDefaultActions().every((action) => 
+                    selectedModule?.actions?.some(
+                      (existing) => existing.action_name.toLowerCase() === action.action_name.toLowerCase()
+                    )
+                  ) && (
+                    <span className="text-xs text-muted-foreground italic">
+                      All default actions already added
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Custom Action Form */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="action_name" className="text-sm">Action Name *</Label>
+                  <Input
+                    id="action_name"
+                    value={actionForm.action_name}
+                    onChange={(e) => setActionForm({ ...actionForm, action_name: e.target.value })}
+                    placeholder="view"
+                    className="h-9"
+                  />
+                  <p className="text-xs text-muted-foreground">Unique identifier (lowercase)</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="action_display" className="text-sm">Display Name *</Label>
+                  <Input
+                    id="action_display"
+                    value={actionForm.display_name}
+                    onChange={(e) => setActionForm({ ...actionForm, display_name: e.target.value })}
+                    placeholder="View"
+                    className="h-9"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="action_desc" className="text-sm">Description</Label>
+                <Textarea
+                  id="action_desc"
+                  value={actionForm.description}
+                  onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })}
+                  placeholder="Brief description of what this action allows"
+                  rows={2}
+                  className="resize-none"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="action_display">Display Name *</Label>
-                <Input
-                  id="action_display"
-                  value={actionForm.display_name}
-                  onChange={(e) => setActionForm({ ...actionForm, display_name: e.target.value })}
-                  placeholder="View"
+              <div className="flex items-center justify-between bg-muted/50 p-3 rounded-md">
+                <div>
+                  <Label htmlFor="action_enabled" className="text-sm font-medium">Action Enabled</Label>
+                  <p className="text-xs text-muted-foreground">Toggle to enable/disable this action</p>
+                </div>
+                <Switch
+                  id="action_enabled"
+                  checked={actionForm.is_enabled}
+                  onCheckedChange={(checked) => setActionForm({ ...actionForm, is_enabled: checked })}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="action_desc">Description</Label>
-              <Textarea
-                id="action_desc"
-                value={actionForm.description}
-                onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="action_enabled">Enabled</Label>
-              <Switch
-                id="action_enabled"
-                checked={actionForm.is_enabled}
-                onCheckedChange={(checked) => setActionForm({ ...actionForm, is_enabled: checked })}
-              />
+
+              {/* Duplicate Warning */}
+              {actionForm.action_name && selectedModule?.actions?.some(
+                (existing) => existing.action_name.toLowerCase() === actionForm.action_name.toLowerCase()
+              ) && (
+                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+                  <span className="font-semibold">⚠️ Duplicate:</span> 
+                  An action with name "{actionForm.action_name}" already exists for this module.
+                </div>
+              )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowActionDialog(false)}>Cancel</Button>
+
+          <DialogFooter className="border-t pt-4">
+            <Button variant="outline" onClick={() => setShowActionDialog(false)}>Close</Button>
             <Button
               onClick={handleSaveAction}
-              disabled={!actionForm.action_name || !actionForm.display_name || createAction.isPending}
+              disabled={
+                !actionForm.action_name || 
+                !actionForm.display_name || 
+                createAction.isPending ||
+                selectedModule?.actions?.some(
+                  (existing) => existing.action_name.toLowerCase() === actionForm.action_name.toLowerCase()
+                )
+              }
             >
-              Add Action
+              {createAction.isPending ? "Adding..." : "Add Action"}
             </Button>
           </DialogFooter>
         </DialogContent>
