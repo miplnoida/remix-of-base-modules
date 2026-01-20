@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Link2, Unlink, Loader2, Settings2, MousePointer } from 'lucide-react';
+import { Save, Link2, Unlink, Loader2, Settings2, MousePointer, RefreshCw, XCircle } from 'lucide-react';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { MODULE_NAMES } from '@/hooks/useActionPermission';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 
 interface AppModule {
   id: string;
@@ -35,12 +33,20 @@ interface ButtonBinding {
   button_key: string;
   button_label: string;
   created_at: string;
-  module?: AppModule;
-  action?: ModuleAction;
+}
+
+interface ActionBindingState {
+  action_id: string;
+  action_name: string;
+  display_name: string;
+  button_key: string;
+  existing_binding_id: string | null;
+  hasChanged: boolean;
 }
 
 // Predefined screen buttons that can be bound
 const SCREEN_BUTTONS = [
+  { key: '', label: '-- No Binding --', description: 'Remove binding' },
   { key: 'btn_create', label: 'Create/Add New', description: 'Button to create new records' },
   { key: 'btn_edit', label: 'Edit', description: 'Button to edit existing records' },
   { key: 'btn_delete', label: 'Delete', description: 'Button to delete records' },
@@ -63,11 +69,8 @@ const SCREEN_BUTTONS = [
 function ModuleButtonBindingsContent() {
   const queryClient = useQueryClient();
   const [selectedModuleId, setSelectedModuleId] = useState<string>('');
-  const [selectedActionId, setSelectedActionId] = useState<string>('');
-  const [selectedButtonKey, setSelectedButtonKey] = useState<string>('');
-  const [customButtonLabel, setCustomButtonLabel] = useState<string>('');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [filterModule, setFilterModule] = useState<string>('all');
+  const [actionBindings, setActionBindings] = useState<ActionBindingState[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch modules
   const { data: modules = [], isLoading: modulesLoading } = useQuery({
@@ -102,142 +105,177 @@ function ModuleButtonBindingsContent() {
     enabled: !!selectedModuleId,
   });
 
-  // Fetch existing bindings
-  const { data: bindings = [], isLoading: bindingsLoading } = useQuery({
-    queryKey: ['module-button-bindings'],
+  // Fetch existing bindings for selected module
+  const { data: existingBindings = [], isLoading: bindingsLoading, refetch: refetchBindings } = useQuery({
+    queryKey: ['module-button-bindings', selectedModuleId],
     queryFn: async () => {
+      if (!selectedModuleId) return [];
       const { data, error } = await supabase
         .from('module_button_bindings')
-        .select(`
-          id,
-          module_id,
-          action_id,
-          button_key,
-          button_label,
-          created_at
-        `)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('module_id', selectedModuleId);
       
       if (error) throw error;
       return data as ButtonBinding[];
     },
+    enabled: !!selectedModuleId,
   });
 
-  // Enrich bindings with module and action info
-  const enrichedBindings = useMemo(() => {
-    return bindings.map(binding => ({
-      ...binding,
-      module: modules.find(m => m.id === binding.module_id),
-      action: actions.find(a => a.id === binding.action_id) || 
-        // Try to find action in all modules
-        undefined,
-    }));
-  }, [bindings, modules, actions]);
-
-  // Filter bindings by module
-  const filteredBindings = useMemo(() => {
-    if (filterModule === 'all') return enrichedBindings;
-    return enrichedBindings.filter(b => b.module_id === filterModule);
-  }, [enrichedBindings, filterModule]);
-
-  // Create binding mutation
-  const createBinding = useMutation({
-    mutationFn: async (data: { module_id: string; action_id: string; button_key: string; button_label: string }) => {
-      const { error } = await supabase
-        .from('module_button_bindings')
-        .insert(data);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['module-button-bindings'] });
-      toast.success('Button binding created successfully');
-      resetForm();
-      setShowAddDialog(false);
-    },
-    onError: (error) => {
-      console.error('Error creating binding:', error);
-      toast.error('Failed to create button binding');
-    },
-  });
-
-  // Delete binding mutation
-  const deleteBinding = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('module_button_bindings')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['module-button-bindings'] });
-      toast.success('Button binding removed');
-    },
-    onError: (error) => {
-      console.error('Error deleting binding:', error);
-      toast.error('Failed to remove button binding');
-    },
-  });
-
-  const resetForm = () => {
-    setSelectedModuleId('');
-    setSelectedActionId('');
-    setSelectedButtonKey('');
-    setCustomButtonLabel('');
-  };
-
-  const handleSaveBinding = () => {
-    if (!selectedModuleId || !selectedActionId || !selectedButtonKey) {
-      toast.error('Please select module, action, and button');
-      return;
+  // Initialize action bindings when actions or existing bindings change
+  useEffect(() => {
+    if (actions.length > 0) {
+      const initialBindings: ActionBindingState[] = actions.map(action => {
+        const existingBinding = existingBindings.find(b => b.action_id === action.id);
+        return {
+          action_id: action.id,
+          action_name: action.action_name,
+          display_name: action.display_name,
+          button_key: existingBinding?.button_key || '',
+          existing_binding_id: existingBinding?.id || null,
+          hasChanged: false,
+        };
+      });
+      setActionBindings(initialBindings);
+    } else {
+      setActionBindings([]);
     }
+  }, [actions, existingBindings]);
 
-    const buttonInfo = SCREEN_BUTTONS.find(b => b.key === selectedButtonKey);
-    const label = customButtonLabel || buttonInfo?.label || selectedButtonKey;
+  // Handle button selection change for an action
+  const handleButtonChange = useCallback((actionId: string, buttonKey: string) => {
+    setActionBindings(prev => prev.map(binding => {
+      if (binding.action_id === actionId) {
+        const existingBinding = existingBindings.find(b => b.action_id === actionId);
+        const originalButtonKey = existingBinding?.button_key || '';
+        return {
+          ...binding,
+          button_key: buttonKey,
+          hasChanged: buttonKey !== originalButtonKey,
+        };
+      }
+      return binding;
+    }));
+  }, [existingBindings]);
 
-    createBinding.mutate({
-      module_id: selectedModuleId,
-      action_id: selectedActionId,
-      button_key: selectedButtonKey,
-      button_label: label,
-    });
+  // Check if there are any changes
+  const hasChanges = useMemo(() => {
+    return actionBindings.some(b => b.hasChanged);
+  }, [actionBindings]);
+
+  // Get pending changes count
+  const changesCount = useMemo(() => {
+    return actionBindings.filter(b => b.hasChanged).length;
+  }, [actionBindings]);
+
+  // Save all bindings
+  const handleSaveAll = async () => {
+    if (!selectedModuleId) return;
+
+    setIsSaving(true);
+    try {
+      const changedBindings = actionBindings.filter(b => b.hasChanged);
+
+      for (const binding of changedBindings) {
+        if (binding.existing_binding_id && !binding.button_key) {
+          // Delete existing binding if button is cleared
+          const { error } = await supabase
+            .from('module_button_bindings')
+            .delete()
+            .eq('id', binding.existing_binding_id);
+          
+          if (error) throw error;
+        } else if (binding.existing_binding_id && binding.button_key) {
+          // Update existing binding
+          const buttonInfo = SCREEN_BUTTONS.find(b => b.key === binding.button_key);
+          const { error } = await supabase
+            .from('module_button_bindings')
+            .update({
+              button_key: binding.button_key,
+              button_label: buttonInfo?.label || binding.button_key,
+            })
+            .eq('id', binding.existing_binding_id);
+          
+          if (error) throw error;
+        } else if (!binding.existing_binding_id && binding.button_key) {
+          // Create new binding
+          const buttonInfo = SCREEN_BUTTONS.find(b => b.key === binding.button_key);
+          const { error } = await supabase
+            .from('module_button_bindings')
+            .insert({
+              module_id: selectedModuleId,
+              action_id: binding.action_id,
+              button_key: binding.button_key,
+              button_label: buttonInfo?.label || binding.button_key,
+            });
+          
+          if (error) throw error;
+        }
+      }
+
+      await refetchBindings();
+      queryClient.invalidateQueries({ queryKey: ['module-button-bindings'] });
+      toast.success(`${changesCount} binding(s) saved successfully`);
+    } catch (error) {
+      console.error('Error saving bindings:', error);
+      toast.error('Failed to save bindings');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  // Reset changes
+  const handleReset = useCallback(() => {
+    const resetBindings: ActionBindingState[] = actions.map(action => {
+      const existingBinding = existingBindings.find(b => b.action_id === action.id);
+      return {
+        action_id: action.id,
+        action_name: action.action_name,
+        display_name: action.display_name,
+        button_key: existingBinding?.button_key || '',
+        existing_binding_id: existingBinding?.id || null,
+        hasChanged: false,
+      };
+    });
+    setActionBindings(resetBindings);
+  }, [actions, existingBindings]);
 
   const getButtonLabel = (key: string) => {
+    if (!key) return '-- No Binding --';
     return SCREEN_BUTTONS.find(b => b.key === key)?.label || key;
   };
 
+  const selectedModule = modules.find(m => m.id === selectedModuleId);
+  const isLoading = actionsLoading || bindingsLoading;
+
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Link2 className="h-6 w-6" />
-            Module Action Button Bindings
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Bind module actions to screen buttons to control visibility based on user permissions
-          </p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Binding
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Link2 className="h-6 w-6" />
+          Module Action Button Bindings
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Bind module actions to screen buttons to control visibility based on user permissions
+        </p>
       </div>
 
-      {/* Filter by Module */}
+      {/* Module Selection */}
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <Label className="whitespace-nowrap">Filter by Module:</Label>
-            <Select value={filterModule} onValueChange={setFilterModule}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="All Modules" />
+            <Label className="whitespace-nowrap font-medium">Select Module:</Label>
+            <Select 
+              value={selectedModuleId} 
+              onValueChange={(v) => {
+                setSelectedModuleId(v);
+                setActionBindings([]);
+              }}
+              disabled={modulesLoading}
+            >
+              <SelectTrigger className="w-80">
+                <SelectValue placeholder={modulesLoading ? 'Loading modules...' : 'Select a module to configure'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Modules</SelectItem>
                 {modules.map((module) => (
                   <SelectItem key={module.id} value={module.id}>
                     {module.display_name}
@@ -249,180 +287,152 @@ function ModuleButtonBindingsContent() {
         </CardContent>
       </Card>
 
-      {/* Bindings Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
-            Configured Bindings
-          </CardTitle>
-          <CardDescription>
-            These bindings determine which buttons are visible based on user permissions for each module action.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {bindingsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
+      {/* Actions and Bindings */}
+      {selectedModuleId && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Settings2 className="h-5 w-5" />
+                Action Bindings for: {selectedModule?.display_name}
+              </CardTitle>
+              <CardDescription>
+                Configure which screen buttons are controlled by each action's permission.
+              </CardDescription>
             </div>
-          ) : filteredBindings.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Unlink className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No button bindings configured yet.</p>
-              <p className="text-sm mt-1">Click "Add Binding" to create one.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Module</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Button</TableHead>
-                  <TableHead>Button Label</TableHead>
-                  <TableHead className="w-24">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBindings.map((binding) => (
-                  <TableRow key={binding.id}>
-                    <TableCell>
-                      <Badge variant="outline">{binding.module?.display_name || 'Unknown'}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {binding.action?.display_name || binding.action_id}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <MousePointer className="h-4 w-4 text-muted-foreground" />
-                        <code className="text-xs bg-muted px-2 py-1 rounded">{binding.button_key}</code>
-                      </div>
-                    </TableCell>
-                    <TableCell>{binding.button_label}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteBinding.mutate(binding.id)}
-                        disabled={deleteBinding.isPending}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add Binding Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Button Binding</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {/* Module Selection */}
-            <div className="space-y-2">
-              <Label>Module <span className="text-destructive">*</span></Label>
-              <Select value={selectedModuleId} onValueChange={(v) => {
-                setSelectedModuleId(v);
-                setSelectedActionId('');
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a module" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modules.map((module) => (
-                    <SelectItem key={module.id} value={module.id}>
-                      {module.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Action Selection */}
-            <div className="space-y-2">
-              <Label>Action <span className="text-destructive">*</span></Label>
-              <Select 
-                value={selectedActionId} 
-                onValueChange={setSelectedActionId}
-                disabled={!selectedModuleId || actionsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={actionsLoading ? 'Loading...' : 'Select an action'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {actions.map((action) => (
-                    <SelectItem key={action.id} value={action.id}>
-                      {action.display_name} ({action.action_name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Button Selection */}
-            <div className="space-y-2">
-              <Label>Screen Button <span className="text-destructive">*</span></Label>
-              <Select value={selectedButtonKey} onValueChange={(v) => {
-                setSelectedButtonKey(v);
-                const btn = SCREEN_BUTTONS.find(b => b.key === v);
-                setCustomButtonLabel(btn?.label || '');
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a button" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SCREEN_BUTTONS.map((button) => (
-                    <SelectItem key={button.key} value={button.key}>
-                      <div className="flex flex-col">
-                        <span>{button.label}</span>
-                        <span className="text-xs text-muted-foreground">{button.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Custom Label */}
-            <div className="space-y-2">
-              <Label>Button Label</Label>
-              <Input
-                value={customButtonLabel}
-                onChange={(e) => setCustomButtonLabel(e.target.value)}
-                placeholder="Custom button label (optional)"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              resetForm();
-              setShowAddDialog(false);
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveBinding}
-              disabled={!selectedModuleId || !selectedActionId || !selectedButtonKey || createBinding.isPending}
-            >
-              {createBinding.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Binding'
+            <div className="flex items-center gap-2">
+              {hasChanges && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                  {changesCount} unsaved change{changesCount > 1 ? 's' : ''}
+                </Badge>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={!hasChanges || isSaving}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveAll}
+                disabled={!hasChanges || isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save All
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading actions...</span>
+              </div>
+            ) : actionBindings.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Unlink className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No actions defined for this module.</p>
+                <p className="text-sm mt-1">Add actions in Module Management first.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">Action</TableHead>
+                    <TableHead className="w-[150px]">Action Name</TableHead>
+                    <TableHead>Screen Button</TableHead>
+                    <TableHead className="w-[120px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {actionBindings.map((binding) => (
+                    <TableRow key={binding.action_id} className={binding.hasChanged ? 'bg-amber-50/50' : ''}>
+                      <TableCell className="font-medium">
+                        {binding.display_name}
+                      </TableCell>
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                          {binding.action_name}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={binding.button_key}
+                          onValueChange={(v) => handleButtonChange(binding.action_id, v)}
+                        >
+                          <SelectTrigger className="w-[250px]">
+                            <div className="flex items-center gap-2">
+                              {binding.button_key ? (
+                                <>
+                                  <MousePointer className="h-4 w-4 text-muted-foreground" />
+                                  <span>{getButtonLabel(binding.button_key)}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">-- No Binding --</span>
+                              )}
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SCREEN_BUTTONS.map((button) => (
+                              <SelectItem key={button.key || 'none'} value={button.key}>
+                                <div className="flex flex-col">
+                                  <span>{button.label}</span>
+                                  {button.description && button.key && (
+                                    <span className="text-xs text-muted-foreground">{button.description}</span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {binding.hasChanged ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            Modified
+                          </Badge>
+                        ) : binding.button_key ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Bound
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            Unbound
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!selectedModuleId && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              <Settings2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Select a Module</p>
+              <p className="text-sm mt-1">Choose a module from the dropdown above to configure its action-button bindings.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
