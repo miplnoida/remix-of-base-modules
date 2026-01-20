@@ -15,10 +15,9 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { MODULE_NAMES } from '@/hooks/useActionPermission';
 
 interface User {
-  Id: string;
-  Email: string | null;
+  id: string;
+  email: string | null;
   full_name: string | null;
-  UserName: string | null;
   is_active: boolean;
 }
 
@@ -32,13 +31,13 @@ function UpdateUserPasswordContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch users
+  // Fetch users from profiles table (Supabase auth users)
   const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['admin-users-list'],
+    queryKey: ['admin-users-list-profiles'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('AspNetUsers')
-        .select('Id, Email, full_name, UserName, is_active')
+        .from('profiles')
+        .select('id, email, full_name, is_active')
         .eq('is_active', true)
         .order('full_name');
       
@@ -107,22 +106,29 @@ function UpdateUserPasswordContent() {
 
     setIsSubmitting(true);
     try {
-      // Hash the password (in a real implementation, this would be done server-side)
-      // For now, we'll update the PasswordHash field directly
-      // Note: In production, use a proper password hashing mechanism via edge function
+      // Get the session for authorization
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      const { error } = await supabase
-        .from('AspNetUsers')
-        .update({
-          PasswordHash: newPassword, // This should be hashed in production
-          last_password_change: new Date().toISOString(),
-          force_password_change: false,
-          updated_at: new Date().toISOString(),
-          updated_by: currentUser?.id,
-        })
-        .eq('Id', selectedUserId);
+      if (sessionError || !session?.access_token) {
+        toast.error('Session expired. Please log in again.');
+        return;
+      }
 
-      if (error) throw error;
+      // Call the edge function to update the password using Supabase Admin API
+      const { data, error } = await supabase.functions.invoke('admin-update-password', {
+        body: {
+          identity_user_id: selectedUserId,
+          new_password: newPassword,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to update password');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       toast.success('Password updated successfully', {
         description: 'The user can now log in with their new password',
@@ -143,7 +149,7 @@ function UpdateUserPasswordContent() {
     }
   };
 
-  const selectedUser = users.find(u => u.Id === selectedUserId);
+  const selectedUser = users.find(u => u.id === selectedUserId);
 
   return (
     <div className="container mx-auto p-6 max-w-2xl">
@@ -178,10 +184,10 @@ function UpdateUserPasswordContent() {
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((user) => (
-                    <SelectItem key={user.Id} value={user.Id}>
-                      {user.full_name || user.Email || user.UserName || 'Unknown User'}
-                      {user.Email && user.full_name && (
-                        <span className="text-muted-foreground ml-2">({user.Email})</span>
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.full_name || user.email || 'Unknown User'}
+                      {user.email && user.full_name && (
+                        <span className="text-muted-foreground ml-2">({user.email})</span>
                       )}
                     </SelectItem>
                   ))}
@@ -193,7 +199,7 @@ function UpdateUserPasswordContent() {
             {selectedUser && (
               <Alert>
                 <AlertDescription>
-                  Updating password for: <strong>{selectedUser.full_name || selectedUser.Email}</strong>
+                  Updating password for: <strong>{selectedUser.full_name || selectedUser.email}</strong>
                 </AlertDescription>
               </Alert>
             )}
