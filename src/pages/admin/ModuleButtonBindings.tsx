@@ -44,9 +44,12 @@ interface ActionBindingState {
   hasChanged: boolean;
 }
 
+// Special constant for "no binding" option - Radix Select requires non-empty values
+const NO_BINDING_VALUE = '__none__';
+
 // Predefined screen buttons that can be bound
 const SCREEN_BUTTONS = [
-  { key: '', label: '-- No Binding --', description: 'Remove binding' },
+  { key: NO_BINDING_VALUE, label: '-- No Binding --', description: 'Remove binding' },
   { key: 'btn_create', label: 'Create/Add New', description: 'Button to create new records' },
   { key: 'btn_edit', label: 'Edit', description: 'Button to edit existing records' },
   { key: 'btn_delete', label: 'Delete', description: 'Button to delete records' },
@@ -130,7 +133,7 @@ function ModuleButtonBindingsContent() {
           action_id: action.id,
           action_name: action.action_name,
           display_name: action.display_name,
-          button_key: existingBinding?.button_key || '',
+          button_key: existingBinding?.button_key || NO_BINDING_VALUE,
           existing_binding_id: existingBinding?.id || null,
           hasChanged: false,
         };
@@ -146,7 +149,7 @@ function ModuleButtonBindingsContent() {
     setActionBindings(prev => prev.map(binding => {
       if (binding.action_id === actionId) {
         const existingBinding = existingBindings.find(b => b.action_id === actionId);
-        const originalButtonKey = existingBinding?.button_key || '';
+        const originalButtonKey = existingBinding?.button_key || NO_BINDING_VALUE;
         return {
           ...binding,
           button_key: buttonKey,
@@ -167,6 +170,9 @@ function ModuleButtonBindingsContent() {
     return actionBindings.filter(b => b.hasChanged).length;
   }, [actionBindings]);
 
+  // Helper to check if binding has actual button key (not the no-binding placeholder)
+  const hasActualBinding = (key: string) => key && key !== NO_BINDING_VALUE;
+
   // Save all bindings
   const handleSaveAll = async () => {
     if (!selectedModuleId) return;
@@ -176,7 +182,9 @@ function ModuleButtonBindingsContent() {
       const changedBindings = actionBindings.filter(b => b.hasChanged);
 
       for (const binding of changedBindings) {
-        if (binding.existing_binding_id && !binding.button_key) {
+        const hasNewBinding = hasActualBinding(binding.button_key);
+        
+        if (binding.existing_binding_id && !hasNewBinding) {
           // Delete existing binding if button is cleared
           const { error } = await supabase
             .from('module_button_bindings')
@@ -184,7 +192,7 @@ function ModuleButtonBindingsContent() {
             .eq('id', binding.existing_binding_id);
           
           if (error) throw error;
-        } else if (binding.existing_binding_id && binding.button_key) {
+        } else if (binding.existing_binding_id && hasNewBinding) {
           // Update existing binding
           const buttonInfo = SCREEN_BUTTONS.find(b => b.key === binding.button_key);
           const { error } = await supabase
@@ -196,7 +204,7 @@ function ModuleButtonBindingsContent() {
             .eq('id', binding.existing_binding_id);
           
           if (error) throw error;
-        } else if (!binding.existing_binding_id && binding.button_key) {
+        } else if (!binding.existing_binding_id && hasNewBinding) {
           // Create new binding
           const buttonInfo = SCREEN_BUTTONS.find(b => b.key === binding.button_key);
           const { error } = await supabase
@@ -231,7 +239,7 @@ function ModuleButtonBindingsContent() {
         action_id: action.id,
         action_name: action.action_name,
         display_name: action.display_name,
-        button_key: existingBinding?.button_key || '',
+        button_key: existingBinding?.button_key || NO_BINDING_VALUE,
         existing_binding_id: existingBinding?.id || null,
         hasChanged: false,
       };
@@ -240,7 +248,7 @@ function ModuleButtonBindingsContent() {
   }, [actions, existingBindings]);
 
   const getButtonLabel = (key: string) => {
-    if (!key) return '-- No Binding --';
+    if (!key || key === NO_BINDING_VALUE) return '-- No Binding --';
     return SCREEN_BUTTONS.find(b => b.key === key)?.label || key;
   };
 
@@ -374,7 +382,7 @@ function ModuleButtonBindingsContent() {
                         >
                           <SelectTrigger className="w-[250px]">
                             <div className="flex items-center gap-2">
-                              {binding.button_key ? (
+                              {hasActualBinding(binding.button_key) ? (
                                 <>
                                   <MousePointer className="h-4 w-4 text-muted-foreground" />
                                   <span>{getButtonLabel(binding.button_key)}</span>
@@ -386,10 +394,10 @@ function ModuleButtonBindingsContent() {
                           </SelectTrigger>
                           <SelectContent>
                             {SCREEN_BUTTONS.map((button) => (
-                              <SelectItem key={button.key || 'none'} value={button.key}>
+                              <SelectItem key={button.key} value={button.key}>
                                 <div className="flex flex-col">
                                   <span>{button.label}</span>
-                                  {button.description && button.key && (
+                                  {button.description && button.key !== NO_BINDING_VALUE && (
                                     <span className="text-xs text-muted-foreground">{button.description}</span>
                                   )}
                                 </div>
@@ -403,7 +411,7 @@ function ModuleButtonBindingsContent() {
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                             Modified
                           </Badge>
-                        ) : binding.button_key ? (
+                        ) : hasActualBinding(binding.button_key) ? (
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                             Bound
                           </Badge>
