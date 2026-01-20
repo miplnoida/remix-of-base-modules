@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -43,14 +43,22 @@ export default function AddressContactTab({
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [tempAddress, setTempAddress] = useState<any>({});
   
-  // Parse phone numbers from storage
-  const telephoneParsed = parsePhoneNumber(formData.telephone || '');
-  const mobileParsed = parsePhoneNumber(formData.mobile || '');
-  
-  const [telephoneCountry, setTelephoneCountry] = useState(telephoneParsed.countryCode);
-  const [telephoneNumber, setTelephoneNumber] = useState(telephoneParsed.phoneNumber);
-  const [mobileCountry, setMobileCountry] = useState(mobileParsed.countryCode);
-  const [mobileNumber, setMobileNumber] = useState(mobileParsed.phoneNumber);
+  // Initialize phone state
+  const [telephoneCountry, setTelephoneCountry] = useState('KN');
+  const [telephoneNumber, setTelephoneNumber] = useState('');
+  const [mobileCountry, setMobileCountry] = useState('KN');
+  const [mobileNumber, setMobileNumber] = useState('');
+
+  // Sync phone state when formData changes (e.g., when data is fetched from database)
+  useEffect(() => {
+    const telephoneParsed = parsePhoneNumber(formData.telephone || '');
+    const mobileParsed = parsePhoneNumber(formData.mobile || '');
+    
+    setTelephoneCountry(telephoneParsed.countryCode);
+    setTelephoneNumber(telephoneParsed.phoneNumber);
+    setMobileCountry(mobileParsed.countryCode);
+    setMobileNumber(mobileParsed.phoneNumber);
+  }, [formData.telephone, formData.mobile]);
 
   const handleFieldChange = useCallback((field: string, value: any) => {
     onChange(field, value);

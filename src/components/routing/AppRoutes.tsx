@@ -235,8 +235,9 @@ import DesignationHierarchy from '@/pages/admin/DesignationHierarchy';
 import RoleHierarchy from '@/pages/admin/RoleHierarchy';
 import UserNotificationPreferences from '@/pages/admin/UserNotificationPreferences';
 import DataMigration from '@/pages/admin/DataMigration';
+import UpdateUserPassword from '@/pages/admin/users/UpdateUserPassword';
+import ModuleButtonBindings from '@/pages/admin/ModuleButtonBindings';
 
-// Workflow Engine
 import WorkflowList from '@/pages/admin/workflows/WorkflowList';
 import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
 import WorkflowTriggers from '@/pages/admin/workflows/WorkflowTriggers';
@@ -909,6 +910,8 @@ export const AppRoutes = () => {
       <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
       <Route path="/admin/user-notification-preferences" element={<ProtectedLayout><UserNotificationPreferences /></ProtectedLayout>} />
       <Route path="/admin/data-migration" element={<ProtectedLayout><DataMigration /></ProtectedLayout>} />
+      <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
+      <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
       <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />
