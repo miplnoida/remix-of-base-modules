@@ -317,17 +317,36 @@ export function useCreateAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { name: string; display_name: string; description?: string; icon?: string; route?: string; parent_id?: string | null; sort_order?: number; is_enabled?: boolean }) => {
+      // Create the module
       const { data: result, error } = await supabase
         .from('app_modules')
         .insert(data)
         .select()
         .single();
       if (error) throw error;
+      
+      // Auto-create default "View" action for the new module
+      if (result) {
+        const { error: actionError } = await supabase
+          .from('module_actions')
+          .insert({
+            module_id: result.id,
+            action_name: 'view',
+            display_name: 'View',
+            description: 'Permission to view this module',
+            is_enabled: true,
+          });
+        if (actionError) {
+          console.error('Failed to create default View action:', actionError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
+      
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['app-modules'] });
-      toast.success('Module created successfully');
+      toast.success('Module created successfully with default View action');
     },
     onError: (error: Error) => toast.error(error.message),
   });
