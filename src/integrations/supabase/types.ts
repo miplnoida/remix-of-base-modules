@@ -4730,6 +4730,51 @@ export type Database = {
           },
         ]
       }
+      module_button_bindings: {
+        Row: {
+          action_id: string
+          button_key: string
+          button_label: string
+          created_at: string
+          created_by: string | null
+          id: string
+          module_id: string
+        }
+        Insert: {
+          action_id: string
+          button_key: string
+          button_label: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_id: string
+        }
+        Update: {
+          action_id?: string
+          button_key?: string
+          button_label?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_button_bindings_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "module_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_button_bindings_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_tables: {
         Row: {
           created_at: string | null
