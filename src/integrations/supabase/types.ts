@@ -3223,6 +3223,8 @@ export type Database = {
           spouse_ssn: string | null
           ssn: string | null
           status: string
+          submitted_at: string | null
+          submitted_by: string | null
           suffix: string | null
           surname: string | null
           telephone: string | null
@@ -3348,6 +3350,8 @@ export type Database = {
           spouse_ssn?: string | null
           ssn?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           suffix?: string | null
           surname?: string | null
           telephone?: string | null
@@ -3473,6 +3477,8 @@ export type Database = {
           spouse_ssn?: string | null
           ssn?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           suffix?: string | null
           surname?: string | null
           telephone?: string | null
