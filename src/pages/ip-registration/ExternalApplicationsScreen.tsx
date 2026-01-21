@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { 
   Eye, Edit, Trash2, CheckCircle, Search, 
-  Download, RefreshCw, ExternalLink, AlertTriangle, Loader2
+  Download, RefreshCw, ExternalLink, AlertTriangle, Loader2,
+  User, Phone, Mail, MapPin, Calendar, Briefcase, Users, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -22,11 +23,16 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // External API endpoint
 const EXTERNAL_API_URL = 'https://hekgiuycrjncxalcapfz.supabase.co/functions/v1/applications';
 
-// Interface for external application data
+// Date display format (consistent with project standards)
+const DATE_DISPLAY_FORMAT = 'dd/MM/yyyy';
+const DATETIME_DISPLAY_FORMAT = 'dd/MM/yyyy HH:mm';
+
+// Interface for external application data (list view)
 interface ExternalApplication {
   id: string;
   unique_uuid: string;
@@ -53,6 +59,11 @@ interface ExternalApplication {
   address?: string | null;
 }
 
+// Interface for detailed application data (single record view)
+interface ApplicationDetails {
+  [key: string]: any;
+}
+
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   Z: { label: 'Draft', variant: 'secondary' },
   P: { label: 'Pending', variant: 'default' },
@@ -66,16 +77,186 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   R: { label: 'Rejected', variant: 'destructive' },
 };
 
+// Helper to format field names for display
+const formatFieldName = (key: string): string => {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim();
+};
+
+// Helper to format date values
+const formatDateValue = (value: string): string => {
+  if (!value) return '-';
+  try {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    // Check if it includes time component
+    if (value.includes('T') || value.includes(' ')) {
+      return format(date, DATETIME_DISPLAY_FORMAT);
+    }
+    return format(date, DATE_DISPLAY_FORMAT);
+  } catch {
+    return value;
+  }
+};
+
+// Helper to check if a value looks like a date
+const isDateLikeValue = (key: string, value: any): boolean => {
+  if (typeof value !== 'string') return false;
+  const dateKeywords = ['date', 'dob', 'birth', 'created', 'updated', 'at', 'time', 'expire'];
+  const keyLower = key.toLowerCase();
+  const hasDateKeyword = dateKeywords.some(keyword => keyLower.includes(keyword));
+  const matchesDatePattern = /^\d{4}-\d{2}-\d{2}/.test(value) || /^\d{2}\/\d{2}\/\d{4}/.test(value);
+  return hasDateKeyword && matchesDatePattern;
+};
+
+// Helper to get status display
+const getStatusDisplay = (status: string): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+  return statusConfig[status] || { label: status, variant: 'default' };
+};
+
+// Helper to format gender display
+const formatGenderDisplay = (value: string | null): string => {
+  if (!value) return '-';
+  if (value === 'M') return 'Male';
+  if (value === 'F') return 'Female';
+  if (value === 'N') return 'Not-Specified';
+  return value;
+};
+
+// Helper to format any value for display
+const formatDisplayValue = (key: string, value: any): React.ReactNode => {
+  if (value === null || value === undefined || value === '') return '-';
+  
+  // Handle arrays
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '-';
+    return value.map((item, idx) => (
+      typeof item === 'object' ? JSON.stringify(item) : String(item)
+    )).join(', ');
+  }
+  
+  // Handle objects
+  if (typeof value === 'object') {
+    return JSON.stringify(value, null, 2);
+  }
+  
+  // Handle status fields
+  const keyLower = key.toLowerCase();
+  if (keyLower === 'status') {
+    const statusInfo = getStatusDisplay(String(value));
+    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+  }
+  
+  // Handle gender fields
+  if (keyLower === 'sex' || keyLower === 'gender') {
+    return formatGenderDisplay(String(value));
+  }
+  
+  // Handle date-like values
+  if (isDateLikeValue(key, value)) {
+    return formatDateValue(String(value));
+  }
+  
+  // Handle booleans
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+  
+  return String(value);
+};
+
+// Group fields by category
+const groupFields = (data: ApplicationDetails): Record<string, Record<string, any>> => {
+  const groups: Record<string, Record<string, any>> = {
+    'Applicant Details': {},
+    'Personal Information': {},
+    'Contact Information': {},
+    'Employment Information': {},
+    'Relations': {},
+    'Dependents': {},
+    'Notes & Remarks': {},
+    'Status & Dates': {},
+    'Other Information': {},
+  };
+
+  // Field categorization rules
+  const fieldCategories: Record<string, string[]> = {
+    'Applicant Details': ['application_id', 'ref_number', 'reference', 'ssn', 'social_security_number', 'unique_uuid', 'id'],
+    'Personal Information': ['firstname', 'first_name', 'middle_name', 'surname', 'last_name', 'full_name', 'name', 'dob', 'date_of_birth', 'birth_date', 'sex', 'gender', 'nationality', 'nationality_code', 'place_of_birth', 'marital_status'],
+    'Contact Information': ['phone', 'telephone', 'mobile', 'cell', 'email', 'address', 'street', 'city', 'parish', 'country', 'postal', 'zip', 'fax'],
+    'Employment Information': ['employer', 'occupation', 'job', 'work', 'employment', 'company', 'business', 'salary', 'wage', 'income'],
+    'Relations': ['spouse', 'mother', 'father', 'parent', 'next_of_kin', 'emergency_contact', 'relation'],
+    'Dependents': ['dependent', 'child', 'children'],
+    'Notes & Remarks': ['note', 'remark', 'comment', 'description', 'memo'],
+    'Status & Dates': ['status', 'state', 'created', 'updated', 'submitted', 'approved', 'rejected', 'registration_date', 'effective_date', 'expire'],
+  };
+
+  // Skip these internal fields
+  const skipFields = ['_source', '_externalId'];
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (skipFields.includes(key)) return;
+    
+    const keyLower = key.toLowerCase();
+    let assigned = false;
+
+    for (const [category, keywords] of Object.entries(fieldCategories)) {
+      if (keywords.some(keyword => keyLower.includes(keyword))) {
+        groups[category][key] = value;
+        assigned = true;
+        break;
+      }
+    }
+
+    if (!assigned) {
+      groups['Other Information'][key] = value;
+    }
+  });
+
+  // Remove empty groups
+  Object.keys(groups).forEach(key => {
+    if (Object.keys(groups[key]).length === 0) {
+      delete groups[key];
+    }
+  });
+
+  return groups;
+};
+
+// Get icon for each group
+const getGroupIcon = (groupName: string): React.ReactNode => {
+  const icons: Record<string, React.ReactNode> = {
+    'Applicant Details': <FileText className="h-4 w-4" />,
+    'Personal Information': <User className="h-4 w-4" />,
+    'Contact Information': <Phone className="h-4 w-4" />,
+    'Employment Information': <Briefcase className="h-4 w-4" />,
+    'Relations': <Users className="h-4 w-4" />,
+    'Dependents': <Users className="h-4 w-4" />,
+    'Notes & Remarks': <FileText className="h-4 w-4" />,
+    'Status & Dates': <Calendar className="h-4 w-4" />,
+    'Other Information': <FileText className="h-4 w-4" />,
+  };
+  return icons[groupName] || <FileText className="h-4 w-4" />;
+};
+
 export default function ExternalApplicationsScreen() {
   const [applications, setApplications] = useState<ExternalApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [pageSize, setPageSize] = useState(10);
-  const [selectedApplication, setSelectedApplication] = useState<ExternalApplication | null>(null);
+  
+  // View dialog states
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [applicationDetails, setApplicationDetails] = useState<ApplicationDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
-  // Fetch external applications
+  // Fetch external applications list
   const fetchApplications = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -140,9 +321,68 @@ export default function ExternalApplicationsScreen() {
     }
   }, []);
 
+  // Fetch single application details
+  const fetchApplicationDetails = useCallback(async (applicationId: string) => {
+    setDetailsLoading(true);
+    setDetailsError(null);
+    setApplicationDetails(null);
+
+    try {
+      const apiUrl = `${EXTERNAL_API_URL}/${encodeURIComponent(applicationId)}`;
+      console.log('Fetching application details from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch application details (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      
+      // Handle wrapped response if needed
+      let details: ApplicationDetails;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Check if data is wrapped in a property
+        details = data.data || data.application || data.record || data;
+      } else {
+        details = data;
+      }
+
+      setApplicationDetails(details);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch application details';
+      console.error('External API detail error:', errorMessage);
+      setDetailsError(errorMessage);
+      toast.error('Failed to load application details');
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchApplications();
   }, [fetchApplications]);
+
+  // Handle View button click
+  const handleView = (record: ExternalApplication) => {
+    const applicationId = record.application_id;
+    setSelectedApplicationId(applicationId);
+    setViewDialogOpen(true);
+    fetchApplicationDetails(applicationId);
+  };
+
+  // Close view dialog
+  const handleCloseView = () => {
+    setViewDialogOpen(false);
+    setSelectedApplicationId(null);
+    setApplicationDetails(null);
+    setDetailsError(null);
+  };
 
   // Get full name from record
   const getFullName = (record: ExternalApplication): string => {
@@ -157,7 +397,7 @@ export default function ExternalApplicationsScreen() {
     const dob = record.dob || record.date_of_birth;
     if (!dob) return '-';
     try {
-      return format(new Date(dob), 'dd/MM/yyyy');
+      return format(new Date(dob), DATE_DISPLAY_FORMAT);
     } catch {
       return dob;
     }
@@ -166,10 +406,7 @@ export default function ExternalApplicationsScreen() {
   // Get gender display
   const getGenderDisplay = (record: ExternalApplication): string => {
     const gender = record.sex || record.gender;
-    if (gender === 'M') return 'Male';
-    if (gender === 'F') return 'Female';
-    if (gender === 'N') return 'Not-Specified';
-    return gender || '-';
+    return formatGenderDisplay(gender);
   };
 
   // Quick search filter (client-side)
@@ -188,21 +425,92 @@ export default function ExternalApplicationsScreen() {
     });
   }, [applications, searchText]);
 
-  // View handler
-  const handleView = (record: ExternalApplication) => {
-    setSelectedApplication(record);
-    setViewDialogOpen(true);
-  };
-
   // Actions are disabled by default since external API doesn't support mutations
-  const canEdit = false;
-  const canDelete = false;
-  const canVerify = false;
-
   const handleDisabledAction = (action: string) => {
     toast.info(`${action} is not available for external applications`, {
       description: 'This action is not supported by the external API.',
     });
+  };
+
+  // Render grouped application details
+  const renderApplicationDetails = () => {
+    if (detailsLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Loading application details...</p>
+        </div>
+      );
+    }
+
+    if (detailsError) {
+      return (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Details</AlertTitle>
+          <AlertDescription>
+            {detailsError}
+            <div className="mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => selectedApplicationId && fetchApplicationDetails(selectedApplicationId)}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (!applicationDetails) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          No details available
+        </div>
+      );
+    }
+
+    const groupedFields = groupFields(applicationDetails);
+
+    return (
+      <ScrollArea className="h-[60vh]">
+        <div className="space-y-6 pr-4">
+          {Object.entries(groupedFields).map(([groupName, fields]) => (
+            <div key={groupName} className="space-y-3">
+              <div className="flex items-center gap-2 text-primary font-semibold">
+                {getGroupIcon(groupName)}
+                <h4>{groupName}</h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+                {Object.entries(fields).map(([key, value]) => (
+                  <div key={key} className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {formatFieldName(key)}
+                    </label>
+                    <div className="text-sm text-foreground break-words">
+                      {formatDisplayValue(key, value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Separator className="mt-4" />
+            </div>
+          ))}
+
+          {/* Read-only warning */}
+          <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700 dark:text-amber-400">
+              This is a read-only view of an external record. Editing, deleting, and verification 
+              are not available for external API records.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </ScrollArea>
+    );
   };
 
   return (
@@ -437,103 +745,28 @@ export default function ExternalApplicationsScreen() {
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      {/* View Details Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={handleCloseView}>
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ExternalLink className="h-5 w-5 text-blue-600" />
               Application Details
+              {selectedApplicationId && (
+                <Badge variant="outline" className="ml-2">
+                  {selectedApplicationId}
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription>
               External application record (Read-Only)
             </DialogDescription>
           </DialogHeader>
           
-          {selectedApplication && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Application ID</label>
-                  <p className="text-foreground font-medium">{selectedApplication.application_id || '-'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">SSN</label>
-                  <p className="text-foreground font-medium">{selectedApplication.ssn || '-'}</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                  <p className="text-foreground">{getFullName(selectedApplication)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <Badge variant={statusConfig[selectedApplication.status]?.variant || 'default'}>
-                    {statusConfig[selectedApplication.status]?.label || selectedApplication.status}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
-                  <p className="text-foreground">{getDateOfBirth(selectedApplication)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Gender</label>
-                  <p className="text-foreground">{getGenderDisplay(selectedApplication)}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                  <p className="text-foreground">{selectedApplication.phone || selectedApplication.telephone || '-'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <p className="text-foreground">{selectedApplication.email || '-'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Nationality</label>
-                  <p className="text-foreground">{selectedApplication.nationality || selectedApplication.nationality_code || '-'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Created At</label>
-                  <p className="text-foreground">
-                    {selectedApplication.created_at 
-                      ? format(new Date(selectedApplication.created_at), 'dd/MM/yyyy HH:mm')
-                      : '-'}
-                  </p>
-                </div>
-              </div>
-
-              {selectedApplication.address && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Address</label>
-                  <p className="text-foreground">{selectedApplication.address}</p>
-                </div>
-              )}
-
-              <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-700 dark:text-amber-400">
-                  This is a read-only view of an external record. Editing, deleting, and verification 
-                  are not available for external API records.
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
+          {renderApplicationDetails()}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+            <Button variant="outline" onClick={handleCloseView}>
               Close
             </Button>
           </DialogFooter>
