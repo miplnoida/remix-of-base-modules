@@ -7529,6 +7529,7 @@ export type Database = {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
       }
+      submit_ip_registration: { Args: { p_unique_uuid: string }; Returns: Json }
       test_data_policy: {
         Args: { _action: string; _module_name: string; _test_user_id: string }
         Returns: Json
