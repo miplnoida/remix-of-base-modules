@@ -272,6 +272,7 @@ import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 // IP Registration Module
 import IPRegistrationList from '@/pages/ip-registration/IPRegistrationList';
 import IPRegistrationForm from '@/pages/ip-registration/IPRegistrationForm';
+import ExternalApplicationsScreen from '@/pages/ip-registration/ExternalApplicationsScreen';
 
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
@@ -1344,6 +1345,7 @@ export const AppRoutes = () => {
       <Route path="/ip-registration/new" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
       <Route path="/ip-registration/edit/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
       <Route path="/ip-registration/view/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
+      <Route path="/ip-registration/external" element={<ProtectedLayout><ExternalApplicationsScreen /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />

@@ -39,6 +39,7 @@ export const routes = {
   CLAIM_HISTORY: '/person/claim-history',
   BENEFIT_ELIGIBILITY: '/person/benefit-eligibility',
   ID_CARD_GENERATION: '/person/id-card',
+  EXTERNAL_APPLICATIONS: '/ip-registration/external',
 
   // Employers Management routes
   EMPLOYERS_MANAGEMENT: '/employers-management',
