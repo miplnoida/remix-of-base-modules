@@ -1,9 +1,10 @@
 .stepper {
   display: flex;
   width: 100%;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
   overflow: hidden;
+  background: hsl(var(--background));
 }
 
 /* Base Step Styling */
@@ -13,57 +14,107 @@
   padding: 12px 20px;
   position: relative;
   flex: 1;
-  background: white;
-  border-right: 1px solid #e0e0e0;
-  clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
+  background: hsl(var(--background));
+  border-right: 1px solid hsl(var(--border));
+  clip-path: polygon(0% 0%, 92% 0%, 100% 50%, 92% 100%, 0% 100%);
+  transition: background-color 0.2s ease;
 }
 
 .step:last-child {
   border-right: none;
+  clip-path: none;
 }
 
 .circle {
-  width: 20px;
-  height: 20px;
-  border: 2px dotted #bbb;
+  width: 24px;
+  height: 24px;
+  border: 2px dotted hsl(var(--muted-foreground) / 0.5);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  color: #888;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
   margin-right: 10px;
   flex-shrink: 0;
+  font-weight: 500;
 }
 
 .label {
   font-size: 14px;
-  color: #333;
+  color: hsl(var(--foreground));
   white-space: nowrap;
+  font-weight: 500;
 }
 
-/* Active Step */
-.step.active {
-  background: #2a4da3;
-  color: white;
+/* Active Step - First step gets full blue */
+.step.active.step-1 {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
-.step.active .circle {
-  background: white;
-  color: #2a4da3;
+.step.active.step-1 .circle {
+  background: hsl(var(--primary-foreground));
+  color: hsl(var(--primary));
   border: none;
-  font-weight: bold;
+  font-weight: 600;
 }
 
-.step.active .label {
-  color: white;
+.step.active.step-1 .label {
+  color: hsl(var(--primary-foreground));
 }
 
-/* Step-specific background colors */
-.step.active.step-2 { background-color: #25A5E7; }
-.step.active.step-3 { background-color: #ABE3FF; }
-.step.active.step-4 { background-color: #EEF9FF; }
-.step.active.step-5 { background-color: #F9FCFD; }
+/* Inactive steps remain with default styling */
+.step:not(.active) .circle {
+  border: 2px dotted hsl(var(--primary) / 0.4);
+  color: hsl(var(--primary) / 0.7);
+}
+
+.step:not(.active) .label {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Step-specific active backgrounds - gradient effect */
+.step.active.step-2 { 
+  background-color: hsl(200 85% 53%); 
+}
+.step.active.step-3 { 
+  background-color: hsl(200 100% 84%); 
+}
+.step.active.step-4 { 
+  background-color: hsl(200 100% 97%); 
+}
+.step.active.step-5 { 
+  background-color: hsl(200 20% 98%); 
+}
+
+/* Active step 2 styling */
+.step.active.step-2 .circle {
+  background: hsl(var(--primary-foreground));
+  color: hsl(200 85% 53%);
+  border: none;
+  font-weight: 600;
+}
+
+.step.active.step-2 .label {
+  color: hsl(var(--primary-foreground));
+}
+
+/* Active step 3+ styling - darker text for light backgrounds */
+.step.active.step-3 .circle,
+.step.active.step-4 .circle,
+.step.active.step-5 .circle {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  font-weight: 600;
+}
+
+.step.active.step-3 .label,
+.step.active.step-4 .label,
+.step.active.step-5 .label {
+  color: hsl(var(--foreground));
+}
 
 /* Chevron overlap and layering */
 .step-1 {
@@ -75,36 +126,33 @@
 .step.step-3,
 .step.step-4,
 .step.step-5 {
-  margin-left: -26px;
+  margin-left: -28px;
   position: relative;
-  padding-left: 42px;
+  padding-left: 44px;
 }
 
 .step-2 { z-index: 8; }
 .step-3 { z-index: 7; }
 .step-4 { z-index: 6; }
-.step-5 {
-  z-index: 5;
-  clip-path: none;
-}
+.step-5 { z-index: 5; }
 
-/* Active Label Colors */
-.step-1.active .label,
-.step-2.active .label {
-  color: #fff;
-}
-
-.step-3.active .label,
-.step-4.active .label,
-.step-5.active .label {
-  color: #000;
-}
-
-/* Circle dot class */
+/* Circle dot class for current step indicator */
 .circle-dot {
-  height: 12px;
-  width: 12px;
-  background-color: #33529C;
+  height: 10px;
+  width: 10px;
+  background-color: hsl(var(--primary));
   border-radius: 50%;
   display: block;
+}
+
+/* Hover effect for clickable steps */
+.step:hover {
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+/* Completed step checkmark styling */
+.step .circle svg {
+  width: 12px;
+  height: 12px;
 }

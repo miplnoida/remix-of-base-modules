@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Check, Circle } from 'lucide-react';
+import { ArrowLeft, User, Users, FileText, Building, Camera, Globe } from 'lucide-react';
+import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import BasicDetailsTab from './tabs/BasicDetailsTab';
@@ -764,35 +765,21 @@ export default function IPRegistrationForm() {
 
             <TabsContent value="register" className="mt-6">
               {/* Step Progress */}
-              <div className="flex items-center mb-6">
-                {tabSteps.map((step, index) => (
-                  <React.Fragment key={step.id}>
-                    <button
-                      onClick={() => handleTabChange(step.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
-                        activeTab === step.id
-                          ? 'bg-primary text-primary-foreground'
-                          : completedTabs.includes(step.id)
-                          ? 'bg-primary/80 text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {completedTabs.includes(step.id) ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Circle className="h-4 w-4" />
-                      )}
-                      <span className="hidden md:inline">{step.label}</span>
-                      <span className="md:hidden">{index + 1}</span>
-                    </button>
-                    {index < tabSteps.length - 1 && (
-                      <div className={`flex-1 h-1 mx-2 ${
-                        completedTabs.includes(step.id) ? 'bg-primary' : 'bg-muted'
-                      }`} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
+              {/* Section Stepper */}
+              <Stepper
+                steps={tabSteps.map((step, index) => ({
+                  id: step.id,
+                  title: step.label,
+                  status: activeTab === step.id 
+                    ? 'current' 
+                    : completedTabs.includes(step.id) 
+                      ? 'completed' 
+                      : 'upcoming'
+                } as StepperStep))}
+                currentStep={tabSteps.findIndex(s => s.id === activeTab)}
+                onStepClick={(index) => handleTabChange(tabSteps[index].id)}
+                className="mb-6"
+              />
 
               {/* Tab Content */}
               {activeTab === 'basic' && (
