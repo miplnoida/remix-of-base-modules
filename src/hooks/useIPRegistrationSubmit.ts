@@ -1,6 +1,27 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+const formatDbError = (err: unknown): string => {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+
+  const anyErr = err as any;
+  const message = anyErr?.message || anyErr?.error_description || anyErr?.msg;
+  const details = anyErr?.details;
+  const hint = anyErr?.hint;
+  const code = anyErr?.code;
+
+  return [
+    message,
+    details ? `Details: ${details}` : null,
+    hint ? `Hint: ${hint}` : null,
+    code ? `Code: ${code}` : null,
+  ]
+    .filter(Boolean)
+    .join(' | ');
+};
+
 export interface IPSubmitData {
   unique_uuid: string;
   application_id?: string;
@@ -123,7 +144,7 @@ export function useIPRegistrationSubmit() {
 
     if (error) {
       console.error('Error fetching record:', error);
-      return null;
+      throw new Error(formatDbError(error));
     }
 
     return data as IPSubmitData;
@@ -290,7 +311,7 @@ export function useIPRegistrationSubmit() {
           .eq('unique_uuid', uniqueUuid);
 
         if (saveError) {
-          throw new Error('Failed to save draft data before submission');
+          throw new Error(`Failed to save draft data before submission: ${formatDbError(saveError)}`);
         }
       }
 
@@ -316,25 +337,18 @@ export function useIPRegistrationSubmit() {
         };
       }
 
-      // Step 4: Generate permanent SSN
-      const { data: ssnData, error: ssnError } = await supabase.rpc('generate_ip_ssn');
-      if (ssnError) {
-        throw new Error('Failed to generate SSN');
+      // Step 4: Atomic backend submit (SSN generation + status update)
+      const { data: submitData, error: submitError } = await supabase.rpc('submit_ip_registration', {
+        p_unique_uuid: uniqueUuid,
+      });
+
+      if (submitError) {
+        throw new Error(formatDbError(submitError));
       }
 
-      // Step 5: Update status to Pending with new SSN
-      const { error: updateError } = await supabase
-        .from('ip_master')
-        .update({
-          ssn: ssnData,
-          status: 'P',
-          submitted_by: userId,
-          submitted_at: new Date().toISOString(),
-        })
-        .eq('unique_uuid', uniqueUuid);
-
-      if (updateError) {
-        throw new Error('Failed to update registration status');
+      const ssnData = (submitData as any)?.ssn as string | undefined;
+      if (!ssnData) {
+        throw new Error('Submission succeeded but SSN was not returned');
       }
 
       // Step 6: Trigger workflow (if configured)
@@ -365,7 +379,7 @@ export function useIPRegistrationSubmit() {
       console.error('Submit error:', error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to submit registration',
+        message: formatDbError(error),
       };
     } finally {
       setIsSubmitting(false);
