@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Eye, Edit, Send, CheckCircle, Trash2, Search, 
   Filter, Download, ChevronUp, ChevronDown,
-  UserPlus, Key, Users, AlertTriangle, ExternalLink
+  UserPlus, Key, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -21,8 +21,6 @@ import { useIPStatuses, useCountries, getStatusDescription } from '@/hooks/useIP
 import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
-import { useExternalApplications, deduplicateApplications, isExternalRecord } from '@/hooks/useExternalApplications';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Status codes by tab
 const PENDING_STATUSES = ['Z', 'P'];
@@ -52,9 +50,6 @@ interface IPRecord {
   created_by: string | null;
   created_at: string;
   registration_date: string | null;
-  // Source flag for external records
-  _source?: 'external' | 'local';
-  _externalId?: string;
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -98,15 +93,6 @@ export default function IPRegistrationList() {
   const [submitRecord, setSubmitRecord] = useState<IPRecord | null>(null);
   const { submitIPRegistration, isSubmitting } = useIPRegistrationSubmit();
   
-  // External API integration
-  const { 
-    fetchExternalApplications, 
-    isLoading: externalLoading, 
-    hasWarning: externalHasWarning,
-    warningMessage: externalWarningMessage,
-    error: externalError 
-  } = useExternalApplications();
-  const [localDataError, setLocalDataError] = useState<string | null>(null);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -198,49 +184,29 @@ export default function IPRegistrationList() {
       
       if (error) throw error;
 
-      // Mark local records with source
-      const localRecords = (data || []).map(record => ({
-        ...record,
-        _source: 'local' as const,
-      })) as IPRecord[];
+      const localRecords = (data || []) as IPRecord[];
       
-      setLocalDataError(null);
       return localRecords;
     } catch (error) {
-      console.error('Error fetching local records:', error);
-      setLocalDataError('Failed to load local records');
+      console.error('Error fetching records:', error);
       return [];
     }
   }, [activeTab, filters, getStatusesForTab]);
 
-  // Combined fetch function for both local and external data
+  // Fetch records from local database only
   const fetchRecords = useCallback(async (applyFilters = false) => {
     setLoading(true);
-    setLocalDataError(null);
     
     try {
-      // For pending tab, fetch both local and external data in parallel
-      if (activeTab === 'pending') {
-        const [localRecords, externalRecords] = await Promise.all([
-          fetchLocalRecords(applyFilters),
-          fetchExternalApplications(),
-        ]);
-
-        // Deduplicate and merge records
-        const mergedRecords = deduplicateApplications(localRecords, externalRecords);
-        setRecords(mergedRecords as IPRecord[]);
-      } else {
-        // For other tabs, only fetch local data
-        const localRecords = await fetchLocalRecords(applyFilters);
-        setRecords(localRecords);
-      }
+      const localRecords = await fetchLocalRecords(applyFilters);
+      setRecords(localRecords);
     } catch (error) {
       console.error('Error fetching records:', error);
       toast.error('Failed to load records');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, fetchLocalRecords, fetchExternalApplications]);
+  }, [fetchLocalRecords]);
 
   // Fetch tab counts
   const fetchCounts = useCallback(async () => {
@@ -297,12 +263,11 @@ export default function IPRegistrationList() {
   // Get visible columns
   const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
 
-  // Action button logic - disable actions for external records
-  const canEdit = (record: IPRecord) => record.status === 'Z' && !isExternalRecord(record);
-  const canDelete = (record: IPRecord) => (record.status === 'Z' || record.status === 'P') && !isExternalRecord(record);
-  const canSubmit = (record: IPRecord) => record.status === 'Z' && !isExternalRecord(record);
-  const canApprove = (record: IPRecord) => record.status === 'P' && !isExternalRecord(record);
-  const canViewExternal = (record: IPRecord) => isExternalRecord(record);
+  // Action button logic for local records only
+  const canEdit = (record: IPRecord) => record.status === 'Z';
+  const canDelete = (record: IPRecord) => record.status === 'Z' || record.status === 'P';
+  const canSubmit = (record: IPRecord) => record.status === 'Z';
+  const canApprove = (record: IPRecord) => record.status === 'P';
 
   const handleView = (record: IPRecord) => {
     navigate(`/ip-registration/view/${record.unique_uuid}`);
@@ -545,27 +510,6 @@ export default function IPRegistrationList() {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Warning alerts for data loading issues */}
-            {activeTab === 'pending' && (externalHasWarning || localDataError) && (
-              <div className="space-y-2 mb-4">
-                {externalHasWarning && (
-                  <Alert variant="default" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                    <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-                      {externalWarningMessage}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {localDataError && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      {localDataError}. Showing external applications only.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            )}
 
             {/* Quick Search */}
             <div className="flex items-center justify-between mb-4">
@@ -625,7 +569,7 @@ export default function IPRegistrationList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading || (activeTab === 'pending' && externalLoading) ? (
+                  {loading ? (
                     <TableRow>
                       <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8">
                         <div className="flex items-center justify-center gap-2">
@@ -642,22 +586,11 @@ export default function IPRegistrationList() {
                     </TableRow>
                   ) : (
                     filteredRecords.slice(0, pageSize).map((record) => (
-                      <TableRow 
-                        key={record.id} 
-                        className={isExternalRecord(record) ? 'bg-blue-50/30 dark:bg-blue-950/10' : ''}
-                      >
+                      <TableRow key={record.id}>
                         {visibleColumns.map(col => (
                           <TableCell key={col.key} className={col.key === 'application_id' ? 'font-medium' : ''}>
                             {col.key === 'application_id' && (
-                              <div className="flex items-center gap-2">
-                                <span>{record.ssn || record.application_id}</span>
-                                {isExternalRecord(record) && (
-                                  <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-                                    <ExternalLink className="h-3 w-3 mr-1" />
-                                    External
-                                  </Badge>
-                                )}
-                              </div>
+                              <span>{record.ssn || record.application_id}</span>
                             )}
                             {col.key === 'full_name' && getFullName(record)}
                             {col.key === 'status' && (
@@ -674,27 +607,15 @@ export default function IPRegistrationList() {
                         ))}
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            {/* View button - always available for local records, external records get "View External" tooltip */}
-                            {isExternalRecord(record) ? (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                title="External Record (View Only)"
-                                className="text-blue-600"
-                                disabled
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleView(record)}
-                                title="View"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            )}
+                            {/* View button - always available */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleView(record)}
+                              title="View"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             {canEdit(record) && (
                               <Button
                                 variant="outline"
