@@ -272,6 +272,8 @@ import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 // Online Applications Module
 import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
 import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
+import EmployerApplications from '@/pages/online-applications/EmployerApplications';
+import DoctorApplications from '@/pages/online-applications/DoctorApplications';
 
 // IP Registration Module
 import IPRegistrationList from '@/pages/ip-registration/IPRegistrationList';
@@ -1343,6 +1345,12 @@ export const AppRoutes = () => {
       <Route path="/admin/system-cleanup/dependency-scan" element={<ProtectedLayout><DependencyScan /></ProtectedLayout>} />
       <Route path="/admin/system-cleanup/cleanup-review" element={<ProtectedLayout><CleanupReview /></ProtectedLayout>} />
       <Route path="/admin/system-cleanup/rollback" element={<ProtectedLayout><RollbackScreen /></ProtectedLayout>} />
+
+      {/* Online Applications Module */}
+      <Route path="/admin/api-configuration" element={<ProtectedLayout><ApiConfiguration /></ProtectedLayout>} />
+      <Route path="/online-applications/insured-person" element={<ProtectedLayout><InsuredPersonApplications /></ProtectedLayout>} />
+      <Route path="/online-applications/employer" element={<ProtectedLayout><EmployerApplications /></ProtectedLayout>} />
+      <Route path="/online-applications/doctor" element={<ProtectedLayout><DoctorApplications /></ProtectedLayout>} />
 
       {/* IP Registration Module - Primary route */}
       <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
