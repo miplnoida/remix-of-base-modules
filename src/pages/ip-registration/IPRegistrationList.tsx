@@ -21,6 +21,7 @@ import { useIPStatuses, useCountries, getStatusDescription } from '@/hooks/useIP
 import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
+import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActionButtons';
 
 // Status codes by tab
 const PENDING_STATUSES = ['Z', 'P'];
