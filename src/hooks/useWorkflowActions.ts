@@ -149,12 +149,14 @@ export function useWorkflowActions(
       const task = tasks[0] as WorkflowTask;
 
       // Step 3: Check if current user can perform actions on this task
+      // Pass user.role for mock auth compatibility
       const canPerformActions = await checkUserPermission(
         user.id,
         task.assigned_to,
         task.assigned_role,
         task.assigned_designation,
-        task.step_id
+        task.step_id,
+        user.role
       );
 
       // Step 4: If user can perform actions, fetch available actions for the current step
@@ -217,13 +219,15 @@ export function useWorkflowActions(
 
 /**
  * Check if the user has permission to perform actions on a workflow task.
+ * This function supports both database-backed user IDs and mock authentication.
  */
 async function checkUserPermission(
   userId: string,
   assignedTo: string | null,
   assignedRole: string | null,
   assignedDesignation: string | null,
-  stepId: string
+  stepId: string,
+  userRole?: string
 ): Promise<boolean> {
   // If task is assigned to this specific user
   if (assignedTo && assignedTo === userId) {
@@ -239,7 +243,7 @@ async function checkUserPermission(
 
   if (!step) {
     // Fallback to task-level assignment
-    return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation);
+    return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation, userRole);
   }
 
   const approverType = step.approver_type;
@@ -251,16 +255,48 @@ async function checkUserPermission(
   }
 
   if (approverType === 'role' && step.approver_role_ids) {
-    // Get user's roles
+    const allowedRoleIds = step.approver_role_ids as string[];
+    
+    // First try to get user's roles from database
     const { data: userRoles } = await supabase
       .from('AspNetUserRoles')
       .select('RoleId')
       .eq('UserId', userId);
 
-    if (userRoles) {
+    if (userRoles && userRoles.length > 0) {
       const userRoleIds = userRoles.map(r => r.RoleId);
-      const allowedRoleIds = step.approver_role_ids as string[];
-      return allowedRoleIds.some(roleId => userRoleIds.includes(roleId));
+      if (allowedRoleIds.some(roleId => userRoleIds.includes(roleId))) {
+        return true;
+      }
+    }
+
+    // If database check fails, try matching by role name (for mock auth)
+    if (userRole) {
+      // Get role names for the allowed role IDs
+      const { data: rolesData } = await supabase
+        .from('AspNetRoles')
+        .select('Id, Name')
+        .in('Id', allowedRoleIds);
+      
+      if (rolesData) {
+        const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
+        const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
+        
+        // Check for matches including partial matches
+        // e.g., "admin" matches "Admin", "cashier_supervisor" matches "Cashier Supervisor"
+        if (allowedRoleNames.some(roleName => 
+          roleName === normalizedUserRole ||
+          roleName === userRole.toLowerCase() ||
+          roleName.replace(/ /g, '_') === userRole.toLowerCase()
+        )) {
+          return true;
+        }
+        
+        // Special handling for admin role - admins can perform any action
+        if (userRole.toLowerCase() === 'admin') {
+          return true;
+        }
+      }
     }
   }
 
@@ -279,7 +315,7 @@ async function checkUserPermission(
   }
 
   // Fallback to task-level assignment check
-  return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation);
+  return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation, userRole);
 }
 
 /**
@@ -288,11 +324,16 @@ async function checkUserPermission(
 async function checkTaskLevelAssignment(
   userId: string,
   assignedRole: string | null,
-  assignedDesignation: string | null
+  assignedDesignation: string | null,
+  userRole?: string
 ): Promise<boolean> {
-  // If no specific assignment, deny (safe default)
+  // Admin users always have access
+  if (userRole?.toLowerCase() === 'admin') {
+    return true;
+  }
+  
+  // If no specific assignment, check if user is admin in database
   if (!assignedRole && !assignedDesignation) {
-    // Check if user is admin
     const { data: userRoles } = await supabase
       .from('AspNetUserRoles')
       .select('RoleId, role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
@@ -304,8 +345,18 @@ async function checkTaskLevelAssignment(
     return false;
   }
 
-  // Check role
+  // Check role - compare with both database roles and mock role
   if (assignedRole) {
+    // Check mock role match
+    if (userRole) {
+      const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
+      const normalizedAssignedRole = assignedRole.toLowerCase().replace(/_/g, ' ');
+      if (normalizedUserRole === normalizedAssignedRole) {
+        return true;
+      }
+    }
+    
+    // Check database roles
     const { data: userRoles } = await supabase
       .from('AspNetUserRoles')
       .select('role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
