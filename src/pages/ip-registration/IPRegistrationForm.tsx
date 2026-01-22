@@ -16,10 +16,10 @@ import DocumentVerificationTab from './tabs/DocumentVerificationTab';
 import DependentsTab from './tabs/DependentsTab';
 import NotesTab from './tabs/NotesTab';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Textarea } from '@/components/ui/textarea';
 import SuccessAnimation from '@/components/shared/SuccessAnimation';
 import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
+import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 
 export interface IPFormData {
   id?: string;
@@ -136,9 +136,6 @@ export default function IPRegistrationForm() {
   const [duplicates, setDuplicates] = useState<any[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
   const [showStepSuccess, setShowStepSuccess] = useState(false);
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
@@ -290,11 +287,8 @@ export default function IPRegistrationForm() {
   useEffect(() => {
     if (action === 'submit') {
       setShowSubmitConfirm(true);
-    } else if (action === 'approve') {
-      setShowApproveConfirm(true);
-    } else if (action === 'reject') {
-      setShowRejectDialog(true);
     }
+    // Approve/Reject actions are now handled by WorkflowActionButtons
   }, [action]);
 
   // Validate current tab before saving
@@ -568,86 +562,9 @@ export default function IPRegistrationForm() {
     }
   };
 
-  const handleApprove = async () => {
-    if (!formData) return;
-
-    try {
-      const { error } = await supabase
-        .from('ip_master')
-        .update({
-          status: 'V',
-          verified_by: user?.id,
-          date_verified: new Date().toISOString(),
-        })
-        .eq('unique_uuid', formData.unique_uuid);
-
-      if (error) throw error;
-
-      // Log audit
-      await supabase.from('ip_audit_log').insert({
-        table_name: 'ip_master',
-        record_id: formData.id,
-        unique_uuid: formData.unique_uuid,
-        action: 'APPROVE',
-        changed_by: user?.id,
-      });
-
-      toast.success('Registration approved successfully');
-      navigate('/ip-registration');
-    } catch (error) {
-      console.error('Approve error:', error);
-      toast.error('Failed to approve registration');
-    } finally {
-      setShowApproveConfirm(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!formData || !rejectReason) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('ip_master')
-        .update({
-          status: 'R',
-          rejected_by: user?.id,
-          date_rejected: new Date().toISOString(),
-          rejection_reason: rejectReason,
-        })
-        .eq('unique_uuid', formData.unique_uuid);
-
-      if (error) throw error;
-
-      // Add rejection note
-      await supabase.from('ip_notes').insert({
-        ssn: formData.ssn,
-        note: rejectReason,
-        note_date: new Date().toISOString(),
-        note_tran_code: 'REJ',
-        userid: user?.id?.substring(0, 5),
-      } as any);
-
-      // Log audit
-      await supabase.from('ip_audit_log').insert({
-        table_name: 'ip_master',
-        record_id: formData.id,
-        unique_uuid: formData.unique_uuid,
-        action: 'REJECT',
-        new_value: rejectReason,
-        changed_by: user?.id,
-      });
-
-      toast.success('Registration rejected');
-      navigate('/ip-registration');
-    } catch (error) {
-      console.error('Reject error:', error);
-      toast.error('Failed to reject registration');
-    } finally {
-      setShowRejectDialog(false);
-    }
+  // Approve/Reject actions are now handled by WorkflowActionButtons component
+  const handleWorkflowActionComplete = (action: string, endState: string | null) => {
+    navigate('/ip-registration');
   };
 
   if (loading) {
@@ -719,15 +636,13 @@ export default function IPRegistrationForm() {
               Submit
             </Button>
           )}
-          {canApprove && (
-            <>
-              <Button onClick={() => setShowApproveConfirm(true)} className="bg-green-600 hover:bg-green-700">
-                Approve
-              </Button>
-              <Button variant="destructive" onClick={() => setShowRejectDialog(true)}>
-                Reject
-              </Button>
-            </>
+          {/* Workflow-driven action buttons for pending status */}
+          {formData.status === 'P' && (
+            <WorkflowActionButtons
+              sourceModule="insured_person_registration"
+              sourceRecordId={formData.unique_uuid}
+              onActionComplete={handleWorkflowActionComplete}
+            />
           )}
         </div>
       </div>
@@ -959,46 +874,7 @@ export default function IPRegistrationForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Approve Confirmation Dialog */}
-      <AlertDialog open={showApproveConfirm} onOpenChange={setShowApproveConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Approve Registration?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mark the registration as verified.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApprove}>Approve</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reject Dialog */}
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reject Registration</AlertDialogTitle>
-            <AlertDialogDescription>
-              Please provide a reason for rejection. This will be recorded in the notes.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Textarea
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Enter rejection reason..."
-            className="mt-4"
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReject} className="bg-destructive">
-              Reject
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Approve/Reject dialogs removed - now handled by WorkflowActionButtons component */}
     </div>
   );
 }
