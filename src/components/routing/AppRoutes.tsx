@@ -269,6 +269,10 @@ import DependencyScan from '@/pages/admin/system-cleanup/DependencyScan';
 import CleanupReview from '@/pages/admin/system-cleanup/CleanupReview';
 import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 
+// Online Applications Module
+import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
+import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
+
 // IP Registration Module
 import IPRegistrationList from '@/pages/ip-registration/IPRegistrationList';
 import IPRegistrationForm from '@/pages/ip-registration/IPRegistrationForm';

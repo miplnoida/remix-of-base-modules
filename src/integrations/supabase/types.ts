@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_settings: {
+        Row: {
+          api_key: string | null
+          base_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          header_name: string | null
+          id: string
+          is_active: boolean | null
+          setting_key: string
+          setting_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          base_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          header_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key: string
+          setting_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          base_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          header_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key?: string
+          setting_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       app_modules: {
         Row: {
           business_key_column: string | null
