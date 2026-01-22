@@ -632,6 +632,7 @@ export default function IPRegistrationList() {
                                 size="icon"
                                 onClick={() => handleSubmit(record)}
                                 title="Submit"
+                                disabled={isSubmitting}
                               >
                                 <Send className="h-4 w-4" />
                               </Button>
