@@ -19,7 +19,11 @@ import {
   CheckSquare,
   Trash2,
   Search,
-  RotateCcw
+  RotateCcw,
+  Globe,
+  UserCheck,
+  Briefcase,
+  Stethoscope
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -179,6 +183,33 @@ export const systemAdminMenuItems = [
             requiresPermission: "system_administration"
           }
         ]
+      },
+      {
+        title: "API Configuration",
+        url: "/admin/api-configuration",
+        icon: Globe,
+        requiresPermission: "system_administration"
+      }
+    ]
+  },
+  {
+    title: "Online Applications",
+    icon: Globe,
+    subItems: [
+      {
+        title: "Insured Person Applications",
+        url: "/online-applications/insured-person",
+        icon: UserCheck,
+      },
+      {
+        title: "Employer Applications",
+        url: "/online-applications/employer",
+        icon: Briefcase,
+      },
+      {
+        title: "Doctor Applications",
+        url: "/online-applications/doctor",
+        icon: Stethoscope,
       }
     ]
   },
