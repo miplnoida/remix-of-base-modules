@@ -637,16 +637,16 @@ export default function IPRegistrationList() {
                                 <Send className="h-4 w-4" />
                               </Button>
                             )}
-                            {canApprove(record) && (
-                              <Button
-                                variant="default"
-                                size="icon"
-                                onClick={() => handleApprove(record)}
-                                title="Approve"
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
+                            {/* Workflow-driven action buttons for pending status */}
+                            {record.status === 'P' && (
+                              <WorkflowActionButtonsCompact
+                                sourceModule="insured_person_registration"
+                                sourceRecordId={record.unique_uuid}
+                                onActionComplete={() => {
+                                  fetchRecords(false);
+                                  fetchCounts();
+                                }}
+                              />
                             )}
                             {canDelete(record) && (
                               <Button
