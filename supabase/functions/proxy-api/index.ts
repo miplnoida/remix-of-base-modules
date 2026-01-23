@@ -72,8 +72,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Build the target URL
-    const targetUrl = `${setting.base_url}${endpoint}`
+    // Build the target URL (handle trailing slash in base_url)
+    const baseUrl = setting.base_url.replace(/\/+$/, ''); // Remove trailing slashes
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const targetUrl = `${baseUrl}${cleanEndpoint}`;
     console.log(`Proxying ${method} request to: ${targetUrl}`)
 
     // Build headers for the external API
