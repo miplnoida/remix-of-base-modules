@@ -41,6 +41,11 @@ export const routes = {
   ID_CARD_GENERATION: '/person/id-card',
   EXTERNAL_APPLICATIONS: '/ip-registration/external',
 
+  // Online Applications routes
+  ONLINE_APPLICATIONS_EMPLOYER_DETAIL: '/online-applications/employer/:applicationId',
+  ONLINE_APPLICATIONS_EMPLOYER_DETAIL_SPECIFIC: (id: string) => `/online-applications/employer/${id}`,
+
+
   // Employers Management routes
   EMPLOYERS_MANAGEMENT: '/employers-management',
   EMPLOYERS_MANAGEMENT_DASHBOARD: '/employers-management/dashboard',
