@@ -102,16 +102,17 @@ export default function EmployerApplications() {
   const handleConfirmAction = async () => {
     if (!actionDialog.application) return;
 
-    const applicationRef = actionDialog.application.referenceNumber || actionDialog.application.applicationId;
+    // Use applicationId (the actual API id) for approve/reject calls
+    const apiId = actionDialog.application.applicationId;
 
     if (actionDialog.type === 'approve') {
       await approveApplication.mutateAsync({
-        applicationId: applicationRef,
+        applicationId: apiId,
         remarks: actionRemarks,
       });
     } else {
       await rejectApplication.mutateAsync({
-        applicationId: applicationRef,
+        applicationId: apiId,
         remarks: actionRemarks,
       });
     }
@@ -335,8 +336,8 @@ export default function EmployerApplications() {
                               size="sm"
                               className="gap-1"
                               onClick={() => {
-                                const ref = app.referenceNumber || app.applicationId;
-                                navigate(`/online-applications/employer/${encodeURIComponent(ref)}`);
+                                // Use applicationId (the actual API id) for detail fetching, not referenceNumber
+                                navigate(`/online-applications/employer/${encodeURIComponent(app.applicationId)}`);
                               }}
                             >
                               <Eye className="h-4 w-4" />
