@@ -272,6 +272,7 @@ import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 // Online Applications Module
 import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
 import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
+import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetailPage';
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
 import DoctorApplications from '@/pages/online-applications/DoctorApplications';
 
@@ -1349,6 +1350,7 @@ export const AppRoutes = () => {
       {/* Online Applications Module */}
       <Route path="/admin/api-configuration" element={<ProtectedLayout><ApiConfiguration /></ProtectedLayout>} />
       <Route path="/online-applications/insured-person" element={<ProtectedLayout><InsuredPersonApplications /></ProtectedLayout>} />
+      <Route path="/online-applications/insured-person/:referenceNumber" element={<ProtectedLayout><ApplicationDetailPage /></ProtectedLayout>} />
       <Route path="/online-applications/employer" element={<ProtectedLayout><EmployerApplications /></ProtectedLayout>} />
       <Route path="/online-applications/doctor" element={<ProtectedLayout><DoctorApplications /></ProtectedLayout>} />
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -56,7 +56,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [roles, setRoles] = useState<string[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastActivity, setLastActivity] = useState<number>(Date.now());
+
+  // Timeouts (configurable via Password & Security Policy)
+  const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number>(IDLE_TIMEOUT_MINUTES);
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState<number>(SESSION_TIMEOUT_MINUTES);
+
+  // Track activity without triggering rerenders
+  const lastActivityRef = useRef<number>(Date.now());
+  const sessionStartRef = useRef<number>(Date.now());
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
@@ -103,32 +110,73 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Update last activity timestamp
   const updateActivity = useCallback(() => {
-    setLastActivity(Date.now());
+    lastActivityRef.current = Date.now();
   }, []);
+
+  // Load timeout settings from active policy (if available)
+  useEffect(() => {
+    if (!session) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('password_policies')
+          .select('session_timeout_minutes, idle_timeout_minutes')
+          .eq('is_active', true)
+          .single();
+
+        if (cancelled) return;
+        if (error) return;
+
+        const idle = typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : IDLE_TIMEOUT_MINUTES;
+        const sess = typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : SESSION_TIMEOUT_MINUTES;
+        setIdleTimeoutMinutes(idle);
+        setSessionTimeoutMinutes(sess);
+      } catch {
+        // If policy can't be loaded due to permissions or missing row, fall back to defaults.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   // Check for idle timeout
   useEffect(() => {
     if (!session) return;
 
     const checkIdleTimeout = () => {
-      const idleTime = (Date.now() - lastActivity) / 1000 / 60; // minutes
-      if (idleTime >= IDLE_TIMEOUT_MINUTES) {
+      const idleTime = (Date.now() - lastActivityRef.current) / 1000 / 60; // minutes
+      if (idleTime >= idleTimeoutMinutes) {
         toast.warning('Session expired due to inactivity');
-        logout();
+        void logout();
       }
     };
 
-    const interval = setInterval(checkIdleTimeout, 60000); // Check every minute
+    const checkSessionTimeout = () => {
+      const sessionAge = (Date.now() - sessionStartRef.current) / 1000 / 60; // minutes
+      if (sessionAge >= sessionTimeoutMinutes) {
+        toast.warning('Session expired');
+        void logout();
+      }
+    };
+
+    const interval = setInterval(() => {
+      checkIdleTimeout();
+      checkSessionTimeout();
+    }, 60000); // Check every minute
 
     // Add activity listeners
-    const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
     events.forEach(event => window.addEventListener(event, updateActivity));
 
     return () => {
       clearInterval(interval);
       events.forEach(event => window.removeEventListener(event, updateActivity));
     };
-  }, [session, lastActivity, updateActivity]);
+  }, [session, idleTimeoutMinutes, sessionTimeoutMinutes, updateActivity]);
 
   // Initialize auth state
   useEffect(() => {
@@ -137,6 +185,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+
+        if (event === 'SIGNED_IN' && currentSession) {
+          sessionStartRef.current = Date.now();
+          lastActivityRef.current = Date.now();
+        }
         
         if (currentSession?.user) {
           // Use setTimeout to prevent Supabase deadlock
@@ -159,6 +212,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+
+      if (currentSession) {
+        sessionStartRef.current = Date.now();
+        lastActivityRef.current = Date.now();
+      }
       
       if (currentSession?.user) {
         fetchProfile(currentSession.user.id).then(setProfile);
