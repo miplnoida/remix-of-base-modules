@@ -132,8 +132,8 @@ export default function ApiConfiguration() {
                 setFormData({});
               }
             }}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   {isCreating ? <Plus className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
                   {isCreating ? 'Add New API Configuration' : 'Edit API Configuration'}
@@ -143,7 +143,7 @@ export default function ApiConfiguration() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 overflow-y-auto flex-1 pr-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="setting_key">Setting Key *</Label>
@@ -259,7 +259,7 @@ export default function ApiConfiguration() {
                 </div>
               </div>
               
-              <DialogFooter>
+              <DialogFooter className="flex-shrink-0 pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => {
