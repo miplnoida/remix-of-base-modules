@@ -102,19 +102,26 @@ Deno.serve(async (req) => {
     const responseData = await externalResponse.text()
     
     // Try to parse as JSON, otherwise return as text
-    let responseBody: string
+    let parsedData: unknown
     try {
-      const jsonData = JSON.parse(responseData)
-      responseBody = JSON.stringify(jsonData)
+      parsedData = JSON.parse(responseData)
     } catch {
-      responseBody = responseData
+      parsedData = { raw: responseData }
     }
 
-    return new Response(responseBody, {
-      status: externalResponse.status,
+    // Always return 200 so the client can handle the response gracefully
+    // Include the original status code in the response for the client to check
+    const wrappedResponse = {
+      _proxyStatus: externalResponse.status,
+      _proxyOk: externalResponse.ok,
+      ...((typeof parsedData === 'object' && parsedData !== null) ? parsedData : { data: parsedData }),
+    }
+
+    return new Response(JSON.stringify(wrappedResponse), {
+      status: 200, // Always 200 so client can read the response body
       headers: {
         ...corsHeaders,
-        'Content-Type': externalResponse.headers.get('Content-Type') || 'application/json',
+        'Content-Type': 'application/json',
       },
     })
   } catch (error: unknown) {
