@@ -132,6 +132,7 @@ export function getEmployerStatusVariant(status: string): 'default' | 'secondary
 
 /**
  * Call the proxy-api edge function to fetch data from external APIs
+ * The proxy always returns 200 with _proxyStatus and _proxyOk fields
  */
 async function callProxyApi(moduleName: string, endpoint: string, method: string = 'GET', body?: unknown) {
   const { data, error } = await supabase.functions.invoke('proxy-api', {
@@ -146,6 +147,15 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
 
   if (error) {
     throw new Error(error.message || 'Failed to call proxy API');
+  }
+
+  // Check if the proxied request was successful
+  if (data && typeof data === 'object' && '_proxyOk' in data) {
+    if (!data._proxyOk) {
+      // External API returned an error (e.g., 404)
+      const errorMsg = data.error || data.message || 'Request failed';
+      throw new Error(errorMsg);
+    }
   }
 
   return data;
