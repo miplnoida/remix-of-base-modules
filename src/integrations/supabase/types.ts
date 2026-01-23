@@ -7497,12 +7497,9 @@ export type Database = {
       get_user_permissions: {
         Args: { _user_id: string }
         Returns: {
-          action_id: string
           action_name: string
           is_granted: boolean
-          module_id: string
           module_name: string
-          source: string
         }[]
       }
       get_visible_fields: {
