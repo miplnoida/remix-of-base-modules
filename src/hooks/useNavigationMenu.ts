@@ -74,7 +74,7 @@ export function useNavigationMenu() {
       const { data, error } = await supabase
         .rpc('get_user_permissions', { _user_id: user.id });
       if (error) throw error;
-      return data as Array<{ module_id: string; module_name: string; action_name: string }>;
+      return data as Array<{ module_name: string; action_name: string; is_granted: boolean }>;
     },
     enabled: !!user?.id,
   });
@@ -122,11 +122,11 @@ export function useNavigationMenu() {
       });
     }
 
-    // Non-admin users: filter by permissions
-    const accessibleModuleIds = new Set(
+    // Non-admin users: filter by permissions using module_name
+    const accessibleModuleNames = new Set(
       userPermissions
-        .filter(p => p.action_name === 'view')
-        .map(p => p.module_id)
+        .filter(p => p.action_name === 'view' && p.is_granted)
+        .map(p => p.module_name)
     );
     
     const parentModules = modules
@@ -149,10 +149,10 @@ export function useNavigationMenu() {
       const children = childModulesMap.get(parent.id) || [];
       
       const accessibleChildren = children.filter(child => 
-        userPermissions.length === 0 || accessibleModuleIds.has(child.id)
+        userPermissions.length === 0 || accessibleModuleNames.has(child.name)
       );
 
-      const parentAccessible = userPermissions.length === 0 || accessibleModuleIds.has(parent.id);
+      const parentAccessible = userPermissions.length === 0 || accessibleModuleNames.has(parent.name);
       
       if (accessibleChildren.length > 0 || parentAccessible) {
         const menuItem: MenuItem = {
