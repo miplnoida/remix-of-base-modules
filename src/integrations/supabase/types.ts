@@ -6440,44 +6440,6 @@ export type Database = {
           },
         ]
       }
-      user_identity_map: {
-        Row: {
-          generated_user_code: string
-          id: string
-          identity_user_id: string
-          legacy_user_id: string
-          migration_date: string
-          migration_notes: string | null
-          supabase_auth_id: string | null
-        }
-        Insert: {
-          generated_user_code: string
-          id?: string
-          identity_user_id: string
-          legacy_user_id: string
-          migration_date?: string
-          migration_notes?: string | null
-          supabase_auth_id?: string | null
-        }
-        Update: {
-          generated_user_code?: string
-          id?: string
-          identity_user_id?: string
-          legacy_user_id?: string
-          migration_date?: string
-          migration_notes?: string | null
-          supabase_auth_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_identity_map_identity_user_id_fkey"
-            columns: ["identity_user_id"]
-            isOneToOne: true
-            referencedRelation: "AspNetUsers"
-            referencedColumns: ["Id"]
-          },
-        ]
-      }
       user_notification_preferences: {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
@@ -7452,14 +7414,6 @@ export type Database = {
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
-      generate_user_code: {
-        Args: {
-          p_first_name: string
-          p_last_name: string
-          p_middle_name: string
-        }
-        Returns: string
-      }
       get_all_public_tables: {
         Args: never
         Returns: {
@@ -7530,15 +7484,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      identity_current_identity_user_id: { Args: never; Returns: string }
-      identity_current_user_code: { Args: never; Returns: string }
-      identity_has_role:
-        | {
-            Args: { _identity_user_id: string; _role_name: string }
-            Returns: boolean
-          }
-        | { Args: { _role_name: string; _user_id: string }; Returns: boolean }
-      identity_is_admin: { Args: never; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
