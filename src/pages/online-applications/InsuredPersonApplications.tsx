@@ -6,23 +6,43 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Search, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Calendar } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Users, Search, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-
-// Mock data for demonstration (will be replaced with API calls)
-const mockApplications = [
-  { applicationId: 'IP-2024-001', firstName: 'John', lastName: 'Smith', dateOfBirth: '1985-03-15', phone: '869-***-**34', registrationDate: '2024-01-15', status: 'Pending' },
-  { applicationId: 'IP-2024-002', firstName: 'Mary', lastName: 'Johnson', dateOfBirth: '1990-07-22', phone: '869-***-**56', registrationDate: '2024-01-14', status: 'Approved' },
-  { applicationId: 'IP-2024-003', firstName: 'James', lastName: 'Williams', dateOfBirth: '1978-11-08', phone: '869-***-**78', registrationDate: '2024-01-13', status: 'Rejected' },
-  { applicationId: 'IP-2024-004', firstName: 'Sarah', lastName: 'Brown', dateOfBirth: '1995-02-28', phone: '869-***-**90', registrationDate: '2024-01-12', status: 'Pending' },
-];
+import { useInsuredPersonApplications, useApproveApplication, useRejectApplication, InsuredPersonApplication } from '@/hooks/useOnlineApplications';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function InsuredPersonApplications() {
   const { user, hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isLoading] = useState(false);
+  
+  // Action dialog state
+  const [actionDialog, setActionDialog] = useState<{
+    open: boolean;
+    type: 'approve' | 'reject';
+    application: InsuredPersonApplication | null;
+  }>({ open: false, type: 'approve', application: null });
+  const [actionRemarks, setActionRemarks] = useState('');
+
+  // Fetch applications from external API
+  const { 
+    data: applications, 
+    isLoading, 
+    error, 
+    isFetching,
+    refresh,
+    dataUpdatedAt 
+  } = useInsuredPersonApplications({ 
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    search: searchTerm || undefined,
+  });
+
+  const approveApplication = useApproveApplication();
+  const rejectApplication = useRejectApplication();
 
   const isAdmin = user?.role === 'admin' || hasPermission('system_administration');
   const isOfficer = hasPermission('process_claims') || hasPermission('approve_benefits');
@@ -31,28 +51,64 @@ export default function InsuredPersonApplications() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Pending':
-        return <Badge variant="outline" className="text-amber-600 border-amber-300">Pending</Badge>;
+        return <Badge variant="outline" className="text-warning border-warning/50">Pending</Badge>;
       case 'Approved':
         return <Badge variant="default">Approved</Badge>;
       case 'Rejected':
         return <Badge variant="destructive">Rejected</Badge>;
+      case 'UnderReview':
+        return <Badge variant="secondary">Under Review</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const filteredApplications = mockApplications.filter(app => {
-    const matchesSearch = app.applicationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.lastName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Filter applications client-side for search (API may not support all filters)
+  const filteredApplications = (applications || []).filter(app => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      app.applicationId?.toLowerCase().includes(searchLower) ||
+      app.firstName?.toLowerCase().includes(searchLower) ||
+      app.lastName?.toLowerCase().includes(searchLower) ||
+      app.email?.toLowerCase().includes(searchLower)
+    );
   });
+
+  const handleApprove = (application: InsuredPersonApplication) => {
+    setActionDialog({ open: true, type: 'approve', application });
+    setActionRemarks('');
+  };
+
+  const handleReject = (application: InsuredPersonApplication) => {
+    setActionDialog({ open: true, type: 'reject', application });
+    setActionRemarks('');
+  };
+
+  const handleConfirmAction = async () => {
+    if (!actionDialog.application) return;
+
+    if (actionDialog.type === 'approve') {
+      await approveApplication.mutateAsync({
+        applicationId: actionDialog.application.applicationId,
+        remarks: actionRemarks,
+      });
+    } else {
+      await rejectApplication.mutateAsync({
+        applicationId: actionDialog.application.applicationId,
+        remarks: actionRemarks,
+      });
+    }
+
+    setActionDialog({ open: false, type: 'approve', application: null });
+    setActionRemarks('');
+  };
 
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-[100px] w-full" />
         <Skeleton className="h-[400px] w-full" />
       </div>
     );
@@ -68,14 +124,68 @@ export default function InsuredPersonApplications() {
             Insured Person Applications
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage online registration applications for insured persons
+            Manage online registration applications from external portal
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* API Status Indicator */}
+          {error ? (
+            <Badge variant="destructive" className="gap-1">
+              <CloudOff className="h-3 w-3" />
+              Disconnected
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="gap-1 text-primary border-primary/50">
+              <Cloud className="h-3 w-3" />
+              Connected
+            </Badge>
+          )}
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={refresh}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Failed to Load Applications</AlertTitle>
+          <AlertDescription>
+            {(error as Error).message}
+            <br />
+            <span className="text-sm mt-2 block">
+              Make sure the API is configured correctly in Administration → API Configuration and linked to "Insured Person Applications" module.
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Data Sync Info */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Real-Time Data</AlertTitle>
+        <AlertDescription className="text-sm">
+          Data is fetched <strong>directly</strong> from the external API on each request. 
+          {dataUpdatedAt && (
+            <span className="text-muted-foreground ml-1">
+              Last fetched: {format(new Date(dataUpdatedAt), 'HH:mm:ss')}
+            </span>
+          )}
+          <br />
+          Click "Refresh" to get the latest data from the external portal.
+        </AlertDescription>
+      </Alert>
 
       {/* Filters */}
       <Card>
@@ -85,7 +195,7 @@ export default function InsuredPersonApplications() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by Application ID or Name..."
+                  placeholder="Search by Application ID, Name, or Email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -102,6 +212,7 @@ export default function InsuredPersonApplications() {
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Approved">Approved</SelectItem>
                 <SelectItem value="Rejected">Rejected</SelectItem>
+                <SelectItem value="UnderReview">Under Review</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -111,72 +222,166 @@ export default function InsuredPersonApplications() {
       {/* Applications Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Applications ({filteredApplications.length})</CardTitle>
-          <CardDescription>Online registration applications from the external portal</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            Applications 
+            {!error && (
+              <Badge variant="secondary">{filteredApplications.length}</Badge>
+            )}
+            {isFetching && <Loader2 className="h-4 w-4 animate-spin" />}
+          </CardTitle>
+          <CardDescription>
+            Online registration applications from the external portal
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Application ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Date of Birth</TableHead>
-                <TableHead>Phone (Masked)</TableHead>
-                <TableHead>Registration Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredApplications.map((app) => (
-                <TableRow key={app.applicationId}>
-                  <TableCell className="font-medium">{app.applicationId}</TableCell>
-                  <TableCell>{app.firstName} {app.lastName}</TableCell>
-                  <TableCell>{format(new Date(app.dateOfBirth), 'MMM d, yyyy')}</TableCell>
-                  <TableCell>{app.phone}</TableCell>
-                  <TableCell>{format(new Date(app.registrationDate), 'MMM d, yyyy')}</TableCell>
-                  <TableCell>{getStatusBadge(app.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" className="gap-1">
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                      {canApprove && app.status === 'Pending' && (
-                        <>
-                          <Button variant="ghost" size="sm" className="gap-1 text-green-600 hover:text-green-700">
-                            <CheckCircle className="h-4 w-4" />
-                            Approve
-                          </Button>
-                          <Button variant="ghost" size="sm" className="gap-1 text-destructive hover:text-destructive">
-                            <XCircle className="h-4 w-4" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+          {!error && filteredApplications.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Application ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Date of Birth</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Registration Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredApplications.map((app) => (
+                  <TableRow key={app.applicationId}>
+                    <TableCell className="font-medium">{app.applicationId}</TableCell>
+                    <TableCell>
+                      {app.firstName} {app.middleName ? `${app.middleName} ` : ''}{app.lastName}
+                    </TableCell>
+                    <TableCell>
+                      {app.dateOfBirth ? format(new Date(app.dateOfBirth), 'MMM d, yyyy') : '—'}
+                    </TableCell>
+                    <TableCell>{app.phone || '—'}</TableCell>
+                    <TableCell>{app.email || '—'}</TableCell>
+                    <TableCell>
+                      {app.registrationDate ? format(new Date(app.registrationDate), 'MMM d, yyyy') : '—'}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(app.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Button>
+                        {canApprove && app.status === 'Pending' && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="gap-1 text-primary hover:text-primary/80"
+                              onClick={() => handleApprove(app)}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Approve
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="gap-1 text-destructive hover:text-destructive"
+                              onClick={() => handleReject(app)}
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : !error ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No applications found</p>
+              <p className="text-sm mt-1">
+                {searchTerm || statusFilter !== 'all' 
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'No applications have been submitted yet'}
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
-      {/* Info Notice */}
-      <Card className="bg-accent/50 border-accent">
-        <CardContent className="p-4">
-          <div className="flex gap-3">
-            <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium">API Integration</p>
-              <p className="mt-1 text-muted-foreground">
-                This module fetches data from the configured external API. Ensure API settings are properly configured in Administration → API Configuration.
+      {/* Approve/Reject Dialog */}
+      <Dialog 
+        open={actionDialog.open} 
+        onOpenChange={(open) => !open && setActionDialog({ open: false, type: 'approve', application: null })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {actionDialog.type === 'approve' ? (
+                <CheckCircle className="h-5 w-5 text-primary" />
+              ) : (
+                <XCircle className="h-5 w-5 text-destructive" />
+              )}
+              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'} Application
+            </DialogTitle>
+            <DialogDescription>
+              {actionDialog.type === 'approve' 
+                ? 'This will approve the application and notify the applicant.'
+                : 'This will reject the application. Please provide a reason.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-muted p-3">
+              <p className="text-sm font-medium">Application ID: {actionDialog.application?.applicationId}</p>
+              <p className="text-sm text-muted-foreground">
+                {actionDialog.application?.firstName} {actionDialog.application?.lastName}
               </p>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="remarks">
+                Remarks {actionDialog.type === 'reject' && <span className="text-destructive">*</span>}
+              </Label>
+              <Textarea
+                id="remarks"
+                value={actionRemarks}
+                onChange={(e) => setActionRemarks(e.target.value)}
+                placeholder={actionDialog.type === 'approve' 
+                  ? 'Optional remarks for the approval...'
+                  : 'Please provide a reason for rejection...'}
+                rows={3}
+              />
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setActionDialog({ open: false, type: 'approve', application: null })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={actionDialog.type === 'approve' ? 'default' : 'destructive'}
+              onClick={handleConfirmAction}
+              disabled={
+                (actionDialog.type === 'reject' && !actionRemarks.trim()) ||
+                approveApplication.isPending ||
+                rejectApplication.isPending
+              }
+            >
+              {(approveApplication.isPending || rejectApplication.isPending) && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
