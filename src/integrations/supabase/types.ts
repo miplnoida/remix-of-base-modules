@@ -24,6 +24,7 @@ export type Database = {
           header_name: string | null
           id: string
           is_active: boolean | null
+          linked_module: string | null
           setting_key: string
           setting_name: string
           updated_at: string
@@ -38,6 +39,7 @@ export type Database = {
           header_name?: string | null
           id?: string
           is_active?: boolean | null
+          linked_module?: string | null
           setting_key: string
           setting_name: string
           updated_at?: string
@@ -52,6 +54,7 @@ export type Database = {
           header_name?: string | null
           id?: string
           is_active?: boolean | null
+          linked_module?: string | null
           setting_key?: string
           setting_name?: string
           updated_at?: string
