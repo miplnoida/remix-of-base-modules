@@ -1,4 +1,4 @@
-import { getApiConfig } from '@/hooks/useApiSettings';
+import { getApiConfig, getApiConfigByModule } from '@/hooks/useApiSettings';
 
 // Types for Online Applications
 export interface InsuredPersonApplication {
@@ -43,21 +43,37 @@ export interface ApplicationActionPayload {
  */
 class OnlineApplicationsService {
   private settingKey: string;
+  private moduleName: string;
 
-  constructor(settingKey: string) {
+  constructor(settingKey: string, moduleName: string) {
     this.settingKey = settingKey;
+    this.moduleName = moduleName;
   }
 
   /**
-   * Get API configuration
+   * Get API configuration - tries module-based first, falls back to setting key
    */
   private async getConfig() {
-    const config = await getApiConfig(this.settingKey);
+    // Try to get config by linked module first
+    let config = await getApiConfigByModule(this.moduleName);
+    
+    // Fall back to setting key if not found
     if (!config) {
-      throw new Error('API configuration not found. Please configure the API settings.');
+      const legacyConfig = await getApiConfig(this.settingKey);
+      if (legacyConfig) {
+        config = {
+          ...legacyConfig,
+          settingKey: this.settingKey,
+          settingName: this.settingKey,
+        };
+      }
+    }
+    
+    if (!config) {
+      throw new Error(`API configuration not found for module "${this.moduleName}". Please configure the API settings and link it to this module.`);
     }
     if (!config.isActive) {
-      throw new Error('API is currently disabled. Please enable it in the API configuration settings.');
+      throw new Error(`API is currently disabled for module "${this.moduleName}". Please enable it in the API configuration settings.`);
     }
     return config;
   }
@@ -149,8 +165,17 @@ class OnlineApplicationsService {
 }
 
 // Export singleton instances for different application types
-export const insuredPersonApplicationsService = new OnlineApplicationsService('insured_person_api');
+export const insuredPersonApplicationsService = new OnlineApplicationsService(
+  'insured_person_api', 
+  'insured-person-applications'
+);
 
-// Future services (not implemented yet)
-// export const employerApplicationsService = new OnlineApplicationsService('employer_api');
-// export const doctorApplicationsService = new OnlineApplicationsService('doctor_api');
+export const employerApplicationsService = new OnlineApplicationsService(
+  'employer_api',
+  'employer-applications'
+);
+
+export const doctorApplicationsService = new OnlineApplicationsService(
+  'doctor_api',
+  'doctor-applications'
+);

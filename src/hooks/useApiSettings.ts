@@ -11,6 +11,7 @@ export interface ApiSetting {
   header_name: string | null;
   is_active: boolean | null;
   description: string | null;
+  linked_module: string | null;
   created_at: string | null;
   updated_at: string | null;
   created_by: string | null;
@@ -140,7 +141,7 @@ export function useDeleteApiSetting() {
 }
 
 /**
- * Get API configuration for making external API calls
+ * Get API configuration for making external API calls by setting key
  */
 export async function getApiConfig(settingKey: string): Promise<{
   baseUrl: string;
@@ -181,4 +182,65 @@ export async function getApiConfig(settingKey: string): Promise<{
     headers,
     isActive: true,
   };
+}
+
+/**
+ * Get API configuration by linked module name
+ */
+export async function getApiConfigByModule(moduleName: string): Promise<{
+  baseUrl: string;
+  headers: Record<string, string>;
+  isActive: boolean;
+  settingKey: string;
+  settingName: string;
+} | null> {
+  const { data, error } = await supabase
+    .from('api_settings' as any)
+    .select('*')
+    .eq('linked_module', moduleName)
+    .eq('is_active', true)
+    .single();
+  
+  if (error || !data) {
+    console.error('Failed to fetch API config by module:', error);
+    return null;
+  }
+  
+  const setting = data as unknown as ApiSetting;
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (setting.header_name && setting.api_key) {
+    headers[setting.header_name] = setting.api_key;
+  }
+  
+  return {
+    baseUrl: setting.base_url || '',
+    headers,
+    isActive: true,
+    settingKey: setting.setting_key,
+    settingName: setting.setting_name,
+  };
+}
+
+/**
+ * Fetch API settings by linked module
+ */
+export function useApiSettingsByModule(moduleName: string) {
+  return useQuery({
+    queryKey: ['api-settings', 'module', moduleName],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('api_settings' as any)
+        .select('*')
+        .eq('linked_module', moduleName)
+        .order('setting_name');
+      
+      if (error) throw error;
+      return (data || []) as unknown as ApiSetting[];
+    },
+    enabled: !!moduleName,
+  });
 }

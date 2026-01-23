@@ -10,9 +10,17 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Settings, Plus, Pencil, Trash2, Eye, EyeOff, Save, AlertTriangle, Check, X, Globe, Key, Link2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Settings, Plus, Pencil, Trash2, Eye, EyeOff, Save, AlertTriangle, Check, X, Globe, Key, Link2, LinkIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+
+// Predefined modules that can be linked to APIs
+const LINKABLE_MODULES = [
+  { value: 'insured-person-applications', label: 'Insured Person Applications' },
+  { value: 'employer-applications', label: 'Employer Applications' },
+  { value: 'doctor-applications', label: 'Doctor Applications' },
+];
 
 export default function ApiConfiguration() {
   const { user, hasPermission } = useAuth();
@@ -45,6 +53,7 @@ export default function ApiConfiguration() {
       header_name: 'x-api-key',
       is_active: true,
       description: '',
+      linked_module: null,
     });
     setIsCreating(true);
   };
@@ -212,6 +221,32 @@ export default function ApiConfiguration() {
                     rows={3}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="linked_module" className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4" />
+                    Link to Module
+                  </Label>
+                  <Select
+                    value={formData.linked_module || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, linked_module: value === 'none' ? null : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a module to link" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No module linked</SelectItem>
+                      {LINKABLE_MODULES.map((module) => (
+                        <SelectItem key={module.value} value={module.value}>
+                          {module.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Link this API to a specific application module for automatic data fetching
+                  </p>
+                </div>
                 
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
@@ -268,6 +303,7 @@ export default function ApiConfiguration() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Base URL</TableHead>
+                  <TableHead>Linked Module</TableHead>
                   <TableHead>API Key</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Last Updated</TableHead>
@@ -275,82 +311,95 @@ export default function ApiConfiguration() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {settings.map((setting) => (
-                  <TableRow key={setting.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{setting.setting_name}</div>
-                        <div className="text-xs text-muted-foreground">{setting.setting_key}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        {setting.base_url || '—'}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {showApiKey[setting.id] ? setting.api_key : maskApiKey(setting.api_key)}
-                        </code>
-                        {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => toggleApiKeyVisibility(setting.id)}
-                          >
-                            {showApiKey[setting.id] ? (
-                              <EyeOff className="h-3 w-3" />
-                            ) : (
-                              <Eye className="h-3 w-3" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {setting.is_active ? (
-                        <Badge variant="default" className="gap-1">
-                          <Check className="h-3 w-3" />
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="gap-1">
-                          <X className="h-3 w-3" />
-                          Inactive
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {setting.updated_at
-                        ? format(new Date(setting.updated_at), 'MMM d, yyyy HH:mm')
-                        : '—'}
-                    </TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEdit(setting)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(setting.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                {settings.map((setting) => {
+                  const linkedModuleLabel = LINKABLE_MODULES.find(m => m.value === setting.linked_module)?.label;
+                  return (
+                    <TableRow key={setting.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{setting.setting_name}</div>
+                          <div className="text-xs text-muted-foreground">{setting.setting_key}</div>
                         </div>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))}
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate block">
+                          {setting.base_url || '—'}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        {linkedModuleLabel ? (
+                          <Badge variant="outline" className="gap-1">
+                            <LinkIcon className="h-3 w-3" />
+                            {linkedModuleLabel}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {showApiKey[setting.id] ? setting.api_key : maskApiKey(setting.api_key)}
+                          </code>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => toggleApiKeyVisibility(setting.id)}
+                            >
+                              {showApiKey[setting.id] ? (
+                                <EyeOff className="h-3 w-3" />
+                              ) : (
+                                <Eye className="h-3 w-3" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {setting.is_active ? (
+                          <Badge variant="default" className="gap-1">
+                            <Check className="h-3 w-3" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <X className="h-3 w-3" />
+                            Inactive
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {setting.updated_at
+                          ? format(new Date(setting.updated_at), 'MMM d, yyyy HH:mm')
+                          : '—'}
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEdit(setting)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(setting.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -372,11 +421,20 @@ export default function ApiConfiguration() {
         <CardContent className="p-4">
           <div className="flex gap-3">
             <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium">Security Notice</p>
-              <p className="mt-1 text-muted-foreground">
-                API keys are stored securely and only visible to administrators. 
-                All API calls use these stored credentials without exposing them in frontend code.
+            <div className="text-sm space-y-2">
+              <p className="font-medium">How to Link APIs to Modules</p>
+              <p className="text-muted-foreground">
+                Configure external APIs and link them to application modules (Insured Person, Employer, Doctor). 
+                Each module will automatically use the linked API to fetch and manage online applications.
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>Click "Add API Configuration" to create a new API entry</li>
+                <li>Enter the Base URL and API Key for the external service</li>
+                <li>Select the module to link in the "Link to Module" dropdown</li>
+                <li>Only one active API can be linked per module</li>
+              </ul>
+              <p className="text-muted-foreground mt-2">
+                <strong>Security:</strong> API keys are stored securely and only visible to administrators.
               </p>
             </div>
           </div>
