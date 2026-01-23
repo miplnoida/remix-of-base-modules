@@ -120,19 +120,18 @@ export default function ApiConfiguration() {
           </p>
         </div>
         {isAdmin && (
-          <Dialog open={isCreating || !!editingSetting} onOpenChange={(open) => {
-            if (!open) {
-              setIsCreating(false);
-              setEditingSetting(null);
-              setFormData({});
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button onClick={handleCreate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add API Configuration
-              </Button>
-            </DialogTrigger>
+          <>
+            <Button onClick={handleCreate} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add API Configuration
+            </Button>
+            <Dialog open={isCreating || !!editingSetting} onOpenChange={(open) => {
+              if (!open) {
+                setIsCreating(false);
+                setEditingSetting(null);
+                setFormData({});
+              }
+            }}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -282,6 +281,7 @@ export default function ApiConfiguration() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </>
         )}
       </div>
 
