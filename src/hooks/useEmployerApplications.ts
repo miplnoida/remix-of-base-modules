@@ -2,36 +2,45 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Employer application list item from external API
-export interface EmployerApplicationListItem {
-  id: string;
-  referenceNumber: string;
-  registrationNumber: string | null;
-  employerName: string;
-  tradeName?: string;
-  email: string;
-  phone: string;
-  phoneDialCode?: string;
-  businessType?: string;
+/**
+ * Employer applications API (external)
+ * NOTE: The configured base_url for this module points to the employer applications function.
+ * The list endpoint is the root path ("/") rather than "/applications".
+ */
+
+// Raw employer list item returned by external API
+export interface ExternalEmployerApplicationListItem {
+  id: string; // e.g. "ER-2026-835294" (used for detail fetching)
+  reference_number: string | null;
+  registration_id: string | null;
+  contact_name: string | null;
+  email: string | null;
+  mobile: string | null;
+  mobile_country: string | null;
+  mobile_dial_code: string | null;
+  country: string | null;
+  country_code: string | null;
+  current_step: number | null;
   status: string;
-  createdAt: string;
-  submittedAt: string;
-  updatedAt: string;
+  created_at: string;
+  submitted_at: string | null;
+  updated_at: string;
 }
 
 // Mapped type for UI display
 export interface EmployerApplication {
   applicationId: string;
-  referenceNumber: string;
-  employerName: string;
-  tradeName?: string;
-  email: string;
-  phone: string;
-  phoneFormatted: string;
-  businessType?: string;
+  referenceNumber: string | null;
+  registrationId: string | null;
+  contactName: string | null;
+  email: string | null;
+  mobile: string | null;
+  mobileDialCode: string | null;
+  mobileFormatted: string;
+  currentStep: number | null;
   status: string;
   statusDisplay: string;
-  submittedAt: string;
+  submittedAt: string | null;
   createdAt: string;
 }
 
@@ -72,24 +81,25 @@ function normalizeApiResponse<T>(response: T | T[] | ApiResponse<T[]>): T[] {
 /**
  * Map external API employer application to internal format
  */
-function mapEmployerFromApi(item: EmployerApplicationListItem): EmployerApplication {
-  const phoneFormatted = item.phoneDialCode 
-    ? `(${item.phoneDialCode}) ${item.phone}`
-    : item.phone;
-  
+function mapEmployerFromApi(item: ExternalEmployerApplicationListItem): EmployerApplication {
+  const dial = item.mobile_dial_code || '';
+  const mobile = item.mobile || '';
+  const mobileFormatted = dial ? `(${dial}) ${mobile}` : mobile;
+
   return {
     applicationId: item.id,
-    referenceNumber: item.referenceNumber,
-    employerName: item.employerName,
-    tradeName: item.tradeName,
+    referenceNumber: item.reference_number,
+    registrationId: item.registration_id,
+    contactName: item.contact_name,
     email: item.email,
-    phone: item.phone,
-    phoneFormatted,
-    businessType: item.businessType,
+    mobile: item.mobile,
+    mobileDialCode: item.mobile_dial_code,
+    mobileFormatted,
+    currentStep: item.current_step,
     status: item.status,
     statusDisplay: formatStatusDisplay(item.status),
-    submittedAt: item.submittedAt,
-    createdAt: item.createdAt,
+    submittedAt: item.submitted_at,
+    createdAt: item.created_at,
   };
 }
 
@@ -98,11 +108,11 @@ function mapEmployerFromApi(item: EmployerApplicationListItem): EmployerApplicat
  */
 function formatStatusDisplay(status: string): string {
   const statusMap: Record<string, string> = {
-    'pending': 'Pending',
-    'approved': 'Approved',
-    'rejected': 'Rejected',
-    'in-office - in progress': 'Under Review',
-    'In-Office - In Progress': 'Under Review',
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    submitted: 'Submitted',
+    in_progress: 'In Progress',
   };
   
   return statusMap[status?.toLowerCase()] || status;
@@ -116,7 +126,7 @@ export function getEmployerStatusVariant(status: string): 'default' | 'secondary
   
   if (lowerStatus === 'approved') return 'default';
   if (lowerStatus === 'rejected') return 'destructive';
-  if (lowerStatus === 'pending') return 'outline';
+  if (lowerStatus === 'pending' || lowerStatus === 'submitted') return 'outline';
   return 'secondary';
 }
 
@@ -150,7 +160,7 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
   const query = useQuery({
     queryKey: ['online-applications', 'employer', filters],
     queryFn: async (): Promise<EmployerApplication[]> => {
-      // Build query params for the endpoint
+      // Build query params for the endpoint (list endpoint is root path)
       const params = new URLSearchParams();
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters?.fromDate) params.append('fromDate', filters.fromDate);
@@ -158,12 +168,12 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
       if (filters?.search) params.append('search', filters.search);
 
       const queryString = params.toString();
-      const endpoint = `/applications${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `/${queryString ? `?${queryString}` : ''}`;
 
       console.log(`Fetching employer applications via proxy, endpoint: ${endpoint}`);
 
       const data = await callProxyApi('employer-applications', endpoint);
-      const rawApplications = normalizeApiResponse<EmployerApplicationListItem>(data);
+      const rawApplications = normalizeApiResponse<ExternalEmployerApplicationListItem>(data);
       
       // Map external API format to internal format
       const applications = rawApplications.map(mapEmployerFromApi);
@@ -194,7 +204,8 @@ export function useApproveEmployerApplication() {
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      const endpoint = `/applications/${applicationId}/approve`;
+      // Employer API uses applicationId path (e.g. /ER-2026-xxxxxx)
+      const endpoint = `/${applicationId}/approve`;
       return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
     },
     onSuccess: () => {
@@ -215,7 +226,8 @@ export function useRejectEmployerApplication() {
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      const endpoint = `/applications/${applicationId}/reject`;
+      // Employer API uses applicationId path (e.g. /ER-2026-xxxxxx)
+      const endpoint = `/${applicationId}/reject`;
       return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
     },
     onSuccess: () => {

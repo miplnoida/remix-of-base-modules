@@ -13,12 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Briefcase, Search, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-import { 
-  useEmployerApplications, 
-  useApproveEmployerApplication, 
-  useRejectEmployerApplication, 
+import {
+  useEmployerApplications,
+  useApproveEmployerApplication,
+  useRejectEmployerApplication,
   EmployerApplication,
-  getEmployerStatusVariant 
+  getEmployerStatusVariant,
 } from '@/hooks/useEmployerApplications';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -59,8 +59,8 @@ export default function EmployerApplications() {
   const isOfficer = hasPermission('process_claims') || hasPermission('approve_benefits');
   const canApprove = isAdmin || isOfficer;
 
-  const getStatusBadge = (status: string) => {
-    return <Badge variant={getEmployerStatusVariant(status)}>{status}</Badge>;
+  const getStatusBadge = (status: string, label?: string) => {
+    return <Badge variant={getEmployerStatusVariant(status)}>{label ?? status}</Badge>;
   };
 
   // Filter applications client-side for search
@@ -68,11 +68,10 @@ export default function EmployerApplications() {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
-      app.referenceNumber?.toLowerCase().includes(searchLower) ||
-      app.employerName?.toLowerCase().includes(searchLower) ||
-      app.tradeName?.toLowerCase().includes(searchLower) ||
+      (app.referenceNumber || app.applicationId)?.toLowerCase().includes(searchLower) ||
+      app.contactName?.toLowerCase().includes(searchLower) ||
       app.email?.toLowerCase().includes(searchLower) ||
-      app.phone?.toLowerCase().includes(searchLower)
+      app.mobile?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -212,7 +211,7 @@ export default function EmployerApplications() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by Reference No, Employer Name, Email, or Phone..."
+                  placeholder="Search by Reference No, Contact Name, Email, or Mobile..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -226,10 +225,10 @@ export default function EmployerApplications() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="submitted">Submitted</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="Approved">Approved</SelectItem>
                 <SelectItem value="Rejected">Rejected</SelectItem>
-                <SelectItem value="UnderReview">Under Review</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -266,36 +265,20 @@ export default function EmployerApplications() {
                         Reference No
                       </SortableTableHead>
                       <SortableTableHead
-                        sortKey="employerName"
+                        sortKey="contactName"
                         currentSortKey={sortConfig.key}
                         direction={sortConfig.direction}
                         onSort={handleSort}
                       >
-                        Employer Name
+                        Contact Name
                       </SortableTableHead>
                       <SortableTableHead
-                        sortKey="tradeName"
+                        sortKey="mobile"
                         currentSortKey={sortConfig.key}
                         direction={sortConfig.direction}
                         onSort={handleSort}
                       >
-                        Trade Name
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="businessType"
-                        currentSortKey={sortConfig.key}
-                        direction={sortConfig.direction}
-                        onSort={handleSort}
-                      >
-                        Business Type
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="phone"
-                        currentSortKey={sortConfig.key}
-                        direction={sortConfig.direction}
-                        onSort={handleSort}
-                      >
-                        Phone
+                        Mobile
                       </SortableTableHead>
                       <SortableTableHead
                         sortKey="email"
@@ -314,6 +297,15 @@ export default function EmployerApplications() {
                         Submitted Date
                       </SortableTableHead>
                       <SortableTableHead
+                        sortKey="currentStep"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                        className="text-right"
+                      >
+                        Step
+                      </SortableTableHead>
+                      <SortableTableHead
                         sortKey="status"
                         currentSortKey={sortConfig.key}
                         direction={sortConfig.direction}
@@ -327,16 +319,15 @@ export default function EmployerApplications() {
                   <TableBody>
                     {paginatedData.map((app) => (
                       <TableRow key={app.applicationId}>
-                        <TableCell className="font-medium">{app.referenceNumber || '—'}</TableCell>
-                        <TableCell>{app.employerName || '—'}</TableCell>
-                        <TableCell>{app.tradeName || '—'}</TableCell>
-                        <TableCell>{app.businessType || '—'}</TableCell>
-                        <TableCell>{app.phoneFormatted || app.phone || '—'}</TableCell>
+                        <TableCell className="font-medium">{app.referenceNumber || app.applicationId}</TableCell>
+                        <TableCell>{app.contactName || '—'}</TableCell>
+                        <TableCell>{app.mobileFormatted || app.mobile || '—'}</TableCell>
                         <TableCell>{app.email || '—'}</TableCell>
                         <TableCell>
                           {app.submittedAt ? format(new Date(app.submittedAt), 'MMM d, yyyy') : '—'}
                         </TableCell>
-                        <TableCell>{getStatusBadge(app.statusDisplay)}</TableCell>
+                        <TableCell className="text-right">{app.currentStep ?? '—'}</TableCell>
+                        <TableCell>{getStatusBadge(app.status, app.statusDisplay)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -351,7 +342,7 @@ export default function EmployerApplications() {
                               <Eye className="h-4 w-4" />
                               View
                             </Button>
-                            {canApprove && app.status?.toLowerCase() === 'pending' && (
+                            {canApprove && app.status?.toLowerCase() === 'submitted' && (
                               <>
                                 <Button 
                                   variant="ghost" 
@@ -426,7 +417,7 @@ export default function EmployerApplications() {
             <div className="rounded-lg bg-muted p-3">
               <p className="text-sm font-medium">Reference No: {actionDialog.application?.referenceNumber || actionDialog.application?.applicationId}</p>
               <p className="text-sm text-muted-foreground">
-                {actionDialog.application?.employerName}
+                {actionDialog.application?.contactName || '—'}
               </p>
             </div>
             
