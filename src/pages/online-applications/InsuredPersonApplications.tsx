@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,10 @@ import { format } from 'date-fns';
 import { useInsuredPersonApplications, useApproveApplication, useRejectApplication, InsuredPersonApplication } from '@/hooks/useOnlineApplications';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getStatusVariant, formatStatusDisplay } from '@/types/externalApplication';
+import { useTableSort } from '@/hooks/useTableSort';
+import { useTablePagination } from '@/hooks/useTablePagination';
+import { SortableTableHead } from '@/components/shared/SortableTableHead';
+import { TablePagination } from '@/components/shared/TablePagination';
 
 export default function InsuredPersonApplications() {
   const navigate = useNavigate();
@@ -41,7 +45,6 @@ export default function InsuredPersonApplications() {
     dataUpdatedAt 
   } = useInsuredPersonApplications({ 
     status: statusFilter === 'all' ? undefined : statusFilter,
-    search: searchTerm || undefined,
   });
 
   const approveApplication = useApproveApplication();
@@ -55,7 +58,7 @@ export default function InsuredPersonApplications() {
     return <Badge variant={getStatusVariant(status)}>{formatStatusDisplay(status)}</Badge>;
   };
 
-  // Filter applications client-side for search (API may not support all filters)
+  // Filter applications client-side for search
   const filteredApplications = (applications || []).filter(app => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -63,9 +66,25 @@ export default function InsuredPersonApplications() {
       app.referenceNumber?.toLowerCase().includes(searchLower) ||
       app.firstName?.toLowerCase().includes(searchLower) ||
       app.lastName?.toLowerCase().includes(searchLower) ||
-      app.email?.toLowerCase().includes(searchLower)
+      app.fullName?.toLowerCase().includes(searchLower) ||
+      app.email?.toLowerCase().includes(searchLower) ||
+      app.phone?.toLowerCase().includes(searchLower)
     );
   });
+
+  // Sorting
+  const { sortedData, sortConfig, handleSort } = useTableSort(filteredApplications, {
+    key: 'submittedAt',
+    direction: 'desc',
+  });
+
+  // Pagination
+  const { paginatedData, pagination, goToPage, changePageSize, resetPagination } = useTablePagination(sortedData, 10);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    resetPagination();
+  }, [searchTerm, statusFilter]);
 
   const handleApprove = (application: InsuredPersonApplication) => {
     setActionDialog({ open: true, type: 'approve', application });
@@ -159,7 +178,7 @@ export default function InsuredPersonApplications() {
             {(error as Error).message}
             <br />
             <span className="text-sm mt-2 block">
-              Make sure the API is configured correctly in Administration → API Configuration and linked to "Insured Person Applications" module.
+              Make sure the API is configured correctly in Administration → API Configuration and linked to "insured-person-applications" module.
             </span>
           </AlertDescription>
         </Alert>
@@ -189,7 +208,7 @@ export default function InsuredPersonApplications() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search by Reference No, Name, or Email..."
+                  placeholder="Search by Reference No, Name, Email, or Phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -224,82 +243,138 @@ export default function InsuredPersonApplications() {
             {isFetching && <Loader2 className="h-4 w-4 animate-spin" />}
           </CardTitle>
           <CardDescription>
-            Online registration applications from the external portal
+            Online registration applications from the external portal. Click column headers to sort.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!error && filteredApplications.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Reference No</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Date of Birth</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.map((app) => (
-                  <TableRow key={app.applicationId}>
-                    <TableCell className="font-medium">{app.referenceNumber || '—'}</TableCell>
-                    <TableCell>
-                      {app.firstName} {app.middleName ? `${app.middleName} ` : ''}{app.lastName}
-                    </TableCell>
-                    <TableCell>
-                      {app.dateOfBirth ? format(new Date(app.dateOfBirth), 'MMM d, yyyy') : '—'}
-                    </TableCell>
-                    <TableCell>{app.phone || '—'}</TableCell>
-                    <TableCell>{app.email || '—'}</TableCell>
-                    <TableCell>
-                      {app.registrationDate ? format(new Date(app.registrationDate), 'MMM d, yyyy') : '—'}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(app.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => {
-                            const ref = app.referenceNumber || app.applicationId;
-                            navigate(`/online-applications/insured-person/${encodeURIComponent(ref)}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                        {canApprove && app.status === 'Pending' && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="gap-1 text-primary hover:text-primary/80"
-                              onClick={() => handleApprove(app)}
+          {!error && sortedData.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <SortableTableHead
+                        sortKey="referenceNumber"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Reference No
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="fullName"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Name
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="dateOfBirth"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Date of Birth
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="phone"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Phone
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="email"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Email
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="submittedAt"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Submitted Date
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="status"
+                        currentSortKey={sortConfig.key}
+                        direction={sortConfig.direction}
+                        onSort={handleSort}
+                      >
+                        Status
+                      </SortableTableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((app) => (
+                      <TableRow key={app.applicationId}>
+                        <TableCell className="font-medium">{app.referenceNumber || '—'}</TableCell>
+                        <TableCell>{app.fullName || '—'}</TableCell>
+                        <TableCell>
+                          {app.dateOfBirth ? format(new Date(app.dateOfBirth), 'MMM d, yyyy') : '—'}
+                        </TableCell>
+                        <TableCell>{app.phoneFormatted || app.phone || '—'}</TableCell>
+                        <TableCell>{app.email || '—'}</TableCell>
+                        <TableCell>
+                          {app.submittedAt ? format(new Date(app.submittedAt), 'MMM d, yyyy') : '—'}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(app.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => {
+                                const ref = app.referenceNumber || app.applicationId;
+                                navigate(`/online-applications/insured-person/${encodeURIComponent(ref)}`);
+                              }}
                             >
-                              <CheckCircle className="h-4 w-4" />
-                              Approve
+                              <Eye className="h-4 w-4" />
+                              View
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="gap-1 text-destructive hover:text-destructive"
-                              onClick={() => handleReject(app)}
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                            {canApprove && app.status?.toLowerCase() === 'pending' && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="gap-1 text-primary hover:text-primary/80"
+                                  onClick={() => handleApprove(app)}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  Approve
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="gap-1 text-destructive hover:text-destructive"
+                                  onClick={() => handleReject(app)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <TablePagination
+                pagination={pagination}
+                onPageChange={goToPage}
+                onPageSizeChange={changePageSize}
+              />
+            </>
           ) : !error ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -340,7 +415,7 @@ export default function InsuredPersonApplications() {
             <div className="rounded-lg bg-muted p-3">
               <p className="text-sm font-medium">Reference No: {actionDialog.application?.referenceNumber || actionDialog.application?.applicationId}</p>
               <p className="text-sm text-muted-foreground">
-                {actionDialog.application?.firstName} {actionDialog.application?.lastName}
+                {actionDialog.application?.fullName}
               </p>
             </div>
             
