@@ -111,6 +111,10 @@ async function callProxyApi(moduleName: string, endpoint: string) {
 
 /**
  * Hook to fetch a single employer application's full details by reference/ID
+ * 
+ * NOTE: Since the external employer API may not support individual record fetching,
+ * this hook first tries the direct endpoint, and if that fails with 404, it falls back
+ * to fetching the list and finding the record there.
  */
 export function useEmployerApplicationDetail(applicationId: string | undefined) {
   return useQuery({
@@ -118,21 +122,66 @@ export function useEmployerApplicationDetail(applicationId: string | undefined) 
     queryFn: async (): Promise<EmployerApplicationDetail | null> => {
       if (!applicationId) return null;
       
-      // The employer API uses the application ID directly in the path
-      const endpoint = `/${applicationId}`;
-      console.log(`Fetching employer application detail via proxy, endpoint: ${endpoint}`);
-      
-      const response = await callProxyApi('employer-applications', endpoint);
-      
-      // Handle wrapped response
-      if (response && typeof response === 'object') {
-        if ('data' in response) {
-          return (response as ApiResponse).data;
+      // Try to fetch directly first (some APIs support /{id} endpoint)
+      try {
+        const endpoint = `/${applicationId}`;
+        console.log(`Fetching employer application detail via proxy, endpoint: ${endpoint}`);
+        
+        const response = await callProxyApi('employer-applications', endpoint);
+        
+        // Check if it's an error response from the external API
+        if (response && typeof response === 'object') {
+          if ('success' in response && response.success === false) {
+            console.log('Direct fetch failed, trying list fallback');
+            throw new Error('Direct endpoint not available');
+          }
+          if ('data' in response) {
+            return (response as ApiResponse).data;
+          }
+          return response as EmployerApplicationDetail;
         }
-        return response as EmployerApplicationDetail;
+      } catch (directError) {
+        console.log('Direct fetch error, using list fallback:', directError);
       }
       
-      return null;
+      // Fallback: Fetch the list and find the matching record
+      try {
+        const listEndpoint = '/';
+        console.log('Falling back to list endpoint to find application');
+        const listResponse = await callProxyApi('employer-applications', listEndpoint);
+        
+        // Normalize the list response
+        let applications: EmployerApplicationDetail[] = [];
+        if (Array.isArray(listResponse)) {
+          applications = listResponse;
+        } else if (listResponse && typeof listResponse === 'object') {
+          if ('data' in listResponse && Array.isArray(listResponse.data)) {
+            applications = listResponse.data;
+          } else if ('records' in listResponse && Array.isArray(listResponse.records)) {
+            applications = listResponse.records;
+          } else if ('applications' in listResponse && Array.isArray(listResponse.applications)) {
+            applications = listResponse.applications;
+          }
+        }
+        
+        // Find the matching record by ID or reference_number
+        const match = applications.find(
+          (app: EmployerApplicationDetail) => 
+            app.id === applicationId || 
+            app.reference_number === applicationId
+        );
+        
+        if (match) {
+          console.log('Found application in list fallback:', match.id);
+          return match;
+        }
+        
+        console.log('Application not found in list either');
+        return null;
+      } catch (listError) {
+        console.error('List fallback also failed:', listError);
+        throw listError;
+      }
     },
     enabled: !!applicationId,
     staleTime: 60 * 1000, // 1 minute
