@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getApiConfigByModule, getApiConfig } from './useApiSettings';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Types for Online Applications
@@ -59,7 +59,28 @@ function normalizeApiResponse<T>(response: T | T[] | ApiResponse<T[]>): T[] {
 }
 
 /**
- * Hook to fetch insured person applications from external API
+ * Call the proxy-api edge function to fetch data from external APIs
+ */
+async function callProxyApi(moduleName: string, endpoint: string, method: string = 'GET', body?: unknown) {
+  const { data, error } = await supabase.functions.invoke('proxy-api', {
+    method: 'POST',
+    body: {
+      module: moduleName,
+      endpoint,
+      method,
+      payload: body,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to call proxy API');
+  }
+
+  return data;
+}
+
+/**
+ * Hook to fetch insured person applications from external API via edge function proxy
  * Data is fetched DIRECTLY from the external API on each request (no local caching/syncing)
  */
 export function useInsuredPersonApplications(filters?: ApplicationFilters) {
@@ -68,34 +89,7 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
   const query = useQuery({
     queryKey: ['online-applications', 'insured-person', filters],
     queryFn: async (): Promise<InsuredPersonApplication[]> => {
-      // First try to get config by linked module
-      let config = await getApiConfigByModule('insured-person-applications');
-      
-      // Fallback to legacy setting key
-      if (!config) {
-        const legacyConfig = await getApiConfig('insured_person_api');
-        if (legacyConfig) {
-          config = {
-            ...legacyConfig,
-            settingKey: 'insured_person_api',
-            settingName: 'Insured Person API',
-          };
-        }
-      }
-      
-      if (!config) {
-        throw new Error('API not configured. Please configure the API in Administration → API Configuration and link it to "Insured Person Applications" module.');
-      }
-      
-      if (!config.isActive) {
-        throw new Error('API is disabled. Please enable it in API Configuration settings.');
-      }
-
-      if (!config.baseUrl) {
-        throw new Error('API Base URL is not configured. Please set the Base URL in API Configuration.');
-      }
-
-      // Build query params
+      // Build query params for the endpoint
       const params = new URLSearchParams();
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters?.fromDate) params.append('fromDate', filters.fromDate);
@@ -103,21 +97,11 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
       if (filters?.search) params.append('search', filters.search);
 
       const queryString = params.toString();
-      const url = `${config.baseUrl}/applications${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `/applications${queryString ? `?${queryString}` : ''}`;
 
-      console.log(`Fetching insured person applications from: ${url}`);
+      console.log(`Fetching insured person applications via proxy, endpoint: ${endpoint}`);
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: config.headers,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await callProxyApi('insured-person-applications', endpoint);
       const applications = normalizeApiResponse<InsuredPersonApplication>(data);
       
       console.log(`Fetched ${applications.length} applications from external API`);
@@ -148,36 +132,8 @@ export function useApproveApplication() {
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      let config = await getApiConfigByModule('insured-person-applications');
-      
-      if (!config) {
-        const legacyConfig = await getApiConfig('insured_person_api');
-        if (legacyConfig) {
-          config = {
-            ...legacyConfig,
-            settingKey: 'insured_person_api',
-            settingName: 'Insured Person API',
-          };
-        }
-      }
-      
-      if (!config || !config.isActive) {
-        throw new Error('API not configured or inactive');
-      }
-
-      const url = `${config.baseUrl}/applications/${applicationId}/approve`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: config.headers,
-        body: JSON.stringify({ remarks }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to approve: ${errorText || response.statusText}`);
-      }
-
-      return response.json();
+      const endpoint = `/applications/${applicationId}/approve`;
+      return await callProxyApi('insured-person-applications', endpoint, 'POST', { remarks });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['online-applications', 'insured-person'] });
@@ -197,36 +153,8 @@ export function useRejectApplication() {
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      let config = await getApiConfigByModule('insured-person-applications');
-      
-      if (!config) {
-        const legacyConfig = await getApiConfig('insured_person_api');
-        if (legacyConfig) {
-          config = {
-            ...legacyConfig,
-            settingKey: 'insured_person_api',
-            settingName: 'Insured Person API',
-          };
-        }
-      }
-      
-      if (!config || !config.isActive) {
-        throw new Error('API not configured or inactive');
-      }
-
-      const url = `${config.baseUrl}/applications/${applicationId}/reject`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: config.headers,
-        body: JSON.stringify({ remarks }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to reject: ${errorText || response.statusText}`);
-      }
-
-      return response.json();
+      const endpoint = `/applications/${applicationId}/reject`;
+      return await callProxyApi('insured-person-applications', endpoint, 'POST', { remarks });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['online-applications', 'insured-person'] });
