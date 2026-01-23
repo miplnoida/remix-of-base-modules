@@ -80,14 +80,16 @@ export default function InsuredPersonApplications() {
   const handleConfirmAction = async () => {
     if (!actionDialog.application) return;
 
+    const applicationRef = actionDialog.application.referenceNumber || actionDialog.application.applicationId;
+
     if (actionDialog.type === 'approve') {
       await approveApplication.mutateAsync({
-        applicationId: actionDialog.application.applicationId,
+        applicationId: applicationRef,
         remarks: actionRemarks,
       });
     } else {
       await rejectApplication.mutateAsync({
-        applicationId: actionDialog.application.applicationId,
+        applicationId: applicationRef,
         remarks: actionRemarks,
       });
     }
@@ -187,7 +189,7 @@ export default function InsuredPersonApplications() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by Application ID, Name, or Email..."
+                    placeholder="Search by Reference No, Name, or Email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -230,7 +232,7 @@ export default function InsuredPersonApplications() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Application ID</TableHead>
+                  <TableHead>Reference No</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Date of Birth</TableHead>
                   <TableHead>Phone</TableHead>
@@ -243,7 +245,7 @@ export default function InsuredPersonApplications() {
               <TableBody>
                 {filteredApplications.map((app) => (
                   <TableRow key={app.applicationId}>
-                    <TableCell className="font-medium">{app.applicationId}</TableCell>
+                    <TableCell className="font-medium">{app.referenceNumber || '—'}</TableCell>
                     <TableCell>
                       {app.firstName} {app.middleName ? `${app.middleName} ` : ''}{app.lastName}
                     </TableCell>
@@ -258,7 +260,15 @@ export default function InsuredPersonApplications() {
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" className="gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => {
+                            const ref = app.referenceNumber || app.applicationId;
+                            navigate(`/online-applications/insured-person/${encodeURIComponent(ref)}`);
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
                           View
                         </Button>
@@ -328,7 +338,7 @@ export default function InsuredPersonApplications() {
           
           <div className="space-y-4 py-4">
             <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm font-medium">Application ID: {actionDialog.application?.applicationId}</p>
+              <p className="text-sm font-medium">Reference No: {actionDialog.application?.referenceNumber || actionDialog.application?.applicationId}</p>
               <p className="text-sm text-muted-foreground">
                 {actionDialog.application?.firstName} {actionDialog.application?.lastName}
               </p>
