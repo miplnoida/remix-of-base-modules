@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +15,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { useInsuredPersonApplications, useApproveApplication, useRejectApplication, InsuredPersonApplication } from '@/hooks/useOnlineApplications';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getStatusVariant, formatStatusDisplay } from '@/types/externalApplication';
 
 export default function InsuredPersonApplications() {
+  const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -49,18 +52,7 @@ export default function InsuredPersonApplications() {
   const canApprove = isAdmin || isOfficer;
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return <Badge variant="outline" className="text-warning border-warning/50">Pending</Badge>;
-      case 'Approved':
-        return <Badge variant="default">Approved</Badge>;
-      case 'Rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      case 'UnderReview':
-        return <Badge variant="secondary">Under Review</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    return <Badge variant={getStatusVariant(status)}>{formatStatusDisplay(status)}</Badge>;
   };
 
   // Filter applications client-side for search (API may not support all filters)
@@ -68,7 +60,7 @@ export default function InsuredPersonApplications() {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
-      app.applicationId?.toLowerCase().includes(searchLower) ||
+      app.referenceNumber?.toLowerCase().includes(searchLower) ||
       app.firstName?.toLowerCase().includes(searchLower) ||
       app.lastName?.toLowerCase().includes(searchLower) ||
       app.email?.toLowerCase().includes(searchLower)

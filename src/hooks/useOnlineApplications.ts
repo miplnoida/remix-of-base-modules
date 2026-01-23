@@ -1,24 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  ExternalApplicationListItem, 
+  ApplicationListItem, 
+  mapListItemFromApi 
+} from '@/types/externalApplication';
 
-// Types for Online Applications
-export interface InsuredPersonApplication {
-  applicationId: string;
-  ssn?: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  dateOfBirth: string;
-  gender: string;
-  nationality?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  registrationDate: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'UnderReview';
-  remarks?: string;
-}
+// Re-export types for backward compatibility
+export type { ApplicationListItem as InsuredPersonApplication };
 
 export interface ApplicationFilters {
   status?: string;
@@ -88,7 +78,7 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
 
   const query = useQuery({
     queryKey: ['online-applications', 'insured-person', filters],
-    queryFn: async (): Promise<InsuredPersonApplication[]> => {
+    queryFn: async (): Promise<ApplicationListItem[]> => {
       // Build query params for the endpoint
       const params = new URLSearchParams();
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
@@ -102,7 +92,10 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
       console.log(`Fetching insured person applications via proxy, endpoint: ${endpoint}`);
 
       const data = await callProxyApi('insured-person-applications', endpoint);
-      const applications = normalizeApiResponse<InsuredPersonApplication>(data);
+      const rawApplications = normalizeApiResponse<ExternalApplicationListItem>(data);
+      
+      // Map external API format to internal format
+      const applications = rawApplications.map(mapListItemFromApi);
       
       console.log(`Fetched ${applications.length} applications from external API`);
       return applications;
