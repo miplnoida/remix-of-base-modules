@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Plus, Pencil, Trash2, Eye, EyeOff, Save, AlertTriangle, Check, X, Globe, Key, Link2, LinkIcon } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { format } from 'date-fns';
 
 // Predefined modules that can be linked to APIs
@@ -23,7 +23,7 @@ const LINKABLE_MODULES = [
 ];
 
 export default function ApiConfiguration() {
-  const { user, hasPermission } = useAuth();
+  const isAdmin = useIsAdmin();
   const { data: settings, isLoading, error } = useApiSettings();
   const updateSetting = useUpdateApiSetting();
   const createSetting = useCreateApiSetting();
@@ -33,9 +33,6 @@ export default function ApiConfiguration() {
   const [isCreating, setIsCreating] = useState(false);
   const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<Partial<ApiSetting>>({});
-
-  // Check if user is admin
-  const isAdmin = user?.role === 'admin' || hasPermission('system_administration');
 
   const handleEdit = (setting: ApiSetting) => {
     setEditingSetting(setting);
