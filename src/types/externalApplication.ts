@@ -15,6 +15,7 @@ export interface ExternalApplicationListItem {
   phoneMobile: string;
   phoneMobileCountry: string;
   phoneMobileDialCode: string;
+  dateOfBirth?: string;
   status: string;
   createdAt: string;
   submittedAt: string;
@@ -176,6 +177,8 @@ export interface ApplicationListItem {
   email: string;
   phone: string;
   phoneFormatted: string;
+  dateOfBirth?: string;
+  registrationDate?: string;
   status: string;
   statusDisplay: string;
   submittedAt: string;
@@ -204,6 +207,8 @@ export function mapListItemFromApi(item: ExternalApplicationListItem): Applicati
     email: item.email,
     phone: item.phoneMobile,
     phoneFormatted,
+    dateOfBirth: item.dateOfBirth,
+    registrationDate: item.submittedAt,
     status: item.status,
     statusDisplay: formatStatusDisplay(item.status),
     submittedAt: item.submittedAt,
