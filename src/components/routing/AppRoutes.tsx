@@ -274,6 +274,7 @@ import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
 import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
 import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetailPage';
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
+import EmployerApplicationDetailPage from '@/pages/online-applications/EmployerApplicationDetailPage';
 import DoctorApplications from '@/pages/online-applications/DoctorApplications';
 
 // IP Registration Module
@@ -1352,6 +1353,7 @@ export const AppRoutes = () => {
       <Route path="/online-applications/insured-person" element={<ProtectedLayout><InsuredPersonApplications /></ProtectedLayout>} />
       <Route path="/online-applications/insured-person/:referenceNumber" element={<ProtectedLayout><ApplicationDetailPage /></ProtectedLayout>} />
       <Route path="/online-applications/employer" element={<ProtectedLayout><EmployerApplications /></ProtectedLayout>} />
+      <Route path="/online-applications/employer/:applicationId" element={<ProtectedLayout><EmployerApplicationDetailPage /></ProtectedLayout>} />
       <Route path="/online-applications/doctor" element={<ProtectedLayout><DoctorApplications /></ProtectedLayout>} />
 
       {/* IP Registration Module - Primary route */}
