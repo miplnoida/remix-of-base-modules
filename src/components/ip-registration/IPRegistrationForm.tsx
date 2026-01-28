@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Save, Send, Loader2, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, Save, Send, Loader2, CheckCircle2, Lock, Edit } from 'lucide-react';
 import { useIPRegistration } from '@/hooks/useIPRegistration';
 import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { BasicDetailsTab } from './BasicDetailsTab';
@@ -16,9 +16,12 @@ import { VerificationTab } from './VerificationTab';
 
 export const IPRegistrationForm: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const ssnParam = searchParams.get('ssn');
   const modeParam = searchParams.get('mode') as 'create' | 'edit' | 'view' || 'create';
+  
+  // State to track if user switched from view to edit mode
+  const [isInEditMode, setIsInEditMode] = useState(modeParam !== 'view');
 
   const { data: statuses = [] } = useIPStatuses();
 
@@ -45,8 +48,8 @@ export const IPRegistrationForm: React.FC = () => {
     mode: ssnParam ? modeParam : 'create',
   });
 
-  // Check if we're in view mode
-  const isViewMode = modeParam === 'view';
+  // View mode is based on URL param AND user toggle state
+  const isViewMode = modeParam === 'view' && !isInEditMode;
 
   // Update URL when SSN is assigned
   useEffect(() => {
@@ -54,6 +57,16 @@ export const IPRegistrationForm: React.FC = () => {
       navigate(`/person/register?ssn=${formData.ssn}&mode=edit`, { replace: true });
     }
   }, [formData.ssn, ssnParam, navigate]);
+
+  // Handle switching from View to Edit mode
+  const handleSwitchToEditMode = () => {
+    if (!isEditable) return; // Only allow if record is editable (status = 'Z')
+    setIsInEditMode(true);
+    // Update URL to reflect edit mode
+    if (ssnParam) {
+      setSearchParams({ ssn: ssnParam, mode: 'edit' });
+    }
+  };
 
   const handleSave = async () => {
     // Don't save in view mode
@@ -124,8 +137,15 @@ export const IPRegistrationForm: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Badge */}
-        <div className="flex items-center gap-2">
+        {/* Status Badge and Edit Button */}
+        <div className="flex items-center gap-3">
+          {/* Edit button - Show in view mode only if record is editable */}
+          {isViewMode && isEditable && (
+            <Button variant="outline" onClick={handleSwitchToEditMode}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
           <span className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
             formData.status === 'Z' ? 'bg-yellow-100 text-yellow-800' :
             formData.status === 'P' ? 'bg-blue-100 text-blue-800' :
@@ -161,7 +181,8 @@ export const IPRegistrationForm: React.FC = () => {
         <Alert className="bg-blue-50 border-blue-200">
           <Lock className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-700">
-            You are viewing this record in read-only mode. No changes will be saved.
+            You are viewing this record in read-only mode.
+            {isEditable && ' Click "Edit" to make changes.'}
           </AlertDescription>
         </Alert>
       )}
@@ -260,17 +281,24 @@ export const IPRegistrationForm: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Action Buttons - Hidden in View Mode */}
+      {/* Action Buttons */}
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
           {isViewMode 
-            ? `SSN: ${formData.ssn} | Status: ${statusDescription}`
+            ? `SSN: ${formData.ssn || ''} | Status: ${statusDescription}`
             : isNewRecord 
               ? 'Save Basic Details to enable other tabs and get a temporary SSN.'
-              : `SSN: ${formData.ssn} | Status: ${statusDescription}`
+              : `SSN: ${formData.ssn || ''} | Status: ${statusDescription}`
           }
         </div>
         <div className="flex gap-3">
+          {/* Show Edit button in footer if in view mode and editable */}
+          {isViewMode && isEditable && (
+            <Button variant="outline" onClick={handleSwitchToEditMode}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
           {/* Only show action buttons if NOT in view mode and record is editable */}
           {!isViewMode && isEditable && (
             <>
