@@ -179,14 +179,15 @@ export default function AddressContactTab({
                       <h3 className="font-medium">{address.label}</h3>
                       {address.type === 'resident' ? (
                         <div className="text-sm text-muted-foreground">
-                          <p>Resident Address 1: {address.fields.line1 || 'Not set'}</p>
-                          <p>Resident Address 2: {address.fields.line2 || 'Not set'}</p>
-                          <p>Postal District: {address.fields.postal || 'Not set'}</p>
+                          {/* In View mode, show blank if no data; in Edit mode show "Not set" */}
+                          <p>Resident Address 1: {address.fields.line1 || (isEditable ? 'Not set' : '')}</p>
+                          <p>Resident Address 2: {address.fields.line2 || (isEditable ? 'Not set' : '')}</p>
+                          <p>Postal District: {address.fields.postal || (isEditable ? 'Not set' : '')}</p>
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
                           {address.type === 'mailing' ? 'Mailing Address: ' : ''}
-                          {address.fields.value || 'Not set'}
+                          {address.fields.value || (isEditable ? 'Not set' : '')}
                         </p>
                       )}
                     </div>

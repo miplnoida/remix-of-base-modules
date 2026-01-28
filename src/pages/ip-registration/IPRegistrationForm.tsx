@@ -631,6 +631,15 @@ export default function IPRegistrationForm() {
               Saving...
             </span>
           )}
+          {/* Edit button in View mode to switch to Edit mode */}
+          {isViewMode && (formData.status === 'Z' || formData.status === 'D') && (
+            <Button 
+              variant="outline"
+              onClick={() => navigate(`/ip-registration/edit/${formData.unique_uuid}`)}
+            >
+              Edit
+            </Button>
+          )}
           {isEditable && (
             <Button onClick={() => setShowSubmitConfirm(true)}>
               Submit

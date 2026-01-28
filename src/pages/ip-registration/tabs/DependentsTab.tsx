@@ -108,8 +108,13 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
     fetchDependents();
   }, [fetchRelations, fetchDependents]);
 
+  // SSN lookup state
+  const [isLookingUpSSN, setIsLookingUpSSN] = useState(false);
+  const [ssnFound, setSsnFound] = useState(false);
+
   const handleAdd = () => {
     setSelectedDependent(null);
+    setSsnFound(false);
     setFormData({
       depend_ssn: '',
       surname: '',
@@ -125,6 +130,65 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       date_of_death: '',
     });
     setShowDialog(true);
+  };
+  
+  // SSN auto-fill lookup
+  const handleSSNBlur = async () => {
+    const dependentSSN = formData.depend_ssn;
+    if (!dependentSSN || dependentSSN.length !== 6) {
+      setSsnFound(false);
+      return;
+    }
+    
+    setIsLookingUpSSN(true);
+    try {
+      // Query ip_master to check if this SSN exists
+      const { data, error } = await supabase
+        .from('ip_master')
+        .select('first_name, firstname, middle_name, last_name, surname, date_of_birth, dob, gender, sex, resident_address_1, resident_address_2, resident_addr1, resident_addr2')
+        .eq('ssn', dependentSSN)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setSsnFound(true);
+        // Map data using available columns (prefer newer columns, fallback to legacy)
+        const firstName = data.first_name || data.firstname || '';
+        const middleName = data.middle_name || '';
+        const lastName = data.last_name || data.surname || '';
+        const dateOfBirth = data.date_of_birth || data.dob || '';
+        const genderValue = data.gender || data.sex || '';
+        const addr1 = data.resident_address_1 || data.resident_addr1 || '';
+        const addr2 = data.resident_address_2 || data.resident_addr2 || '';
+        
+        // Convert gender to M/F/N format
+        let sexCode = 'N';
+        if (genderValue === 'Male' || genderValue === 'M') sexCode = 'M';
+        else if (genderValue === 'Female' || genderValue === 'F') sexCode = 'F';
+        
+        setFormData(prev => ({
+          ...prev,
+          firstname: firstName,
+          middle_name: middleName,
+          surname: lastName,
+          dob: dateOfBirth,
+          sex: sexCode,
+          depend_addr1: addr1,
+          depend_addr2: addr2,
+        }));
+        
+        toast.success('SSN found - details auto-filled', {
+          description: `Found: ${firstName} ${lastName}`,
+        });
+      } else {
+        setSsnFound(false);
+      }
+    } catch (error) {
+      console.error('Error looking up SSN:', error);
+    } finally {
+      setIsLookingUpSSN(false);
+    }
   };
 
   const handleEdit = (dependent: Dependent) => {
@@ -371,13 +435,25 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
           <form noValidate className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Dependent SSN (6 digits)</Label>
-              <Input
-                value={formData.depend_ssn || ''}
-                onChange={(e) => handleSSNChange(e.target.value)}
-                placeholder="Enter 6-digit SSN"
-                maxLength={6}
-                inputMode="numeric"
-              />
+              <div className="relative">
+                <Input
+                  value={formData.depend_ssn || ''}
+                  onChange={(e) => handleSSNChange(e.target.value)}
+                  onBlur={handleSSNBlur}
+                  placeholder="Enter 6-digit SSN to auto-fill"
+                  maxLength={6}
+                  inputMode="numeric"
+                  className={ssnFound ? 'border-green-500' : ''}
+                />
+                {isLookingUpSSN && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  </div>
+                )}
+              </div>
+              {ssnFound && (
+                <p className="text-xs text-green-600">SSN found - details auto-filled (editable)</p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,6 +67,11 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
       return;
     }
 
+    if (newNote.length > 100) {
+      toast.error('Note must be 100 characters or less');
+      return;
+    }
+
     if (!ssn) {
       toast.error('Please save the basic details first to get an SSN');
       return;
@@ -125,18 +130,25 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Note (max 100 characters)</Label>
-              <Textarea
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value.slice(0, 100))}
-                placeholder="Enter your note..."
-                maxLength={100}
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {newNote.length}/100 characters
-              </p>
+              <div className="relative">
+                <Input
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value.slice(0, 100))}
+                  placeholder="Enter your note..."
+                  maxLength={100}
+                  className={newNote.length > 100 ? 'border-destructive' : ''}
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                {newNote.length > 100 && (
+                  <p className="text-xs text-destructive">Note exceeds 100 character limit</p>
+                )}
+                <p className={`text-xs text-right ml-auto ${newNote.length > 100 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {newNote.length}/100 characters
+                </p>
+              </div>
             </div>
-            <Button onClick={handleAddNote} disabled={saving || !newNote.trim()}>
+            <Button onClick={handleAddNote} disabled={saving || !newNote.trim() || newNote.length > 100}>
               {saving ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
