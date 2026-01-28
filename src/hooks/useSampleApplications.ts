@@ -225,9 +225,42 @@ export function useSubmitSampleApplication() {
             .update({ workflow_instance_id: instance.id })
             .eq('id', id);
           
-          // Create first task
+          // Create first task - assignment based on approver_type
           const taskDueAt = new Date();
           taskDueAt.setHours(taskDueAt.getHours() + (firstStep.sla_hours || 24));
+          
+          const taskAssignment: {
+            assigned_role?: string | null;
+            assigned_designation?: string | null;
+            assigned_to?: string | null;
+          } = {};
+
+          const approverType = firstStep.approver_type || 'role';
+          
+          if (approverType === 'role' && firstStep.approver_role_ids && firstStep.approver_role_ids.length > 0) {
+            const roleIds = firstStep.approver_role_ids as string[];
+            if (roleIds.length === 1) {
+              const { data: roleData } = await supabase
+                .from('AspNetRoles')
+                .select('Name')
+                .eq('Id', roleIds[0])
+                .single();
+              
+              if (roleData) {
+                taskAssignment.assigned_role = roleData.Name;
+              }
+            }
+          } else if (approverType === 'designation' && firstStep.approver_designation_ids && firstStep.approver_designation_ids.length > 0) {
+            const designationIds = firstStep.approver_designation_ids as string[];
+            if (designationIds.length === 1) {
+              taskAssignment.assigned_designation = designationIds[0];
+            }
+          } else if ((approverType === 'user' || approverType === 'specific_users') && firstStep.approver_user_ids && firstStep.approver_user_ids.length > 0) {
+            const userIds = firstStep.approver_user_ids as string[];
+            if (userIds.length === 1) {
+              taskAssignment.assigned_to = userIds[0];
+            }
+          }
           
           await supabase
             .from('workflow_tasks')
@@ -235,8 +268,9 @@ export function useSubmitSampleApplication() {
               instance_id: instance.id,
               step_id: firstStep.id,
               step_name: firstStep.step_name,
-              assigned_role: firstStep.assigned_role,
-              assigned_designation: firstStep.assigned_designation,
+              assigned_role: taskAssignment.assigned_role || null,
+              assigned_designation: taskAssignment.assigned_designation || null,
+              assigned_to: taskAssignment.assigned_to || null,
               status: 'Pending',
               due_at: taskDueAt.toISOString(),
             });

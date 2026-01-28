@@ -282,81 +282,120 @@ async function checkUserPermission(
     return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation, userRole);
   }
 
-  const approverType = step.approver_type;
+  const approverType = step.approver_type || 'role';
 
-  // Check based on approver type
-  if (approverType === 'user' && step.approver_user_ids && step.approver_user_ids.length > 0) {
-    // Check if user is in the allowed users list
-    return step.approver_user_ids.includes(userId);
+  console.log('Checking permission based on approver_type:', {
+    approverType,
+    approver_role_ids: step.approver_role_ids,
+    approver_designation_ids: step.approver_designation_ids,
+    approver_user_ids: step.approver_user_ids
+  });
+
+  // Check based on approver type - ONLY use approver configuration, not assigned_role
+  if (approverType === 'user' || approverType === 'specific_users') {
+    if (step.approver_user_ids && step.approver_user_ids.length > 0) {
+      const allowedUserIds = step.approver_user_ids as string[];
+      const hasAccess = allowedUserIds.includes(userId);
+      console.log('User-based permission check:', { allowedUserIds, userId, hasAccess });
+      return hasAccess;
+    }
+    console.log('approver_type is user but approver_user_ids is empty');
+    return false;
   }
 
   if (approverType === 'role') {
-    // If approver_role_ids is set and not empty, use it
-    if (step.approver_role_ids && step.approver_role_ids.length > 0) {
-      const allowedRoleIds = step.approver_role_ids as string[];
-      
-      // First try to get user's roles from database
-      const { data: userRoles } = await supabase
-        .from('AspNetUserRoles')
-        .select('RoleId')
-        .eq('UserId', userId);
+    if (!step.approver_role_ids || step.approver_role_ids.length === 0) {
+      console.log('approver_type is role but approver_role_ids is empty');
+      return false;
+    }
 
-      if (userRoles && userRoles.length > 0) {
-        const userRoleIds = userRoles.map(r => r.RoleId);
-        if (allowedRoleIds.some(roleId => userRoleIds.includes(roleId))) {
+    const allowedRoleIds = step.approver_role_ids as string[];
+    
+    // First try to get user's roles from database
+    const { data: userRoles } = await supabase
+      .from('AspNetUserRoles')
+      .select('RoleId')
+      .eq('UserId', userId);
+
+    if (userRoles && userRoles.length > 0) {
+      const userRoleIds = userRoles.map(r => r.RoleId);
+      const hasAccess = allowedRoleIds.some(roleId => userRoleIds.includes(roleId));
+      if (hasAccess) {
+        console.log('Role-based permission granted (database roles):', { allowedRoleIds, userRoleIds });
+        return true;
+      }
+    }
+
+    // If database check fails, try matching by role name (for mock auth or if role names are provided)
+    if (userRoleNames && userRoleNames.length > 0) {
+      // Get role names for the allowed role IDs
+      const { data: rolesData } = await supabase
+        .from('AspNetRoles')
+        .select('Id, Name')
+        .in('Id', allowedRoleIds);
+      
+      if (rolesData) {
+        const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
+        const hasAccess = userRoleNames.some(userRoleName => {
+          if (!userRoleName) return false;
+          const normalizedUserRole = userRoleName.toLowerCase().replace(/_/g, ' ').trim();
+          return allowedRoleNames.some(allowedRoleName => {
+            const normalizedAllowedRole = allowedRoleName.trim();
+            return normalizedAllowedRole === normalizedUserRole ||
+                   normalizedAllowedRole === userRoleName.toLowerCase().trim() ||
+                   normalizedAllowedRole.replace(/ /g, '_') === userRoleName.toLowerCase().trim();
+          });
+        });
+        
+        if (hasAccess) {
+          console.log('Role-based permission granted (role name match):', { allowedRoleNames, userRoleNames });
           return true;
         }
       }
+    }
 
-      // If database check fails, try matching by role name (for mock auth)
-      if (userRole) {
-        // Get role names for the allowed role IDs
-        const { data: rolesData } = await supabase
-          .from('AspNetRoles')
-          .select('Id, Name')
-          .in('Id', allowedRoleIds);
+    // Also check userRole from context as fallback
+    if (userRole) {
+      const { data: rolesData } = await supabase
+        .from('AspNetRoles')
+        .select('Id, Name')
+        .in('Id', allowedRoleIds);
+      
+      if (rolesData) {
+        const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
+        const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
         
-        if (rolesData) {
-          const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
-          const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
+        if (allowedRoleNames.some(roleName => {
+          const normalizedRoleName = roleName.trim();
+          const normalizedUser = normalizedUserRole.trim();
           
-          // Check for matches including partial matches
-          // e.g., "admin" matches "Admin", "cashier_supervisor" matches "Cashier Supervisor", "clerk" matches "Clerk"
-          if (allowedRoleNames.some(roleName => {
-            const normalizedRoleName = roleName.trim();
-            const normalizedUser = normalizedUserRole.trim();
-            
-            return normalizedRoleName === normalizedUser ||
-                   normalizedRoleName === userRole.toLowerCase().trim() ||
-                   normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim() ||
-                   roleName === userRole.toLowerCase().trim();
-          })) {
-            return true;
-          }
-          
-          // Special handling for admin role - admins can perform any action
-          if (userRole.toLowerCase() === 'admin') {
-            return true;
-          }
+          return normalizedRoleName === normalizedUser ||
+                 normalizedRoleName === userRole.toLowerCase().trim() ||
+                 normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim() ||
+                 roleName === userRole.toLowerCase().trim();
+        })) {
+          console.log('Role-based permission granted (context role match):', { allowedRoleNames, userRole });
+          return true;
+        }
+        
+        // Special handling for admin role - admins can perform any action
+        if (userRole.toLowerCase() === 'admin') {
+          console.log('Permission granted: Admin role');
+          return true;
         }
       }
     }
     
-    // If approver_role_ids is empty/null, fall back to step's assigned_role (legacy support)
-    if ((!step.approver_role_ids || step.approver_role_ids.length === 0) && step.assigned_role) {
-      console.log('Using step assigned_role (legacy):', { stepAssignedRole: step.assigned_role });
-      const stepAssignedRole = step.assigned_role;
-      return await checkTaskLevelAssignment(userId, stepAssignedRole, step.assigned_designation, userRole, userRoleNames);
-    }
-    
-    // If approver_type is 'role' but no approver_role_ids and no assigned_role, deny access
-    console.log('No role assignment found for approver_type=role:', {
-      approver_role_ids: step.approver_role_ids,
-      assigned_role: step.assigned_role
-    });
+    console.log('Role-based permission denied:', { allowedRoleIds, userRoleIds: userRoles?.map(r => r.RoleId), userRoleNames, userRole });
+    return false;
   }
 
-  if (approverType === 'designation' && step.approver_designation_ids) {
+  if (approverType === 'designation') {
+    if (!step.approver_designation_ids || step.approver_designation_ids.length === 0) {
+      console.log('approver_type is designation but approver_designation_ids is empty');
+      return false;
+    }
+
     // Get user's designation from profile
     const { data: profile } = await supabase
       .from('profiles')
@@ -366,26 +405,25 @@ async function checkUserPermission(
 
     if (profile?.designation_id) {
       const allowedDesignations = step.approver_designation_ids as string[];
-      return allowedDesignations.includes(profile.designation_id);
+      const hasAccess = allowedDesignations.includes(profile.designation_id);
+      console.log('Designation-based permission check:', { allowedDesignations, userDesignation: profile.designation_id, hasAccess });
+      return hasAccess;
     }
+    
+    console.log('Designation-based permission denied: User has no designation');
+    return false;
   }
 
-  // Fallback to task-level assignment check
-  // Also check step's assigned_role if task's assigned_role is null
-  const roleToCheck = assignedRole || step?.assigned_role || null;
-  const designationToCheck = assignedDesignation || step?.assigned_designation || null;
-  
-  console.log('Falling back to task-level assignment check:', {
-    userId,
-    roleToCheck,
-    designationToCheck,
-    userRole,
-    userRoleNames,
-    taskAssignedRole: assignedRole,
-    stepAssignedRole: step?.assigned_role
-  });
-  
-  return await checkTaskLevelAssignment(userId, roleToCheck, designationToCheck, userRole, userRoleNames);
+  // Handle other approver types (department_head, designation_hierarchy) if needed
+  if (approverType === 'department_head' || approverType === 'designation_hierarchy') {
+    // These would require additional logic based on your business rules
+    console.log('approver_type not fully implemented:', approverType);
+    return false;
+  }
+
+  // If approver_type is not recognized or not set, deny access
+  console.log('Unknown or missing approver_type:', approverType);
+  return false;
 }
 
 /**
@@ -682,6 +720,7 @@ export function useExecuteWorkflowAction() {
 
 /**
  * Create a task for the next step.
+ * Assignment is based on approver_type and corresponding approver fields.
  */
 async function createNextStepTask(instanceId: string, stepId: string) {
   const { data: step, error: stepError } = await supabase
@@ -697,14 +736,50 @@ async function createNextStepTask(instanceId: string, stepId: string) {
   const dueAt = new Date();
   dueAt.setHours(dueAt.getHours() + (step.sla_hours || 24));
 
+  // Determine task assignment based on approver_type
+  const taskAssignment: {
+    assigned_role?: string | null;
+    assigned_designation?: string | null;
+    assigned_to?: string | null;
+  } = {};
+
+  const approverType = step.approver_type || 'role';
+  
+  if (approverType === 'role' && step.approver_role_ids && step.approver_role_ids.length > 0) {
+    // For role-based assignment, get role name from first role ID if single role
+    const roleIds = step.approver_role_ids as string[];
+    if (roleIds.length === 1) {
+      const { data: roleData } = await supabase
+        .from('AspNetRoles')
+        .select('Name')
+        .eq('Id', roleIds[0])
+        .single();
+      
+      if (roleData) {
+        taskAssignment.assigned_role = roleData.Name;
+      }
+    }
+  } else if (approverType === 'designation' && step.approver_designation_ids && step.approver_designation_ids.length > 0) {
+    const designationIds = step.approver_designation_ids as string[];
+    if (designationIds.length === 1) {
+      taskAssignment.assigned_designation = designationIds[0];
+    }
+  } else if ((approverType === 'user' || approverType === 'specific_users') && step.approver_user_ids && step.approver_user_ids.length > 0) {
+    const userIds = step.approver_user_ids as string[];
+    if (userIds.length === 1) {
+      taskAssignment.assigned_to = userIds[0];
+    }
+  }
+
   await supabase
     .from('workflow_tasks')
     .insert({
       instance_id: instanceId,
       step_id: step.id,
       step_name: step.step_name,
-      assigned_role: step.assigned_role,
-      assigned_designation: step.assigned_designation,
+      assigned_role: taskAssignment.assigned_role || null,
+      assigned_designation: taskAssignment.assigned_designation || null,
+      assigned_to: taskAssignment.assigned_to || null,
       status: 'Pending',
       due_at: dueAt.toISOString(),
     });

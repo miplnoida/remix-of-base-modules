@@ -119,8 +119,10 @@ interface WorkflowStep {
   step_name: string;
   step_number: number;
   sla_hours: number | null;
-  assigned_role: string | null;
-  assigned_designation: string | null;
+  approver_type?: string | null;
+  approver_role_ids?: string[] | null;
+  approver_designation_ids?: string[] | null;
+  approver_user_ids?: string[] | null;
 }
 
 /**
@@ -190,10 +192,10 @@ export function useIPRegistrationSubmit() {
 
       const workflowDef = workflow as WorkflowDefinition;
 
-      // Get workflow steps - include approver fields for proper role assignment
+      // Get workflow steps - include all approver fields for proper assignment
       const { data: steps, error: stepsError } = await supabase
         .from('workflow_steps')
-        .select('id, step_name, step_number, sla_hours, assigned_role, assigned_designation, approver_type, approver_role_ids')
+        .select('id, step_name, step_number, sla_hours, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
         .eq('workflow_id', workflowDef.id)
         .order('step_number', { ascending: true });
 
@@ -242,9 +244,53 @@ export function useIPRegistrationSubmit() {
         return null;
       }
 
-      // Create first task
+      // Create first task - assignment based on approver_type
       const taskDueAt = new Date();
       taskDueAt.setHours(taskDueAt.getHours() + (firstStep.sla_hours || 24));
+
+      // Determine task assignment based on approver_type
+      const taskAssignment: {
+        assigned_role?: string | null;
+        assigned_designation?: string | null;
+        assigned_to?: string | null;
+      } = {};
+
+      const approverType = (firstStep as any).approver_type || 'role';
+      
+      if (approverType === 'role' && (firstStep as any).approver_role_ids && (firstStep as any).approver_role_ids.length > 0) {
+        // For role-based assignment, we need to get the role name from the first role ID
+        // But since tasks can be assigned to multiple roles, we'll leave assigned_role null
+        // and let permission check use approver_role_ids from the step
+        // However, for backward compatibility, we can set a role name if there's only one role
+        const roleIds = (firstStep as any).approver_role_ids as string[];
+        if (roleIds.length === 1) {
+          // Get role name for single role assignment
+          const { data: roleData } = await supabase
+            .from('AspNetRoles')
+            .select('Name')
+            .eq('Id', roleIds[0])
+            .single();
+          
+          if (roleData) {
+            taskAssignment.assigned_role = roleData.Name;
+          }
+        }
+        // If multiple roles, assigned_role stays null - permission check will use approver_role_ids
+      } else if (approverType === 'designation' && (firstStep as any).approver_designation_ids && (firstStep as any).approver_designation_ids.length > 0) {
+        // For designation-based, use first designation ID
+        const designationIds = (firstStep as any).approver_designation_ids as string[];
+        if (designationIds.length === 1) {
+          taskAssignment.assigned_designation = designationIds[0];
+        }
+      } else if ((approverType === 'user' || approverType === 'specific_users') && (firstStep as any).approver_user_ids && (firstStep as any).approver_user_ids.length > 0) {
+        // For user-based, assign to first user (or could create multiple tasks for parallel approval)
+        const userIds = (firstStep as any).approver_user_ids as string[];
+        if (userIds.length === 1) {
+          taskAssignment.assigned_to = userIds[0];
+        }
+        // For multiple users with parallel_approval, you might want to create multiple tasks
+        // For now, we'll assign to first user
+      }
 
       await supabase
         .from('workflow_tasks')
@@ -252,8 +298,9 @@ export function useIPRegistrationSubmit() {
           instance_id: instance.id,
           step_id: firstStep.id,
           step_name: firstStep.step_name,
-          assigned_role: firstStep.assigned_role,
-          assigned_designation: firstStep.assigned_designation,
+          assigned_role: taskAssignment.assigned_role || null,
+          assigned_designation: taskAssignment.assigned_designation || null,
+          assigned_to: taskAssignment.assigned_to || null,
           status: 'Pending',
           due_at: taskDueAt.toISOString(),
         });

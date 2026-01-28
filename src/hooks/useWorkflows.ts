@@ -831,14 +831,49 @@ export function useProcessWorkflowTask() {
             .single();
           
           if (nextStep) {
+            // Determine task assignment based on approver_type
+            const taskAssignment: {
+              assigned_role?: string | null;
+              assigned_designation?: string | null;
+              assigned_to?: string | null;
+            } = {};
+
+            const approverType = nextStep.approver_type || 'role';
+            
+            if (approverType === 'role' && nextStep.approver_role_ids && nextStep.approver_role_ids.length > 0) {
+              const roleIds = nextStep.approver_role_ids as string[];
+              if (roleIds.length === 1) {
+                const { data: roleData } = await supabase
+                  .from('AspNetRoles')
+                  .select('Name')
+                  .eq('Id', roleIds[0])
+                  .single();
+                
+                if (roleData) {
+                  taskAssignment.assigned_role = roleData.Name;
+                }
+              }
+            } else if (approverType === 'designation' && nextStep.approver_designation_ids && nextStep.approver_designation_ids.length > 0) {
+              const designationIds = nextStep.approver_designation_ids as string[];
+              if (designationIds.length === 1) {
+                taskAssignment.assigned_designation = designationIds[0];
+              }
+            } else if ((approverType === 'user' || approverType === 'specific_users') && nextStep.approver_user_ids && nextStep.approver_user_ids.length > 0) {
+              const userIds = nextStep.approver_user_ids as string[];
+              if (userIds.length === 1) {
+                taskAssignment.assigned_to = userIds[0];
+              }
+            }
+
             await supabase
               .from('workflow_tasks')
               .insert({
                 instance_id: task.instance_id,
                 step_id: nextStep.id,
                 step_name: nextStep.step_name,
-                assigned_role: nextStep.assigned_role,
-                assigned_designation: nextStep.assigned_designation,
+                assigned_role: taskAssignment.assigned_role || null,
+                assigned_designation: taskAssignment.assigned_designation || null,
+                assigned_to: taskAssignment.assigned_to || null,
                 status: 'Pending',
                 due_at: new Date(Date.now() + nextStep.sla_hours * 60 * 60 * 1000).toISOString(),
               });
@@ -997,15 +1032,49 @@ export function useStartWorkflow() {
       
       if (instanceError) throw instanceError;
       
-      // Create first task
+      // Create first task - assignment based on approver_type
+      const taskAssignment: {
+        assigned_role?: string | null;
+        assigned_designation?: string | null;
+        assigned_to?: string | null;
+      } = {};
+
+      const approverType = firstStep.approver_type || 'role';
+      
+      if (approverType === 'role' && firstStep.approver_role_ids && firstStep.approver_role_ids.length > 0) {
+        const roleIds = firstStep.approver_role_ids as string[];
+        if (roleIds.length === 1) {
+          const { data: roleData } = await supabase
+            .from('AspNetRoles')
+            .select('Name')
+            .eq('Id', roleIds[0])
+            .single();
+          
+          if (roleData) {
+            taskAssignment.assigned_role = roleData.Name;
+          }
+        }
+      } else if (approverType === 'designation' && firstStep.approver_designation_ids && firstStep.approver_designation_ids.length > 0) {
+        const designationIds = firstStep.approver_designation_ids as string[];
+        if (designationIds.length === 1) {
+          taskAssignment.assigned_designation = designationIds[0];
+        }
+      } else if ((approverType === 'user' || approverType === 'specific_users') && firstStep.approver_user_ids && firstStep.approver_user_ids.length > 0) {
+        const userIds = firstStep.approver_user_ids as string[];
+        if (userIds.length === 1) {
+          taskAssignment.assigned_to = userIds[0];
+        }
+      }
+
       await supabase
         .from('workflow_tasks')
         .insert({
           instance_id: instance.id,
           step_id: firstStep.id,
           step_name: firstStep.step_name,
-          assigned_role: firstStep.assigned_role,
-          assigned_designation: firstStep.assigned_designation,
+          assigned_role: taskAssignment.assigned_role || null,
+          assigned_designation: taskAssignment.assigned_designation || null,
+          assigned_to: taskAssignment.assigned_to || null,
           status: 'Pending',
           due_at: new Date(Date.now() + firstStep.sla_hours * 60 * 60 * 1000).toISOString(),
         });
