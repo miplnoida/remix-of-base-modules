@@ -567,27 +567,30 @@ export default function EmployerApplicationDetailPage() {
             <CardContent>
               {application.documents && application.documents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {application.documents.map((doc) => (
-                    <Card key={doc.id} className="p-4">
-                      <div className="flex items-start gap-3">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{doc.name || doc.file_name || 'Document'}</p>
-                          <p className="text-sm text-muted-foreground">{doc.type || doc.document_type || '—'}</p>
-                          {doc.uploaded_at && (
-                            <p className="text-xs text-muted-foreground">{formatDate(doc.uploaded_at)}</p>
+                  {application.documents.map((doc) => {
+                    const documentUrl = doc.download_url || doc.url || doc.signed_url;
+                    return (
+                      <Card key={doc.id} className="p-4">
+                        <div className="flex items-start gap-3">
+                          <FileText className="h-8 w-8 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.name || doc.file_name || 'Document'}</p>
+                            <p className="text-sm text-muted-foreground">{doc.type || doc.document_type || '—'}</p>
+                            {doc.uploaded_at && (
+                              <p className="text-xs text-muted-foreground">{formatDate(doc.uploaded_at)}</p>
+                            )}
+                          </div>
+                          {documentUrl && (
+                            <Button variant="ghost" size="sm" asChild>
+                              <a href={documentUrl} target="_blank" rel="noopener noreferrer">
+                                View
+                              </a>
+                            </Button>
                           )}
                         </div>
-                        {(doc.url || doc.signed_url) && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={doc.url || doc.signed_url} target="_blank" rel="noopener noreferrer">
-                              View
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
