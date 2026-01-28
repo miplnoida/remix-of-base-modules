@@ -719,7 +719,7 @@ export default function IPRegistrationForm() {
                 <AddressContactTab
                   formData={formData}
                   onChange={handleFieldChange}
-                  onSave={() => {}}
+                  onSave={(data) => saveToDatabase(data, false)}
                   errors={errors}
                   isEditable={isEditable}
                   clearError={clearError}
