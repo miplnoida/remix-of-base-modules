@@ -190,10 +190,10 @@ export function useIPRegistrationSubmit() {
 
       const workflowDef = workflow as WorkflowDefinition;
 
-      // Get workflow steps
+      // Get workflow steps - include approver fields for proper role assignment
       const { data: steps, error: stepsError } = await supabase
         .from('workflow_steps')
-        .select('id, step_name, step_number, sla_hours, assigned_role, assigned_designation')
+        .select('id, step_name, step_number, sla_hours, assigned_role, assigned_designation, approver_type, approver_role_ids')
         .eq('workflow_id', workflowDef.id)
         .order('step_number', { ascending: true });
 

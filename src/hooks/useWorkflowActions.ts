@@ -148,16 +148,40 @@ export function useWorkflowActions(
 
       const task = tasks[0] as WorkflowTask;
 
-      // Step 3: Check if current user can perform actions on this task
-      // Pass user.role for mock auth compatibility
+      // Step 3: Get user's roles from database for proper permission checking
+      const { data: userRolesData } = await supabase
+        .from('AspNetUserRoles')
+        .select('RoleId, role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
+        .eq('UserId', user.id);
+
+      // Extract role names from database roles
+      const dbRoleNames = userRolesData?.map(r => (r.role as any)?.Name).filter(Boolean) || [];
+      
+      // Use database role names if available, otherwise fall back to user.role from context
+      const userRoleName = dbRoleNames.length > 0 ? dbRoleNames[0] : user.role;
+
+      console.log('Workflow permission check:', {
+        userId: user.id,
+        taskAssignedRole: task.assigned_role,
+        taskAssignedTo: task.assigned_to,
+        userRoleName,
+        dbRoleNames,
+        stepId: task.step_id
+      });
+
+      // Step 4: Check if current user can perform actions on this task
+      // Pass user.role for mock auth compatibility, but prefer database roles
       const canPerformActions = await checkUserPermission(
         user.id,
         task.assigned_to,
         task.assigned_role,
         task.assigned_designation,
         task.step_id,
-        user.role
+        userRoleName,
+        dbRoleNames
       );
+      
+      console.log('Permission check result:', { canPerformActions, taskAssignedRole: task.assigned_role });
 
       // Step 4: If user can perform actions, fetch available actions for the current step
       let actions: WorkflowAction[] = [];
@@ -227,17 +251,29 @@ async function checkUserPermission(
   assignedRole: string | null,
   assignedDesignation: string | null,
   stepId: string,
-  userRole?: string
+  userRole?: string,
+  userRoleNames?: string[]
 ): Promise<boolean> {
+  console.log('checkUserPermission called:', {
+    userId,
+    assignedTo,
+    assignedRole,
+    assignedDesignation,
+    stepId,
+    userRole,
+    userRoleNames
+  });
+  
   // If task is assigned to this specific user
   if (assignedTo && assignedTo === userId) {
+    console.log('Permission granted: Task assigned to user');
     return true;
   }
 
-  // Get workflow step to check approver configuration
+  // Get workflow step to check approver configuration - also get assigned_role for fallback
   const { data: step } = await supabase
     .from('workflow_steps')
-    .select('approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
+    .select('approver_type, approver_role_ids, approver_designation_ids, approver_user_ids, assigned_role, assigned_designation')
     .eq('id', stepId)
     .single();
 
@@ -249,59 +285,75 @@ async function checkUserPermission(
   const approverType = step.approver_type;
 
   // Check based on approver type
-  if (approverType === 'user' && step.approver_user_ids) {
+  if (approverType === 'user' && step.approver_user_ids && step.approver_user_ids.length > 0) {
     // Check if user is in the allowed users list
     return step.approver_user_ids.includes(userId);
   }
 
-  if (approverType === 'role' && step.approver_role_ids) {
-    const allowedRoleIds = step.approver_role_ids as string[];
-    
-    // First try to get user's roles from database
-    const { data: userRoles } = await supabase
-      .from('AspNetUserRoles')
-      .select('RoleId')
-      .eq('UserId', userId);
-
-    if (userRoles && userRoles.length > 0) {
-      const userRoleIds = userRoles.map(r => r.RoleId);
-      if (allowedRoleIds.some(roleId => userRoleIds.includes(roleId))) {
-        return true;
-      }
-    }
-
-    // If database check fails, try matching by role name (for mock auth)
-    if (userRole) {
-      // Get role names for the allowed role IDs
-      const { data: rolesData } = await supabase
-        .from('AspNetRoles')
-        .select('Id, Name')
-        .in('Id', allowedRoleIds);
+  if (approverType === 'role') {
+    // If approver_role_ids is set and not empty, use it
+    if (step.approver_role_ids && step.approver_role_ids.length > 0) {
+      const allowedRoleIds = step.approver_role_ids as string[];
       
-      if (rolesData) {
-        const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
-        const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
-        
-        // Check for matches including partial matches
-        // e.g., "admin" matches "Admin", "cashier_supervisor" matches "Cashier Supervisor", "clerk" matches "Clerk"
-        if (allowedRoleNames.some(roleName => {
-          const normalizedRoleName = roleName.trim();
-          const normalizedUser = normalizedUserRole.trim();
-          
-          return normalizedRoleName === normalizedUser ||
-                 normalizedRoleName === userRole.toLowerCase().trim() ||
-                 normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim() ||
-                 roleName === userRole.toLowerCase().trim();
-        })) {
-          return true;
-        }
-        
-        // Special handling for admin role - admins can perform any action
-        if (userRole.toLowerCase() === 'admin') {
+      // First try to get user's roles from database
+      const { data: userRoles } = await supabase
+        .from('AspNetUserRoles')
+        .select('RoleId')
+        .eq('UserId', userId);
+
+      if (userRoles && userRoles.length > 0) {
+        const userRoleIds = userRoles.map(r => r.RoleId);
+        if (allowedRoleIds.some(roleId => userRoleIds.includes(roleId))) {
           return true;
         }
       }
+
+      // If database check fails, try matching by role name (for mock auth)
+      if (userRole) {
+        // Get role names for the allowed role IDs
+        const { data: rolesData } = await supabase
+          .from('AspNetRoles')
+          .select('Id, Name')
+          .in('Id', allowedRoleIds);
+        
+        if (rolesData) {
+          const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
+          const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
+          
+          // Check for matches including partial matches
+          // e.g., "admin" matches "Admin", "cashier_supervisor" matches "Cashier Supervisor", "clerk" matches "Clerk"
+          if (allowedRoleNames.some(roleName => {
+            const normalizedRoleName = roleName.trim();
+            const normalizedUser = normalizedUserRole.trim();
+            
+            return normalizedRoleName === normalizedUser ||
+                   normalizedRoleName === userRole.toLowerCase().trim() ||
+                   normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim() ||
+                   roleName === userRole.toLowerCase().trim();
+          })) {
+            return true;
+          }
+          
+          // Special handling for admin role - admins can perform any action
+          if (userRole.toLowerCase() === 'admin') {
+            return true;
+          }
+        }
+      }
     }
+    
+    // If approver_role_ids is empty/null, fall back to step's assigned_role (legacy support)
+    if ((!step.approver_role_ids || step.approver_role_ids.length === 0) && step.assigned_role) {
+      console.log('Using step assigned_role (legacy):', { stepAssignedRole: step.assigned_role });
+      const stepAssignedRole = step.assigned_role;
+      return await checkTaskLevelAssignment(userId, stepAssignedRole, step.assigned_designation, userRole, userRoleNames);
+    }
+    
+    // If approver_type is 'role' but no approver_role_ids and no assigned_role, deny access
+    console.log('No role assignment found for approver_type=role:', {
+      approver_role_ids: step.approver_role_ids,
+      assigned_role: step.assigned_role
+    });
   }
 
   if (approverType === 'designation' && step.approver_designation_ids) {
@@ -319,7 +371,21 @@ async function checkUserPermission(
   }
 
   // Fallback to task-level assignment check
-  return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation, userRole);
+  // Also check step's assigned_role if task's assigned_role is null
+  const roleToCheck = assignedRole || step?.assigned_role || null;
+  const designationToCheck = assignedDesignation || step?.assigned_designation || null;
+  
+  console.log('Falling back to task-level assignment check:', {
+    userId,
+    roleToCheck,
+    designationToCheck,
+    userRole,
+    userRoleNames,
+    taskAssignedRole: assignedRole,
+    stepAssignedRole: step?.assigned_role
+  });
+  
+  return await checkTaskLevelAssignment(userId, roleToCheck, designationToCheck, userRole, userRoleNames);
 }
 
 /**
@@ -329,7 +395,8 @@ async function checkTaskLevelAssignment(
   userId: string,
   assignedRole: string | null,
   assignedDesignation: string | null,
-  userRole?: string
+  userRole?: string,
+  userRoleNames?: string[]
 ): Promise<boolean> {
   // Admin users always have access
   if (userRole?.toLowerCase() === 'admin') {
@@ -351,43 +418,62 @@ async function checkTaskLevelAssignment(
 
   // Check role - compare with both database roles and mock role
   if (assignedRole) {
-    // Check mock role match
+    const normalizedAssignedRole = assignedRole.toLowerCase().replace(/_/g, ' ').trim();
+    
+    // First check against provided userRoleNames array (from database)
+    if (userRoleNames && userRoleNames.length > 0) {
+      const matches = userRoleNames.some(roleName => {
+        if (!roleName) return false;
+        const normalizedRoleName = roleName.toLowerCase().replace(/_/g, ' ').trim();
+        return normalizedRoleName === normalizedAssignedRole ||
+               roleName.toLowerCase().trim() === assignedRole.toLowerCase().trim();
+      });
+      if (matches) {
+        console.log('Role match found in userRoleNames:', { assignedRole, userRoleNames });
+        return true;
+      }
+    }
+    
+    // Check mock role match (from AuthContext)
     if (userRole) {
       const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ').trim();
-      const normalizedAssignedRole = assignedRole.toLowerCase().replace(/_/g, ' ').trim();
       
       // Direct match
       if (normalizedUserRole === normalizedAssignedRole) {
+        console.log('Role match found (mock auth):', { assignedRole, userRole });
         return true;
       }
       
       // Case-insensitive match
       if (userRole.toLowerCase() === assignedRole.toLowerCase()) {
-        return true;
-      }
-      
-      // Handle common variations (e.g., "clerk" matches "Clerk", "Clerk " matches "clerk")
-      if (normalizedUserRole === normalizedAssignedRole || 
-          userRole.toLowerCase().trim() === assignedRole.toLowerCase().trim()) {
+        console.log('Role match found (case-insensitive):', { assignedRole, userRole });
         return true;
       }
     }
     
-    // Check database roles
-    const { data: userRoles } = await supabase
-      .from('AspNetUserRoles')
-      .select('role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
-      .eq('UserId', userId);
+    // Fallback: Check database roles directly (if not already checked)
+    if (!userRoleNames || userRoleNames.length === 0) {
+      const { data: userRoles } = await supabase
+        .from('AspNetUserRoles')
+        .select('role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
+        .eq('UserId', userId);
 
-    if (userRoles?.some(r => {
-      const roleName = (r.role as any)?.Name;
-      if (!roleName) return false;
-      // Case-insensitive match
-      return roleName.toLowerCase() === assignedRole.toLowerCase() ||
-             roleName.toLowerCase().trim() === assignedRole.toLowerCase().trim();
-    })) {
-      return true;
+      if (userRoles?.some(r => {
+        const roleName = (r.role as any)?.Name;
+        if (!roleName) return false;
+        // Case-insensitive match
+        const matches = roleName.toLowerCase() === assignedRole.toLowerCase() ||
+               roleName.toLowerCase().trim() === assignedRole.toLowerCase().trim();
+        if (matches) {
+          console.log('Role match found in database:', { assignedRole, roleName });
+        }
+        return matches;
+      })) {
+        return true;
+      }
     }
+    
+    console.log('No role match found:', { assignedRole, userRole, userRoleNames });
   }
 
   // Check designation
