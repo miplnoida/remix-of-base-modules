@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
@@ -65,13 +66,19 @@ export function useWorkflowActions(
   sourceModule: string,
   sourceRecordId: string | null
 ): WorkflowContext {
-  const { user } = useAuth();
+  // Prefer real authenticated user (SupabaseAuthContext). AuthContext is mock/demo.
+  const { user: supabaseUser, roles: supabaseRoles } = useSupabaseAuth();
+  const { user: mockUser } = useAuth();
   const queryClient = useQueryClient();
 
+  const userId = supabaseUser?.id ?? null;
+  const fallbackRole = mockUser?.role;
+  const contextRoleNames = supabaseRoles?.length ? supabaseRoles : undefined;
+
   const query = useQuery({
-    queryKey: ['workflow-actions', sourceModule, sourceRecordId, user?.id],
+    queryKey: ['workflow-actions', sourceModule, sourceRecordId, userId],
     queryFn: async (): Promise<Omit<WorkflowContext, 'isLoading' | 'error' | 'refetch'>> => {
-      if (!sourceRecordId || !user?.id) {
+      if (!sourceRecordId || !userId) {
         return {
           hasWorkflow: false,
           instanceId: null,
@@ -152,33 +159,39 @@ export function useWorkflowActions(
       const { data: userRolesData } = await supabase
         .from('AspNetUserRoles')
         .select('RoleId, role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
-        .eq('UserId', user.id);
+        .eq('UserId', userId);
 
       // Extract role names from database roles
       const dbRoleNames = userRolesData?.map(r => (r.role as any)?.Name).filter(Boolean) || [];
       
-      // Use database role names if available, otherwise fall back to user.role from context
-      const userRoleName = dbRoleNames.length > 0 ? dbRoleNames[0] : user.role;
+      // Combine Supabase roles + legacy AspNet role names (some environments still have both)
+      const combinedRoleNames = Array.from(
+        new Set([...(contextRoleNames || []), ...dbRoleNames].filter(Boolean))
+      );
+
+      // Use DB role name if available, otherwise fall back to Supabase roles, otherwise mock role
+      const userRoleName = dbRoleNames.length > 0 ? dbRoleNames[0] : (combinedRoleNames[0] ?? fallbackRole);
 
       console.log('Workflow permission check:', {
-        userId: user.id,
+        userId,
         taskAssignedRole: task.assigned_role,
         taskAssignedTo: task.assigned_to,
         userRoleName,
         dbRoleNames,
+        supabaseRoles: contextRoleNames,
         stepId: task.step_id
       });
 
       // Step 4: Check if current user can perform actions on this task
       // Pass user.role for mock auth compatibility, but prefer database roles
       const canPerformActions = await checkUserPermission(
-        user.id,
+        userId,
         task.assigned_to,
         task.assigned_role,
         task.assigned_designation,
         task.step_id,
         userRoleName,
-        dbRoleNames
+        combinedRoleNames
       );
       
       console.log('Permission check result:', { canPerformActions, taskAssignedRole: task.assigned_role });
@@ -221,7 +234,7 @@ export function useWorkflowActions(
         canPerformActions,
       };
     },
-    enabled: !!sourceRecordId && !!user?.id,
+    enabled: !!sourceRecordId && !!userId,
     staleTime: 30000, // 30 seconds
   });
 
@@ -596,7 +609,8 @@ async function checkTaskLevelAssignment(
  */
 export function useExecuteWorkflowAction() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  // Prefer real authenticated user
+  const { user: supabaseUser } = useSupabaseAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -612,12 +626,17 @@ export function useExecuteWorkflowAction() {
       sourceModule: string;
       sourceRecordId: string;
     }) => {
+      const userId = supabaseUser?.id;
+      if (!userId) {
+        throw new Error('Not authenticated');
+      }
+
       // Get user profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', user?.id)
-        .single();
+        .eq('id', userId)
+        .maybeSingle();
 
       // Get the action configuration
       const { data: action, error: actionError } = await supabase
@@ -662,7 +681,7 @@ export function useExecuteWorkflowAction() {
           step_id: task.step_id,
           step_name: task.step_name,
           action: action.action_name,
-          performed_by: user?.id,
+          performed_by: userId,
           performed_by_name: profile?.full_name || 'System',
           details: comments,
         });
@@ -695,7 +714,7 @@ export function useExecuteWorkflowAction() {
           sourceModule,
           sourceRecordId,
           endState,
-          user?.id,
+          userId,
           comments
         );
       } else if (nextStepType === 'send_back_to_applicant') {
@@ -718,7 +737,7 @@ export function useExecuteWorkflowAction() {
           sourceModule,
           sourceRecordId,
           'Query' as any,
-          user?.id,
+          userId,
           comments
         );
       } else if (nextStepType === 'specific_step' && action.next_step_id) {
@@ -739,7 +758,7 @@ export function useExecuteWorkflowAction() {
             sourceModule,
             sourceRecordId,
             'Approved',
-            user?.id,
+            userId,
             comments
           );
         } else {
