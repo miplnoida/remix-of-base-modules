@@ -283,26 +283,49 @@ export default function IPRegistrationList() {
   };
 
   const confirmSubmit = async () => {
-    if (!submitRecord || !user?.id) return;
-
-    const result = await submitIPRegistration(submitRecord.unique_uuid, user.id);
+    console.log('confirmSubmit called', { submitRecord, userId: user?.id });
     
-    if (result.success) {
-      toast.success(result.message);
-      fetchRecords(false);
-      fetchCounts();
-    } else if (result.errors) {
-      const firstError = Object.values(result.errors)[0];
-      toast.error('Please check the form for valid information!', {
-        description: firstError,
-        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
-        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
-      });
-    } else {
-      toast.error(result.message || 'Failed to submit registration');
+    if (!submitRecord || !user?.id) {
+      console.error('Missing record or user information', { submitRecord, userId: user?.id });
+      toast.error('Missing record or user information');
+      setSubmitRecord(null);
+      return;
     }
-    
-    setSubmitRecord(null);
+
+    try {
+      console.log('Calling submitIPRegistration', { uniqueUuid: submitRecord.unique_uuid, userId: user.id });
+      const result = await submitIPRegistration(submitRecord.unique_uuid, user.id);
+      console.log('Submit result:', result);
+      
+      if (result.success) {
+        toast.success(result.message);
+        // Refresh the records list
+        await fetchRecords(false);
+        await fetchCounts();
+        setSubmitRecord(null);
+      } else if (result.errors) {
+        const firstError = Object.values(result.errors)[0];
+        console.error('Validation errors:', result.errors);
+        toast.error('Please check the form for valid information!', {
+          description: firstError,
+          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+          classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
+        });
+        // Don't close dialog on validation errors - let user see the error
+      } else {
+        console.error('Submit failed:', result.message);
+        toast.error(result.message || 'Failed to submit registration', {
+          description: 'Please check the console for more details',
+        });
+        setSubmitRecord(null);
+      }
+    } catch (error: any) {
+      console.error('Submit confirmation error:', error);
+      toast.error('Failed to submit registration', {
+        description: error?.message || 'An unexpected error occurred. Please try again.',
+      });
+      setSubmitRecord(null);
+    }
   };
 
   const handleApprove = async (record: IPRecord) => {
@@ -672,7 +695,15 @@ export default function IPRegistrationList() {
       </Tabs>
 
       {/* Submit Confirmation Dialog */}
-      <AlertDialog open={!!submitRecord} onOpenChange={(open) => !open && setSubmitRecord(null)}>
+      <AlertDialog 
+        open={!!submitRecord} 
+        onOpenChange={(open) => {
+          // Prevent closing during submission
+          if (!open && !isSubmitting) {
+            setSubmitRecord(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Submit Registration?</AlertDialogTitle>
@@ -683,9 +714,20 @@ export default function IPRegistrationList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </AlertDialogAction>
+            <Button
+              onClick={confirmSubmit}
+              disabled={isSubmitting}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  Submitting...
+                </>
+              ) : (
+                'Submit'
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
