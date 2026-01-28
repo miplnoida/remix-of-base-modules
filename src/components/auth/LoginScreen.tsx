@@ -272,7 +272,7 @@ export const LoginScreen = () => {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} SecureServe. All rights reserved [1.0.001]
+          © {new Date().getFullYear()} SecureServe. All rights reserved [1.0.002]
         </p>
       </div>
     </div>
