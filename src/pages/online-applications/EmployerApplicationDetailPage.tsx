@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   ArrowLeft, 
   Briefcase, 
@@ -25,12 +26,15 @@ import {
   Loader2,
   FileText,
   Users,
-  Banknote,
-  Globe
+  Globe,
+  ClipboardCheck,
+  UserCircle,
+  Factory,
+  ScrollText
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-import { useEmployerApplicationDetail, EmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
+import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { useApproveEmployerApplication, useRejectEmployerApplication, getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 
 // Helper functions
@@ -58,6 +62,11 @@ function formatStatusDisplay(status: string): string {
     in_progress: 'In Progress',
   };
   return statusMap[status?.toLowerCase()] || status;
+}
+
+function formatBoolean(value: boolean | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return value ? 'Yes' : 'No';
 }
 
 // Detail field component
@@ -92,16 +101,18 @@ export default function EmployerApplicationDetailPage() {
   const isPending = application?.status?.toLowerCase() === 'submitted' || application?.status?.toLowerCase() === 'pending';
 
   const handleConfirmAction = async () => {
-    if (!applicationId) return;
+    // Use the normalized application.id for API calls
+    const actionId = application?.id || applicationId;
+    if (!actionId) return;
 
     if (actionDialog.type === 'approve') {
       await approveApplication.mutateAsync({
-        applicationId,
+        applicationId: actionId,
         remarks: actionRemarks,
       });
     } else {
       await rejectApplication.mutateAsync({
-        applicationId,
+        applicationId: actionId,
         remarks: actionRemarks,
       });
     }
@@ -158,7 +169,7 @@ export default function EmployerApplicationDetailPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
@@ -174,7 +185,7 @@ export default function EmployerApplicationDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Badge variant={getEmployerStatusVariant(application.status)} className="text-sm px-3 py-1">
             {formatStatusDisplay(application.status)}
           </Badge>
@@ -216,12 +227,12 @@ export default function EmployerApplicationDetailPage() {
             </Avatar>
             <div className="flex-1 space-y-2">
               <h2 className="text-xl font-semibold">
-                {application.employer_name || application.trading_name || 'Unnamed Employer'}
+                {application.trading_name || application.legal_name || application.employer_name || 'Unnamed Employer'}
               </h2>
-              {application.trading_name && application.trading_name !== application.employer_name && (
-                <p className="text-muted-foreground">Trading as: {application.trading_name}</p>
+              {application.legal_name && application.trading_name && application.legal_name !== application.trading_name && (
+                <p className="text-muted-foreground">Legal Name: {application.legal_name}</p>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mt-4">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4" />
                   {application.email || '—'}
@@ -232,7 +243,11 @@ export default function EmployerApplicationDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <MapPin className="h-4 w-4" />
-                  {application.city || application.parish || application.country || '—'}
+                  {application.country || '—'}
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  {application.employee_count != null ? `${application.employee_count} employees` : '—'}
                 </div>
               </div>
             </div>
@@ -242,10 +257,14 @@ export default function EmployerApplicationDetailPage() {
 
       {/* Tabbed Detail Sections */}
       <Tabs defaultValue="business" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+        <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="business" className="gap-2">
             <Building2 className="h-4 w-4" />
             Business
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="gap-2">
+            <Factory className="h-4 w-4" />
+            Profile
           </TabsTrigger>
           <TabsTrigger value="contact" className="gap-2">
             <Phone className="h-4 w-4" />
@@ -255,17 +274,33 @@ export default function EmployerApplicationDetailPage() {
             <MapPin className="h-4 w-4" />
             Address
           </TabsTrigger>
-          <TabsTrigger value="banking" className="gap-2">
-            <Banknote className="h-4 w-4" />
-            Banking
+          <TabsTrigger value="workforce" className="gap-2">
+            <Users className="h-4 w-4" />
+            Workforce
+          </TabsTrigger>
+          <TabsTrigger value="officials" className="gap-2">
+            <UserCircle className="h-4 w-4" />
+            Officials
+          </TabsTrigger>
+          <TabsTrigger value="owners" className="gap-2">
+            <Briefcase className="h-4 w-4" />
+            Owners
+          </TabsTrigger>
+          <TabsTrigger value="locations" className="gap-2">
+            <Globe className="h-4 w-4" />
+            Locations
           </TabsTrigger>
           <TabsTrigger value="documents" className="gap-2">
             <FileText className="h-4 w-4" />
             Documents
           </TabsTrigger>
+          <TabsTrigger value="declaration" className="gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            Declaration
+          </TabsTrigger>
         </TabsList>
 
-        {/* Business Details Tab */}
+        {/* Business Tab */}
         <TabsContent value="business">
           <Card>
             <CardHeader>
@@ -273,23 +308,44 @@ export default function EmployerApplicationDetailPage() {
                 <Building2 className="h-5 w-5" />
                 Business Information
               </CardTitle>
-              <CardDescription>Employer registration and business details</CardDescription>
+              <CardDescription>Employer registration and business classification</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <DetailField label="Employer Name" value={application.employer_name} />
-              <DetailField label="Trading Name" value={application.trading_name} />
-              <DetailField label="Business Type" value={application.business_type} />
-              <DetailField label="Industry Type" value={application.industry_type} />
-              <DetailField label="Tax ID / TIN" value={application.tax_id} />
-              <DetailField label="Registration Date" value={formatDate(application.registration_date)} />
-              <DetailField label="Employee Count" value={application.employee_count?.toString()} />
-              <DetailField label="Payroll Frequency" value={application.payroll_frequency} />
+              <DetailField label="Trade Name" value={application.trading_name} />
+              <DetailField label="Legal Name" value={application.legal_name} />
+              <DetailField label="Employer Email" value={application.employer_email} />
+              <DetailField label="Ownership Type" value={application.ownership_name || application.ownership_code} />
+              <DetailField label="Sector" value={application.sector_name || application.sector_code} />
+              <DetailField label="Industry" value={application.industry_name || application.industry_code} />
+              <DetailField label="Office" value={application.office_name || application.office_code} />
+              <DetailField label="Parent Reg. No." value={application.parent_reg_no} />
               <DetailField label="Registration ID" value={application.registration_id} />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Contact Details Tab */}
+        {/* Profile Tab (Acquisition History) */}
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Factory className="h-5 w-5" />
+                Business Profile
+              </CardTitle>
+              <CardDescription>Incorporation and acquisition history</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <DetailField label="Date Incorporated" value={formatDate(application.date_incorporated)} />
+              <DetailField label="Acquired Business" value={formatBoolean(application.is_acquired)} />
+              <DetailField label="Acquisition Date" value={formatDate(application.date_acquired)} />
+              <DetailField label="Previous Owner" value={application.previous_owner} />
+              <DetailField label="Previous Owner SSB Reg. No." value={application.previous_owner_reg_no} />
+              <DetailField label="Activity Type" value={application.activity_type_name || application.activity_type} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Contact Tab */}
         <TabsContent value="contact">
           <Card>
             <CardHeader>
@@ -301,12 +357,11 @@ export default function EmployerApplicationDetailPage() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <DetailField label="Contact Name" value={application.contact_name} />
-              <DetailField label="Title" value={application.contact_title} />
-              <DetailField label="Position" value={application.contact_position} />
               <DetailField label="Email" value={application.email} />
               <DetailField label="Mobile" value={formatPhone(application.mobile, application.mobile_dial_code)} />
               <DetailField label="Phone" value={formatPhone(application.phone, application.phone_dial_code)} />
               <DetailField label="Fax" value={formatPhone(application.fax, application.fax_dial_code)} />
+              <DetailField label="Country" value={application.country} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -318,17 +373,15 @@ export default function EmployerApplicationDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  Physical Address
+                  HQ Address
                 </CardTitle>
-                <CardDescription>Business location address</CardDescription>
+                <CardDescription>Headquarters / Physical address</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <DetailField label="Address Line 1" value={application.address_line1} />
                 <DetailField label="Address Line 2" value={application.address_line2} />
-                <DetailField label="City" value={application.city} />
-                <DetailField label="Parish / State" value={application.parish} />
-                <DetailField label="Country" value={application.country} />
-                <DetailField label="Postal Code" value={application.postal_code} />
+                <DetailField label="Country" value={application.hq_country || application.country} />
+                <DetailField label="Country Code" value={application.hq_country_code || application.country_code} />
               </CardContent>
             </Card>
 
@@ -338,43 +391,165 @@ export default function EmployerApplicationDetailPage() {
                   <Globe className="h-5 w-5" />
                   Mailing Address
                 </CardTitle>
-                <CardDescription>
-                  {application.same_as_physical ? 'Same as physical address' : 'Separate mailing address'}
-                </CardDescription>
+                <CardDescription>Postal / Mailing address</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {application.same_as_physical ? (
-                  <p className="text-muted-foreground col-span-2">Same as physical address</p>
-                ) : (
-                  <>
-                    <DetailField label="Address Line 1" value={application.mailing_address_line1} />
-                    <DetailField label="Address Line 2" value={application.mailing_address_line2} />
-                    <DetailField label="City" value={application.mailing_city} />
-                    <DetailField label="Parish / State" value={application.mailing_parish} />
-                    <DetailField label="Country" value={application.mailing_country} />
-                    <DetailField label="Postal Code" value={application.mailing_postal_code} />
-                  </>
-                )}
+                <DetailField label="Address Line 1" value={application.mailing_address_line1} />
+                <DetailField label="Address Line 2" value={application.mailing_address_line2} />
+                <DetailField label="City" value={application.mailing_city} />
+                <DetailField label="Country" value={application.mailing_country} />
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Banking Tab */}
-        <TabsContent value="banking">
+        {/* Workforce Tab */}
+        <TabsContent value="workforce">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Banknote className="h-5 w-5" />
-                Banking Information
+                <Users className="h-5 w-5" />
+                Workforce Details
               </CardTitle>
-              <CardDescription>Bank account details for contributions</CardDescription>
+              <CardDescription>Employee counts and payroll information</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <DetailField label="Bank Name" value={application.bank_name} />
-              <DetailField label="Branch" value={application.bank_branch} />
-              <DetailField label="Account Number" value={application.bank_account_number} />
-              <DetailField label="Account Type" value={application.bank_account_type} />
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <DetailField label="Application Date" value={formatDate(application.application_date)} />
+              <DetailField label="Wages First Paid" value={formatDate(application.wages_first_paid_date)} />
+              <DetailField label="Male Employees" value={application.male_count?.toString()} />
+              <DetailField label="Female Employees" value={application.female_count?.toString()} />
+              <DetailField label="Total Employees" value={application.employee_count?.toString()} />
+              <DetailField label="Payroll Frequency" value={application.payroll_frequency} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Officials Tab */}
+        <TabsContent value="officials">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCircle className="h-5 w-5" />
+                Key Officials
+              </CardTitle>
+              <CardDescription>Officers and key personnel ({application.officials?.length || 0})</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {application.officials && application.officials.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Title / Position</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>SSN</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {application.officials.map((official) => (
+                      <TableRow key={official.id}>
+                        <TableCell className="font-medium">{official.name}</TableCell>
+                        <TableCell>{official.title}</TableCell>
+                        <TableCell>{official.phone}</TableCell>
+                        <TableCell>{official.email || '—'}</TableCell>
+                        <TableCell>{official.ssn || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <UserCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No officials listed</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Owners Tab */}
+        <TabsContent value="owners">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                Owners / Partners / Directors
+              </CardTitle>
+              <CardDescription>Business ownership information ({application.owners?.length || application.total_owners || 0})</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {application.owners && application.owners.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>SSN</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {application.owners.map((owner) => (
+                      <TableRow key={owner.id}>
+                        <TableCell className="font-medium">{owner.name}</TableCell>
+                        <TableCell>{owner.title}</TableCell>
+                        <TableCell>{owner.phone}</TableCell>
+                        <TableCell>{owner.email || '—'}</TableCell>
+                        <TableCell>{owner.ssn || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No owners listed</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Locations Tab */}
+        <TabsContent value="locations">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Business Locations
+              </CardTitle>
+              <CardDescription>Places of business ({application.locations?.length || application.total_locations || 0})</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {application.locations && application.locations.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Trade Name</TableHead>
+                      <TableHead>Address 1</TableHead>
+                      <TableHead>Address 2</TableHead>
+                      <TableHead>Activity Type</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {application.locations.map((location) => (
+                      <TableRow key={location.id}>
+                        <TableCell className="font-medium">{location.trade_name || '—'}</TableCell>
+                        <TableCell>{location.address1}</TableCell>
+                        <TableCell>{location.address2 || '—'}</TableCell>
+                        <TableCell>{location.activity_type || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No additional locations listed</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -387,28 +562,35 @@ export default function EmployerApplicationDetailPage() {
                 <FileText className="h-5 w-5" />
                 Uploaded Documents
               </CardTitle>
-              <CardDescription>Supporting documents submitted with the application</CardDescription>
+              <CardDescription>Supporting documents ({application.documents?.length || application.total_documents || 0})</CardDescription>
             </CardHeader>
             <CardContent>
               {application.documents && application.documents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {application.documents.map((doc) => (
-                    <Card key={doc.id} className="p-4">
-                      <div className="flex items-start gap-3">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{doc.name}</p>
-                          <p className="text-sm text-muted-foreground">{doc.type}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(doc.uploaded_at)}</p>
+                  {application.documents.map((doc) => {
+                    const documentUrl = doc.download_url || doc.url || doc.signed_url;
+                    return (
+                      <Card key={doc.id} className="p-4">
+                        <div className="flex items-start gap-3">
+                          <FileText className="h-8 w-8 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.name || doc.file_name || 'Document'}</p>
+                            <p className="text-sm text-muted-foreground">{doc.type || doc.document_type || '—'}</p>
+                            {doc.uploaded_at && (
+                              <p className="text-xs text-muted-foreground">{formatDate(doc.uploaded_at)}</p>
+                            )}
+                          </div>
+                          {documentUrl && (
+                            <Button variant="ghost" size="sm" asChild>
+                              <a href={documentUrl} target="_blank" rel="noopener noreferrer">
+                                View
+                              </a>
+                            </Button>
+                          )}
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                            View
-                          </a>
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
@@ -419,27 +601,48 @@ export default function EmployerApplicationDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Declaration Tab */}
+        <TabsContent value="declaration">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5" />
+                Declaration & Signature
+              </CardTitle>
+              <CardDescription>Signatory information and declaration status</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <DetailField label="Signatory Name" value={application.signatory_name} />
+              <DetailField label="Signatory Title" value={application.signatory_title} />
+              <DetailField 
+                label="Declaration Accepted" 
+                value={
+                  <Badge variant={application.declaration_accepted ? 'default' : 'secondary'}>
+                    {formatBoolean(application.declaration_accepted)}
+                  </Badge>
+                } 
+              />
+              <DetailField label="Declaration Date" value={formatDate(application.declaration_date)} />
+              <div className="md:col-span-2">
+                <DetailField label="Remarks / Notes" value={application.remarks} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
-      {/* Remarks Section */}
-      {(application.remarks || application.rejection_reason) && (
-        <Card>
+      {/* Rejection Reason (if any) */}
+      {application.rejection_reason && (
+        <Card className="border-destructive">
           <CardHeader>
-            <CardTitle>Remarks</CardTitle>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <ScrollText className="h-5 w-5" />
+              Rejection Reason
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {application.remarks && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Applicant Remarks</p>
-                <p>{application.remarks}</p>
-              </div>
-            )}
-            {application.rejection_reason && (
-              <div>
-                <p className="text-sm text-destructive mb-1">Rejection Reason</p>
-                <p className="text-destructive">{application.rejection_reason}</p>
-              </div>
-            )}
+          <CardContent>
+            <p className="text-destructive">{application.rejection_reason}</p>
           </CardContent>
         </Card>
       )}
@@ -472,7 +675,7 @@ export default function EmployerApplicationDetailPage() {
                 Reference: {application.reference_number || application.id}
               </p>
               <p className="text-sm text-muted-foreground">
-                {application.employer_name || application.trading_name}
+                {application.trading_name || application.legal_name || application.employer_name}
               </p>
             </div>
             
