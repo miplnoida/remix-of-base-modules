@@ -1,263 +1,236 @@
 
-# Update Employer Application Detail Page for External API
+# Workflow Step Notifications & Action Visibility Implementation Plan
 
-## Problem
-The Employer Application Detail page shows empty/blank fields because the external API returns different field names than what the UI expects. For example:
-- API returns `trade_name` but UI looks for `employer_name`
-- API returns `hq_address1` but UI looks for `address_line1`
-- API returns `contact_telephone` but UI looks for `phone`
-- API returns `total_employees` but UI looks for `employee_count`
-- Additional fields like `officials`, `owners`, `locations`, `declaration_*` are not displayed at all
+## Overview
+This plan addresses the complete implementation of workflow-driven notifications and action visibility so that when a workflow is initiated, the correct approver is notified and can see/perform the configured actions in both list and detail views.
 
-## Solution Overview
-Update `useEmployerApplicationDetail.ts` to normalize API responses and update `EmployerApplicationDetailPage.tsx` to display all fields organized by the provided groupings.
+## Current State Analysis
+
+### What Works
+- Workflow triggers are configured to auto-start workflows on application submit
+- `WorkflowActionButtons` component correctly identifies available actions based on step configuration
+- Permission checking via `checkUserPermission()` validates approver roles/designations/users
+- Task creation correctly assigns `assigned_role`, `assigned_designation`, or `assigned_to`
+- `in_app_notifications` table exists with user_id, title, body, link, is_read columns
+
+### What's Missing
+1. **No Approver Notification**: When workflow tasks are created, approvers are not notified
+2. **WorkflowApprovals uses mock data**: The component uses hardcoded mock approvals instead of real tasks
+3. **No notification on step transitions**: When workflow moves to next step, new approver is not notified
+4. **Missing notification bell badge for pending tasks**: The notification bell shows generic notifications but not workflow-specific pending tasks
 
 ---
 
-## Files to Change
+## Implementation Plan
 
-### 1. `src/hooks/useEmployerApplicationDetail.ts`
+### Phase 1: Backend - Notification Service Edge Function
 
-**Changes:**
-- Expand `EmployerApplicationDetail` interface to include ALL API fields from the documentation
-- Add new sub-interfaces for `Official`, `Owner`, `Location`, `Document`
-- Add a `normalizeEmployerDetail()` function that maps external API field names to the interface
+**File: `supabase/functions/workflow-notify-approvers/index.ts`** (new)
 
-**New/Updated Interface Fields:**
+Creates a Supabase Edge Function to notify approvers when a workflow task is created or transitions to a new step.
+
 ```text
-// Pre-Registration
-contact_name, email, mobile, mobile_country, mobile_dial_code, country, country_code
-
-// Step 1: Employer Profile
-date_incorporated, is_acquired, date_acquired, previous_owner, previous_owner_reg_no
-ownership_code, ownership_name, sector_code, sector_name
-parent_reg_no, office_code, office_name, industry_code, industry_name
-
-// Step 2: Basic Details
-legal_name, trade_name, employer_email
-hq_address1, hq_address2, hq_country, hq_country_code
-mailing_address1, mailing_address2
-application_date, wages_first_paid_date
-male_count, female_count, total_employees
-
-// Step 3: Key Officials
-activity_type, activity_type_name, officials[]
-
-// Step 4: Contact & Reach
-contact_telephone, contact_telephone_country, contact_telephone_dial_code
-contact_fax, contact_fax_country, contact_fax_dial_code
-
-// Step 5: Owners/Partners/Directors
-owners[]
-
-// Step 6: Locations
-locations[]
-
-// Step 7: Documents
-documents[]
-
-// Step 8: Notes
-notes
-
-// Step 9: Declaration
-declaration_accepted, declaration_date, signatory_name, signatory_title
-
-// Metadata
-submitted_at, created_at, updated_at, is_deleted
-total_owners, total_locations, total_documents
+Function Logic:
+1. Receive: instance_id, step_id, source_record_name, workflow_name
+2. Fetch step configuration (approver_type, approver_role_ids, etc.)
+3. Based on approver_type:
+   - 'role': Find all users with matching roles
+   - 'designation': Find all users with matching designations  
+   - 'user': Use specified user IDs
+4. For each eligible approver:
+   - Insert into in_app_notifications with:
+     - user_id: approver's ID
+     - title: "Pending Approval: {workflow_name}"
+     - body: "Application {source_record_name} requires your approval at step: {step_name}"
+     - link: "/workflow/approvals?task={task_id}"
+5. Optionally queue email notification via notification_logs table
 ```
 
-**Normalizer Function Logic:**
-```typescript
-function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicationDetail {
-  return {
-    // Core identifiers
-    id: raw.id,
-    reference_number: raw.id, // API uses id as reference
-    registration_id: raw.registration_id,
-    status: raw.status,
-    current_step: raw.current_step,
-    
-    // Contact Person (Pre-Registration)
-    contact_name: raw.contact_name,
-    email: raw.email,
-    mobile: raw.mobile,
-    mobile_country: raw.mobile_country,
-    mobile_dial_code: raw.mobile_dial_code,
-    country: raw.country,
-    country_code: raw.country_code,
-    
-    // Business Identity - map legal_name/trade_name to employer_name
-    employer_name: raw.legal_name || raw.trade_name,
-    trading_name: raw.trade_name,
-    employer_email: raw.employer_email,
-    
-    // Business Profile
-    date_incorporated: raw.date_incorporated,
-    is_acquired: raw.is_acquired,
-    date_acquired: raw.date_acquired,
-    previous_owner: raw.previous_owner,
-    previous_owner_reg_no: raw.previous_owner_reg_no,
-    
-    // Classification
-    ownership_code: raw.ownership_code,
-    ownership_name: raw.ownership_name,
-    sector_code: raw.sector_code,
-    sector_name: raw.sector_name,
-    parent_reg_no: raw.parent_reg_no,
-    office_code: raw.office_code,
-    office_name: raw.office_name,
-    industry_code: raw.industry_code,
-    industry_name: raw.industry_name,
-    
-    // HQ Address - map hq_address1 to address_line1
-    address_line1: raw.hq_address1,
-    address_line2: raw.hq_address2,
-    hq_country: raw.hq_country,
-    hq_country_code: raw.hq_country_code,
-    
-    // Mailing Address - map mailing_address1 to mailing_address_line1
-    mailing_address_line1: raw.mailing_address1,
-    mailing_address_line2: raw.mailing_address2,
-    
-    // Employment
-    application_date: raw.application_date,
-    wages_first_paid_date: raw.wages_first_paid_date,
-    male_count: raw.male_count,
-    female_count: raw.female_count,
-    employee_count: raw.total_employees,
-    
-    // Contact Details - map contact_telephone to phone
-    phone: raw.contact_telephone,
-    phone_country: raw.contact_telephone_country,
-    phone_dial_code: raw.contact_telephone_dial_code,
-    fax: raw.contact_fax,
-    fax_country: raw.contact_fax_country,
-    fax_dial_code: raw.contact_fax_dial_code,
-    
-    // Officials, Owners, Locations, Documents
-    activity_type: raw.activity_type,
-    activity_type_name: raw.activity_type_name,
-    officials: raw.officials || [],
-    owners: raw.owners || [],
-    locations: raw.locations || [],
-    documents: normalizeDocuments(raw.documents),
-    
-    // Notes & Declaration
-    remarks: raw.notes,
-    declaration_accepted: raw.declaration_accepted,
-    declaration_date: raw.declaration_date,
-    signatory_name: raw.signatory_name,
-    signatory_title: raw.signatory_title,
-    
-    // Timestamps
-    submitted_at: raw.submitted_at,
-    created_at: raw.created_at,
-    updated_at: raw.updated_at,
-    
-    // Counts
-    total_owners: raw.total_owners,
-    total_locations: raw.total_locations,
-    total_documents: raw.total_documents,
-  };
+### Phase 2: Hook Updates - Integrate Notification Calls
+
+**File: `src/hooks/useIPRegistrationSubmit.ts`**
+
+Update `triggerWorkflow()` to call notification edge function after task creation:
+- After creating the first workflow task, invoke `workflow-notify-approvers` function
+- Pass instance_id, step_id, record name, workflow name
+
+**File: `src/hooks/useWorkflowActions.ts`**
+
+Update `createNextStepTask()` function:
+- After creating the next step's task, call `workflow-notify-approvers` function
+- This ensures each step transition notifies the new approver(s)
+
+### Phase 3: Create Pending Approvals Hook
+
+**File: `src/hooks/useWorkflowPendingApprovals.ts`** (new)
+
+A dedicated hook to fetch pending workflow tasks for the current user:
+
+```text
+Interface: PendingApproval {
+  id: string;
+  instance_id: string;
+  workflow_name: string;
+  step_name: string;
+  source_record_id: string;
+  source_record_name: string;
+  source_module: string;
+  status: string;
+  created_at: string;
+  due_at: string;
+  is_overdue: boolean;
+  priority: 'High' | 'Medium' | 'Low';
+  actions: WorkflowAction[];
 }
+
+Functions:
+- useMyPendingApprovals(): Fetches all pending tasks for current user
+- usePendingApprovalCount(): Returns count for badge display
+- useMarkApprovalNotificationRead(): Marks notification as read when task is viewed
+```
+
+### Phase 4: Update WorkflowApprovals Component
+
+**File: `src/components/workflow/WorkflowApprovals.tsx`**
+
+Replace mock data with real database queries:
+- Use `useMyPendingApprovals()` hook instead of mock data
+- Display actual workflow tasks from `workflow_tasks` table
+- Calculate waiting time and overdue status from `created_at` and `due_at`
+- Wire up Approve/Reject buttons to `useExecuteWorkflowAction` mutation
+- Add navigation to detail view on row click
+
+### Phase 5: Update Notification Bell Component
+
+**File: `src/components/notifications/InAppNotificationBell.tsx`**
+
+Enhance to show pending approval count:
+- Add separate query for workflow-specific pending tasks
+- Show combined badge count (general notifications + pending approvals)
+- Add "Pending Approvals" section in dropdown
+- Link directly to WorkflowApprovals page
+
+### Phase 6: Application List Integration
+
+Verify `WorkflowActionButtonsCompact` works correctly in:
+- `src/pages/ip-registration/IPRegistrationList.tsx` - Already integrated
+- Any other application list pages
+
+The component already:
+- Fetches workflow context via `useWorkflowActions`
+- Shows action buttons only when `canPerformActions` is true
+- Hides buttons for non-approvers
+
+### Phase 7: Application Detail Integration
+
+Verify `WorkflowActionButtons` works correctly in:
+- `src/pages/ip-registration/IPRegistrationForm.tsx` - Already integrated
+
+The component already:
+- Shows current step name
+- Displays action buttons based on user permissions
+- Handles action confirmation dialogs
+- Calls `onActionComplete` callback after action execution
+
+---
+
+## Database Schema Reference
+
+Existing tables used:
+
+```text
+in_app_notifications:
+- id, user_id, title, body, link, is_read, read_at, created_at
+
+workflow_tasks:
+- id, instance_id, step_id, step_name
+- assigned_role, assigned_designation, assigned_to
+- status, due_at, created_at, completed_at
+- action_taken, comments
+
+workflow_instances:
+- id, workflow_id, workflow_name
+- source_module, source_record_id, source_record_name
+- current_step_id, status, started_by, started_by_name
+- started_at, completed_at, due_at, metadata
+
+workflow_steps:
+- id, workflow_id, step_number, step_name
+- approver_type, approver_role_ids, approver_designation_ids, approver_user_ids
+- sla_hours, is_final_step
 ```
 
 ---
 
-### 2. `src/pages/online-applications/EmployerApplicationDetailPage.tsx`
+## Technical Flow Summary
 
-**Changes:**
-- Add new tabs for: "Profile", "Officials", "Owners", "Locations", "Declaration"
-- Reorganize existing tabs to match the API groupings
-- Display all new fields with proper labels
-
-**Updated Tab Structure:**
-1. **Business** - Employer Name, Trade Name, Ownership Type, Sector, Industry, Office, Registration Date, Parent Reg No
-2. **Profile** (new) - Date Incorporated, Is Acquired, Previous Owner details
-3. **Contact** - Contact Person, Email, Mobile, Phone, Fax
-4. **Address** - HQ Address, Mailing Address, Country
-5. **Workforce** (new) - Application Date, Wages First Paid, Male/Female/Total Employees
-6. **Officials** (new) - Key Officials table (name, title, phone, email, SSN)
-7. **Owners** (new) - Owners/Partners/Directors table
-8. **Locations** (new) - Business Locations table
-9. **Documents** - Uploaded documents
-10. **Declaration** (new) - Signatory Name, Title, Declaration Accepted, Declaration Date
-
-**Summary Card Updates:**
-- Display `trade_name` as primary name (since `legal_name` is often null)
-- Show country from `country` field
-- Show `mobile` with proper dial code formatting
-
----
-
-## Field Mapping Reference
-
-| API Field | UI Label | Tab |
-|-----------|----------|-----|
-| `trade_name` | Trade Name / Employer Name | Business |
-| `legal_name` | Legal Name | Business |
-| `ownership_name` | Ownership Type | Business |
-| `sector_name` | Sector | Business |
-| `industry_name` | Industry | Business |
-| `office_name` | Office | Business |
-| `parent_reg_no` | Parent Reg. No. | Business |
-| `date_incorporated` | Date Incorporated | Profile |
-| `is_acquired` | Acquired Business | Profile |
-| `date_acquired` | Acquisition Date | Profile |
-| `previous_owner` | Previous Owner | Profile |
-| `previous_owner_reg_no` | Previous Owner SSB Reg. No. | Profile |
-| `contact_name` | Contact Person | Contact |
-| `email` | Email | Contact |
-| `mobile` + `mobile_dial_code` | Mobile | Contact |
-| `contact_telephone` + `dial_code` | Phone | Contact |
-| `contact_fax` + `dial_code` | Fax | Contact |
-| `signatory_title` | Contact Title | Contact |
-| `hq_address1` | HQ Address 1 | Address |
-| `hq_address2` | HQ Address 2 | Address |
-| `hq_country` | HQ Country | Address |
-| `mailing_address1` | Mailing Address 1 | Address |
-| `mailing_address2` | Mailing Address 2 | Address |
-| `application_date` | Application Date | Workforce |
-| `wages_first_paid_date` | Wages First Paid | Workforce |
-| `male_count` | Male Employees | Workforce |
-| `female_count` | Female Employees | Workforce |
-| `total_employees` | Total Employees | Workforce |
-| `officials[]` | Key Officials | Officials |
-| `owners[]` | Owners/Partners | Owners |
-| `locations[]` | Business Locations | Locations |
-| `documents[]` | Documents | Documents |
-| `notes` | Remarks | Declaration |
-| `signatory_name` | Signatory Name | Declaration |
-| `signatory_title` | Signatory Title | Declaration |
-| `declaration_accepted` | Declaration Accepted | Declaration |
-| `declaration_date` | Declaration Date | Declaration |
+```text
+1. User Submits Application
+   ↓
+2. useIPRegistrationSubmit.triggerWorkflow()
+   ↓
+3. Creates workflow_instance + workflow_task (status: Pending)
+   ↓
+4. Calls workflow-notify-approvers Edge Function
+   ↓
+5. Edge Function identifies approvers via step config
+   ↓
+6. Creates in_app_notifications for each approver
+   ↓
+7. Approver sees notification in bell + Pending Approvals page
+   ↓
+8. Approver clicks → navigates to list/detail view
+   ↓
+9. WorkflowActionButtons shows Approve/Reject based on permissions
+   ↓
+10. Approver takes action → useExecuteWorkflowAction
+   ↓
+11. Task completed, workflow transitions to next step (or ends)
+   ↓
+12. If next step exists: createNextStepTask() + workflow-notify-approvers
+   ↓
+13. Previous approver no longer sees actions (task completed)
+```
 
 ---
 
-## Expected Result
+## Files to Create/Modify
 
-After these changes, the detail page at `/online-applications/employer/ER-2026-877111` will display:
-- **Employer Name**: "Palm Coast Wholesale" (from `trade_name`)
-- **Contact Name**: "Kelvin Andre Thomas"
-- **Email**: "mipl.student+kelvin.thomas@gmail.com"
-- **Mobile**: "(+1) 8696694412"
-- **Phone**: "(+1) 8694658800"
-- **HQ Address**: "Central Bay Road, Unit 7A"
-- **Total Employees**: 48 (Male: 22, Female: 26)
-- **Country**: "Saint Kitts and Nevis"
-- **Previous Owner**: "Island Heritage Services Ltd"
-- **Officials**: 2 officials with names, titles, phones, emails
-- **Declaration Status**: Not accepted (false)
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/functions/workflow-notify-approvers/index.ts` | Create | Edge function to notify approvers |
+| `src/hooks/useWorkflowPendingApprovals.ts` | Create | Hook for fetching pending approvals |
+| `src/hooks/useIPRegistrationSubmit.ts` | Modify | Add notification call after task creation |
+| `src/hooks/useWorkflowActions.ts` | Modify | Add notification call in createNextStepTask |
+| `src/components/workflow/WorkflowApprovals.tsx` | Modify | Replace mock data with real queries |
+| `src/components/notifications/InAppNotificationBell.tsx` | Modify | Add pending approvals section |
+| `supabase/config.toml` | Modify | Register new edge function |
 
 ---
 
-## Verification Steps
-1. Navigate to `/online-applications/employer/ER-2026-877111`
-2. Verify Business tab shows Trade Name, Ownership, Sector, Industry, Office
-3. Verify Profile tab shows acquisition history
-4. Verify Contact tab shows contact person with phone numbers
-5. Verify Address tab shows HQ and Mailing addresses
-6. Verify Workforce tab shows employee counts
-7. Verify Officials tab shows the 2 key officials
-8. Verify Declaration tab shows signatory info and status
+## Verification Checklist
+
+After implementation, verify:
+
+1. Submit a new IP Registration → workflow instance created
+2. Check workflow_tasks table → task with correct assigned_role
+3. Check in_app_notifications → notification created for approver
+4. Log in as approver → see notification in bell
+5. Navigate to Pending Approvals → see the task in list
+6. Navigate to IP Registration List → see action buttons on pending row
+7. Click View → navigate to detail form
+8. See WorkflowActionButtons with Approve/Reject options
+9. Take action (e.g., Approve) → workflow transitions
+10. Check workflow_logs → action logged correctly
+11. If next step exists → new task created, new approver notified
+12. Log in as original submitter → no action buttons visible (only status)
+13. Previous approver no longer sees actions for that application
+
+---
+
+## Security Considerations
+
+- Edge function uses service role to create notifications for any user
+- RLS on in_app_notifications ensures users only see their own notifications
+- Permission checks in useWorkflowActions prevent unauthorized action execution
+- All actions are logged in workflow_logs for audit trail
