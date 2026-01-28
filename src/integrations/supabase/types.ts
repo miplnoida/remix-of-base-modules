@@ -7542,6 +7542,7 @@ export type Database = {
         | "ReadOnly"
         | "Admin"
         | "FinanceManager"
+        | "IP Registration Officer"
       audit_status:
         | "assigned"
         | "in_progress"
@@ -7844,6 +7845,7 @@ export const Constants = {
         "ReadOnly",
         "Admin",
         "FinanceManager",
+        "IP Registration Officer",
       ],
       audit_status: [
         "assigned",
