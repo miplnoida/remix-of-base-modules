@@ -867,7 +867,15 @@ export default function IPRegistrationForm() {
       </AlertDialog>
 
       {/* Submit Confirmation Dialog */}
-      <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
+      <AlertDialog 
+        open={showSubmitConfirm} 
+        onOpenChange={(open) => {
+          // Prevent closing during submission
+          if (!open && !isSubmittingHook) {
+            setShowSubmitConfirm(false);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Submit Registration?</AlertDialogTitle>
@@ -877,8 +885,21 @@ export default function IPRegistrationForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSubmit}>Submit</AlertDialogAction>
+            <AlertDialogCancel disabled={isSubmittingHook}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmittingHook}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isSubmittingHook ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  Submitting...
+                </>
+              ) : (
+                'Submit'
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
