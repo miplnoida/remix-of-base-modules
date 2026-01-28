@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, Plus } from 'lucide-react';
 import { IPNoteData } from '@/types/ipRegistration';
@@ -19,11 +19,27 @@ export const NotesTab: React.FC<NotesTabProps> = ({
   isEditable,
 }) => {
   const [newNote, setNewNote] = useState('');
+  const [error, setError] = useState('');
 
   const handleAddNote = () => {
-    if (newNote.trim()) {
-      onAddNote(newNote.trim());
-      setNewNote('');
+    if (!newNote.trim()) {
+      setError('Note cannot be empty');
+      return;
+    }
+    if (newNote.length > 100) {
+      setError('Note cannot exceed 100 characters');
+      return;
+    }
+    setError('');
+    onAddNote(newNote.trim());
+    setNewNote('');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length <= 100) {
+      setNewNote(value);
+      if (error) setError('');
     }
   };
 
@@ -40,15 +56,23 @@ export const NotesTab: React.FC<NotesTabProps> = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Note (max 100 characters)</Label>
-              <Textarea
+              <Label htmlFor="newNote">Note (max 100 characters)</Label>
+              <Input
+                id="newNote"
                 value={newNote}
-                onChange={(e) => setNewNote(e.target.value.slice(0, 100))}
+                onChange={handleInputChange}
                 placeholder="Enter note..."
-                rows={3}
                 maxLength={100}
+                className={error ? 'border-destructive' : ''}
               />
-              <p className="text-xs text-muted-foreground mt-1">{newNote.length}/100 characters</p>
+              <div className="flex justify-between items-center mt-1">
+                {error ? (
+                  <p className="text-xs text-destructive">{error}</p>
+                ) : (
+                  <span />
+                )}
+                <p className="text-xs text-muted-foreground">{newNote.length}/100 characters</p>
+              </div>
             </div>
             <Button onClick={handleAddNote} disabled={!newNote.trim()}>
               <Plus className="h-4 w-4 mr-2" />
