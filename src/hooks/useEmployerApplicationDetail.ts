@@ -51,6 +51,7 @@ export interface EmployerDocument {
   mime_type?: string;
   notes?: string;
   signed_url?: string;
+  download_url?: string;  // Primary URL from API
   // Legacy fields for backwards compatibility
   name?: string;
   type?: string;
@@ -203,10 +204,11 @@ function normalizeDocuments(docs: unknown): EmployerDocument[] {
     mime_type: (doc.mime_type as string) || undefined,
     notes: (doc.notes as string) || undefined,
     signed_url: (doc.signed_url as string) || undefined,
-    // Legacy fields
+    download_url: (doc.download_url as string) || undefined,  // Primary URL from API
+    // Legacy fields - prioritize download_url
     name: (doc.name as string) || (doc.file_name as string) || undefined,
     type: (doc.type as string) || (doc.document_type as string) || undefined,
-    url: (doc.url as string) || (doc.signed_url as string) || undefined,
+    url: (doc.download_url as string) || (doc.url as string) || (doc.signed_url as string) || undefined,
     uploaded_at: (doc.uploaded_at as string) || (doc.created_at as string) || undefined,
   }));
 }
