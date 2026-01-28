@@ -45,9 +45,10 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
     
     setIsLookingUp(true);
     try {
+      // Query all possible column variants for compatibility
       const { data, error } = await supabase
         .from('ip_master')
-        .select('first_name, middle_name, last_name, date_of_birth, gender, resident_address_1, resident_address_2')
+        .select('first_name, firstname, middle_name, last_name, surname, date_of_birth, dob, gender, sex, resident_address_1, resident_address_2, resident_addr1, resident_addr2')
         .eq('ssn', ssn)
         .maybeSingle();
 
@@ -55,15 +56,29 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
 
       if (data) {
         setSsnFound(true);
+        // Map data using available columns (prefer newer columns, fallback to legacy)
+        const firstName = data.first_name || data.firstname || '';
+        const middleName = data.middle_name || '';
+        const lastName = data.last_name || data.surname || '';
+        const dateOfBirth = data.date_of_birth || data.dob || '';
+        const genderValue = data.gender || data.sex || '';
+        const addr1 = data.resident_address_1 || data.resident_addr1 || '';
+        const addr2 = data.resident_address_2 || data.resident_addr2 || '';
+        
+        // Convert gender to M/F/N format
+        let sexCode = 'N';
+        if (genderValue === 'Male' || genderValue === 'M') sexCode = 'M';
+        else if (genderValue === 'Female' || genderValue === 'F') sexCode = 'F';
+        
         setNewDependent(prev => ({
           ...prev,
-          firstname: data.first_name || '',
-          middle_name_dep: data.middle_name || '',
-          surname: data.last_name || '',
-          dob: data.date_of_birth || '',
-          sex: data.gender === 'Male' ? 'M' : data.gender === 'Female' ? 'F' : 'N',
-          depend_addr1: data.resident_address_1 || '',
-          depend_addr2: data.resident_address_2 || '',
+          firstname: firstName,
+          middle_name_dep: middleName,
+          surname: lastName,
+          dob: dateOfBirth,
+          sex: sexCode,
+          depend_addr1: addr1,
+          depend_addr2: addr2,
         }));
         toast({
           title: 'SSN Found',

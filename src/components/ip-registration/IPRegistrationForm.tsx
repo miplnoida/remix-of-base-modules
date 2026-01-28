@@ -38,6 +38,7 @@ export const IPRegistrationForm: React.FC = () => {
     isEditable,
     isLoading,
     saveBasicDetails,
+    saveCurrentTab,
     handleTabChange,
     submitRegistration,
     addDependent,
@@ -72,9 +73,8 @@ export const IPRegistrationForm: React.FC = () => {
     // Don't save in view mode
     if (isViewMode) return;
     
-    if (currentTab === 'basic') {
-      await saveBasicDetails();
-    }
+    // Save the current tab data
+    await saveCurrentTab();
   };
 
   const handleSubmit = async () => {
