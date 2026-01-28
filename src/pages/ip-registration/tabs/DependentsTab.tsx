@@ -177,10 +177,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
           depend_addr1: addr1,
           depend_addr2: addr2,
         }));
-        
-        toast.success('SSN found - details auto-filled', {
-          description: `Found: ${firstName} ${lastName}`,
-        });
+        // SSN found - no toast message as per requirement
       } else {
         setSsnFound(false);
       }
@@ -451,9 +448,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
                   </div>
                 )}
               </div>
-              {ssnFound && (
-                <p className="text-xs text-green-600">SSN found - details auto-filled (editable)</p>
-              )}
+              {/* Remove SSN found message as per requirement */}
             </div>
 
             <div className="space-y-2">
