@@ -2723,6 +2723,465 @@ export type Database = {
         }
         Relationships: []
       }
+      er_commence: {
+        Row: {
+          commence_seq_no: number
+          date_ceased: string | null
+          date_commenced: string | null
+          date_modified: string | null
+          modified_by: string | null
+          regno: string
+        }
+        Insert: {
+          commence_seq_no?: number
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_modified?: string | null
+          modified_by?: string | null
+          regno: string
+        }
+        Update: {
+          commence_seq_no?: number
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_modified?: string | null
+          modified_by?: string | null
+          regno?: string
+        }
+        Relationships: []
+      }
+      er_last_regno: {
+        Row: {
+          date_issued: string
+          regno: string
+        }
+        Insert: {
+          date_issued: string
+          regno: string
+        }
+        Update: {
+          date_issued?: string
+          regno?: string
+        }
+        Relationships: []
+      }
+      er_locations: {
+        Row: {
+          activity_type: string | null
+          loc_addr1: string | null
+          loc_addr2: string | null
+          location_id: number
+          regno: string
+          trade_name: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          loc_addr1?: string | null
+          loc_addr2?: string | null
+          location_id?: number
+          regno: string
+          trade_name?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          loc_addr1?: string | null
+          loc_addr2?: string | null
+          location_id?: number
+          regno?: string
+          trade_name?: string | null
+        }
+        Relationships: []
+      }
+      er_master: {
+        Row: {
+          acquired_code: string | null
+          activity_type: string | null
+          application_date: string | null
+          arrears: string | null
+          computer_payroll: string | null
+          date_incorporated: string | null
+          date_modified: string | null
+          date_of_acquisition: string | null
+          date_of_closure: string | null
+          date_of_entry: string | null
+          date_of_issue: string | null
+          date_verified: string | null
+          date_wages_first_paid: string | null
+          disk_tape: string | null
+          email: string | null
+          entered_by: string | null
+          estim_arrears_lv: number | null
+          estim_arrears_pe: number | null
+          estim_arrears_ss: number | null
+          estim_wages_lv: number | null
+          estim_wages_pe: number | null
+          estim_wages_ss: number | null
+          exp_mthly_income: number | null
+          fax: string | null
+          females_employed: number | null
+          hq_addr1: string | null
+          hq_addr2: string | null
+          industrial_code: string | null
+          inspector_code: string | null
+          legal_action: string | null
+          maddr1: string | null
+          maddr2: string | null
+          make_model: string | null
+          males_employed: number | null
+          mobile: string | null
+          modified_by: string | null
+          name: string
+          office_code: string | null
+          ownership_code: string | null
+          parent_regno: string | null
+          phone: string | null
+          prev_owner_addr1: string | null
+          prev_owner_addr2: string | null
+          previous_owner: string | null
+          re_registration_date: string | null
+          registration_date: string | null
+          registry_num: string | null
+          regno: string
+          sector_code: string | null
+          status: string | null
+          trade_name: string | null
+          verified_by: string | null
+          village_code: string | null
+        }
+        Insert: {
+          acquired_code?: string | null
+          activity_type?: string | null
+          application_date?: string | null
+          arrears?: string | null
+          computer_payroll?: string | null
+          date_incorporated?: string | null
+          date_modified?: string | null
+          date_of_acquisition?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          date_wages_first_paid?: string | null
+          disk_tape?: string | null
+          email?: string | null
+          entered_by?: string | null
+          estim_arrears_lv?: number | null
+          estim_arrears_pe?: number | null
+          estim_arrears_ss?: number | null
+          estim_wages_lv?: number | null
+          estim_wages_pe?: number | null
+          estim_wages_ss?: number | null
+          exp_mthly_income?: number | null
+          fax?: string | null
+          females_employed?: number | null
+          hq_addr1?: string | null
+          hq_addr2?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          legal_action?: string | null
+          maddr1?: string | null
+          maddr2?: string | null
+          make_model?: string | null
+          males_employed?: number | null
+          mobile?: string | null
+          modified_by?: string | null
+          name: string
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_regno?: string | null
+          phone?: string | null
+          prev_owner_addr1?: string | null
+          prev_owner_addr2?: string | null
+          previous_owner?: string | null
+          re_registration_date?: string | null
+          registration_date?: string | null
+          registry_num?: string | null
+          regno: string
+          sector_code?: string | null
+          status?: string | null
+          trade_name?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Update: {
+          acquired_code?: string | null
+          activity_type?: string | null
+          application_date?: string | null
+          arrears?: string | null
+          computer_payroll?: string | null
+          date_incorporated?: string | null
+          date_modified?: string | null
+          date_of_acquisition?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          date_wages_first_paid?: string | null
+          disk_tape?: string | null
+          email?: string | null
+          entered_by?: string | null
+          estim_arrears_lv?: number | null
+          estim_arrears_pe?: number | null
+          estim_arrears_ss?: number | null
+          estim_wages_lv?: number | null
+          estim_wages_pe?: number | null
+          estim_wages_ss?: number | null
+          exp_mthly_income?: number | null
+          fax?: string | null
+          females_employed?: number | null
+          hq_addr1?: string | null
+          hq_addr2?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          legal_action?: string | null
+          maddr1?: string | null
+          maddr2?: string | null
+          make_model?: string | null
+          males_employed?: number | null
+          mobile?: string | null
+          modified_by?: string | null
+          name?: string
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_regno?: string | null
+          phone?: string | null
+          prev_owner_addr1?: string | null
+          prev_owner_addr2?: string | null
+          previous_owner?: string | null
+          re_registration_date?: string | null
+          registration_date?: string | null
+          registry_num?: string | null
+          regno?: string
+          sector_code?: string | null
+          status?: string | null
+          trade_name?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Relationships: []
+      }
+      er_notes: {
+        Row: {
+          note: string | null
+          note_date: string
+          regno: string
+          seq_no: number
+          user_id: string | null
+        }
+        Insert: {
+          note?: string | null
+          note_date: string
+          regno: string
+          seq_no?: number
+          user_id?: string | null
+        }
+        Update: {
+          note?: string | null
+          note_date?: string
+          regno?: string
+          seq_no?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      er_notification: {
+        Row: {
+          amount: number | null
+          comment: string | null
+          event_date: string | null
+          eventid: number
+          name: string | null
+          status_code: string | null
+          userid: string | null
+        }
+        Insert: {
+          amount?: number | null
+          comment?: string | null
+          event_date?: string | null
+          eventid?: number
+          name?: string | null
+          status_code?: string | null
+          userid?: string | null
+        }
+        Update: {
+          amount?: number | null
+          comment?: string | null
+          event_date?: string | null
+          eventid?: number
+          name?: string | null
+          status_code?: string | null
+          userid?: string | null
+        }
+        Relationships: []
+      }
+      er_owner: {
+        Row: {
+          email: string | null
+          location_id: number
+          mobile: string | null
+          name: string | null
+          owner_id: number
+          phone: string | null
+          regno: string
+          ssn: string | null
+          title: string | null
+        }
+        Insert: {
+          email?: string | null
+          location_id: number
+          mobile?: string | null
+          name?: string | null
+          owner_id?: number
+          phone?: string | null
+          regno: string
+          ssn?: string | null
+          title?: string | null
+        }
+        Update: {
+          email?: string | null
+          location_id?: number
+          mobile?: string | null
+          name?: string | null
+          owner_id?: number
+          phone?: string | null
+          regno?: string
+          ssn?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      er_suit: {
+        Row: {
+          awarded_amount: number | null
+          awarded_cost: number | null
+          beginperiod: string | null
+          date_modified: string | null
+          date_of_entry: string | null
+          date_of_filing: string | null
+          date_of_hearing: string | null
+          date_pay_by: string | null
+          date_verified: string | null
+          endperiod: string | null
+          entered_by: string | null
+          initial_suit_no: string | null
+          initial_suit_year: string | null
+          jds_no: string | null
+          jds_year: string | null
+          modified_by: string | null
+          outcome_code: string | null
+          regno: string
+          remarks: string | null
+          remarks2: string | null
+          scheme_code: string | null
+          suit_amount: number | null
+          suit_identifier: number
+          suit_no: string | null
+          suit_status: string | null
+          suit_type: string | null
+          suit_year: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          awarded_amount?: number | null
+          awarded_cost?: number | null
+          beginperiod?: string | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_filing?: string | null
+          date_of_hearing?: string | null
+          date_pay_by?: string | null
+          date_verified?: string | null
+          endperiod?: string | null
+          entered_by?: string | null
+          initial_suit_no?: string | null
+          initial_suit_year?: string | null
+          jds_no?: string | null
+          jds_year?: string | null
+          modified_by?: string | null
+          outcome_code?: string | null
+          regno: string
+          remarks?: string | null
+          remarks2?: string | null
+          scheme_code?: string | null
+          suit_amount?: number | null
+          suit_identifier?: number
+          suit_no?: string | null
+          suit_status?: string | null
+          suit_type?: string | null
+          suit_year?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          awarded_amount?: number | null
+          awarded_cost?: number | null
+          beginperiod?: string | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_filing?: string | null
+          date_of_hearing?: string | null
+          date_pay_by?: string | null
+          date_verified?: string | null
+          endperiod?: string | null
+          entered_by?: string | null
+          initial_suit_no?: string | null
+          initial_suit_year?: string | null
+          jds_no?: string | null
+          jds_year?: string | null
+          modified_by?: string | null
+          outcome_code?: string | null
+          regno?: string
+          remarks?: string | null
+          remarks2?: string | null
+          scheme_code?: string | null
+          suit_amount?: number | null
+          suit_identifier?: number
+          suit_no?: string | null
+          suit_status?: string | null
+          suit_type?: string | null
+          suit_year?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      er_visit: {
+        Row: {
+          date_of_visit: string
+          inspector_code: string | null
+          location_id: number
+          number_of_jobs: number | null
+          operation_code: string | null
+          outcome_code: string | null
+          regno: string
+          time_end: string | null
+          time_start: string | null
+          work_code: string | null
+        }
+        Insert: {
+          date_of_visit: string
+          inspector_code?: string | null
+          location_id: number
+          number_of_jobs?: number | null
+          operation_code?: string | null
+          outcome_code?: string | null
+          regno: string
+          time_end?: string | null
+          time_start?: string | null
+          work_code?: string | null
+        }
+        Update: {
+          date_of_visit?: string
+          inspector_code?: string | null
+          location_id?: number
+          number_of_jobs?: number | null
+          operation_code?: string | null
+          outcome_code?: string | null
+          regno?: string
+          time_end?: string | null
+          time_start?: string | null
+          work_code?: string | null
+        }
+        Relationships: []
+      }
       field_security_rules: {
         Row: {
           can_edit: boolean
