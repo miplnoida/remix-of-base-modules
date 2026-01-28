@@ -311,24 +311,58 @@ async function checkUserPermission(
 
     const allowedRoleIds = step.approver_role_ids as string[];
     
-    // First try to get user's roles from database
-    const { data: userRoles } = await supabase
+    // First try to get user's roles from AspNetUserRoles table
+    const { data: aspNetUserRoles } = await supabase
       .from('AspNetUserRoles')
       .select('RoleId')
       .eq('UserId', userId);
 
-    if (userRoles && userRoles.length > 0) {
-      const userRoleIds = userRoles.map(r => r.RoleId);
+    if (aspNetUserRoles && aspNetUserRoles.length > 0) {
+      const userRoleIds = aspNetUserRoles.map(r => r.RoleId);
       const hasAccess = allowedRoleIds.some(roleId => userRoleIds.includes(roleId));
       if (hasAccess) {
-        console.log('Role-based permission granted (database roles):', { allowedRoleIds, userRoleIds });
+        console.log('Role-based permission granted (AspNetUserRoles):', { allowedRoleIds, userRoleIds });
         return true;
       }
     }
 
-    // If database check fails, try matching by role name (for mock auth or if role names are provided)
+    // Also check the user_roles table (app_role enum based) + roles table
+    // This handles the case where approver_role_ids contains IDs from the 'roles' table
+    const { data: simpleUserRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    if (simpleUserRoles && simpleUserRoles.length > 0) {
+      // Get role names for the allowed role IDs from the 'roles' table
+      const { data: rolesTableData } = await supabase
+        .from('roles')
+        .select('id, role_name')
+        .in('id', allowedRoleIds);
+
+      if (rolesTableData && rolesTableData.length > 0) {
+        const allowedRoleNames = rolesTableData.map(r => r.role_name.toLowerCase());
+        const userRoleNamesList = simpleUserRoles.map(r => (r.role as string).toLowerCase());
+        
+        const hasAccess = userRoleNamesList.some(userRoleName => 
+          allowedRoleNames.some(allowedName => 
+            allowedName === userRoleName ||
+            allowedName.replace(/_/g, ' ') === userRoleName.replace(/_/g, ' ')
+          )
+        );
+        
+        if (hasAccess) {
+          console.log('Role-based permission granted (user_roles + roles table):', { 
+            allowedRoleNames, 
+            userRoleNamesList 
+          });
+          return true;
+        }
+      }
+    }
+
+    // If database check fails, try matching by role name from AspNetRoles
     if (userRoleNames && userRoleNames.length > 0) {
-      // Get role names for the allowed role IDs
       const { data: rolesData } = await supabase
         .from('AspNetRoles')
         .select('Id, Name')
@@ -356,13 +390,34 @@ async function checkUserPermission(
 
     // Also check userRole from context as fallback
     if (userRole) {
-      const { data: rolesData } = await supabase
+      // Check against roles table first (for Clerk, etc.)
+      const { data: rolesTableData } = await supabase
+        .from('roles')
+        .select('id, role_name')
+        .in('id', allowedRoleIds);
+      
+      if (rolesTableData) {
+        const allowedRoleNames = rolesTableData.map(r => r.role_name.toLowerCase());
+        const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ').trim();
+        
+        if (allowedRoleNames.some(roleName => {
+          const normalizedRoleName = roleName.trim();
+          return normalizedRoleName === normalizedUserRole ||
+                 normalizedRoleName === userRole.toLowerCase().trim();
+        })) {
+          console.log('Role-based permission granted (context role match - roles table):', { allowedRoleNames, userRole });
+          return true;
+        }
+      }
+
+      // Then check against AspNetRoles
+      const { data: aspNetRolesData } = await supabase
         .from('AspNetRoles')
         .select('Id, Name')
         .in('Id', allowedRoleIds);
       
-      if (rolesData) {
-        const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
+      if (aspNetRolesData) {
+        const allowedRoleNames = aspNetRolesData.map(r => r.Name.toLowerCase());
         const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
         
         if (allowedRoleNames.some(roleName => {
@@ -386,7 +441,13 @@ async function checkUserPermission(
       }
     }
     
-    console.log('Role-based permission denied:', { allowedRoleIds, userRoleIds: userRoles?.map(r => r.RoleId), userRoleNames, userRole });
+    console.log('Role-based permission denied:', { 
+      allowedRoleIds, 
+      aspNetUserRoleIds: aspNetUserRoles?.map(r => r.RoleId), 
+      simpleUserRoles: simpleUserRoles?.map(r => r.role),
+      userRoleNames, 
+      userRole 
+    });
     return false;
   }
 

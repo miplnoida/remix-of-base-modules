@@ -75,16 +75,16 @@ Deno.serve(async (req) => {
         }
       }
     } else if (approverType === 'role') {
-      // Find users with matching roles via AspNetUserRoles
-      // Then map to profiles using email
+      // Find users with matching roles - check both role systems
       if (step.approver_role_ids && step.approver_role_ids.length > 0) {
-        const { data: userRoles, error: rolesError } = await supabase
+        // 1. Check AspNetUserRoles table (legacy ASP.NET Identity)
+        const { data: aspNetUserRoles, error: aspNetRolesError } = await supabase
           .from('AspNetUserRoles')
           .select('UserId')
           .in('RoleId', step.approver_role_ids);
 
-        if (!rolesError && userRoles && userRoles.length > 0) {
-          const aspNetUserIds = [...new Set(userRoles.map(ur => ur.UserId))];
+        if (!aspNetRolesError && aspNetUserRoles && aspNetUserRoles.length > 0) {
+          const aspNetUserIds = [...new Set(aspNetUserRoles.map(ur => ur.UserId))];
           
           // Get emails from AspNetUsers
           const { data: aspNetUsers } = await supabase
@@ -106,6 +106,41 @@ Deno.serve(async (req) => {
             }
           }
         }
+
+        // 2. Check user_roles table (app_role enum based)
+        // First get role names from the 'roles' table for the given role IDs
+        const { data: rolesTableData } = await supabase
+          .from('roles')
+          .select('id, role_name')
+          .in('id', step.approver_role_ids);
+
+        if (rolesTableData && rolesTableData.length > 0) {
+          const allowedRoleNames = rolesTableData.map(r => r.role_name);
+          
+          // Find users in user_roles with matching role names
+          const { data: simpleUserRoles } = await supabase
+            .from('user_roles')
+            .select('user_id, role')
+            .in('role', allowedRoleNames);
+
+          if (simpleUserRoles && simpleUserRoles.length > 0) {
+            // Verify these user_ids exist in profiles
+            const userIdsFromSimpleRoles = [...new Set(simpleUserRoles.map(ur => ur.user_id))];
+            const { data: validProfiles } = await supabase
+              .from('profiles')
+              .select('id')
+              .in('id', userIdsFromSimpleRoles);
+
+            if (validProfiles) {
+              approverUserIds.push(...validProfiles.map(p => p.id));
+            }
+          }
+        }
+
+        // Remove duplicates
+        const uniqueApproverIds = [...new Set(approverUserIds)];
+        approverUserIds.length = 0;
+        approverUserIds.push(...uniqueApproverIds);
       }
     } else if (approverType === 'designation') {
       // Find users with matching designations (profiles have designation_id)
