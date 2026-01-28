@@ -283,12 +283,16 @@ async function checkUserPermission(
         const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
         
         // Check for matches including partial matches
-        // e.g., "admin" matches "Admin", "cashier_supervisor" matches "Cashier Supervisor"
-        if (allowedRoleNames.some(roleName => 
-          roleName === normalizedUserRole ||
-          roleName === userRole.toLowerCase() ||
-          roleName.replace(/ /g, '_') === userRole.toLowerCase()
-        )) {
+        // e.g., "admin" matches "Admin", "cashier_supervisor" matches "Cashier Supervisor", "clerk" matches "Clerk"
+        if (allowedRoleNames.some(roleName => {
+          const normalizedRoleName = roleName.trim();
+          const normalizedUser = normalizedUserRole.trim();
+          
+          return normalizedRoleName === normalizedUser ||
+                 normalizedRoleName === userRole.toLowerCase().trim() ||
+                 normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim() ||
+                 roleName === userRole.toLowerCase().trim();
+        })) {
           return true;
         }
         
@@ -349,9 +353,22 @@ async function checkTaskLevelAssignment(
   if (assignedRole) {
     // Check mock role match
     if (userRole) {
-      const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
-      const normalizedAssignedRole = assignedRole.toLowerCase().replace(/_/g, ' ');
+      const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ').trim();
+      const normalizedAssignedRole = assignedRole.toLowerCase().replace(/_/g, ' ').trim();
+      
+      // Direct match
       if (normalizedUserRole === normalizedAssignedRole) {
+        return true;
+      }
+      
+      // Case-insensitive match
+      if (userRole.toLowerCase() === assignedRole.toLowerCase()) {
+        return true;
+      }
+      
+      // Handle common variations (e.g., "clerk" matches "Clerk", "Clerk " matches "clerk")
+      if (normalizedUserRole === normalizedAssignedRole || 
+          userRole.toLowerCase().trim() === assignedRole.toLowerCase().trim()) {
         return true;
       }
     }
@@ -362,7 +379,13 @@ async function checkTaskLevelAssignment(
       .select('role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
       .eq('UserId', userId);
 
-    if (userRoles?.some(r => (r.role as any)?.Name === assignedRole)) {
+    if (userRoles?.some(r => {
+      const roleName = (r.role as any)?.Name;
+      if (!roleName) return false;
+      // Case-insensitive match
+      return roleName.toLowerCase() === assignedRole.toLowerCase() ||
+             roleName.toLowerCase().trim() === assignedRole.toLowerCase().trim();
+    })) {
       return true;
     }
   }

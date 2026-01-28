@@ -636,14 +636,13 @@ export default function IPRegistrationForm() {
               Submit
             </Button>
           )}
-          {/* Workflow-driven action buttons for pending status */}
-          {formData.status === 'P' && (
-            <WorkflowActionButtons
-              sourceModule="insured_person_registration"
-              sourceRecordId={formData.unique_uuid}
-              onActionComplete={handleWorkflowActionComplete}
-            />
-          )}
+          {/* Workflow-driven action buttons - show for any status if workflow exists and user has permission */}
+          {/* The WorkflowActionButtons component handles permission checking internally */}
+          <WorkflowActionButtons
+            sourceModule="insured_person_registration"
+            sourceRecordId={formData.unique_uuid}
+            onActionComplete={handleWorkflowActionComplete}
+          />
         </div>
       </div>
 
