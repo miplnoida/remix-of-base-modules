@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, ExternalLink } from "lucide-react";
+import { Bell, CheckCheck, ExternalLink, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,6 +15,7 @@ import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
+import { usePendingApprovalCount } from "@/hooks/useWorkflowPendingApprovals";
 
 interface InAppNotification {
   id: string;
@@ -31,6 +32,9 @@ export function InAppNotificationBell() {
   const { currentTheme } = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Get pending approval count
+  const { count: pendingApprovalCount, overdueCount } = usePendingApprovalCount();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['in-app-notifications', user?.id],
@@ -50,6 +54,9 @@ export function InAppNotificationBell() {
   });
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
+  
+  // Combined count: unread notifications + pending approvals
+  const totalBadgeCount = unreadCount + pendingApprovalCount;
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
@@ -99,12 +106,12 @@ export function InAppNotificationBell() {
           style={{ color: currentTheme.colors.primary }}
         >
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {totalBadgeCount > 0 && (
             <Badge
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              style={{ backgroundColor: currentTheme.colors.accent }}
+              style={{ backgroundColor: overdueCount > 0 ? 'hsl(var(--destructive))' : currentTheme.colors.accent }}
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
             </Badge>
           )}
         </Button>
@@ -124,7 +131,44 @@ export function InAppNotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="h-80">
+        
+        {/* Pending Approvals Section */}
+        {pendingApprovalCount > 0 && (
+          <>
+            <div
+              className="p-4 bg-amber-50 dark:bg-amber-900/20 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+              onClick={() => {
+                setOpen(false);
+                navigate('/workflow/approvals');
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                  {overdueCount > 0 ? (
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-amber-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {pendingApprovalCount} Pending Approval{pendingApprovalCount !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {overdueCount > 0 
+                      ? `${overdueCount} overdue - requires immediate attention`
+                      : 'Workflow tasks awaiting your action'
+                    }
+                  </p>
+                </div>
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+        
+        <ScrollArea className="h-64">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               No notifications

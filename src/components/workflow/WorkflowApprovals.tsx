@@ -4,118 +4,68 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Check, X, Clock, AlertCircle } from "lucide-react";
+import { Search, Check, X, Clock, AlertCircle, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface ApprovalRequest {
-  id: string;
-  workflowName: string;
-  stepName: string;
-  submittedBy: string;
-  submittedAt: string;
-  priority: "High" | "Medium" | "Low";
-  waitingTime: string;
-  dueDate: string;
-  status: "Pending" | "Overdue";
-}
-
-const mockApprovals: ApprovalRequest[] = [
-  {
-    id: "apr-001",
-    workflowName: "Retirement Benefit Application",
-    stepName: "Supervisor Review",
-    submittedBy: "John Doe",
-    submittedAt: "2024-11-22T08:30:00Z",
-    priority: "High",
-    waitingTime: "2h 15m",
-    dueDate: "2024-11-22T18:00:00Z",
-    status: "Pending",
-  },
-  {
-    id: "apr-002",
-    workflowName: "Employer Registration",
-    stepName: "Manager Approval",
-    submittedBy: "Jane Smith",
-    submittedAt: "2024-11-21T14:00:00Z",
-    priority: "High",
-    waitingTime: "20h 45m",
-    dueDate: "2024-11-22T12:00:00Z",
-    status: "Overdue",
-  },
-  {
-    id: "apr-003",
-    workflowName: "Sickness Benefit Claim",
-    stepName: "Medical Review Approval",
-    submittedBy: "Mike Johnson",
-    submittedAt: "2024-11-22T09:00:00Z",
-    priority: "Medium",
-    waitingTime: "1h 45m",
-    dueDate: "2024-11-23T09:00:00Z",
-    status: "Pending",
-  },
-  {
-    id: "apr-004",
-    workflowName: "Compliance Audit",
-    stepName: "Director Approval",
-    submittedBy: "Sarah Williams",
-    submittedAt: "2024-11-22T07:00:00Z",
-    priority: "High",
-    waitingTime: "3h 45m",
-    dueDate: "2024-11-22T16:00:00Z",
-    status: "Pending",
-  },
-  {
-    id: "apr-005",
-    workflowName: "Fee Waiver Request",
-    stepName: "Finance Manager Approval",
-    submittedBy: "Robert Brown",
-    submittedAt: "2024-11-22T10:30:00Z",
-    priority: "Low",
-    waitingTime: "15m",
-    dueDate: "2024-11-24T10:30:00Z",
-    status: "Pending",
-  },
-];
+import { useMyPendingApprovals, formatWaitingTime, PendingApproval } from "@/hooks/useWorkflowPendingApprovals";
+import { useNavigate } from "react-router-dom";
 
 export default function WorkflowApprovals() {
   const { toast } = useToast();
-  const [approvals] = useState<ApprovalRequest[]>(mockApprovals);
+  const navigate = useNavigate();
+  const { data: approvals = [], isLoading, error } = useMyPendingApprovals();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredApprovals = approvals.filter(
     (approval) =>
-      approval.workflowName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      approval.stepName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      approval.submittedBy.toLowerCase().includes(searchTerm.toLowerCase())
+      approval.workflow_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      approval.step_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      approval.source_record_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (approval.submitter_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      High: "bg-red-100 text-red-800",
-      Medium: "bg-yellow-100 text-yellow-800",
-      Low: "bg-green-100 text-green-800",
+      High: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+      Medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+      Low: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     };
-    return colors[priority] || "bg-gray-100 text-gray-800";
+    return colors[priority] || "bg-muted text-muted-foreground";
   };
 
-  const handleApprove = (id: string) => {
-    toast({
-      title: "Approved",
-      description: "Approval request has been approved successfully",
-    });
-  };
-
-  const handleReject = (id: string) => {
-    toast({
-      title: "Rejected",
-      description: "Approval request has been rejected",
-      variant: "destructive",
-    });
+  const handleViewRecord = (approval: PendingApproval) => {
+    // Navigate to the appropriate detail page based on source_module
+    if (approval.source_module === 'insured_person_registration') {
+      navigate(`/ip-registration/edit/${approval.source_record_id}`);
+    } else {
+      // Generic fallback
+      toast({
+        title: "View Record",
+        description: `Navigating to ${approval.source_record_name}`,
+      });
+    }
   };
 
   const pendingCount = approvals.filter((a) => a.status === "Pending").length;
-  const overdueCount = approvals.filter((a) => a.status === "Overdue").length;
+  const overdueCount = approvals.filter((a) => a.is_overdue).length;
   const highPriorityCount = approvals.filter((a) => a.priority === "High").length;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading pending approvals...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64 text-destructive">
+        <AlertCircle className="h-6 w-6 mr-2" />
+        <span>Failed to load approvals: {error.message}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -176,63 +126,76 @@ export default function WorkflowApprovals() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Workflow</TableHead>
-                <TableHead>Step</TableHead>
-                <TableHead>Submitted By</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Waiting Time</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredApprovals.map((approval) => (
-                <TableRow key={approval.id}>
-                  <TableCell className="font-medium">{approval.workflowName}</TableCell>
-                  <TableCell className="text-sm">{approval.stepName}</TableCell>
-                  <TableCell className="text-sm">{approval.submittedBy}</TableCell>
-                  <TableCell>
-                    <Badge className={getPriorityColor(approval.priority)} variant="secondary">
-                      {approval.priority}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{approval.waitingTime}</TableCell>
-                  <TableCell className="text-sm">
-                    {new Date(approval.dueDate).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={approval.status === "Overdue" ? "destructive" : "outline"}
-                    >
-                      {approval.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleApprove(approval.id)}
-                      >
-                        <Check className="h-4 w-4 text-green-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleReject(approval.id)}
-                      >
-                        <X className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {filteredApprovals.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No pending approvals</p>
+              <p className="text-sm">You're all caught up!</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Workflow</TableHead>
+                  <TableHead>Step</TableHead>
+                  <TableHead>Record</TableHead>
+                  <TableHead>Submitted By</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Waiting Time</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredApprovals.map((approval) => (
+                  <TableRow 
+                    key={approval.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleViewRecord(approval)}
+                  >
+                    <TableCell className="font-medium">{approval.workflow_name}</TableCell>
+                    <TableCell className="text-sm">{approval.step_name}</TableCell>
+                    <TableCell className="text-sm max-w-[200px] truncate">
+                      {approval.source_record_name}
+                    </TableCell>
+                    <TableCell className="text-sm">{approval.submitter_name || '-'}</TableCell>
+                    <TableCell>
+                      <Badge className={getPriorityColor(approval.priority)} variant="secondary">
+                        {approval.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{formatWaitingTime(approval.created_at)}</TableCell>
+                    <TableCell className="text-sm">
+                      {approval.due_at 
+                        ? new Date(approval.due_at).toLocaleString()
+                        : '-'
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={approval.is_overdue ? "destructive" : "outline"}
+                      >
+                        {approval.is_overdue ? 'Overdue' : approval.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewRecord(approval)}
+                          title="View and take action"
+                        >
+                          <Eye className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
