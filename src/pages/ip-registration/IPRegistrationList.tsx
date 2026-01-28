@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Eye, Edit, Send, CheckCircle, Trash2, Search, 
   Filter, Download, ChevronUp, ChevronDown,
-  UserPlus, Key, Users
+  UserPlus, Key, Users, FileText, FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -23,6 +23,8 @@ import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActionButtons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { exportToExcel, exportToPDF, ExportColumn, ExportData } from '@/utils/exportUtils';
 
 // Status codes by tab
 const PENDING_STATUSES = ['Z', 'P'];
@@ -432,6 +434,144 @@ export default function IPRegistrationList() {
     return gender || '-';
   };
 
+  // Prepare export data based on visible columns
+  const prepareExportData = useCallback((): { columns: ExportColumn[], data: ExportData[] } => {
+    const exportColumns: ExportColumn[] = visibleColumns.map(col => ({
+      header: col.label,
+      key: col.key,
+      width: col.key === 'full_name' ? 25 : 15,
+    }));
+
+    const exportData: ExportData[] = filteredRecords.map(record => {
+      const row: ExportData = {};
+      visibleColumns.forEach(col => {
+        switch (col.key) {
+          case 'application_id':
+            row[col.key] = record.ssn || record.application_id || '-';
+            break;
+          case 'full_name':
+            row[col.key] = getFullName(record);
+            break;
+          case 'status':
+            row[col.key] = ipStatuses ? getStatusDescription(record.status, ipStatuses) : (statusConfig[record.status]?.label || record.status);
+            break;
+          case 'date_of_birth':
+            row[col.key] = getDateOfBirth(record);
+            break;
+          case 'gender':
+            row[col.key] = getGenderDisplay(record);
+            break;
+          case 'nationality':
+            row[col.key] = getCountryDescription(record.nationality_code || record.nationality);
+            break;
+          case 'registration_date':
+            row[col.key] = getRegistrationDate(record);
+            break;
+          case 'telephone':
+            row[col.key] = record.phone || record.telephone || '-';
+            break;
+          default:
+            row[col.key] = '-';
+        }
+      });
+      return row;
+    });
+
+    return { columns: exportColumns, data: exportData };
+  }, [filteredRecords, visibleColumns, ipStatuses, getCountryDescription]);
+
+  // Handle export to Excel
+  const handleExportExcel = async () => {
+    if (filteredRecords.length === 0) {
+      toast.error('No records to export');
+      return;
+    }
+    try {
+      const { columns, data } = prepareExportData();
+      const tabName = activeTab === 'pending' ? 'Pending_Verification' : activeTab === 'registered' ? 'Registered_IP' : 'Inactive_IP';
+      const fileName = `IP_Registration_${tabName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}`;
+      await exportToExcel(data, columns, fileName, 'IP Registrations');
+      toast.success(`Exported ${data.length} records to Excel`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export to Excel');
+    }
+  };
+
+  // Handle export to PDF
+  const handleExportPDF = () => {
+    if (filteredRecords.length === 0) {
+      toast.error('No records to export');
+      return;
+    }
+    try {
+      const { columns, data } = prepareExportData();
+      const tabTitle = activeTab === 'pending' ? 'Pending Verification' : activeTab === 'registered' ? 'Registered Insured Persons' : 'Inactive Insured Persons';
+      const tabName = activeTab === 'pending' ? 'Pending_Verification' : activeTab === 'registered' ? 'Registered_IP' : 'Inactive_IP';
+      const fileName = `IP_Registration_${tabName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}`;
+      
+      exportToPDF(
+        `IP Registration - ${tabTitle}`,
+        columns,
+        data,
+        fileName,
+        [
+          { label: 'Total Records', value: data.length.toString() },
+          { label: 'Export Date', value: format(new Date(), 'dd/MM/yyyy HH:mm') },
+        ]
+      );
+      toast.success(`Exported ${data.length} records to PDF`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export to PDF');
+    }
+  };
+
+  // Handle export to CSV
+  const handleExportCSV = () => {
+    if (filteredRecords.length === 0) {
+      toast.error('No records to export');
+      return;
+    }
+    try {
+      const { columns, data } = prepareExportData();
+      
+      // Build CSV content
+      const headers = columns.map(col => col.header);
+      const csvRows = [
+        headers.join(','),
+        ...data.map(row => 
+          columns.map(col => {
+            const value = row[col.key];
+            if (value === null || value === undefined) return '';
+            const stringValue = String(value).replace(/"/g, '""');
+            return stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"') 
+              ? `"${stringValue}"` 
+              : stringValue;
+          }).join(',')
+        )
+      ];
+      const csvContent = csvRows.join('\n');
+      
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const tabName = activeTab === 'pending' ? 'Pending_Verification' : activeTab === 'registered' ? 'Registered_IP' : 'Inactive_IP';
+      link.href = url;
+      link.download = `IP_Registration_${tabName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`Exported ${data.length} records to CSV`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export to CSV');
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -596,10 +736,30 @@ export default function IPRegistrationList() {
                 {activeTab === 'inactive' && `Inactive Insured Person (${filteredRecords.length})`}
               </h3>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2" disabled={filteredRecords.length === 0}>
+                      <Download className="h-4 w-4" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-background z-50">
+                    <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export as CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer">
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Export as Excel
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export as PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <ColumnSelector 
                   columns={columns} 
                   onColumnChange={setColumns}
