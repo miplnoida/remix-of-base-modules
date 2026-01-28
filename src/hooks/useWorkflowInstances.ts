@@ -184,22 +184,160 @@ export function useWorkflowInstanceHistory(instanceId: string | null) {
   });
 }
 
-// Fetch all tasks for an instance
+export interface WorkflowTaskWithApproverInfo {
+  id: string;
+  instance_id: string;
+  step_id: string;
+  step_name: string;
+  status: string;
+  assigned_to: string | null;
+  assigned_to_name: string | null;
+  assigned_role: string | null;
+  assigned_designation: string | null;
+  action_taken: string | null;
+  comments: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  due_at: string | null;
+  // Step configuration fields
+  approver_type: string | null;
+  approver_role_names: string[];
+  approver_designation_names: string[];
+  approver_user_names: string[];
+}
+
+// Fetch all tasks for an instance with approver information
 export function useWorkflowInstanceTasks(instanceId: string | null) {
   return useQuery({
     queryKey: ['workflow-instance-tasks', instanceId],
     queryFn: async () => {
       if (!instanceId) return [];
       
-      const { data, error } = await supabase
+      // Fetch tasks with step information
+      const { data: tasks, error: tasksError } = await supabase
         .from('workflow_tasks')
-        .select('*')
+        .select(`
+          *,
+          step:workflow_steps!step_id(
+            approver_type,
+            approver_role_ids,
+            approver_designation_ids,
+            approver_user_ids,
+            assigned_role
+          )
+        `)
         .eq('instance_id', instanceId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (tasksError) throw tasksError;
+      if (!tasks) return [];
       
-      return data;
+      // Collect all role/designation/user IDs to resolve names
+      const roleIds = new Set<string>();
+      const designationIds = new Set<string>();
+      const userIds = new Set<string>();
+      
+      tasks.forEach((task: any) => {
+        const step = task.step;
+        if (step) {
+          if (step.approver_role_ids) {
+            step.approver_role_ids.forEach((id: string) => roleIds.add(id));
+          }
+          if (step.approver_designation_ids) {
+            step.approver_designation_ids.forEach((id: string) => designationIds.add(id));
+          }
+          if (step.approver_user_ids) {
+            step.approver_user_ids.forEach((id: string) => userIds.add(id));
+          }
+        }
+      });
+      
+      // Fetch role names
+      let roleMap: Record<string, string> = {};
+      if (roleIds.size > 0) {
+        const { data: roles } = await supabase
+          .from('roles')
+          .select('id, role_name')
+          .in('id', Array.from(roleIds));
+        if (roles) {
+          roleMap = Object.fromEntries(roles.map(r => [r.id, r.role_name]));
+        }
+      }
+      
+      // Fetch designation names
+      let designationMap: Record<string, string> = {};
+      if (designationIds.size > 0) {
+        const { data: designations } = await supabase
+          .from('designations')
+          .select('id, name')
+          .in('id', Array.from(designationIds));
+        if (designations) {
+          designationMap = Object.fromEntries(designations.map(d => [d.id, d.name]));
+        }
+      }
+      
+      // Fetch user names
+      let userMap: Record<string, string> = {};
+      if (userIds.size > 0) {
+        const { data: users } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', Array.from(userIds));
+        if (users) {
+          userMap = Object.fromEntries(users.map(u => [u.id, u.full_name || 'Unknown']));
+        }
+      }
+      
+      // Map tasks with resolved approver information
+      const enrichedTasks: WorkflowTaskWithApproverInfo[] = tasks.map((task: any) => {
+        const step = task.step;
+        let approverRoleNames: string[] = [];
+        let approverDesignationNames: string[] = [];
+        let approverUserNames: string[] = [];
+        
+        if (step) {
+          if (step.approver_role_ids) {
+            approverRoleNames = step.approver_role_ids
+              .map((id: string) => roleMap[id])
+              .filter(Boolean);
+          }
+          if (step.approver_designation_ids) {
+            approverDesignationNames = step.approver_designation_ids
+              .map((id: string) => designationMap[id])
+              .filter(Boolean);
+          }
+          if (step.approver_user_ids) {
+            approverUserNames = step.approver_user_ids
+              .map((id: string) => userMap[id])
+              .filter(Boolean);
+          }
+        }
+        
+        return {
+          id: task.id,
+          instance_id: task.instance_id,
+          step_id: task.step_id,
+          step_name: task.step_name,
+          status: task.status,
+          assigned_to: task.assigned_to,
+          assigned_to_name: task.assigned_to_name,
+          assigned_role: task.assigned_role || step?.assigned_role,
+          assigned_designation: task.assigned_designation,
+          action_taken: task.action_taken,
+          comments: task.comments,
+          created_at: task.created_at,
+          started_at: task.started_at,
+          completed_at: task.completed_at,
+          due_at: task.due_at,
+          approver_type: step?.approver_type || null,
+          approver_role_names: approverRoleNames,
+          approver_designation_names: approverDesignationNames,
+          approver_user_names: approverUserNames,
+        };
+      });
+      
+      return enrichedTasks;
     },
     enabled: !!instanceId,
   });

@@ -299,30 +299,91 @@ const WorkflowInstanceDetail: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tasks.map((task) => (
-                <div 
-                  key={task.id} 
-                  className="border rounded-lg p-4 bg-muted/30"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="font-medium">{task.step_name}</div>
-                    {getStatusBadge(task.status)}
-                  </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    {task.assigned_to_name || task.assigned_role || task.assigned_designation || 'Unassigned'}
-                  </div>
-                  {task.action_taken && (
-                    <div className="mt-2 text-sm">
-                      <span className="font-medium">Action:</span> {task.action_taken}
+              {tasks.map((task) => {
+                // Determine the pending approver display text
+                const getPendingApproverText = () => {
+                  // If directly assigned to a user
+                  if (task.assigned_to_name) {
+                    return { type: 'User', value: task.assigned_to_name };
+                  }
+                  
+                  // Check approver_type configuration
+                  if (task.approver_type === 'role') {
+                    const roleNames = task.approver_role_names || [];
+                    if (roleNames.length > 0) {
+                      return { type: 'Role', value: roleNames.join(', ') };
+                    }
+                    // Fallback to assigned_role if no role names resolved
+                    if (task.assigned_role) {
+                      return { type: 'Role', value: task.assigned_role };
+                    }
+                  }
+                  
+                  if (task.approver_type === 'designation') {
+                    const designationNames = task.approver_designation_names || [];
+                    if (designationNames.length > 0) {
+                      return { type: 'Designation', value: designationNames.join(', ') };
+                    }
+                    if (task.assigned_designation) {
+                      return { type: 'Designation', value: task.assigned_designation };
+                    }
+                  }
+                  
+                  if (task.approver_type === 'user') {
+                    const userNames = task.approver_user_names || [];
+                    if (userNames.length > 0) {
+                      return { type: 'User', value: userNames.join(', ') };
+                    }
+                  }
+                  
+                  // Fallback to task-level assignment
+                  if (task.assigned_role) {
+                    return { type: 'Role', value: task.assigned_role };
+                  }
+                  if (task.assigned_designation) {
+                    return { type: 'Designation', value: task.assigned_designation };
+                  }
+                  
+                  return { type: null, value: 'Unassigned' };
+                };
+                
+                const approverInfo = getPendingApproverText();
+                
+                return (
+                  <div 
+                    key={task.id} 
+                    className="border rounded-lg p-4 bg-muted/30"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="font-medium">{task.step_name}</div>
+                      {getStatusBadge(task.status)}
                     </div>
-                  )}
-                  {task.completed_at && (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Completed: {format(new Date(task.completed_at), 'PPp')}
+                    <div className="mt-2 space-y-1">
+                      {approverInfo.type && (
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Approver Type:</span> {approverInfo.type}
+                        </div>
+                      )}
+                      <div className="text-sm">
+                        <span className="font-medium text-muted-foreground">Pending:</span>{' '}
+                        <span className={approverInfo.value === 'Unassigned' ? 'text-amber-600' : 'text-foreground'}>
+                          {approverInfo.value}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {task.action_taken && (
+                      <div className="mt-2 text-sm">
+                        <span className="font-medium">Action:</span> {task.action_taken}
+                      </div>
+                    )}
+                    {task.completed_at && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Completed: {format(new Date(task.completed_at), 'PPp')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
