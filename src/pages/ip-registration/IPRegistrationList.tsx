@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useIPStatuses, useCountries, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -80,7 +81,11 @@ const defaultColumns: Column[] = [
 
 export default function IPRegistrationList() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const { user: supabaseUser } = useSupabaseAuth();
+  
+  // Use Supabase user if available, otherwise fall back to auth user
+  const user = supabaseUser || authUser;
   const { data: ipStatuses } = useIPStatuses();
   const { data: countries } = useCountries();
   const [records, setRecords] = useState<IPRecord[]>([]);
@@ -283,18 +288,39 @@ export default function IPRegistrationList() {
   };
 
   const confirmSubmit = async () => {
-    console.log('confirmSubmit called', { submitRecord, userId: user?.id });
+    console.log('confirmSubmit called', { submitRecord, authUser: authUser?.id, supabaseUser: supabaseUser?.id, user: user?.id });
     
-    if (!submitRecord || !user?.id) {
-      console.error('Missing record or user information', { submitRecord, userId: user?.id });
-      toast.error('Missing record or user information');
+    if (!submitRecord) {
+      console.error('Missing record', { submitRecord });
+      toast.error('Missing record information');
+      setSubmitRecord(null);
+      return;
+    }
+
+    // Get user ID from multiple sources as fallback
+    let userId: string | undefined = user?.id;
+    
+    // If no user ID from context, try to get it from Supabase auth directly
+    if (!userId) {
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        userId = currentUser?.id;
+        console.log('Got user ID from Supabase auth:', userId);
+      } catch (error) {
+        console.error('Error getting user from Supabase:', error);
+      }
+    }
+    
+    if (!userId) {
+      console.error('Missing user ID', { authUser, supabaseUser, user });
+      toast.error('User not authenticated. Please log in again.');
       setSubmitRecord(null);
       return;
     }
 
     try {
-      console.log('Calling submitIPRegistration', { uniqueUuid: submitRecord.unique_uuid, userId: user.id });
-      const result = await submitIPRegistration(submitRecord.unique_uuid, user.id);
+      console.log('Calling submitIPRegistration', { uniqueUuid: submitRecord.unique_uuid, userId });
+      const result = await submitIPRegistration(submitRecord.unique_uuid, userId);
       console.log('Submit result:', result);
       
       if (result.success) {
