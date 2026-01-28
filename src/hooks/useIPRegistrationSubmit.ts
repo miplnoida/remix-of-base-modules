@@ -292,7 +292,7 @@ export function useIPRegistrationSubmit() {
         // For now, we'll assign to first user
       }
 
-      await supabase
+      const { data: taskData } = await supabase
         .from('workflow_tasks')
         .insert({
           instance_id: instance.id,
@@ -303,7 +303,9 @@ export function useIPRegistrationSubmit() {
           assigned_to: taskAssignment.assigned_to || null,
           status: 'Pending',
           due_at: taskDueAt.toISOString(),
-        });
+        })
+        .select('id')
+        .single();
 
       // Log workflow start
       await supabase
@@ -317,6 +319,26 @@ export function useIPRegistrationSubmit() {
           performed_by_name: profile?.full_name || 'System',
           details: `Workflow started for IP Registration: ${recordName}`,
         });
+
+      // Notify approvers via edge function
+      if (taskData?.id) {
+        try {
+          await supabase.functions.invoke('workflow-notify-approvers', {
+            body: {
+              instance_id: instance.id,
+              step_id: firstStep.id,
+              task_id: taskData.id,
+              workflow_name: workflowDef.name,
+              source_record_name: recordName,
+              source_module: 'insured_person_registration',
+            },
+          });
+          console.log('Approvers notified successfully');
+        } catch (notifyError) {
+          console.error('Failed to notify approvers (non-critical):', notifyError);
+          // Don't fail the workflow creation if notification fails
+        }
+      }
 
       return instance.id;
     } catch (error) {

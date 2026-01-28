@@ -1,1 +1,4 @@
 project_id = "pruvbfejdpodpalqafcu"
+
+[functions.workflow-notify-approvers]
+verify_jwt = false

@@ -771,7 +771,14 @@ async function createNextStepTask(instanceId: string, stepId: string) {
     }
   }
 
-  await supabase
+  // Get instance info for notification
+  const { data: instance } = await supabase
+    .from('workflow_instances')
+    .select('workflow_name, source_module, source_record_name')
+    .eq('id', instanceId)
+    .single();
+
+  const { data: taskData } = await supabase
     .from('workflow_tasks')
     .insert({
       instance_id: instanceId,
@@ -782,7 +789,9 @@ async function createNextStepTask(instanceId: string, stepId: string) {
       assigned_to: taskAssignment.assigned_to || null,
       status: 'Pending',
       due_at: dueAt.toISOString(),
-    });
+    })
+    .select('id')
+    .single();
 
   await supabase
     .from('workflow_instances')
@@ -791,6 +800,25 @@ async function createNextStepTask(instanceId: string, stepId: string) {
       status: 'InProgress',
     })
     .eq('id', instanceId);
+
+  // Notify approvers for the next step
+  if (taskData?.id && instance) {
+    try {
+      await supabase.functions.invoke('workflow-notify-approvers', {
+        body: {
+          instance_id: instanceId,
+          step_id: step.id,
+          task_id: taskData.id,
+          workflow_name: instance.workflow_name,
+          source_record_name: instance.source_record_name,
+          source_module: instance.source_module,
+        },
+      });
+      console.log('Next step approvers notified successfully');
+    } catch (notifyError) {
+      console.error('Failed to notify next step approvers (non-critical):', notifyError);
+    }
+  }
 }
 
 /**
