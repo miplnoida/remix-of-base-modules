@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Power, Trash2, FileText, BarChart3 } from 'lucide-react';
+import { Plus, Edit, Power, Trash2, FileText, BarChart3, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -22,12 +23,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from '@/hooks/useActionPermission';
 import {
   useWorkflowDefinitions,
   useDeleteWorkflow,
   useToggleWorkflowStatus,
+  useCloneWorkflow,
 } from '@/hooks/useWorkflows';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,11 +46,15 @@ export default function WorkflowList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cloneWorkflow, setCloneWorkflow] = useState<{ id: string; name: string } | null>(null);
+  const [cloneName, setCloneName] = useState('');
+  const [isCloning, setIsCloning] = useState(false);
   
   const { can } = useActionPermissions(MODULE_NAMES.WORKFLOW_MANAGEMENT);
   const { data: workflows, isLoading } = useWorkflowDefinitions();
-  const deleteWorkflow = useDeleteWorkflow();
+  const deleteWorkflowMutation = useDeleteWorkflow();
   const toggleStatus = useToggleWorkflowStatus();
+  const cloneWorkflowMutation = useCloneWorkflow();
   
   const filteredWorkflows = workflows?.filter(w =>
     w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,13 +63,38 @@ export default function WorkflowList() {
   
   const handleDelete = async () => {
     if (deleteId) {
-      await deleteWorkflow.mutateAsync(deleteId);
+      await deleteWorkflowMutation.mutateAsync(deleteId);
       setDeleteId(null);
     }
   };
   
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     await toggleStatus.mutateAsync({ id, is_active: !currentStatus });
+  };
+
+  const handleCloneClick = (workflow: { id: string; name: string }) => {
+    setCloneWorkflow(workflow);
+    setCloneName(workflow.name + ' (Copy)');
+  };
+
+  const handleCloneConfirm = async () => {
+    if (!cloneWorkflow) return;
+    
+    setIsCloning(true);
+    try {
+      const newWorkflowId = await cloneWorkflowMutation.mutateAsync({
+        sourceWorkflowId: cloneWorkflow.id,
+        newName: cloneName.trim() || undefined,
+      });
+      setCloneWorkflow(null);
+      setCloneName('');
+      // Navigate to edit the new workflow
+      if (newWorkflowId) {
+        navigate(`/admin/workflows/${newWorkflowId}`);
+      }
+    } finally {
+      setIsCloning(false);
+    }
   };
 
   return (
@@ -148,8 +187,19 @@ export default function WorkflowList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => navigate(`/admin/workflows/${workflow.id}`)}
+                            title="Edit Workflow"
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {can(ACTION_NAMES.CREATE) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCloneClick({ id: workflow.id, name: workflow.name })}
+                            title="Clone Workflow"
+                          >
+                            <Copy className="h-4 w-4" />
                           </Button>
                         )}
                         {can(ACTION_NAMES.DISABLE) && (
@@ -157,6 +207,7 @@ export default function WorkflowList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleToggleStatus(workflow.id, workflow.is_active)}
+                            title={workflow.is_active ? 'Disable Workflow' : 'Enable Workflow'}
                           >
                             <Power className={`h-4 w-4 ${workflow.is_active ? 'text-green-500' : 'text-muted-foreground'}`} />
                           </Button>
@@ -166,6 +217,7 @@ export default function WorkflowList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeleteId(workflow.id)}
+                            title="Delete Workflow"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -199,6 +251,49 @@ export default function WorkflowList() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Clone Workflow Dialog */}
+        <Dialog open={!!cloneWorkflow} onOpenChange={(open) => !isCloning && !open && setCloneWorkflow(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Clone Workflow</DialogTitle>
+              <DialogDescription>
+                Create a duplicate of "{cloneWorkflow?.name}" with all its steps, actions, notifications, and field updates.
+                The cloned workflow will be created as inactive.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="clone-name">New Workflow Name</Label>
+                <Input
+                  id="clone-name"
+                  value={cloneName}
+                  onChange={(e) => setCloneName(e.target.value)}
+                  placeholder="Enter name for cloned workflow"
+                  disabled={isCloning}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCloneWorkflow(null)} disabled={isCloning}>
+                Cancel
+              </Button>
+              <Button onClick={handleCloneConfirm} disabled={isCloning || !cloneName.trim()}>
+                {isCloning ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Cloning...
+                  </span>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Clone Workflow
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </PermissionWrapper>
   );
