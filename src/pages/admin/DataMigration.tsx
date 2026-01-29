@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,133 +12,176 @@ import {
   Info, 
   CheckCircle, 
   AlertCircle,
-  FileJson
+  FileJson,
+  RefreshCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
-// Table categories for organized export
-const TABLE_CATEGORIES = {
+// Table categorization rules (prefix-based matching)
+const TABLE_CATEGORY_RULES: Record<string, { description: string; prefixes: string[]; exactMatches?: string[] }> = {
   Configuration: {
     description: "Core system configuration",
-    tables: [
-      "roles",
-      "app_modules",
-      "module_actions",
-      "module_tables",
-      "role_permissions",
-      "role_hierarchy",
-      "password_policies",
-      "mfa_config",
-    ],
+    prefixes: ["app_", "module_", "role", "password_", "mfa_", "api_"],
+    exactMatches: ["roles"],
   },
   Organization: {
     description: "Organizational structure",
-    tables: [
-      "departments",
-      "designations",
-      "designation_hierarchy",
-      "office_locations",
-      "office_departments",
-    ],
+    prefixes: ["department", "designation", "office_"],
+    exactMatches: ["departments", "designations"],
   },
   Workflows: {
-    description: "Workflow definitions and steps",
-    tables: [
-      "workflow_definitions",
-      "workflow_steps",
-      "workflow_step_actions",
-      "workflow_triggers",
-      "workflow_action_notifications",
-    ],
+    description: "Workflow definitions and runtime",
+    prefixes: ["workflow_"],
   },
   Security: {
     description: "Data access and field security",
-    tables: [
-      "data_scope_rules",
-      "field_security_rules",
-    ],
+    prefixes: ["data_scope_", "field_security_", "data_policy_"],
   },
   Notifications: {
-    description: "Notification settings",
-    tables: [
-      "notification_providers",
-      "notification_templates",
-    ],
+    description: "Notification settings and logs",
+    prefixes: ["notification_", "in_app_notification"],
   },
   Users: {
     description: "User profiles and settings",
-    tables: [
-      "profiles",
-      "user_roles",
-      "user_notification_preferences",
-      "user_permission_overrides",
-      "user_data_overrides",
-      "user_sessions",
-    ],
+    prefixes: ["user_", "profile"],
+    exactMatches: ["profiles"],
   },
-  WorkflowInstances: {
-    description: "Active workflow instances",
-    tables: [
-      "workflow_instances",
-      "workflow_tasks",
-      "workflow_task_history",
-      "workflow_security_audit_log",
-    ],
+  InsuredPersons: {
+    description: "Insured Person Registration",
+    prefixes: ["ip_", "tmp_ip_"],
+  },
+  Employers: {
+    description: "Employer Registration",
+    prefixes: ["er_"],
+  },
+  Legal: {
+    description: "Legal case management",
+    prefixes: ["legal_"],
+  },
+  Compliance: {
+    description: "Compliance and audit data",
+    prefixes: ["compliance_", "bema_", "c3_"],
+  },
+  MasterData: {
+    description: "Master/lookup tables",
+    prefixes: ["tb_"],
+  },
+  Inspectors: {
+    description: "Inspector management",
+    prefixes: ["inspector_"],
+  },
+  Contributions: {
+    description: "Contributions and remittances",
+    prefixes: ["contribution_", "contributor_", "remittance_", "payment_plan_"],
+  },
+  SystemLogs: {
+    description: "System audit and logs",
+    prefixes: ["audit_", "system_"],
   },
   SampleData: {
     description: "Sample application data",
-    tables: [
-      "sample_applications",
-    ],
+    prefixes: ["sample_"],
+    exactMatches: ["sample_applications"],
   },
 };
 
+// Categorize a table name
+const categorizeTable = (tableName: string): string => {
+  for (const [category, rules] of Object.entries(TABLE_CATEGORY_RULES)) {
+    // Check exact matches first
+    if (rules.exactMatches?.includes(tableName)) {
+      return category;
+    }
+    // Check prefix matches
+    for (const prefix of rules.prefixes) {
+      if (tableName.startsWith(prefix)) {
+        return category;
+      }
+    }
+  }
+  return "Other";
+};
+
+// Build categories from table list
+const buildTableCategories = (tables: string[]): Record<string, { description: string; tables: string[] }> => {
+  const categories: Record<string, { description: string; tables: string[] }> = {};
+  
+  // Initialize categories from rules
+  for (const [category, rules] of Object.entries(TABLE_CATEGORY_RULES)) {
+    categories[category] = { description: rules.description, tables: [] };
+  }
+  categories["Other"] = { description: "Other tables", tables: [] };
+  
+  // Categorize each table
+  for (const table of tables) {
+    const category = categorizeTable(table);
+    categories[category].tables.push(table);
+  }
+  
+  // Remove empty categories
+  for (const category of Object.keys(categories)) {
+    if (categories[category].tables.length === 0) {
+      delete categories[category];
+    }
+  }
+  
+  // Sort tables within each category
+  for (const category of Object.keys(categories)) {
+    categories[category].tables.sort();
+  }
+  
+  return categories;
+};
+
 // Ordered list for proper import (respecting foreign key dependencies)
-const TABLE_IMPORT_ORDER = [
-  // Configuration (no dependencies)
-  "roles",
-  "app_modules",
-  "module_actions",
-  "module_tables",
-  "role_permissions",
-  "role_hierarchy",
-  "password_policies",
-  "mfa_config",
-  // Organization
-  "office_locations",
-  "departments",
-  "designations",
-  "designation_hierarchy",
-  "office_departments",
-  // Workflows
-  "workflow_definitions",
-  "workflow_steps",
-  "workflow_step_actions",
-  "workflow_triggers",
-  "workflow_action_notifications",
-  // Security
-  "data_scope_rules",
-  "field_security_rules",
-  // Notifications
-  "notification_providers",
-  "notification_templates",
-  // Users (depends on above)
-  "profiles",
-  "user_roles",
-  "user_notification_preferences",
-  "user_permission_overrides",
-  "user_data_overrides",
-  "user_sessions",
-  // Workflow instances (depends on definitions + users)
-  "workflow_instances",
-  "workflow_tasks",
-  "workflow_task_history",
-  "workflow_security_audit_log",
-  // Sample data
-  "sample_applications",
-];
+// Tables should be imported in dependency order
+const getTableImportOrder = (tables: string[]): string[] => {
+  // Define priority prefixes (lower = higher priority, imported first)
+  const priorityPrefixes = [
+    "tb_",           // Master data first
+    "roles",         // Core roles
+    "app_",          // App config
+    "module_",       // Module config
+    "role_",         // Role config
+    "password_",     // Password config
+    "mfa_",          // MFA config
+    "api_",          // API settings
+    "office_",       // Offices
+    "department",    // Departments
+    "designation",   // Designations
+    "workflow_def",  // Workflow definitions
+    "workflow_step", // Workflow steps
+    "workflow_",     // Other workflow
+    "notification_", // Notifications
+    "data_",         // Data rules
+    "field_",        // Field rules
+    "profile",       // Profiles
+    "user_",         // Users
+    "inspector_",    // Inspectors
+    "er_",           // Employers
+    "ip_",           // Insured persons
+    "legal_",        // Legal
+    "compliance_",   // Compliance
+    "bema_",         // BEMA
+    "c3_",           // C3
+    "contribution_", // Contributions
+    "audit_",        // Audit logs
+    "system_",       // System logs
+  ];
+  
+  return [...tables].sort((a, b) => {
+    const aPriority = priorityPrefixes.findIndex(p => a.startsWith(p) || a === p.replace("_", ""));
+    const bPriority = priorityPrefixes.findIndex(p => b.startsWith(p) || b === p.replace("_", ""));
+    
+    const aOrder = aPriority === -1 ? 999 : aPriority;
+    const bOrder = bPriority === -1 ? 999 : bPriority;
+    
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.localeCompare(b);
+  });
+};
 
 interface ImportResult {
   table: string;
@@ -152,9 +195,39 @@ const DataMigration = () => {
   const { user } = useSupabaseAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
-    new Set(Object.keys(TABLE_CATEGORIES))
-  );
+  // Fetch all tables from database
+  const [allTables, setAllTables] = useState<string[]>([]);
+  const [isLoadingTables, setIsLoadingTables] = useState(true);
+  
+  useEffect(() => {
+    const fetchTables = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_all_public_tables');
+        if (error) throw error;
+        setAllTables((data || []).map((t: { table_name: string }) => t.table_name));
+      } catch (err) {
+        console.error('Failed to fetch tables:', err);
+        // Fallback to empty - user can refresh
+        setAllTables([]);
+      } finally {
+        setIsLoadingTables(false);
+      }
+    };
+    fetchTables();
+  }, []);
+  
+  // Build dynamic categories from fetched tables
+  const tableCategories = useMemo(() => buildTableCategories(allTables), [allTables]);
+  
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  
+  // Initialize selected categories once tables are loaded
+  useEffect(() => {
+    if (Object.keys(tableCategories).length > 0 && selectedCategories.size === 0) {
+      setSelectedCategories(new Set(Object.keys(tableCategories)));
+    }
+  }, [tableCategories]);
+  
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -166,13 +239,13 @@ const DataMigration = () => {
   const getSelectedTables = useCallback(() => {
     const tables: string[] = [];
     selectedCategories.forEach((category) => {
-      const cat = TABLE_CATEGORIES[category as keyof typeof TABLE_CATEGORIES];
+      const cat = tableCategories[category];
       if (cat) {
         tables.push(...cat.tables);
       }
     });
     return tables;
-  }, [selectedCategories]);
+  }, [selectedCategories, tableCategories]);
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) => {
@@ -187,7 +260,7 @@ const DataMigration = () => {
   };
 
   const handleSelectAll = () => {
-    setSelectedCategories(new Set(Object.keys(TABLE_CATEGORIES)));
+    setSelectedCategories(new Set(Object.keys(tableCategories)));
   };
 
   const handleSelectNone = () => {
@@ -195,7 +268,22 @@ const DataMigration = () => {
   };
 
   const handleSelectConfig = () => {
-    setSelectedCategories(new Set(["Configuration", "Organization", "Workflows", "Security"]));
+    setSelectedCategories(new Set(["Configuration", "Organization", "Workflows", "Security", "MasterData"]));
+  };
+  
+  const handleRefreshTables = async () => {
+    setIsLoadingTables(true);
+    try {
+      const { data, error } = await supabase.rpc('get_all_public_tables');
+      if (error) throw error;
+      setAllTables((data || []).map((t: { table_name: string }) => t.table_name));
+      toast({ title: "Tables Refreshed", description: `Found ${data?.length || 0} tables` });
+    } catch (err) {
+      console.error('Failed to fetch tables:', err);
+      toast({ title: "Refresh Failed", variant: "destructive" });
+    } finally {
+      setIsLoadingTables(false);
+    }
   };
 
   const handleExport = async () => {
@@ -321,9 +409,10 @@ const DataMigration = () => {
       }
 
       // Sort results by import order
+      const importOrder = getTableImportOrder(results.map(r => r.table));
       results.sort((a, b) => {
-        const aIndex = TABLE_IMPORT_ORDER.indexOf(a.table);
-        const bIndex = TABLE_IMPORT_ORDER.indexOf(b.table);
+        const aIndex = importOrder.indexOf(a.table);
+        const bIndex = importOrder.indexOf(b.table);
         return aIndex - bIndex;
       });
 
@@ -429,42 +518,57 @@ const DataMigration = () => {
           <CardContent className="space-y-4">
             {/* Quick Select Buttons */}
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+              <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={isLoadingTables}>
                 Select All
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectNone}>
+              <Button variant="outline" size="sm" onClick={handleSelectNone} disabled={isLoadingTables}>
                 Select None
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectConfig}>
+              <Button variant="outline" size="sm" onClick={handleSelectConfig} disabled={isLoadingTables}>
                 Config Only
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefreshTables} 
+                disabled={isLoadingTables}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingTables ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
             </div>
 
             {/* Category Checkboxes */}
             <div className="space-y-3 border rounded-lg p-4 max-h-[400px] overflow-y-auto">
-              {Object.entries(TABLE_CATEGORIES).map(([category, config]) => (
-                <div key={category} className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id={category}
-                      checked={selectedCategories.has(category)}
-                      onCheckedChange={() => handleCategoryToggle(category)}
-                    />
-                    <label
-                      htmlFor={category}
-                      className="text-sm font-medium cursor-pointer flex items-center gap-2"
-                    >
-                      {category}
-                      <Badge variant="secondary" className="text-xs">
-                        {config.tables.length} tables
-                      </Badge>
-                    </label>
+              {isLoadingTables ? (
+                <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
+              ) : Object.keys(tableCategories).length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">No tables found</div>
+              ) : (
+                Object.entries(tableCategories).map(([category, config]) => (
+                  <div key={category} className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id={category}
+                        checked={selectedCategories.has(category)}
+                        onCheckedChange={() => handleCategoryToggle(category)}
+                      />
+                      <label
+                        htmlFor={category}
+                        className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                      >
+                        {category}
+                        <Badge variant="secondary" className="text-xs">
+                          {config.tables.length} tables
+                        </Badge>
+                      </label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      {config.tables.join(", ")}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground ml-6">
-                    {config.tables.join(", ")}
-                  </p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="text-sm text-muted-foreground">
