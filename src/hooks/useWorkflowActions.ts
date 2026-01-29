@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
+import { applyBusinessObjectFieldUpdates } from '@/hooks/useBusinessObjectRoot';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
 export type EndState = 'Approved' | 'Rejected' | null;
@@ -646,6 +647,23 @@ export function useExecuteWorkflowAction() {
           performed_by_name: profile?.full_name || 'System',
           details: comments,
         });
+
+      // Apply configured field updates for this action
+      try {
+        const fieldUpdatesApplied = await applyBusinessObjectFieldUpdates(
+          task.instance_id,
+          actionId,
+          userId,
+          profile?.full_name || 'System'
+        );
+        
+        if (fieldUpdatesApplied && fieldUpdatesApplied.length > 0) {
+          console.log('Field updates applied:', fieldUpdatesApplied);
+        }
+      } catch (fieldUpdateError) {
+        console.error('Error applying field updates:', fieldUpdateError);
+        // Don't throw - field updates are non-blocking
+      }
 
       // Get current step info
       const { data: currentStep } = await supabase
