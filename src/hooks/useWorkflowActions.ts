@@ -157,14 +157,14 @@ export function useWorkflowActions(
 
       // Step 3: Get user's roles from database for proper permission checking
       const { data: userRolesData } = await supabase
-        .from('AspNetUserRoles')
-        .select('RoleId, role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
-        .eq('UserId', userId);
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
 
       // Extract role names from database roles
-      const dbRoleNames = userRolesData?.map(r => (r.role as any)?.Name).filter(Boolean) || [];
+      const dbRoleNames = userRolesData?.map(r => r.role as string).filter(Boolean) || [];
       
-      // Combine Supabase roles + legacy AspNet role names (some environments still have both)
+      // Combine context roles + database role names
       const combinedRoleNames = Array.from(
         new Set([...(contextRoleNames || []), ...dbRoleNames].filter(Boolean))
       );
@@ -324,22 +324,7 @@ async function checkUserPermission(
 
     const allowedRoleIds = step.approver_role_ids as string[];
     
-    // First try to get user's roles from AspNetUserRoles table
-    const { data: aspNetUserRoles } = await supabase
-      .from('AspNetUserRoles')
-      .select('RoleId')
-      .eq('UserId', userId);
-
-    if (aspNetUserRoles && aspNetUserRoles.length > 0) {
-      const userRoleIds = aspNetUserRoles.map(r => r.RoleId);
-      const hasAccess = allowedRoleIds.some(roleId => userRoleIds.includes(roleId));
-      if (hasAccess) {
-        console.log('Role-based permission granted (AspNetUserRoles):', { allowedRoleIds, userRoleIds });
-        return true;
-      }
-    }
-
-    // Also check the user_roles table (app_role enum based) + roles table
+    // Check the user_roles table (app_role enum based) + roles table
     // This handles the case where approver_role_ids contains IDs from the 'roles' table
     const { data: simpleUserRoles } = await supabase
       .from('user_roles')
@@ -374,15 +359,15 @@ async function checkUserPermission(
       }
     }
 
-    // If database check fails, try matching by role name from AspNetRoles
+    // If database check fails, try matching by role name from roles table
     if (userRoleNames && userRoleNames.length > 0) {
       const { data: rolesData } = await supabase
-        .from('AspNetRoles')
-        .select('Id, Name')
-        .in('Id', allowedRoleIds);
+        .from('roles')
+        .select('id, role_name')
+        .in('id', allowedRoleIds);
       
       if (rolesData) {
-        const allowedRoleNames = rolesData.map(r => r.Name.toLowerCase());
+        const allowedRoleNames = rolesData.map(r => r.role_name.toLowerCase());
         const hasAccess = userRoleNames.some(userRoleName => {
           if (!userRoleName) return false;
           const normalizedUserRole = userRoleName.toLowerCase().replace(/_/g, ' ').trim();
@@ -403,7 +388,7 @@ async function checkUserPermission(
 
     // Also check userRole from context as fallback
     if (userRole) {
-      // Check against roles table first (for Clerk, etc.)
+      // Check against roles table
       const { data: rolesTableData } = await supabase
         .from('roles')
         .select('id, role_name')
@@ -416,31 +401,8 @@ async function checkUserPermission(
         if (allowedRoleNames.some(roleName => {
           const normalizedRoleName = roleName.trim();
           return normalizedRoleName === normalizedUserRole ||
-                 normalizedRoleName === userRole.toLowerCase().trim();
-        })) {
-          console.log('Role-based permission granted (context role match - roles table):', { allowedRoleNames, userRole });
-          return true;
-        }
-      }
-
-      // Then check against AspNetRoles
-      const { data: aspNetRolesData } = await supabase
-        .from('AspNetRoles')
-        .select('Id, Name')
-        .in('Id', allowedRoleIds);
-      
-      if (aspNetRolesData) {
-        const allowedRoleNames = aspNetRolesData.map(r => r.Name.toLowerCase());
-        const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ');
-        
-        if (allowedRoleNames.some(roleName => {
-          const normalizedRoleName = roleName.trim();
-          const normalizedUser = normalizedUserRole.trim();
-          
-          return normalizedRoleName === normalizedUser ||
                  normalizedRoleName === userRole.toLowerCase().trim() ||
-                 normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim() ||
-                 roleName === userRole.toLowerCase().trim();
+                 normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim();
         })) {
           console.log('Role-based permission granted (context role match):', { allowedRoleNames, userRole });
           return true;
@@ -456,7 +418,6 @@ async function checkUserPermission(
     
     console.log('Role-based permission denied:', { 
       allowedRoleIds, 
-      aspNetUserRoleIds: aspNetUserRoles?.map(r => r.RoleId), 
       simpleUserRoles: simpleUserRoles?.map(r => r.role),
       userRoleNames, 
       userRole 
@@ -518,11 +479,11 @@ async function checkTaskLevelAssignment(
   // If no specific assignment, check if user is admin in database
   if (!assignedRole && !assignedDesignation) {
     const { data: userRoles } = await supabase
-      .from('AspNetUserRoles')
-      .select('RoleId, role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
-      .eq('UserId', userId);
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
 
-    if (userRoles?.some(r => (r.role as any)?.Name === 'Admin')) {
+    if (userRoles?.some(r => (r.role as string) === 'Admin')) {
       return true;
     }
     return false;
@@ -566,12 +527,12 @@ async function checkTaskLevelAssignment(
     // Fallback: Check database roles directly (if not already checked)
     if (!userRoleNames || userRoleNames.length === 0) {
       const { data: userRoles } = await supabase
-        .from('AspNetUserRoles')
-        .select('role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
-        .eq('UserId', userId);
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
 
       if (userRoles?.some(r => {
-        const roleName = (r.role as any)?.Name;
+        const roleName = r.role as string;
         if (!roleName) return false;
         // Case-insensitive match
         const matches = roleName.toLowerCase() === assignedRole.toLowerCase() ||
@@ -830,13 +791,13 @@ async function createNextStepTask(instanceId: string, stepId: string) {
     const roleIds = step.approver_role_ids as string[];
     if (roleIds.length === 1) {
       const { data: roleData } = await supabase
-        .from('AspNetRoles')
-        .select('Name')
-        .eq('Id', roleIds[0])
+        .from('roles')
+        .select('role_name')
+        .eq('id', roleIds[0])
         .single();
       
       if (roleData) {
-        taskAssignment.assigned_role = roleData.Name;
+        taskAssignment.assigned_role = roleData.role_name;
       }
     }
   } else if (approverType === 'designation' && step.approver_designation_ids && step.approver_designation_ids.length > 0) {

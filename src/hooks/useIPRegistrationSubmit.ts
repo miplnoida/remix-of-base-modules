@@ -266,13 +266,13 @@ export function useIPRegistrationSubmit() {
         if (roleIds.length === 1) {
           // Get role name for single role assignment
           const { data: roleData } = await supabase
-            .from('AspNetRoles')
-            .select('Name')
-            .eq('Id', roleIds[0])
+            .from('roles')
+            .select('role_name')
+            .eq('id', roleIds[0])
             .single();
           
           if (roleData) {
-            taskAssignment.assigned_role = roleData.Name;
+            taskAssignment.assigned_role = roleData.role_name;
           }
         }
         // If multiple roles, assigned_role stays null - permission check will use approver_role_ids
