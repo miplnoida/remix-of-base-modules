@@ -472,23 +472,23 @@ export default function EmployerRegistrationList() {
                         <TableCell>{getStatusBadge(employer.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleView(employer)} title="View">
+                            <Button variant="outline" size="icon" onClick={() => handleView(employer)} title="View">
                               <Eye className="h-4 w-4" />
                             </Button>
                             {canEdit(employer) && (
-                              <Button variant="ghost" size="icon" onClick={() => handleEdit(employer)} title="Edit">
+                              <Button variant="outline" size="icon" onClick={() => handleEdit(employer)} title="Edit">
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
                             {canSubmit(employer) && (
                               <Button 
-                                variant="ghost" 
+                                variant="default" 
                                 size="icon" 
                                 onClick={() => handleSubmitClick(employer)} 
                                 title="Submit"
                                 disabled={isSubmitting}
                               >
-                                <Send className="h-4 w-4 text-blue-500" />
+                                <Send className="h-4 w-4" />
                               </Button>
                             )}
                             {/* Workflow-driven action buttons for Pending status */}
@@ -500,8 +500,8 @@ export default function EmployerRegistrationList() {
                               />
                             )}
                             {canDelete(employer) && (
-                              <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(employer)} title="Delete">
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                              <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(employer)} title="Delete">
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
