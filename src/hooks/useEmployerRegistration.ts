@@ -166,6 +166,23 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
     }
   }, [commenceData]);
 
+  // Helper to sanitize date fields - convert empty strings to null
+  const sanitizeDateFields = (data: Record<string, any>): Record<string, any> => {
+    const dateFields = [
+      'registration_date', 'date_wages_first_paid', 'date_of_closure', 
+      'application_date', 'date_of_entry', 'date_of_issue', 'date_modified',
+      'date_verified', 'date_of_acquisition', 'date_incorporated', 're_registration_date'
+    ];
+    
+    const sanitized = { ...data };
+    dateFields.forEach(field => {
+      if (sanitized[field] === '' || sanitized[field] === undefined) {
+        sanitized[field] = null;
+      }
+    });
+    return sanitized;
+  };
+
   // Save employer to database
   const saveEmployer = useCallback(async (data: Partial<ERMasterFormData>): Promise<string | null> => {
     setIsSaving(true);
@@ -176,17 +193,20 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
         regnoToUse = await generateRegNo();
       }
 
-      const dataToSave = {
+      // Merge and sanitize data - convert empty date strings to null
+      const mergedData = {
         ...formData,
         ...data,
         regno: regnoToUse,
         date_modified: new Date().toISOString(),
       };
+      
+      const dataToSave = sanitizeDateFields(mergedData) as typeof mergedData;
 
       if (isNewRecord) {
         const { error } = await supabase
           .from('er_master')
-          .insert([dataToSave]);
+          .insert([dataToSave as any]);
 
         if (error) throw error;
 
