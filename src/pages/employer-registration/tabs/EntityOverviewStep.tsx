@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ERMasterFormData } from '@/types/employerRegistration';
+import { useERLookups, LookupItem } from '@/hooks/useERLookups';
+import { Loader2 } from 'lucide-react';
 
 interface EntityOverviewStepProps {
   formData: ERMasterFormData;
@@ -10,35 +12,6 @@ interface EntityOverviewStepProps {
   isViewMode: boolean;
   errors?: Record<string, string>;
 }
-
-// Lookup data (can be fetched from API later)
-const OFFICE_CODES = [
-  { code: 'STK', label: 'STK - St. Kitts' },
-  { code: 'NVS', label: 'NVS - Nevis' },
-];
-
-const OWNERSHIP_CODES = [
-  { code: 'GOV', label: "GOV - Gov't Ministry/Dept." },
-  { code: 'PUB', label: 'PUB - Public Company' },
-  { code: 'PVT', label: 'PVT - Private Company' },
-  { code: 'SOL', label: 'SOL - Sole Proprietor' },
-  { code: 'PTN', label: 'PTN - Partnership' },
-];
-
-const SECTOR_CODES = [
-  { code: 'G', label: 'G - Government' },
-  { code: 'P', label: 'P - Private' },
-  { code: 'S', label: 'S - Self-Employed' },
-  { code: 'O', label: 'O - Other' },
-];
-
-const INDUSTRIAL_CODES = [
-  { code: '0000', label: '0000 - Unknown' },
-  { code: '9112', label: '9112 - Profes. Organ. Activities' },
-  { code: '5110', label: '5110 - Wholesale Trade' },
-  { code: '4510', label: '4510 - Motor Vehicle Sales' },
-  { code: '6110', label: '6110 - Wired Telecommunications' },
-];
 
 // Input with character counter component
 const InputWithCounter = ({ 
@@ -74,7 +47,46 @@ const InputWithCounter = ({
   </div>
 );
 
+// Reusable lookup select component
+const LookupSelect = ({
+  value,
+  onValueChange,
+  items,
+  placeholder,
+  disabled,
+  isLoading,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  items: LookupItem[];
+  placeholder: string;
+  disabled?: boolean;
+  isLoading?: boolean;
+}) => (
+  <Select value={value || ''} onValueChange={onValueChange} disabled={disabled || isLoading}>
+    <SelectTrigger>
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      ) : (
+        <SelectValue placeholder={placeholder} />
+      )}
+    </SelectTrigger>
+    <SelectContent>
+      {items.map((item) => (
+        <SelectItem key={item.code} value={item.code}>
+          {item.label}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
+
 export default function EntityOverviewStep({ formData, onChange, isViewMode, errors = {} }: EntityOverviewStepProps) {
+  const { officeCodes, ownershipCodes, sectorCodes, industrialCodes, isLoading } = useERLookups();
+
   return (
     <div className="space-y-6">
       {/* General Information */}
@@ -187,79 +199,47 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
           </div>
           <div>
             <Label>Office Code</Label>
-            <Select
+            <LookupSelect
               value={formData.office_code || ''}
               onValueChange={(value) => onChange('office_code', value)}
+              items={officeCodes}
+              placeholder="Select office code"
               disabled={isViewMode}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select office code" />
-              </SelectTrigger>
-              <SelectContent>
-                {OFFICE_CODES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+            />
           </div>
           <div>
             <Label>Ownership Code</Label>
-            <Select
+            <LookupSelect
               value={formData.ownership_code || ''}
               onValueChange={(value) => onChange('ownership_code', value)}
+              items={ownershipCodes}
+              placeholder="Select ownership code"
               disabled={isViewMode}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select ownership code" />
-              </SelectTrigger>
-              <SelectContent>
-                {OWNERSHIP_CODES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+            />
           </div>
           <div>
             <Label>Sector Code</Label>
-            <Select
+            <LookupSelect
               value={formData.sector_code || ''}
               onValueChange={(value) => onChange('sector_code', value)}
+              items={sectorCodes}
+              placeholder="Select sector code"
               disabled={isViewMode}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select sector code" />
-              </SelectTrigger>
-              <SelectContent>
-                {SECTOR_CODES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+            />
           </div>
           <div>
             <Label>Industrial Code</Label>
-            <Select
+            <LookupSelect
               value={formData.industrial_code || ''}
               onValueChange={(value) => onChange('industrial_code', value)}
+              items={industrialCodes}
+              placeholder="Select industrial code"
               disabled={isViewMode}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select industrial code" />
-              </SelectTrigger>
-              <SelectContent>
-                {INDUSTRIAL_CODES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+            />
           </div>
         </div>
       </div>

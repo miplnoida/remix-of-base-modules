@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { useERLookups, LookupItem } from '@/hooks/useERLookups';
+import { Loader2 } from 'lucide-react';
 
 interface ContactReachStepProps {
   formData: ERMasterFormData;
@@ -12,31 +14,47 @@ interface ContactReachStepProps {
   errors?: Record<string, string>;
 }
 
-// Lookup data
-const VILLAGE_CODES = [
-  { code: '000', label: 'Unknown' },
-  { code: '001', label: 'Basseterre' },
-  { code: '002', label: 'Suncrest' },
-  { code: '003', label: 'Charlestown' },
-  { code: '004', label: 'Sandy Point' },
-];
-
-const ACTIVITY_TYPES = [
-  { code: '577', label: '577 - Church parish office (sec)' },
-  { code: '101', label: '101 - Agriculture' },
-  { code: '201', label: '201 - Manufacturing' },
-  { code: '301', label: '301 - Construction' },
-  { code: '401', label: '401 - Retail Trade' },
-];
-
-const INSPECTOR_CODES = [
-  { code: 'UNK', label: 'UNK - Unknown' },
-  { code: 'OSC', label: 'OSC - Overseas Company' },
-  { code: 'INS1', label: 'INS1 - Inspector 1' },
-  { code: 'INS2', label: 'INS2 - Inspector 2' },
-];
+// Reusable lookup select component
+const LookupSelect = ({
+  value,
+  onValueChange,
+  items,
+  placeholder,
+  disabled,
+  isLoading,
+  error,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  items: LookupItem[];
+  placeholder: string;
+  disabled?: boolean;
+  isLoading?: boolean;
+  error?: boolean;
+}) => (
+  <Select value={value || ''} onValueChange={onValueChange} disabled={disabled || isLoading}>
+    <SelectTrigger className={error ? 'border-destructive' : ''}>
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      ) : (
+        <SelectValue placeholder={placeholder} />
+      )}
+    </SelectTrigger>
+    <SelectContent>
+      {items.map((item) => (
+        <SelectItem key={item.code} value={item.code}>
+          {item.label}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
 
 export default function ContactReachStep({ formData, onChange, isViewMode, errors = {} }: ContactReachStepProps) {
+  const { villageCodes, activityTypes, inspectorCodes, isLoading } = useERLookups();
   const totalEmployees = (formData.males_employed || 0) + (formData.females_employed || 0);
 
   const parseDate = (dateStr: string | undefined | null): Date | undefined => {
@@ -93,66 +111,45 @@ export default function ContactReachStep({ formData, onChange, isViewMode, error
             <Label className={errors.village_code ? 'text-destructive' : ''}>
               Select Village <span className="text-destructive">*</span>
             </Label>
-            <Select
+            <LookupSelect
               value={formData.village_code || ''}
               onValueChange={(value) => onChange('village_code', value)}
+              items={villageCodes}
+              placeholder="Select village"
               disabled={isViewMode}
-            >
-              <SelectTrigger className={errors.village_code ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Select village" />
-              </SelectTrigger>
-              <SelectContent>
-                {VILLAGE_CODES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+              error={!!errors.village_code}
+            />
             {errors.village_code && <p className="text-xs text-destructive mt-1">{errors.village_code}</p>}
           </div>
           <div>
             <Label className={errors.activity_type ? 'text-destructive' : ''}>
               Activity Type <span className="text-destructive">*</span>
             </Label>
-            <Select
+            <LookupSelect
               value={formData.activity_type || ''}
               onValueChange={(value) => onChange('activity_type', value)}
+              items={activityTypes}
+              placeholder="Select activity type"
               disabled={isViewMode}
-            >
-              <SelectTrigger className={errors.activity_type ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Select activity type" />
-              </SelectTrigger>
-              <SelectContent>
-                {ACTIVITY_TYPES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+              error={!!errors.activity_type}
+            />
             {errors.activity_type && <p className="text-xs text-destructive mt-1">{errors.activity_type}</p>}
           </div>
           <div>
             <Label className={errors.inspector_code ? 'text-destructive' : ''}>
               Select Inspector Code <span className="text-destructive">*</span>
             </Label>
-            <Select
+            <LookupSelect
               value={formData.inspector_code || ''}
               onValueChange={(value) => onChange('inspector_code', value)}
+              items={inspectorCodes}
+              placeholder="Select inspector code"
               disabled={isViewMode}
-            >
-              <SelectTrigger className={errors.inspector_code ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Select inspector code" />
-              </SelectTrigger>
-              <SelectContent>
-                {INSPECTOR_CODES.map((item) => (
-                  <SelectItem key={item.code} value={item.code}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              isLoading={isLoading}
+              error={!!errors.inspector_code}
+            />
             {errors.inspector_code && <p className="text-xs text-destructive mt-1">{errors.inspector_code}</p>}
           </div>
         </div>
