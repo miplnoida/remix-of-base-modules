@@ -76,7 +76,14 @@ const validateStep = (step: number, formData: ERMasterFormData): Record<string, 
 
 export default function FormDetailTab({ formData, onChange, onSave, isViewMode, isSaving }: FormDetailTabProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  // In view/edit mode with existing data, mark all steps as completed to allow navigation
+  const [completedSteps, setCompletedSteps] = useState<number[]>(() => {
+    // If we have a regno (existing record), allow navigating all steps
+    if (formData.regno) {
+      return [0, 1, 2, 3];
+    }
+    return [];
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showStepSuccess, setShowStepSuccess] = useState(false);
   const hasShownSuccessRef = useRef(false);
@@ -92,12 +99,13 @@ export default function FormDetailTab({ formData, onChange, onSave, isViewMode, 
   }));
 
   const handleStepClick = useCallback((stepIndex: number) => {
-    // Allow clicking on completed steps or the next step only
-    if (stepIndex <= Math.max(...completedSteps, 0) + 1) {
+    // In view mode or edit mode, allow clicking on any step
+    // In new mode, allow clicking on completed steps or the next step only
+    if (isViewMode || stepIndex <= Math.max(...completedSteps, 0) + 1) {
       setCurrentStep(stepIndex);
       setErrors({});
     }
-  }, [completedSteps]);
+  }, [completedSteps, isViewMode]);
 
   const handleSaveAndContinue = useCallback(async () => {
     // Validate current step
