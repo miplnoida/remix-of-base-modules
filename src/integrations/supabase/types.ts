@@ -6123,6 +6123,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_activity: {
+        Row: {
+          code: string
+          long_description: string | null
+          short_description: string | null
+        }
+        Insert: {
+          code: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Update: {
+          code?: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Relationships: []
+      }
       tb_country: {
         Row: {
           caricom: number | null
@@ -6162,6 +6180,21 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_district: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
       tb_eye_color: {
         Row: {
           code: string
@@ -6174,6 +6207,39 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_indus: {
+        Row: {
+          code: string
+          long_description: string | null
+          short_description: string | null
+        }
+        Insert: {
+          code: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Update: {
+          code?: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_inspector: {
+        Row: {
+          code: string
+          insp_name: string | null
+        }
+        Insert: {
+          code: string
+          insp_name?: string | null
+        }
+        Update: {
+          code?: string
+          insp_name?: string | null
         }
         Relationships: []
       }
@@ -6192,6 +6258,21 @@ export type Database = {
           code?: string
           long_description?: string | null
           short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_office: {
+        Row: {
+          code: string
+          description: string
+        }
+        Insert: {
+          code: string
+          description: string
+        }
+        Update: {
+          code?: string
+          description?: string
         }
         Relationships: []
       }
@@ -6228,6 +6309,21 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_sector: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
       tb_verify: {
         Row: {
           code: string
@@ -6240,6 +6336,24 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_villages: {
+        Row: {
+          code: string
+          description: string | null
+          postal_code: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          postal_code?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          postal_code?: string | null
         }
         Relationships: []
       }
