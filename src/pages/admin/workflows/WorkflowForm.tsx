@@ -494,6 +494,7 @@ export default function WorkflowForm() {
             notification_module_id: action.notification_module_id,
             notification_template_id: action.notification_template_id,
             notifications: action.notifications,
+            fieldUpdates: action.fieldUpdates,
           })),
         })),
       });
