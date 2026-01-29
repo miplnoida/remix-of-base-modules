@@ -117,16 +117,17 @@ export default function EmployerRegistrationList() {
   };
 
   const confirmSubmit = async () => {
-    if (!submitRecord) return;
+    if (!submitRecord || isSubmitting) return;
     
     const result = await submitERRegistration(submitRecord.regno, user?.id);
     if (result.success) {
       toast.success(result.message || 'Registration submitted successfully');
       refetch();
+      setSubmitRecord(null);
     } else {
       toast.error(result.message || 'Submission failed');
+      // Keep dialog open on failure so user can retry or cancel
     }
-    setSubmitRecord(null);
   };
 
   const handleDeleteClick = (employer: any) => {
@@ -541,7 +542,7 @@ export default function EmployerRegistrationList() {
       </AlertDialog>
 
       {/* Submit Confirmation Dialog */}
-      <AlertDialog open={!!submitRecord} onOpenChange={() => setSubmitRecord(null)}>
+      <AlertDialog open={!!submitRecord} onOpenChange={(open) => !isSubmitting && !open && setSubmitRecord(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Submit for Verification?</AlertDialogTitle>
@@ -550,9 +551,16 @@ export default function EmployerRegistrationList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSubmit}>
-              Submit
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit} disabled={isSubmitting} className="min-w-[100px]">
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Submitting...
+                </span>
+              ) : (
+                'Submit'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
