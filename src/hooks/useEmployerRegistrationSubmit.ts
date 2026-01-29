@@ -292,9 +292,14 @@ export function useEmployerRegistrationSubmit() {
 
   /**
    * Main submit function for ER Registration submission.
+   * Uses the database RPC function to atomically:
+   * 1. Generate a permanent registration number
+   * 2. Update the record from temp regno to permanent
+   * 3. Update status to Pending
+   * 4. Update all related tables with the new regno
    */
   const submitERRegistration = useCallback(async (
-    regno: string,
+    tempRegno: string,
     userId?: string
   ): Promise<SubmitResult> => {
     // Prevent duplicate submissions
@@ -307,7 +312,7 @@ export function useEmployerRegistrationSubmit() {
 
     try {
       // Fetch the complete record for validation
-      const recordData = await fetchRecordData(regno);
+      const recordData = await fetchRecordData(tempRegno);
       if (!recordData) {
         throw new Error('Record not found');
       }
@@ -328,28 +333,33 @@ export function useEmployerRegistrationSubmit() {
         };
       }
 
-      // Update status to Pending
-      const { error: updateError } = await supabase
-        .from('er_master')
-        .update({
-          status: 'P',
-          date_modified: new Date().toISOString(),
-        })
-        .eq('regno', regno);
+      // Call the RPC function to atomically submit and generate permanent regno
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('submit_er_registration', {
+        p_temp_regno: tempRegno,
+        p_user_id: userId || null,
+      });
 
-      if (updateError) {
-        throw new Error(formatDbError(updateError));
+      if (rpcError) {
+        throw new Error(formatDbError(rpcError));
       }
 
-      // Trigger workflow (if configured)
-      const recordName = recordData.name || regno;
-      const workflowInstanceId = await triggerWorkflow(regno, recordName, userId);
+      const result = rpcResult as { success: boolean; old_regno: string; new_regno: string; status: string };
+      
+      if (!result.success) {
+        throw new Error('Submission failed');
+      }
+
+      const newRegno = result.new_regno;
+      const recordName = recordData.name || newRegno;
+      
+      // Trigger workflow with the new permanent regno (if configured)
+      const workflowInstanceId = await triggerWorkflow(newRegno, recordName, userId);
 
       return {
         success: true,
-        regno,
+        regno: newRegno,
         workflowInstanceId: workflowInstanceId || undefined,
-        message: `Registration submitted successfully.`,
+        message: `Registration submitted successfully. New Registration No: ${newRegno}`,
       };
     } catch (error) {
       console.error('Submit error:', error);

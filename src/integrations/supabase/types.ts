@@ -7668,7 +7668,9 @@ export type Database = {
       }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
+      generate_er_regno: { Args: never; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
+      generate_temp_er_regno: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
       get_all_public_tables: {
         Args: never
@@ -7771,6 +7773,10 @@ export type Database = {
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
+      }
+      submit_er_registration: {
+        Args: { p_temp_regno: string; p_user_id?: string }
+        Returns: Json
       }
       submit_ip_registration: { Args: { p_unique_uuid: string }; Returns: Json }
       test_data_policy: {
