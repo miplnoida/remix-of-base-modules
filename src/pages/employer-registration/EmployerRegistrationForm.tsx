@@ -42,7 +42,7 @@ export default function EmployerRegistrationForm() {
   const [newNote, setNewNote] = useState('');
   const [showOwnerDialog, setShowOwnerDialog] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
-  const [ownerForm, setOwnerForm] = useState({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: null });
+  const [ownerForm, setOwnerForm] = useState({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
   const [locationForm, setLocationForm] = useState({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '' });
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function EmployerRegistrationForm() {
   const handleAddOwner = async () => {
     if (!ownerForm.name.trim()) { toast.error('Owner name is required'); return; }
     await addOwner(ownerForm);
-    setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: null });
+    setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
     setShowOwnerDialog(false);
   };
 

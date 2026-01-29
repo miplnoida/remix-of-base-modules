@@ -60,7 +60,7 @@ export interface ERMasterFormData {
 // ER Owner - Owners/principals of the organization
 export interface EROwnerData {
   regno: string;
-  location_id: number | null;
+  location_id: number;
   owner_id?: number;
   name: string;
   title: string;
@@ -216,7 +216,7 @@ export const initialERMasterFormData: ERMasterFormData = {
 
 export const initialEROwnerData: EROwnerData = {
   regno: '',
-  location_id: null,
+  location_id: 0,
   name: '',
   title: '',
   phone: '',
