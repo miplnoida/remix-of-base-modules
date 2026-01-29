@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
-import { usePostalDistricts } from '@/hooks/useIPMasterLookups';
+import { useDistricts } from '@/hooks/useIPMasterLookups';
 
 interface AddressContactTabProps {
   formData: IPMasterFormData;
@@ -28,10 +28,10 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
   updateField,
   isEditable,
 }) => {
-  const { data: postalDistricts = [], isLoading: loadingDistricts } = usePostalDistricts();
+  const { data: districts = [], isLoading: loadingDistricts } = useDistricts();
 
   // Get district description for view mode
-  const districtDescription = postalDistricts.find(d => d.code === formData.district)?.description || '';
+  const districtDescription = districts.find(d => d.code === formData.district)?.description || '';
 
   return (
     <Card>
@@ -87,9 +87,9 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
                     <SelectValue placeholder="Select district" />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50 max-h-[200px]">
-                    {postalDistricts.map((district) => (
+                    {districts.map((district) => (
                       <SelectItem key={district.code} value={district.code}>
-                        {district.description}
+                        {district.code} - {district.description}
                       </SelectItem>
                     ))}
                   </SelectContent>
