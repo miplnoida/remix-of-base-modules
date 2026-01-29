@@ -6,7 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
 import { Plus, Edit, Trash2, MapPin, Mail } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhoneInput, { parsePhoneNumber, combinePhoneNumber } from '@/components/shared/PhoneInput';
+import { useDistricts } from '@/hooks/useIPMasterLookups';
 
 interface AddressContactTabProps {
   formData: IPFormData;
@@ -43,6 +45,9 @@ export default function AddressContactTab({
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [tempAddress, setTempAddress] = useState<any>({});
   
+  // Fetch districts for dropdown
+  const { data: districts = [], isLoading: loadingDistricts } = useDistricts();
+  
   // Initialize phone state
   const [telephoneCountry, setTelephoneCountry] = useState('KN');
   const [telephoneNumber, setTelephoneNumber] = useState('');
@@ -64,6 +69,13 @@ export default function AddressContactTab({
     onChange(field, value);
     clearError(field);
   }, [onChange, clearError]);
+
+  // Helper to get district display value
+  const getDistrictDisplay = (code: string | undefined) => {
+    if (!code) return '';
+    const district = districts.find(d => d.code === code);
+    return district ? `${district.code} - ${district.description}` : code;
+  };
 
   const addresses: AddressData[] = [
     {
@@ -182,7 +194,7 @@ export default function AddressContactTab({
                           {/* In View mode, show blank if no data; in Edit mode show "Not set" */}
                           <p>Resident Address 1: {address.fields.line1 || (isEditable ? 'Not set' : '')}</p>
                           <p>Resident Address 2: {address.fields.line2 || (isEditable ? 'Not set' : '')}</p>
-                          <p>Postal District: {address.fields.postal || (isEditable ? 'Not set' : '')}</p>
+                          <p>Postal District: {getDistrictDisplay(address.fields.postal) || (isEditable ? 'Not set' : '')}</p>
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
@@ -290,11 +302,22 @@ export default function AddressContactTab({
               </div>
               <div className="space-y-2">
                 <Label>Postal District</Label>
-                <Input
+                <Select
                   value={tempAddress.postal || ''}
-                  onChange={(e) => setTempAddress({ ...tempAddress, postal: e.target.value })}
-                  placeholder="Enter postal district"
-                />
+                  onValueChange={(value) => setTempAddress({ ...tempAddress, postal: value })}
+                  disabled={loadingDistricts}
+                >
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select postal district" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50 max-h-[200px]">
+                    {districts.map((district) => (
+                      <SelectItem key={district.code} value={district.code}>
+                        {district.code} - {district.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ) : (
