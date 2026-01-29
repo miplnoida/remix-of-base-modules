@@ -16,34 +16,17 @@ interface UseEmployerRegistrationOptions {
   mode: 'create' | 'edit' | 'view';
 }
 
-// Generate new registration number
-const generateRegNo = async (): Promise<string> => {
-  // Get the last issued regno from er_last_regno
-  const { data: lastReg, error } = await supabase
-    .from('er_last_regno')
-    .select('regno')
-    .order('date_issued', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-
-  let newRegNo: string;
-  if (lastReg?.regno) {
-    const numPart = parseInt(lastReg.regno, 10);
-    newRegNo = String(numPart + 1).padStart(6, '0');
-  } else {
-    newRegNo = '000001';
+// Generate temporary registration number for draft records
+const generateTempRegNo = async (): Promise<string> => {
+  // Call the database function to generate a temp regno
+  const { data, error } = await supabase.rpc('generate_temp_er_regno');
+  
+  if (error) {
+    console.error('Error generating temp regno:', error);
+    throw new Error('Failed to generate temporary registration number');
   }
-
-  // Insert new regno record
-  const { error: insertError } = await supabase
-    .from('er_last_regno')
-    .insert({ regno: newRegNo, date_issued: new Date().toISOString() });
-
-  if (insertError) throw insertError;
-
-  return newRegNo;
+  
+  return data as string;
 };
 
 export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistrationOptions) => {
@@ -189,8 +172,9 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
     try {
       let regnoToUse = formData.regno;
 
+      // For new records, generate a temporary regno (ER-T00001 format)
       if (isNewRecord && !regnoToUse) {
-        regnoToUse = await generateRegNo();
+        regnoToUse = await generateTempRegNo();
       }
 
       // Merge and sanitize data - convert empty date strings to null
@@ -198,6 +182,7 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
         ...formData,
         ...data,
         regno: regnoToUse,
+        status: isNewRecord ? 'Z' : formData.status, // Ensure draft status for new records
         date_modified: new Date().toISOString(),
       };
       
@@ -212,7 +197,7 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
 
         setFormData(prev => ({ ...prev, ...dataToSave, regno: regnoToUse }));
         setIsNewRecord(false);
-        toast.success('Employer saved successfully');
+        toast.success('Employer saved as draft');
         return regnoToUse;
       } else {
         const { error } = await supabase
