@@ -325,6 +325,31 @@ export function useToggleWorkflowStatus() {
   });
 }
 
+// Clone workflow with all configuration
+export function useCloneWorkflow() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ sourceWorkflowId, newName }: { sourceWorkflowId: string; newName?: string }) => {
+      const { data, error } = await supabase
+        .rpc('clone_workflow', {
+          p_source_workflow_id: sourceWorkflowId,
+          p_new_name: newName || null,
+        });
+      
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow-definitions'] });
+      toast({ title: 'Success', description: 'Workflow cloned successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
 // Save workflow steps
 export function useSaveWorkflowSteps() {
   const queryClient = useQueryClient();

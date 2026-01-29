@@ -7653,6 +7653,10 @@ export type Database = {
         Args: { new_role_name: string; source_role_id: string }
         Returns: string
       }
+      clone_workflow: {
+        Args: { p_new_name?: string; p_source_workflow_id: string }
+        Returns: string
+      }
       find_eligible_approver: {
         Args: {
           _exclude_users?: string[]
