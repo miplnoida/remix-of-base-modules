@@ -33,7 +33,7 @@ const LookupSelect = ({
   error?: boolean;
 }) => (
   <Select value={value || ''} onValueChange={onValueChange} disabled={disabled || isLoading}>
-    <SelectTrigger className={error ? 'border-destructive' : ''}>
+    <SelectTrigger className={`bg-background ${error ? 'border-destructive' : ''}`}>
       {isLoading ? (
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -43,7 +43,7 @@ const LookupSelect = ({
         <SelectValue placeholder={placeholder} />
       )}
     </SelectTrigger>
-    <SelectContent>
+    <SelectContent className="bg-background z-50">
       {items.map((item) => (
         <SelectItem key={item.code} value={item.code}>
           {item.label}

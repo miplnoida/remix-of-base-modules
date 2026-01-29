@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { ERMasterFormData } from '@/types/employerRegistration';
@@ -197,47 +196,45 @@ export default function FormDetailTab({ formData, onChange, onSave, isViewMode, 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6">
       {/* Stepper */}
-      <Card>
-        <CardContent className="pt-6">
-          <Stepper
-            steps={steps}
-            currentStep={currentStep}
-            onStepClick={handleStepClick}
-          />
-        </CardContent>
-      </Card>
+      <div className="border rounded-lg p-4 bg-background">
+        <Stepper
+          steps={steps}
+          currentStep={currentStep}
+          onStepClick={handleStepClick}
+        />
+      </div>
 
       {/* Step Content */}
-      <Card>
-        <CardContent className="pt-6">
-          {renderStepContent()}
-          
-          {/* Navigation Buttons */}
-          {!isViewMode && (
-            <div className="flex justify-between mt-8 pt-6 border-t">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentStep === 0}
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={handleSaveAndContinue}
-                disabled={isSaving}
-              >
-                {isSaving 
-                  ? 'Saving...' 
-                  : currentStep === FORM_STEPS.length - 1 
-                    ? 'Save & Finish' 
-                    : 'Save & Continue'}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="border rounded-lg p-6 bg-background">
+        {renderStepContent()}
+        
+        {/* Navigation Buttons */}
+        {!isViewMode && (
+          <div className="flex justify-between mt-8 pt-6 border-t">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className="border-0 border-l-2 border-l-[#0284C7] shadow-md"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={handleSaveAndContinue}
+              disabled={isSaving}
+              className="border-r-4 border-r-[#33529C]"
+            >
+              {isSaving 
+                ? 'Saving...' 
+                : currentStep === FORM_STEPS.length - 1 
+                  ? 'Save & Finish' 
+                  : 'Save & Continue'}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Success Animation */}
       <SuccessAnimation
