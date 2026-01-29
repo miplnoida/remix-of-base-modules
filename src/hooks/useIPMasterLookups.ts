@@ -35,6 +35,11 @@ export interface PostalDistrictType {
   description: string | null;
 }
 
+export interface DistrictType {
+  code: string;
+  description: string | null;
+}
+
 export interface IPStatusType {
   code: string;
   description: string;
@@ -125,6 +130,21 @@ export const usePostalDistricts = () => {
         .order('description');
       if (error) throw error;
       return data as PostalDistrictType[];
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};
+
+export const useDistricts = () => {
+  return useQuery({
+    queryKey: ['tb_district'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_district')
+        .select('*')
+        .order('description');
+      if (error) throw error;
+      return data as DistrictType[];
     },
     staleTime: 1000 * 60 * 30,
   });
