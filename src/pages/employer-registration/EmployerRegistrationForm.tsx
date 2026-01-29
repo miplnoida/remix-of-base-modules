@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Save, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
+import { useEmployerRegistrationSubmit } from '@/hooks/useEmployerRegistrationSubmit';
 import { ERMasterFormData, ER_STATUS_CODES } from '@/types/employerRegistration';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -16,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Trash2, Plus } from 'lucide-react';
 import FormDetailTab from './tabs/FormDetailTab';
+import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 
 export default function EmployerRegistrationForm() {
   const { regno } = useParams<{ regno: string }>();
@@ -33,6 +35,8 @@ export default function EmployerRegistrationForm() {
     addOwner, deleteOwner, addLocation, deleteLocation, addNote, addCommenceDate
   } = useEmployerRegistration({ regno, mode: isNewMode ? 'create' : isViewMode ? 'view' : 'edit' });
 
+  const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
+
   const [activeTab, setActiveTab] = useState('details');
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [newNote, setNewNote] = useState('');
@@ -43,6 +47,7 @@ export default function EmployerRegistrationForm() {
 
   useEffect(() => {
     if (action === 'submit') setShowSubmitConfirm(true);
+    // Approve/Reject actions are now handled by WorkflowActionButtons
   }, [action]);
 
   const handleFieldChange = useCallback((field: keyof ERMasterFormData, value: any) => {
@@ -64,12 +69,31 @@ export default function EmployerRegistrationForm() {
 
   const handleSubmit = async () => {
     setShowSubmitConfirm(false);
+    
+    // Save first if new record
     if (!formData.regno) {
       const result = await saveEmployer(formData);
       if (!result) return;
+      
+      // Use the new registration number for submission
+      const submitResult = await submitERRegistration(result, user?.id);
+      if (submitResult.success) {
+        toast.success(submitResult.message || 'Registration submitted successfully');
+        navigate('/employer-registration');
+      } else {
+        toast.error(submitResult.message || 'Submission failed');
+      }
+      return;
     }
-    const success = await submitForVerification();
-    if (success) navigate('/employer-registration');
+    
+    // Submit existing record
+    const submitResult = await submitERRegistration(formData.regno, user?.id);
+    if (submitResult.success) {
+      toast.success(submitResult.message || 'Registration submitted successfully');
+      navigate('/employer-registration');
+    } else {
+      toast.error(submitResult.message || 'Submission failed');
+    }
   };
 
   const handleAddNote = async () => {
@@ -92,6 +116,10 @@ export default function EmployerRegistrationForm() {
     setShowLocationDialog(false);
   };
 
+  const handleWorkflowActionComplete = (action: string, endState: string | null) => {
+    navigate('/employer-registration');
+  };
+
   const getStatusBadge = () => {
     const config = ER_STATUS_CODES[formData.status as keyof typeof ER_STATUS_CODES];
     return config ? <Badge variant={config.variant}>{config.label}</Badge> : null;
@@ -100,6 +128,9 @@ export default function EmployerRegistrationForm() {
   if (isLoading) {
     return <div className="container mx-auto p-4"><p>Loading...</p></div>;
   }
+
+  // Show Submit button only for Draft status
+  const showSubmitButton = !isViewMode && formData.status === 'Z';
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -118,20 +149,23 @@ export default function EmployerRegistrationForm() {
             </div>
           </div>
         </div>
-        {!isViewMode && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSave()} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Draft'}
+        <div className="flex gap-2">
+          {/* Submit button for Draft status */}
+          {showSubmitButton && (
+            <Button onClick={() => setShowSubmitConfirm(true)} disabled={isSaving || isSubmitting}>
+              <Send className="h-4 w-4 mr-2" />
+              Submit
             </Button>
-            {formData.status === 'Z' && (
-              <Button onClick={() => setShowSubmitConfirm(true)} disabled={isSaving}>
-                <Send className="h-4 w-4 mr-2" />
-                Submit
-              </Button>
-            )}
-          </div>
-        )}
+          )}
+          
+          {/* Workflow-driven action buttons (Approve/Reject) */}
+          <WorkflowActionButtons
+            sourceModule="employers"
+            sourceRecordId={formData.regno || null}
+            variant="default"
+            onActionComplete={handleWorkflowActionComplete}
+          />
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

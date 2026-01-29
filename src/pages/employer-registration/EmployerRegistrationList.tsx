@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Eye, Edit, Send, CheckCircle, XCircle, Trash2, Search, 
+  Eye, Edit, Send, Trash2, Search, 
   Filter, Download, ChevronUp, ChevronDown, Building2, FileText, FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,8 +17,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useEmployerList } from '@/hooks/useEmployerRegistration';
+import { useEmployerRegistrationSubmit } from '@/hooks/useEmployerRegistrationSubmit';
 import { ER_STATUS_CODES } from '@/types/employerRegistration';
 import { exportToExcel, exportToPDF, ExportColumn, ExportData } from '@/utils/exportUtils';
+import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActionButtons';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Filters {
   regno: string;
@@ -31,6 +34,7 @@ interface Filters {
 
 export default function EmployerRegistrationList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { 
     employers, 
     counts, 
@@ -39,9 +43,9 @@ export default function EmployerRegistrationList() {
     setActiveTab, 
     refetch,
     deleteEmployer,
-    approveEmployer,
-    rejectEmployer,
   } = useEmployerList();
+
+  const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -55,8 +59,7 @@ export default function EmployerRegistrationList() {
     status: '',
   });
   const [deleteRecord, setDeleteRecord] = useState<any | null>(null);
-  const [approveRecord, setApproveRecord] = useState<any | null>(null);
-  const [rejectRecord, setRejectRecord] = useState<any | null>(null);
+  const [submitRecord, setSubmitRecord] = useState<any | null>(null);
 
   // Filter employers
   const filteredEmployers = useMemo(() => {
@@ -109,8 +112,21 @@ export default function EmployerRegistrationList() {
     navigate(`/employer-registration/edit/${employer.regno}`);
   };
 
-  const handleSubmit = (employer: any) => {
-    navigate(`/employer-registration/edit/${employer.regno}?action=submit`);
+  const handleSubmitClick = (employer: any) => {
+    setSubmitRecord(employer);
+  };
+
+  const confirmSubmit = async () => {
+    if (!submitRecord) return;
+    
+    const result = await submitERRegistration(submitRecord.regno, user?.id);
+    if (result.success) {
+      toast.success(result.message || 'Registration submitted successfully');
+      refetch();
+    } else {
+      toast.error(result.message || 'Submission failed');
+    }
+    setSubmitRecord(null);
   };
 
   const handleDeleteClick = (employer: any) => {
@@ -123,24 +139,8 @@ export default function EmployerRegistrationList() {
     setDeleteRecord(null);
   };
 
-  const handleApproveClick = (employer: any) => {
-    setApproveRecord(employer);
-  };
-
-  const confirmApprove = async () => {
-    if (!approveRecord) return;
-    await approveEmployer(approveRecord.regno);
-    setApproveRecord(null);
-  };
-
-  const handleRejectClick = (employer: any) => {
-    setRejectRecord(employer);
-  };
-
-  const confirmReject = async () => {
-    if (!rejectRecord) return;
-    await rejectEmployer(rejectRecord.regno);
-    setRejectRecord(null);
+  const handleWorkflowActionComplete = () => {
+    refetch();
   };
 
   const resetFilters = () => {
@@ -158,8 +158,8 @@ export default function EmployerRegistrationList() {
   const canEdit = (employer: any) => employer.status === 'Z';
   const canDelete = (employer: any) => employer.status === 'Z' || employer.status === 'P';
   const canSubmit = (employer: any) => employer.status === 'Z';
-  const canApprove = (employer: any) => employer.status === 'P';
-  const canReject = (employer: any) => employer.status === 'P';
+  // Workflow actions are shown for Pending status - handled by WorkflowActionButtonsCompact
+  const showWorkflowActions = (employer: any) => employer.status === 'P';
 
   const getStatusBadge = (status: string) => {
     const config = ER_STATUS_CODES[status as keyof typeof ER_STATUS_CODES] || { label: status, variant: 'secondary' as const };
@@ -481,19 +481,23 @@ export default function EmployerRegistrationList() {
                               </Button>
                             )}
                             {canSubmit(employer) && (
-                              <Button variant="ghost" size="icon" onClick={() => handleSubmit(employer)} title="Submit">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleSubmitClick(employer)} 
+                                title="Submit"
+                                disabled={isSubmitting}
+                              >
                                 <Send className="h-4 w-4 text-blue-500" />
                               </Button>
                             )}
-                            {canApprove(employer) && (
-                              <Button variant="ghost" size="icon" onClick={() => handleApproveClick(employer)} title="Approve">
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              </Button>
-                            )}
-                            {canReject(employer) && (
-                              <Button variant="ghost" size="icon" onClick={() => handleRejectClick(employer)} title="Reject">
-                                <XCircle className="h-4 w-4 text-red-500" />
-                              </Button>
+                            {/* Workflow-driven action buttons for Pending status */}
+                            {showWorkflowActions(employer) && (
+                              <WorkflowActionButtonsCompact
+                                sourceModule="employers"
+                                sourceRecordId={employer.regno}
+                                onActionComplete={handleWorkflowActionComplete}
+                              />
                             )}
                             {canDelete(employer) && (
                               <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(employer)} title="Delete">
@@ -536,37 +540,19 @@ export default function EmployerRegistrationList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Approve Confirmation Dialog */}
-      <AlertDialog open={!!approveRecord} onOpenChange={() => setApproveRecord(null)}>
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={!!submitRecord} onOpenChange={() => setSubmitRecord(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Approve Employer?</AlertDialogTitle>
+            <AlertDialogTitle>Submit for Verification?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to approve {approveRecord?.name}?
+              Are you sure you want to submit {submitRecord?.name} for verification? Once submitted, it will be reviewed by a compliance officer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmApprove}>
-              Approve
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reject Confirmation Dialog */}
-      <AlertDialog open={!!rejectRecord} onOpenChange={() => setRejectRecord(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reject Employer?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to reject {rejectRecord?.name}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReject} className="bg-destructive text-destructive-foreground">
-              Reject
+            <AlertDialogAction onClick={confirmSubmit}>
+              Submit
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
