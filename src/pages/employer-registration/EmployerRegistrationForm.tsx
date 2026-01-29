@@ -134,26 +134,37 @@ export default function EmployerRegistrationForm() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/employer-registration')}>
+      {/* Header - Matching IP Registration styling */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/employer-registration')}
+            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+          >
             <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
+          <div className="h-6 w-px bg-gray-300" />
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
               {isNewMode ? 'Register New Employer' : isViewMode ? 'View Employer' : 'Edit Employer'}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              {formData.regno && <span className="text-muted-foreground">Reg. No: {formData.regno}</span>}
+              {formData.regno && <span className="text-sm text-muted-foreground">Reg. No: {formData.regno}</span>}
               {getStatusBadge()}
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 self-start lg:self-center">
           {/* Submit button for Draft status */}
           {showSubmitButton && (
-            <Button onClick={() => setShowSubmitConfirm(true)} disabled={isSaving || isSubmitting}>
-              <Send className="h-4 w-4 mr-2" />
+            <Button 
+              onClick={() => setShowSubmitConfirm(true)} 
+              disabled={isSaving || isSubmitting}
+              className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+            >
+              <Send className="h-4 w-4" />
               Submit
             </Button>
           )}
@@ -168,16 +179,40 @@ export default function EmployerRegistrationForm() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="details"><Building2 className="h-4 w-4 mr-2" />Form Detail</TabsTrigger>
-          <TabsTrigger value="owners"><Users className="h-4 w-4 mr-2" />Owners</TabsTrigger>
-          <TabsTrigger value="locations"><MapPin className="h-4 w-4 mr-2" />Locations</TabsTrigger>
-          <TabsTrigger value="notes"><FileText className="h-4 w-4 mr-2" />Notes</TabsTrigger>
-          <TabsTrigger value="commence"><Calendar className="h-4 w-4 mr-2" />Commence Date</TabsTrigger>
-          <TabsTrigger value="visits"><ClipboardList className="h-4 w-4 mr-2" />Visits</TabsTrigger>
-          <TabsTrigger value="suits"><Scale className="h-4 w-4 mr-2" />Suits</TabsTrigger>
-        </TabsList>
+      {/* Card wrapper matching IP Registration */}
+      <Card>
+        <CardContent className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="details" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Form Detail</span>
+              </TabsTrigger>
+              <TabsTrigger value="owners" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Owners</span>
+              </TabsTrigger>
+              <TabsTrigger value="locations" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Locations</span>
+              </TabsTrigger>
+              <TabsTrigger value="notes" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Notes</span>
+              </TabsTrigger>
+              <TabsTrigger value="commence" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">Commence</span>
+              </TabsTrigger>
+              <TabsTrigger value="visits" className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden sm:inline">Visits</span>
+              </TabsTrigger>
+              <TabsTrigger value="suits" className="flex items-center gap-2">
+                <Scale className="h-4 w-4" />
+                <span className="hidden sm:inline">Suits</span>
+              </TabsTrigger>
+            </TabsList>
 
         {/* Form Detail Tab with Sub-Steps */}
         <TabsContent value="details">
@@ -302,8 +337,10 @@ export default function EmployerRegistrationForm() {
               <p className="text-muted-foreground">No legal suits recorded.</p>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
 
       {/* Submit Confirmation Dialog */}
       <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
