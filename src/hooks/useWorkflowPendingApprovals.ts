@@ -70,12 +70,12 @@ export function useMyPendingApprovals() {
 
       // Get user's roles from database
       const { data: userRolesData } = await supabase
-        .from('AspNetUserRoles')
-        .select('RoleId, role:AspNetRoles!AspNetUserRoles_RoleId_fkey(Name)')
-        .eq('UserId', user.id);
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
 
-      const userRoleNames = userRolesData?.map(r => (r.role as any)?.Name).filter(Boolean) || [];
-      const userRoleIds = userRolesData?.map(r => r.RoleId).filter(Boolean) || [];
+      const userRoleNames = userRolesData?.map(r => r.role as string).filter(Boolean) || [];
+      const userRoleIds: string[] = [];
       
       // Also include mock role if set
       if (user.role && !userRoleNames.includes(user.role)) {

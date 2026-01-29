@@ -844,13 +844,13 @@ export function useProcessWorkflowTask() {
               const roleIds = nextStep.approver_role_ids as string[];
               if (roleIds.length === 1) {
                 const { data: roleData } = await supabase
-                  .from('AspNetRoles')
-                  .select('Name')
-                  .eq('Id', roleIds[0])
+                  .from('roles')
+                  .select('role_name')
+                  .eq('id', roleIds[0])
                   .single();
                 
                 if (roleData) {
-                  taskAssignment.assigned_role = roleData.Name;
+                  taskAssignment.assigned_role = roleData.role_name;
                 }
               }
             } else if (approverType === 'designation' && nextStep.approver_designation_ids && nextStep.approver_designation_ids.length > 0) {
@@ -1045,13 +1045,13 @@ export function useStartWorkflow() {
         const roleIds = firstStep.approver_role_ids as string[];
         if (roleIds.length === 1) {
           const { data: roleData } = await supabase
-            .from('AspNetRoles')
-            .select('Name')
-            .eq('Id', roleIds[0])
+            .from('roles')
+            .select('role_name')
+            .eq('id', roleIds[0])
             .single();
           
           if (roleData) {
-            taskAssignment.assigned_role = roleData.Name;
+            taskAssignment.assigned_role = roleData.role_name;
           }
         }
       } else if (approverType === 'designation' && firstStep.approver_designation_ids && firstStep.approver_designation_ids.length > 0) {
