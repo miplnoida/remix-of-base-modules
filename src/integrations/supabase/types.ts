@@ -6243,6 +6243,21 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_legal_status: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
       tb_occup: {
         Row: {
           code: string
