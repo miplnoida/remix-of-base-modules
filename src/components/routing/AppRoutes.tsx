@@ -282,6 +282,10 @@ import IPRegistrationList from '@/pages/ip-registration/IPRegistrationList';
 import IPRegistrationForm from '@/pages/ip-registration/IPRegistrationForm';
 import ExternalApplicationsScreen from '@/pages/ip-registration/ExternalApplicationsScreen';
 
+// Employer Registration Module
+import EmployerRegistrationList from '@/pages/employer-registration/EmployerRegistrationList';
+import EmployerRegistrationForm from '@/pages/employer-registration/EmployerRegistrationForm';
+
 // Enterprise Admin - User Management (Separate Screens)
 import UserList from '@/pages/admin/users/UserList';
 import UserCreate from '@/pages/admin/users/UserCreate';
@@ -1362,6 +1366,12 @@ export const AppRoutes = () => {
       <Route path="/ip-registration/edit/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
       <Route path="/ip-registration/view/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
       <Route path="/ip-registration/external" element={<ProtectedLayout><ExternalApplicationsScreen /></ProtectedLayout>} />
+
+      {/* Employer Registration Module */}
+      <Route path="/employer-registration" element={<ProtectedLayout><EmployerRegistrationList /></ProtectedLayout>} />
+      <Route path="/employer-registration/new" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
+      <Route path="/employer-registration/edit/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
+      <Route path="/employer-registration/view/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />
