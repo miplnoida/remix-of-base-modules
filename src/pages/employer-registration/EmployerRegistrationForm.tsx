@@ -5,18 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Send, Building2, Users, MapPin, FileText, Calendar } from 'lucide-react';
+import { ArrowLeft, Save, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
-import { ERMasterFormData, initialERMasterFormData, ER_STATUS_CODES } from '@/types/employerRegistration';
+import { ERMasterFormData, ER_STATUS_CODES } from '@/types/employerRegistration';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Trash2, Plus } from 'lucide-react';
+import FormDetailTab from './tabs/FormDetailTab';
 
 export default function EmployerRegistrationForm() {
   const { regno } = useParams<{ regno: string }>();
@@ -46,21 +45,22 @@ export default function EmployerRegistrationForm() {
     if (action === 'submit') setShowSubmitConfirm(true);
   }, [action]);
 
-  const handleFieldChange = (field: keyof ERMasterFormData, value: any) => {
+  const handleFieldChange = useCallback((field: keyof ERMasterFormData, value: any) => {
     if (isViewMode) return;
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  }, [isViewMode, setFormData]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async (): Promise<string | null> => {
     if (!formData.name?.trim()) {
       toast.error('Employer name is required');
-      return;
+      return null;
     }
     const result = await saveEmployer(formData);
     if (result && isNewRecord) {
       navigate(`/employer-registration/edit/${result}`, { replace: true });
     }
-  };
+    return result;
+  }, [formData, saveEmployer, isNewRecord, navigate]);
 
   const handleSubmit = async () => {
     setShowSubmitConfirm(false);
@@ -120,7 +120,7 @@ export default function EmployerRegistrationForm() {
         </div>
         {!isViewMode && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSave} disabled={isSaving}>
+            <Button variant="outline" onClick={() => handleSave()} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save Draft'}
             </Button>
@@ -135,50 +135,28 @@ export default function EmployerRegistrationForm() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="details"><Building2 className="h-4 w-4 mr-2" />Form Detail</TabsTrigger>
           <TabsTrigger value="owners"><Users className="h-4 w-4 mr-2" />Owners</TabsTrigger>
           <TabsTrigger value="locations"><MapPin className="h-4 w-4 mr-2" />Locations</TabsTrigger>
           <TabsTrigger value="notes"><FileText className="h-4 w-4 mr-2" />Notes</TabsTrigger>
           <TabsTrigger value="commence"><Calendar className="h-4 w-4 mr-2" />Commence Date</TabsTrigger>
+          <TabsTrigger value="visits"><ClipboardList className="h-4 w-4 mr-2" />Visits</TabsTrigger>
+          <TabsTrigger value="suits"><Scale className="h-4 w-4 mr-2" />Suits</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details" className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>General Information</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div><Label>Employer Name *</Label><Input value={formData.name || ''} onChange={e => handleFieldChange('name', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Trade Name</Label><Input value={formData.trade_name || ''} onChange={e => handleFieldChange('trade_name', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Phone</Label><Input value={formData.phone || ''} onChange={e => handleFieldChange('phone', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Mobile</Label><Input value={formData.mobile || ''} onChange={e => handleFieldChange('mobile', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Fax</Label><Input value={formData.fax || ''} onChange={e => handleFieldChange('fax', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Email</Label><Input type="email" value={formData.email || ''} onChange={e => handleFieldChange('email', e.target.value)} disabled={isViewMode} /></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Address Information</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><Label>HQ Address 1</Label><Input value={formData.hq_addr1 || ''} onChange={e => handleFieldChange('hq_addr1', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>HQ Address 2</Label><Input value={formData.hq_addr2 || ''} onChange={e => handleFieldChange('hq_addr2', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Mailing Address 1</Label><Input value={formData.maddr1 || ''} onChange={e => handleFieldChange('maddr1', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Mailing Address 2</Label><Input value={formData.maddr2 || ''} onChange={e => handleFieldChange('maddr2', e.target.value)} disabled={isViewMode} /></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Organizational Information</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div><Label>Parent Reg. No.</Label><Input value={formData.parent_regno || ''} onChange={e => handleFieldChange('parent_regno', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Office Code</Label><Input value={formData.office_code || ''} onChange={e => handleFieldChange('office_code', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Ownership Code</Label><Input value={formData.ownership_code || ''} onChange={e => handleFieldChange('ownership_code', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Sector Code</Label><Input value={formData.sector_code || ''} onChange={e => handleFieldChange('sector_code', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Industrial Code</Label><Input value={formData.industrial_code || ''} onChange={e => handleFieldChange('industrial_code', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Activity Type</Label><Input value={formData.activity_type || ''} onChange={e => handleFieldChange('activity_type', e.target.value)} disabled={isViewMode} /></div>
-              <div><Label>Males Employed</Label><Input type="number" value={formData.males_employed || ''} onChange={e => handleFieldChange('males_employed', e.target.value ? Number(e.target.value) : null)} disabled={isViewMode} /></div>
-              <div><Label>Females Employed</Label><Input type="number" value={formData.females_employed || ''} onChange={e => handleFieldChange('females_employed', e.target.value ? Number(e.target.value) : null)} disabled={isViewMode} /></div>
-            </CardContent>
-          </Card>
+        {/* Form Detail Tab with Sub-Steps */}
+        <TabsContent value="details">
+          <FormDetailTab
+            formData={formData}
+            onChange={handleFieldChange}
+            onSave={handleSave}
+            isViewMode={isViewMode}
+            isSaving={isSaving}
+          />
         </TabsContent>
 
+        {/* Owners Tab */}
         <TabsContent value="owners">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -202,6 +180,7 @@ export default function EmployerRegistrationForm() {
           </Card>
         </TabsContent>
 
+        {/* Locations Tab */}
         <TabsContent value="locations">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -225,6 +204,7 @@ export default function EmployerRegistrationForm() {
           </Card>
         </TabsContent>
 
+        {/* Notes Tab */}
         <TabsContent value="notes">
           <Card>
             <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
@@ -248,6 +228,7 @@ export default function EmployerRegistrationForm() {
           </Card>
         </TabsContent>
 
+        {/* Commence Date Tab */}
         <TabsContent value="commence">
           <Card>
             <CardHeader><CardTitle>Commence Dates</CardTitle></CardHeader>
@@ -268,8 +249,29 @@ export default function EmployerRegistrationForm() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Visits Tab */}
+        <TabsContent value="visits">
+          <Card>
+            <CardHeader><CardTitle>Inspection Visits</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">No visits recorded yet.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Suits Tab */}
+        <TabsContent value="suits">
+          <Card>
+            <CardHeader><CardTitle>Legal Suits</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">No legal suits recorded.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
+      {/* Submit Confirmation Dialog */}
       <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Submit for Verification?</AlertDialogTitle><AlertDialogDescription>Once submitted, the employer will be reviewed by a compliance officer.</AlertDialogDescription></AlertDialogHeader>
@@ -277,6 +279,7 @@ export default function EmployerRegistrationForm() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Add Owner Dialog */}
       <Dialog open={showOwnerDialog} onOpenChange={setShowOwnerDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Owner</DialogTitle></DialogHeader>
@@ -291,6 +294,7 @@ export default function EmployerRegistrationForm() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Location Dialog */}
       <Dialog open={showLocationDialog} onOpenChange={setShowLocationDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Location</DialogTitle></DialogHeader>
