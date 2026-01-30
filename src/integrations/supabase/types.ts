@@ -1550,6 +1550,102 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_c3_reported: {
+        Row: {
+          created_at: string
+          date_entered: string | null
+          date_posted: string | null
+          date_received: string | null
+          date_verified: string | null
+          emp_levy_amt_calc: number | null
+          emp_levy_penalty_amt: number | null
+          emp_pe_amt_calc: number | null
+          emp_pe_penalty_amt: number | null
+          emp_ss_amt_calc: number | null
+          emp_ss_fines_due: number | null
+          entered_by: string | null
+          id: string
+          modified_by: string | null
+          modified_date: string | null
+          nil_return: boolean | null
+          notes: string | null
+          number_employed: number | null
+          payer_address: string | null
+          payer_id: string
+          payer_name: string | null
+          payer_type: string
+          period: string
+          posting_status: string
+          received_by: string | null
+          sequence_no: number
+          total_wages: number | null
+          updated_at: string
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_entered?: string | null
+          date_posted?: string | null
+          date_received?: string | null
+          date_verified?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_amt_calc?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          id?: string
+          modified_by?: string | null
+          modified_date?: string | null
+          nil_return?: boolean | null
+          notes?: string | null
+          number_employed?: number | null
+          payer_address?: string | null
+          payer_id: string
+          payer_name?: string | null
+          payer_type: string
+          period: string
+          posting_status?: string
+          received_by?: string | null
+          sequence_no?: number
+          total_wages?: number | null
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_entered?: string | null
+          date_posted?: string | null
+          date_received?: string | null
+          date_verified?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_amt_calc?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          id?: string
+          modified_by?: string | null
+          modified_date?: string | null
+          nil_return?: boolean | null
+          notes?: string | null
+          number_employed?: number | null
+          payer_address?: string | null
+          payer_id?: string
+          payer_name?: string | null
+          payer_type?: string
+          period?: string
+          posting_status?: string
+          received_by?: string | null
+          sequence_no?: number
+          total_wages?: number | null
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       compliance_activity_log: {
         Row: {
           action: string
@@ -3884,6 +3980,143 @@ export type Database = {
           ssn?: string
         }
         Relationships: []
+      }
+      ip_wages: {
+        Row: {
+          c3_id: string | null
+          created_at: string
+          date_entered: string | null
+          date_modified: string | null
+          date_verified: string | null
+          employee_name: string | null
+          entered_by: string | null
+          er_ei_amt: number | null
+          er_levy_amt: number | null
+          er_ss_amt: number | null
+          id: string
+          input_seq_no: number | null
+          ip_levy_amt: number | null
+          ip_pe_amt: number | null
+          ip_ss_amt: number | null
+          modified_by: string | null
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          paid_code7: string | null
+          pay_period: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          posting_status: string | null
+          sequence_no: number
+          ssn: string
+          total_wages: number | null
+          updated_at: string
+          verified_by: string | null
+          wages_paid1: number | null
+          wages_paid2: number | null
+          wages_paid3: number | null
+          wages_paid4: number | null
+          wages_paid5: number | null
+          wages_paid6: number | null
+          wages_paid7: number | null
+        }
+        Insert: {
+          c3_id?: string | null
+          created_at?: string
+          date_entered?: string | null
+          date_modified?: string | null
+          date_verified?: string | null
+          employee_name?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          id?: string
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          modified_by?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          posting_status?: string | null
+          sequence_no?: number
+          ssn: string
+          total_wages?: number | null
+          updated_at?: string
+          verified_by?: string | null
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Update: {
+          c3_id?: string | null
+          created_at?: string
+          date_entered?: string | null
+          date_modified?: string | null
+          date_verified?: string | null
+          employee_name?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          id?: string
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          modified_by?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          posting_status?: string | null
+          sequence_no?: number
+          ssn?: string
+          total_wages?: number | null
+          updated_at?: string
+          verified_by?: string | null
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_wages_c3_id_fkey"
+            columns: ["c3_id"]
+            isOneToOne: false
+            referencedRelation: "cn_c3_reported"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legal_admin_audit: {
         Row: {
@@ -8040,6 +8273,10 @@ export type Database = {
           table_name: string
         }[]
       }
+      get_next_c3_schedule_no: {
+        Args: { p_payer_id: string; p_payer_type: string; p_period: string }
+        Returns: number
+      }
       get_table_columns: {
         Args: { p_table_name: string }
         Returns: {
@@ -8129,6 +8366,10 @@ export type Database = {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
       }
+      submit_c3_record: {
+        Args: { p_c3_id: string; p_user_id?: string }
+        Returns: Json
+      }
       submit_er_registration: {
         Args: { p_temp_regno: string; p_user_id?: string }
         Returns: Json
@@ -8144,6 +8385,10 @@ export type Database = {
           _test_user_id: string
           _workflow_id: string
         }
+        Returns: Json
+      }
+      verify_c3_record: {
+        Args: { p_c3_id: string; p_user_id?: string }
         Returns: Json
       }
     }
