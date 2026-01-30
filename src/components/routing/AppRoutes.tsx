@@ -271,6 +271,7 @@ import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 
 // Online Applications Module
 import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
+import C3CalculationConfigPage from '@/pages/admin/C3CalculationConfigPage';
 import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
 import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetailPage';
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
@@ -925,6 +926,7 @@ export const AppRoutes = () => {
       <Route path="/admin/data-migration" element={<ProtectedLayout><DataMigration /></ProtectedLayout>} />
       <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
+      <Route path="/admin/c3-calculation-config" element={<ProtectedLayout><C3CalculationConfigPage /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
       <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />

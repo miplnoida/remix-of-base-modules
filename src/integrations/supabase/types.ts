@@ -1356,6 +1356,104 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_calculation_config: {
+        Row: {
+          category: string
+          config_key: string
+          config_type: string
+          config_value: number
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_name: string
+          display_order: number | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          config_key: string
+          config_type?: string
+          config_value: number
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          display_order?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          config_key?: string
+          config_type?: string
+          config_value?: number
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          display_order?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      c3_calculation_config_audit: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          changed_by_name: string | null
+          config_id: string | null
+          config_key: string
+          id: string
+          new_value: number | null
+          old_value: number | null
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          config_id?: string | null
+          config_key: string
+          id?: string
+          new_value?: number | null
+          old_value?: number | null
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          config_id?: string | null
+          config_key?: string
+          id?: string
+          new_value?: number | null
+          old_value?: number | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c3_calculation_config_audit_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "c3_calculation_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c3_line_items: {
         Row: {
           c3_id: string | null
