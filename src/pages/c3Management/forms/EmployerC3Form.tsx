@@ -11,6 +11,12 @@ import { useEmployerValidation } from "@/hooks/useEmployerValidation";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import EmployeeModal, { EmployeeData } from "@/components/c3/EmployeeModal";
 import { formatPeriodForStorage, formatPeriodDisplay } from "@/utils/weekCalculations";
+import { 
+  calculatePayrollContributions, 
+  mapPayPeriodToType, 
+  formatCurrency,
+  calculateAge 
+} from "@/utils/sknPayrollCalculations";
 
 interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
@@ -32,13 +38,34 @@ const PreviewField = ({ label, value, required = false }: { label: string; value
   </div>
 );
 
-// Calculation functions
+// Calculate employee totals using SKN payroll calculations
 const calculateEmployeeTotals = (employee: EmployeeData) => {
-  const weeklyTotal = (employee.weeklyWages || []).reduce((sum, wage) => sum + wage, 0);
-  const totalWages = weeklyTotal + employee.wages + employee.bonus;
-  const hssdLevy = totalWages * 0.015;
-  const socialSecurity = totalWages * 0.03;
-  return { totalWages, hssdLevy, socialSecurity };
+  const employeeAge = calculateAge(employee.dateOfBirth || '');
+  
+  const calc = calculatePayrollContributions({
+    payPeriod: mapPayPeriodToType(employee.payPeriod || 'Monthly'),
+    week1: employee.weeklyWages?.[0] || 0,
+    week2: employee.weeklyWages?.[1] || 0,
+    week3: employee.weeklyWages?.[2] || 0,
+    week4: employee.weeklyWages?.[3] || 0,
+    week5: employee.weeklyWages?.[4] || 0,
+    bonusPay: employee.weeklyWages?.[5] || 0,
+    holidayPay: employee.weeklyWages?.[6] || 0,
+    termStartDate: employee.termStartDate || '',
+    employeeAge
+  });
+  
+  return {
+    periodGross: calc.periodGross,
+    employeeSS: calc.employeeSS,
+    employeeLevy: calc.employeeLevy,
+    employerSS: calc.employerSS_Total,
+    employerLevy: calc.employerLevy,
+    employerSeverance: calc.employerSeverance,
+    totalWagesPlusEmployeeLevyPlusSS: calc.totalWagesPlusEmployeeLevyPlusSS,
+    employersThreePercentLevyPlusSS: calc.employersThreePercentLevyPlusSS,
+    employersOnePercentSeverancePay: calc.employersOnePercentSeverancePay
+  };
 };
 
 export default function EmployerC3Form({ mode, initialData, onSave, onCancel, resetTrigger }: EmployerC3FormProps) {
@@ -172,24 +199,35 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
     }
   };
 
-  // Derived overall figures for Calculation Summary
+  // Derived overall figures for Calculation Summary using SKN calculations
   const overall = useMemo(() => {
     const sum = employees.reduce(
       (acc, emp) => {
-        const { totalWages, hssdLevy, socialSecurity } = calculateEmployeeTotals(emp);
-        acc.totalWages += totalWages;
-        acc.employeeLevySS += hssdLevy + socialSecurity;
+        const calc = calculateEmployeeTotals(emp);
+        acc.periodGross += calc.periodGross;
+        acc.employeeSS += calc.employeeSS;
+        acc.employeeLevy += calc.employeeLevy;
+        acc.employerSS += calc.employerSS;
+        acc.employerLevy += calc.employerLevy;
+        acc.employerSeverance += calc.employerSeverance;
         return acc;
       },
-      { totalWages: 0, employeeLevySS: 0 }
+      { periodGross: 0, employeeSS: 0, employeeLevy: 0, employerSS: 0, employerLevy: 0, employerSeverance: 0 }
     );
-    const employerThreePercent = sum.totalWages * 0.03;
-    const employerOnePercent = sum.totalWages * 0.01;
+    
+    // Calculate output totals
+    const totalWagesPlusEmployeeLevyPlusSS = sum.periodGross + sum.employeeLevy + sum.employeeSS;
+    const employersThreePercentLevyPlusSS = sum.employerLevy + sum.employerSS;
+    const employersOnePercentSeverancePay = sum.employerSeverance;
+    
     return {
-      totalWages: sum.totalWages,
-      employeeLevySS: sum.employeeLevySS,
-      employerThreePercent,
-      employerOnePercent,
+      periodGross: sum.periodGross,
+      employeeLevySS: sum.employeeLevy + sum.employeeSS,
+      employerThreePercent: employersThreePercentLevyPlusSS,
+      employerOnePercent: employersOnePercentSeverancePay,
+      totalWagesPlusEmployeeLevyPlusSS,
+      employersThreePercentLevyPlusSS,
+      employersOnePercentSeverancePay,
       levyPenalty: 0,
       severancePenalty: 0,
       fines: 0,
@@ -217,7 +255,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
       payerName: formData.employerName,
       payerAddress: formData.address,
       employees: formData.nilReturn ? [] : employees,
-      totalWages: overall.totalWages,
+      totalWages: overall.periodGross,
       empSsAmtCalc: overall.employeeLevySS,
       empLevyAmtCalc: overall.employerThreePercent,
       empPeAmtCalc: overall.employerOnePercent,
@@ -383,9 +421,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
                     id="dateReceived"
                     type="date"
                     value={formData.dateReceived}
-                    readOnly
-                    disabled
-                    className="bg-muted"
+                    onChange={(e) => handleFormChange("dateReceived", e.target.value)}
+                    disabled={isReadOnly}
                   />
                 </div>
 
@@ -550,7 +587,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Total Wages + Employee Levy + SS</Label>
-                  <div className="text-xl">{formatMoney(overall.totalWages + overall.employeeLevySS)}</div>
+                  <div className="text-xl">{formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS)}</div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Employer's 3% Levy + SS</Label>
@@ -619,7 +656,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
                       Total due to Accountant General
                     </Label>
                     <div className="text-base font-semibold text-muted-foreground">
-                      {formatMoney(overall.totalWages + overall.employeeLevySS + overall.employerThreePercent + overall.employerOnePercent)}
+                      {formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS + overall.employersThreePercentLevyPlusSS + overall.employersOnePercentSeverancePay)}
                     </div>
                   </div>
                 </div>

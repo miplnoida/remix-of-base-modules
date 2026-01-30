@@ -13,6 +13,7 @@ export interface EmployeeValidationResult {
   isValid: boolean;
   name: string;
   termStartDate: string;
+  dateOfBirth: string;
   error?: string;
 }
 
@@ -76,11 +77,11 @@ export function useEmployerValidation() {
 
   const validateEmployee = useCallback(async (ssn: string): Promise<EmployeeValidationResult> => {
     if (!ssn || ssn.trim().length === 0) {
-      return { isValid: false, name: '', termStartDate: '', error: 'SSN is required' };
+      return { isValid: false, name: '', termStartDate: '', dateOfBirth: '', error: 'SSN is required' };
     }
 
     if (ssn.length !== 6 || !/^\d{6}$/.test(ssn)) {
-      return { isValid: false, name: '', termStartDate: '', error: 'SSN must be exactly 6 digits' };
+      return { isValid: false, name: '', termStartDate: '', dateOfBirth: '', error: 'SSN must be exactly 6 digits' };
     }
 
     setIsValidating(true);
@@ -93,7 +94,7 @@ export function useEmployerValidation() {
 
       if (error) {
         console.error('Error validating employee SSN:', error);
-        return { isValid: false, name: '', termStartDate: '', error: 'Error validating SSN' };
+        return { isValid: false, name: '', termStartDate: '', dateOfBirth: '', error: 'Error validating SSN' };
       }
 
       if (!data) {
@@ -101,6 +102,7 @@ export function useEmployerValidation() {
           isValid: false, 
           name: '', 
           termStartDate: '', 
+          dateOfBirth: '',
           error: 'Please enter a valid SSN' 
         };
       }
@@ -111,6 +113,7 @@ export function useEmployerValidation() {
           isValid: false, 
           name: '', 
           termStartDate: '', 
+          dateOfBirth: '',
           error: 'This person is not active in the system' 
         };
       }
@@ -120,15 +123,17 @@ export function useEmployerValidation() {
       // Use date_of_birth as a proxy for term_start_date since term_start_date column doesn't exist
       // In production, this should be fetched from employment records
       const termStartDate = data.date_of_birth || '';
+      const dateOfBirth = data.date_of_birth || '';
 
       return { 
         isValid: true, 
         name: fullName || 'Unknown',
-        termStartDate: termStartDate
+        termStartDate: termStartDate,
+        dateOfBirth: dateOfBirth
       };
     } catch (err: any) {
       console.error('Error in validateEmployee:', err);
-      return { isValid: false, name: '', termStartDate: '', error: 'Validation failed' };
+      return { isValid: false, name: '', termStartDate: '', dateOfBirth: '', error: 'Validation failed' };
     } finally {
       setIsValidating(false);
     }
