@@ -6165,6 +6165,123 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_deductions_tax_table_details: {
+        Row: {
+          base_amt: number | null
+          ded_code: string | null
+          marital_stat: string | null
+          month: number | null
+          order_no: number | null
+          over_amt: number | null
+          pay_period: string | null
+          tax_rate: number | null
+          tax_year: string | null
+          taxheaderid: number | null
+          taxtabid: number
+        }
+        Insert: {
+          base_amt?: number | null
+          ded_code?: string | null
+          marital_stat?: string | null
+          month?: number | null
+          order_no?: number | null
+          over_amt?: number | null
+          pay_period?: string | null
+          tax_rate?: number | null
+          tax_year?: string | null
+          taxheaderid?: number | null
+          taxtabid?: number
+        }
+        Update: {
+          base_amt?: number | null
+          ded_code?: string | null
+          marital_stat?: string | null
+          month?: number | null
+          order_no?: number | null
+          over_amt?: number | null
+          pay_period?: string | null
+          tax_rate?: number | null
+          tax_year?: string | null
+          taxheaderid?: number | null
+          taxtabid?: number
+        }
+        Relationships: []
+      }
+      tb_deductions_tax_table_header: {
+        Row: {
+          allow_or_limit: string | null
+          biweek_allow: number | null
+          ded_code: string | null
+          enddate: string | null
+          hrs_biweek_allow: number | null
+          hrs_misc_allow: number | null
+          hrs_month_allow: number | null
+          hrs_quarter_allow: number | null
+          hrs_smonth_allow: number | null
+          hrs_syear_allow: number | null
+          hrs_week_allow: number | null
+          hrs_year_allow: number | null
+          misc_allow: number | null
+          month_allow: number | null
+          quarter_allow: number | null
+          smonth_allow: number | null
+          startdate: string | null
+          syear_allow: number | null
+          tax_year: string | null
+          taxtabhid: number
+          week_allow: number | null
+          year_allow: number | null
+        }
+        Insert: {
+          allow_or_limit?: string | null
+          biweek_allow?: number | null
+          ded_code?: string | null
+          enddate?: string | null
+          hrs_biweek_allow?: number | null
+          hrs_misc_allow?: number | null
+          hrs_month_allow?: number | null
+          hrs_quarter_allow?: number | null
+          hrs_smonth_allow?: number | null
+          hrs_syear_allow?: number | null
+          hrs_week_allow?: number | null
+          hrs_year_allow?: number | null
+          misc_allow?: number | null
+          month_allow?: number | null
+          quarter_allow?: number | null
+          smonth_allow?: number | null
+          startdate?: string | null
+          syear_allow?: number | null
+          tax_year?: string | null
+          taxtabhid?: number
+          week_allow?: number | null
+          year_allow?: number | null
+        }
+        Update: {
+          allow_or_limit?: string | null
+          biweek_allow?: number | null
+          ded_code?: string | null
+          enddate?: string | null
+          hrs_biweek_allow?: number | null
+          hrs_misc_allow?: number | null
+          hrs_month_allow?: number | null
+          hrs_quarter_allow?: number | null
+          hrs_smonth_allow?: number | null
+          hrs_syear_allow?: number | null
+          hrs_week_allow?: number | null
+          hrs_year_allow?: number | null
+          misc_allow?: number | null
+          month_allow?: number | null
+          quarter_allow?: number | null
+          smonth_allow?: number | null
+          startdate?: string | null
+          syear_allow?: number | null
+          tax_year?: string | null
+          taxtabhid?: number
+          week_allow?: number | null
+          year_allow?: number | null
+        }
+        Relationships: []
+      }
       tb_dependent_relation: {
         Row: {
           code: string
@@ -6291,6 +6408,51 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_penalty: {
+        Row: {
+          created_by: string
+          created_date: string
+          description: string | null
+          effective_end_date: string | null
+          effective_start_date: string
+          id: number
+          is_active: boolean
+          modified_by: string | null
+          modified_date: string | null
+          month_number: number
+          penalty_percentage: number
+          penalty_type: string
+        }
+        Insert: {
+          created_by?: string
+          created_date?: string
+          description?: string | null
+          effective_end_date?: string | null
+          effective_start_date: string
+          id?: number
+          is_active?: boolean
+          modified_by?: string | null
+          modified_date?: string | null
+          month_number: number
+          penalty_percentage: number
+          penalty_type: string
+        }
+        Update: {
+          created_by?: string
+          created_date?: string
+          description?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string
+          id?: number
+          is_active?: boolean
+          modified_by?: string | null
+          modified_date?: string | null
+          month_number?: number
+          penalty_percentage?: number
+          penalty_type?: string
+        }
+        Relationships: []
+      }
       tb_postal_district: {
         Row: {
           code: string
@@ -6336,6 +6498,81 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_self_emp_contrib_rate: {
+        Row: {
+          effend: string
+          effstart: string
+          sep_penalty_percent: number | null
+          sep_ss_percent: number
+          wage_cat: number
+        }
+        Insert: {
+          effend: string
+          effstart: string
+          sep_penalty_percent?: number | null
+          sep_ss_percent: number
+          wage_cat?: number
+        }
+        Update: {
+          effend?: string
+          effstart?: string
+          sep_penalty_percent?: number | null
+          sep_ss_percent?: number
+          wage_cat?: number
+        }
+        Relationships: []
+      }
+      tb_ssc_rates: {
+        Row: {
+          created_by: string
+          created_date: string
+          description: string | null
+          effective_end_date: string | null
+          effective_start_date: string
+          employee_pe_percentage: number
+          employee_ss_percentage: number
+          employer_ei_percentage: number
+          employer_levy_percentage: number
+          employer_ss_percentage: number
+          id: number
+          is_active: boolean
+          modified_by: string | null
+          modified_date: string | null
+        }
+        Insert: {
+          created_by?: string
+          created_date?: string
+          description?: string | null
+          effective_end_date?: string | null
+          effective_start_date: string
+          employee_pe_percentage?: number
+          employee_ss_percentage?: number
+          employer_ei_percentage?: number
+          employer_levy_percentage?: number
+          employer_ss_percentage?: number
+          id?: number
+          is_active?: boolean
+          modified_by?: string | null
+          modified_date?: string | null
+        }
+        Update: {
+          created_by?: string
+          created_date?: string
+          description?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string
+          employee_pe_percentage?: number
+          employee_ss_percentage?: number
+          employer_ei_percentage?: number
+          employer_levy_percentage?: number
+          employer_ss_percentage?: number
+          id?: number
+          is_active?: boolean
+          modified_by?: string | null
+          modified_date?: string | null
         }
         Relationships: []
       }
