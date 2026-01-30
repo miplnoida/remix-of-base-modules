@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,13 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Check, Save, X, Loader2 } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculations';
+import { 
+  calculatePayrollContributions, 
+  mapPayPeriodToType, 
+  formatCurrency,
+  calculateAge,
+  type PayrollCalculationResult 
+} from '@/utils/sknPayrollCalculations';
 
 export interface EmployeeData {
   ssn: string;
@@ -23,6 +30,14 @@ export interface EmployeeData {
   weeklyWages: number[];
   termStartDate?: string;
   payPeriod?: string;
+  dateOfBirth?: string;
+  // Calculation results
+  employeeSS?: number;
+  employeeLevy?: number;
+  employerSS?: number;
+  employerLevy?: number;
+  employerSeverance?: number;
+  periodGross?: number;
 }
 
 interface EmployeeModalProps {
@@ -36,17 +51,6 @@ interface EmployeeModalProps {
 }
 
 const weekLabels = ['1 Week', '2 Week', '3 Week', '4 Week', '5 Week', 'Bonus Pay', 'Holiday Pay'];
-
-const calculateTotals = (employee: EmployeeData) => {
-  const weeklyTotal = (employee.weeklyWages || []).reduce((sum, wage) => sum + wage, 0);
-  const totalWages = weeklyTotal + employee.wages + employee.bonus;
-  const hssdLevy = totalWages * 0.015;
-  const socialSecurity = totalWages * 0.03;
-  return { totalWages, hssdLevy, socialSecurity };
-};
-
-const formatMoney = (n: number) => 
-  `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function EmployeeModal({
   isOpen,
@@ -72,7 +76,8 @@ export default function EmployeeModal({
     isVerified: false,
     weeklyWages: [0, 0, 0, 0, 0, 0, 0],
     termStartDate: '',
-    payPeriod: 'Monthly'
+    payPeriod: 'Monthly',
+    dateOfBirth: ''
   });
 
   const [ssnError, setSsnError] = useState<string>('');
@@ -89,6 +94,24 @@ export default function EmployeeModal({
     periodMonth,
     localEmployee.termStartDate
   );
+
+  // Calculate payroll contributions using SKN calculations
+  const payrollCalc = useMemo((): PayrollCalculationResult => {
+    const employeeAge = calculateAge(localEmployee.dateOfBirth || '');
+    
+    return calculatePayrollContributions({
+      payPeriod: mapPayPeriodToType(localEmployee.payPeriod || 'Monthly'),
+      week1: localEmployee.weeklyWages[0] || 0,
+      week2: localEmployee.weeklyWages[1] || 0,
+      week3: localEmployee.weeklyWages[2] || 0,
+      week4: localEmployee.weeklyWages[3] || 0,
+      week5: localEmployee.weeklyWages[4] || 0,
+      bonusPay: localEmployee.weeklyWages[5] || 0,
+      holidayPay: localEmployee.weeklyWages[6] || 0,
+      termStartDate: localEmployee.termStartDate || '',
+      employeeAge
+    });
+  }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth]);
 
   // Reset form when employee changes
   useEffect(() => {
@@ -110,7 +133,8 @@ export default function EmployeeModal({
         isVerified: false,
         weeklyWages: [0, 0, 0, 0, 0, 0, 0],
         termStartDate: '',
-        payPeriod: 'Monthly'
+        payPeriod: 'Monthly',
+        dateOfBirth: ''
       });
       setSsnValidated(false);
       setSsnError('');
@@ -124,7 +148,8 @@ export default function EmployeeModal({
         setLocalEmployee(prev => ({
           ...prev,
           name: result.name,
-          termStartDate: result.termStartDate
+          termStartDate: result.termStartDate,
+          dateOfBirth: result.dateOfBirth
         }));
         setSsnValidated(true);
         setSsnError('');
@@ -137,18 +162,7 @@ export default function EmployeeModal({
 
   const handleChange = (field: keyof EmployeeData, value: any) => {
     if (isViewMode) return;
-    
-    setLocalEmployee(prev => {
-      const updated = { ...prev, [field]: value };
-      
-      // Recalculate totals when wages change
-      if (field === 'weeklyWages' || field === 'wages' || field === 'bonus') {
-        const totals = calculateTotals(updated);
-        return { ...updated, ...totals };
-      }
-      
-      return updated;
-    });
+    setLocalEmployee(prev => ({ ...prev, [field]: value }));
 
     // Reset validation when SSN changes
     if (field === 'ssn') {
@@ -169,8 +183,11 @@ export default function EmployeeModal({
       newWages[index] = 0;
     }
     
-    handleChange('days', newDays);
-    handleChange('weeklyWages', newWages);
+    setLocalEmployee(prev => ({
+      ...prev,
+      days: newDays,
+      weeklyWages: newWages
+    }));
   };
 
   const handleWageChange = (index: number, value: string) => {
@@ -181,9 +198,15 @@ export default function EmployeeModal({
     const integerPart = parts[0];
     
     if (integerPart.length <= 6) {
+      const numValue = parseFloat(cleanValue) || 0;
+      if (numValue < 0) return; // Validate non-negative
+      
       const newWages = [...localEmployee.weeklyWages];
-      newWages[index] = parseFloat(cleanValue) || 0;
-      handleChange('weeklyWages', newWages);
+      newWages[index] = numValue;
+      setLocalEmployee(prev => ({
+        ...prev,
+        weeklyWages: newWages
+      }));
     }
   };
 
@@ -193,8 +216,21 @@ export default function EmployeeModal({
       return;
     }
     
-    const totals = calculateTotals(localEmployee);
-    onSave({ ...localEmployee, ...totals });
+    // Include calculation results in saved data
+    const savedEmployee: EmployeeData = {
+      ...localEmployee,
+      totalWages: payrollCalc.periodGross,
+      hssdLevy: payrollCalc.employeeLevy,
+      socialSecurity: payrollCalc.employeeSS,
+      employeeSS: payrollCalc.employeeSS,
+      employeeLevy: payrollCalc.employeeLevy,
+      employerSS: payrollCalc.employerSS_Total,
+      employerLevy: payrollCalc.employerLevy,
+      employerSeverance: payrollCalc.employerSeverance,
+      periodGross: payrollCalc.periodGross
+    };
+    
+    onSave(savedEmployee);
     onClose();
   };
 
@@ -213,8 +249,6 @@ export default function EmployeeModal({
     }
     return false;
   };
-
-  const totals = calculateTotals(localEmployee);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -269,9 +303,8 @@ export default function EmployeeModal({
                 id="termStartDate"
                 type="date"
                 value={localEmployee.termStartDate || ''}
-                readOnly
-                disabled
-                className="bg-muted"
+                onChange={(e) => handleChange('termStartDate', e.target.value)}
+                disabled={isViewMode}
               />
             </div>
 
@@ -340,23 +373,50 @@ export default function EmployeeModal({
             </div>
           </div>
 
-          {/* Calculation Summary */}
+          {/* Calculation Summary - Using SKN Calculations */}
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-4">
               <CardTitle className="text-base mb-4">Calculation Summary</CardTitle>
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <Label className="text-sm text-muted-foreground">Total Wages + Employee Levy + SS</Label>
-                  <div className="text-lg font-semibold">{formatMoney(totals.totalWages + totals.hssdLevy + totals.socialSecurity)}</div>
+                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.totalWagesPlusEmployeeLevyPlusSS)}</div>
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Employer's 3% Levy + SS</Label>
-                  <div className="text-lg font-semibold">{formatMoney(totals.totalWages * 0.03)}</div>
+                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.employersThreePercentLevyPlusSS)}</div>
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Employer's 1% Severance Pay</Label>
-                  <div className="text-lg font-semibold">{formatMoney(totals.totalWages * 0.01)}</div>
+                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.employersOnePercentSeverancePay)}</div>
                 </div>
+              </div>
+              
+              {/* Detailed breakdown */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Period Gross</Label>
+                    <div>{formatCurrency(payrollCalc.periodGross)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Employee SS (5%)</Label>
+                    <div>{formatCurrency(payrollCalc.employeeSS)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Employee Levy</Label>
+                    <div>{formatCurrency(payrollCalc.employeeLevy)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Employer Injury (1%)</Label>
+                    <div>{formatCurrency(payrollCalc.employerInjury)}</div>
+                  </div>
+                </div>
+                {payrollCalc.isAgeExempt && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    * SS contributions exempt due to employee age (under 16 or over 62)
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
