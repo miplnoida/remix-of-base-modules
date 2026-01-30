@@ -784,15 +784,15 @@ export default function C3Management() {
         {/* Form Interface - Show based on active tab */}
         {contributionType === "employer" && (
           <EmployerC3Form 
-            data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
+            initialData={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
             resetTrigger={resetFormTrigger}
-            onClose={() => {
+            onCancel={() => {
               setShowForm(false);
               setEditingRecord(null);
               setViewingRecord(null);
               setFormMode('add');
-            }} 
+            }}
             onSave={async (data) => {
               setIsSaving(true);
               try {
