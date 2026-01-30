@@ -17,6 +17,13 @@ import {
   formatCurrency,
   calculateAge 
 } from "@/utils/sknPayrollCalculations";
+import {
+  calculatePenalties,
+  calculateDueDate,
+  calculateLevyAmountDue,
+  calculateSocialSecurityAmountDue,
+  PenaltyResult
+} from "@/utils/sknPenaltyCalculations";
 
 interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
@@ -215,24 +222,68 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
       { periodGross: 0, employeeSS: 0, employeeLevy: 0, employerSS: 0, employerLevy: 0, employerSeverance: 0 }
     );
     
-    // Calculate output totals
+    // Calculate output totals - Sum from all employees
     const totalWagesPlusEmployeeLevyPlusSS = sum.periodGross + sum.employeeLevy + sum.employeeSS;
     const employersThreePercentLevyPlusSS = sum.employerLevy + sum.employerSS;
     const employersOnePercentSeverancePay = sum.employerSeverance;
     
+    // Calculate penalty amounts
+    // Levy due = Employee Levy + Employer Levy
+    const levyAmountDue = calculateLevyAmountDue(sum.employeeLevy, sum.employerLevy);
+    
+    // Severance due = Employer Severance
+    const severanceAmountDue = sum.employerSeverance;
+    
+    // SS due = Employee SS + Employer SS (including injury)
+    const socialSecurityAmountDue = calculateSocialSecurityAmountDue(sum.employeeSS, sum.employerSS);
+    
+    // Calculate penalties based on dates
+    let penaltyResult: PenaltyResult = {
+      effectivePaymentDate: new Date(),
+      daysLate: 0,
+      additional30DayPeriods: 0,
+      monthsLateForSS: 0,
+      levyPenalty: 0,
+      severancePenalty: 0,
+      socialSecurityFine: 0,
+      totalLateCharges: 0
+    };
+    
+    if (formData.period) {
+      const dueDate = calculateDueDate(formData.period.year, formData.period.month);
+      const paymentDate = formData.dateReceived ? new Date(formData.dateReceived) : null;
+      const today = new Date();
+      
+      penaltyResult = calculatePenalties({
+        levyAmountDue,
+        severanceAmountDue,
+        socialSecurityAmountDue,
+        dueDate,
+        paymentDate,
+        today
+      });
+    }
+    
     return {
       periodGross: sum.periodGross,
+      employeeSS: sum.employeeSS,
+      employeeLevy: sum.employeeLevy,
+      employerSS: sum.employerSS,
+      employerLevy: sum.employerLevy,
+      employerSeverance: sum.employerSeverance,
       employeeLevySS: sum.employeeLevy + sum.employeeSS,
       employerThreePercent: employersThreePercentLevyPlusSS,
       employerOnePercent: employersOnePercentSeverancePay,
       totalWagesPlusEmployeeLevyPlusSS,
       employersThreePercentLevyPlusSS,
       employersOnePercentSeverancePay,
-      levyPenalty: 0,
-      severancePenalty: 0,
-      fines: 0,
+      levyPenalty: penaltyResult.levyPenalty,
+      severancePenalty: penaltyResult.severancePenalty,
+      fines: penaltyResult.socialSecurityFine,
+      totalLateCharges: penaltyResult.totalLateCharges,
+      daysLate: penaltyResult.daysLate
     };
-  }, [employees]);
+  }, [employees, formData.period, formData.dateReceived]);
 
   const formatMoney = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
