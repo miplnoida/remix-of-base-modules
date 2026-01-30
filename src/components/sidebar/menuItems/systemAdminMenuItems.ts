@@ -23,7 +23,8 @@ import {
   Globe,
   UserCheck,
   Briefcase,
-  Stethoscope
+  Stethoscope,
+  Calculator
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -188,6 +189,12 @@ export const systemAdminMenuItems = [
         title: "API Configuration",
         url: "/admin/api-configuration",
         icon: Globe,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "C3 Calculation Config",
+        url: "/admin/c3-calculation-config",
+        icon: Calculator,
         requiresPermission: "system_administration"
       }
     ]
