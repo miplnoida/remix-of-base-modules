@@ -1520,6 +1520,36 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_wage_category: {
+        Row: {
+          category: string | null
+          category_description: string | null
+          category_id: number
+          is_locked: number | null
+          ses_id: number | null
+          weekly_contribution: number | null
+          weekly_income: number | null
+        }
+        Insert: {
+          category?: string | null
+          category_description?: string | null
+          category_id?: number
+          is_locked?: number | null
+          ses_id?: number | null
+          weekly_contribution?: number | null
+          weekly_income?: number | null
+        }
+        Update: {
+          category?: string | null
+          category_description?: string | null
+          category_id?: number
+          is_locked?: number | null
+          ses_id?: number | null
+          weekly_contribution?: number | null
+          weekly_income?: number | null
+        }
+        Relationships: []
+      }
       compliance_activity_log: {
         Row: {
           action: string
@@ -3756,6 +3786,33 @@ export type Database = {
           },
         ]
       }
+      ip_self_category: {
+        Row: {
+          activity_seq_no: string
+          effective_end_date: string | null
+          effective_start_date: string
+          self_ref_no: string
+          ssn: string
+          wage_category: number | null
+        }
+        Insert: {
+          activity_seq_no: string
+          effective_end_date?: string | null
+          effective_start_date: string
+          self_ref_no: string
+          ssn: string
+          wage_category?: number | null
+        }
+        Update: {
+          activity_seq_no?: string
+          effective_end_date?: string | null
+          effective_start_date?: string
+          self_ref_no?: string
+          ssn?: string
+          wage_category?: number | null
+        }
+        Relationships: []
+      }
       ip_status: {
         Row: {
           code: string
@@ -3768,6 +3825,63 @@ export type Database = {
         Update: {
           code?: string
           description?: string
+        }
+        Relationships: []
+      }
+      ip_vol_contrib: {
+        Row: {
+          avg_weekly_wage: number | null
+          contrib_amt: number | null
+          date_ceased: string | null
+          date_commenced: string | null
+          date_registered: string
+          due_date: string | null
+          last_payment_date: string | null
+          payment_interval: string | null
+          ssn: string
+        }
+        Insert: {
+          avg_weekly_wage?: number | null
+          contrib_amt?: number | null
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_registered: string
+          due_date?: string | null
+          last_payment_date?: string | null
+          payment_interval?: string | null
+          ssn: string
+        }
+        Update: {
+          avg_weekly_wage?: number | null
+          contrib_amt?: number | null
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_registered?: string
+          due_date?: string | null
+          last_payment_date?: string | null
+          payment_interval?: string | null
+          ssn?: string
+        }
+        Relationships: []
+      }
+      ip_vol_contrib_wages: {
+        Row: {
+          contrib_amt: number | null
+          payment_sequence_no: number
+          period: string | null
+          ssn: string
+        }
+        Insert: {
+          contrib_amt?: number | null
+          payment_sequence_no: number
+          period?: string | null
+          ssn: string
+        }
+        Update: {
+          contrib_amt?: number | null
+          payment_sequence_no?: number
+          period?: string | null
+          ssn?: string
         }
         Relationships: []
       }
