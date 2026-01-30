@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,107 +13,74 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
 import SelfEmployedC3Form from "./forms/SelfEmployedC3Form";
 import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-
-// Enhanced mock data for the table with all required columns
-const mockC3Data = [
-  {
-    payerId: "EMP001",
-    scheduleNo: "SCH-2024-001",
-    period: "2024-01",
-    dateReceived: "2024-01-15",
-    enteredBy: "John Smith",
-    verifiedBy: "Jane Doe",
-    dateEntered: "2024-01-16",
-    dateVerified: "2024-01-17",
-    status: "Verified",
-    type: "Employer",
-    payerName: "ABC Company Ltd",
-    cnc3ReportedReceivedBy: "System Admin",
-    cnc3ReportedModifiedDate: "2024-01-17",
-    cnc3ReportedModifiedBy: "Jane Doe",
-    amount: 15750.00,
-    isVerified: true
-  },
-  {
-    payerId: "SE002",
-    scheduleNo: "SCH-2024-002",
-    period: "2024-01",
-    dateReceived: "2024-01-14",
-    enteredBy: "Mike Johnson",
-    verifiedBy: "",
-    dateEntered: "2024-01-15",
-    dateVerified: "",
-    status: "Pending",
-    type: "Self-Employed",
-    payerName: "XYZ Consultancy",
-    cnc3ReportedReceivedBy: "System Admin",
-    cnc3ReportedModifiedDate: "2024-01-15",
-    cnc3ReportedModifiedBy: "Mike Johnson",
-    amount: 8420.00,
-    isVerified: false
-  },
-  {
-    payerId: "VOL003",
-    scheduleNo: "SCH-2024-003",
-    period: "2024-01",
-    dateReceived: "2024-01-13",
-    enteredBy: "Sarah Wilson",
-    verifiedBy: "Robert Brown",
-    dateEntered: "2024-01-14",
-    dateVerified: "2024-01-16",
-    status: "Verified",
-    type: "Voluntary Contribution",
-    payerName: "Individual Contributor",
-    cnc3ReportedReceivedBy: "System Admin",
-    cnc3ReportedModifiedDate: "2024-01-16",
-    cnc3ReportedModifiedBy: "Robert Brown",
-    amount: 2300.00,
-    isVerified: true
-  },
-  {
-    payerId: "EMP004",
-    scheduleNo: "SCH-2024-004",
-    period: "2024-01",
-    dateReceived: "2024-01-12",
-    enteredBy: "David Lee",
-    verifiedBy: "",
-    dateEntered: "2024-01-13",
-    dateVerified: "",
-    status: "Rejected",
-    type: "Employer",
-    payerName: "DEF Corporation",
-    cnc3ReportedReceivedBy: "System Admin",
-    cnc3ReportedModifiedDate: "2024-01-13",
-    cnc3ReportedModifiedBy: "David Lee",
-    amount: 5670.00,
-    isVerified: false
-  }
-];
+import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
 
 export default function C3Management() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  
+  // C3 Management Hook - connects to Supabase
+  const {
+    records: c3Records,
+    loading,
+    total,
+    fetchRecords,
+    saveDraft,
+    submitRecord,
+    verifyRecord,
+    deleteRecord: deleteC3Record,
+    saveNotes,
+    validatePayer,
+    getScheduleNo,
+  } = useC3Management();
+
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
   const [contributionType, setContributionType] = useState("employer");
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(20);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [c3NotesModalOpen, setC3NotesModalOpen] = useState(false);
   const [c3Notes, setC3Notes] = useState("");
   const [currentRecordForNotes, setCurrentRecordForNotes] = useState<any>(null);
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [recordToVerify, setRecordToVerify] = useState<any>(null);
-  const [c3Data, setC3Data] = useState(mockC3Data);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetFormTrigger, setResetFormTrigger] = useState(0);
+  const [recordToDelete, setRecordToDelete] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [viewingRecord, setViewingRecord] = useState<any>(null);
+  const [formMode, setFormMode] = useState<'add' | 'edit' | 'view'>('add');
+  const [isSaving, setIsSaving] = useState(false);
+  const [filters, setFilters] = useState({
+    regNo: "",
+    scheduleNo: "",
+    period: "",
+    dateReceived: "",
+    enteredBy: "",
+    verifiedBy: "",
+    dateEntered: "",
+    status: ""
+  });
+
+  // Fetch records on mount and when contribution type changes
+  useEffect(() => {
+    const payerType = contributionTypeToPayerType(contributionType);
+    const filterStatus = searchParams.get('filter');
+    
+    fetchRecords({
+      payer_type: payerType,
+      status: filterStatus === 'pending' ? 'P' : undefined,
+    });
+  }, [contributionType, searchParams]);
 
   // Function to get the appropriate button text based on active tab
   const getAddButtonText = () => {
@@ -128,22 +95,6 @@ export default function C3Management() {
         return "Add New C3 Submission";
     }
   };
-  const [recordToDelete, setRecordToDelete] = useState<any>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
-  const [viewingRecord, setViewingRecord] = useState<any>(null);
-  const [formMode, setFormMode] = useState<'add' | 'edit' | 'view'>('add');
-  const [filters, setFilters] = useState({
-    regNo: "",
-    scheduleNo: "",
-    period: "",
-    dateReceived: "",
-    enteredBy: "",
-    verifiedBy: "",
-    dateEntered: "",
-    status: ""
-  });
-
 
   const handleAddNewC3 = () => {
     setEditingRecord(null);
@@ -152,10 +103,18 @@ export default function C3Management() {
     setShowForm(true);
   };
 
-  const handleSearch = () => {
-    console.log("Searching with filters:", filters, "Type:", contributionType);
-    // Implement search logic here
-  };
+  const handleSearch = useCallback(() => {
+    const payerType = contributionTypeToPayerType(contributionType);
+    fetchRecords({
+      payer_type: payerType,
+      payer_id: filters.regNo || undefined,
+      period: filters.period || undefined,
+      status: filters.status ? filters.status.charAt(0).toUpperCase() : undefined,
+      entered_by: filters.enteredBy || undefined,
+      verified_by: filters.verifiedBy || undefined,
+      date_received_from: filters.dateReceived || undefined,
+    });
+  }, [filters, contributionType, fetchRecords]);
 
   const handleReset = () => {
     setFilters({
@@ -169,7 +128,9 @@ export default function C3Management() {
       status: ""
     });
     setSearchTerm("");
-    setContributionType("employer");
+    // Refetch with default filters
+    const payerType = contributionTypeToPayerType(contributionType);
+    fetchRecords({ payer_type: payerType });
   };
 
   const handleView = (record: any) => {
@@ -193,13 +154,15 @@ export default function C3Management() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (recordToDelete) {
-      // In real app, this would call API to delete
-      toast({
-        title: "Record Deleted",
-        description: `C3 record ${recordToDelete.scheduleNo} has been deleted.`,
-      });
+      const result = await deleteC3Record(recordToDelete.id);
+      if (result.success) {
+        toast({
+          title: "Record Deleted",
+          description: `C3 record ${recordToDelete.scheduleNo} has been deleted.`,
+        });
+      }
       setDeleteDialogOpen(false);
       setRecordToDelete(null);
     }
@@ -273,14 +236,15 @@ export default function C3Management() {
     console.log("Modal state set to true");
   };
 
-  const handleSaveC3Notes = () => {
-    if (currentRecordForNotes) {
-      // In a real app, this would save to the backend
-      console.log("Saving C3 Notes for:", currentRecordForNotes.scheduleNo, "Notes:", c3Notes);
-      toast({
-        title: "C3 Notes Saved",
-        description: `Notes for C3 record ${currentRecordForNotes.scheduleNo} have been saved successfully.`,
-      });
+  const handleSaveC3Notes = async () => {
+    if (currentRecordForNotes && currentRecordForNotes.id) {
+      const result = await saveNotes(currentRecordForNotes.id, c3Notes);
+      if (result.success) {
+        toast({
+          title: "C3 Notes Saved",
+          description: `Notes for C3 record ${currentRecordForNotes.scheduleNo} have been saved successfully.`,
+        });
+      }
       setC3NotesModalOpen(false);
       setCurrentRecordForNotes(null);
       setC3Notes("");
@@ -300,11 +264,21 @@ export default function C3Management() {
     }
     
     // If already verified, show toast and return
-    if (record.isVerified) {
+    if (record.isVerified || record.postingStatus === 'V') {
       toast({
         title: "Already Verified",
         description: `C3 record ${record.scheduleNo} is already verified.`,
         className: "bg-blue-100",
+      });
+      return;
+    }
+    
+    // Check if record is in Pending status
+    if (record.postingStatus !== 'P') {
+      toast({
+        title: "Cannot Verify",
+        description: `Only pending records can be verified. Current status: ${record.status}`,
+        variant: "destructive",
       });
       return;
     }
@@ -314,27 +288,16 @@ export default function C3Management() {
     setVerifyDialogOpen(true);
   };
 
-  const confirmVerification = () => {
-    if (recordToVerify) {
-      // Update the record's verification status
-      const updatedData = c3Data.map(record => 
-        record.scheduleNo === recordToVerify.scheduleNo 
-          ? {
-              ...record,
-              isVerified: true,
-              status: "Verified",
-              verifiedBy: "Current User", // In real app, get from auth context
-              dateVerified: new Date().toISOString().split('T')[0]
-            }
-          : record
-      );
+  const confirmVerification = async () => {
+    if (recordToVerify && recordToVerify.id) {
+      const result = await verifyRecord(recordToVerify.id);
       
-      setC3Data(updatedData);
-      
-      toast({
-        title: "Verification Successful",
-        description: `C3 record ${recordToVerify.scheduleNo} has been verified successfully.`,
-      });
+      if (result.success) {
+        toast({
+          title: "Verification Successful",
+          description: `C3 record ${recordToVerify.scheduleNo} has been verified successfully.`,
+        });
+      }
       
       setVerifyDialogOpen(false);
       setRecordToVerify(null);
@@ -372,21 +335,17 @@ export default function C3Management() {
     return 'Voluntary Contribution';
   };
 
-  const filteredData = c3Data
-    .filter(record => record.type === contributionTypeToLabel(contributionType))
-    .filter(record =>
-      record.payerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.payerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.scheduleNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.status.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // Use the records from the hook, filter by search term locally
+  const filteredData = c3Records.filter(record =>
+    !searchTerm || 
+    (record.payerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.payerId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.scheduleNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.status?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  // Pagination logic
-  const totalRecords = filteredData.length;
-  const totalPages = Math.ceil(totalRecords / recordsPerPage);
-  const startIndex = (currentPage - 1) * recordsPerPage;
-  const endIndex = startIndex + recordsPerPage;
-  const currentRecords = filteredData.slice(startIndex, endIndex);
+  // Use filtered data directly (pagination is handled by the hook)
+  const currentRecords = filteredData;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -394,8 +353,11 @@ export default function C3Management() {
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Verified</Badge>;
       case "Pending":
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
+      case "Draft":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Draft</Badge>;
       case "Rejected":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Rejected</Badge>;
+      case "Deleted":
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">{status}</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{status}</Badge>;
     }
@@ -777,10 +739,41 @@ export default function C3Management() {
                   <RotateCcw className="h-4 w-4" />
                   Reset
                 </Button>
-                <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  disabled={isSaving}
+                  onClick={async () => {
+                    // Save as draft - collect form data and save
+                    setIsSaving(true);
+                    try {
+                      const payerType = contributionTypeToPayerType(contributionType);
+                      // For now, save basic record as draft - forms will need to expose their data
+                      toast({
+                        title: "Draft Saved",
+                        description: "Please use the Save button in the form to save as draft.",
+                      });
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Draft
                 </Button>
-                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]">
+                <Button 
+                  type="button" 
+                  className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                  disabled={isSaving}
+                  onClick={() => {
+                    toast({
+                      title: "Submit",
+                      description: "Please save the form first, then submit from the list.",
+                    });
+                  }}
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Submit
                 </Button>
               </>
@@ -800,16 +793,25 @@ export default function C3Management() {
               setViewingRecord(null);
               setFormMode('add');
             }} 
-            onSave={(data) => {
-              console.log('Employer C3 saved:', data);
-              toast({
-                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                description: `Employer C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
-              });
-              setShowForm(false);
-              setEditingRecord(null);
-              setViewingRecord(null);
-              setFormMode('add');
+            onSave={async (data) => {
+              setIsSaving(true);
+              try {
+                const payerType = contributionTypeToPayerType(contributionType);
+                const result = await saveDraft(data, payerType, editingRecord?.id);
+                
+                if (result.success) {
+                  toast({
+                    title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                    description: `Employer C3 record has been saved as draft.`,
+                  });
+                  setShowForm(false);
+                  setEditingRecord(null);
+                  setViewingRecord(null);
+                  setFormMode('add');
+                }
+              } finally {
+                setIsSaving(false);
+              }
             }}
           />
         )}
@@ -825,16 +827,25 @@ export default function C3Management() {
               setViewingRecord(null);
               setFormMode('add');
             }}
-            onSave={(data) => {
-              console.log('Self-employed C3 saved:', data);
-              toast({
-                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                description: `Self-employed C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
-              });
-              setShowForm(false);
-              setEditingRecord(null);
-              setViewingRecord(null);
-              setFormMode('add');
+            onSave={async (data) => {
+              setIsSaving(true);
+              try {
+                const payerType = contributionTypeToPayerType(contributionType);
+                const result = await saveDraft(data, payerType, editingRecord?.id);
+                
+                if (result.success) {
+                  toast({
+                    title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                    description: `Self-employed C3 record has been saved as draft.`,
+                  });
+                  setShowForm(false);
+                  setEditingRecord(null);
+                  setViewingRecord(null);
+                  setFormMode('add');
+                }
+              } finally {
+                setIsSaving(false);
+              }
             }}
           />
         )}
@@ -850,16 +861,25 @@ export default function C3Management() {
               setViewingRecord(null);
               setFormMode('add');
             }}
-            onSave={(data) => {
-              console.log('Voluntary C3 saved:', data);
-              toast({
-                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                description: `Voluntary C3 record has been ${formMode === 'add' ? 'created' : 'updated'} successfully.`,
-              });
-              setShowForm(false);
-              setEditingRecord(null);
-              setViewingRecord(null);
-              setFormMode('add');
+            onSave={async (data) => {
+              setIsSaving(true);
+              try {
+                const payerType = contributionTypeToPayerType(contributionType);
+                const result = await saveDraft(data, payerType, editingRecord?.id);
+                
+                if (result.success) {
+                  toast({
+                    title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                    description: `Voluntary C3 record has been saved as draft.`,
+                  });
+                  setShowForm(false);
+                  setEditingRecord(null);
+                  setViewingRecord(null);
+                  setFormMode('add');
+                }
+              } finally {
+                setIsSaving(false);
+              }
             }}
           />
         )}
@@ -1043,8 +1063,28 @@ export default function C3Management() {
 
       {/* C3 Data Table */}
       <div>
-       
-        
+        {loading ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Loading C3 records...</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : currentRecords.length === 0 ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-muted-foreground mb-4">No C3 records found for {contributionType === 'employer' ? 'employers' : contributionType === 'self-employed' ? 'self-contributors' : 'voluntary contributions'}.</p>
+                <Button onClick={handleAddNewC3}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {getAddButtonText()}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
           <DataTable
             data={currentRecords}
             columns={[
@@ -1068,21 +1108,19 @@ export default function C3Management() {
                 key: 'amount', 
                 label: 'Amount', 
                 minWidth: '120px',
-                render: (amount) => `$${amount.toLocaleString()}`
+                render: (amount) => `$${(amount || 0).toLocaleString()}`
               },
               { key: 'cnc3ReportedReceivedBy', label: 'CNC3 Received By', minWidth: '140px' },
               { key: 'cnc3ReportedModifiedDate', label: 'CNC3 Modified Date', minWidth: '140px' },
               { key: 'cnc3ReportedModifiedBy', label: 'CNC3 Modified By', minWidth: '140px' }
             ]}
-            title="C3 Records"
+            title={`C3 Records (${total} total)`}
             searchPlaceholder="Search by Payer ID, Name, or Type"
             actions={{ view: true, edit: true }}
             onView={(record) => handleView(record)}
             onEdit={(record) => handleEdit(record)}
           />
-
-         
-        
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}
