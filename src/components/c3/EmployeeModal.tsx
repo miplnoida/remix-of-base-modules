@@ -193,21 +193,29 @@ export default function EmployeeModal({
   const handleWageChange = (index: number, value: string) => {
     if (isViewMode) return;
     
+    // Allow decimal input: numeric(10,2) - max 8 integer digits + 2 decimal places
     const cleanValue = value.replace(/[^0-9.]/g, '');
-    const parts = cleanValue.split('.');
-    const integerPart = parts[0];
     
-    if (integerPart.length <= 6) {
-      const numValue = parseFloat(cleanValue) || 0;
-      if (numValue < 0) return; // Validate non-negative
-      
-      const newWages = [...localEmployee.weeklyWages];
-      newWages[index] = numValue;
-      setLocalEmployee(prev => ({
-        ...prev,
-        weeklyWages: newWages
-      }));
-    }
+    // Prevent multiple decimal points
+    const parts = cleanValue.split('.');
+    if (parts.length > 2) return;
+    
+    const integerPart = parts[0] || '';
+    const decimalPart = parts[1] || '';
+    
+    // Validate: max 8 integer digits, max 2 decimal places
+    if (integerPart.length > 8) return;
+    if (decimalPart.length > 2) return;
+    
+    const numValue = parseFloat(cleanValue) || 0;
+    if (numValue < 0) return; // Validate non-negative
+    
+    const newWages = [...localEmployee.weeklyWages];
+    newWages[index] = numValue;
+    setLocalEmployee(prev => ({
+      ...prev,
+      weeklyWages: newWages
+    }));
   };
 
   const handleSave = () => {
@@ -357,13 +365,16 @@ export default function EmployeeModal({
                         )}
                       </div>
                       <Input
-                        type="text"
-                        value={localEmployee.weeklyWages[index] === 0 ? '' : localEmployee.weeklyWages[index].toFixed(2)}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="99999999.99"
+                        value={localEmployee.weeklyWages[index] === 0 ? '' : localEmployee.weeklyWages[index]}
                         onChange={(e) => handleWageChange(index, e.target.value)}
                         className={`flex-1 h-8 text-center rounded-l-none ${
                           localEmployee.days[index] ? 'border-primary' : ''
                         }`}
-                        placeholder="$0.00"
+                        placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
                     </div>
