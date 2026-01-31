@@ -5823,6 +5823,7 @@ export type Database = {
           title: string | null
           updated_at: string | null
           updated_by: string | null
+          user_code: string | null
         }
         Insert: {
           created_at?: string | null
@@ -5850,6 +5851,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          user_code?: string | null
         }
         Update: {
           created_at?: string | null
@@ -5877,6 +5879,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          user_code?: string | null
         }
         Relationships: [
           {
@@ -8358,6 +8361,10 @@ export type Database = {
       generate_ip_ssn: { Args: never; Returns: string }
       generate_temp_er_regno: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
+      generate_user_code: {
+        Args: { p_first_name: string; p_last_name: string }
+        Returns: string
+      }
       get_all_public_tables: {
         Args: never
         Returns: {

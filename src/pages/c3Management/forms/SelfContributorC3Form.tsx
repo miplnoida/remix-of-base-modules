@@ -9,6 +9,7 @@ import { Save, Check, Loader2, AlertCircle, Search } from "lucide-react";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import DatePickerWithDropdowns from "@/components/shared/DatePickerWithDropdowns";
 import { useToast } from "@/hooks/use-toast";
+import { useUserCode } from "@/hooks/useUserCode";
 import { 
   validateSelfContributorSSN, 
   getPersonBySSN,
@@ -50,6 +51,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const isReadOnly = mode === 'view';
   const isViewMode = mode === 'view';
   const { toast } = useToast();
+  const { userCode } = useUserCode();
 
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");
@@ -337,7 +339,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         isVerified
       };
 
-      const result = await saveSelfContributorC3(formDataToSave);
+      const result = await saveSelfContributorC3(formDataToSave, userCode || undefined);
 
       if (result.success) {
         toast({ title: "Success", description: "C3 record saved successfully" });
