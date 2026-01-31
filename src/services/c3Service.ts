@@ -301,29 +301,71 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
     if (record.wages && record.wages.length > 0) {
       // Delete existing wage records for this C3
       if (record.id) {
-        await supabase.from('ip_wages').delete().eq('c3_id', record.id);
+        const { error: deleteError } = await supabase.from('ip_wages').delete().eq('c3_id', record.id);
+        if (deleteError) {
+          console.error('Error deleting existing wage records:', deleteError);
+        }
       }
 
-      // Insert new wage records
-      const wageRecords = record.wages.map((wage, index) => ({
-        ...wage,
-        c3_id: c3Record.id,
-        payer_id: record.payer_id,
-        payer_type: record.payer_type,
-        sequence_no: record.sequence_no,
-        period: record.period,
-        posting_status: 'DFT',
-        input_seq_no: index + 1,
-        entered_by: userCode,
-        date_entered: new Date().toISOString()
-      }));
+      // Insert new wage records with all required fields
+      const wageRecords = record.wages.map((wage, index) => {
+        // Calculate total wages from weekly wages if not provided
+        const totalWages = wage.total_wages || 
+          (wage.wages_paid1 || 0) + 
+          (wage.wages_paid2 || 0) + 
+          (wage.wages_paid3 || 0) + 
+          (wage.wages_paid4 || 0) + 
+          (wage.wages_paid5 || 0) + 
+          (wage.wages_paid6 || 0) + 
+          (wage.wages_paid7 || 0);
+        
+        return {
+          ssn: wage.ssn,
+          payer_id: record.payer_id,
+          payer_type: record.payer_type,
+          sequence_no: record.sequence_no,
+          period: record.period,
+          c3_id: c3Record.id,
+          pay_period: wage.pay_period || 'Monthly',
+          wages_paid1: wage.wages_paid1 || 0,
+          wages_paid2: wage.wages_paid2 || 0,
+          wages_paid3: wage.wages_paid3 || 0,
+          wages_paid4: wage.wages_paid4 || 0,
+          wages_paid5: wage.wages_paid5 || 0,
+          wages_paid6: wage.wages_paid6 || 0,
+          wages_paid7: wage.wages_paid7 || 0,
+          employee_name: wage.employee_name || '',
+          ip_ss_amt: wage.ip_ss_amt || 0,
+          ip_levy_amt: wage.ip_levy_amt || 0,
+          ip_pe_amt: wage.ip_pe_amt || 0,
+          er_ss_amt: wage.er_ss_amt || 0,
+          er_levy_amt: wage.er_levy_amt || 0,
+          er_ei_amt: wage.er_ei_amt || 0,
+          total_wages: totalWages,
+          posting_status: 'DFT',
+          input_seq_no: index + 1,
+          entered_by: userCode,
+          date_entered: new Date().toISOString()
+        };
+      });
 
-      const { error: wageError } = await supabase
+      console.log('Inserting wage records:', wageRecords.length, 'records');
+      
+      const { error: wageError, data: insertedWages } = await supabase
         .from('ip_wages')
-        .insert(wageRecords);
+        .insert(wageRecords)
+        .select();
 
       if (wageError) {
         console.error('Error saving wage records:', wageError);
+        // Return partial success with warning
+        return { 
+          success: true, 
+          data: c3Record, 
+          error: `C3 saved but wage records failed: ${wageError.message}` 
+        };
+      } else {
+        console.log('Successfully inserted wage records:', insertedWages?.length);
       }
     }
 
