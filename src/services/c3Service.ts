@@ -959,7 +959,7 @@ export async function saveVoluntaryContributorC3(
       notes: record.notes,
       payer_name: record.payer_name,
       payer_address: record.payer_address,
-      posting_status: 'DFT', // Always draft for save
+      posting_status: 'Z', // Draft status (Z=Draft, P=Pending, V=Verified, D=Deleted)
     };
 
     let c3Record: C3Record;
