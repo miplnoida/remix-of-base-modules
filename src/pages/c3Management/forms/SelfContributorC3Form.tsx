@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Save, Check, Loader2, AlertCircle, Search } from "lucide-react";
+import { Save, Check, Loader2, AlertCircle, Send } from "lucide-react";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import DatePickerWithDropdowns from "@/components/shared/DatePickerWithDropdowns";
 import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import { useToast } from "@/hooks/use-toast";
 import { useUserCode } from "@/hooks/useUserCode";
+import { useC3Submit } from "@/hooks/useC3Submit";
 import { 
   validateSelfContributorSSN, 
   getPersonBySSN,
@@ -44,14 +45,16 @@ interface SelfContributorC3FormProps {
   mode?: 'add' | 'edit' | 'view';
   resetTrigger?: number;
   onSave?: (data: any) => void;
+  onSubmit?: (c3Id: string) => void;
   onClose?: () => void;
 }
 
-export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger, onSave, onClose }: SelfContributorC3FormProps) {
+export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger, onSave, onSubmit, onClose }: SelfContributorC3FormProps) {
   const isReadOnly = mode === 'view';
   const isViewMode = mode === 'view';
   const { toast } = useToast();
   const { userCode } = useUserCode();
+  const { submitC3Record, isSubmitting } = useC3Submit();
 
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");
@@ -69,6 +72,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const [scheduleNo, setScheduleNo] = useState<number>(data?.sequence_no || 1);
   const [status, setStatus] = useState(data?.postingStatus || 'DFT');
   const [notes, setNotes] = useState(data?.notes || "");
+  const [recordId, setRecordId] = useState<string | null>(data?.id || null);
 
   // Auto-populated fields
   const [name, setName] = useState(data?.payerName || "");
@@ -90,6 +94,9 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
 
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Check if record can be submitted (only DFT/Draft status)
+  const canSubmit = recordId && (status === 'DFT' || status === 'Z');
 
   // Set default received by to current user on mount
   useEffect(() => {
@@ -333,7 +340,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       const periodStr = new Date(period.year, period.month, 1).toISOString();
       
       const formDataToSave: any = {
-        id: data?.id,
+        id: data?.id || recordId,
         payer_id: ssn,
         payer_type: 'SE',
         sequence_no: scheduleNo,
@@ -360,6 +367,11 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       const result = await saveSelfContributorC3(formDataToSave, userCode || undefined);
 
       if (result.success) {
+        // Store the record ID for submit capability
+        if (result.data?.id) {
+          setRecordId(result.data.id);
+          setStatus('DFT');
+        }
         toast({ title: "Success", description: "C3 record saved successfully" });
         onSave?.(result.data);
       } else {
@@ -369,6 +381,31 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handle submit - transitions record from DFT to PEN and triggers workflow
+  const handleSubmit = async () => {
+    if (!recordId) {
+      toast({ title: "Error", description: "Please save the record first before submitting", variant: "destructive" });
+      return;
+    }
+
+    const recordName = `${name || ssn} - ${period ? `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][period.month]} ${period.year}` : ''}`;
+    
+    const result = await submitC3Record(recordId, 'SE', recordName);
+
+    if (result.success) {
+      setStatus('PEN');
+      toast({ 
+        title: "Record Submitted", 
+        description: result.workflowInstanceId 
+          ? "C3 record submitted and workflow started" 
+          : "C3 record submitted for verification"
+      });
+      onSubmit?.(recordId);
+    } else {
+      toast({ title: "Error", description: result.error || "Failed to submit record", variant: "destructive" });
     }
   };
 
@@ -621,19 +658,36 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                   <Button 
                     onClick={handleSave} 
                     className="gap-2"
-                    disabled={isSaving}
+                    disabled={isSaving || isSubmitting}
                   >
                     {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="h-4 w-4" />
                     )}
-                    {mode === 'edit' ? 'Update' : 'Save Draft'}
+                    {mode === 'edit' ? 'Update' : 'Save'}
                   </Button>
+                  
+                  {canSubmit && (
+                    <Button 
+                      onClick={handleSubmit}
+                      variant="default"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                      disabled={isSaving || isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Submit
+                    </Button>
+                  )}
+                  
                   <Button 
                     variant="outline" 
                     onClick={resetForm}
-                    disabled={isSaving}
+                    disabled={isSaving || isSubmitting}
                   >
                     Clear
                   </Button>

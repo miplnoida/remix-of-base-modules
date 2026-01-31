@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
-import { Plus, Save, X, Printer, Loader2 } from "lucide-react";
+import { Plus, Save, X, Printer, Loader2, Send } from "lucide-react";
 import { useEmployerValidation } from "@/hooks/useEmployerValidation";
 import { useUserCode } from "@/hooks/useUserCode";
+import { useC3Submit } from "@/hooks/useC3Submit";
+import { useToast } from "@/hooks/use-toast";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import EmployeeModal, { EmployeeData } from "@/components/c3/EmployeeModal";
@@ -31,6 +33,7 @@ interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
   initialData?: any;
   onSave?: (data: any) => void;
+  onSubmit?: (c3Id: string) => void;
   onCancel?: () => void;
   resetTrigger?: number;
 }
@@ -77,12 +80,17 @@ const calculateEmployeeTotals = (employee: EmployeeData) => {
   };
 };
 
-export default function EmployerC3Form({ mode, initialData, onSave, onCancel, resetTrigger }: EmployerC3FormProps) {
+export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, onCancel, resetTrigger }: EmployerC3FormProps) {
   const isViewMode = mode === 'view';
   const isReadOnly = mode === 'view';
+  const { toast } = useToast();
   
   const { validateEmployer, getScheduleNumber, isValidating } = useEmployerValidation();
   const { userCode } = useUserCode();
+  const { submitC3Record, isSubmitting } = useC3Submit();
+  
+  // Check if record can be submitted (only DFT/Draft status)
+  const canSubmit = initialData?.id && (initialData?.postingStatus === 'DFT' || initialData?.postingStatus === 'Z');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -326,6 +334,33 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
     };
     
     onSave?.(formDataToSave);
+  };
+
+  // Handle submit - transitions record from DFT to PEN and triggers workflow
+  const handleSubmit = async () => {
+    if (!initialData?.id) {
+      toast({ title: "Error", description: "Please save the record first before submitting", variant: "destructive" });
+      return;
+    }
+
+    const periodDisplay = formData.period 
+      ? `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][formData.period.month]} ${formData.period.year}` 
+      : '';
+    const recordName = `${formData.employerName || formData.employerId} - ${periodDisplay}`;
+    
+    const result = await submitC3Record(initialData.id, 'ER', recordName);
+
+    if (result.success) {
+      toast({ 
+        title: "Record Submitted", 
+        description: result.workflowInstanceId 
+          ? "C3 record submitted and workflow started" 
+          : "C3 record submitted for verification"
+      });
+      onSubmit?.(initialData.id);
+    } else {
+      toast({ title: "Error", description: result.error || "Failed to submit record", variant: "destructive" });
+    }
   };
 
   const handlePrint = () => {
