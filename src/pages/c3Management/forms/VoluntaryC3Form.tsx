@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Save, Check, Loader2, AlertCircle } from "lucide-react";
+import { Save, Check, Loader2, AlertCircle, Send } from "lucide-react";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import DatePickerWithDropdowns from "@/components/shared/DatePickerWithDropdowns";
 import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import { useToast } from "@/hooks/use-toast";
 import { useUserCode } from "@/hooks/useUserCode";
+import { useC3Submit } from "@/hooks/useC3Submit";
 import { 
   validateVoluntaryContributorSSN, 
   getNextScheduleNo,
@@ -36,14 +37,16 @@ interface VoluntaryC3FormProps {
   mode?: 'add' | 'edit' | 'view';
   resetTrigger?: number;
   onSave?: (data: any) => void;
+  onSubmit?: (c3Id: string) => void;
   onClose?: () => void;
 }
 
-export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSave, onClose }: VoluntaryC3FormProps) {
+export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSave, onSubmit, onClose }: VoluntaryC3FormProps) {
   const isReadOnly = mode === 'view';
   const isViewMode = mode === 'view';
   const { toast } = useToast();
   const { userCode } = useUserCode();
+  const { submitC3Record, isSubmitting } = useC3Submit();
 
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");
@@ -61,6 +64,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
   const [scheduleNo, setScheduleNo] = useState<number>(data?.sequence_no || 1);
   const [status, setStatus] = useState(data?.postingStatus || 'DFT');
   const [notes, setNotes] = useState(data?.notes || "");
+  const [recordId, setRecordId] = useState<string | null>(data?.id || null);
 
   // Auto-populated fields from ip_vol_contrib
   const [name, setName] = useState(data?.payerName || "");
@@ -79,6 +83,9 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
 
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Check if record can be submitted (only DFT/Draft status)
+  const canSubmit = recordId && (status === 'DFT' || status === 'Z');
 
   // Set default received by to current user on mount
   useEffect(() => {
@@ -265,7 +272,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
       const periodStr = new Date(period.year, period.month, 1).toISOString();
       
       const formDataToSave: any = {
-        id: data?.id,
+        id: data?.id || recordId,
         payer_id: ssn,
         payer_type: 'VC',
         sequence_no: scheduleNo,
@@ -290,6 +297,11 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
       const result = await saveVoluntaryContributorC3(formDataToSave, userCode || undefined);
 
       if (result.success) {
+        // Store the record ID for submit capability
+        if (result.data?.id) {
+          setRecordId(result.data.id);
+          setStatus('DFT');
+        }
         toast({ title: "Success", description: "C3 record saved successfully" });
         onSave?.(result.data);
       } else {
@@ -299,6 +311,31 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handle submit - transitions record from DFT to PEN and triggers workflow
+  const handleSubmit = async () => {
+    if (!recordId) {
+      toast({ title: "Error", description: "Please save the record first before submitting", variant: "destructive" });
+      return;
+    }
+
+    const recordName = `${name || ssn} - ${period ? `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][period.month]} ${period.year}` : ''}`;
+    
+    const result = await submitC3Record(recordId, 'VC', recordName);
+
+    if (result.success) {
+      setStatus('PEN');
+      toast({ 
+        title: "Record Submitted", 
+        description: result.workflowInstanceId 
+          ? "C3 record submitted and workflow started" 
+          : "C3 record submitted for verification"
+      });
+      onSubmit?.(recordId);
+    } else {
+      toast({ title: "Error", description: result.error || "Failed to submit record", variant: "destructive" });
     }
   };
 
@@ -572,20 +609,37 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
                     <Button 
                       onClick={handleSave} 
                       className="bg-green-600 hover:bg-green-700 gap-2" 
-                      disabled={isReadOnly || isSaving}
+                      disabled={isReadOnly || isSaving || isSubmitting}
                     >
                       {isSaving ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Save className="h-4 w-4" />
                       )}
-                      Save Changes
+                      {mode === 'edit' ? 'Update' : 'Save'}
                     </Button>
+                    
+                    {canSubmit && (
+                      <Button 
+                        onClick={handleSubmit}
+                        variant="default"
+                        className="gap-2 bg-blue-600 hover:bg-blue-700"
+                        disabled={isReadOnly || isSaving || isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        Submit
+                      </Button>
+                    )}
+                    
                     <Button 
                       variant="outline" 
                       className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300" 
                       onClick={resetForm} 
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || isSaving || isSubmitting}
                     >
                       Clear
                     </Button>
