@@ -39,11 +39,11 @@ const themes: Record<string, Theme> = {
       '--color-government-800': '26 48 108',
       '--color-government-900': '23 42 95',
       '--primary': '32 60 135',
-      '--primary-foreground': '28 120 167',
+      '--primary-foreground': '#1c78a7',
       '--secondary': '59 91 165',
       '--secondary-foreground': '248 250 255',
       '--accent': '90 123 197',
-      '--accent-foreground': '248 250 255',
+      '--accent-foreground': '#1c78a7',
     }
   },
   emerald: {
