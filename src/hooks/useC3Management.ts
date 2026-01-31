@@ -103,30 +103,76 @@ export const transformToUIRecord = (record: C3Record) => {
 };
 
 // Transform employee data from form to wage record format for ip_wages table
+// Uses the specification provided:
+// - pay_period: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
+// - wages_paid1-5: Weekly wages, wages_paid6: Bonus, wages_paid7: Holiday
+// - paid_code1-7: '1' if amount entered, '0' otherwise
 const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRecord => {
+  // Map pay_period string to numeric code
+  const mapPayPeriodToCode = (payPeriod: string): string => {
+    switch (payPeriod?.toLowerCase()) {
+      case 'weekly': return '3';
+      case 'bi-weekly': return '2';
+      case 'monthly': return '1';
+      case '2 monthly': case '2-monthly': return '4';
+      default: return '1';
+    }
+  };
+
+  // Extract weekly wages
+  const wages1 = employee.weeklyWages?.[0] || 0;
+  const wages2 = employee.weeklyWages?.[1] || 0;
+  const wages3 = employee.weeklyWages?.[2] || 0;
+  const wages4 = employee.weeklyWages?.[3] || 0;
+  const wages5 = employee.weeklyWages?.[4] || 0;
+  const bonusPay = employee.weeklyWages?.[5] || 0; // Bonus pay
+  const holidayPay = employee.weeklyWages?.[6] || 0; // Holiday pay
+
+  // Calculate total wages
+  const totalWages = employee.totalWages || employee.periodGross || 
+    (wages1 + wages2 + wages3 + wages4 + wages5 + bonusPay + holidayPay);
+
   return {
     ssn: employee.ssn,
     payer_id: '', // Will be set by caller
     payer_type: 'ER',
     sequence_no: 0, // Will be set by caller
     period: periodStr,
-    pay_period: employee.payPeriod || 'Monthly',
-    wages_paid1: employee.weeklyWages?.[0] || 0,
-    wages_paid2: employee.weeklyWages?.[1] || 0,
-    wages_paid3: employee.weeklyWages?.[2] || 0,
-    wages_paid4: employee.weeklyWages?.[3] || 0,
-    wages_paid5: employee.weeklyWages?.[4] || 0,
-    wages_paid6: employee.weeklyWages?.[5] || 0, // Bonus pay
-    wages_paid7: employee.weeklyWages?.[6] || 0, // Holiday pay
+    pay_period: mapPayPeriodToCode(employee.payPeriod || 'Monthly'),
+    
+    // Weekly wages
+    wages_paid1: wages1 || null,
+    wages_paid2: wages2 || null,
+    wages_paid3: wages3 || null,
+    wages_paid4: wages4 || null,
+    wages_paid5: wages5 || null,
+    wages_paid6: bonusPay || null, // Bonus pay
+    wages_paid7: holidayPay || null, // Holiday pay
+    
+    // Paid codes
+    paid_code1: wages1 > 0 ? '1' : '0',
+    paid_code2: wages2 > 0 ? '1' : '0',
+    paid_code3: wages3 > 0 ? '1' : '0',
+    paid_code4: wages4 > 0 ? '1' : '0',
+    paid_code5: wages5 > 0 ? '1' : '0',
+    paid_code6: bonusPay > 0 ? '1' : '0',
+    paid_code7: holidayPay > 0 ? '1' : '0',
+    
     employee_name: employee.name,
+    
+    // Employee contributions
     ip_ss_amt: employee.employeeSS || employee.socialSecurity || 0,
     ip_levy_amt: employee.employeeLevy || employee.hssdLevy || 0,
     ip_pe_amt: 0, // Employee pension/severance contribution
+    
+    // Employer contributions
     er_ss_amt: employee.employerSS || 0,
     er_levy_amt: employee.employerLevy || 0,
     er_ei_amt: employee.employerSeverance || 0, // Employer severance/employment injury
-    total_wages: employee.totalWages || employee.periodGross || 0,
+    
+    total_wages: totalWages,
     posting_status: 'DFT',
+    input_seq_no: 0,
   };
 };
 
