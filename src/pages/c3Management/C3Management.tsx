@@ -856,24 +856,18 @@ export default function C3Management() {
               setFormMode('add');
             }}
             onSave={async (data) => {
-              setIsSaving(true);
-              try {
-                const payerType = contributionTypeToPayerType(contributionType);
-                const result = await saveDraft(data, payerType, editingRecord?.id);
-                
-                if (result.success) {
-                  toast({
-                    title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                    description: `Voluntary C3 record has been saved as draft.`,
-                  });
-                  setShowForm(false);
-                  setEditingRecord(null);
-                  setViewingRecord(null);
-                  setFormMode('add');
-                }
-              } finally {
-                setIsSaving(false);
-              }
+              // Form handles its own saving now (similar to SelfContributor)
+              toast({
+                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                description: `Voluntary C3 record has been saved.`,
+              });
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+              // Refresh the list
+              const payerType = contributionTypeToPayerType(contributionType);
+              fetchRecords({ payer_type: payerType });
             }}
           />
         )}
