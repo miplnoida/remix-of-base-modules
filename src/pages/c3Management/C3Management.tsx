@@ -21,8 +21,7 @@ import EmployerC3Form from "./forms/EmployerC3Form";
 import SelfContributorC3Form from "./forms/SelfContributorC3Form";
 import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType, transformToUIRecord } from "@/hooks/useC3Management";
-import { getC3RecordWithWages } from "@/services/c3Service";
+import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -35,6 +34,7 @@ export default function C3Management() {
     loading,
     total,
     fetchRecords,
+    getRecordWithWages,
     saveDraft,
     submitRecord,
     verifyRecord,
@@ -44,6 +44,7 @@ export default function C3Management() {
     getScheduleNo,
   } = useC3Management();
 
+  const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
   const [contributionType, setContributionType] = useState("employer");
   const [searchTerm, setSearchTerm] = useState("");
@@ -134,11 +135,31 @@ export default function C3Management() {
     fetchRecords({ payer_type: payerType });
   };
 
-  const handleView = (record: any) => {
-    setViewingRecord(record);
-    setFormMode('view');
+  const handleView = async (record: any) => {
     setContributionType(record.type === 'Employer' ? 'employer' : 
                        record.type === 'Self-Employed' ? 'self-employed' : 'voluntary');
+    setFormMode('view');
+    
+    // Fetch full record with wages for all contributor types
+    if (record.id) {
+      setIsLoadingRecord(true);
+      try {
+        const result = await getRecordWithWages(record.id);
+        if (result.success && result.data) {
+          setViewingRecord(result.data);
+        } else {
+          setViewingRecord(record);
+        }
+      } catch (err) {
+        console.error('Error loading record:', err);
+        setViewingRecord(record);
+      } finally {
+        setIsLoadingRecord(false);
+      }
+    } else {
+      setViewingRecord(record);
+    }
+    
     setShowForm(true);
   };
 
@@ -146,40 +167,28 @@ export default function C3Management() {
     setContributionType(record.type === 'Employer' ? 'employer' : 
                        record.type === 'Self-Employed' ? 'self-employed' : 'voluntary');
     setFormMode('edit');
-    setShowForm(true);
     
-    // For Employer C3, fetch full record with wages and transform to employees for the form
-    if (record.type === 'Employer' && record.id) {
-      const { data } = await getC3RecordWithWages(record.id);
-      if (data) {
-        const baseRecord = transformToUIRecord(data);
-        const employees = (data.wages || []).map((w: any) => ({
-          ssn: w.ssn,
-          name: w.employee_name || '',
-          weeklyWages: [
-            w.wages_paid1 ?? 0,
-            w.wages_paid2 ?? 0,
-            w.wages_paid3 ?? 0,
-            w.wages_paid4 ?? 0,
-            w.wages_paid5 ?? 0,
-            w.wages_paid6 ?? 0,
-            w.wages_paid7 ?? 0
-          ],
-          payPeriod: w.pay_period === '1' ? 'Monthly' : w.pay_period === '2' ? 'Bi-Weekly' : w.pay_period === '4' ? '2-Monthly' : 'Monthly',
-          employeeSS: w.ip_ss_amt,
-          employeeLevy: w.ip_levy_amt,
-          employerSS: w.er_ss_amt,
-          employerLevy: w.er_levy_amt,
-          employerSeverance: w.er_ei_amt,
-          periodGross: w.total_wages
-        }));
-        setEditingRecord({ ...baseRecord, employees });
-      } else {
+    // Fetch full record with wages for all contributor types
+    if (record.id) {
+      setIsLoadingRecord(true);
+      try {
+        const result = await getRecordWithWages(record.id);
+        if (result.success && result.data) {
+          setEditingRecord(result.data);
+        } else {
+          setEditingRecord(record);
+        }
+      } catch (err) {
+        console.error('Error loading record:', err);
         setEditingRecord(record);
+      } finally {
+        setIsLoadingRecord(false);
       }
     } else {
       setEditingRecord(record);
     }
+    
+    setShowForm(true);
   };
 
   const handleDelete = (record: any) => {
