@@ -21,7 +21,8 @@ import EmployerC3Form from "./forms/EmployerC3Form";
 import SelfContributorC3Form from "./forms/SelfContributorC3Form";
 import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
+import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType, transformToUIRecord } from "@/hooks/useC3Management";
+import { getC3RecordWithWages } from "@/services/c3Service";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -141,12 +142,44 @@ export default function C3Management() {
     setShowForm(true);
   };
 
-  const handleEdit = (record: any) => {
-    setEditingRecord(record);
-    setFormMode('edit');
+  const handleEdit = async (record: any) => {
     setContributionType(record.type === 'Employer' ? 'employer' : 
                        record.type === 'Self-Employed' ? 'self-employed' : 'voluntary');
+    setFormMode('edit');
     setShowForm(true);
+    
+    // For Employer C3, fetch full record with wages and transform to employees for the form
+    if (record.type === 'Employer' && record.id) {
+      const { data } = await getC3RecordWithWages(record.id);
+      if (data) {
+        const baseRecord = transformToUIRecord(data);
+        const employees = (data.wages || []).map((w: any) => ({
+          ssn: w.ssn,
+          name: w.employee_name || '',
+          weeklyWages: [
+            w.wages_paid1 ?? 0,
+            w.wages_paid2 ?? 0,
+            w.wages_paid3 ?? 0,
+            w.wages_paid4 ?? 0,
+            w.wages_paid5 ?? 0,
+            w.wages_paid6 ?? 0,
+            w.wages_paid7 ?? 0
+          ],
+          payPeriod: w.pay_period === '1' ? 'Monthly' : w.pay_period === '2' ? 'Bi-Weekly' : w.pay_period === '4' ? '2-Monthly' : 'Monthly',
+          employeeSS: w.ip_ss_amt,
+          employeeLevy: w.ip_levy_amt,
+          employerSS: w.er_ss_amt,
+          employerLevy: w.er_levy_amt,
+          employerSeverance: w.er_ei_amt,
+          periodGross: w.total_wages
+        }));
+        setEditingRecord({ ...baseRecord, employees });
+      } else {
+        setEditingRecord(record);
+      }
+    } else {
+      setEditingRecord(record);
+    }
   };
 
   const handleDelete = (record: any) => {

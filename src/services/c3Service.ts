@@ -240,7 +240,7 @@ export async function getNextScheduleNo(payerId: string, payerType: 'ER' | 'SE' 
   return data || 1;
 }
 
-// Helper function to map pay period string to numeric code
+// Helper function to map pay period string to numeric code per spec
 // 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
 function mapPayPeriodToCode(payPeriod: string | undefined | null): string {
   switch (payPeriod?.toLowerCase()) {
@@ -253,12 +253,18 @@ function mapPayPeriodToCode(payPeriod: string | undefined | null): string {
 }
 
 // Helper to safely convert value to number, returning null if empty/invalid
+// Per spec: "If a numeric field has no value → save NULL (not empty string)"
 function toNumericOrNull(value: any): number | null {
-  if (value === null || value === undefined || value === '' || value === 0) {
+  if (value === null || value === undefined || value === '') {
     return null;
   }
   const num = Number(value);
-  return isNaN(num) || num === 0 ? null : num;
+  return isNaN(num) ? null : num;
+}
+
+// Helper for paid_code: 1 = amount exists and > 0, 0 = amount missing or zero
+function toPaidCode(value: number | null | undefined): string {
+  return (value != null && Number(value) > 0) ? '1' : '0';
 }
 
 // Helper to normalize status to 3-character codes for ip_wages table
@@ -359,17 +365,16 @@ export async function saveC3Draft(
     console.log('ER save - payer_type:', record.payer_type, 'employeesData.length:', employeesData.length, 'c3_id:', c3Record.id);
     
     if (employeesData.length > 0 && record.payer_type === 'ER') {
-      // Delete existing wage records for this C3 - will re-insert fresh data
-      if (record.id) {
-        const { error: deleteError } = await supabase.from('ip_wages').delete().eq('c3_id', record.id);
-        if (deleteError) {
-          console.error('Error deleting existing wage records:', deleteError);
-        }
+      const parentPostingStatus = record.posting_status;
+      const isUpdate = !!record.id;
+      // Ensure period is valid date string (YYYY-MM-DD)
+      const periodDate = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : record.period) : null;
+      if (!periodDate) {
+        console.error('ER save - missing period for wage records');
+        return { success: true, data: c3Record, error: 'Missing period for wage records' };
       }
 
-      const isUpdate = !!record.id;
-      
-      // Transform and insert wage records with all required fields per specification
+      // Transform wage records per spec - one row per SSN
       const wageRecords = employeesData.map((emp: any) => {
         // Handle both transformed WageRecord and raw EmployeeData formats
         const isRawEmployee = emp.weeklyWages !== undefined;
@@ -423,18 +428,18 @@ export async function saveC3Draft(
           : toNumericOrNull(emp.er_ei_amt);
         
         return {
-          // Core identifiers
+          // Core identifiers - one ip_wages record per SSN per submission
           ssn: emp.ssn,
           payer_id: record.payer_id,
           payer_type: 'ER',
           sequence_no: record.sequence_no,
-          period: record.period,
+          period: periodDate,
           c3_id: c3Record.id,
           
-          // Pay period code: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
+          // Pay period: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
           pay_period: mapPayPeriodToCode(emp.payPeriod || emp.pay_period),
           
-          // Weekly wages (null if empty/zero)
+          // Weekly wages - NULL if no value per spec
           wages_paid1: wages1,
           wages_paid2: wages2,
           wages_paid3: wages3,
@@ -443,48 +448,41 @@ export async function saveC3Draft(
           wages_paid6: bonusPay,  // Bonus Pay
           wages_paid7: holidayPay, // Holiday Pay
           
-          // Paid codes: '1' if amount entered, '0' otherwise
-          paid_code1: wages1 !== null ? '1' : '0',
-          paid_code2: wages2 !== null ? '1' : '0',
-          paid_code3: wages3 !== null ? '1' : '0',
-          paid_code4: wages4 !== null ? '1' : '0',
-          paid_code5: wages5 !== null ? '1' : '0',
-          paid_code6: bonusPay !== null ? '1' : '0',
-          paid_code7: holidayPay !== null ? '1' : '0',
+          // paid_code: 1 = amount exists and > 0, 0 = amount missing or zero
+          paid_code1: toPaidCode(wages1),
+          paid_code2: toPaidCode(wages2),
+          paid_code3: toPaidCode(wages3),
+          paid_code4: toPaidCode(wages4),
+          paid_code5: toPaidCode(wages5),
+          paid_code6: toPaidCode(bonusPay),
+          paid_code7: toPaidCode(holidayPay),
           
-          // Employee name
           employee_name: emp.name || emp.employee_name || '',
-          
-          // Employee contributions
           ip_ss_amt: ipSsAmt,
           ip_levy_amt: ipLevyAmt,
           ip_pe_amt: ipPeAmt,
-          
-          // Employer contributions
           er_ss_amt: erSsAmt,
           er_levy_amt: erLevyAmt,
           er_ei_amt: erEiAmt,
-          
-          // Totals
           total_wages: totalWages,
-          
-          // Audit fields - set entered_by on new record, modified_by on re-insert after delete
           entered_by: effectiveUserCode,
           date_entered: currentDate,
-          modified_by: isUpdate ? effectiveUserCode : null,
-          date_modified: isUpdate ? currentDate : null,
+          modified_by: effectiveUserCode,
+          date_modified: currentDate,
           input_seq_no: 0,
-          // Posting status: use 3-char codes (DFT, PEN, VAC, REJ, DEL)
-          // Copy from parent unless parent is DEL
-          posting_status: normalizeStatus(record.posting_status)
+          verified_by: null,
+          date_verified: null,
+          posting_status: parentPostingStatus === 'DEL' ? 'DEL' : normalizeStatus(record.posting_status)
         };
       });
 
-      console.log('Inserting wage records:', wageRecords.length, 'records');
-      
-      const { error: wageError, data: insertedWages } = await supabase
+      // Upsert: if exists for (ssn, payer_id, sequence_no, period) → UPDATE else INSERT
+      const { error: wageError, data: upsertedWages } = await supabase
         .from('ip_wages')
-        .insert(wageRecords)
+        .upsert(wageRecords, {
+          onConflict: 'ssn,payer_id,payer_type,sequence_no,period',
+          ignoreDuplicates: false
+        })
         .select();
 
       if (wageError) {
@@ -494,9 +492,8 @@ export async function saveC3Draft(
           data: c3Record, 
           error: `C3 saved but wage records failed: ${wageError.message}` 
         };
-      } else {
-        console.log('Successfully inserted wage records:', insertedWages?.length);
       }
+      console.log('Successfully upserted ER wage records:', upsertedWages?.length);
     }
 
     return { success: true, data: c3Record };
@@ -1053,96 +1050,77 @@ export async function saveSelfContributorC3(
       c3Record = data;
     }
 
-    // Save wage record to ip_wages (for Self-Contributor)
-    // Only save if not a nil return and we have week selection data
+    // Save wage record to ip_wages (for Self-Contributor) - one row per SSN
     const selectedWeeks = record.selectedWeeks || [];
     const hasSelectedWeeks = Array.isArray(selectedWeeks) && selectedWeeks.some((w: boolean) => w === true);
+    const weeklyWage = (record as any).weeklyWage;
     
-    console.log('SE save - nilReturn:', record.nil_return, 'selectedWeeks:', selectedWeeks, 'hasSelectedWeeks:', hasSelectedWeeks);
-    
-    if (!record.nil_return && hasSelectedWeeks) {
-      const weeklyWage = (record as any).weeklyWage || 0;
-      
-      // Calculate wages for each selected week
-      const wages1 = selectedWeeks[0] ? weeklyWage : null;
-      const wages2 = selectedWeeks[1] ? weeklyWage : null;
-      const wages3 = selectedWeeks[2] ? weeklyWage : null;
-      const wages4 = selectedWeeks[3] ? weeklyWage : null;
-      const wages5 = selectedWeeks[4] ? weeklyWage : null;
+    if (!record.nil_return) {
+      const periodDate = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : record.period) : null;
+      if (!periodDate) {
+        console.error('SE save - missing period for wage record');
+        return { success: true, data: c3Record, error: 'Missing period for wage record' };
+      }
 
-      const isUpdate = !!record.id;
-      
+      // wages_paid1..5 = Week-1 to Week-5 wages OR NULL; wages_paid6/7 = NULL per spec
+      const wages1 = hasSelectedWeeks && selectedWeeks[0] ? toNumericOrNull(weeklyWage) : null;
+      const wages2 = hasSelectedWeeks && selectedWeeks[1] ? toNumericOrNull(weeklyWage) : null;
+      const wages3 = hasSelectedWeeks && selectedWeeks[2] ? toNumericOrNull(weeklyWage) : null;
+      const wages4 = hasSelectedWeeks && selectedWeeks[3] ? toNumericOrNull(weeklyWage) : null;
+      const wages5 = hasSelectedWeeks && selectedWeeks[4] ? toNumericOrNull(weeklyWage) : null;
+
       const wageRecord = {
-        // Core identifiers
-        ssn: record.payer_id, // SSN is the payer_id for SE
+        ssn: record.payer_id,
         payer_id: record.payer_id,
         payer_type: 'SE',
         sequence_no: record.sequence_no,
-        period: record.period,
+        period: periodDate,
         c3_id: c3Record.id,
-        
-        // Pay period: 1 = Monthly for self-contributor
-        pay_period: '1',
-        
-        // Weekly wages based on selected weeks
+        pay_period: '1', // Monthly for SE
         wages_paid1: wages1,
         wages_paid2: wages2,
         wages_paid3: wages3,
         wages_paid4: wages4,
         wages_paid5: wages5,
-        wages_paid6: null, // No bonus for SE
-        wages_paid7: null, // No holiday for SE
-        
-        // Paid codes: 1 if wages entered, 0 otherwise
-        paid_code1: wages1 ? '1' : '0',
-        paid_code2: wages2 ? '1' : '0',
-        paid_code3: wages3 ? '1' : '0',
-        paid_code4: wages4 ? '1' : '0',
-        paid_code5: wages5 ? '1' : '0',
-        paid_code6: null, // leave blank
-        paid_code7: null, // leave blank
-        
-        // Employee name
+        wages_paid6: null,
+        wages_paid7: null,
+        paid_code1: toPaidCode(wages1),
+        paid_code2: toPaidCode(wages2),
+        paid_code3: toPaidCode(wages3),
+        paid_code4: toPaidCode(wages4),
+        paid_code5: toPaidCode(wages5),
+        paid_code6: null,
+        paid_code7: null,
         employee_name: record.payer_name || '',
-        
-        // Contributions - all null for SE as per specification
         ip_ss_amt: null,
         ip_levy_amt: null,
         ip_pe_amt: null,
         er_ss_amt: null,
         er_levy_amt: null,
         er_ei_amt: null,
-        
-        // Totals
-        total_wages: record.total_wages || 0,
-        
-        // Audit fields - set entered_by on new record, modified_by on re-insert after delete
+        total_wages: toNumericOrNull(record.total_wages),
         entered_by: effectiveUserCode,
         date_entered: currentDate,
-        modified_by: isUpdate ? effectiveUserCode : null,
-        date_modified: isUpdate ? currentDate : null,
+        modified_by: effectiveUserCode,
+        date_modified: currentDate,
+        verified_by: null,
+        date_verified: null,
         input_seq_no: 0,
-        // Posting status: use 3-char codes, copy from parent unless parent is DEL
-        posting_status: normalizeStatus(record.posting_status)
+        posting_status: record.posting_status === 'DEL' ? 'DEL' : normalizeStatus(record.posting_status)
       };
 
-      console.log('Inserting SE wage record:', wageRecord);
-      
-      const { error: wageError, data: insertedWage } = await supabase
+      const { error: wageError } = await supabase
         .from('ip_wages')
-        .insert([wageRecord])
-        .select();
+        .upsert([wageRecord], {
+          onConflict: 'ssn,payer_id,payer_type,sequence_no,period',
+          ignoreDuplicates: false
+        });
 
       if (wageError) {
         console.error('Error saving SE wage record:', wageError);
-        return { 
-          success: true, 
-          data: c3Record, 
-          error: `C3 saved but wage record failed: ${wageError.message}` 
-        };
-      } else {
-        console.log('Successfully inserted SE wage record:', insertedWage?.length);
+        return { success: true, data: c3Record, error: `C3 saved but wage record failed: ${wageError.message}` };
       }
+      console.log('Successfully upserted SE wage record');
     }
 
     return { success: true, data: c3Record };
@@ -1314,96 +1292,76 @@ export async function saveVoluntaryContributorC3(
       c3Record = data;
     }
 
-    // Save wage record to ip_wages (for Voluntary Contributor)
-    // Only save if not a nil return and we have week selection data
+    // Save wage record to ip_wages (for Voluntary Contributor) - same as SE except payer_type = 'VC'
     const selectedWeeks = record.selectedWeeks || [];
     const hasSelectedWeeks = Array.isArray(selectedWeeks) && selectedWeeks.some((w: boolean) => w === true);
+    const weeklyWage = (record as any).weeklyWage;
     
-    console.log('VC save - nilReturn:', record.nil_return, 'selectedWeeks:', selectedWeeks, 'hasSelectedWeeks:', hasSelectedWeeks);
-    
-    if (!record.nil_return && hasSelectedWeeks) {
-      const weeklyWage = (record as any).weeklyWage || 0;
-      
-      // Calculate wages for each selected week
-      const wages1 = selectedWeeks[0] ? weeklyWage : null;
-      const wages2 = selectedWeeks[1] ? weeklyWage : null;
-      const wages3 = selectedWeeks[2] ? weeklyWage : null;
-      const wages4 = selectedWeeks[3] ? weeklyWage : null;
-      const wages5 = selectedWeeks[4] ? weeklyWage : null;
+    if (!record.nil_return) {
+      const periodDate = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : record.period) : null;
+      if (!periodDate) {
+        console.error('VC save - missing period for wage record');
+        return { success: true, data: c3Record, error: 'Missing period for wage record' };
+      }
 
-      const isUpdate = !!record.id;
-      
+      const wages1 = hasSelectedWeeks && selectedWeeks[0] ? toNumericOrNull(weeklyWage) : null;
+      const wages2 = hasSelectedWeeks && selectedWeeks[1] ? toNumericOrNull(weeklyWage) : null;
+      const wages3 = hasSelectedWeeks && selectedWeeks[2] ? toNumericOrNull(weeklyWage) : null;
+      const wages4 = hasSelectedWeeks && selectedWeeks[3] ? toNumericOrNull(weeklyWage) : null;
+      const wages5 = hasSelectedWeeks && selectedWeeks[4] ? toNumericOrNull(weeklyWage) : null;
+
       const wageRecord = {
-        // Core identifiers
-        ssn: record.payer_id, // SSN is the payer_id for VC
+        ssn: record.payer_id,
         payer_id: record.payer_id,
         payer_type: 'VC',
         sequence_no: record.sequence_no,
-        period: record.period,
+        period: periodDate,
         c3_id: c3Record.id,
-        
-        // Pay period: 1 = Monthly for voluntary contributor
         pay_period: '1',
-        
-        // Weekly wages based on selected weeks
         wages_paid1: wages1,
         wages_paid2: wages2,
         wages_paid3: wages3,
         wages_paid4: wages4,
         wages_paid5: wages5,
-        wages_paid6: null, // No bonus for VC
-        wages_paid7: null, // No holiday for VC
-        
-        // Paid codes: 1 if wages entered, 0 otherwise
-        paid_code1: wages1 ? '1' : '0',
-        paid_code2: wages2 ? '1' : '0',
-        paid_code3: wages3 ? '1' : '0',
-        paid_code4: wages4 ? '1' : '0',
-        paid_code5: wages5 ? '1' : '0',
-        paid_code6: null, // leave blank
-        paid_code7: null, // leave blank
-        
-        // Employee name
+        wages_paid6: null,
+        wages_paid7: null,
+        paid_code1: toPaidCode(wages1),
+        paid_code2: toPaidCode(wages2),
+        paid_code3: toPaidCode(wages3),
+        paid_code4: toPaidCode(wages4),
+        paid_code5: toPaidCode(wages5),
+        paid_code6: null,
+        paid_code7: null,
         employee_name: record.payer_name || '',
-        
-        // Contributions - all null for VC as per specification
         ip_ss_amt: null,
         ip_levy_amt: null,
         ip_pe_amt: null,
         er_ss_amt: null,
         er_levy_amt: null,
         er_ei_amt: null,
-        
-        // Totals
-        total_wages: record.total_wages || 0,
-        
-        // Audit fields - set entered_by on new record, modified_by on re-insert after delete
+        total_wages: toNumericOrNull(record.total_wages),
         entered_by: effectiveUserCode,
         date_entered: currentDate,
-        modified_by: isUpdate ? effectiveUserCode : null,
-        date_modified: isUpdate ? currentDate : null,
+        modified_by: effectiveUserCode,
+        date_modified: currentDate,
+        verified_by: null,
+        date_verified: null,
         input_seq_no: 0,
-        // Posting status: use 3-char codes, copy from parent unless parent is DEL
-        posting_status: normalizeStatus(record.posting_status)
+        posting_status: record.posting_status === 'DEL' ? 'DEL' : normalizeStatus(record.posting_status)
       };
 
-      console.log('Inserting VC wage record:', wageRecord);
-      
-      const { error: wageError, data: insertedWage } = await supabase
+      const { error: wageError } = await supabase
         .from('ip_wages')
-        .insert([wageRecord])
-        .select();
+        .upsert([wageRecord], {
+          onConflict: 'ssn,payer_id,payer_type,sequence_no,period',
+          ignoreDuplicates: false
+        });
 
       if (wageError) {
         console.error('Error saving VC wage record:', wageError);
-        return { 
-          success: true, 
-          data: c3Record, 
-          error: `C3 saved but wage record failed: ${wageError.message}` 
-        };
-      } else {
-        console.log('Successfully inserted VC wage record:', insertedWage?.length);
+        return { success: true, data: c3Record, error: `C3 saved but wage record failed: ${wageError.message}` };
       }
+      console.log('Successfully upserted VC wage record');
     }
 
     return { success: true, data: c3Record };
