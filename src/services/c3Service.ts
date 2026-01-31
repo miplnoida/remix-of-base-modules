@@ -850,3 +850,152 @@ export async function saveSelfContributorC3(
     return { success: false, error: error.message };
   }
 }
+
+// Validate voluntary contributor SSN and fetch avg_weekly_wage and contrib_amount from ip_vol_contrib
+export async function validateVoluntaryContributorSSN(
+  ssn: string
+): Promise<{
+  isValid: boolean;
+  name: string;
+  address: string;
+  avgWeeklyWage: number;
+  contribAmount: number;
+  message: string;
+}> {
+  try {
+    // First, get the person's info from ip_master
+    const { data: personData, error: personError } = await supabase
+      .from('ip_master')
+      .select('ssn, first_name, last_name, resident_address_1, resident_address_2')
+      .eq('ssn', ssn)
+      .single();
+
+    if (personError || !personData) {
+      return {
+        isValid: false,
+        name: '',
+        address: '',
+        avgWeeklyWage: 0,
+        contribAmount: 0,
+        message: 'SSN not found in the system'
+      };
+    }
+
+    const name = [personData.first_name, personData.last_name].filter(Boolean).join(' ').trim();
+    const address = [personData.resident_address_1, personData.resident_address_2].filter(Boolean).join(' ').trim();
+
+    // Check ip_vol_contrib for avg_weekly_wage and contrib_amt (note: column is contrib_amt not contrib_amount)
+    const { data: volContribData, error: volContribError } = await supabase
+      .from('ip_vol_contrib')
+      .select('avg_weekly_wage, contrib_amt')
+      .eq('ssn', ssn)
+      .limit(1)
+      .single();
+
+    if (volContribError || !volContribData) {
+      return {
+        isValid: false,
+        name,
+        address,
+        avgWeeklyWage: 0,
+        contribAmount: 0,
+        message: 'No voluntary contribution record found for this SSN. Please ensure the SSN has a declared avg_weekly_wage and contrib_amt in ip_vol_contrib.'
+      };
+    }
+
+    if (!volContribData.avg_weekly_wage || !volContribData.contrib_amt) {
+      return {
+        isValid: false,
+        name,
+        address,
+        avgWeeklyWage: 0,
+        contribAmount: 0,
+        message: 'Voluntary contribution record is incomplete. Both avg_weekly_wage and contrib_amt are required.'
+      };
+    }
+
+    return {
+      isValid: true,
+      name,
+      address,
+      avgWeeklyWage: Number(volContribData.avg_weekly_wage) || 0,
+      contribAmount: Number(volContribData.contrib_amt) || 0,
+      message: 'Voluntary contributor validated successfully'
+    };
+  } catch (error: any) {
+    console.error('Error validating voluntary contributor SSN:', error);
+    return {
+      isValid: false,
+      name: '',
+      address: '',
+      avgWeeklyWage: 0,
+      contribAmount: 0,
+      message: error.message
+    };
+  }
+}
+
+// Save voluntary contributor C3 record
+export async function saveVoluntaryContributorC3(
+  record: C3RecordWithWages,
+  userName?: string
+): Promise<{ success: boolean; data?: C3Record; error?: string }> {
+  try {
+    const c3Data: any = {
+      payer_id: record.payer_id,
+      payer_type: 'VC', // Voluntary Contributor
+      sequence_no: record.sequence_no,
+      period: record.period,
+      number_employed: 1, // Always 1 for voluntary contributor
+      emp_ss_amt_calc: record.emp_ss_amt_calc || 0,
+      emp_levy_amt_calc: 0, // No levy for voluntary contributors
+      emp_pe_amt_calc: 0, // No PE for voluntary contributors
+      emp_levy_penalty_amt: 0,
+      emp_pe_penalty_amt: 0,
+      emp_ss_fines_due: record.emp_ss_fines_due || 0,
+      total_wages: record.total_wages || 0,
+      date_received: record.date_received,
+      nil_return: record.nil_return || false,
+      notes: record.notes,
+      payer_name: record.payer_name,
+      payer_address: record.payer_address,
+      posting_status: 'DFT', // Always draft for save
+    };
+
+    let c3Record: C3Record;
+
+    if (record.id) {
+      // Update existing record
+      c3Data.modified_date = new Date().toISOString();
+      c3Data.modified_by = userName;
+
+      const { data, error } = await supabase
+        .from('cn_c3_reported')
+        .update(c3Data)
+        .eq('id', record.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      c3Record = data;
+    } else {
+      // Create new record
+      c3Data.entered_by = userName;
+      c3Data.date_entered = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('cn_c3_reported')
+        .insert(c3Data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      c3Record = data;
+    }
+
+    return { success: true, data: c3Record };
+  } catch (error: any) {
+    console.error('Error saving voluntary contributor C3:', error);
+    return { success: false, error: error.message };
+  }
+}
