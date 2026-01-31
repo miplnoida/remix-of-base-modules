@@ -266,7 +266,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
         payer_name: name,
         payer_address: address,
         notes,
-        posting_status: 'DFT',
+        posting_status: 'Z', // Draft status (Z=Draft, P=Pending, V=Verified, D=Deleted)
         // Additional data for UI
         weeklyWage,
         weeklyContribution,
