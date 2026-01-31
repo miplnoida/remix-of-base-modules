@@ -261,16 +261,23 @@ function toNumericOrNull(value: any): number | null {
   return isNaN(num) || num === 0 ? null : num;
 }
 
-// Helper to map new status codes to legacy codes for ip_wages table
-// ip_wages only accepts: 'Z' (Draft), 'P' (Pending), 'V' (Verified), 'D' (Deleted)
-function mapStatusToLegacy(status: string | undefined | null): string {
+// Helper to normalize status to 3-character codes for ip_wages table
+// ip_wages now accepts: 'DFT' (Draft), 'PEN' (Pending), 'VAC' (Verified), 'REJ' (Rejected), 'DEL' (Deleted)
+function normalizeStatus(status: string | undefined | null, parentStatus?: string): string {
+  // If parent status is DEL, do not overwrite - return the current record status
+  if (parentStatus?.toUpperCase() === 'DEL') {
+    return status?.toUpperCase() || 'DFT';
+  }
+  
+  // Convert legacy codes to new 3-char codes
   switch (status?.toUpperCase()) {
-    case 'DFT': case 'Z': return 'Z';
-    case 'PEN': case 'P': return 'P';
-    case 'VAC': case 'V': return 'V';
-    case 'REJ': return 'P'; // Rejected treated as pending in legacy
-    case 'DEL': case 'D': return 'D';
-    default: return 'Z';
+    case 'Z': return 'DFT';
+    case 'P': return 'PEN';
+    case 'V': return 'VAC';
+    case 'D': return 'DEL';
+    case 'DFT': case 'PEN': case 'VAC': case 'REJ': case 'DEL':
+      return status.toUpperCase();
+    default: return 'DFT';
   }
 }
 
@@ -286,6 +293,12 @@ export async function saveC3Draft(
   try {
     const currentDate = new Date().toISOString();
     
+    // If no userCode provided, try to get the current user's code
+    let effectiveUserCode = userCode;
+    if (!effectiveUserCode) {
+      effectiveUserCode = await getCurrentUserCode() || undefined;
+    }
+    
     const c3Data: any = {
       payer_id: record.payer_id,
       payer_type: record.payer_type || 'ER',
@@ -300,7 +313,7 @@ export async function saveC3Draft(
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
-      received_by: record.received_by || userCode,
+      received_by: record.received_by || effectiveUserCode,
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
@@ -313,7 +326,7 @@ export async function saveC3Draft(
     if (record.id) {
       // Update existing record
       c3Data.modified_date = currentDate;
-      c3Data.modified_by = userCode;
+      c3Data.modified_by = effectiveUserCode;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -326,7 +339,7 @@ export async function saveC3Draft(
       c3Record = data;
     } else {
       // Create new record
-      c3Data.entered_by = userCode;
+      c3Data.entered_by = effectiveUserCode;
       c3Data.date_entered = currentDate;
 
       const { data, error } = await supabase
@@ -342,6 +355,8 @@ export async function saveC3Draft(
     // Handle wage records for Employer C3
     // Get employees from record.employees (from form) or record.wages (already transformed)
     const employeesData = record.employees || record.wages || [];
+    
+    console.log('ER save - payer_type:', record.payer_type, 'employeesData.length:', employeesData.length, 'c3_id:', c3Record.id);
     
     if (employeesData.length > 0 && record.payer_type === 'ER') {
       // Delete existing wage records for this C3 - will re-insert fresh data
@@ -454,13 +469,14 @@ export async function saveC3Draft(
           total_wages: totalWages,
           
           // Audit fields - set entered_by on new record, modified_by on re-insert after delete
-          entered_by: userCode,
+          entered_by: effectiveUserCode,
           date_entered: currentDate,
-          modified_by: isUpdate ? userCode : null,
+          modified_by: isUpdate ? effectiveUserCode : null,
           date_modified: isUpdate ? currentDate : null,
           input_seq_no: 0,
-          // Posting status: use legacy codes for ip_wages (Z=Draft, P=Pending, V=Verified, D=Deleted)
-          posting_status: mapStatusToLegacy(record.posting_status)
+          // Posting status: use 3-char codes (DFT, PEN, VAC, REJ, DEL)
+          // Copy from parent unless parent is DEL
+          posting_status: normalizeStatus(record.posting_status)
         };
       });
 
@@ -970,6 +986,14 @@ export async function saveSelfContributorC3(
   userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
+    const currentDate = new Date().toISOString();
+    
+    // If no userCode provided, try to get the current user's code
+    let effectiveUserCode = userCode;
+    if (!effectiveUserCode) {
+      effectiveUserCode = await getCurrentUserCode() || undefined;
+    }
+    
     const c3Data: any = {
       payer_id: record.payer_id,
       payer_type: 'SE', // Self-Employed
@@ -984,7 +1008,7 @@ export async function saveSelfContributorC3(
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
-      received_by: record.received_by || userCode, // User who received the submission
+      received_by: record.received_by || effectiveUserCode, // User who received the submission
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
@@ -993,12 +1017,11 @@ export async function saveSelfContributorC3(
     };
 
     let c3Record: C3Record;
-    const currentDate = new Date().toISOString();
 
     if (record.id) {
       // Update existing record
       c3Data.modified_date = currentDate;
-      c3Data.modified_by = userCode;
+      c3Data.modified_by = effectiveUserCode;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -1017,7 +1040,7 @@ export async function saveSelfContributorC3(
       }
     } else {
       // Create new record
-      c3Data.entered_by = userCode;
+      c3Data.entered_by = effectiveUserCode;
       c3Data.date_entered = currentDate;
 
       const { data, error } = await supabase
@@ -1031,9 +1054,13 @@ export async function saveSelfContributorC3(
     }
 
     // Save wage record to ip_wages (for Self-Contributor)
-    // Only save if not a nil return
-    if (!record.nil_return && record.selectedWeeks) {
-      const selectedWeeks = record.selectedWeeks || [false, false, false, false, false];
+    // Only save if not a nil return and we have week selection data
+    const selectedWeeks = record.selectedWeeks || [];
+    const hasSelectedWeeks = Array.isArray(selectedWeeks) && selectedWeeks.some((w: boolean) => w === true);
+    
+    console.log('SE save - nilReturn:', record.nil_return, 'selectedWeeks:', selectedWeeks, 'hasSelectedWeeks:', hasSelectedWeeks);
+    
+    if (!record.nil_return && hasSelectedWeeks) {
       const weeklyWage = (record as any).weeklyWage || 0;
       
       // Calculate wages for each selected week
@@ -1090,12 +1117,13 @@ export async function saveSelfContributorC3(
         total_wages: record.total_wages || 0,
         
         // Audit fields - set entered_by on new record, modified_by on re-insert after delete
-        entered_by: userCode,
+        entered_by: effectiveUserCode,
         date_entered: currentDate,
-        modified_by: isUpdate ? userCode : null,
+        modified_by: isUpdate ? effectiveUserCode : null,
         date_modified: isUpdate ? currentDate : null,
         input_seq_no: 0,
-        posting_status: mapStatusToLegacy(record.posting_status)
+        // Posting status: use 3-char codes, copy from parent unless parent is DEL
+        posting_status: normalizeStatus(record.posting_status)
       };
 
       console.log('Inserting SE wage record:', wageRecord);
@@ -1219,6 +1247,14 @@ export async function saveVoluntaryContributorC3(
   userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
+    const currentDate = new Date().toISOString();
+    
+    // If no userCode provided, try to get the current user's code
+    let effectiveUserCode = userCode;
+    if (!effectiveUserCode) {
+      effectiveUserCode = await getCurrentUserCode() || undefined;
+    }
+    
     const c3Data: any = {
       payer_id: record.payer_id,
       payer_type: 'VC', // Voluntary Contributor
@@ -1233,7 +1269,7 @@ export async function saveVoluntaryContributorC3(
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
-      received_by: record.received_by || userCode, // User who received the submission
+      received_by: record.received_by || effectiveUserCode, // User who received the submission
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
@@ -1242,12 +1278,11 @@ export async function saveVoluntaryContributorC3(
     };
 
     let c3Record: C3Record;
-    const currentDate = new Date().toISOString();
 
     if (record.id) {
       // Update existing record
       c3Data.modified_date = currentDate;
-      c3Data.modified_by = userCode;
+      c3Data.modified_by = effectiveUserCode;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -1266,7 +1301,7 @@ export async function saveVoluntaryContributorC3(
       }
     } else {
       // Create new record
-      c3Data.entered_by = userCode;
+      c3Data.entered_by = effectiveUserCode;
       c3Data.date_entered = currentDate;
 
       const { data, error } = await supabase
@@ -1280,9 +1315,13 @@ export async function saveVoluntaryContributorC3(
     }
 
     // Save wage record to ip_wages (for Voluntary Contributor)
-    // Only save if not a nil return
-    if (!record.nil_return && record.selectedWeeks) {
-      const selectedWeeks = record.selectedWeeks || [false, false, false, false, false];
+    // Only save if not a nil return and we have week selection data
+    const selectedWeeks = record.selectedWeeks || [];
+    const hasSelectedWeeks = Array.isArray(selectedWeeks) && selectedWeeks.some((w: boolean) => w === true);
+    
+    console.log('VC save - nilReturn:', record.nil_return, 'selectedWeeks:', selectedWeeks, 'hasSelectedWeeks:', hasSelectedWeeks);
+    
+    if (!record.nil_return && hasSelectedWeeks) {
       const weeklyWage = (record as any).weeklyWage || 0;
       
       // Calculate wages for each selected week
@@ -1339,12 +1378,13 @@ export async function saveVoluntaryContributorC3(
         total_wages: record.total_wages || 0,
         
         // Audit fields - set entered_by on new record, modified_by on re-insert after delete
-        entered_by: userCode,
+        entered_by: effectiveUserCode,
         date_entered: currentDate,
-        modified_by: isUpdate ? userCode : null,
+        modified_by: isUpdate ? effectiveUserCode : null,
         date_modified: isUpdate ? currentDate : null,
         input_seq_no: 0,
-        posting_status: mapStatusToLegacy(record.posting_status)
+        // Posting status: use 3-char codes, copy from parent unless parent is DEL
+        posting_status: normalizeStatus(record.posting_status)
       };
 
       console.log('Inserting VC wage record:', wageRecord);
