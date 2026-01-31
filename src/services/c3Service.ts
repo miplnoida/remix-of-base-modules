@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Types based on the cn_c3_reported table
 export type PayerType = 'ER' | 'SE' | 'VC';
-export type PostingStatus = 'Z' | 'P' | 'V' | 'D';
+export type PostingStatus = 'DFT' | 'PEN' | 'VAC' | 'REJ' | 'DEL';
 
 export interface C3Record {
   id?: string;
@@ -28,7 +28,7 @@ export interface C3Record {
   verified_by?: string | null;
   modified_by?: string | null;
   received_by?: string | null;
-  posting_status: string; // 'Z' | 'P' | 'V' | 'D' - Z=Draft, P=Pending, V=Verified, D=Deleted
+  posting_status: string; // 'DFT' | 'PEN' | 'VAC' | 'REJ' | 'DEL' - DFT=Draft, PEN=Pending, VAC=Verified/Approved, REJ=Rejected, DEL=Deleted
   nil_return?: boolean | null;
   notes?: string | null;
   payer_name?: string | null;
@@ -74,7 +74,7 @@ export interface WageRecord {
   date_modified?: string | null;
   verified_by?: string | null;
   date_verified?: string | null;
-  posting_status?: string | null; // 'Z' | 'P' | 'V' | 'D'
+  posting_status?: string | null; // 'DFT' | 'PEN' | 'VAC' | 'REJ' | 'DEL'
   input_seq_no?: number | null;
   c3_id?: string | null;
 }
@@ -261,7 +261,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userName?: string):
       notes: record.notes,
       payer_name: record.payer_name,
       payer_address: record.payer_address,
-      posting_status: 'Z', // Always draft for save draft
+      posting_status: 'DFT', // Always draft for save draft
     };
 
     let c3Record: C3Record;
@@ -310,7 +310,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userName?: string):
         payer_type: record.payer_type,
         sequence_no: record.sequence_no,
         period: record.period,
-        posting_status: 'Z',
+        posting_status: 'DFT',
         input_seq_no: index + 1,
         entered_by: userName,
         date_entered: new Date().toISOString()
@@ -332,7 +332,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userName?: string):
   }
 }
 
-// Submit a C3 record (change status from Z to P)
+// Submit a C3 record (change status from DFT to PEN)
 export async function submitC3Record(c3Id: string, userId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('submit_c3_record', {
@@ -349,7 +349,7 @@ export async function submitC3Record(c3Id: string, userId?: string): Promise<{ s
   }
 }
 
-// Verify a C3 record (change status from P to V)
+// Verify a C3 record (change status from PEN to VAC)
 export async function verifyC3Record(c3Id: string, userId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('verify_c3_record', {
@@ -362,6 +362,24 @@ export async function verifyC3Record(c3Id: string, userId?: string): Promise<{ s
     return { success: true, data };
   } catch (error: any) {
     console.error('Error verifying C3 record:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Reject a C3 record (change status from PEN to REJ)
+export async function rejectC3Record(c3Id: string, userId?: string, reason?: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('reject_c3_record', {
+      p_c3_id: c3Id,
+      p_user_id: userId,
+      p_reason: reason || null
+    });
+
+    if (error) throw error;
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Error rejecting C3 record:', error);
     return { success: false, error: error.message };
   }
 }
@@ -385,8 +403,8 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
     if (filters.status) {
       query = query.eq('posting_status', filters.status);
     } else {
-      // Exclude deleted records by default
-      query = query.neq('posting_status', 'D');
+      // Exclude deleted records by default (both new and legacy codes)
+      query = query.not('posting_status', 'in', '("DEL","D")');
     }
 
     if (filters.entered_by) {
@@ -464,13 +482,13 @@ export async function getC3RecordWithWages(c3Id: string): Promise<{ data?: C3Rec
   }
 }
 
-// Delete a C3 record (soft delete - set status to D)
+// Delete a C3 record (soft delete - set status to DEL)
 export async function deleteC3Record(c3Id: string, userName?: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
       .from('cn_c3_reported')
       .update({
-        posting_status: 'D',
+        posting_status: 'DEL',
         modified_date: new Date().toISOString(),
         modified_by: userName
       })
@@ -482,7 +500,7 @@ export async function deleteC3Record(c3Id: string, userName?: string): Promise<{
     await supabase
       .from('ip_wages')
       .update({
-        posting_status: 'D',
+        posting_status: 'DEL',
         date_modified: new Date().toISOString(),
         modified_by: userName
       })

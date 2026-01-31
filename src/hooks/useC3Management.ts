@@ -7,6 +7,7 @@ import {
   saveC3Draft,
   submitC3Record,
   verifyC3Record,
+  rejectC3Record,
   deleteC3Record,
   updateC3Notes,
   validateEmployer,
@@ -22,7 +23,7 @@ import {
 } from "@/services/c3Service";
 
 export type PayerType = 'ER' | 'SE' | 'VC';
-export type PostingStatus = 'Z' | 'P' | 'V' | 'D';
+export type PostingStatus = 'DFT' | 'PEN' | 'VAC' | 'REJ' | 'DEL';
 
 // Map UI contribution type to database payer_type
 export const contributionTypeToPayerType = (type: string): PayerType => {
@@ -38,24 +39,26 @@ export const payerTypeToContributionType = (type: string): string => {
   return 'voluntary';
 };
 
-// Map posting_status to display status
+// Map posting_status to display status (supports both new and legacy codes)
 export const postingStatusToDisplayStatus = (status: string): string => {
   switch (status) {
-    case 'Z': return 'Draft';
-    case 'P': return 'Pending';
-    case 'V': return 'Verified';
-    case 'D': return 'Deleted';
+    case 'DFT': case 'Z': return 'Draft';
+    case 'PEN': case 'P': return 'Pending';
+    case 'VAC': case 'V': return 'Verified';
+    case 'REJ': return 'Rejected';
+    case 'DEL': case 'D': return 'Deleted';
     default: return status;
   }
 };
 
-// Map display status to posting_status
+// Map display status to posting_status (uses new codes)
 export const displayStatusToPostingStatus = (status: string): string => {
   switch (status.toLowerCase()) {
-    case 'draft': return 'Z';
-    case 'pending': return 'P';
-    case 'verified': return 'V';
-    case 'deleted': return 'D';
+    case 'draft': return 'DFT';
+    case 'pending': return 'PEN';
+    case 'verified': case 'approved': return 'VAC';
+    case 'rejected': return 'REJ';
+    case 'deleted': return 'DEL';
     default: return status;
   }
 };
@@ -86,7 +89,8 @@ export const transformToUIRecord = (record: C3Record) => {
     totalWages: record.total_wages || 0,
     numberOfEmployees: record.number_employed || 0,
     notes: record.notes || '',
-    isVerified: record.posting_status === 'V',
+    isVerified: record.posting_status === 'VAC' || record.posting_status === 'V',
+    isRejected: record.posting_status === 'REJ',
     nilReturn: record.nil_return || false,
     // Contribution breakdown
     empSsAmtCalc: record.emp_ss_amt_calc || 0,
@@ -123,7 +127,7 @@ export const transformToDBRecord = (
     notes: uiData.notes,
     payer_name: uiData.payerName || uiData.employerName || uiData.name,
     payer_address: uiData.payerAddress || uiData.address,
-    posting_status: 'Z', // Draft
+    posting_status: 'DFT', // Draft (new code)
     wages: uiData.wages || [],
   };
 };
@@ -143,6 +147,7 @@ export interface UseC3ManagementReturn {
   saveDraft: (data: any, payerType: PayerType, existingId?: string) => Promise<{ success: boolean; id?: string; error?: string }>;
   submitRecord: (c3Id: string, userId?: string) => Promise<{ success: boolean; error?: string }>;
   verifyRecord: (c3Id: string, userId?: string) => Promise<{ success: boolean; error?: string }>;
+  rejectRecord: (c3Id: string, userId?: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
   deleteRecord: (c3Id: string, userName?: string) => Promise<{ success: boolean; error?: string }>;
   saveNotes: (c3Id: string, notes: string, userName?: string) => Promise<{ success: boolean; error?: string }>;
   
@@ -327,6 +332,38 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
     }
   }, [refreshRecords, toast]);
 
+  const rejectRecord = useCallback(async (c3Id: string, userId?: string, reason?: string) => {
+    setLoading(true);
+    try {
+      const result = await rejectC3Record(c3Id, userId, reason);
+      
+      if (result.success) {
+        toast({
+          title: "Record Rejected",
+          description: "C3 record has been rejected.",
+        });
+        await refreshRecords();
+        return { success: true };
+      } else {
+        toast({
+          title: "Rejection Failed",
+          description: result.error || "Failed to reject record",
+          variant: "destructive",
+        });
+        return { success: false, error: result.error };
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshRecords, toast]);
+
   const deleteRecord = useCallback(async (c3Id: string, userName?: string) => {
     setLoading(true);
     try {
@@ -429,6 +466,7 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
     saveDraft,
     submitRecord,
     verifyRecord,
+    rejectRecord,
     deleteRecord,
     saveNotes,
     validatePayer,

@@ -8460,6 +8460,10 @@ export type Database = {
         }
         Returns: string
       }
+      reject_c3_record: {
+        Args: { p_c3_id: string; p_reason?: string; p_user_id?: string }
+        Returns: Json
+      }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
