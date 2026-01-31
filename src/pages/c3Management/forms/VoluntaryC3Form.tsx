@@ -14,11 +14,7 @@ import {
   getNextScheduleNo,
   saveVoluntaryContributorC3 
 } from "@/services/c3Service";
-import {
-  calculateSelfContributorPenalty,
-  getMondaysInMonth,
-  calculateSelfContributorDueDate
-} from "@/utils/selfContributorPenaltyCalculations";
+import { getMondaysInMonth } from "@/utils/selfContributorPenaltyCalculations";
 import { postingStatusToDisplayStatus } from "@/hooks/useC3Management";
 
 // PreviewField component for view mode
@@ -100,19 +96,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
     return Math.round(weeklyContribution * weeksSelected * 100) / 100;
   }, [weeklyContribution, selectedWeeks, nilReturn]);
 
-  // Calculate penalty using the same logic as self-contributor
-  const penaltyResult = useMemo(() => {
-    if (nilReturn || !period || ssContribution <= 0) {
-      return { lateFine: 0, monthsLate: 0, dueDate: null };
-    }
-    
-    return calculateSelfContributorPenalty({
-      contributionMonth: period,
-      socialSecurityDue: ssContribution,
-      paymentDate: dateReceived || null,
-      today: new Date()
-    });
-  }, [period, ssContribution, dateReceived, nilReturn]);
 
   // Format money
   const formatMoney = (amount: number) => {
@@ -277,7 +260,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
         period: periodStr,
         total_wages: totalWages,
         emp_ss_amt_calc: ssContribution,
-        emp_ss_fines_due: penaltyResult.lateFine,
+        emp_ss_fines_due: 0, // Penalties not applicable for Voluntary Contributor
         date_received: dateReceived?.toISOString(),
         nil_return: nilReturn,
         payer_name: name,
@@ -399,7 +382,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
 
           {/* Read-only information in gray card */}
           <div className="mt-6 bg-muted rounded-lg p-4 border-2 border-border">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Name</Label>
                 <div className="text-sm">{name || '-'}</div>
@@ -428,13 +411,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
                 <Label className="text-sm font-medium">Status</Label>
                 <div>{getStatusBadge(status)}</div>
               </div>
-
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Due Date</Label>
-                <div className="text-sm">
-                  {penaltyResult.dueDate ? formatDate(penaltyResult.dueDate) : '-'}
-                </div>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -450,7 +426,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
             {isViewMode ? (
               <div className="space-y-6">
                 {/* Row 1: Totals preview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium">Total Wages</Label>
                     <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
@@ -461,12 +437,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
                     <Label className="text-sm font-medium">Social Security Contribution</Label>
                     <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
                       {formatMoney(ssContribution)}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Penalties</Label>
-                    <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border">
-                      {formatMoney(penaltyResult.lateFine)}
                     </div>
                   </div>
                 </div>
@@ -504,8 +474,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Row 1: Total Wages, Social Security Contribution, Penalties - All Read-Only */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Row 1: Total Wages, Social Security Contribution - All Read-Only */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>Total Wages</Label>
                     <Input
@@ -522,20 +492,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
                       readOnly
                       className="bg-muted"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Penalties</Label>
-                    <Input
-                      value={formatMoney(penaltyResult.lateFine)}
-                      readOnly
-                      className="bg-muted"
-                    />
-                    {penaltyResult.monthsLate > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {penaltyResult.monthsLate} month(s) late @ 5% per month
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -648,7 +604,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
       {/* Total Summary */}
       <div className="bg-green-50 rounded-lg p-6 border border-green-200">
         <CardTitle>Total</CardTitle>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
           <div className="space-y-1">
             <Label className="text-sm font-medium text-gray-500">Total Wages</Label>
             <div className="text-lg font-semibold">{formatMoney(totalWages)}</div>
@@ -658,13 +614,9 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
             <div className="text-lg font-semibold">{formatMoney(ssContribution)}</div>
           </div>
           <div className="space-y-1">
-            <Label className="text-sm font-medium text-gray-500">Penalties</Label>
-            <div className="text-lg font-semibold text-red-600">{formatMoney(penaltyResult.lateFine)}</div>
-          </div>
-          <div className="space-y-1">
             <Label className="text-sm font-medium text-gray-500">Total Due</Label>
             <div className="text-lg font-semibold text-primary">
-              {formatMoney(ssContribution + penaltyResult.lateFine)}
+              {formatMoney(ssContribution)}
             </div>
           </div>
         </div>
