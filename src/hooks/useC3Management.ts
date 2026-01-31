@@ -102,18 +102,56 @@ export const transformToUIRecord = (record: C3Record) => {
   };
 };
 
+// Transform employee data from form to wage record format for ip_wages table
+const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRecord => {
+  return {
+    ssn: employee.ssn,
+    payer_id: '', // Will be set by caller
+    payer_type: 'ER',
+    sequence_no: 0, // Will be set by caller
+    period: periodStr,
+    pay_period: employee.payPeriod || 'Monthly',
+    wages_paid1: employee.weeklyWages?.[0] || 0,
+    wages_paid2: employee.weeklyWages?.[1] || 0,
+    wages_paid3: employee.weeklyWages?.[2] || 0,
+    wages_paid4: employee.weeklyWages?.[3] || 0,
+    wages_paid5: employee.weeklyWages?.[4] || 0,
+    wages_paid6: employee.weeklyWages?.[5] || 0, // Bonus pay
+    wages_paid7: employee.weeklyWages?.[6] || 0, // Holiday pay
+    employee_name: employee.name,
+    ip_ss_amt: employee.employeeSS || employee.socialSecurity || 0,
+    ip_levy_amt: employee.employeeLevy || employee.hssdLevy || 0,
+    ip_pe_amt: 0, // Employee pension/severance contribution
+    er_ss_amt: employee.employerSS || 0,
+    er_levy_amt: employee.employerLevy || 0,
+    er_ei_amt: employee.employerSeverance || 0, // Employer severance/employment injury
+    total_wages: employee.totalWages || employee.periodGross || 0,
+    posting_status: 'DFT',
+  };
+};
+
 // Transform UI form data to database format
 export const transformToDBRecord = (
   uiData: any,
   payerType: PayerType,
   existingId?: string
 ): C3RecordWithWages => {
+  const periodStr = uiData.period || uiData.periodRaw || '';
+  
+  // Map employees array to wages format if present (for Employer C3)
+  let wages: WageRecord[] = [];
+  if (uiData.employees && Array.isArray(uiData.employees) && uiData.employees.length > 0) {
+    wages = uiData.employees.map((emp: any) => transformEmployeeToWageRecord(emp, periodStr));
+  } else if (uiData.wages && Array.isArray(uiData.wages)) {
+    wages = uiData.wages;
+  }
+  
   return {
     id: existingId,
-    payer_id: uiData.regNo || uiData.ssn || uiData.payerId,
+    payer_id: uiData.regNo || uiData.ssn || uiData.payerId || uiData.employerId,
     payer_type: payerType,
     sequence_no: uiData.sequence_no || 1,
-    period: uiData.period || uiData.periodRaw,
+    period: periodStr,
     number_employed: parseInt(uiData.numberOfEmployees) || (payerType === 'ER' ? 0 : 1),
     emp_ss_amt_calc: uiData.empSsAmtCalc || 0,
     emp_levy_amt_calc: uiData.empLevyAmtCalc || 0,
@@ -128,7 +166,8 @@ export const transformToDBRecord = (
     payer_name: uiData.payerName || uiData.employerName || uiData.name,
     payer_address: uiData.payerAddress || uiData.address,
     posting_status: 'DFT', // Draft (new code)
-    wages: uiData.wages || [],
+    received_by: uiData.received_by || uiData.receivedBy,
+    wages,
   };
 };
 
@@ -239,7 +278,9 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
         dbRecord.sequence_no = scheduleNo;
       }
       
-      const result = await saveC3Draft(dbRecord, data.enteredBy);
+      // Use received_by from the record as the userCode for audit fields
+      const userCode = dbRecord.received_by || data.receivedBy || data.enteredBy;
+      const result = await saveC3Draft(dbRecord, userCode);
       
       if (result.success && result.data) {
         toast({
