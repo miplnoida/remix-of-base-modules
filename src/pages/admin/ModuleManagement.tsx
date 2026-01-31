@@ -348,7 +348,8 @@ const ModuleManagementContent = () => {
   const handleSaveAction = async () => {
     if (selectedModule) {
       await createAction.mutateAsync({ module_id: selectedModule.id, ...actionForm });
-      setShowActionDialog(false);
+      // Clear the form for next entry but keep dialog open
+      setActionForm({ action_name: "", display_name: "", description: "", is_enabled: true });
     }
   };
 
