@@ -18,7 +18,7 @@ import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Pri
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
-import SelfEmployedC3Form from "./forms/SelfEmployedC3Form";
+import SelfContributorC3Form from "./forms/SelfContributorC3Form";
 import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
@@ -817,7 +817,7 @@ export default function C3Management() {
         )}
         
         {contributionType === "self-employed" && (
-          <SelfEmployedC3Form 
+          <SelfContributorC3Form 
             data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
             resetTrigger={resetFormTrigger}
@@ -828,24 +828,18 @@ export default function C3Management() {
               setFormMode('add');
             }}
             onSave={async (data) => {
-              setIsSaving(true);
-              try {
-                const payerType = contributionTypeToPayerType(contributionType);
-                const result = await saveDraft(data, payerType, editingRecord?.id);
-                
-                if (result.success) {
-                  toast({
-                    title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
-                    description: `Self-employed C3 record has been saved as draft.`,
-                  });
-                  setShowForm(false);
-                  setEditingRecord(null);
-                  setViewingRecord(null);
-                  setFormMode('add');
-                }
-              } finally {
-                setIsSaving(false);
-              }
+              // Form handles its own saving now
+              toast({
+                title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
+                description: `Self-contributor C3 record has been saved.`,
+              });
+              setShowForm(false);
+              setEditingRecord(null);
+              setViewingRecord(null);
+              setFormMode('add');
+              // Refresh the list
+              const payerType = contributionTypeToPayerType(contributionType);
+              fetchRecords({ payer_type: payerType });
             }}
           />
         )}

@@ -642,3 +642,211 @@ export function formatPayerType(payerType: string): string {
     default: return payerType;
   }
 }
+
+// Validate self-contributor SSN and fetch wage category from ip_self_category
+export async function validateSelfContributorSSN(
+  ssn: string,
+  periodYear: number,
+  periodMonth: number
+): Promise<{
+  isValid: boolean;
+  name: string;
+  address: string;
+  wageCategory: number | null;
+  message: string;
+}> {
+  try {
+    // First, get the person's info from ip_master
+    const { data: personData, error: personError } = await supabase
+      .from('ip_master')
+      .select('ssn, first_name, last_name, resident_address_1, resident_address_2')
+      .eq('ssn', ssn)
+      .single();
+
+    if (personError || !personData) {
+      return {
+        isValid: false,
+        name: '',
+        address: '',
+        wageCategory: null,
+        message: 'SSN not found in the system'
+      };
+    }
+
+    const name = [personData.first_name, personData.last_name].filter(Boolean).join(' ').trim();
+    const address = [personData.resident_address_1, personData.resident_address_2].filter(Boolean).join(' ').trim();
+
+    // Check ip_self_category for wage_category with valid period
+    // Period must fall between effective_start_date and effective_end_date
+    const periodDate = new Date(periodYear, periodMonth, 1);
+    const periodDateStr = periodDate.toISOString();
+
+    const { data: categoryData, error: categoryError } = await supabase
+      .from('ip_self_category')
+      .select('wage_category, effective_start_date, effective_end_date')
+      .eq('ssn', ssn)
+      .lte('effective_start_date', periodDateStr)
+      .or(`effective_end_date.is.null,effective_end_date.gte.${periodDateStr}`)
+      .order('effective_start_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (categoryError || !categoryData) {
+      return {
+        isValid: false,
+        name,
+        address,
+        wageCategory: null,
+        message: 'No valid wage category found for the selected period. Please ensure the SSN has a declared wage category that covers the selected period.'
+      };
+    }
+
+    return {
+      isValid: true,
+      name,
+      address,
+      wageCategory: categoryData.wage_category,
+      message: 'Self-contributor validated successfully'
+    };
+  } catch (error: any) {
+    console.error('Error validating self-contributor SSN:', error);
+    return {
+      isValid: false,
+      name: '',
+      address: '',
+      wageCategory: null,
+      message: error.message
+    };
+  }
+}
+
+// Get person details by SSN from ip_master
+export async function getPersonBySSN(ssn: string): Promise<{
+  isValid: boolean;
+  name: string;
+  address: string;
+  message: string;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('ip_master')
+      .select('ssn, first_name, last_name, resident_address_1, resident_address_2')
+      .eq('ssn', ssn)
+      .single();
+
+    if (error || !data) {
+      return {
+        isValid: false,
+        name: '',
+        address: '',
+        message: 'SSN not found in the system'
+      };
+    }
+
+    return {
+      isValid: true,
+      name: [data.first_name, data.last_name].filter(Boolean).join(' ').trim(),
+      address: [data.resident_address_1, data.resident_address_2].filter(Boolean).join(' ').trim(),
+      message: 'Person found'
+    };
+  } catch (error: any) {
+    console.error('Error fetching person by SSN:', error);
+    return {
+      isValid: false,
+      name: '',
+      address: '',
+      message: error.message
+    };
+  }
+}
+
+// Get wage category details from c3_wage_category table
+export async function getWageCategoryDetails(categoryId: number): Promise<{
+  weeklyWage: number;
+  weeklyContribution: number;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('c3_wage_category')
+      .select('weekly_income, weekly_contribution')
+      .eq('category_id', categoryId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      weeklyWage: data.weekly_income || 0,
+      weeklyContribution: data.weekly_contribution || 0
+    };
+  } catch (error) {
+    console.error('Error fetching wage category details:', error);
+    return null;
+  }
+}
+
+// Save self-contributor C3 record
+export async function saveSelfContributorC3(
+  record: C3RecordWithWages,
+  userName?: string
+): Promise<{ success: boolean; data?: C3Record; error?: string }> {
+  try {
+    const c3Data: any = {
+      payer_id: record.payer_id,
+      payer_type: 'SE', // Self-Employed
+      sequence_no: record.sequence_no,
+      period: record.period,
+      number_employed: 1, // Always 1 for self-contributor
+      emp_ss_amt_calc: record.emp_ss_amt_calc || 0,
+      emp_levy_amt_calc: 0, // No levy for self-contributors
+      emp_pe_amt_calc: 0, // No PE for self-contributors
+      emp_levy_penalty_amt: 0,
+      emp_pe_penalty_amt: 0,
+      emp_ss_fines_due: record.emp_ss_fines_due || 0,
+      total_wages: record.total_wages || 0,
+      date_received: record.date_received,
+      nil_return: record.nil_return || false,
+      notes: record.notes,
+      payer_name: record.payer_name,
+      payer_address: record.payer_address,
+      posting_status: 'DFT', // Always draft for save
+    };
+
+    let c3Record: C3Record;
+
+    if (record.id) {
+      // Update existing record
+      c3Data.modified_date = new Date().toISOString();
+      c3Data.modified_by = userName;
+
+      const { data, error } = await supabase
+        .from('cn_c3_reported')
+        .update(c3Data)
+        .eq('id', record.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      c3Record = data;
+    } else {
+      // Create new record
+      c3Data.entered_by = userName;
+      c3Data.date_entered = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('cn_c3_reported')
+        .insert(c3Data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      c3Record = data;
+    }
+
+    return { success: true, data: c3Record };
+  } catch (error: any) {
+    console.error('Error saving self-contributor C3:', error);
+    return { success: false, error: error.message };
+  }
+}
