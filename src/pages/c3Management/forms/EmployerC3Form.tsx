@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { Plus, Save, X, Printer, Loader2 } from "lucide-react";
 import { useEmployerValidation } from "@/hooks/useEmployerValidation";
+import { useUserCode } from "@/hooks/useUserCode";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
+import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import EmployeeModal, { EmployeeData } from "@/components/c3/EmployeeModal";
 import { formatPeriodForStorage, formatPeriodDisplay } from "@/utils/weekCalculations";
 import { 
@@ -80,12 +82,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
   const isReadOnly = mode === 'view';
   
   const { validateEmployer, getScheduleNumber, isValidating } = useEmployerValidation();
+  const { userCode } = useUserCode();
 
   // Form state
   const [formData, setFormData] = useState({
     employerId: "",
     period: null as { year: number; month: number } | null,
     dateReceived: new Date().toISOString().split('T')[0], // Auto-set to current date
+    receivedBy: "",
     schedule: "",
     employerName: "",
     address: "",
@@ -117,6 +121,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
         employerId: initialData.payerId || initialData.employerId || "",
         period: periodParsed,
         dateReceived: initialData.dateReceived || new Date().toISOString().split('T')[0],
+        receivedBy: initialData.received_by || "",
         schedule: initialData.scheduleNo || "",
         employerName: initialData.payerName || initialData.employerName || "",
         address: initialData.payerAddress || initialData.address || "",
@@ -136,6 +141,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
       }
     }
   }, [initialData]);
+
+  // Set default received by to current user on mount
+  useEffect(() => {
+    if (!formData.receivedBy && userCode) {
+      setFormData(prev => ({ ...prev, receivedBy: userCode }));
+    }
+  }, [userCode, formData.receivedBy]);
 
   // Auto-update number of employees when employees array changes
   useEffect(() => {
@@ -303,6 +315,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
       ...formData,
       period: periodStr,
       regNo: formData.employerId,
+      received_by: formData.receivedBy, // UserCode of selected user
       payerName: formData.employerName,
       payerAddress: formData.address,
       employees: formData.nilReturn ? [] : employees,
@@ -325,6 +338,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
       employerId: "",
       period: null,
       dateReceived: new Date().toISOString().split('T')[0],
+      receivedBy: userCode || "",
       schedule: "",
       employerName: "",
       address: "",
@@ -476,6 +490,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onCancel, re
                     disabled={isReadOnly}
                   />
                 </div>
+
+                {/* Received By */}
+                <ReceivedBySelect
+                  value={formData.receivedBy}
+                  onChange={(value) => handleFormChange("receivedBy", value)}
+                  disabled={isReadOnly}
+                  required
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="schedule">Schedule</Label>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Check, Loader2, AlertCircle } from "lucide-react";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import DatePickerWithDropdowns from "@/components/shared/DatePickerWithDropdowns";
+import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import { useToast } from "@/hooks/use-toast";
 import { useUserCode } from "@/hooks/useUserCode";
 import { 
@@ -55,6 +56,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
   const [dateReceived, setDateReceived] = useState<Date | undefined>(
     data?.dateReceived ? new Date(data.dateReceived) : new Date()
   );
+  const [receivedBy, setReceivedBy] = useState(data?.received_by || "");
   const [nilReturn, setNilReturn] = useState(data?.nilReturn || false);
   const [scheduleNo, setScheduleNo] = useState<number>(data?.sequence_no || 1);
   const [status, setStatus] = useState(data?.postingStatus || 'DFT');
@@ -63,8 +65,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
   // Auto-populated fields from ip_vol_contrib
   const [name, setName] = useState(data?.payerName || "");
   const [address, setAddress] = useState(data?.payerAddress || "");
-  const [weeklyWage, setWeeklyWage] = useState<number>(0); // avg_weekly_wage
-  const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // contrib_amount
+  const [weeklyWage, setWeeklyWage] = useState<number>(0); // avg_weekly_wage from ip_vol_contrib
+  const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // contrib_amt from ip_vol_contrib
 
   // Validation states
   const [ssnValidating, setSSNValidating] = useState(false);
@@ -77,6 +79,13 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
 
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
+
+  // Set default received by to current user on mount
+  useEffect(() => {
+    if (!receivedBy && userCode) {
+      setReceivedBy(userCode);
+    }
+  }, [userCode, receivedBy]);
 
   // Calculate number of Mondays in selected period
   const mondaysInMonth = useMemo(() => {
@@ -203,6 +212,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
     setSSN("");
     setPeriod(undefined);
     setDateReceived(new Date());
+    setReceivedBy(userCode || "");
     setNilReturn(false);
     setScheduleNo(1);
     setStatus('DFT');
@@ -264,6 +274,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
         emp_ss_amt_calc: ssContribution,
         emp_ss_fines_due: 0, // Penalties not applicable for Voluntary Contributor
         date_received: dateReceived?.toISOString(),
+        received_by: receivedBy, // UserCode of selected user
         nil_return: nilReturn,
         payer_name: name,
         payer_address: address,
@@ -300,15 +311,16 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
         </CardHeader>
         <CardContent>
           {isViewMode ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <PreviewField label="SSN" value={ssn} required />
               <PreviewField label="Period" value={period ? `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][period.month]} ${period.year}` : ''} required />
               <PreviewField label="Date Received" value={dateReceived ? formatDate(dateReceived) : ''} required />
+              <PreviewField label="Received By" value={receivedBy} />
               <PreviewField label="Schedule" value={`SCH-${scheduleNo}`} />
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {/* SSN Input */}
                 <div className="space-y-2">
                   <Label htmlFor="ssn">SSN <span className="text-red-500">*</span></Label>
@@ -352,6 +364,14 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, onSa
                     disabled={isReadOnly}
                   />
                 </div>
+
+                {/* Received By */}
+                <ReceivedBySelect
+                  value={receivedBy}
+                  onChange={setReceivedBy}
+                  disabled={isReadOnly}
+                  required
+                />
 
                 {/* Schedule */}
                 <div className="space-y-2">
