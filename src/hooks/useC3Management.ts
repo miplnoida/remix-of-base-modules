@@ -102,6 +102,65 @@ export const transformToUIRecord = (record: C3Record) => {
   };
 };
 
+// Transform wage record from ip_wages to employee data format for Employer C3 form
+export const transformWageToEmployee = (wage: WageRecord): any => {
+  // Map pay_period code back to string
+  const mapPayPeriodCodeToString = (code: string | null): string => {
+    switch (code) {
+      case '1': return 'Monthly';
+      case '2': return 'Bi-Weekly';
+      case '3': return 'Weekly';
+      case '4': return '2 Monthly';
+      default: return 'Monthly';
+    }
+  };
+
+  // Build weekly wages array [w1, w2, w3, w4, w5, bonus, holiday]
+  const weeklyWages = [
+    wage.wages_paid1 || 0,
+    wage.wages_paid2 || 0,
+    wage.wages_paid3 || 0,
+    wage.wages_paid4 || 0,
+    wage.wages_paid5 || 0,
+    wage.wages_paid6 || 0, // Bonus
+    wage.wages_paid7 || 0, // Holiday
+  ];
+
+  return {
+    id: wage.id,
+    ssn: wage.ssn,
+    name: wage.employee_name || '',
+    payPeriod: mapPayPeriodCodeToString(wage.pay_period),
+    weeklyWages,
+    totalWages: wage.total_wages || 0,
+    periodGross: wage.total_wages || 0,
+    // Employee contributions
+    employeeSS: wage.ip_ss_amt || 0,
+    socialSecurity: wage.ip_ss_amt || 0,
+    employeeLevy: wage.ip_levy_amt || 0,
+    hssdLevy: wage.ip_levy_amt || 0,
+    // Employer contributions  
+    employerSS: wage.er_ss_amt || 0,
+    employerLevy: wage.er_levy_amt || 0,
+    employerSeverance: wage.er_ei_amt || 0,
+  };
+};
+
+// Transform C3 record with wages to full UI format including employees
+export const transformToUIRecordWithEmployees = (record: C3RecordWithWages) => {
+  const baseRecord = transformToUIRecord(record);
+  
+  // Transform wages to employees format
+  const employees = (record.wages || []).map(transformWageToEmployee);
+  
+  return {
+    ...baseRecord,
+    employees,
+    // Also include raw data for reference
+    received_by: record.received_by,
+  };
+};
+
 // Transform employee data from form to wage record format for ip_wages table
 // Uses the specification provided:
 // - pay_period: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
@@ -244,6 +303,7 @@ export interface UseC3ManagementReturn {
   // Actions
   fetchRecords: (filters?: C3ListFilters) => Promise<void>;
   refreshRecords: () => Promise<void>;
+  getRecordWithWages: (c3Id: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   saveDraft: (data: any, payerType: PayerType, existingId?: string) => Promise<{ success: boolean; id?: string; error?: string }>;
   submitRecord: (c3Id: string, userId?: string) => Promise<{ success: boolean; error?: string }>;
   verifyRecord: (c3Id: string, userId?: string) => Promise<{ success: boolean; error?: string }>;
@@ -319,6 +379,28 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
   const refreshRecords = useCallback(async () => {
     await fetchRecords(currentFilters);
   }, [fetchRecords, currentFilters]);
+
+  // Fetch a single C3 record with its associated wage records
+  const getRecordWithWages = useCallback(async (c3Id: string) => {
+    try {
+      const result = await getC3RecordWithWages(c3Id);
+      
+      if (result.error) {
+        return { success: false, error: result.error };
+      }
+      
+      if (result.data) {
+        // Transform to UI format with employees
+        const transformed = transformToUIRecordWithEmployees(result.data);
+        return { success: true, data: transformed };
+      }
+      
+      return { success: false, error: 'Record not found' };
+    } catch (err: any) {
+      console.error('Error fetching C3 record with wages:', err);
+      return { success: false, error: err.message };
+    }
+  }, []);
 
   const saveDraft = useCallback(async (
     data: any,
@@ -565,6 +647,7 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
     error,
     fetchRecords,
     refreshRecords,
+    getRecordWithWages,
     saveDraft,
     submitRecord,
     verifyRecord,

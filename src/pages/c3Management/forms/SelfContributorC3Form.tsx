@@ -88,8 +88,21 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const [ssnValid, setSsnValid] = useState(false);
   const [periodError, setPeriodError] = useState<string | null>(null);
 
-  // Wages Details state
-  const [selectedWeeks, setSelectedWeeks] = useState<boolean[]>([false, false, false, false, false]);
+  // Wages Details state - Initialize from wage data if available (edit/view mode)
+  const [selectedWeeks, setSelectedWeeks] = useState<boolean[]>(() => {
+    // Check if employees/wages data is available (from getRecordWithWages)
+    if (data?.employees?.[0]) {
+      const emp = data.employees[0];
+      return [
+        (emp.weeklyWages?.[0] || 0) > 0,
+        (emp.weeklyWages?.[1] || 0) > 0,
+        (emp.weeklyWages?.[2] || 0) > 0,
+        (emp.weeklyWages?.[3] || 0) > 0,
+        (emp.weeklyWages?.[4] || 0) > 0,
+      ];
+    }
+    return [false, false, false, false, false];
+  });
   const [isVerified, setIsVerified] = useState(data?.isVerified || false);
 
   // Loading states
