@@ -28,7 +28,7 @@ const themes: Record<string, Theme> = {
       text: '#1f2937',
     },
     cssVars: {
-      '--color-government-50': '248 250 255',
+      '--color-government-50': '#1c78a7',
       '--color-government-100': '237 242 254',
       '--color-government-200': '219 229 252',
       '--color-government-300': '191 210 248',
@@ -41,7 +41,7 @@ const themes: Record<string, Theme> = {
       '--primary': '32 60 135',
       '--primary-foreground': '#1c78a7',
       '--secondary': '59 91 165',
-      '--secondary-foreground': '248 250 255',
+      '--secondary-foreground': '#1c78a7',
       '--accent': '90 123 197',
       '--accent-foreground': '#1c78a7',
     }
