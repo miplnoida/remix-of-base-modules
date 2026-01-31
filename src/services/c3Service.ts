@@ -1,5 +1,6 @@
 // C3 Management Service - Supabase Operations
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserCode } from "@/hooks/useUserCode";
 
 // Types based on the cn_c3_reported table
 export type PayerType = 'ER' | 'SE' | 'VC';
@@ -240,7 +241,8 @@ export async function getNextScheduleNo(payerId: string, payerType: 'ER' | 'SE' 
 }
 
 // Create or update a C3 draft record
-export async function saveC3Draft(record: C3RecordWithWages, userName?: string): Promise<{ success: boolean; data?: C3Record; error?: string }> {
+// Note: userName parameter is now expected to be user_code (5-char identifier)
+export async function saveC3Draft(record: C3RecordWithWages, userCode?: string): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
     const c3Data: any = {
       payer_id: record.payer_id,
@@ -269,7 +271,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userName?: string):
     if (record.id) {
       // Update existing record
       c3Data.modified_date = new Date().toISOString();
-      c3Data.modified_by = userName;
+      c3Data.modified_by = userCode;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -282,7 +284,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userName?: string):
       c3Record = data;
     } else {
       // Create new record
-      c3Data.entered_by = userName;
+      c3Data.entered_by = userCode;
       c3Data.date_entered = new Date().toISOString();
 
       const { data, error } = await supabase
@@ -312,7 +314,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userName?: string):
         period: record.period,
         posting_status: 'DFT',
         input_seq_no: index + 1,
-        entered_by: userName,
+        entered_by: userCode,
         date_entered: new Date().toISOString()
       }));
 
@@ -483,14 +485,15 @@ export async function getC3RecordWithWages(c3Id: string): Promise<{ data?: C3Rec
 }
 
 // Delete a C3 record (soft delete - set status to DEL)
-export async function deleteC3Record(c3Id: string, userName?: string): Promise<{ success: boolean; error?: string }> {
+// Note: userCode parameter is expected to be user_code (5-char identifier)
+export async function deleteC3Record(c3Id: string, userCode?: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
       .from('cn_c3_reported')
       .update({
         posting_status: 'DEL',
         modified_date: new Date().toISOString(),
-        modified_by: userName
+        modified_by: userCode
       })
       .eq('id', c3Id);
 
@@ -502,7 +505,7 @@ export async function deleteC3Record(c3Id: string, userName?: string): Promise<{
       .update({
         posting_status: 'DEL',
         date_modified: new Date().toISOString(),
-        modified_by: userName
+        modified_by: userCode
       })
       .eq('c3_id', c3Id);
 
@@ -514,14 +517,15 @@ export async function deleteC3Record(c3Id: string, userName?: string): Promise<{
 }
 
 // Update C3 notes
-export async function updateC3Notes(c3Id: string, notes: string, userName?: string): Promise<{ success: boolean; error?: string }> {
+// Note: userCode parameter is expected to be user_code (5-char identifier)
+export async function updateC3Notes(c3Id: string, notes: string, userCode?: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
       .from('cn_c3_reported')
       .update({
         notes,
         modified_date: new Date().toISOString(),
-        modified_by: userName
+        modified_by: userCode
       })
       .eq('id', c3Id);
 
@@ -535,7 +539,8 @@ export async function updateC3Notes(c3Id: string, notes: string, userName?: stri
 }
 
 // Delete a wage record (for employers)
-export async function deleteWageRecord(wageId: string, userName?: string): Promise<{ success: boolean; error?: string }> {
+// Note: userCode parameter is expected to be user_code (5-char identifier)
+export async function deleteWageRecord(wageId: string, userCode?: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Get the wage record first to update parent
     const { data: wageData, error: fetchError } = await supabase
@@ -579,7 +584,7 @@ export async function deleteWageRecord(wageId: string, userName?: string): Promi
           emp_pe_amt_calc: totals.emp_pe_amt_calc,
           number_employed: totals.count,
           modified_date: new Date().toISOString(),
-          modified_by: userName
+          modified_by: userCode
         })
         .eq('id', wageData.c3_id);
     }
@@ -787,9 +792,10 @@ export async function getWageCategoryDetails(categoryId: number): Promise<{
 }
 
 // Save self-contributor C3 record
+// Note: userCode parameter is expected to be user_code (5-char identifier)
 export async function saveSelfContributorC3(
   record: C3RecordWithWages,
-  userName?: string
+  userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
     const c3Data: any = {
@@ -818,7 +824,7 @@ export async function saveSelfContributorC3(
     if (record.id) {
       // Update existing record
       c3Data.modified_date = new Date().toISOString();
-      c3Data.modified_by = userName;
+      c3Data.modified_by = userCode;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -831,7 +837,7 @@ export async function saveSelfContributorC3(
       c3Record = data;
     } else {
       // Create new record
-      c3Data.entered_by = userName;
+      c3Data.entered_by = userCode;
       c3Data.date_entered = new Date().toISOString();
 
       const { data, error } = await supabase
@@ -936,9 +942,10 @@ export async function validateVoluntaryContributorSSN(
 }
 
 // Save voluntary contributor C3 record
+// Note: userCode parameter is expected to be user_code (5-char identifier)
 export async function saveVoluntaryContributorC3(
   record: C3RecordWithWages,
-  userName?: string
+  userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
     const c3Data: any = {
@@ -967,7 +974,7 @@ export async function saveVoluntaryContributorC3(
     if (record.id) {
       // Update existing record
       c3Data.modified_date = new Date().toISOString();
-      c3Data.modified_by = userName;
+      c3Data.modified_by = userCode;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -980,7 +987,7 @@ export async function saveVoluntaryContributorC3(
       c3Record = data;
     } else {
       // Create new record
-      c3Data.entered_by = userName;
+      c3Data.entered_by = userCode;
       c3Data.date_entered = new Date().toISOString();
 
       const { data, error } = await supabase
