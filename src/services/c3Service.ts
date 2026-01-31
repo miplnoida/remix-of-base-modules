@@ -46,15 +46,15 @@ export interface WageRecord {
   payer_type: string; // 'ER' | 'SE' | 'VC' - Using string for Supabase compatibility
   sequence_no: number;
   period: string;
-  pay_period?: string | null;
+  pay_period?: string | null; // 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
   wages_paid1?: number | null;
   wages_paid2?: number | null;
   wages_paid3?: number | null;
   wages_paid4?: number | null;
   wages_paid5?: number | null;
-  wages_paid6?: number | null;
-  wages_paid7?: number | null;
-  paid_code1?: string | null;
+  wages_paid6?: number | null; // Bonus Pay
+  wages_paid7?: number | null; // Holiday Pay
+  paid_code1?: string | null; // '1' if amount entered, '0' otherwise
   paid_code2?: string | null;
   paid_code3?: string | null;
   paid_code4?: string | null;
@@ -62,12 +62,12 @@ export interface WageRecord {
   paid_code6?: string | null;
   paid_code7?: string | null;
   employee_name?: string | null;
-  ip_ss_amt?: number | null;
-  ip_levy_amt?: number | null;
-  ip_pe_amt?: number | null;
-  er_ss_amt?: number | null;
-  er_levy_amt?: number | null;
-  er_ei_amt?: number | null;
+  ip_ss_amt?: number | null; // Employee SS contribution
+  ip_levy_amt?: number | null; // Employee Levy contribution
+  ip_pe_amt?: number | null; // Employee PE contribution
+  er_ss_amt?: number | null; // Employer SS contribution
+  er_levy_amt?: number | null; // Employer Levy contribution
+  er_ei_amt?: number | null; // Employer PE (Employment Injury)
   total_wages?: number | null;
   entered_by?: string | null;
   date_entered?: string | null;
@@ -297,8 +297,8 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
       c3Record = data;
     }
 
-    // Handle wage records
-    if (record.wages && record.wages.length > 0) {
+    // Handle wage records for Employer C3
+    if (record.wages && record.wages.length > 0 && record.payer_type === 'ER') {
       // Delete existing wage records for this C3
       if (record.id) {
         const { error: deleteError } = await supabase.from('ip_wages').delete().eq('c3_id', record.id);
@@ -307,45 +307,83 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
         }
       }
 
-      // Insert new wage records with all required fields
+      // Map pay_period string to numeric code: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
+      const mapPayPeriodToCode = (payPeriod: string): string => {
+        switch (payPeriod?.toLowerCase()) {
+          case 'weekly': return '3';
+          case 'bi-weekly': return '2';
+          case 'monthly': return '1';
+          case '2 monthly': case '2-monthly': return '4';
+          default: return '1';
+        }
+      };
+
+      const currentDate = new Date().toISOString();
+
+      // Insert new wage records with all required fields per user specification
       const wageRecords = record.wages.map((wage, index) => {
-        // Calculate total wages from weekly wages if not provided
-        const totalWages = wage.total_wages || 
-          (wage.wages_paid1 || 0) + 
-          (wage.wages_paid2 || 0) + 
-          (wage.wages_paid3 || 0) + 
-          (wage.wages_paid4 || 0) + 
-          (wage.wages_paid5 || 0) + 
-          (wage.wages_paid6 || 0) + 
-          (wage.wages_paid7 || 0);
+        // Calculate total wages from weekly wages
+        const wages1 = wage.wages_paid1 || 0;
+        const wages2 = wage.wages_paid2 || 0;
+        const wages3 = wage.wages_paid3 || 0;
+        const wages4 = wage.wages_paid4 || 0;
+        const wages5 = wage.wages_paid5 || 0;
+        const bonusPay = wage.wages_paid6 || 0; // Bonus Pay
+        const holidayPay = wage.wages_paid7 || 0; // Holiday Pay
+        
+        const totalWages = wage.total_wages || (wages1 + wages2 + wages3 + wages4 + wages5 + bonusPay + holidayPay);
         
         return {
+          // Core identifiers
           ssn: wage.ssn,
           payer_id: record.payer_id,
-          payer_type: record.payer_type,
+          payer_type: 'ER',
           sequence_no: record.sequence_no,
           period: record.period,
           c3_id: c3Record.id,
-          pay_period: wage.pay_period || 'Monthly',
-          wages_paid1: wage.wages_paid1 || 0,
-          wages_paid2: wage.wages_paid2 || 0,
-          wages_paid3: wage.wages_paid3 || 0,
-          wages_paid4: wage.wages_paid4 || 0,
-          wages_paid5: wage.wages_paid5 || 0,
-          wages_paid6: wage.wages_paid6 || 0,
-          wages_paid7: wage.wages_paid7 || 0,
+          
+          // Pay period code: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
+          pay_period: mapPayPeriodToCode(wage.pay_period || 'Monthly'),
+          
+          // Weekly wages
+          wages_paid1: wages1 || null,
+          wages_paid2: wages2 || null,
+          wages_paid3: wages3 || null,
+          wages_paid4: wages4 || null,
+          wages_paid5: wages5 || null,
+          wages_paid6: bonusPay || null, // Bonus Pay
+          wages_paid7: holidayPay || null, // Holiday Pay
+          
+          // Paid codes: 1 if amount entered, 0 otherwise
+          paid_code1: wages1 > 0 ? '1' : '0',
+          paid_code2: wages2 > 0 ? '1' : '0',
+          paid_code3: wages3 > 0 ? '1' : '0',
+          paid_code4: wages4 > 0 ? '1' : '0',
+          paid_code5: wages5 > 0 ? '1' : '0',
+          paid_code6: bonusPay > 0 ? '1' : '0',
+          paid_code7: holidayPay > 0 ? '1' : '0',
+          
+          // Employee name
           employee_name: wage.employee_name || '',
+          
+          // Employee contributions
           ip_ss_amt: wage.ip_ss_amt || 0,
           ip_levy_amt: wage.ip_levy_amt || 0,
           ip_pe_amt: wage.ip_pe_amt || 0,
+          
+          // Employer contributions
           er_ss_amt: wage.er_ss_amt || 0,
           er_levy_amt: wage.er_levy_amt || 0,
           er_ei_amt: wage.er_ei_amt || 0,
+          
+          // Totals
           total_wages: totalWages,
-          posting_status: 'DFT',
-          input_seq_no: index + 1,
+          
+          // Audit fields
           entered_by: userCode,
-          date_entered: new Date().toISOString()
+          date_entered: currentDate,
+          input_seq_no: 0,
+          posting_status: record.posting_status !== 'DEL' ? record.posting_status : 'DFT'
         };
       });
 
@@ -845,10 +883,14 @@ export async function getWageCategoryDetails(wageCategory: number): Promise<{
   }
 }
 
-// Save self-contributor C3 record
+// Save self-contributor C3 record with wages detail to ip_wages
 // Note: userCode parameter is expected to be user_code (5-char identifier)
 export async function saveSelfContributorC3(
-  record: C3RecordWithWages & { received_by?: string },
+  record: C3RecordWithWages & { 
+    received_by?: string;
+    selectedWeeks?: boolean[];
+    weeklyWage?: number;
+  },
   userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
@@ -875,10 +917,11 @@ export async function saveSelfContributorC3(
     };
 
     let c3Record: C3Record;
+    const currentDate = new Date().toISOString();
 
     if (record.id) {
       // Update existing record
-      c3Data.modified_date = new Date().toISOString();
+      c3Data.modified_date = currentDate;
       c3Data.modified_by = userCode;
 
       const { data, error } = await supabase
@@ -890,10 +933,16 @@ export async function saveSelfContributorC3(
 
       if (error) throw error;
       c3Record = data;
+
+      // Delete existing wage records for this C3
+      const { error: deleteError } = await supabase.from('ip_wages').delete().eq('c3_id', record.id);
+      if (deleteError) {
+        console.error('Error deleting existing wage records:', deleteError);
+      }
     } else {
       // Create new record
       c3Data.entered_by = userCode;
-      c3Data.date_entered = new Date().toISOString();
+      c3Data.date_entered = currentDate;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -903,6 +952,89 @@ export async function saveSelfContributorC3(
 
       if (error) throw error;
       c3Record = data;
+    }
+
+    // Save wage record to ip_wages (for Self-Contributor)
+    // Only save if not a nil return
+    if (!record.nil_return && record.selectedWeeks) {
+      const selectedWeeks = record.selectedWeeks || [false, false, false, false, false];
+      const weeklyWage = (record as any).weeklyWage || 0;
+      
+      // Calculate wages for each selected week
+      const wages1 = selectedWeeks[0] ? weeklyWage : null;
+      const wages2 = selectedWeeks[1] ? weeklyWage : null;
+      const wages3 = selectedWeeks[2] ? weeklyWage : null;
+      const wages4 = selectedWeeks[3] ? weeklyWage : null;
+      const wages5 = selectedWeeks[4] ? weeklyWage : null;
+
+      const wageRecord = {
+        // Core identifiers
+        ssn: record.payer_id, // SSN is the payer_id for SE
+        payer_id: record.payer_id,
+        payer_type: 'SE',
+        sequence_no: record.sequence_no,
+        period: record.period,
+        c3_id: c3Record.id,
+        
+        // Pay period: 1 = Monthly for self-contributor
+        pay_period: '1',
+        
+        // Weekly wages based on selected weeks
+        wages_paid1: wages1,
+        wages_paid2: wages2,
+        wages_paid3: wages3,
+        wages_paid4: wages4,
+        wages_paid5: wages5,
+        wages_paid6: null, // No bonus for SE
+        wages_paid7: null, // No holiday for SE
+        
+        // Paid codes: 1 if wages entered, 0 otherwise
+        paid_code1: wages1 ? '1' : '0',
+        paid_code2: wages2 ? '1' : '0',
+        paid_code3: wages3 ? '1' : '0',
+        paid_code4: wages4 ? '1' : '0',
+        paid_code5: wages5 ? '1' : '0',
+        paid_code6: null, // leave blank
+        paid_code7: null, // leave blank
+        
+        // Employee name
+        employee_name: record.payer_name || '',
+        
+        // Contributions - all null for SE as per specification
+        ip_ss_amt: null,
+        ip_levy_amt: null,
+        ip_pe_amt: null,
+        er_ss_amt: null,
+        er_levy_amt: null,
+        er_ei_amt: null,
+        
+        // Totals
+        total_wages: record.total_wages || 0,
+        
+        // Audit fields
+        entered_by: userCode,
+        date_entered: currentDate,
+        input_seq_no: 0,
+        posting_status: record.posting_status !== 'DEL' ? (record.posting_status || 'DFT') : 'DFT'
+      };
+
+      console.log('Inserting SE wage record:', wageRecord);
+      
+      const { error: wageError, data: insertedWage } = await supabase
+        .from('ip_wages')
+        .insert([wageRecord])
+        .select();
+
+      if (wageError) {
+        console.error('Error saving SE wage record:', wageError);
+        return { 
+          success: true, 
+          data: c3Record, 
+          error: `C3 saved but wage record failed: ${wageError.message}` 
+        };
+      } else {
+        console.log('Successfully inserted SE wage record:', insertedWage?.length);
+      }
     }
 
     return { success: true, data: c3Record };
@@ -996,10 +1128,14 @@ export async function validateVoluntaryContributorSSN(
   }
 }
 
-// Save voluntary contributor C3 record
+// Save voluntary contributor C3 record with wages detail to ip_wages
 // Note: userCode parameter is expected to be user_code (5-char identifier)
 export async function saveVoluntaryContributorC3(
-  record: C3RecordWithWages & { received_by?: string },
+  record: C3RecordWithWages & { 
+    received_by?: string;
+    selectedWeeks?: boolean[];
+    weeklyWage?: number;
+  },
   userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
@@ -1026,10 +1162,11 @@ export async function saveVoluntaryContributorC3(
     };
 
     let c3Record: C3Record;
+    const currentDate = new Date().toISOString();
 
     if (record.id) {
       // Update existing record
-      c3Data.modified_date = new Date().toISOString();
+      c3Data.modified_date = currentDate;
       c3Data.modified_by = userCode;
 
       const { data, error } = await supabase
@@ -1041,10 +1178,16 @@ export async function saveVoluntaryContributorC3(
 
       if (error) throw error;
       c3Record = data;
+
+      // Delete existing wage records for this C3
+      const { error: deleteError } = await supabase.from('ip_wages').delete().eq('c3_id', record.id);
+      if (deleteError) {
+        console.error('Error deleting existing wage records:', deleteError);
+      }
     } else {
       // Create new record
       c3Data.entered_by = userCode;
-      c3Data.date_entered = new Date().toISOString();
+      c3Data.date_entered = currentDate;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -1054,6 +1197,89 @@ export async function saveVoluntaryContributorC3(
 
       if (error) throw error;
       c3Record = data;
+    }
+
+    // Save wage record to ip_wages (for Voluntary Contributor)
+    // Only save if not a nil return
+    if (!record.nil_return && record.selectedWeeks) {
+      const selectedWeeks = record.selectedWeeks || [false, false, false, false, false];
+      const weeklyWage = (record as any).weeklyWage || 0;
+      
+      // Calculate wages for each selected week
+      const wages1 = selectedWeeks[0] ? weeklyWage : null;
+      const wages2 = selectedWeeks[1] ? weeklyWage : null;
+      const wages3 = selectedWeeks[2] ? weeklyWage : null;
+      const wages4 = selectedWeeks[3] ? weeklyWage : null;
+      const wages5 = selectedWeeks[4] ? weeklyWage : null;
+
+      const wageRecord = {
+        // Core identifiers
+        ssn: record.payer_id, // SSN is the payer_id for VC
+        payer_id: record.payer_id,
+        payer_type: 'VC',
+        sequence_no: record.sequence_no,
+        period: record.period,
+        c3_id: c3Record.id,
+        
+        // Pay period: 1 = Monthly for voluntary contributor
+        pay_period: '1',
+        
+        // Weekly wages based on selected weeks
+        wages_paid1: wages1,
+        wages_paid2: wages2,
+        wages_paid3: wages3,
+        wages_paid4: wages4,
+        wages_paid5: wages5,
+        wages_paid6: null, // No bonus for VC
+        wages_paid7: null, // No holiday for VC
+        
+        // Paid codes: 1 if wages entered, 0 otherwise
+        paid_code1: wages1 ? '1' : '0',
+        paid_code2: wages2 ? '1' : '0',
+        paid_code3: wages3 ? '1' : '0',
+        paid_code4: wages4 ? '1' : '0',
+        paid_code5: wages5 ? '1' : '0',
+        paid_code6: null, // leave blank
+        paid_code7: null, // leave blank
+        
+        // Employee name
+        employee_name: record.payer_name || '',
+        
+        // Contributions - all null for VC as per specification
+        ip_ss_amt: null,
+        ip_levy_amt: null,
+        ip_pe_amt: null,
+        er_ss_amt: null,
+        er_levy_amt: null,
+        er_ei_amt: null,
+        
+        // Totals
+        total_wages: record.total_wages || 0,
+        
+        // Audit fields
+        entered_by: userCode,
+        date_entered: currentDate,
+        input_seq_no: 0,
+        posting_status: record.posting_status !== 'DEL' ? (record.posting_status || 'DFT') : 'DFT'
+      };
+
+      console.log('Inserting VC wage record:', wageRecord);
+      
+      const { error: wageError, data: insertedWage } = await supabase
+        .from('ip_wages')
+        .insert([wageRecord])
+        .select();
+
+      if (wageError) {
+        console.error('Error saving VC wage record:', wageError);
+        return { 
+          success: true, 
+          data: c3Record, 
+          error: `C3 saved but wage record failed: ${wageError.message}` 
+        };
+      } else {
+        console.log('Successfully inserted VC wage record:', insertedWage?.length);
+      }
     }
 
     return { success: true, data: c3Record };
