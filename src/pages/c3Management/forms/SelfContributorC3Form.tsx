@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Check, Loader2, AlertCircle, Search } from "lucide-react";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import DatePickerWithDropdowns from "@/components/shared/DatePickerWithDropdowns";
+import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import { useToast } from "@/hooks/use-toast";
 import { useUserCode } from "@/hooks/useUserCode";
 import { 
@@ -22,7 +23,6 @@ import {
   calculateSelfContributorPenalty,
   getMondaysInMonth,
   calculateTotalWagesFromWeeks,
-  calculateSSContribution,
   calculateSelfContributorDueDate
 } from "@/utils/selfContributorPenaltyCalculations";
 import { postingStatusToDisplayStatus } from "@/hooks/useC3Management";
@@ -64,6 +64,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const [dateReceived, setDateReceived] = useState<Date | undefined>(
     data?.dateReceived ? new Date(data.dateReceived) : new Date()
   );
+  const [receivedBy, setReceivedBy] = useState(data?.received_by || "");
   const [nilReturn, setNilReturn] = useState(data?.nilReturn || false);
   const [scheduleNo, setScheduleNo] = useState<number>(data?.sequence_no || 1);
   const [status, setStatus] = useState(data?.postingStatus || 'DFT');
@@ -72,9 +73,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   // Auto-populated fields
   const [name, setName] = useState(data?.payerName || "");
   const [address, setAddress] = useState(data?.payerAddress || "");
-  const [weeklyWage, setWeeklyWage] = useState<number>(0);
-  const [weeklyContribution, setWeeklyContribution] = useState<number>(0);
+  const [weeklyWage, setWeeklyWage] = useState<number>(0); // wage_category from ip_self_category
+  const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // weeklyWage * 10% (from tb_self_emp_contrib_rate)
   const [wageCategory, setWageCategory] = useState<number | null>(null);
+  const [ssRate, setSsRate] = useState<number>(10); // Self-employed SS rate (typically 10%)
 
   // Validation states
   const [ssnValidating, setSSNValidating] = useState(false);
@@ -89,6 +91,13 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
 
+  // Set default received by to current user on mount
+  useEffect(() => {
+    if (!receivedBy && userCode) {
+      setReceivedBy(userCode);
+    }
+  }, [userCode, receivedBy]);
+
   // Calculate number of Mondays in selected period
   const mondaysInMonth = useMemo(() => {
     if (!period) return 4;
@@ -101,11 +110,12 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     return calculateTotalWagesFromWeeks(weeklyWage, selectedWeeks);
   }, [weeklyWage, selectedWeeks, nilReturn]);
 
-  // Calculate SS contribution (10% of total wages)
+  // Calculate SS contribution using the rate from tb_self_emp_contrib_rate (typically 10%)
   const ssContribution = useMemo(() => {
     if (nilReturn) return 0;
-    return calculateSSContribution(totalWages);
-  }, [totalWages, nilReturn]);
+    // Total wages * SS rate (e.g., 10%)
+    return Math.round(totalWages * (ssRate / 100) * 100) / 100;
+  }, [totalWages, ssRate, nilReturn]);
 
   // Calculate penalty
   const penaltyResult = useMemo(() => {
@@ -176,6 +186,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         setWeeklyWage(0);
         setWeeklyContribution(0);
         setWageCategory(null);
+        setSsRate(10);
         setSSNValidating(false);
         return;
       }
@@ -193,13 +204,16 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           setWeeklyWage(0);
           setWeeklyContribution(0);
           setWageCategory(null);
+          setSsRate(10);
         } else if (categoryResult.wageCategory) {
-          // Fetch wage category details
+          // Fetch wage category details - weeklyWage is the wage_category value itself
+          // weeklyContribution is calculated as weeklyWage * SS rate from tb_self_emp_contrib_rate
           const wageDetails = await getWageCategoryDetails(categoryResult.wageCategory);
           if (wageDetails) {
             setWeeklyWage(wageDetails.weeklyWage);
             setWeeklyContribution(wageDetails.weeklyContribution);
             setWageCategory(categoryResult.wageCategory);
+            setSsRate(wageDetails.ssRate);
             setSsnValid(true);
           } else {
             setSsnError("Could not fetch wage category details");
@@ -263,6 +277,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setSSN("");
     setPeriod(undefined);
     setDateReceived(new Date());
+    setReceivedBy(userCode || "");
     setNilReturn(false);
     setScheduleNo(1);
     setStatus('DFT');
@@ -272,6 +287,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setWeeklyWage(0);
     setWeeklyContribution(0);
     setWageCategory(null);
+    setSsRate(10);
     setSelectedWeeks([false, false, false, false, false]);
     setIsVerified(false);
     setSsnError(null);
@@ -326,6 +342,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         emp_ss_amt_calc: ssContribution,
         emp_ss_fines_due: penaltyResult.lateFine,
         date_received: dateReceived?.toISOString(),
+        received_by: receivedBy, // UserCode of selected user
         nil_return: nilReturn,
         payer_name: name,
         payer_address: address,
@@ -335,6 +352,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         weeklyWage,
         weeklyContribution,
         wageCategory,
+        ssRate,
         selectedWeeks,
         isVerified
       };
@@ -363,15 +381,16 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         </CardHeader>
         <CardContent>
           {isViewMode ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <PreviewField label="SSN" value={ssn} required />
               <PreviewField label="Period" value={period ? `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][period.month]} ${period.year}` : ''} required />
               <PreviewField label="Date Received" value={dateReceived ? formatDate(dateReceived) : ''} required />
+              <PreviewField label="Received By" value={receivedBy} />
               <PreviewField label="Schedule" value={`SCH-${scheduleNo}`} />
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {/* SSN Input */}
                 <div className="space-y-2">
                   <Label htmlFor="ssn">SSN <span className="text-red-500">*</span></Label>
@@ -416,6 +435,14 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                     disabled={isReadOnly}
                   />
                 </div>
+
+                {/* Received By */}
+                <ReceivedBySelect
+                  value={receivedBy}
+                  onChange={setReceivedBy}
+                  disabled={isReadOnly}
+                  required
+                />
 
                 {/* Schedule */}
                 <div className="space-y-2">

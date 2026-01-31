@@ -242,7 +242,7 @@ export async function getNextScheduleNo(payerId: string, payerType: 'ER' | 'SE' 
 
 // Create or update a C3 draft record
 // Note: userName parameter is now expected to be user_code (5-char identifier)
-export async function saveC3Draft(record: C3RecordWithWages, userCode?: string): Promise<{ success: boolean; data?: C3Record; error?: string }> {
+export async function saveC3Draft(record: C3RecordWithWages & { received_by?: string }, userCode?: string): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
     const c3Data: any = {
       payer_id: record.payer_id,
@@ -258,7 +258,7 @@ export async function saveC3Draft(record: C3RecordWithWages, userCode?: string):
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
-      received_by: record.received_by,
+      received_by: record.received_by || userCode, // User who received the submission
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
@@ -765,25 +765,37 @@ export async function getPersonBySSN(ssn: string): Promise<{
   }
 }
 
-// Get wage category details from c3_wage_category table
-export async function getWageCategoryDetails(categoryId: number): Promise<{
+// Get wage category details for self-contributor
+// Weekly Wage = wage_category value from ip_self_category
+// Weekly Contribution = wage_category * 10% (self-employed SS rate from tb_self_emp_contrib_rate)
+export async function getWageCategoryDetails(wageCategory: number): Promise<{
   weeklyWage: number;
   weeklyContribution: number;
+  ssRate: number;
 } | null> {
   try {
-    const { data, error } = await supabase
-      .from('c3_wage_category')
-      .select('weekly_income, weekly_contribution')
-      .eq('category_id', categoryId)
-      .single();
+    // wageCategory is the actual weekly wage amount from ip_self_category
+    const weeklyWage = wageCategory;
 
-    if (error || !data) {
-      return null;
+    // Get the self-employed contribution rate (typically 10%)
+    const { data: rateData, error: rateError } = await supabase
+      .from('tb_self_emp_contrib_rate')
+      .select('sep_ss_percent')
+      .eq('wage_cat', wageCategory)
+      .limit(1);
+
+    let ssRate = 10; // Default 10% if not found
+    if (!rateError && rateData && rateData.length > 0) {
+      ssRate = Number(rateData[0].sep_ss_percent) || 10;
     }
 
+    // Weekly contribution is wage * SS rate (e.g., 10%)
+    const weeklyContribution = Math.round(weeklyWage * (ssRate / 100) * 100) / 100;
+
     return {
-      weeklyWage: data.weekly_income || 0,
-      weeklyContribution: data.weekly_contribution || 0
+      weeklyWage,
+      weeklyContribution,
+      ssRate
     };
   } catch (error) {
     console.error('Error fetching wage category details:', error);
@@ -794,7 +806,7 @@ export async function getWageCategoryDetails(categoryId: number): Promise<{
 // Save self-contributor C3 record
 // Note: userCode parameter is expected to be user_code (5-char identifier)
 export async function saveSelfContributorC3(
-  record: C3RecordWithWages,
+  record: C3RecordWithWages & { received_by?: string },
   userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
@@ -812,6 +824,7 @@ export async function saveSelfContributorC3(
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
+      received_by: record.received_by || userCode, // User who received the submission
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
@@ -944,7 +957,7 @@ export async function validateVoluntaryContributorSSN(
 // Save voluntary contributor C3 record
 // Note: userCode parameter is expected to be user_code (5-char identifier)
 export async function saveVoluntaryContributorC3(
-  record: C3RecordWithWages,
+  record: C3RecordWithWages & { received_by?: string },
   userCode?: string
 ): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
@@ -962,6 +975,7 @@ export async function saveVoluntaryContributorC3(
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
+      received_by: record.received_by || userCode, // User who received the submission
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
