@@ -181,24 +181,37 @@ export const transformToDBRecord = (
   uiData: any,
   payerType: PayerType,
   existingId?: string
-): C3RecordWithWages => {
+): C3RecordWithWages & { employees?: any[] } => {
   const periodStr = uiData.period || uiData.periodRaw || '';
   
-  // Map employees array to wages format if present (for Employer C3)
+  // For Employer C3, pass through the employees array directly
+  // The saveC3Draft function will handle the transformation to ip_wages format
+  const employees = uiData.employees || [];
+  
+  // Also support already-transformed wages (for backward compatibility)
   let wages: WageRecord[] = [];
-  if (uiData.employees && Array.isArray(uiData.employees) && uiData.employees.length > 0) {
-    wages = uiData.employees.map((emp: any) => transformEmployeeToWageRecord(emp, periodStr));
-  } else if (uiData.wages && Array.isArray(uiData.wages)) {
+  if (uiData.wages && Array.isArray(uiData.wages)) {
     wages = uiData.wages;
+  }
+  
+  // Parse schedule number - it may come as string "1" or "SCH-1" format
+  let scheduleNo = 1;
+  if (uiData.sequence_no) {
+    scheduleNo = typeof uiData.sequence_no === 'number' ? uiData.sequence_no : parseInt(uiData.sequence_no) || 1;
+  } else if (uiData.schedule) {
+    // Handle "SCH-1" or just "1" format
+    const scheduleStr = String(uiData.schedule);
+    const match = scheduleStr.match(/(\d+)/);
+    scheduleNo = match ? parseInt(match[1]) || 1 : 1;
   }
   
   return {
     id: existingId,
     payer_id: uiData.regNo || uiData.ssn || uiData.payerId || uiData.employerId,
     payer_type: payerType,
-    sequence_no: uiData.sequence_no || 1,
+    sequence_no: scheduleNo,
     period: periodStr,
-    number_employed: parseInt(uiData.numberOfEmployees) || (payerType === 'ER' ? 0 : 1),
+    number_employed: parseInt(uiData.numberOfEmployees) || (payerType === 'ER' ? employees.length : 1),
     emp_ss_amt_calc: uiData.empSsAmtCalc || 0,
     emp_levy_amt_calc: uiData.empLevyAmtCalc || 0,
     emp_pe_amt_calc: uiData.empPeAmtCalc || 0,
@@ -213,6 +226,8 @@ export const transformToDBRecord = (
     payer_address: uiData.payerAddress || uiData.address,
     posting_status: 'DFT', // Draft (new code)
     received_by: uiData.received_by || uiData.receivedBy,
+    // Pass employees array directly - saveC3Draft will transform to ip_wages format
+    employees,
     wages,
   };
 };

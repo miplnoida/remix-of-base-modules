@@ -240,13 +240,55 @@ export async function getNextScheduleNo(payerId: string, payerType: 'ER' | 'SE' 
   return data || 1;
 }
 
-// Create or update a C3 draft record
-// Note: userName parameter is now expected to be user_code (5-char identifier)
-export async function saveC3Draft(record: C3RecordWithWages & { received_by?: string }, userCode?: string): Promise<{ success: boolean; data?: C3Record; error?: string }> {
+// Helper function to map pay period string to numeric code
+// 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
+function mapPayPeriodToCode(payPeriod: string | undefined | null): string {
+  switch (payPeriod?.toLowerCase()) {
+    case 'weekly': return '3';
+    case 'bi-weekly': return '2';
+    case 'monthly': return '1';
+    case '2 monthly': case '2-monthly': return '4';
+    default: return '1';
+  }
+}
+
+// Helper to safely convert value to number, returning null if empty/invalid
+function toNumericOrNull(value: any): number | null {
+  if (value === null || value === undefined || value === '' || value === 0) {
+    return null;
+  }
+  const num = Number(value);
+  return isNaN(num) || num === 0 ? null : num;
+}
+
+// Helper to map new status codes to legacy codes for ip_wages table
+// ip_wages only accepts: 'Z' (Draft), 'P' (Pending), 'V' (Verified), 'D' (Deleted)
+function mapStatusToLegacy(status: string | undefined | null): string {
+  switch (status?.toUpperCase()) {
+    case 'DFT': case 'Z': return 'Z';
+    case 'PEN': case 'P': return 'P';
+    case 'VAC': case 'V': return 'V';
+    case 'REJ': return 'P'; // Rejected treated as pending in legacy
+    case 'DEL': case 'D': return 'D';
+    default: return 'Z';
+  }
+}
+
+// Create or update a C3 draft record for Employer (ER)
+// Note: userCode parameter is expected to be user_code (5-char identifier)
+export async function saveC3Draft(
+  record: C3RecordWithWages & { 
+    received_by?: string;
+    employees?: any[];  // Employees from form 
+  }, 
+  userCode?: string
+): Promise<{ success: boolean; data?: C3Record; error?: string }> {
   try {
+    const currentDate = new Date().toISOString();
+    
     const c3Data: any = {
       payer_id: record.payer_id,
-      payer_type: record.payer_type,
+      payer_type: record.payer_type || 'ER',
       sequence_no: record.sequence_no,
       period: record.period,
       number_employed: record.number_employed || 0,
@@ -258,19 +300,19 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
       emp_ss_fines_due: record.emp_ss_fines_due || 0,
       total_wages: record.total_wages || 0,
       date_received: record.date_received,
-      received_by: record.received_by || userCode, // User who received the submission
+      received_by: record.received_by || userCode,
       nil_return: record.nil_return || false,
       notes: record.notes,
       payer_name: record.payer_name,
       payer_address: record.payer_address,
-      posting_status: 'DFT', // Always draft for save draft
+      posting_status: 'DFT',
     };
 
     let c3Record: C3Record;
 
     if (record.id) {
       // Update existing record
-      c3Data.modified_date = new Date().toISOString();
+      c3Data.modified_date = currentDate;
       c3Data.modified_by = userCode;
 
       const { data, error } = await supabase
@@ -285,7 +327,7 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
     } else {
       // Create new record
       c3Data.entered_by = userCode;
-      c3Data.date_entered = new Date().toISOString();
+      c3Data.date_entered = currentDate;
 
       const { data, error } = await supabase
         .from('cn_c3_reported')
@@ -298,8 +340,11 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
     }
 
     // Handle wage records for Employer C3
-    if (record.wages && record.wages.length > 0 && record.payer_type === 'ER') {
-      // Delete existing wage records for this C3
+    // Get employees from record.employees (from form) or record.wages (already transformed)
+    const employeesData = record.employees || record.wages || [];
+    
+    if (employeesData.length > 0 && record.payer_type === 'ER') {
+      // Delete existing wage records for this C3 - will re-insert fresh data
       if (record.id) {
         const { error: deleteError } = await supabase.from('ip_wages').delete().eq('c3_id', record.id);
         if (deleteError) {
@@ -307,35 +352,64 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
         }
       }
 
-      // Map pay_period string to numeric code: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
-      const mapPayPeriodToCode = (payPeriod: string): string => {
-        switch (payPeriod?.toLowerCase()) {
-          case 'weekly': return '3';
-          case 'bi-weekly': return '2';
-          case 'monthly': return '1';
-          case '2 monthly': case '2-monthly': return '4';
-          default: return '1';
-        }
-      };
-
-      const currentDate = new Date().toISOString();
-
-      // Insert new wage records with all required fields per user specification
-      const wageRecords = record.wages.map((wage, index) => {
-        // Calculate total wages from weekly wages
-        const wages1 = wage.wages_paid1 || 0;
-        const wages2 = wage.wages_paid2 || 0;
-        const wages3 = wage.wages_paid3 || 0;
-        const wages4 = wage.wages_paid4 || 0;
-        const wages5 = wage.wages_paid5 || 0;
-        const bonusPay = wage.wages_paid6 || 0; // Bonus Pay
-        const holidayPay = wage.wages_paid7 || 0; // Holiday Pay
+      const isUpdate = !!record.id;
+      
+      // Transform and insert wage records with all required fields per specification
+      const wageRecords = employeesData.map((emp: any) => {
+        // Handle both transformed WageRecord and raw EmployeeData formats
+        const isRawEmployee = emp.weeklyWages !== undefined;
         
-        const totalWages = wage.total_wages || (wages1 + wages2 + wages3 + wages4 + wages5 + bonusPay + holidayPay);
+        // Extract weekly wages
+        let wages1: number | null, wages2: number | null, wages3: number | null;
+        let wages4: number | null, wages5: number | null;
+        let bonusPay: number | null, holidayPay: number | null;
+        
+        if (isRawEmployee) {
+          // Raw EmployeeData from form - weeklyWages is [w1, w2, w3, w4, w5, bonus, holiday]
+          wages1 = toNumericOrNull(emp.weeklyWages?.[0]);
+          wages2 = toNumericOrNull(emp.weeklyWages?.[1]);
+          wages3 = toNumericOrNull(emp.weeklyWages?.[2]);
+          wages4 = toNumericOrNull(emp.weeklyWages?.[3]);
+          wages5 = toNumericOrNull(emp.weeklyWages?.[4]);
+          bonusPay = toNumericOrNull(emp.weeklyWages?.[5]);
+          holidayPay = toNumericOrNull(emp.weeklyWages?.[6]);
+        } else {
+          // Already transformed WageRecord
+          wages1 = toNumericOrNull(emp.wages_paid1);
+          wages2 = toNumericOrNull(emp.wages_paid2);
+          wages3 = toNumericOrNull(emp.wages_paid3);
+          wages4 = toNumericOrNull(emp.wages_paid4);
+          wages5 = toNumericOrNull(emp.wages_paid5);
+          bonusPay = toNumericOrNull(emp.wages_paid6);
+          holidayPay = toNumericOrNull(emp.wages_paid7);
+        }
+        
+        // Calculate total wages
+        const totalWages = (wages1 || 0) + (wages2 || 0) + (wages3 || 0) + 
+                          (wages4 || 0) + (wages5 || 0) + (bonusPay || 0) + (holidayPay || 0);
+        
+        // Extract contributions - handle both formats
+        const ipSsAmt = isRawEmployee 
+          ? toNumericOrNull(emp.employeeSS || emp.socialSecurity) 
+          : toNumericOrNull(emp.ip_ss_amt);
+        const ipLevyAmt = isRawEmployee 
+          ? toNumericOrNull(emp.employeeLevy || emp.hssdLevy) 
+          : toNumericOrNull(emp.ip_levy_amt);
+        const ipPeAmt = toNumericOrNull(emp.ip_pe_amt) || null; // Employee PE contribution
+        
+        const erSsAmt = isRawEmployee 
+          ? toNumericOrNull(emp.employerSS) 
+          : toNumericOrNull(emp.er_ss_amt);
+        const erLevyAmt = isRawEmployee 
+          ? toNumericOrNull(emp.employerLevy) 
+          : toNumericOrNull(emp.er_levy_amt);
+        const erEiAmt = isRawEmployee 
+          ? toNumericOrNull(emp.employerSeverance) 
+          : toNumericOrNull(emp.er_ei_amt);
         
         return {
           // Core identifiers
-          ssn: wage.ssn,
+          ssn: emp.ssn,
           payer_id: record.payer_id,
           payer_type: 'ER',
           sequence_no: record.sequence_no,
@@ -343,47 +417,50 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
           c3_id: c3Record.id,
           
           // Pay period code: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
-          pay_period: mapPayPeriodToCode(wage.pay_period || 'Monthly'),
+          pay_period: mapPayPeriodToCode(emp.payPeriod || emp.pay_period),
           
-          // Weekly wages
-          wages_paid1: wages1 || null,
-          wages_paid2: wages2 || null,
-          wages_paid3: wages3 || null,
-          wages_paid4: wages4 || null,
-          wages_paid5: wages5 || null,
-          wages_paid6: bonusPay || null, // Bonus Pay
-          wages_paid7: holidayPay || null, // Holiday Pay
+          // Weekly wages (null if empty/zero)
+          wages_paid1: wages1,
+          wages_paid2: wages2,
+          wages_paid3: wages3,
+          wages_paid4: wages4,
+          wages_paid5: wages5,
+          wages_paid6: bonusPay,  // Bonus Pay
+          wages_paid7: holidayPay, // Holiday Pay
           
-          // Paid codes: 1 if amount entered, 0 otherwise
-          paid_code1: wages1 > 0 ? '1' : '0',
-          paid_code2: wages2 > 0 ? '1' : '0',
-          paid_code3: wages3 > 0 ? '1' : '0',
-          paid_code4: wages4 > 0 ? '1' : '0',
-          paid_code5: wages5 > 0 ? '1' : '0',
-          paid_code6: bonusPay > 0 ? '1' : '0',
-          paid_code7: holidayPay > 0 ? '1' : '0',
+          // Paid codes: '1' if amount entered, '0' otherwise
+          paid_code1: wages1 !== null ? '1' : '0',
+          paid_code2: wages2 !== null ? '1' : '0',
+          paid_code3: wages3 !== null ? '1' : '0',
+          paid_code4: wages4 !== null ? '1' : '0',
+          paid_code5: wages5 !== null ? '1' : '0',
+          paid_code6: bonusPay !== null ? '1' : '0',
+          paid_code7: holidayPay !== null ? '1' : '0',
           
           // Employee name
-          employee_name: wage.employee_name || '',
+          employee_name: emp.name || emp.employee_name || '',
           
           // Employee contributions
-          ip_ss_amt: wage.ip_ss_amt || 0,
-          ip_levy_amt: wage.ip_levy_amt || 0,
-          ip_pe_amt: wage.ip_pe_amt || 0,
+          ip_ss_amt: ipSsAmt,
+          ip_levy_amt: ipLevyAmt,
+          ip_pe_amt: ipPeAmt,
           
           // Employer contributions
-          er_ss_amt: wage.er_ss_amt || 0,
-          er_levy_amt: wage.er_levy_amt || 0,
-          er_ei_amt: wage.er_ei_amt || 0,
+          er_ss_amt: erSsAmt,
+          er_levy_amt: erLevyAmt,
+          er_ei_amt: erEiAmt,
           
           // Totals
           total_wages: totalWages,
           
-          // Audit fields
+          // Audit fields - set entered_by on new record, modified_by on re-insert after delete
           entered_by: userCode,
           date_entered: currentDate,
+          modified_by: isUpdate ? userCode : null,
+          date_modified: isUpdate ? currentDate : null,
           input_seq_no: 0,
-          posting_status: record.posting_status !== 'DEL' ? record.posting_status : 'DFT'
+          // Posting status: use legacy codes for ip_wages (Z=Draft, P=Pending, V=Verified, D=Deleted)
+          posting_status: mapStatusToLegacy(record.posting_status)
         };
       });
 
@@ -396,7 +473,6 @@ export async function saveC3Draft(record: C3RecordWithWages & { received_by?: st
 
       if (wageError) {
         console.error('Error saving wage records:', wageError);
-        // Return partial success with warning
         return { 
           success: true, 
           data: c3Record, 
@@ -967,6 +1043,8 @@ export async function saveSelfContributorC3(
       const wages4 = selectedWeeks[3] ? weeklyWage : null;
       const wages5 = selectedWeeks[4] ? weeklyWage : null;
 
+      const isUpdate = !!record.id;
+      
       const wageRecord = {
         // Core identifiers
         ssn: record.payer_id, // SSN is the payer_id for SE
@@ -1011,11 +1089,13 @@ export async function saveSelfContributorC3(
         // Totals
         total_wages: record.total_wages || 0,
         
-        // Audit fields
+        // Audit fields - set entered_by on new record, modified_by on re-insert after delete
         entered_by: userCode,
         date_entered: currentDate,
+        modified_by: isUpdate ? userCode : null,
+        date_modified: isUpdate ? currentDate : null,
         input_seq_no: 0,
-        posting_status: record.posting_status !== 'DEL' ? (record.posting_status || 'DFT') : 'DFT'
+        posting_status: mapStatusToLegacy(record.posting_status)
       };
 
       console.log('Inserting SE wage record:', wageRecord);
@@ -1212,6 +1292,8 @@ export async function saveVoluntaryContributorC3(
       const wages4 = selectedWeeks[3] ? weeklyWage : null;
       const wages5 = selectedWeeks[4] ? weeklyWage : null;
 
+      const isUpdate = !!record.id;
+      
       const wageRecord = {
         // Core identifiers
         ssn: record.payer_id, // SSN is the payer_id for VC
@@ -1256,11 +1338,13 @@ export async function saveVoluntaryContributorC3(
         // Totals
         total_wages: record.total_wages || 0,
         
-        // Audit fields
+        // Audit fields - set entered_by on new record, modified_by on re-insert after delete
         entered_by: userCode,
         date_entered: currentDate,
+        modified_by: isUpdate ? userCode : null,
+        date_modified: isUpdate ? currentDate : null,
         input_seq_no: 0,
-        posting_status: record.posting_status !== 'DEL' ? (record.posting_status || 'DFT') : 'DFT'
+        posting_status: mapStatusToLegacy(record.posting_status)
       };
 
       console.log('Inserting VC wage record:', wageRecord);
