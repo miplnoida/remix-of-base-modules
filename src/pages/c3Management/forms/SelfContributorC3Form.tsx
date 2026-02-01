@@ -253,10 +253,15 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   }, [ssn, period]);
 
-  // Re-validate when period changes
+  // Re-validate when period changes and clear period error
   useEffect(() => {
-    if (ssn && period) {
-      validateSSN();
+    if (period) {
+      // Clear the period error since a period is now selected
+      setPeriodError(null);
+      
+      if (ssn) {
+        validateSSN();
+      }
     }
   }, [period]);
 
