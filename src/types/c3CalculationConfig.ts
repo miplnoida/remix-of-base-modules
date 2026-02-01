@@ -49,7 +49,7 @@ export const CATEGORY_INFO: Record<ConfigCategory, { displayName: string; descri
     icon: 'Shield'
   },
   levy: {
-    displayName: 'Housing & Social Development Levy',
+    displayName: 'Levy (Housing & Social Dev.)',
     description: 'Configure thresholds, brackets, and rates for Levy calculations',
     icon: 'Building2'
   },
