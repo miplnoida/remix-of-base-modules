@@ -6,3 +6,5 @@ export { EmploymentDetailsTab } from './EmploymentDetailsTab';
 export { DependentsTab } from './DependentsTab';
 export { NotesTab } from './NotesTab';
 export { VerificationTab } from './VerificationTab';
+export { VCEligibilityCheck } from './VCEligibilityCheck';
+export { VCRegistrationDialog } from './VCRegistrationDialog';
