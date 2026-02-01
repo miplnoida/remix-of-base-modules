@@ -13,8 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2 } from "lucide-react";
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2, Send } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
@@ -22,6 +21,8 @@ import SelfContributorC3Form from "./forms/SelfContributorC3Form";
 import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
+import { useC3Submit } from "@/hooks/useC3Submit";
+import { WorkflowActionButtonsCompact } from "@/components/workflow/WorkflowActionButtons";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -43,6 +44,9 @@ export default function C3Management() {
     validatePayer,
     getScheduleNo,
   } = useC3Management();
+  
+  // C3 Submit Hook for workflow integration
+  const { submitC3Record, isSubmitting: isSubmittingC3 } = useC3Submit();
 
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
@@ -351,6 +355,58 @@ export default function C3Management() {
     setRecordToVerify(null);
   };
 
+  // Submit handler for list screen
+  const handleSubmitFromList = async (record: any) => {
+    if (!record?.id) {
+      toast({
+        title: "Error",
+        description: "Record ID not found. Cannot submit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Only allow draft records to be submitted
+    if (record.postingStatus !== 'DFT' && record.postingStatus !== 'Z') {
+      toast({
+        title: "Cannot Submit",
+        description: "Only draft records can be submitted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const recordName = record.payerName || `${record.payerId} - ${record.scheduleNo}`;
+    const result = await submitC3Record(record.id, record.payerType || 'ER', recordName);
+    
+    if (result.success) {
+      toast({
+        title: "C3 Submitted",
+        description: result.message || "C3 record has been submitted for approval.",
+      });
+      // Refresh the list
+      const payerType = contributionTypeToPayerType(contributionType);
+      fetchRecords({ payer_type: payerType });
+    } else {
+      toast({
+        title: "Submission Failed",
+        description: result.error || "Failed to submit C3 record.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Callback for workflow action completion
+  const handleWorkflowActionComplete = useCallback((action: string, endState: string | null) => {
+    const payerType = contributionTypeToPayerType(contributionType);
+    fetchRecords({ payer_type: payerType });
+    
+    toast({
+      title: "Workflow Action Completed",
+      description: `Action "${action}" completed successfully.${endState ? ` Status: ${endState}` : ''}`,
+    });
+  }, [contributionType, fetchRecords, toast]);
+
   // Reset Form Handlers
   const handleResetForm = () => {
     setShowResetDialog(true);
@@ -635,6 +691,32 @@ export default function C3Management() {
           <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
             {formMode === 'view' ? (
               <>
+                {/* Workflow action buttons for submitted records */}
+                {viewingRecord && viewingRecord.id && 
+                 viewingRecord.postingStatus !== 'DFT' && 
+                 viewingRecord.postingStatus !== 'Z' && (
+                  <WorkflowActionButtonsCompact
+                    sourceModule={`c3_${(viewingRecord.payerType || 'er').toLowerCase()}_submission`}
+                    sourceRecordId={viewingRecord.id}
+                    onActionComplete={handleWorkflowActionComplete}
+                  />
+                )}
+                
+                {/* Submit button for Draft records in view mode */}
+                {viewingRecord && viewingRecord.id && 
+                 (viewingRecord.postingStatus === 'DFT' || viewingRecord.postingStatus === 'Z') && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmitFromList(viewingRecord)}
+                    disabled={isSubmittingC3}
+                    className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  >
+                    {isSubmittingC3 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Submit
+                  </Button>
+                )}
+                
                 <Button 
                   type="button" 
                   variant="outline"
@@ -644,22 +726,6 @@ export default function C3Management() {
                 >
                   <StickyNote className="h-4 w-4" />
                   C3 Notes
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => {
-                    if (viewingRecord) {
-                      handleVerify(viewingRecord);
-                    }
-                  }}
-                  className={`flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md ${
-                    viewingRecord?.isVerified ? 'bg-green-50 text-green-700 border-l-green-500 hover:bg-green-100' : ''
-                  }`}
-                  disabled={!viewingRecord}
-                >
-                  {viewingRecord?.isVerified ? <BadgeCheck className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                  {viewingRecord?.isVerified ? 'Verified' : 'Verify'}
                 </Button>
                 <Button 
                   type="button" 
@@ -698,22 +764,6 @@ export default function C3Management() {
                 <Button 
                   type="button" 
                   variant="outline"
-                  onClick={() => {
-                    if (editingRecord) {
-                      handleVerify(editingRecord);
-                    }
-                  }}
-                  className={`flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md ${
-                    editingRecord?.isVerified ? 'bg-green-50 text-green-700 border-l-green-500 hover:bg-green-100' : ''
-                  }`}
-                  disabled={!editingRecord}
-                >
-                  {editingRecord?.isVerified ? <BadgeCheck className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                  {editingRecord?.isVerified ? 'Verified' : 'Verify'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline"
                   onClick={() => editingRecord && handlePrint(editingRecord)}
                   className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
                   disabled={!editingRecord}
@@ -721,12 +771,31 @@ export default function C3Management() {
                   <Printer className="h-4 w-4" />
                   Print
                 </Button>
-                {/* <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
-                  Draft
-                </Button> */}
-                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]">
-                  Submit
-                </Button>
+                
+                {/* Submit button for Draft records in edit mode */}
+                {editingRecord && editingRecord.id && 
+                 (editingRecord.postingStatus === 'DFT' || editingRecord.postingStatus === 'Z') && (
+                  <Button 
+                    type="button" 
+                    className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                    disabled={isSubmittingC3}
+                    onClick={() => handleSubmitFromList(editingRecord)}
+                  >
+                    {isSubmittingC3 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Submit
+                  </Button>
+                )}
+                
+                {/* Workflow action buttons for submitted records in edit mode */}
+                {editingRecord && editingRecord.id && 
+                 editingRecord.postingStatus !== 'DFT' && 
+                 editingRecord.postingStatus !== 'Z' && (
+                  <WorkflowActionButtonsCompact
+                    sourceModule={`c3_${(editingRecord.payerType || 'er').toLowerCase()}_submission`}
+                    sourceRecordId={editingRecord.id}
+                    onActionComplete={handleWorkflowActionComplete}
+                  />
+                )}
               </>
             ) : (
               // Add Mode
@@ -855,6 +924,29 @@ export default function C3Management() {
                 setIsSaving(false);
               }
             }}
+            onSubmit={async (c3Id) => {
+              const payerType = contributionTypeToPayerType(contributionType);
+              const recordName = editingRecord?.payerName || `${editingRecord?.payerId} - ${editingRecord?.scheduleNo}`;
+              const result = await submitC3Record(c3Id, payerType, recordName);
+              
+              if (result.success) {
+                toast({
+                  title: "C3 Submitted",
+                  description: result.message || "C3 record has been submitted for approval.",
+                });
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+                fetchRecords({ payer_type: payerType });
+              } else {
+                toast({
+                  title: "Submission Failed",
+                  description: result.error || "Failed to submit C3 record.",
+                  variant: "destructive",
+                });
+              }
+            }}
           />
         )}
         
@@ -870,7 +962,6 @@ export default function C3Management() {
               setFormMode('add');
             }}
             onSave={async (data) => {
-              // Form handles its own saving now
               toast({
                 title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
                 description: `Self-contributor C3 record has been saved.`,
@@ -879,9 +970,31 @@ export default function C3Management() {
               setEditingRecord(null);
               setViewingRecord(null);
               setFormMode('add');
-              // Refresh the list
               const payerType = contributionTypeToPayerType(contributionType);
               fetchRecords({ payer_type: payerType });
+            }}
+            onSubmit={async (c3Id) => {
+              const payerType = contributionTypeToPayerType(contributionType);
+              const recordName = editingRecord?.payerName || `${editingRecord?.payerId}`;
+              const result = await submitC3Record(c3Id, payerType, recordName);
+              
+              if (result.success) {
+                toast({
+                  title: "C3 Submitted",
+                  description: result.message || "C3 record has been submitted for approval.",
+                });
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+                fetchRecords({ payer_type: payerType });
+              } else {
+                toast({
+                  title: "Submission Failed",
+                  description: result.error || "Failed to submit C3 record.",
+                  variant: "destructive",
+                });
+              }
             }}
           />
         )}
@@ -898,7 +1011,6 @@ export default function C3Management() {
               setFormMode('add');
             }}
             onSave={async (data) => {
-              // Form handles its own saving now (similar to SelfContributor)
               toast({
                 title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
                 description: `Voluntary C3 record has been saved.`,
@@ -907,9 +1019,31 @@ export default function C3Management() {
               setEditingRecord(null);
               setViewingRecord(null);
               setFormMode('add');
-              // Refresh the list
               const payerType = contributionTypeToPayerType(contributionType);
               fetchRecords({ payer_type: payerType });
+            }}
+            onSubmit={async (c3Id) => {
+              const payerType = contributionTypeToPayerType(contributionType);
+              const recordName = editingRecord?.payerName || `${editingRecord?.payerId}`;
+              const result = await submitC3Record(c3Id, payerType, recordName);
+              
+              if (result.success) {
+                toast({
+                  title: "C3 Submitted",
+                  description: result.message || "C3 record has been submitted for approval.",
+                });
+                setShowForm(false);
+                setEditingRecord(null);
+                setViewingRecord(null);
+                setFormMode('add');
+                fetchRecords({ payer_type: payerType });
+              } else {
+                toast({
+                  title: "Submission Failed",
+                  description: result.error || "Failed to submit C3 record.",
+                  variant: "destructive",
+                });
+              }
             }}
           />
         )}
@@ -1142,7 +1276,51 @@ export default function C3Management() {
               },
               { key: 'cnc3ReportedReceivedBy', label: 'CNC3 Received By', minWidth: '140px' },
               { key: 'cnc3ReportedModifiedDate', label: 'CNC3 Modified Date', minWidth: '140px' },
-              { key: 'cnc3ReportedModifiedBy', label: 'CNC3 Modified By', minWidth: '140px' }
+              { key: 'cnc3ReportedModifiedBy', label: 'CNC3 Modified By', minWidth: '140px' },
+              {
+                key: 'actions',
+                label: 'Actions',
+                minWidth: '200px',
+                render: (_, record) => {
+                  const isDraft = record.postingStatus === 'DFT' || record.postingStatus === 'Z';
+                  const isPending = record.postingStatus === 'PEN' || record.postingStatus === 'P';
+                  const sourceModule = `c3_${(record.payerType || 'er').toLowerCase()}_submission`;
+                  
+                  return (
+                    <div className="flex items-center gap-2">
+                      {/* Submit button for Draft records */}
+                      {isDraft && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSubmitFromList(record);
+                          }}
+                          disabled={isSubmittingC3}
+                          className="gap-1"
+                        >
+                          {isSubmittingC3 ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                          Submit
+                        </Button>
+                      )}
+                      
+                      {/* Workflow action buttons for submitted records */}
+                      {!isDraft && record.id && (
+                        <WorkflowActionButtonsCompact
+                          sourceModule={sourceModule}
+                          sourceRecordId={record.id}
+                          onActionComplete={handleWorkflowActionComplete}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+              }
             ]}
             title={`C3 Records (${total} total)`}
             searchPlaceholder="Search by Payer ID, Name, or Type"
