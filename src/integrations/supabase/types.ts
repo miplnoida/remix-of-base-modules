@@ -7123,6 +7123,66 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_vc_contrib_rate: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          effend: string | null
+          effstart: string
+          id: string
+          is_active: boolean
+          max_age: number
+          min_age: number
+          min_contrib_weeks: number
+          residency_grace_weeks: number
+          termination_grace_weeks: number
+          updated_at: string | null
+          updated_by: string | null
+          vc_contrib_pct: number
+          vc_duration: number
+          wage_history_months: number
+          weeks_per_year: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          effend?: string | null
+          effstart?: string
+          id?: string
+          is_active?: boolean
+          max_age?: number
+          min_age?: number
+          min_contrib_weeks?: number
+          residency_grace_weeks?: number
+          termination_grace_weeks?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          vc_contrib_pct?: number
+          vc_duration?: number
+          wage_history_months?: number
+          weeks_per_year?: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          effend?: string | null
+          effstart?: string
+          id?: string
+          is_active?: boolean
+          max_age?: number
+          min_age?: number
+          min_contrib_weeks?: number
+          residency_grace_weeks?: number
+          termination_grace_weeks?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          vc_contrib_pct?: number
+          vc_duration?: number
+          wage_history_months?: number
+          weeks_per_year?: number
+        }
+        Relationships: []
+      }
       tb_verify: {
         Row: {
           code: string
@@ -8394,9 +8454,17 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_vc_avg_weekly_wage: {
+        Args: { p_date_registered: string; p_ssn: string }
+        Returns: Json
+      }
       can_access_module: {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
+      }
+      cease_voluntary_contributor: {
+        Args: { p_reason?: string; p_ssn: string }
+        Returns: Json
       }
       check_ip_duplicates: {
         Args: {
@@ -8425,6 +8493,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_vc_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_workflow_task_access: {
         Args: {
           _action?: string
@@ -8579,6 +8648,17 @@ export type Database = {
           _workflow_instance_id: string
         }
         Returns: string
+      }
+      register_voluntary_contributor: {
+        Args: {
+          p_date_commenced: string
+          p_date_registered: string
+          p_due_date: string
+          p_payment_interval: string
+          p_ssn: string
+          p_user_code?: string
+        }
+        Returns: Json
       }
       reject_c3_record: {
         Args: { p_c3_id: string; p_reason?: string; p_user_id?: string }

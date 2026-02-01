@@ -1,7 +1,7 @@
 // C3 Calculation Configuration Types
 
-export type ConfigType = 'rate' | 'amount' | 'age' | 'days';
-export type ConfigCategory = 'social_security' | 'levy' | 'severance' | 'penalty';
+export type ConfigType = 'rate' | 'amount' | 'age' | 'days' | 'weeks' | 'months';
+export type ConfigCategory = 'social_security' | 'levy' | 'severance' | 'penalty' | 'voluntary_contributor';
 
 export interface C3CalculationConfig {
   id: string;
@@ -62,6 +62,11 @@ export const CATEGORY_INFO: Record<ConfigCategory, { displayName: string; descri
     displayName: 'Late Payment Penalties',
     description: 'Configure penalty rates and calculation parameters for late payments',
     icon: 'AlertTriangle'
+  },
+  voluntary_contributor: {
+    displayName: 'Voluntary Contributor',
+    description: 'Configure eligibility rules, contribution rates, and grace periods for voluntary contributors',
+    icon: 'UserPlus'
   }
 };
 
@@ -70,5 +75,7 @@ export const CONFIG_TYPE_INFO: Record<ConfigType, { suffix: string; multiplier: 
   rate: { suffix: '%', multiplier: 100, decimals: 2 },
   amount: { suffix: 'XCD', multiplier: 1, decimals: 2 },
   age: { suffix: 'years', multiplier: 1, decimals: 0 },
-  days: { suffix: 'days', multiplier: 1, decimals: 0 }
+  days: { suffix: 'days', multiplier: 1, decimals: 0 },
+  weeks: { suffix: 'weeks', multiplier: 1, decimals: 0 },
+  months: { suffix: 'months', multiplier: 1, decimals: 0 }
 };

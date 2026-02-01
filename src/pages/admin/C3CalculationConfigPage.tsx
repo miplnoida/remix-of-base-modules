@@ -3,7 +3,7 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useGroupedC3Configs, useC3ConfigAuditHistory } from '@/hooks/useC3CalculationConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Shield, Building2, Briefcase, AlertTriangle, History } from 'lucide-react';
+import { Loader2, Shield, Building2, Briefcase, AlertTriangle, History, UserPlus } from 'lucide-react';
 import { ConfigCategory } from '@/types/c3CalculationConfig';
 import { C3ConfigCategoryCard } from '@/components/admin/c3-config/C3ConfigCategoryCard';
 import { C3ConfigAuditLog } from '@/components/admin/c3-config/C3ConfigAuditLog';
@@ -12,7 +12,8 @@ const CATEGORY_ICONS: Record<ConfigCategory, React.ReactNode> = {
   social_security: <Shield className="h-5 w-5" />,
   levy: <Building2 className="h-5 w-5" />,
   severance: <Briefcase className="h-5 w-5" />,
-  penalty: <AlertTriangle className="h-5 w-5" />
+  penalty: <AlertTriangle className="h-5 w-5" />,
+  voluntary_contributor: <UserPlus className="h-5 w-5" />
 };
 
 export default function C3CalculationConfigPage() {
@@ -49,7 +50,7 @@ export default function C3CalculationConfigPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             {groupedConfigs.map(group => (
               <TabsTrigger 
                 key={group.category} 
@@ -57,12 +58,12 @@ export default function C3CalculationConfigPage() {
                 className="flex items-center gap-2"
               >
                 {CATEGORY_ICONS[group.category]}
-                <span className="hidden sm:inline">{group.displayName}</span>
+                <span className="hidden lg:inline">{group.displayName}</span>
               </TabsTrigger>
             ))}
             <TabsTrigger value="audit" className="flex items-center gap-2">
               <History className="h-5 w-5" />
-              <span className="hidden sm:inline">Audit Log</span>
+              <span className="hidden lg:inline">Audit Log</span>
             </TabsTrigger>
           </TabsList>
 
