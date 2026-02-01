@@ -6553,6 +6553,54 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          allowed_values: Json | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_editable: boolean
+          setting_key: string
+          setting_type: string
+          setting_value: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_values?: Json | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_editable?: boolean
+          setting_key: string
+          setting_type?: string
+          setting_value: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_values?: Json | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_editable?: boolean
+          setting_key?: string
+          setting_type?: string
+          setting_value?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_technical_logs: {
         Row: {
           api_name: string | null
@@ -8433,6 +8481,7 @@ export type Database = {
         Args: { p_payer_id: string; p_payer_type: string; p_period: string }
         Returns: number
       }
+      get_system_setting: { Args: { p_setting_key: string }; Returns: string }
       get_table_columns: {
         Args: { p_table_name: string }
         Returns: {
@@ -8559,6 +8608,14 @@ export type Database = {
           _workflow_id: string
         }
         Returns: Json
+      }
+      update_system_setting: {
+        Args: {
+          p_setting_key: string
+          p_setting_value: string
+          p_user_code?: string
+        }
+        Returns: boolean
       }
       verify_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }

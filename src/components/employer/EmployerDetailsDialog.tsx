@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Employer } from '@/pages/employersManagement/EmployerDirectory';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { 
   User, 
   MapPin, 
@@ -73,7 +74,7 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
   if (!employer) return null;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return formatDisplayDate(dateString);
   };
 
   const formatCurrency = (amount: number) => {

@@ -24,7 +24,8 @@ import {
   UserCheck,
   Briefcase,
   Stethoscope,
-  Calculator
+  Calculator,
+  Sliders
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -189,6 +190,12 @@ export const systemAdminMenuItems = [
         title: "API Configuration",
         url: "/admin/api-configuration",
         icon: Globe,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "Global Settings",
+        url: "/admin/global-settings",
+        icon: Sliders,
         requiresPermission: "system_administration"
       },
       {

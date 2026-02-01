@@ -6,15 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WaiversTab } from "./WaiversTab";
 import { ArrangementsTab } from "./ArrangementsTab";
-
-// Format date as dd-mm-yyyy
-const formatDate = (date: Date | string): string => {
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-};
+import { formatDisplayDate } from "@/lib/dateFormat";
 
 interface Waiver {
   id: string;
@@ -75,7 +67,7 @@ export function WaiversArrangementsSection({ caseId, waivers, arrangements, isOp
             {nextPaymentDue && (
               <Badge variant="outline" className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                Next Due: {formatDate(nextPaymentDue)}
+                Next Due: {formatDisplayDate(nextPaymentDue)}
               </Badge>
             )}
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
