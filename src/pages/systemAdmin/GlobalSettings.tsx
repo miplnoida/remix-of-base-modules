@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -158,18 +157,15 @@ const GlobalSettings = () => {
   
   if (isLoading) {
     return (
-      <ProtectedLayout>
-        <div className="space-y-6">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </ProtectedLayout>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
   
   return (
-    <ProtectedLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -334,8 +330,7 @@ const GlobalSettings = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </ProtectedLayout>
+    </div>
   );
 };
 
