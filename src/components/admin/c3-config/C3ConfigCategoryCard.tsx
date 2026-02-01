@@ -101,18 +101,19 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
           <CardTitle>{group.displayName}</CardTitle>
           <CardDescription>{group.description}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[300px]">Parameter</TableHead>
-                <TableHead className="w-[150px]">Current Value</TableHead>
-                <TableHead className="w-[150px]">Type</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {group.configs.map(config => {
+        <CardContent className="px-2 sm:px-6">
+          <div className="overflow-x-auto -mx-2 sm:mx-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[200px] sm:w-[300px]">Parameter</TableHead>
+                  <TableHead className="min-w-[120px] sm:w-[150px]">Current Value</TableHead>
+                  <TableHead className="min-w-[80px] sm:w-[150px] hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="min-w-[80px] sm:w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {group.configs.map(config => {
                 const typeInfo = CONFIG_TYPE_INFO[config.config_type as keyof typeof CONFIG_TYPE_INFO];
                 const isEditing = editingId === config.id;
                 
@@ -156,8 +157,8 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <span className="capitalize text-muted-foreground">
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="capitalize text-muted-foreground text-xs sm:text-sm">
                         {config.config_type.replace('_', ' ')}
                       </span>
                     </TableCell>
@@ -194,8 +195,9 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
                   </TableRow>
                 );
               })}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
