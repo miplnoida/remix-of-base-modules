@@ -8490,6 +8490,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_ip_employer_if_not_consecutive_duplicate: {
+        Args: {
+          p_employer_id: string
+          p_entered_by?: string
+          p_occupation: string
+          p_posting_status?: string
+          p_source?: string
+          p_ssn: string
+          p_term_end_date?: string
+          p_term_start_date?: string
+        }
+        Returns: Json
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
