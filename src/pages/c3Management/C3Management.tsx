@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2, Send } from "lucide-react";
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2, Send, Save } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
@@ -60,6 +60,7 @@ export default function C3Management() {
   const [recordToVerify, setRecordToVerify] = useState<any>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetFormTrigger, setResetFormTrigger] = useState(0);
+  const [saveFormTrigger, setSaveFormTrigger] = useState(0);
   const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -772,6 +773,18 @@ export default function C3Management() {
                   Print
                 </Button>
                 
+                {/* Save button in edit mode */}
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  disabled={isSaving}
+                  onClick={() => setSaveFormTrigger(prev => prev + 1)}
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save
+                </Button>
+                
                 {/* Submit button for Draft records in edit mode */}
                 {editingRecord && editingRecord.id && 
                  (editingRecord.postingStatus === 'DFT' || editingRecord.postingStatus === 'Z') && (
@@ -798,7 +811,7 @@ export default function C3Management() {
                 )}
               </>
             ) : (
-              // Add Mode
+              // Add Mode - Only show Save button (no Submit until record is saved)
               <>
                 <Button 
                   type="button" 
@@ -850,42 +863,15 @@ export default function C3Management() {
                   <RotateCcw className="h-4 w-4" />
                   Reset
                 </Button>
-                {/* <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
-                  disabled={isSaving}
-                  onClick={async () => {
-                    // Save as draft - collect form data and save
-                    setIsSaving(true);
-                    try {
-                      const payerType = contributionTypeToPayerType(contributionType);
-                      // For now, save basic record as draft - forms will need to expose their data
-                      toast({
-                        title: "Draft Saved",
-                        description: "Please use the Save button in the form to save as draft.",
-                      });
-                    } finally {
-                      setIsSaving(false);
-                    }
-                  }}
-                >
-                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Draft
-                </Button> */}
                 <Button 
                   type="button" 
+                  id="c3-save-button"
                   className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
                   disabled={isSaving}
-                  onClick={() => {
-                    toast({
-                      title: "Submit",
-                      description: "Please save the form first, then submit from the list.",
-                    });
-                  }}
+                  onClick={() => setSaveFormTrigger(prev => prev + 1)}
                 >
-                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Submit
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save
                 </Button>
               </>
             )}
@@ -898,6 +884,7 @@ export default function C3Management() {
             initialData={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
             resetTrigger={resetFormTrigger}
+            saveTrigger={saveFormTrigger}
             onCancel={() => {
               setShowForm(false);
               setEditingRecord(null);
@@ -955,6 +942,7 @@ export default function C3Management() {
             data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
             resetTrigger={resetFormTrigger}
+            saveTrigger={saveFormTrigger}
             onClose={() => {
               setShowForm(false);
               setEditingRecord(null);
@@ -1004,6 +992,7 @@ export default function C3Management() {
             data={formMode === 'edit' ? editingRecord : formMode === 'view' ? viewingRecord : null}
             mode={formMode}
             resetTrigger={resetFormTrigger}
+            saveTrigger={saveFormTrigger}
             onClose={() => {
               setShowForm(false);
               setEditingRecord(null);

@@ -36,6 +36,7 @@ interface EmployerC3FormProps {
   onSubmit?: (c3Id: string) => void;
   onCancel?: () => void;
   resetTrigger?: number;
+  saveTrigger?: number;
 }
 
 // PreviewField component for view mode
@@ -80,7 +81,7 @@ const calculateEmployeeTotals = (employee: EmployeeData) => {
   };
 };
 
-export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, onCancel, resetTrigger }: EmployerC3FormProps) {
+export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, onCancel, resetTrigger, saveTrigger }: EmployerC3FormProps) {
   const isViewMode = mode === 'view';
   const isReadOnly = mode === 'view';
   const { toast } = useToast();
@@ -394,6 +395,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       resetFormToDefaults();
     }
   }, [resetTrigger, mode]);
+
+  // Handle save trigger from parent component (header Save button)
+  useEffect(() => {
+    if (saveTrigger && saveTrigger > 0 && mode !== 'view') {
+      handleSave();
+    }
+  }, [saveTrigger]);
 
   // Modal handlers
   const handleAddEmployee = () => {
