@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MockCase } from "@/data/mockLegalCases";
 import { Download, FileText, Calendar, MessageSquare, CheckSquare, DollarSign } from "lucide-react";
+import { formatDisplayDateTime } from "@/lib/dateFormat";
 
 interface CaseTimelineTabProps {
   caseData: MockCase;
@@ -66,13 +67,7 @@ export function CaseTimelineTab({ caseData }: CaseTimelineTabProps) {
                             {event.type}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(event.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatDisplayDateTime(event.date)}
                           </span>
                         </div>
                         

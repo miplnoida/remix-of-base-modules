@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Trash2, Plus } from 'lucide-react';
 import FormDetailTab from './tabs/FormDetailTab';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
 export default function EmployerRegistrationForm() {
   const { regno } = useParams<{ regno: string }>();
@@ -308,8 +309,8 @@ export default function EmployerRegistrationForm() {
                   {commenceDates.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No commence dates</TableCell></TableRow> :
                     commenceDates.map((c, idx) => (
                       <TableRow key={idx}>
-                        <TableCell>{c.date_commenced ? new Date(c.date_commenced).toLocaleDateString() : '-'}</TableCell>
-                        <TableCell>{c.date_ceased ? new Date(c.date_ceased).toLocaleDateString() : '-'}</TableCell>
+                        <TableCell>{c.date_commenced ? formatDisplayDate(c.date_commenced) : '-'}</TableCell>
+                        <TableCell>{c.date_ceased ? formatDisplayDate(c.date_ceased) : '-'}</TableCell>
                         <TableCell>{c.modified_by || '-'}</TableCell>
                       </TableRow>
                     ))}

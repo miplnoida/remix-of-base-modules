@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Clock, AlertTriangle, CheckCircle, Eye, Edit, ArrowLeft, Home, Search, ChevronDown, ChevronUp, Calendar, RotateCcw } from 'lucide-react';
 import { DataTable, DataTableColumn } from '@/components/ui/data-table';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
 const PendingReviews = () => {
   const navigate = useNavigate();
@@ -181,7 +182,7 @@ const PendingReviews = () => {
       key: 'dob', 
       label: 'DOB', 
       minWidth: '100px',
-      render: (value) => new Date(value).toLocaleDateString()
+      render: (value) => formatDisplayDate(value)
     },
     { key: 'sex', label: 'Sex', minWidth: '80px' },
     { key: 'alias', label: 'Alias', minWidth: '80px' },
