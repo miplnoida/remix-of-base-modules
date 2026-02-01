@@ -2,35 +2,135 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Printer, Send, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useC3Submit } from "@/hooks/useC3Submit";
+import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
 
-// Mock data - in real app this would come from API
-const getMockRecord = (id: string) => ({
-  payerId: "EMP001",
-  scheduleNo: "SCH-2024-001",
-  period: "2024-01",
-  dateReceived: "2024-01-15",
-  enteredBy: "John Smith",
-  verifiedBy: "Jane Doe",
-  dateEntered: "2024-01-16",
-  dateVerified: "2024-01-17",
-  status: "Verified",
-  type: "Employer",
-  payerName: "ABC Company Ltd",
-  cnc3ReportedReceivedBy: "System Admin",
-  cnc3ReportedModifiedDate: "2024-01-17",
-  cnc3ReportedModifiedBy: "Jane Doe",
-  amount: 15750.00
-});
+interface C3RecordData {
+  id: string;
+  payerId: string;
+  payerType: string;
+  scheduleNo: string;
+  period: string;
+  dateReceived: string;
+  enteredBy: string;
+  verifiedBy: string | null;
+  dateEntered: string;
+  dateVerified: string | null;
+  status: string;
+  postingStatus: string;
+  type: string;
+  payerName: string;
+  cnc3ReportedReceivedBy: string;
+  cnc3ReportedModifiedDate: string;
+  cnc3ReportedModifiedBy: string;
+  amount: number;
+}
 
 export default function ViewC3Record() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const record = getMockRecord(id || "");
+  const { toast } = useToast();
+  const { submitC3Record, isSubmitting } = useC3Submit();
+  
+  const [record, setRecord] = useState<C3RecordData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRecord = useCallback(async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('cn_c3_reported')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        const postingStatus = data.posting_status;
+        const statusMap: Record<string, string> = {
+          'DFT': 'Draft', 'Z': 'Draft',
+          'PEN': 'Pending', 'P': 'Pending',
+          'VAC': 'Verified', 'V': 'Verified',
+          'REJ': 'Rejected',
+          'DEL': 'Deleted', 'D': 'Deleted',
+        };
+        
+        setRecord({
+          id: data.id,
+          payerId: data.payer_id,
+          payerType: data.payer_type,
+          scheduleNo: `SCH-${data.sequence_no}`,
+          period: data.period ? new Date(data.period).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : '',
+          dateReceived: data.date_received ? new Date(data.date_received).toLocaleDateString('en-GB') : '',
+          enteredBy: data.entered_by || '',
+          verifiedBy: data.verified_by || null,
+          dateEntered: data.date_entered ? new Date(data.date_entered).toLocaleDateString('en-GB') : '',
+          dateVerified: data.date_verified ? new Date(data.date_verified).toLocaleDateString('en-GB') : null,
+          status: statusMap[postingStatus] || postingStatus,
+          postingStatus: postingStatus,
+          type: data.payer_type === 'ER' ? 'Employer' : data.payer_type === 'SE' ? 'Self-Employed' : 'Voluntary',
+          payerName: data.payer_name || '',
+          cnc3ReportedReceivedBy: data.received_by || '',
+          cnc3ReportedModifiedDate: data.modified_date ? new Date(data.modified_date).toLocaleDateString('en-GB') : '',
+          cnc3ReportedModifiedBy: data.modified_by || '',
+          amount: (data.emp_ss_amt_calc || 0) + (data.emp_levy_amt_calc || 0) + (data.emp_pe_amt_calc || 0),
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching C3 record:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load C3 record.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [id, toast]);
+
+  useEffect(() => {
+    fetchRecord();
+  }, [fetchRecord]);
 
   const handlePrint = () => {
     window.print();
   };
+
+  const handleSubmit = async () => {
+    if (!record) return;
+    
+    const recordName = record.payerName || `${record.payerId} - ${record.scheduleNo}`;
+    const result = await submitC3Record(record.id, record.payerType, recordName);
+    
+    if (result.success) {
+      toast({
+        title: "C3 Submitted",
+        description: result.message || "C3 record has been submitted for approval.",
+      });
+      fetchRecord();
+    } else {
+      toast({
+        title: "Submission Failed",
+        description: result.error || "Failed to submit C3 record.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleWorkflowActionComplete = useCallback((action: string, endState: string | null) => {
+    toast({
+      title: "Workflow Action Completed",
+      description: `Action "${action}" completed successfully.${endState ? ` Status: ${endState}` : ''}`,
+    });
+    fetchRecord();
+  }, [toast, fetchRecord]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -38,12 +138,35 @@ export default function ViewC3Record() {
         return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
       case "Pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case "Draft":
+        return <Badge className="bg-blue-100 text-blue-800">Draft</Badge>;
       case "Rejected":
         return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading C3 record...</span>
+      </div>
+    );
+  }
+
+  if (!record) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground mb-4">C3 record not found.</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    );
+  }
+
+  const isDraft = record.postingStatus === 'DFT' || record.postingStatus === 'Z';
+  const sourceModule = `c3_${(record.payerType || 'er').toLowerCase()}_submission`;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -64,10 +187,38 @@ export default function ViewC3Record() {
             <p className="text-muted-foreground">Record ID: {record.scheduleNo}</p>
           </div>
         </div>
-        <Button onClick={handlePrint} className="gap-2">
-          <Printer className="h-4 w-4" />
-          Print
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Submit button for Draft records */}
+          {isDraft && (
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              variant="outline"
+              className="gap-2"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Submit
+            </Button>
+          )}
+          
+          {/* Workflow action buttons for submitted records */}
+          {!isDraft && (
+            <WorkflowActionButtons
+              sourceModule={sourceModule}
+              sourceRecordId={record.id}
+              onActionComplete={handleWorkflowActionComplete}
+            />
+          )}
+          
+          <Button onClick={handlePrint} className="gap-2">
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
+        </div>
       </div>
 
       {/* Record Details */}
