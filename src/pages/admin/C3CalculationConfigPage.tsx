@@ -50,22 +50,24 @@ export default function C3CalculationConfigPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
-            {groupedConfigs.map(group => (
-              <TabsTrigger 
-                key={group.category} 
-                value={group.category}
-                className="flex items-center gap-2"
-              >
-                {CATEGORY_ICONS[group.category]}
-                <span className="hidden lg:inline">{group.displayName}</span>
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList className="inline-flex w-max min-w-full md:w-full md:grid md:grid-cols-6 gap-1">
+              {groupedConfigs.map(group => (
+                <TabsTrigger 
+                  key={group.category} 
+                  value={group.category}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap"
+                >
+                  {CATEGORY_ICONS[group.category]}
+                  <span className="hidden sm:inline">{group.displayName}</span>
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="audit" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <History className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Audit Log</span>
               </TabsTrigger>
-            ))}
-            <TabsTrigger value="audit" className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              <span className="hidden lg:inline">Audit Log</span>
-            </TabsTrigger>
-          </TabsList>
+            </TabsList>
+          </div>
 
           {groupedConfigs.map(group => (
             <TabsContent key={group.category} value={group.category}>
