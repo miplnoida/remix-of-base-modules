@@ -44,12 +44,13 @@ interface SelfContributorC3FormProps {
   data?: any;
   mode?: 'add' | 'edit' | 'view';
   resetTrigger?: number;
+  saveTrigger?: number;
   onSave?: (data: any) => void;
   onSubmit?: (c3Id: string) => void;
   onClose?: () => void;
 }
 
-export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger, onSave, onSubmit, onClose }: SelfContributorC3FormProps) {
+export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger, saveTrigger, onSave, onSubmit, onClose }: SelfContributorC3FormProps) {
   const isReadOnly = mode === 'view';
   const isViewMode = mode === 'view';
   const { toast } = useToast();
@@ -326,6 +327,13 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       resetForm();
     }
   }, [resetTrigger, mode]);
+
+  // Handle save trigger from parent component (header Save button)
+  useEffect(() => {
+    if (saveTrigger && saveTrigger > 0 && mode !== 'view') {
+      handleSave();
+    }
+  }, [saveTrigger]);
 
   // Handle save
   const handleSave = async () => {
