@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, Users, FileText, Building, Camera, Globe } from 'lucide-react';
+import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase } from 'lucide-react';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,11 +15,13 @@ import EmploymentTab from './tabs/EmploymentTab';
 import DocumentVerificationTab from './tabs/DocumentVerificationTab';
 import DependentsTab from './tabs/DependentsTab';
 import NotesTab from './tabs/NotesTab';
+import EmploymentHistoryTab from './tabs/EmploymentHistoryTab';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import SuccessAnimation from '@/components/shared/SuccessAnimation';
 import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { useHasEmploymentHistory } from '@/hooks/useEmploymentHistory';
 
 export interface IPFormData {
   id?: string;
@@ -140,6 +142,8 @@ export default function IPRegistrationForm() {
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
   const hasShownSuccessRef = useRef(false);
+  
+  // Check if employment history records exist for this SSN
 
   // Initialize form for new mode (no DB save until explicit save)
   const initializeNewForm = useCallback(async () => {
@@ -659,7 +663,7 @@ export default function IPRegistrationForm() {
       <Card>
         <CardContent className="p-6">
           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="register" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Register Person</span>
@@ -671,6 +675,14 @@ export default function IPRegistrationForm() {
               <TabsTrigger value="notes" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Notes</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="employment-history" 
+                className="flex items-center gap-2"
+                disabled={!formData.ssn || isNewRecord}
+              >
+                <Briefcase className="h-4 w-4" />
+                <span className="hidden sm:inline">Emp. History</span>
               </TabsTrigger>
               <TabsTrigger value="npf" className="flex items-center gap-2">
                 <Building className="h-4 w-4" />
@@ -816,6 +828,11 @@ export default function IPRegistrationForm() {
                 recordStatus={formData.status}
                 isEditable={isEditable}
               />
+            </TabsContent>
+
+            {/* Employment History Tab - Read Only */}
+            <TabsContent value="employment-history" className="mt-6">
+              <EmploymentHistoryTab ssn={formData.ssn} />
             </TabsContent>
 
             {/* NPF Tab - Placeholder */}

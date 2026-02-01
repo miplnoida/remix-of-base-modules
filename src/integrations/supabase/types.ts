@@ -3517,6 +3517,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_employer: {
+        Row: {
+          created_at: string | null
+          date_entered: string | null
+          date_modified: string | null
+          employer_id: string
+          entered_by: string | null
+          id: string
+          modified_by: string | null
+          occupation: string | null
+          posting_status: string | null
+          source: string | null
+          ssn: string
+          term_end_date: string | null
+          term_start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          employer_id: string
+          entered_by?: string | null
+          id?: string
+          modified_by?: string | null
+          occupation?: string | null
+          posting_status?: string | null
+          source?: string | null
+          ssn: string
+          term_end_date?: string | null
+          term_start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          employer_id?: string
+          entered_by?: string | null
+          id?: string
+          modified_by?: string | null
+          occupation?: string | null
+          posting_status?: string | null
+          source?: string | null
+          ssn?: string
+          term_end_date?: string | null
+          term_start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ip_master: {
         Row: {
           alias: string | null
