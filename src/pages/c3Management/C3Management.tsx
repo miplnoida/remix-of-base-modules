@@ -88,13 +88,13 @@ export default function C3Management() {
   const getAddButtonText = () => {
     switch (contributionType) {
       case "employer":
-        return "Add New Employer";
+        return "Add New C3-Employer";
       case "self-employed":
-        return "Add New Self Contributor";
+        return "Add New C3-Self Contributor";
       case "voluntary":
-        return "Add New Voluntary Contribution";
+        return "Add New C3-Voluntary Contribution";
       default:
-        return "Add New C3 Submission";
+        return "Add New C3";
     }
   };
 
@@ -618,11 +618,11 @@ export default function C3Management() {
                     <BreadcrumbItem>
                       <BreadcrumbPage className="text-[#0284C7]">
                         {formMode === 'add' ? (
-                          contributionType === 'employer' ? 'Add New Employer' : contributionType === 'self-employed' ? 'Add Self Contributor' : 'Add Voluntary Contribution'
+                          contributionType === 'employer' ? 'Add New C3-Employer' : contributionType === 'self-employed' ? 'Add New C3-Self Contributor' : 'Add New C3-Voluntary Contribution'
                         ) : formMode === 'edit' ? (
-                          contributionType === 'employer' ? 'Edit Employer' : contributionType === 'self-employed' ? 'Edit Self Contributor' : 'Edit Voluntary Contribution'
+                          contributionType === 'employer' ? 'Edit C3-Employer' : contributionType === 'self-employed' ? 'Edit C3-Self Contributor' : 'Edit C3-Voluntary Contribution'
                         ) : (
-                          contributionType === 'employer' ? 'Employer View' : contributionType === 'self-employed' ? 'Self Contributor View' : 'Voluntary Contribution View'
+                          contributionType === 'employer' ? 'C3-Employer View' : contributionType === 'self-employed' ? 'C3-Self Contributor View' : 'C3-Voluntary Contribution View'
                         )}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
@@ -721,9 +721,9 @@ export default function C3Management() {
                   <Printer className="h-4 w-4" />
                   Print
                 </Button>
-                <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
+                {/* <Button type="button" variant="outline" className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md">
                   Draft
-                </Button>
+                </Button> */}
                 <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]">
                   Submit
                 </Button>
@@ -781,7 +781,7 @@ export default function C3Management() {
                   <RotateCcw className="h-4 w-4" />
                   Reset
                 </Button>
-                <Button 
+                {/* <Button 
                   type="button" 
                   variant="outline" 
                   className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
@@ -803,7 +803,7 @@ export default function C3Management() {
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Draft
-                </Button>
+                </Button> */}
                 <Button 
                   type="button" 
                   className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
