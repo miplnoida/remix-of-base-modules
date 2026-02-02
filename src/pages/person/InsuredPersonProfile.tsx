@@ -10,6 +10,7 @@ import { getInsuredPersonById, getServiceRequestsByInsuredPerson } from '@/servi
 import { InsuredPerson, ServiceRequest } from '@/types/serviceRequest';
 import { format } from 'date-fns';
 import { CardHistoryTab } from './tabs/CardHistoryTab';
+import { VCEligibilityCheck } from '@/components/ip-registration';
 
 export default function InsuredPersonProfile() {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +98,9 @@ export default function InsuredPersonProfile() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Voluntary Contributor Section */}
+      <VCEligibilityCheck ssn={person.ssn} personName={person.fullName} />
 
       {/* Tabs for different sections */}
       <Tabs defaultValue="services" className="w-full">
