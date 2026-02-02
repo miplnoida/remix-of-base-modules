@@ -202,7 +202,7 @@ export function useVCHistory(ssn: string | null) {
   });
 }
 
-// Get VC contribution rates configuration
+// Get VC eligibility configuration
 export function useVCConfig() {
   return useQuery({
     queryKey: ['vc-config'],
@@ -210,7 +210,7 @@ export function useVCConfig() {
       const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
-        .from('tb_vc_contrib_rate')
+        .from('tb_vc_eligibility_config')
         .select('*')
         .eq('is_active', true)
         .lte('effstart', today)
