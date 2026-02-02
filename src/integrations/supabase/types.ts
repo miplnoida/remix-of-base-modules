@@ -7126,6 +7126,42 @@ export type Database = {
       tb_vc_contrib_rate: {
         Row: {
           created_at: string | null
+          effend: string
+          effstart: string
+          id: string
+          min_contrib_weeks: number | null
+          submission_limit_nbr: number | null
+          updated_at: string | null
+          vc_contrib_pct: number | null
+          vc_duration: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          effend: string
+          effstart: string
+          id?: string
+          min_contrib_weeks?: number | null
+          submission_limit_nbr?: number | null
+          updated_at?: string | null
+          vc_contrib_pct?: number | null
+          vc_duration?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          effend?: string
+          effstart?: string
+          id?: string
+          min_contrib_weeks?: number | null
+          submission_limit_nbr?: number | null
+          updated_at?: string | null
+          vc_contrib_pct?: number | null
+          vc_duration?: number | null
+        }
+        Relationships: []
+      }
+      tb_vc_eligibility_config: {
+        Row: {
+          created_at: string | null
           created_by: string | null
           effend: string | null
           effstart: string
