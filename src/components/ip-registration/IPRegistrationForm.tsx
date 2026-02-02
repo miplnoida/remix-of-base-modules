@@ -196,16 +196,6 @@ export const IPRegistrationForm: React.FC = () => {
         />
       )}
 
-      {/* Not Editable Warning */}
-      {!isEditable && !isViewMode && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <Lock className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-700">
-            This record has been submitted and is locked for editing. Contact a supervisor for modifications.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Tabs */}
       <Tabs value={currentTab} onValueChange={onTabChange}>
         <TabsList className="grid w-full grid-cols-7">
@@ -340,6 +330,16 @@ export const IPRegistrationForm: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Not Editable Warning */}
+      {!isEditable && !isViewMode && (
+        <Alert className="bg-amber-50 border-amber-200">
+          <Lock className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700">
+            This record has been submitted and is locked for editing. Contact a supervisor for modifications.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Info Notice - Hidden in View Mode */}
       {!isViewMode && (

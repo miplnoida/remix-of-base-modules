@@ -660,14 +660,6 @@ export default function IPRegistrationForm() {
         </div>
       </div>
 
-      {/* Voluntary Contributor Section - Only show in view mode for verified/active statuses */}
-      {isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status) && (
-        <VCEligibilityCheck 
-          ssn={formData.ssn} 
-          personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()} 
-        />
-      )}
-
       {/* Main Tabs */}
       <Card>
         <CardContent className="p-6">
@@ -867,6 +859,14 @@ export default function IPRegistrationForm() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Voluntary Contributor Section - Only show in view mode for verified/active statuses */}
+      {isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status) && (
+        <VCEligibilityCheck 
+          ssn={formData.ssn} 
+          personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()} 
+        />
+      )}
 
       {/* Duplicate Warning Dialog */}
       <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
