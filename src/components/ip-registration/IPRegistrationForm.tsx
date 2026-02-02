@@ -13,6 +13,7 @@ import { EmploymentDetailsTab } from './EmploymentDetailsTab';
 import { DependentsTab } from './DependentsTab';
 import { NotesTab } from './NotesTab';
 import { VerificationTab } from './VerificationTab';
+import { VCEligibilityCheck } from './VCEligibilityCheck';
 
 export const IPRegistrationForm: React.FC = () => {
   const navigate = useNavigate();
@@ -185,6 +186,14 @@ export const IPRegistrationForm: React.FC = () => {
             {isEditable && ' Click "Edit" to make changes.'}
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Voluntary Contributor Section - Only show in view mode for verified/active statuses */}
+      {isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status || '') && (
+        <VCEligibilityCheck 
+          ssn={formData.ssn} 
+          personName={`${formData.firstname || ''} ${formData.surname || ''}`.trim()} 
+        />
       )}
 
       {/* Not Editable Warning */}
