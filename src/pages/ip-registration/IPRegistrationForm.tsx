@@ -22,6 +22,7 @@ import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups'
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { useHasEmploymentHistory } from '@/hooks/useEmploymentHistory';
+import { VCEligibilityCheck } from '@/components/ip-registration/VCEligibilityCheck';
 
 export interface IPFormData {
   id?: string;
@@ -658,6 +659,14 @@ export default function IPRegistrationForm() {
           />
         </div>
       </div>
+
+      {/* Voluntary Contributor Section - Only show in view mode for verified/active statuses */}
+      {isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status) && (
+        <VCEligibilityCheck 
+          ssn={formData.ssn} 
+          personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()} 
+        />
+      )}
 
       {/* Main Tabs */}
       <Card>
