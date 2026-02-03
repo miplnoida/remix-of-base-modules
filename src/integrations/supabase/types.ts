@@ -8502,6 +8502,16 @@ export type Database = {
         Args: { p_reason?: string; p_ssn: string }
         Returns: Json
       }
+      change_ip_status: {
+        Args: {
+          p_current_status: string
+          p_new_status: string
+          p_unique_uuid: string
+          p_user_code?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       check_ip_duplicates: {
         Args: {
           p_dob: string
@@ -8574,6 +8584,10 @@ export type Database = {
         Returns: {
           table_name: string
         }[]
+      }
+      get_ip_status_transitions: {
+        Args: { p_current_status: string }
+        Returns: Json
       }
       get_module_tables: {
         Args: { _module_id: string }

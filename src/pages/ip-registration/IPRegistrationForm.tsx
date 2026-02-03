@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase } from 'lucide-react';
+import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, Settings2 } from 'lucide-react';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,7 @@ import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { useHasEmploymentHistory } from '@/hooks/useEmploymentHistory';
 import { VCEligibilityCheck } from '@/components/ip-registration/VCEligibilityCheck';
+import { IPStatusChangeDialog } from '@/components/ip-registration/IPStatusChangeDialog';
 
 export interface IPFormData {
   id?: string;
@@ -142,6 +143,7 @@ export default function IPRegistrationForm() {
   const [showStepSuccess, setShowStepSuccess] = useState(false);
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
   const hasShownSuccessRef = useRef(false);
   
   // Check if employment history records exist for this SSN
@@ -645,6 +647,17 @@ export default function IPRegistrationForm() {
               Edit
             </Button>
           )}
+          {/* Status Change button - Only in View mode for non-editable records */}
+          {isViewMode && !['Z', 'P'].includes(formData.status) && (
+            <Button 
+              variant="outline"
+              onClick={() => setShowStatusChangeDialog(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings2 className="h-4 w-4" />
+              Change Status
+            </Button>
+          )}
           {isEditable && (
             <Button onClick={() => setShowSubmitConfirm(true)}>
               Submit
@@ -929,6 +942,17 @@ export default function IPRegistrationForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Status Change Dialog */}
+      <IPStatusChangeDialog
+        open={showStatusChangeDialog}
+        onOpenChange={setShowStatusChangeDialog}
+        uniqueUuid={formData.unique_uuid}
+        currentStatus={formData.status}
+        ssn={formData.ssn}
+        personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()}
+        onStatusChanged={fetchData}
+      />
       {/* Approve/Reject dialogs removed - now handled by WorkflowActionButtons component */}
     </div>
   );
