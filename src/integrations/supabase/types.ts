@@ -6922,6 +6922,92 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_levy_slab_details: {
+        Row: {
+          base_amt: number | null
+          created_by: string | null
+          created_on: string | null
+          id: string
+          is_active: boolean | null
+          modified_by: string | null
+          modified_on: string | null
+          order_no: number | null
+          over_amt: number | null
+          pay_period: string | null
+          slab_id: string
+          tax_rate: number | null
+        }
+        Insert: {
+          base_amt?: number | null
+          created_by?: string | null
+          created_on?: string | null
+          id?: string
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          order_no?: number | null
+          over_amt?: number | null
+          pay_period?: string | null
+          slab_id: string
+          tax_rate?: number | null
+        }
+        Update: {
+          base_amt?: number | null
+          created_by?: string | null
+          created_on?: string | null
+          id?: string
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          order_no?: number | null
+          over_amt?: number | null
+          pay_period?: string | null
+          slab_id?: string
+          tax_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_levy_slab_details_slab_id_fkey"
+            columns: ["slab_id"]
+            isOneToOne: false
+            referencedRelation: "tb_levy_slabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_levy_slabs: {
+        Row: {
+          created_by: string | null
+          created_on: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          modified_by: string | null
+          modified_on: string | null
+          start_date: string
+        }
+        Insert: {
+          created_by?: string | null
+          created_on?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          start_date: string
+        }
+        Update: {
+          created_by?: string | null
+          created_on?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          start_date?: string
+        }
+        Relationships: []
+      }
       tb_occup: {
         Row: {
           code: string
