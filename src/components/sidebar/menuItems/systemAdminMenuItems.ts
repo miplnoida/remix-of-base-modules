@@ -25,7 +25,8 @@ import {
   Briefcase,
   Stethoscope,
   Calculator,
-  Sliders
+  Sliders,
+  Calendar
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -202,6 +203,12 @@ export const systemAdminMenuItems = [
         title: "C3 Calculation Config",
         url: "/admin/c3-calculation-config",
         icon: Calculator,
+        requiresPermission: "system_administration"
+      },
+      {
+        title: "C3 Period Config",
+        url: "/admin/c3-period-config",
+        icon: Calendar,
         requiresPermission: "system_administration"
       }
     ]

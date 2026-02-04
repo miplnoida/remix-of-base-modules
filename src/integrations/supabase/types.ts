@@ -1454,6 +1454,206 @@ export type Database = {
           },
         ]
       }
+      c3_config_audit: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string | null
+          changed_by_name: string | null
+          config_period_id: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          config_period_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          config_period_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c3_config_audit_config_period_id_fkey"
+            columns: ["config_period_id"]
+            isOneToOne: false
+            referencedRelation: "c3_config_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c3_config_details: {
+        Row: {
+          bonus_exempt_from_levy: boolean | null
+          bonus_levy_rate: number | null
+          config_period_id: string
+          created_by: string | null
+          created_on: string | null
+          employee_ss_max_wage: number | null
+          employee_ss_rate: number | null
+          employer_eib_rate: number | null
+          employer_levy_rate: number | null
+          employer_severance_rate: number | null
+          employer_ss_max_wage: number | null
+          employer_ss_rate: number | null
+          id: string
+          interest_rate_fines: number | null
+          interest_rate_levy_principal: number | null
+          interest_rate_penalties: number | null
+          interest_rate_severance_principal: number | null
+          interest_rate_ss_principal: number | null
+          levy_penalty_initial_rate: number | null
+          levy_penalty_subsequent_rate: number | null
+          levy_slab_id: string | null
+          max_age_levy: number | null
+          max_age_ss: number | null
+          min_age_levy: number | null
+          min_age_ss: number | null
+          modified_by: string | null
+          modified_on: string | null
+          severance_penalty_initial_rate: number | null
+          severance_penalty_subsequent_rate: number | null
+          ss_fine_initial_rate: number | null
+          ss_fine_subsequent_rate: number | null
+          submission_due_day: number | null
+        }
+        Insert: {
+          bonus_exempt_from_levy?: boolean | null
+          bonus_levy_rate?: number | null
+          config_period_id: string
+          created_by?: string | null
+          created_on?: string | null
+          employee_ss_max_wage?: number | null
+          employee_ss_rate?: number | null
+          employer_eib_rate?: number | null
+          employer_levy_rate?: number | null
+          employer_severance_rate?: number | null
+          employer_ss_max_wage?: number | null
+          employer_ss_rate?: number | null
+          id?: string
+          interest_rate_fines?: number | null
+          interest_rate_levy_principal?: number | null
+          interest_rate_penalties?: number | null
+          interest_rate_severance_principal?: number | null
+          interest_rate_ss_principal?: number | null
+          levy_penalty_initial_rate?: number | null
+          levy_penalty_subsequent_rate?: number | null
+          levy_slab_id?: string | null
+          max_age_levy?: number | null
+          max_age_ss?: number | null
+          min_age_levy?: number | null
+          min_age_ss?: number | null
+          modified_by?: string | null
+          modified_on?: string | null
+          severance_penalty_initial_rate?: number | null
+          severance_penalty_subsequent_rate?: number | null
+          ss_fine_initial_rate?: number | null
+          ss_fine_subsequent_rate?: number | null
+          submission_due_day?: number | null
+        }
+        Update: {
+          bonus_exempt_from_levy?: boolean | null
+          bonus_levy_rate?: number | null
+          config_period_id?: string
+          created_by?: string | null
+          created_on?: string | null
+          employee_ss_max_wage?: number | null
+          employee_ss_rate?: number | null
+          employer_eib_rate?: number | null
+          employer_levy_rate?: number | null
+          employer_severance_rate?: number | null
+          employer_ss_max_wage?: number | null
+          employer_ss_rate?: number | null
+          id?: string
+          interest_rate_fines?: number | null
+          interest_rate_levy_principal?: number | null
+          interest_rate_penalties?: number | null
+          interest_rate_severance_principal?: number | null
+          interest_rate_ss_principal?: number | null
+          levy_penalty_initial_rate?: number | null
+          levy_penalty_subsequent_rate?: number | null
+          levy_slab_id?: string | null
+          max_age_levy?: number | null
+          max_age_ss?: number | null
+          min_age_levy?: number | null
+          min_age_ss?: number | null
+          modified_by?: string | null
+          modified_on?: string | null
+          severance_penalty_initial_rate?: number | null
+          severance_penalty_subsequent_rate?: number | null
+          ss_fine_initial_rate?: number | null
+          ss_fine_subsequent_rate?: number | null
+          submission_due_day?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c3_config_details_config_period_id_fkey"
+            columns: ["config_period_id"]
+            isOneToOne: true
+            referencedRelation: "c3_config_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c3_config_details_levy_slab_id_fkey"
+            columns: ["levy_slab_id"]
+            isOneToOne: false
+            referencedRelation: "tb_levy_slabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c3_config_periods: {
+        Row: {
+          created_by: string | null
+          created_on: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          modified_by: string | null
+          modified_on: string | null
+          start_date: string
+        }
+        Insert: {
+          created_by?: string | null
+          created_on?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          start_date: string
+        }
+        Update: {
+          created_by?: string | null
+          created_on?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          start_date?: string
+        }
+        Relationships: []
+      }
       c3_line_items: {
         Row: {
           c3_id: string | null
@@ -8576,6 +8776,15 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_c3_contributions: {
+        Args: {
+          p_employee_data: Json
+          p_period_month: number
+          p_period_year: number
+          p_received_date: string
+        }
+        Returns: Json
+      }
       calculate_vc_avg_weekly_wage: {
         Args: { p_date_registered: string; p_ssn: string }
         Returns: Json
@@ -8634,6 +8843,16 @@ export type Database = {
         }
         Returns: Json
       }
+      clone_c3_config: {
+        Args: {
+          p_description?: string
+          p_new_end_date?: string
+          p_new_start_date: string
+          p_source_period_id: string
+          p_user_code?: string
+        }
+        Returns: string
+      }
       clone_role: {
         Args: { new_role_name: string; source_role_id: string }
         Returns: string
@@ -8669,6 +8888,40 @@ export type Database = {
         Args: never
         Returns: {
           table_name: string
+        }[]
+      }
+      get_c3_config_for_period: {
+        Args: { p_period_date: string }
+        Returns: {
+          bonus_exempt_from_levy: boolean
+          bonus_levy_rate: number
+          config_period_id: string
+          employee_ss_max_wage: number
+          employee_ss_rate: number
+          employer_eib_rate: number
+          employer_levy_rate: number
+          employer_severance_rate: number
+          employer_ss_max_wage: number
+          employer_ss_rate: number
+          end_date: string
+          interest_rate_fines: number
+          interest_rate_levy_principal: number
+          interest_rate_penalties: number
+          interest_rate_severance_principal: number
+          interest_rate_ss_principal: number
+          levy_penalty_initial_rate: number
+          levy_penalty_subsequent_rate: number
+          levy_slab_id: string
+          max_age_levy: number
+          max_age_ss: number
+          min_age_levy: number
+          min_age_ss: number
+          severance_penalty_initial_rate: number
+          severance_penalty_subsequent_rate: number
+          ss_fine_initial_rate: number
+          ss_fine_subsequent_rate: number
+          start_date: string
+          submission_due_day: number
         }[]
       }
       get_ip_status_transitions: {
