@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
-import { Plus, Save, X, Printer, Loader2, Send } from "lucide-react";
+import { Plus, Save, X, Printer, Loader2, Send, Server, Calculator } from "lucide-react";
 import { useEmployerValidation } from "@/hooks/useEmployerValidation";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useC3Submit } from "@/hooks/useC3Submit";
@@ -15,19 +15,8 @@ import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
 import EmployeeModal, { EmployeeData } from "@/components/c3/EmployeeModal";
 import { formatPeriodForStorage, formatPeriodDisplay } from "@/utils/weekCalculations";
-import { 
-  calculatePayrollContributions, 
-  mapPayPeriodToType, 
-  formatCurrency,
-  calculateAge 
-} from "@/utils/sknPayrollCalculations";
-import {
-  calculatePenalties,
-  calculateDueDate,
-  calculateLevyAmountDue,
-  calculateSocialSecurityAmountDue,
-  PenaltyResult
-} from "@/utils/sknPenaltyCalculations";
+import { formatCurrency, calculateAge } from "@/utils/sknPayrollCalculations";
+import { useC3ServerCalculations, C3CalculationTotals, C3CalculationConfig } from "@/hooks/useC3ServerCalculations";
 
 interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
@@ -51,35 +40,7 @@ const PreviewField = ({ label, value, required = false }: { label: string; value
   </div>
 );
 
-// Calculate employee totals using SKN payroll calculations
-const calculateEmployeeTotals = (employee: EmployeeData) => {
-  const employeeAge = calculateAge(employee.dateOfBirth || '');
-  
-  const calc = calculatePayrollContributions({
-    payPeriod: mapPayPeriodToType(employee.payPeriod || 'Monthly'),
-    week1: employee.weeklyWages?.[0] || 0,
-    week2: employee.weeklyWages?.[1] || 0,
-    week3: employee.weeklyWages?.[2] || 0,
-    week4: employee.weeklyWages?.[3] || 0,
-    week5: employee.weeklyWages?.[4] || 0,
-    bonusPay: employee.weeklyWages?.[5] || 0,
-    holidayPay: employee.weeklyWages?.[6] || 0,
-    termStartDate: employee.termStartDate || '',
-    employeeAge
-  });
-  
-  return {
-    periodGross: calc.periodGross,
-    employeeSS: calc.employeeSS,
-    employeeLevy: calc.employeeLevy,
-    employerSS: calc.employerSS_Total,
-    employerLevy: calc.employerLevy,
-    employerSeverance: calc.employerSeverance,
-    totalWagesPlusEmployeeLevyPlusSS: calc.totalWagesPlusEmployeeLevyPlusSS,
-    employersThreePercentLevyPlusSS: calc.employersThreePercentLevyPlusSS,
-    employersOnePercentSeverancePay: calc.employersOnePercentSeverancePay
-  };
-};
+// Server-side calculations are now used instead of client-side
 
 export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, onCancel, resetTrigger, saveTrigger }: EmployerC3FormProps) {
   const isViewMode = mode === 'view';
@@ -89,6 +50,10 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   const { validateEmployer, getScheduleNumber, isValidating } = useEmployerValidation();
   const { userCode } = useUserCode();
   const { submitC3Record, isSubmitting } = useC3Submit();
+  const { calculate: calculateServerSide, isCalculating, calculationResult } = useC3ServerCalculations();
+  
+  // Ref to track calculation debounce
+  const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Check if record can be submitted (only DFT/Draft status)
   const canSubmit = initialData?.id && (initialData?.postingStatus === 'DFT' || initialData?.postingStatus === 'Z');
@@ -227,84 +192,79 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }
   };
 
-  // Derived overall figures for Calculation Summary using SKN calculations
-  const overall = useMemo(() => {
-    const sum = employees.reduce(
-      (acc, emp) => {
-        const calc = calculateEmployeeTotals(emp);
-        acc.periodGross += calc.periodGross;
-        acc.employeeSS += calc.employeeSS;
-        acc.employeeLevy += calc.employeeLevy;
-        acc.employerSS += calc.employerSS;
-        acc.employerLevy += calc.employerLevy;
-        acc.employerSeverance += calc.employerSeverance;
-        return acc;
-      },
-      { periodGross: 0, employeeSS: 0, employeeLevy: 0, employerSS: 0, employerLevy: 0, employerSeverance: 0 }
-    );
-    
-    // Calculate output totals - Sum from all employees
-    const totalWagesPlusEmployeeLevyPlusSS = sum.periodGross + sum.employeeLevy + sum.employeeSS;
-    const employersThreePercentLevyPlusSS = sum.employerLevy + sum.employerSS;
-    const employersOnePercentSeverancePay = sum.employerSeverance;
-    
-    // Calculate penalty amounts
-    // Levy due = Employee Levy + Employer Levy
-    const levyAmountDue = calculateLevyAmountDue(sum.employeeLevy, sum.employerLevy);
-    
-    // Severance due = Employer Severance
-    const severanceAmountDue = sum.employerSeverance;
-    
-    // SS due = Employee SS + Employer SS (including injury)
-    const socialSecurityAmountDue = calculateSocialSecurityAmountDue(sum.employeeSS, sum.employerSS);
-    
-    // Calculate penalties based on dates
-    let penaltyResult: PenaltyResult = {
-      effectivePaymentDate: new Date(),
-      daysLate: 0,
-      additional30DayPeriods: 0,
-      monthsLateForSS: 0,
-      levyPenalty: 0,
-      severancePenalty: 0,
-      socialSecurityFine: 0,
-      totalLateCharges: 0
+  // Trigger server-side calculation when inputs change
+  useEffect(() => {
+    if (formData.nilReturn || !formData.period || employees.length === 0) {
+      return;
+    }
+
+    // Debounce calculation
+    if (calculationTimeoutRef.current) {
+      clearTimeout(calculationTimeoutRef.current);
+    }
+
+    calculationTimeoutRef.current = setTimeout(async () => {
+      await calculateServerSide(
+        formData.period!.year,
+        formData.period!.month,
+        formData.dateReceived,
+        employees
+      );
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (calculationTimeoutRef.current) {
+        clearTimeout(calculationTimeoutRef.current);
+      }
     };
+  }, [employees, formData.period, formData.dateReceived, formData.nilReturn, calculateServerSide]);
+
+  // Derived overall figures from server calculation results
+  const overall = useMemo(() => {
+    const totals = calculationResult?.totals;
     
-    if (formData.period) {
-      const dueDate = calculateDueDate(formData.period.year, formData.period.month);
-      const paymentDate = formData.dateReceived ? new Date(formData.dateReceived) : null;
-      const today = new Date();
-      
-      penaltyResult = calculatePenalties({
-        levyAmountDue,
-        severanceAmountDue,
-        socialSecurityAmountDue,
-        dueDate,
-        paymentDate,
-        today
-      });
+    if (!totals) {
+      return {
+        periodGross: 0,
+        employeeSS: 0,
+        employeeLevy: 0,
+        employerSS: 0,
+        employerLevy: 0,
+        employerSeverance: 0,
+        employeeLevySS: 0,
+        employerThreePercent: 0,
+        employerOnePercent: 0,
+        totalWagesPlusEmployeeLevyPlusSS: 0,
+        employersThreePercentLevyPlusSS: 0,
+        employersOnePercentSeverancePay: 0,
+        levyPenalty: 0,
+        severancePenalty: 0,
+        fines: 0,
+        totalLateCharges: 0,
+        daysLate: 0
+      };
     }
     
     return {
-      periodGross: sum.periodGross,
-      employeeSS: sum.employeeSS,
-      employeeLevy: sum.employeeLevy,
-      employerSS: sum.employerSS,
-      employerLevy: sum.employerLevy,
-      employerSeverance: sum.employerSeverance,
-      employeeLevySS: sum.employeeLevy + sum.employeeSS,
-      employerThreePercent: employersThreePercentLevyPlusSS,
-      employerOnePercent: employersOnePercentSeverancePay,
-      totalWagesPlusEmployeeLevyPlusSS,
-      employersThreePercentLevyPlusSS,
-      employersOnePercentSeverancePay,
-      levyPenalty: penaltyResult.levyPenalty,
-      severancePenalty: penaltyResult.severancePenalty,
-      fines: penaltyResult.socialSecurityFine,
-      totalLateCharges: penaltyResult.totalLateCharges,
-      daysLate: penaltyResult.daysLate
+      periodGross: totals.periodGross,
+      employeeSS: totals.employeeSS,
+      employeeLevy: totals.employeeLevy,
+      employerSS: totals.employerSS,
+      employerLevy: totals.employerLevy,
+      employerSeverance: totals.employerSeverance,
+      employeeLevySS: totals.employeeLevy + totals.employeeSS,
+      employerThreePercent: totals.employersThreePercentLevyPlusSS,
+      employerOnePercent: totals.employersOnePercentSeverancePay,
+      totalWagesPlusEmployeeLevyPlusSS: totals.totalWagesPlusEmployeeLevyPlusSS,
+      employersThreePercentLevyPlusSS: totals.employersThreePercentLevyPlusSS,
+      employersOnePercentSeverancePay: totals.employersOnePercentSeverancePay,
+      levyPenalty: totals.levyPenalty,
+      severancePenalty: totals.severancePenalty,
+      fines: totals.ssFine,
+      totalLateCharges: totals.totalLateCharges,
+      daysLate: totals.daysLate
     };
-  }, [employees, formData.period, formData.dateReceived]);
+  }, [calculationResult]);
 
   const formatMoney = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 

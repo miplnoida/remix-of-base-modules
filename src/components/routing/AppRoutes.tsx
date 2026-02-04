@@ -273,6 +273,7 @@ import RollbackScreen from '@/pages/admin/system-cleanup/RollbackScreen';
 import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
 import GlobalSettings from '@/pages/systemAdmin/GlobalSettings';
 import C3CalculationConfigPage from '@/pages/admin/C3CalculationConfigPage';
+import C3PeriodConfigPage from '@/pages/admin/C3PeriodConfigPage';
 import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
 import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetailPage';
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
@@ -928,6 +929,7 @@ export const AppRoutes = () => {
       <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
       <Route path="/admin/c3-calculation-config" element={<ProtectedLayout><C3CalculationConfigPage /></ProtectedLayout>} />
+      <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
