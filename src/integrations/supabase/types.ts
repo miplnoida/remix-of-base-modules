@@ -1356,6 +1356,45 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_bonus_levy_exemptions: {
+        Row: {
+          created_by: string | null
+          created_on: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_exempt: boolean
+          modified_by: string | null
+          modified_on: string | null
+          period_month: number
+          period_year: number
+        }
+        Insert: {
+          created_by?: string | null
+          created_on?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_exempt?: boolean
+          modified_by?: string | null
+          modified_on?: string | null
+          period_month: number
+          period_year: number
+        }
+        Update: {
+          created_by?: string | null
+          created_on?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_exempt?: boolean
+          modified_by?: string | null
+          modified_on?: string | null
+          period_month?: number
+          period_year?: number
+        }
+        Relationships: []
+      }
       c3_calculation_config: {
         Row: {
           category: string
@@ -9011,6 +9050,10 @@ export type Database = {
         Returns: Json
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_bonus_levy_exempt: {
+        Args: { p_month: number; p_year: number }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           _action_type: string
