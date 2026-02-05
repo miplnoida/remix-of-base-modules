@@ -5,16 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { Check, Save, X, Loader2 } from 'lucide-react';
+import { Check, Save, X, Loader2, AlertCircle } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculations';
-import { 
-  calculatePayrollContributions, 
-  mapPayPeriodToType, 
-  formatCurrency,
-  calculateAge,
-  type PayrollCalculationResult 
-} from '@/utils/sknPayrollCalculations';
+import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export interface EmployeeData {
   ssn: string;
@@ -50,7 +45,7 @@ interface EmployeeModalProps {
   periodMonth: number;
 }
 
-const weekLabels = ['1 Week', '2 Week', '3 Week', '4 Week', '5 Week', 'Bonus Pay', 'Holiday Pay'];
+const weekLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Bonus Pay', 'Holiday Pay'];
 
 export default function EmployeeModal({
   isOpen,
@@ -62,6 +57,7 @@ export default function EmployeeModal({
   periodMonth
 }: EmployeeModalProps) {
   const { validateEmployee, isValidating } = useEmployerValidation();
+  const { config, isLoading: isLoadingConfig, error: configError, calculate } = useC3EmployeeCalculation(periodYear, periodMonth);
   
   const [localEmployee, setLocalEmployee] = useState<EmployeeData>({
     ssn: '',
@@ -95,23 +91,15 @@ export default function EmployeeModal({
     localEmployee.termStartDate
   );
 
-  // Calculate payroll contributions using SKN calculations
-  const payrollCalc = useMemo((): PayrollCalculationResult => {
-    const employeeAge = calculateAge(localEmployee.dateOfBirth || '');
-    
-    return calculatePayrollContributions({
-      payPeriod: mapPayPeriodToType(localEmployee.payPeriod || 'Monthly'),
-      week1: localEmployee.weeklyWages[0] || 0,
-      week2: localEmployee.weeklyWages[1] || 0,
-      week3: localEmployee.weeklyWages[2] || 0,
-      week4: localEmployee.weeklyWages[3] || 0,
-      week5: localEmployee.weeklyWages[4] || 0,
-      bonusPay: localEmployee.weeklyWages[5] || 0,
-      holidayPay: localEmployee.weeklyWages[6] || 0,
-      termStartDate: localEmployee.termStartDate || '',
-      employeeAge
+  // Calculate payroll contributions using database-driven C3 configuration
+  const payrollCalc = useMemo(() => {
+    return calculate({
+      weeklyWages: localEmployee.weeklyWages,
+      payPeriod: localEmployee.payPeriod || 'Monthly',
+      dateOfBirth: localEmployee.dateOfBirth || '',
+      termStartDate: localEmployee.termStartDate || ''
     });
-  }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth]);
+  }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth, calculate]);
 
   // Reset form when employee changes
   useEffect(() => {
@@ -228,11 +216,11 @@ export default function EmployeeModal({
     const savedEmployee: EmployeeData = {
       ...localEmployee,
       totalWages: payrollCalc.periodGross,
-      hssdLevy: payrollCalc.employeeLevy,
+      hssdLevy: payrollCalc.employeeLevy, 
       socialSecurity: payrollCalc.employeeSS,
       employeeSS: payrollCalc.employeeSS,
       employeeLevy: payrollCalc.employeeLevy,
-      employerSS: payrollCalc.employerSS_Total,
+      employerSS: payrollCalc.employerSSTotal,
       employerLevy: payrollCalc.employerLevy,
       employerSeverance: payrollCalc.employerSeverance,
       periodGross: payrollCalc.periodGross
@@ -384,10 +372,34 @@ export default function EmployeeModal({
             </div>
           </div>
 
-          {/* Calculation Summary - Using SKN Calculations */}
-          <Card className="bg-primary/5 border-primary/20">
+          {/* Calculation Summary - Using Database-Driven C3 Configuration */}
+          <Card className="bg-primary/5 border-primary/20 border-t-4 border-t-primary">
             <CardContent className="pt-4">
-              <CardTitle className="text-base mb-4">Calculation Summary</CardTitle>
+              <div className="flex items-center justify-between mb-4">
+                <CardTitle className="text-base">Calculation Summary</CardTitle>
+                {isLoadingConfig && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading config...
+                  </div>
+                )}
+              </div>
+              
+              {configError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{configError}</AlertDescription>
+                </Alert>
+              )}
+              
+              {config && (
+                <p className="text-xs text-muted-foreground mb-3">
+                  Using configuration from {new Date(config.startDate).toLocaleDateString()} 
+                  {config.endDate ? ` to ${new Date(config.endDate).toLocaleDateString()}` : ' (current)'}
+                  {' | '}SS Rate: {(config.employeeSSRate * 100).toFixed(1)}% | Levy Rate: {(config.employerLevyRate * 100).toFixed(1)}% | Severance: {(config.employerSeveranceRate * 100).toFixed(1)}%
+                </p>
+              )}
+              
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <Label className="text-sm text-muted-foreground">Total Wages + Employee Levy + SS</Label>
@@ -411,7 +423,7 @@ export default function EmployeeModal({
                     <div>{formatCurrency(payrollCalc.periodGross)}</div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Employee SS (5%)</Label>
+                    <Label className="text-xs text-muted-foreground">Employee SS ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</Label>
                     <div>{formatCurrency(payrollCalc.employeeSS)}</div>
                   </div>
                   <div>
@@ -419,14 +431,23 @@ export default function EmployeeModal({
                     <div>{formatCurrency(payrollCalc.employeeLevy)}</div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Employer Injury (1%)</Label>
-                    <div>{formatCurrency(payrollCalc.employerInjury)}</div>
+                    <Label className="text-xs text-muted-foreground">Employer Injury ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</Label>
+                    <div>{formatCurrency(payrollCalc.employerEIB)}</div>
                   </div>
                 </div>
-                {payrollCalc.isAgeExempt && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    * SS contributions exempt due to employee age (under 16 or over 62)
-                  </p>
+                {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
+                  <div className="mt-2 space-y-1">
+                    {payrollCalc.isAgeExemptSS && (
+                      <p className="text-xs text-amber-600">
+                        * SS contributions exempt due to employee age (under {config?.minAgeSS || 16} or over {config?.maxAgeSS || 62})
+                      </p>
+                    )}
+                    {payrollCalc.isAgeExemptLevy && (
+                      <p className="text-xs text-amber-600">
+                        * Levy contributions exempt due to employee age (under {config?.minAgeLevy || 16} or over {config?.maxAgeLevy || 62})
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </CardContent>
