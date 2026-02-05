@@ -1,12 +1,13 @@
  import React, { useState } from 'react';
  import { PageHeader } from '@/components/shared/PageHeader';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
- import { Calendar, Layers, Gift, Settings } from 'lucide-react';
+import { Calendar, Layers, Gift, History } from 'lucide-react';
  
  // Tab content components
  import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
  import { LevySlabsConfigTab } from '@/components/admin/c3-configuration/LevySlabsConfigTab';
  import { BonusLevyExemptionsTab } from '@/components/admin/c3-configuration/BonusLevyExemptionsTab';
+import { C3AuditLogsTab } from '@/components/admin/c3-configuration/C3AuditLogsTab';
  
  const C3ConfigurationPage: React.FC = () => {
    const [activeTab, setActiveTab] = useState('period-config');
@@ -23,7 +24,7 @@
        />
  
        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
            <TabsTrigger value="period-config" className="flex items-center gap-2">
              <Calendar className="h-4 w-4" />
              <span className="hidden sm:inline">Period Configuration</span>
@@ -39,6 +40,11 @@
              <span className="hidden sm:inline">Bonus Exemptions</span>
              <span className="sm:hidden">Exemptions</span>
            </TabsTrigger>
+          <TabsTrigger value="audit-logs" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Audit Logs</span>
+            <span className="sm:hidden">Logs</span>
+          </TabsTrigger>
          </TabsList>
  
          <TabsContent value="period-config" className="mt-6">
@@ -52,6 +58,10 @@
          <TabsContent value="bonus-exemptions" className="mt-6">
            <BonusLevyExemptionsTab />
          </TabsContent>
+
+        <TabsContent value="audit-logs" className="mt-6">
+          <C3AuditLogsTab />
+        </TabsContent>
        </Tabs>
      </div>
    );
