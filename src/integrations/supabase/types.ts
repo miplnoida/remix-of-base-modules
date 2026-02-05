@@ -2037,6 +2037,141 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_payment: {
+        Row: {
+          bank_code: string | null
+          bank_lodgement_code: string | null
+          cheque_date: string | null
+          created_at: string | null
+          credit_card_code: string | null
+          expiration_date: string | null
+          fund_code: string
+          mop_account_number: string | null
+          mop_code: string
+          mop_notes1: string | null
+          mop_number: string | null
+          mop_transit_number: string | null
+          payment_amount: number | null
+          payment_code: string
+          payment_date: string | null
+          payment_id: number
+          payment_sequence_no: number
+          period: string | null
+        }
+        Insert: {
+          bank_code?: string | null
+          bank_lodgement_code?: string | null
+          cheque_date?: string | null
+          created_at?: string | null
+          credit_card_code?: string | null
+          expiration_date?: string | null
+          fund_code: string
+          mop_account_number?: string | null
+          mop_code: string
+          mop_notes1?: string | null
+          mop_number?: string | null
+          mop_transit_number?: string | null
+          payment_amount?: number | null
+          payment_code: string
+          payment_date?: string | null
+          payment_id: number
+          payment_sequence_no?: number
+          period?: string | null
+        }
+        Update: {
+          bank_code?: string | null
+          bank_lodgement_code?: string | null
+          cheque_date?: string | null
+          created_at?: string | null
+          credit_card_code?: string | null
+          expiration_date?: string | null
+          fund_code?: string
+          mop_account_number?: string | null
+          mop_code?: string
+          mop_notes1?: string | null
+          mop_number?: string | null
+          mop_transit_number?: string | null
+          payment_amount?: number | null
+          payment_code?: string
+          payment_date?: string | null
+          payment_id?: number
+          payment_sequence_no?: number
+          period?: string | null
+        }
+        Relationships: []
+      }
+      cn_payment_header: {
+        Row: {
+          batch_number: string
+          created_at: string | null
+          date_received: string | null
+          payer_id: string
+          payer_type: string
+          payment_id: number
+          remarks: string | null
+        }
+        Insert: {
+          batch_number: string
+          created_at?: string | null
+          date_received?: string | null
+          payer_id: string
+          payer_type: string
+          payment_id?: number
+          remarks?: string | null
+        }
+        Update: {
+          batch_number?: string
+          created_at?: string | null
+          date_received?: string | null
+          payer_id?: string
+          payer_type?: string
+          payment_id?: number
+          remarks?: string | null
+        }
+        Relationships: []
+      }
+      cn_receipt: {
+        Row: {
+          cancel_date: string | null
+          cancel_reason: string | null
+          cancel_user: string | null
+          created_at: string | null
+          payment_id: number
+          receipt_id: string
+          receipt_total: number | null
+          reprint_times: number | null
+          status: string | null
+          total_number_of_payments: number | null
+          update_control: number | null
+        }
+        Insert: {
+          cancel_date?: string | null
+          cancel_reason?: string | null
+          cancel_user?: string | null
+          created_at?: string | null
+          payment_id: number
+          receipt_id: string
+          receipt_total?: number | null
+          reprint_times?: number | null
+          status?: string | null
+          total_number_of_payments?: number | null
+          update_control?: number | null
+        }
+        Update: {
+          cancel_date?: string | null
+          cancel_reason?: string | null
+          cancel_user?: string | null
+          created_at?: string | null
+          payment_id?: number
+          receipt_id?: string
+          receipt_total?: number | null
+          reprint_times?: number | null
+          status?: string | null
+          total_number_of_payments?: number | null
+          update_control?: number | null
+        }
+        Relationships: []
+      }
       compliance_activity_log: {
         Row: {
           action: string
