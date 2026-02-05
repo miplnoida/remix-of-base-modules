@@ -661,21 +661,27 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
             </CardHeader>
             <CardContent>
               {/* Row 1: Bifurcated totals */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Total Wages + Employee Levy + SS</Label>
-                  <div className="text-xl">{formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS)}</div>
+                  <div className="text-xl">
+                    {formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS)}
+                    <span className="text-sm text-muted-foreground ml-1">
+                      ({formatMoney(overall.periodGross)}+{formatMoney(overall.employeeLevy)}+{formatMoney(overall.employeeSS)})
+                    </span>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">
                     Employer's {calculationResult?.config ? `${(calculationResult.config.employerLevyRate * 100).toFixed(0)}%` : '3%'} Levy + SS
                   </Label>
-                  <div className="text-xl">{formatMoney(overall.employersThreePercentLevyPlusSS)}</div>
+                  <div className="text-xl">
+                    {formatMoney(overall.employersThreePercentLevyPlusSS)}
+                    <span className="text-sm text-muted-foreground ml-1">
+                      ({formatMoney(overall.employerLevy)}+{formatMoney(overall.employerSS)})
+                    </span>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Row 2: Severance */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">
                     Employer's {calculationResult?.config ? `${(calculationResult.config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'} Severance Pay
