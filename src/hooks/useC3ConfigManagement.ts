@@ -244,14 +244,19 @@ export function useToggleC3ConfigActive() {
     mutationFn: async ({
       periodId,
       isActive,
-      userCode,
-      periodInfo
+       userCode
     }: {
       periodId: string;
       isActive: boolean;
       userCode?: string;
-      periodInfo?: { start_date: string; end_date: string | null; is_active: boolean };
     }) => {
+       // Fetch current period info for audit logging
+       const { data: periodInfo } = await supabase
+         .from('c3_config_periods')
+         .select('start_date, end_date, is_active')
+         .eq('id', periodId)
+         .single();
+ 
       const { error } = await supabase
         .from('c3_config_periods')
         .update({
