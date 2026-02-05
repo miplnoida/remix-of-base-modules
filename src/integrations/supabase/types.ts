@@ -1557,9 +1557,11 @@ export type Database = {
           interest_rate_penalties: number | null
           interest_rate_severance_principal: number | null
           interest_rate_ss_principal: number | null
+          levy_monthly_threshold: number | null
           levy_penalty_initial_rate: number | null
           levy_penalty_subsequent_rate: number | null
           levy_slab_id: string | null
+          levy_use_monthly_when_exceeded: boolean | null
           max_age_levy: number | null
           max_age_ss: number | null
           min_age_levy: number | null
@@ -1591,9 +1593,11 @@ export type Database = {
           interest_rate_penalties?: number | null
           interest_rate_severance_principal?: number | null
           interest_rate_ss_principal?: number | null
+          levy_monthly_threshold?: number | null
           levy_penalty_initial_rate?: number | null
           levy_penalty_subsequent_rate?: number | null
           levy_slab_id?: string | null
+          levy_use_monthly_when_exceeded?: boolean | null
           max_age_levy?: number | null
           max_age_ss?: number | null
           min_age_levy?: number | null
@@ -1625,9 +1629,11 @@ export type Database = {
           interest_rate_penalties?: number | null
           interest_rate_severance_principal?: number | null
           interest_rate_ss_principal?: number | null
+          levy_monthly_threshold?: number | null
           levy_penalty_initial_rate?: number | null
           levy_penalty_subsequent_rate?: number | null
           levy_slab_id?: string | null
+          levy_use_monthly_when_exceeded?: boolean | null
           max_age_levy?: number | null
           max_age_ss?: number | null
           min_age_levy?: number | null
@@ -8996,9 +9002,11 @@ export type Database = {
           interest_rate_penalties: number
           interest_rate_severance_principal: number
           interest_rate_ss_principal: number
+          levy_monthly_threshold: number
           levy_penalty_initial_rate: number
           levy_penalty_subsequent_rate: number
           levy_slab_id: string
+          levy_use_monthly_when_exceeded: boolean
           max_age_levy: number
           max_age_ss: number
           min_age_levy: number
