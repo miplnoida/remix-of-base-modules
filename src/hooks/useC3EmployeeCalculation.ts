@@ -170,9 +170,12 @@ export interface EmployeeCalculationResult {
 /**
  * Calculate employee levy using slab-based calculation:
  * - Check if monthly levy switching should apply based on config threshold
- * - If switching applies: use monthly slabs on combined Week1-6 total
+ * - If total of Week1-6 (excluding bonus) > threshold AND flag enabled:
+ *   Calculate monthly levy on sum of Week1-6 using monthly slabs
  * - Otherwise: For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
  * - If bonus is not exempt, add bonus × bonusLevyRate
+ * 
+ * Week indices: 0=Week1, 1=Week2, 2=Week3, 3=Week4, 4=Week5, 5=Bonus, 6=Holiday(Week6)
  */
 function calculateEmployeeLevy(
   weeklyWages: number[],
@@ -183,31 +186,32 @@ function calculateEmployeeLevy(
   levyMonthlyThreshold: number,
   levyUseMonthlyWhenExceeded: boolean
 ): { totalLevy: number; usedMonthlyLogic: boolean } {
-  // Calculate total of Week1-6 (excluding bonus at index 5)
-  // Week1-5 = indices 0-4, Holiday = index 6
+  // Week1-5 = indices 0-4, Bonus = index 5, Holiday(Week6) = index 6
   const week1 = weeklyWages[0] || 0;
   const week2 = weeklyWages[1] || 0;
   const week3 = weeklyWages[2] || 0;
   const week4 = weeklyWages[3] || 0;
   const week5 = weeklyWages[4] || 0;
-  const holiday = weeklyWages[6] || 0;
   const bonus = weeklyWages[5] || 0;
+  const week6Holiday = weeklyWages[6] || 0;
   
-  // Total wages for threshold check (Week1-6, excluding bonus)
-  const totalWagesForThreshold = week1 + week2 + week3 + week4 + week5 + holiday;
+  // Total wages for threshold check and monthly calculation (Week1-6, excluding bonus)
+  const totalWeek1To6 = week1 + week2 + week3 + week4 + week5 + week6Holiday;
   
   let totalLevy = 0;
   let usedMonthlyLogic = false;
   
-  // Check if monthly levy switching should apply
-  if (levyUseMonthlyWhenExceeded && totalWagesForThreshold > levyMonthlyThreshold) {
-    // Use monthly slabs on the combined total
+  // Check if monthly levy switching should apply:
+  // If flag is enabled AND total of Week1-6 > threshold, use monthly slab calculation
+  if (levyUseMonthlyWhenExceeded && totalWeek1To6 > levyMonthlyThreshold) {
+    // Use monthly slabs on the combined Week1-6 total
     const monthlySlabs = slabDetails
       .filter(s => s.payPeriod === 'M') // Monthly slabs
       .sort((a, b) => b.overAmt - a.overAmt);
     
     if (monthlySlabs.length > 0) {
-      totalLevy = calculateSlabLevy(totalWagesForThreshold, monthlySlabs);
+      // Calculate levy as monthly payment on sum of Week1-6
+      totalLevy = calculateSlabLevy(totalWeek1To6, monthlySlabs);
       usedMonthlyLogic = true;
     }
   }
@@ -221,7 +225,7 @@ function calculateEmployeeLevy(
       .filter(s => s.payPeriod === payPeriodCode)
       .sort((a, b) => b.overAmt - a.overAmt);
     
-    // Calculate levy for Week1-5 (indices 0-4) and Holiday (index 6)
+    // Calculate levy for Week1-5 (indices 0-4) and Holiday/Week6 (index 6)
     const weekIndices = [0, 1, 2, 3, 4, 6];
     for (const idx of weekIndices) {
       const weekAmount = weeklyWages[idx] || 0;
