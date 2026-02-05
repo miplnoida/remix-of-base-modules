@@ -15,6 +15,7 @@ interface UserProfile {
   failed_login_attempts: number;
   locked_until: string | null;
   last_login: string | null;
+  user_code: string | null;
 }
 
 interface UserRole {
@@ -70,7 +71,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, is_active, force_password_change, mfa_enabled, failed_login_attempts, locked_until, last_login')
+        .select('id, full_name, email, is_active, force_password_change, mfa_enabled, failed_login_attempts, locked_until, last_login, user_code')
         .eq('id', userId)
         .single();
       

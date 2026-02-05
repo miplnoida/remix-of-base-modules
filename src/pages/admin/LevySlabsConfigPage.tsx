@@ -1,3 +1,4 @@
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,17 +24,22 @@ import {
 const LevySlabsConfigPage: React.FC = () => {
   const { data: slabs, isLoading } = useLevySlabs();
   const deleteMutation = useDeleteLevySlab();
+  const { profile } = useSupabaseAuth();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSlab, setEditingSlab] = useState<LevySlab | null>(null);
   const [cloningSlabId, setCloningSlabId] = useState<string | null>(null);
   const [viewingSlabId, setViewingSlabId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingSlab, setDeletingSlab] = useState<LevySlab | null>(null);
 
   const handleDelete = async () => {
-    if (deletingId) {
-      await deleteMutation.mutateAsync(deletingId);
-      setDeletingId(null);
+    if (deletingSlab) {
+      await deleteMutation.mutateAsync({
+        id: deletingSlab.id,
+        slabInfo: { start_date: deletingSlab.start_date, end_date: deletingSlab.end_date },
+        userCode: profile?.user_code
+      });
+      setDeletingSlab(null);
     }
   };
 
@@ -125,7 +131,7 @@ const LevySlabsConfigPage: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setDeletingId(slab.id)}
+                          onClick={() => setDeletingSlab(slab)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -168,7 +174,7 @@ const LevySlabsConfigPage: React.FC = () => {
       />
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+      <AlertDialog open={!!deletingSlab} onOpenChange={(open) => !open && setDeletingSlab(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Levy Slab</AlertDialogTitle>

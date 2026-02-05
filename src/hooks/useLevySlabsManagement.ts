@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logC3ConfigChange, formatAuditDate } from '@/lib/c3AuditLogger';
 
 export interface LevySlab {
   id: string;
@@ -99,6 +100,7 @@ export function useCreateLevySlab() {
       startDate: string;
       endDate: string;
       userCode?: string;
+      userName?: string;
     }) => {
       const { data, error } = await supabase
         .from('tb_levy_slabs')
@@ -113,6 +115,17 @@ export function useCreateLevySlab() {
         .single();
 
       if (error) throw error;
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab',
+        recordId: data.id,
+        action: 'CREATE',
+        entityName: `Levy Slab (${formatAuditDate(startDate)} - ${formatAuditDate(endDate)})`,
+        newValue: { start_date: startDate, end_date: endDate },
+        changedBy: userCode
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -135,14 +148,18 @@ export function useUpdateLevySlab() {
       startDate,
       endDate,
       isActive,
-      userCode
+      userCode,
+      oldValues
     }: {
       id: string;
       startDate: string;
       endDate: string;
       isActive: boolean;
       userCode?: string;
+      oldValues?: { start_date: string; end_date: string; is_active: boolean };
     }) => {
+      const newValues = { start_date: startDate, end_date: endDate, is_active: isActive };
+      
       const { error } = await supabase
         .from('tb_levy_slabs')
         .update({
@@ -155,7 +172,19 @@ export function useUpdateLevySlab() {
         .eq('id', id);
 
       if (error) throw error;
-      return { success: true };
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab',
+        recordId: id,
+        action: 'UPDATE',
+        entityName: `Levy Slab (${formatAuditDate(startDate)} - ${formatAuditDate(endDate)})`,
+        oldValue: oldValues,
+        newValue: newValues,
+        changedBy: userCode
+      });
+
+      return { success: true, id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['levy-slabs-all'] });
@@ -173,7 +202,11 @@ export function useDeleteLevySlab() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, slabInfo, userCode }: { 
+      id: string; 
+      slabInfo?: { start_date: string; end_date: string };
+      userCode?: string;
+    }) => {
       // First delete all details
       const { error: detailsError } = await supabase
         .from('tb_levy_slab_details')
@@ -189,6 +222,19 @@ export function useDeleteLevySlab() {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab',
+        recordId: id,
+        action: 'DELETE',
+        entityName: slabInfo 
+          ? `Levy Slab (${formatAuditDate(slabInfo.start_date)} - ${formatAuditDate(slabInfo.end_date)})`
+          : 'Levy Slab',
+        oldValue: slabInfo,
+        changedBy: userCode
+      });
+
       return { success: true };
     },
     onSuccess: () => {
@@ -240,6 +286,18 @@ export function useCreateLevySlabDetail() {
         .single();
 
       if (error) throw error;
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab_detail',
+        recordId: data.id,
+        action: 'CREATE',
+        entityName: `${payPeriod} Bracket (Over: ${overAmt})`,
+        newValue: { pay_period: payPeriod, over_amt: overAmt, base_amt: baseAmt, tax_rate: taxRate },
+        changedBy: userCode,
+        metadata: { slab_id: slabId }
+      });
+
       return data;
     },
     onSuccess: (_, variables) => {
@@ -266,7 +324,8 @@ export function useUpdateLevySlabDetail() {
       taxRate,
       orderNo,
       isActive,
-      userCode
+      userCode,
+      oldValues
     }: {
       id: string;
       slabId: string;
@@ -277,7 +336,10 @@ export function useUpdateLevySlabDetail() {
       orderNo: number;
       isActive: boolean;
       userCode?: string;
+      oldValues?: any;
     }) => {
+      const newValues = { pay_period: payPeriod, over_amt: overAmt, base_amt: baseAmt, tax_rate: taxRate, is_active: isActive };
+      
       const { error } = await supabase
         .from('tb_levy_slab_details')
         .update({
@@ -293,6 +355,19 @@ export function useUpdateLevySlabDetail() {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab_detail',
+        recordId: id,
+        action: 'UPDATE',
+        entityName: `${payPeriod} Bracket (Over: ${overAmt})`,
+        oldValue: oldValues,
+        newValue: newValues,
+        changedBy: userCode,
+        metadata: { slab_id: slabId }
+      });
+
       return { success: true };
     },
     onSuccess: (_, variables) => {
@@ -310,13 +385,32 @@ export function useDeleteLevySlabDetail() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, slabId }: { id: string; slabId: string }) => {
+    mutationFn: async ({ id, slabId, detailInfo, userCode }: { 
+      id: string; 
+      slabId: string;
+      detailInfo?: { pay_period: string; over_amt: number };
+      userCode?: string;
+    }) => {
       const { error } = await supabase
         .from('tb_levy_slab_details')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab_detail',
+        recordId: id,
+        action: 'DELETE',
+        entityName: detailInfo 
+          ? `${detailInfo.pay_period} Bracket (Over: ${detailInfo.over_amt})`
+          : 'Levy Slab Detail',
+        oldValue: detailInfo,
+        changedBy: userCode,
+        metadata: { slab_id: slabId }
+      });
+
       return { success: true, slabId };
     },
     onSuccess: (result) => {
@@ -388,6 +482,17 @@ export function useCloneLevySlab() {
 
         if (insertError) throw insertError;
       }
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'levy_slab',
+        recordId: newSlab.id,
+        action: 'CLONE',
+        entityName: `Levy Slab (${formatAuditDate(newStartDate)} - ${formatAuditDate(newEndDate)})`,
+        newValue: { start_date: newStartDate, end_date: newEndDate, details_count: sourceDetails?.length || 0 },
+        changedBy: userCode,
+        metadata: { source_slab_id: sourceSlabId }
+      });
 
       return newSlab;
     },

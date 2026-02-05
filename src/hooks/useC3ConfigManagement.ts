@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logC3ConfigChange, formatAuditDate } from '@/lib/c3AuditLogger';
 
 export interface C3ConfigPeriod {
   id: string;
@@ -135,11 +136,15 @@ export function useUpdateC3ConfigDetails() {
     mutationFn: async ({
       configPeriodId,
       details,
-      userCode
+      userCode,
+      oldDetails,
+      periodInfo
     }: {
       configPeriodId: string;
       details: Partial<C3ConfigDetails>;
       userCode?: string;
+      oldDetails?: Partial<C3ConfigDetails>;
+      periodInfo?: { start_date: string; end_date: string | null };
     }) => {
       const { error } = await supabase
         .from('c3_config_details')
@@ -152,12 +157,19 @@ export function useUpdateC3ConfigDetails() {
 
       if (error) throw error;
 
-      // Log audit
-      await supabase.from('c3_config_audit').insert({
-        config_period_id: configPeriodId,
+      // Log to unified audit
+      const periodLabel = periodInfo 
+        ? `Period Config (${formatAuditDate(periodInfo.start_date)} - ${periodInfo.end_date ? formatAuditDate(periodInfo.end_date) : 'Current'})`
+        : 'Period Configuration';
+
+      await logC3ConfigChange({
+        configType: 'period_config',
+        recordId: configPeriodId,
         action: 'UPDATE',
-        new_values: details,
-        changed_by: userCode
+        entityName: periodLabel,
+        oldValue: oldDetails,
+        newValue: details,
+        changedBy: userCode
       });
 
       return { success: true };
@@ -200,6 +212,18 @@ export function useCloneC3Config() {
       });
 
       if (error) throw error;
+
+      // Log to unified audit
+      await logC3ConfigChange({
+        configType: 'period_config',
+        recordId: data,
+        action: 'CLONE',
+        entityName: `Period Config (${formatAuditDate(newStartDate)} - ${newEndDate ? formatAuditDate(newEndDate) : 'Current'})`,
+        newValue: { start_date: newStartDate, end_date: newEndDate, description },
+        changedBy: userCode,
+        metadata: { source_period_id: sourceId }
+      });
+
       return { newPeriodId: data };
     },
     onSuccess: () => {
@@ -220,11 +244,13 @@ export function useToggleC3ConfigActive() {
     mutationFn: async ({
       periodId,
       isActive,
-      userCode
+      userCode,
+      periodInfo
     }: {
       periodId: string;
       isActive: boolean;
       userCode?: string;
+      periodInfo?: { start_date: string; end_date: string | null; is_active: boolean };
     }) => {
       const { error } = await supabase
         .from('c3_config_periods')
@@ -236,6 +262,21 @@ export function useToggleC3ConfigActive() {
         .eq('id', periodId);
 
       if (error) throw error;
+
+      // Log to unified audit
+      if (periodInfo) {
+        await logC3ConfigChange({
+          configType: 'period_config',
+          recordId: periodId,
+          action: 'UPDATE',
+          entityName: `Period Config (${formatAuditDate(periodInfo.start_date)} - ${periodInfo.end_date ? formatAuditDate(periodInfo.end_date) : 'Current'})`,
+          fieldName: 'is_active',
+          oldValue: periodInfo.is_active,
+          newValue: isActive,
+          changedBy: userCode
+        });
+      }
+
       return { success: true };
     },
     onSuccess: () => {

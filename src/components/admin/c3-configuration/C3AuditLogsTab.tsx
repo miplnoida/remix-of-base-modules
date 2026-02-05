@@ -5,7 +5,7 @@
  import { Button } from '@/components/ui/button';
  import { History, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
  import { format } from 'date-fns';
- import { useC3ConfigAuditLogs, C3AuditLog } from '@/hooks/useC3ConfigAuditLogs';
+import { useC3ConfigAuditLogs, C3AuditLog, getConfigTypeLabel } from '@/hooks/useC3ConfigAuditLogs';
  import {
    Dialog,
    DialogContent,
@@ -27,14 +27,18 @@
      currentPage * itemsPerPage
    );
  
-   const getSourceBadge = (source: string) => {
-     switch (source) {
+  const getConfigTypeBadge = (configType: string) => {
+    switch (configType) {
        case 'period_config':
          return <Badge variant="default">Period Config</Badge>;
-       case 'calculation_config':
-         return <Badge variant="secondary">Calculation Config</Badge>;
+      case 'levy_slab':
+        return <Badge variant="secondary">Levy Slab</Badge>;
+      case 'levy_slab_detail':
+        return <Badge variant="outline">Levy Slab Detail</Badge>;
+      case 'bonus_exemption':
+        return <Badge className="bg-accent text-accent-foreground">Bonus Exemption</Badge>;
        default:
-         return <Badge variant="outline">{source}</Badge>;
+        return <Badge variant="outline">{configType}</Badge>;
      }
    };
  
@@ -104,13 +108,13 @@
                          <TableCell className="font-medium whitespace-nowrap">
                            {formatDateTime(log.changed_at)}
                          </TableCell>
-                         <TableCell>{getSourceBadge(log.source)}</TableCell>
+                         <TableCell>{getConfigTypeBadge(log.config_type)}</TableCell>
                          <TableCell>{getActionBadge(log.action)}</TableCell>
                          <TableCell className="max-w-[150px] truncate">
-                           {log.config_key || '-'}
-                           {log.period_start && (
+                           {log.entity_name || '-'}
+                           {log.field_name && (
                              <span className="block text-xs text-muted-foreground">
-                               Period: {format(new Date(log.period_start), 'MMM yyyy')}
+                               Field: {log.field_name}
                              </span>
                            )}
                          </TableCell>
@@ -198,17 +202,23 @@
                    <p className="mt-1">{selectedLog.changed_by_name || selectedLog.changed_by || '-'}</p>
                  </div>
                  <div>
-                   <label className="text-sm font-medium text-muted-foreground">Source</label>
-                   <div className="mt-1">{getSourceBadge(selectedLog.source)}</div>
+                   <label className="text-sm font-medium text-muted-foreground">Config Type</label>
+                   <div className="mt-1">{getConfigTypeBadge(selectedLog.config_type)}</div>
                  </div>
                  <div>
                    <label className="text-sm font-medium text-muted-foreground">Action</label>
                    <div className="mt-1">{getActionBadge(selectedLog.action)}</div>
                  </div>
                  <div className="col-span-2">
-                   <label className="text-sm font-medium text-muted-foreground">Config Key</label>
-                   <p className="mt-1">{selectedLog.config_key || '-'}</p>
+                   <label className="text-sm font-medium text-muted-foreground">Entity Name</label>
+                   <p className="mt-1">{selectedLog.entity_name || '-'}</p>
                  </div>
+                 {selectedLog.field_name && (
+                   <div className="col-span-2">
+                     <label className="text-sm font-medium text-muted-foreground">Field Changed</label>
+                     <p className="mt-1">{selectedLog.field_name}</p>
+                   </div>
+                 )}
                  {selectedLog.reason && (
                    <div className="col-span-2">
                      <label className="text-sm font-medium text-muted-foreground">Reason</label>

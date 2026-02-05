@@ -1,3 +1,4 @@
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
  import React, { useState } from 'react';
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
@@ -26,15 +27,24 @@
  export function BonusLevyExemptionsTab() {
    const { data: exemptions, isLoading } = useBonusLevyExemptions();
    const deleteMutation = useDeleteBonusLevyExemption();
+  const { profile } = useSupabaseAuth();
  
    const [isCreateOpen, setIsCreateOpen] = useState(false);
    const [editingExemption, setEditingExemption] = useState<BonusLevyExemption | null>(null);
-   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingExemption, setDeletingExemption] = useState<BonusLevyExemption | null>(null);
  
    const handleDelete = async () => {
-     if (deletingId) {
-       await deleteMutation.mutateAsync(deletingId);
-       setDeletingId(null);
+    if (deletingExemption) {
+      await deleteMutation.mutateAsync({
+        id: deletingExemption.id,
+        exemptionInfo: {
+          period_year: deletingExemption.period_year,
+          period_month: deletingExemption.period_month,
+          is_exempt: deletingExemption.is_exempt
+        },
+        userCode: profile?.user_code
+      });
+      setDeletingExemption(null);
      }
    };
  
@@ -113,7 +123,7 @@
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => setDeletingId(exemption.id)}
+                          onClick={() => setDeletingExemption(exemption)}
                          >
                            <Trash2 className="h-4 w-4" />
                          </Button>
@@ -142,7 +152,7 @@
        />
  
        {/* Delete Confirmation */}
-       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+      <AlertDialog open={!!deletingExemption} onOpenChange={(open) => !open && setDeletingExemption(null)}>
          <AlertDialogContent>
            <AlertDialogHeader>
              <AlertDialogTitle>Delete Exemption Period</AlertDialogTitle>

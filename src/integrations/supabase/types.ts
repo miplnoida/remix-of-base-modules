@@ -1857,6 +1857,54 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_unified_audit_log: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string | null
+          changed_by_name: string | null
+          config_type: string
+          entity_name: string | null
+          field_name: string | null
+          id: string
+          metadata: Json | null
+          new_value: string | null
+          old_value: string | null
+          reason: string | null
+          record_id: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          config_type: string
+          entity_name?: string | null
+          field_name?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          record_id: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          config_type?: string
+          entity_name?: string | null
+          field_name?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          record_id?: string
+        }
+        Relationships: []
+      }
       c3_wage_category: {
         Row: {
           category: string | null
@@ -9064,6 +9112,22 @@ export type Database = {
           _module_name?: string
           _new_value?: string
           _old_value?: string
+        }
+        Returns: string
+      }
+      log_c3_config_change: {
+        Args: {
+          p_action: string
+          p_changed_by?: string
+          p_changed_by_name?: string
+          p_config_type: string
+          p_entity_name: string
+          p_field_name?: string
+          p_metadata?: Json
+          p_new_value?: string
+          p_old_value?: string
+          p_reason?: string
+          p_record_id: string
         }
         Returns: string
       }
