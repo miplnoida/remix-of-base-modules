@@ -1,9 +1,18 @@
- /**
-  * Hook for real-time C3 employee calculations using database configuration
-  * Fetches config from c3_config_periods/c3_config_details and levy slabs from tb_levy_slab_details
-  */
- 
- import { useState, useEffect, useCallback, useMemo } from 'react';
+/**
+ * Hook for real-time C3 employee calculations using database configuration
+ * Fetches config from c3_config_periods/c3_config_details and levy slabs from tb_levy_slab_details
+ * 
+ * CALCULATION RULES:
+ * - Total Wages = Week1 + Week2 + Week3 + Week4 + Week5 + Holiday + Bonus
+ * - Taxable Wages = Week1 + Week2 + Week3 + Week4 + Week5 + Holiday (NO bonus)
+ * - Employee Levy = 3.5% applied to each weekly amount (Week1-5, Holiday) individually, then summed (NO bonus)
+ * - Employee SS = 5% of Taxable Wages
+ * - Employer Levy = 3% of Taxable Wages
+ * - Employer SS = 5% of Taxable Wages + 1% EIB of Taxable Wages = 6% total
+ * - Employer Severance = 1% of Taxable Wages
+ */
+
+import { useState, useEffect, useCallback } from 'react';
  import { supabase } from '@/integrations/supabase/client';
  
  export interface C3ConfigData {
@@ -24,6 +33,13 @@
    employerLevyRate: number;
    employerSeveranceRate: number;
    levySlabId: string | null;
+  // Penalty rates from config
+  levyPenaltyInitialRate: number;
+  levyPenaltySubsequentRate: number;
+  severancePenaltyInitialRate: number;
+  severancePenaltySubsequentRate: number;
+  ssFineInitialRate: number;
+  ssFineSubsequentRate: number;
  }
  
  export interface LevySlabDetail {
@@ -41,13 +57,13 @@
    payPeriod: string;
    dateOfBirth: string;
    termStartDate: string;
+  receivedDate?: string; // For penalty calculations
  }
  
  export interface EmployeeCalculationResult {
-   // Input summary
-   periodGross: number;
-   ssWageBase: number;
-   ssInsurable: number;
+  // Wage totals
+  totalWages: number;      // Week1-5 + Holiday + Bonus
+  taxableWages: number;    // Week1-5 + Holiday (NO bonus)
    
    // Employee contributions
    employeeSS: number;
@@ -60,7 +76,10 @@
    employerLevy: number;
    employerSeverance: number;
    
-   // Output totals
+  // Legacy fields for compatibility
+  periodGross: number;
+  ssWageBase: number;
+  ssInsurable: number;
    totalWagesPlusEmployeeLevyPlusSS: number;
    employersThreePercentLevyPlusSS: number;
    employersOnePercentSeverancePay: number;
@@ -70,6 +89,9 @@
    isAgeExemptLevy: boolean;
  }
  
+// Employee levy rate (flat 3.5% per week)
+const EMPLOYEE_LEVY_RATE = 0.035;
+
  // Map UI pay period to database pay period code
  function mapPayPeriodToCode(uiPayPeriod: string): string {
    switch (uiPayPeriod) {
@@ -112,66 +134,30 @@
    return Math.round(value * 100) / 100;
  }
  
- // Periods per month for SS wage cap calculation
- const PERIODS_PER_MONTH: Record<string, number> = {
-   'W': 52 / 12, // ~4.333
-   'E2W': 26 / 12, // ~2.167
-   '2M': 2,
-   'M': 1
- };
- 
- // Check if term start month is December (for bonus SS exclusion)
- function isDecemberTermStart(termStartDate: string): boolean {
-   if (!termStartDate) return false;
-   try {
-     const date = new Date(termStartDate);
-     return date.getMonth() === 11; // December is month 11 (0-indexed)
-   } catch {
-     return false;
-   }
- }
- 
  /**
-  * Calculate employee levy using slab-based configuration
+ * Calculate employee levy by applying 3.5% to each weekly amount individually
+ * Excludes bonus (index 5) from levy calculation
   */
- function calculateEmployeeLevyFromSlabs(
-   periodGross: number,
-   slabs: LevySlabDetail[],
-   payPeriodCode: string
+function calculateEmployeeLevy(
+  weeklyWages: number[]
  ): number {
-   // Filter slabs for this pay period, sorted by order
-   const periodSlabs = slabs
-     .filter(s => s.payPeriod === payPeriodCode)
-     .sort((a, b) => a.orderNo - b.orderNo);
+  // Apply 3.5% to weeks 1-5 (indices 0-4) and holiday pay (index 6)
+  // Bonus (index 5) is explicitly excluded
+  let totalLevy = 0;
    
-   if (periodSlabs.length === 0) {
-     console.warn('No levy slabs found for pay period:', payPeriodCode);
-     return 0;
+  // Week 1-5 (indices 0-4)
+  for (let i = 0; i <= 4; i++) {
+    const weekAmount = weeklyWages[i] || 0;
+    totalLevy += weekAmount * EMPLOYEE_LEVY_RATE;
    }
    
-   // Find the applicable slab (the highest threshold that the gross exceeds)
-   let applicableSlab: LevySlabDetail | null = null;
-   let previousThreshold = 0;
+  // Holiday pay (index 6) - included in levy calculation
+  const holidayPay = weeklyWages[6] || 0;
+  totalLevy += holidayPay * EMPLOYEE_LEVY_RATE;
    
-   for (const slab of periodSlabs) {
-     if (periodGross > slab.overAmt) {
-       applicableSlab = slab;
-       previousThreshold = slab.overAmt;
-     } else {
-       break;
-     }
-   }
-   
-   if (!applicableSlab) {
-     // Below first threshold - no levy
-     return 0;
-   }
-   
-   // Calculate: base amount + (excess over threshold * rate)
-   const excess = periodGross - applicableSlab.overAmt;
-   const levy = applicableSlab.baseAmt + (excess * applicableSlab.taxRate);
-   
-   return round2(levy);
+  // Bonus (index 5) is NOT included in employee levy
+  
+  return round2(totalLevy);
  }
  
  /**
@@ -179,79 +165,102 @@
   */
  function performCalculation(
    inputs: EmployeeCalculationInputs,
-   config: C3ConfigData,
-   levySlabs: LevySlabDetail[]
+  config: C3ConfigData
  ): EmployeeCalculationResult {
-   const { weeklyWages, payPeriod, dateOfBirth, termStartDate } = inputs;
+  const { weeklyWages, dateOfBirth } = inputs;
+  
+  // Safely get wage values
+  const week1 = weeklyWages[0] || 0;
+  const week2 = weeklyWages[1] || 0;
+  const week3 = weeklyWages[2] || 0;
+  const week4 = weeklyWages[3] || 0;
+  const week5 = weeklyWages[4] || 0;
+  const bonus = weeklyWages[5] || 0;
+  const holiday = weeklyWages[6] || 0;
+  
+  // Calculate Total Wages = Week1-5 + Holiday + Bonus
+  const totalWages = round2(week1 + week2 + week3 + week4 + week5 + holiday + bonus);
    
-   // Calculate Period Gross
-   const safeWages = weeklyWages.map(w => Math.max(0, w || 0));
-   const periodGross = safeWages.reduce((sum, w) => sum + w, 0);
-   const bonusPay = safeWages[5] || 0;
+  // Calculate Taxable Wages = Week1-5 + Holiday (NO bonus)
+  const taxableWages = round2(week1 + week2 + week3 + week4 + week5 + holiday);
    
-   // Map pay period to code
-   const payPeriodCode = mapPayPeriodToCode(payPeriod);
-   const periodsPerMonth = PERIODS_PER_MONTH[payPeriodCode] || 1;
+  // Check age eligibility
+  const employeeAge = calculateAge(dateOfBirth);
+  const isAgeExemptSS = employeeAge < config.minAgeSS || employeeAge > config.maxAgeSS;
+  const isAgeExemptLevy = employeeAge < config.minAgeLevy || employeeAge > config.maxAgeLevy;
    
-   // Calculate SS Wage Base (exclude bonus if December term start)
-   let ssWageBase = periodGross;
-   if (isDecemberTermStart(termStartDate)) {
-     ssWageBase = periodGross - bonusPay;
+  // ========================================
+  // Employee Contributions
+  // ========================================
+  
+  // Employee SS = 5% of Taxable Wages (from config)
+  let employeeSS = 0;
+  if (!isAgeExemptSS) {
+    employeeSS = round2(config.employeeSSRate * taxableWages);
    }
    
-   // Calculate SS Insurable (capped per period)
-   const ssPeriodCap = config.employeeSSMaxWage / periodsPerMonth;
-   const ssInsurable = Math.min(ssWageBase, ssPeriodCap);
+  // Employee Levy = 3.5% applied to each week (1-5) and holiday individually
+  // Bonus is NOT included
+  let employeeLevy = 0;
+  if (!isAgeExemptLevy) {
+    employeeLevy = calculateEmployeeLevy(weeklyWages);
+  }
    
-   // Check age eligibility
-   const employeeAge = calculateAge(dateOfBirth);
-   const isAgeExemptSS = employeeAge < config.minAgeSS || employeeAge > config.maxAgeSS;
-   const isAgeExemptLevy = employeeAge < config.minAgeLevy || employeeAge > config.maxAgeLevy;
+  // ========================================
+  // Employer Contributions (all based on Taxable Wages)
+  // ========================================
    
-   // Calculate SS contributions (only if age eligible)
-   let employeeSS = 0;
+  // Employer SS = 5% of Taxable Wages (from config)
    let employerSS = 0;
+  // Employer EIB = 1% of Taxable Wages (from config)
    let employerEIB = 0;
    
    if (!isAgeExemptSS) {
-     employeeSS = round2(config.employeeSSRate * ssInsurable);
-     employerSS = round2(config.employerSSRate * ssInsurable);
-     employerEIB = round2(config.employerEIBRate * ssInsurable);
+    employerSS = round2(config.employerSSRate * taxableWages);
+    employerEIB = round2(config.employerEIBRate * taxableWages);
    }
    
+  // Total Employer SS = Employer SS + EIB (5% + 1% = 6%)
    const employerSSTotal = round2(employerSS + employerEIB);
    
-   // Calculate Employee Levy using slabs
-   let employeeLevy = 0;
-   if (!isAgeExemptLevy && levySlabs.length > 0) {
-     employeeLevy = calculateEmployeeLevyFromSlabs(periodGross, levySlabs, payPeriodCode);
-   }
+  // Employer Levy = 3% of Taxable Wages (from config)
+  const employerLevy = round2(config.employerLevyRate * taxableWages);
    
-   // Calculate Employer Levy
-   const employerLevy = round2(config.employerLevyRate * periodGross);
+  // Employer Severance = 1% of Taxable Wages (from config)
+  const employerSeverance = round2(config.employerSeveranceRate * taxableWages);
    
-   // Calculate Employer Severance
-   const employerSeverance = round2(config.employerSeveranceRate * periodGross);
-   
-   // Calculate Output Totals
-   const totalWagesPlusEmployeeLevyPlusSS = round2(periodGross + employeeLevy + employeeSS);
+  // ========================================
+  // Output Totals (for display and compatibility)
+  // ========================================
+  const totalWagesPlusEmployeeLevyPlusSS = round2(totalWages + employeeLevy + employeeSS);
    const employersThreePercentLevyPlusSS = round2(employerLevy + employerSSTotal);
    const employersOnePercentSeverancePay = employerSeverance;
    
    return {
-     periodGross: round2(periodGross),
-     ssWageBase: round2(ssWageBase),
-     ssInsurable: round2(ssInsurable),
+    // Primary wage calculations
+    totalWages,
+    taxableWages,
+    
+    // Employee contributions
      employeeSS,
      employeeLevy,
+    
+    // Employer contributions
      employerSS,
      employerEIB,
      employerSSTotal,
      employerLevy,
      employerSeverance,
+    
+    // Legacy compatibility fields
+    periodGross: totalWages,
+    ssWageBase: taxableWages,
+    ssInsurable: taxableWages,
      totalWagesPlusEmployeeLevyPlusSS,
      employersThreePercentLevyPlusSS,
      employersOnePercentSeverancePay,
+    
+    // Age exemption flags
      isAgeExemptSS,
      isAgeExemptLevy
    };
@@ -262,13 +271,12 @@
   */
  export function useC3EmployeeCalculation(periodYear: number, periodMonth: number) {
    const [config, setConfig] = useState<C3ConfigData | null>(null);
-   const [levySlabs, setLevySlabs] = useState<LevySlabDetail[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
  
-   // Fetch config and levy slabs on mount or period change
+  // Fetch config on mount or period change
    useEffect(() => {
-     const fetchConfigAndSlabs = async () => {
+    const fetchConfig = async () => {
        setIsLoading(true);
        setError(null);
  
@@ -276,7 +284,7 @@
          // Build period date (first day of month)
          const periodDate = `${periodYear}-${String(periodMonth + 1).padStart(2, '0')}-01`;
          
-         // Fetch config using RPC
+        // Fetch config using RPC - includes all rates from c3_config_details
          const { data: configData, error: configError } = await supabase.rpc(
            'get_c3_config_for_period',
            { p_period_date: periodDate }
@@ -308,36 +316,17 @@
           employerSSMaxWage: Number(cfg.employer_ss_max_wage) || 6500,
           employerLevyRate: Number(cfg.employer_levy_rate) || 0.03,
           employerSeveranceRate: Number(cfg.employer_severance_rate) || 0.01,
-           levySlabId: cfg.levy_slab_id
+          levySlabId: cfg.levy_slab_id,
+          // Penalty rates
+          levyPenaltyInitialRate: Number(cfg.levy_penalty_initial_rate) || 0.10,
+          levyPenaltySubsequentRate: Number(cfg.levy_penalty_subsequent_rate) || 0.01,
+          severancePenaltyInitialRate: Number(cfg.severance_penalty_initial_rate) || 0.10,
+          severancePenaltySubsequentRate: Number(cfg.severance_penalty_subsequent_rate) || 0.01,
+          ssFineInitialRate: Number(cfg.ss_fine_initial_rate) || 0.05,
+          ssFineSubsequentRate: Number(cfg.ss_fine_subsequent_rate) || 0.05
          };
  
          setConfig(mappedConfig);
- 
-         // Fetch levy slabs if configured
-         if (cfg.levy_slab_id) {
-           const { data: slabData, error: slabError } = await supabase
-             .from('tb_levy_slab_details')
-             .select('*')
-             .eq('slab_id', cfg.levy_slab_id)
-             .eq('is_active', true)
-             .order('pay_period')
-             .order('order_no');
- 
-           if (slabError) {
-             console.warn('Error fetching levy slabs:', slabError);
-           } else if (slabData) {
-             const mappedSlabs: LevySlabDetail[] = slabData.map(s => ({
-               id: s.id,
-               slabId: s.slab_id,
-               payPeriod: s.pay_period,
-               orderNo: s.order_no,
-              overAmt: Number(s.over_amt) || 0,
-              baseAmt: Number(s.base_amt) || 0,
-              taxRate: Number(s.tax_rate) || 0
-             }));
-             setLevySlabs(mappedSlabs);
-           }
-         }
        } catch (err) {
          const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
          setError(errorMessage);
@@ -347,7 +336,7 @@
        }
      };
  
-     fetchConfigAndSlabs();
+    fetchConfig();
    }, [periodYear, periodMonth]);
  
    // Calculate function that can be called with employee inputs
@@ -356,6 +345,8 @@
        if (!config) {
          // Return zero values if config not loaded
          return {
+          totalWages: 0,
+          taxableWages: 0,
            periodGross: 0,
            ssWageBase: 0,
            ssInsurable: 0,
@@ -374,14 +365,13 @@
          };
        }
  
-       return performCalculation(inputs, config, levySlabs);
+      return performCalculation(inputs, config);
      },
-     [config, levySlabs]
+    [config]
    );
  
    return {
      config,
-     levySlabs,
      isLoading,
      error,
      calculate
