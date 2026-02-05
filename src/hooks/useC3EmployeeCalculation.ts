@@ -5,9 +5,10 @@
  * CALCULATION RULES:
  * - Total Wages = Week1 + Week2 + Week3 + Week4 + Week5 + Holiday + Bonus
  * - Taxable Wages = Week1 + Week2 + Week3 + Week4 + Week5 + Holiday (NO bonus)
- * - Employee Levy = (Taxable Wages × 3.5%) + (Bonus × bonusLevyRate from config)
- *   - bonusLevyRate is configured in c3_config_details.bonus_levy_rate
- *   - If bonus_exempt_from_levy is true, bonus levy is 0
+ * - Employee Levy = Slab-based calculation for each weekly amount (Week1-5, Holiday)
+ *   - For each week: Find matching slab where amount > over_amt
+ *   - Calculate: base_amt + ((amount - over_amt + 0.01) * tax_rate)
+ *   - Plus: Bonus × bonusLevyRate (if bonus not exempt)
  * - Employee SS = 5% of Taxable Wages
  * - Employer Levy = 3% of Taxable Wages
  * - Employer SS = 5% of Taxable Wages + 1% EIB of Taxable Wages = 6% total
@@ -91,9 +92,6 @@ import { useState, useEffect, useCallback } from 'react';
    isAgeExemptLevy: boolean;
  }
  
-// Employee levy rate (flat 3.5% per week)
-const EMPLOYEE_LEVY_RATE = 0.035;
-
  // Calculate age from date of birth
  function calculateAge(dateOfBirth: string): number {
    if (!dateOfBirth) return 30; // Default to eligible age if unknown
@@ -120,28 +118,88 @@ const EMPLOYEE_LEVY_RATE = 0.035;
  }
  
  /**
- * Calculate employee levy:
- * - Levy on Taxable Wages = taxableWages × EMPLOYEE_LEVY_RATE (3.5%)
- * - Levy on Bonus = bonus × bonusLevyRate (from config, e.g., 8%)
- * - If bonus_exempt_from_levy is true, bonus levy = 0
+  * Map UI pay period to database pay period code
   */
-function calculateEmployeeLevy(
-  taxableWages: number,
-  bonus: number,
-  bonusExemptFromLevy: boolean,
-  bonusLevyRate: number
- ): number {
-  // Levy on Taxable Wages = taxableWages × 3.5%
-  const levyOnTaxableWages = taxableWages * EMPLOYEE_LEVY_RATE;
-  
-  // Levy on Bonus = bonus × bonusLevyRate (from config)
-  // Only if bonus is not exempt
-  let levyOnBonus = 0;
-  if (!bonusExemptFromLevy && bonus > 0 && bonusLevyRate > 0) {
-    levyOnBonus = bonus * bonusLevyRate;
+ function mapPayPeriodToCode(uiPayPeriod: string): string {
+   switch (uiPayPeriod) {
+     case 'Weekly':
+       return 'W';
+     case 'Bi-Weekly':
+     case 'BiWeekly':
+       return 'E2W';
+     case '2 Monthly':
+     case 'SemiMonthly':
+       return '2M';
+     case 'Monthly':
+     default:
+       return 'M';
+   }
+ }
+ 
+ /**
+  * Calculate levy for a single weekly amount using slab details
+  * @param amount - The weekly wage amount
+  * @param slabDetails - Slab details ordered by over_amt DESC
+  * @returns Levy amount for this week
+  */
+ function calculateSlabLevy(amount: number, slabDetails: LevySlabDetail[]): number {
+   if (amount <= 0 || slabDetails.length === 0) {
+     return 0;
   }
-  
-  return round2(levyOnTaxableWages + levyOnBonus);
+   
+   // Find the first slab where amount > over_amt
+   // Slab details should be ordered by over_amt DESC
+   for (const slab of slabDetails) {
+     if (amount > slab.overAmt) {
+       // Calculate: base_amt + ((amount - over_amt + 0.01) * tax_rate)
+       const levy = slab.baseAmt + ((amount - slab.overAmt + 0.01) * slab.taxRate);
+       return round2(levy);
+     }
+   }
+   
+   // No matching slab found - no levy
+   return 0;
+ }
+ 
+ /**
+  * Calculate employee levy using slab-based calculation:
+  * - For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
+  * - If bonus is not exempt, add bonus × bonusLevyRate
+  */
+ function calculateEmployeeLevy(
+   weeklyWages: number[],
+   payPeriod: string,
+   slabDetails: LevySlabDetail[],
+   bonusExemptFromLevy: boolean,
+   bonusLevyRate: number
+ ): number {
+   const payPeriodCode = mapPayPeriodToCode(payPeriod);
+   
+   // Filter slabs for the matching pay period
+   const matchingSlabs = slabDetails
+     .filter(s => s.payPeriod === payPeriodCode)
+     .sort((a, b) => b.overAmt - a.overAmt); // Order by over_amt DESC
+   
+   let totalLevy = 0;
+   
+   // Calculate levy for Week1-5 (indices 0-4) and Holiday (index 6)
+   const weekIndices = [0, 1, 2, 3, 4, 6]; // Week1-5 + Holiday
+   for (const idx of weekIndices) {
+     const weekAmount = weeklyWages[idx] || 0;
+     if (weekAmount > 0) {
+       const weekLevy = calculateSlabLevy(weekAmount, matchingSlabs);
+       totalLevy += weekLevy;
+     }
+   }
+   
+   // Add bonus levy if not exempt
+   const bonus = weeklyWages[5] || 0;
+   if (!bonusExemptFromLevy && bonus > 0 && bonusLevyRate > 0) {
+     const bonusLevy = round2(bonus * bonusLevyRate);
+     totalLevy += bonusLevy;
+   }
+   
+   return round2(totalLevy);
  }
  
  /**
@@ -149,9 +207,10 @@ function calculateEmployeeLevy(
   */
  function performCalculation(
    inputs: EmployeeCalculationInputs,
-  config: C3ConfigData
+   config: C3ConfigData,
+   slabDetails: LevySlabDetail[]
  ): EmployeeCalculationResult {
-  const { weeklyWages, dateOfBirth } = inputs;
+   const { weeklyWages, dateOfBirth, payPeriod } = inputs;
   
   // Safely get wage values
   const week1 = weeklyWages[0] || 0;
@@ -184,11 +243,13 @@ function calculateEmployeeLevy(
    }
    
   // Employee Levy = (Taxable Wages × 3.5%) + (Bonus × bonusLevyRate)
+   // Employee Levy = Slab-based calculation for each week + bonus levy
   let employeeLevy = 0;
   if (!isAgeExemptLevy) {
     employeeLevy = calculateEmployeeLevy(
-      taxableWages,
-      bonus,
+       weeklyWages,
+       payPeriod,
+       slabDetails,
       config.bonusExemptFromLevy,
       config.bonusLevyRate
     );
@@ -259,6 +320,7 @@ function calculateEmployeeLevy(
   */
  export function useC3EmployeeCalculation(periodYear: number, periodMonth: number) {
    const [config, setConfig] = useState<C3ConfigData | null>(null);
+   const [slabDetails, setSlabDetails] = useState<LevySlabDetail[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
  
@@ -315,6 +377,45 @@ function calculateEmployeeLevy(
          };
  
          setConfig(mappedConfig);
+ 
+         // Fetch levy slab details for the period
+         // Find the active levy slab where period falls between start_date and end_date
+         const { data: slabData, error: slabError } = await supabase
+           .from('tb_levy_slabs')
+           .select('id')
+           .eq('is_active', true)
+           .lte('start_date', periodDate)
+           .or(`end_date.gte.${periodDate},end_date.is.null`)
+           .limit(1);
+ 
+         if (slabError) {
+           console.error('Error fetching levy slab:', slabError);
+         } else if (slabData && slabData.length > 0) {
+           const slabId = slabData[0].id;
+           
+           // Fetch slab details for this slab
+           const { data: detailsData, error: detailsError } = await supabase
+             .from('tb_levy_slab_details')
+             .select('*')
+             .eq('slab_id', slabId)
+             .eq('is_active', true)
+             .order('over_amt', { ascending: false });
+ 
+           if (detailsError) {
+             console.error('Error fetching levy slab details:', detailsError);
+           } else if (detailsData) {
+             const mappedSlabs: LevySlabDetail[] = detailsData.map(d => ({
+               id: d.id,
+               slabId: d.slab_id,
+               payPeriod: d.pay_period,
+               orderNo: d.order_no,
+               overAmt: Number(d.over_amt),
+               baseAmt: Number(d.base_amt),
+               taxRate: Number(d.tax_rate)
+             }));
+             setSlabDetails(mappedSlabs);
+           }
+         }
        } catch (err) {
          const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
          setError(errorMessage);
@@ -330,7 +431,7 @@ function calculateEmployeeLevy(
    // Calculate function that can be called with employee inputs
    const calculate = useCallback(
      (inputs: EmployeeCalculationInputs): EmployeeCalculationResult => {
-       if (!config) {
+       if (!config || slabDetails.length === 0) {
          // Return zero values if config not loaded
          return {
           totalWages: 0,
@@ -353,13 +454,14 @@ function calculateEmployeeLevy(
          };
        }
  
-      return performCalculation(inputs, config);
+       return performCalculation(inputs, config, slabDetails);
      },
-    [config]
+     [config, slabDetails]
    );
  
    return {
      config,
+     slabDetails,
      isLoading,
      error,
      calculate
