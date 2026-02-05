@@ -17,6 +17,7 @@ import EmployeeModal, { EmployeeData } from "@/components/c3/EmployeeModal";
 import { formatPeriodForStorage, formatPeriodDisplay } from "@/utils/weekCalculations";
 import { formatCurrency, calculateAge } from "@/utils/sknPayrollCalculations";
 import { useC3ServerCalculations, C3CalculationTotals, C3CalculationConfig } from "@/hooks/useC3ServerCalculations";
+import { useC3Payments, calculateC3Balance } from "@/hooks/useC3Payments";
 
 interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
@@ -69,9 +70,20 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     address: "",
     numberOfEmployees: "0",
     status: "Draft",
-    payments: "0.00",
-    balance: "0.00",
     nilReturn: false
+  });
+
+  // Fetch payments from database - uses formData so must be after formData state declaration
+  const { 
+    totalPayments, 
+    isLoading: isLoadingPayments, 
+    error: paymentsError,
+    refetch: refetchPayments 
+  } = useC3Payments({
+    payerId: formData.employerId,
+    payerType: 'ER', // Employer type
+    periodYear: formData.period?.year ?? null,
+    periodMonth: formData.period?.month ?? null
   });
 
   const [employerError, setEmployerError] = useState<string>('');
@@ -101,8 +113,6 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         address: initialData.payerAddress || initialData.address || "",
         numberOfEmployees: String(initialData.numberOfEmployees || "0"),
         status: initialData.status || "Draft",
-        payments: initialData.payments || "0.00",
-        balance: initialData.balance || "0.00",
         nilReturn: initialData.nilReturn || false
       });
       
@@ -266,6 +276,22 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     };
   }, [calculationResult]);
 
+  // Calculate SS Contribution due for the month and Total due to Accountant General
+  const ssContributionDue = useMemo(() => {
+    return overall.employeeSS + overall.employerSS + overall.fines;
+  }, [overall.employeeSS, overall.employerSS, overall.fines]);
+
+  const totalDueToAG = useMemo(() => {
+    return overall.employeeLevy + overall.employerLevy + overall.employerSeverance + 
+           overall.levyPenalty + overall.severancePenalty;
+  }, [overall.employeeLevy, overall.employerLevy, overall.employerSeverance, 
+      overall.levyPenalty, overall.severancePenalty]);
+
+  // Calculate Balance = (SS Contribution due + Total due to AG) - Payments
+  const calculatedBalance = useMemo(() => {
+    return calculateC3Balance(ssContributionDue, totalDueToAG, totalPayments);
+  }, [ssContributionDue, totalDueToAG, totalPayments]);
+
   const formatMoney = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const handleSave = () => {
@@ -340,8 +366,6 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       address: "",
       numberOfEmployees: "0",
       status: "Draft",
-      payments: "0.00",
-      balance: "0.00",
       nilReturn: false
     });
     setEmployees([]);
@@ -542,12 +566,30 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Payments</Label>
-                <div className="text-sm text-muted-foreground">${formData.payments}</div>
+                <div className="text-sm text-muted-foreground">
+                  {isLoadingPayments ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading...
+                    </span>
+                  ) : (
+                    formatMoney(totalPayments)
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Balance</Label>
-                <div className="text-sm text-muted-foreground">${formData.balance}</div>
+                <div className={`text-sm font-semibold ${calculatedBalance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {isLoadingPayments ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Calculating...
+                    </span>
+                  ) : (
+                    formatMoney(calculatedBalance)
+                  )}
+                </div>
               </div>
             </div>
           </div>
