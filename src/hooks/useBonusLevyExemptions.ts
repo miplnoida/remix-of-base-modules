@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logC3ConfigChange, formatBonusPeriod } from '@/lib/c3AuditLogger';
 
 export interface BonusLevyExemption {
   id: string;
@@ -83,6 +84,17 @@ export function useCreateBonusLevyExemption() {
         .single();
 
       if (error) throw error;
+
+      // Log audit
+      await logC3ConfigChange({
+        configType: 'bonus_exemption',
+        recordId: data.id,
+        action: 'CREATE',
+        entityName: `Bonus Exemption - ${formatBonusPeriod(periodYear, periodMonth)}`,
+        newValue: { period_year: periodYear, period_month: periodMonth, is_exempt: isExempt, description },
+        changedBy: userCode
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -109,14 +121,18 @@ export function useUpdateBonusLevyExemption() {
       isExempt,
       description,
       isActive,
-      userCode
+      userCode,
+      oldValues
     }: {
       id: string;
       isExempt: boolean;
       description?: string;
       isActive: boolean;
       userCode?: string;
+      oldValues?: { period_year: number; period_month: number; is_exempt: boolean; description?: string };
     }) => {
+      const newValues = { is_exempt: isExempt, description, is_active: isActive };
+      
       const { error } = await supabase
         .from('c3_bonus_levy_exemptions')
         .update({
@@ -129,6 +145,20 @@ export function useUpdateBonusLevyExemption() {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Log audit
+      if (oldValues) {
+        await logC3ConfigChange({
+          configType: 'bonus_exemption',
+          recordId: id,
+          action: 'UPDATE',
+          entityName: `Bonus Exemption - ${formatBonusPeriod(oldValues.period_year, oldValues.period_month)}`,
+          oldValue: oldValues,
+          newValue: { ...newValues, period_year: oldValues.period_year, period_month: oldValues.period_month },
+          changedBy: userCode
+        });
+      }
+
       return { success: true };
     },
     onSuccess: () => {
@@ -146,13 +176,30 @@ export function useDeleteBonusLevyExemption() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, exemptionInfo, userCode }: { 
+      id: string;
+      exemptionInfo?: { period_year: number; period_month: number; is_exempt: boolean };
+      userCode?: string;
+    }) => {
       const { error } = await supabase
         .from('c3_bonus_levy_exemptions')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      // Log audit
+      if (exemptionInfo) {
+        await logC3ConfigChange({
+          configType: 'bonus_exemption',
+          recordId: id,
+          action: 'DELETE',
+          entityName: `Bonus Exemption - ${formatBonusPeriod(exemptionInfo.period_year, exemptionInfo.period_month)}`,
+          oldValue: exemptionInfo,
+          changedBy: userCode
+        });
+      }
+
       return { success: true };
     },
     onSuccess: () => {
