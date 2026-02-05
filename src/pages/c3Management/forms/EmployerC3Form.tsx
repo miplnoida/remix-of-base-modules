@@ -660,18 +660,27 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
               <CardTitle className="text-lg font-bold">Calculation Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+              {/* Row 1: Bifurcated totals */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Total Wages + Employee Levy + SS</Label>
                   <div className="text-xl">{formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS)}</div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Employer's 3% Levy + SS</Label>
-                  <div className="text-xl">{formatMoney(overall.employerThreePercent)}</div>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Employer's {calculationResult?.config ? `${(calculationResult.config.employerLevyRate * 100).toFixed(0)}%` : '3%'} Levy + SS
+                  </Label>
+                  <div className="text-xl">{formatMoney(overall.employersThreePercentLevyPlusSS)}</div>
                 </div>
+              </div>
+              
+              {/* Row 2: Severance */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Employer's 1% Severance Pay</Label>
-                  <div className="text-xl">{formatMoney(overall.employerOnePercent)}</div>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Employer's {calculationResult?.config ? `${(calculationResult.config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'} Severance Pay
+                  </Label>
+                  <div className="text-xl">{formatMoney(overall.employersOnePercentSeverancePay)}</div>
                 </div>
               </div>
 
@@ -685,7 +694,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                   <div className="text-xl text-destructive">{formatMoney(overall.severancePenalty)}</div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Fines due for the month</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Fine on Social Security</Label>
                   <div className="text-xl text-destructive">{formatMoney(overall.fines)}</div>
                 </div>
               </div>
@@ -723,8 +732,11 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                       Social Security Contribution due for the month
                     </Label>
                     <div className="text-base font-semibold text-muted-foreground">
-                      {formatMoney(overall.employeeLevySS)}
+                      {formatMoney(overall.employeeSS + overall.employerSS + overall.fines)}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      (Employee SS + Employer SS + SS Fine)
+                    </p>
                   </div>
 
                   <div className="space-y-1">
@@ -732,8 +744,17 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                       Total due to Accountant General
                     </Label>
                     <div className="text-base font-semibold text-muted-foreground">
-                      {formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS + overall.employersThreePercentLevyPlusSS + overall.employersOnePercentSeverancePay)}
+                      {formatMoney(
+                        overall.employeeLevy + 
+                        overall.employerLevy + 
+                        overall.employerSeverance + 
+                        overall.levyPenalty + 
+                        overall.severancePenalty
+                      )}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      (Employee Levy + Employer Levy + Severance + Levy Penalty + Severance Penalty)
+                    </p>
                   </div>
                 </div>
               </div>
