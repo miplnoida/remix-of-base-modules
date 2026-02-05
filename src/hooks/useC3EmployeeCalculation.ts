@@ -237,9 +237,11 @@ import { useState, useEffect, useCallback } from 'react';
   // ========================================
   
   // Employee SS = 5% of Taxable Wages (from config)
+  // CAPPED by employeeSSMaxWage from configuration
   let employeeSS = 0;
   if (!isAgeExemptSS) {
-    employeeSS = round2(config.employeeSSRate * taxableWages);
+    const cappedTaxableForEmployeeSS = Math.min(taxableWages, config.employeeSSMaxWage);
+    employeeSS = round2(config.employeeSSRate * cappedTaxableForEmployeeSS);
    }
    
   // Employee Levy = (Taxable Wages × 3.5%) + (Bonus × bonusLevyRate)
@@ -265,8 +267,10 @@ import { useState, useEffect, useCallback } from 'react';
    let employerEIB = 0;
    
    if (!isAgeExemptSS) {
-    employerSS = round2(config.employerSSRate * taxableWages);
-    employerEIB = round2(config.employerEIBRate * taxableWages);
+    // CAPPED by employerSSMaxWage from configuration
+    const cappedTaxableForEmployerSS = Math.min(taxableWages, config.employerSSMaxWage);
+    employerSS = round2(config.employerSSRate * cappedTaxableForEmployerSS);
+    employerEIB = round2(config.employerEIBRate * cappedTaxableForEmployerSS);
    }
    
   // Total Employer SS = Employer SS + EIB (5% + 1% = 6%)

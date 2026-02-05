@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,6 +79,8 @@ export default function EmployeeModal({
 
   const [ssnError, setSsnError] = useState<string>('');
   const [ssnValidated, setSsnValidated] = useState(false);
+  const [pendingPayPeriod, setPendingPayPeriod] = useState<string | null>(null);
+  const [showPayPeriodConfirm, setShowPayPeriodConfirm] = useState(false);
 
   // Calculate enabled weeks based on period
   const mondayCount = getMondayCount(periodYear, periodMonth);
@@ -150,13 +153,46 @@ export default function EmployeeModal({
 
   const handleChange = (field: keyof EmployeeData, value: any) => {
     if (isViewMode) return;
-    setLocalEmployee(prev => ({ ...prev, [field]: value }));
 
     // Reset validation when SSN changes
     if (field === 'ssn') {
+      setLocalEmployee(prev => ({ ...prev, [field]: value }));
       setSsnValidated(false);
       setSsnError('');
+      return;
     }
+
+    // Handle Pay Period change with confirmation
+    if (field === 'payPeriod' && value !== localEmployee.payPeriod) {
+      // Check if there are any wages entered
+      const hasWages = localEmployee.weeklyWages.some(w => w > 0);
+      if (hasWages) {
+        setPendingPayPeriod(value);
+        setShowPayPeriodConfirm(true);
+        return;
+      }
+    }
+
+    setLocalEmployee(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePayPeriodConfirm = () => {
+    if (pendingPayPeriod) {
+      // Reset the form wages and update pay period
+      setLocalEmployee(prev => ({
+        ...prev,
+        payPeriod: pendingPayPeriod,
+        days: [false, false, false, false, false, false, false],
+        weeklyWages: [0, 0, 0, 0, 0, 0, 0]
+      }));
+    }
+    setPendingPayPeriod(null);
+    setShowPayPeriodConfirm(false);
+  };
+
+  const handlePayPeriodCancel = () => {
+    setPendingPayPeriod(null);
+    setShowPayPeriodConfirm(false);
   };
 
   const handleWeekToggle = (index: number) => {
@@ -247,6 +283,24 @@ export default function EmployeeModal({
   };
 
   return (
+    <>
+    {/* Pay Period Change Confirmation Dialog */}
+    <AlertDialog open={showPayPeriodConfirm} onOpenChange={setShowPayPeriodConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Change Pay Period?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Changing the pay period will reset all entered wage data. This action cannot be undone.
+            Do you want to continue?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handlePayPeriodCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handlePayPeriodConfirm}>Yes, Reset Form</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -511,5 +565,6 @@ export default function EmployeeModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
