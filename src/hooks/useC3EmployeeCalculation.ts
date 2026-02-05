@@ -5,7 +5,9 @@
  * CALCULATION RULES:
  * - Total Wages = Week1 + Week2 + Week3 + Week4 + Week5 + Holiday + Bonus
  * - Taxable Wages = Week1 + Week2 + Week3 + Week4 + Week5 + Holiday (NO bonus)
- * - Employee Levy = 3.5% applied to each weekly amount (Week1-5, Holiday) individually, then summed (NO bonus)
+ * - Employee Levy = (Taxable Wages × 3.5%) + (Bonus × bonusLevyRate from config)
+ *   - bonusLevyRate is configured in c3_config_details.bonus_levy_rate
+ *   - If bonus_exempt_from_levy is true, bonus levy is 0
  * - Employee SS = 5% of Taxable Wages
  * - Employer Levy = 3% of Taxable Wages
  * - Employer SS = 5% of Taxable Wages + 1% EIB of Taxable Wages = 6% total
@@ -92,23 +94,6 @@ import { useState, useEffect, useCallback } from 'react';
 // Employee levy rate (flat 3.5% per week)
 const EMPLOYEE_LEVY_RATE = 0.035;
 
- // Map UI pay period to database pay period code
- function mapPayPeriodToCode(uiPayPeriod: string): string {
-   switch (uiPayPeriod) {
-     case 'Weekly':
-       return 'W';
-     case 'Bi-Weekly':
-     case 'BiWeekly':
-       return 'E2W';
-     case '2 Monthly':
-     case 'SemiMonthly':
-       return '2M';
-     case 'Monthly':
-     default:
-       return 'M';
-   }
- }
- 
  // Calculate age from date of birth
  function calculateAge(dateOfBirth: string): number {
    if (!dateOfBirth) return 30; // Default to eligible age if unknown
@@ -135,29 +120,28 @@ const EMPLOYEE_LEVY_RATE = 0.035;
  }
  
  /**
- * Calculate employee levy by applying 3.5% to each weekly amount individually
- * Excludes bonus (index 5) from levy calculation
+ * Calculate employee levy:
+ * - Levy on Taxable Wages = taxableWages × EMPLOYEE_LEVY_RATE (3.5%)
+ * - Levy on Bonus = bonus × bonusLevyRate (from config, e.g., 8%)
+ * - If bonus_exempt_from_levy is true, bonus levy = 0
   */
 function calculateEmployeeLevy(
-  weeklyWages: number[]
+  taxableWages: number,
+  bonus: number,
+  bonusExemptFromLevy: boolean,
+  bonusLevyRate: number
  ): number {
-  // Apply 3.5% to weeks 1-5 (indices 0-4) and holiday pay (index 6)
-  // Bonus (index 5) is explicitly excluded
-  let totalLevy = 0;
-   
-  // Week 1-5 (indices 0-4)
-  for (let i = 0; i <= 4; i++) {
-    const weekAmount = weeklyWages[i] || 0;
-    totalLevy += weekAmount * EMPLOYEE_LEVY_RATE;
-   }
-   
-  // Holiday pay (index 6) - included in levy calculation
-  const holidayPay = weeklyWages[6] || 0;
-  totalLevy += holidayPay * EMPLOYEE_LEVY_RATE;
-   
-  // Bonus (index 5) is NOT included in employee levy
+  // Levy on Taxable Wages = taxableWages × 3.5%
+  const levyOnTaxableWages = taxableWages * EMPLOYEE_LEVY_RATE;
   
-  return round2(totalLevy);
+  // Levy on Bonus = bonus × bonusLevyRate (from config)
+  // Only if bonus is not exempt
+  let levyOnBonus = 0;
+  if (!bonusExemptFromLevy && bonus > 0 && bonusLevyRate > 0) {
+    levyOnBonus = bonus * bonusLevyRate;
+  }
+  
+  return round2(levyOnTaxableWages + levyOnBonus);
  }
  
  /**
@@ -199,11 +183,15 @@ function calculateEmployeeLevy(
     employeeSS = round2(config.employeeSSRate * taxableWages);
    }
    
-  // Employee Levy = 3.5% applied to each week (1-5) and holiday individually
-  // Bonus is NOT included
+  // Employee Levy = (Taxable Wages × 3.5%) + (Bonus × bonusLevyRate)
   let employeeLevy = 0;
   if (!isAgeExemptLevy) {
-    employeeLevy = calculateEmployeeLevy(weeklyWages);
+    employeeLevy = calculateEmployeeLevy(
+      taxableWages,
+      bonus,
+      config.bonusExemptFromLevy,
+      config.bonusLevyRate
+    );
   }
    
   // ========================================
