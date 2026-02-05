@@ -25,9 +25,7 @@ import {
   Briefcase,
   Stethoscope,
   Calculator,
-  Sliders,
-  Calendar,
-  Gift
+  Sliders
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -202,34 +200,9 @@ export const systemAdminMenuItems = [
       },
       {
         title: "C3 Configuration",
+        url: "/admin/c3-configuration",
         icon: Calculator,
-        requiresPermission: "system_administration",
-        subItems: [
-          {
-            title: "Calculation Config",
-            url: "/admin/c3-calculation-config",
-            icon: Calculator,
-            requiresPermission: "system_administration"
-          },
-          {
-            title: "Period Config",
-            url: "/admin/c3-period-config",
-            icon: Calendar,
-            requiresPermission: "system_administration"
-          },
-          {
-            title: "Levy Slabs",
-            url: "/admin/levy-slabs-config",
-            icon: Layers,
-            requiresPermission: "system_administration"
-          },
-          {
-            title: "Bonus Levy Exemptions",
-            url: "/admin/bonus-levy-exemptions",
-            icon: Gift,
-            requiresPermission: "system_administration"
-          }
-        ]
+        requiresPermission: "system_administration"
       }
     ]
   },

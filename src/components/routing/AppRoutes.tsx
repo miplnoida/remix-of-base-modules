@@ -274,8 +274,7 @@ import ApiConfiguration from '@/pages/admin/settings/ApiConfiguration';
 import GlobalSettings from '@/pages/systemAdmin/GlobalSettings';
 import C3CalculationConfigPage from '@/pages/admin/C3CalculationConfigPage';
 import C3PeriodConfigPage from '@/pages/admin/C3PeriodConfigPage';
-import LevySlabsConfigPage from '@/pages/admin/LevySlabsConfigPage';
-import BonusLevyExemptionsPage from '@/pages/admin/BonusLevyExemptionsPage';
+import C3ConfigurationPage from '@/pages/admin/C3ConfigurationPage';
 import InsuredPersonApplications from '@/pages/online-applications/InsuredPersonApplications';
 import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetailPage';
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
@@ -932,8 +931,7 @@ export const AppRoutes = () => {
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
       <Route path="/admin/c3-calculation-config" element={<ProtectedLayout><C3CalculationConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
-      <Route path="/admin/levy-slabs-config" element={<ProtectedLayout><LevySlabsConfigPage /></ProtectedLayout>} />
-      <Route path="/admin/bonus-levy-exemptions" element={<ProtectedLayout><BonusLevyExemptionsPage /></ProtectedLayout>} />
+      <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
