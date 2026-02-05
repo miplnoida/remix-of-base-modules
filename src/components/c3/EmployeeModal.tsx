@@ -215,7 +215,7 @@ export default function EmployeeModal({
     // Include calculation results in saved data
     const savedEmployee: EmployeeData = {
       ...localEmployee,
-      totalWages: payrollCalc.periodGross,
+      totalWages: payrollCalc.totalWages,
       hssdLevy: payrollCalc.employeeLevy, 
       socialSecurity: payrollCalc.employeeSS,
       employeeSS: payrollCalc.employeeSS,
@@ -223,7 +223,7 @@ export default function EmployeeModal({
       employerSS: payrollCalc.employerSSTotal,
       employerLevy: payrollCalc.employerLevy,
       employerSeverance: payrollCalc.employerSeverance,
-      periodGross: payrollCalc.periodGross
+      periodGross: payrollCalc.totalWages
     };
     
     onSave(savedEmployee);
@@ -402,37 +402,64 @@ export default function EmployeeModal({
               
               <div className="grid grid-cols-3 gap-6">
                 <div>
-                  <Label className="text-sm text-muted-foreground">Total Wages + Employee Levy + SS</Label>
-                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.totalWagesPlusEmployeeLevyPlusSS)}</div>
+                  <Label className="text-sm text-muted-foreground">Total Wages</Label>
+                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.totalWages)}</div>
+                  <p className="text-xs text-muted-foreground">Week1-5 + Holiday + Bonus</p>
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Employer's 3% Levy + SS</Label>
-                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.employersThreePercentLevyPlusSS)}</div>
+                  <Label className="text-sm text-muted-foreground">Taxable Wages</Label>
+                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.taxableWages)}</div>
+                  <p className="text-xs text-muted-foreground">Week1-5 + Holiday (excl. Bonus)</p>
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Employer's 1% Severance Pay</Label>
-                  <div className="text-lg font-semibold">{formatCurrency(payrollCalc.employersOnePercentSeverancePay)}</div>
+                  <Label className="text-sm text-muted-foreground">Grand Total</Label>
+                  <div className="text-lg font-semibold text-primary">{formatCurrency(payrollCalc.totalWagesPlusEmployeeLevyPlusSS)}</div>
+                  <p className="text-xs text-muted-foreground">Wages + Employee Levy + SS</p>
                 </div>
               </div>
               
-              {/* Detailed breakdown */}
+              {/* Employee Contributions */}
               <div className="mt-4 pt-4 border-t border-border">
+                <Label className="text-sm font-medium text-muted-foreground mb-2 block">Employee Contributions</Label>
                 <div className="grid grid-cols-4 gap-4 text-sm">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Period Gross</Label>
-                    <div>{formatCurrency(payrollCalc.periodGross)}</div>
+                    <Label className="text-xs text-muted-foreground">Employee SS ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'} of Taxable)</Label>
+                    <div className="font-medium">{formatCurrency(payrollCalc.employeeSS)}</div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Employee SS ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</Label>
-                    <div>{formatCurrency(payrollCalc.employeeSS)}</div>
+                    <Label className="text-xs text-muted-foreground">Employee Levy (3.5% per week)</Label>
+                    <div className="font-medium">{formatCurrency(payrollCalc.employeeLevy)}</div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Employee Levy</Label>
-                    <div>{formatCurrency(payrollCalc.employeeLevy)}</div>
+                    <Label className="text-xs text-muted-foreground">Total Employee</Label>
+                    <div className="font-medium text-primary">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Employer Contributions */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <Label className="text-sm font-medium text-muted-foreground mb-2 block">Employer Contributions</Label>
+                <div className="grid grid-cols-5 gap-4 text-sm">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Employer SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</Label>
+                    <div className="font-medium">{formatCurrency(payrollCalc.employerSS)}</div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Employer Injury ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</Label>
-                    <div>{formatCurrency(payrollCalc.employerEIB)}</div>
+                    <Label className="text-xs text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</Label>
+                    <div className="font-medium">{formatCurrency(payrollCalc.employerEIB)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Employer Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</Label>
+                    <div className="font-medium">{formatCurrency(payrollCalc.employerLevy)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Severance ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</Label>
+                    <div className="font-medium">{formatCurrency(payrollCalc.employerSeverance)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Total Employer</Label>
+                    <div className="font-medium text-primary">{formatCurrency(payrollCalc.employersThreePercentLevyPlusSS + payrollCalc.employerSeverance)}</div>
                   </div>
                 </div>
                 {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
