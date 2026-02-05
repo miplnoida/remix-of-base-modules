@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUpdateC3ConfigDetails, useLevySlabs, C3ConfigWithDetails, C3ConfigDetails } from '@/hooks/useC3ConfigManagement';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -23,12 +22,14 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
   const { data: levySlabs } = useLevySlabs();
 
   const [formData, setFormData] = useState<Partial<C3ConfigDetails>>({});
+   const [originalFormData, setOriginalFormData] = useState<Partial<C3ConfigDetails>>({});
   const [activeTab, setActiveTab] = useState('age');
 
   // Initialize form data when config changes
   useEffect(() => {
     if (config?.details) {
       setFormData({ ...config.details });
+       setOriginalFormData({ ...config.details });
     }
   }, [config]);
 
@@ -50,7 +51,9 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
     await updateConfig.mutateAsync({
       configPeriodId: config.id,
       details: formData,
-      userCode: userCode || undefined
+       userCode: userCode || undefined,
+       oldDetails: originalFormData,
+       periodInfo: { start_date: config.start_date, end_date: config.end_date }
     });
 
     onClose();
@@ -229,31 +232,11 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
                 <p className="text-xs text-muted-foreground">Employee levy calculation slab table</p>
               </div>
             </div>
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Bonus Levy Configuration</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3">
-                  <Switch
-                    checked={formData.bonus_exempt_from_levy || false}
-                    onCheckedChange={(checked) => handleChange('bonus_exempt_from_levy', checked)}
-                  />
-                  <Label>Bonus Exempt from Levy</Label>
-                </div>
-                <div className="space-y-2">
-                  <Label>Bonus Levy Rate (%) {formData.bonus_exempt_from_levy && '(disabled)'}</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formatRateForDisplay(formData.bonus_levy_rate)}
-                    onChange={(e) => handleRateChange('bonus_levy_rate', e.target.value)}
-                    min={0}
-                    max={100}
-                    disabled={formData.bonus_exempt_from_levy}
-                  />
-                  <p className="text-xs text-muted-foreground">Applied when bonus is not exempt</p>
-                </div>
-              </div>
-            </div>
+             <div className="border-t pt-4">
+               <p className="text-sm text-muted-foreground">
+                 Note: Bonus levy exemptions are configured per-period in the "Bonus Exemptions" tab.
+               </p>
+             </div>
           </TabsContent>
 
           {/* Severance */}

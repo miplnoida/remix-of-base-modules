@@ -1,5 +1,6 @@
  import { useState } from 'react';
  import { useC3ConfigPeriods, useToggleC3ConfigActive, C3ConfigWithDetails } from '@/hooks/useC3ConfigManagement';
+ import { useUserCode } from '@/hooks/useUserCode';
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
  import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@
  export function C3PeriodConfigTab() {
    const { data: configs, isLoading, error } = useC3ConfigPeriods();
    const toggleActive = useToggleC3ConfigActive();
+   const { userCode } = useUserCode();
  
    const [selectedConfig, setSelectedConfig] = useState<C3ConfigWithDetails | null>(null);
    const [showCloneDialog, setShowCloneDialog] = useState(false);
@@ -48,7 +50,8 @@
    const handleToggleActive = async (config: C3ConfigWithDetails, isActive: boolean) => {
      await toggleActive.mutateAsync({
        periodId: config.id,
-       isActive
+       isActive,
+       userCode: userCode || undefined
      });
    };
  
