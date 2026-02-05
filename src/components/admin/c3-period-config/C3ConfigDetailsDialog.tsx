@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { useUpdateC3ConfigDetails, useLevySlabs, C3ConfigWithDetails, C3ConfigDetails } from '@/hooks/useC3ConfigManagement';
 import { useUserCode } from '@/hooks/useUserCode';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -232,6 +233,43 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
                 <p className="text-xs text-muted-foreground">Employee levy calculation slab table</p>
               </div>
             </div>
+
+             {/* Monthly Levy Threshold Configuration */}
+             <div className="border-t pt-4">
+               <h4 className="font-medium mb-3">Monthly Levy Threshold</h4>
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Monthly Wage Ceiling ($)</Label>
+                   <Input
+                     type="number"
+                     step="0.01"
+                     value={formData.levy_monthly_threshold || 6500}
+                     onChange={(e) => handleChange('levy_monthly_threshold', parseFloat(e.target.value))}
+                     min={0}
+                   />
+                   <p className="text-xs text-muted-foreground">
+                     If total wages (Week 1-6, excluding bonus) exceed this amount, monthly levy slabs may apply
+                   </p>
+                 </div>
+                 <div className="space-y-2">
+                   <Label>Use Monthly Levy When Exceeded</Label>
+                   <div className="flex items-center space-x-2 pt-2">
+                     <Switch
+                       checked={formData.levy_use_monthly_when_exceeded || false}
+                       onCheckedChange={(checked) => handleChange('levy_use_monthly_when_exceeded', checked)}
+                     />
+                     <span className="text-sm text-muted-foreground">
+                       {formData.levy_use_monthly_when_exceeded ? 'Enabled' : 'Disabled'}
+                     </span>
+                   </div>
+                   <p className="text-xs text-muted-foreground">
+                     When enabled, if wages exceed the ceiling, employee levy uses monthly slab calculation
+                   </p>
+                 </div>
+               </div>
+             </div>
+
+             {/* Bonus Levy Configuration */}
              <div className="border-t pt-4">
                <h4 className="font-medium mb-3">Bonus Levy Configuration</h4>
                <div className="grid grid-cols-2 gap-4">

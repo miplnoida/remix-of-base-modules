@@ -18,24 +18,24 @@
 import { useState, useEffect, useCallback } from 'react';
  import { supabase } from '@/integrations/supabase/client';
  
- export interface C3ConfigData {
-   configPeriodId: string;
-   startDate: string;
-   endDate: string | null;
-   minAgeSS: number;
-   maxAgeSS: number;
-   minAgeLevy: number;
-   maxAgeLevy: number;
-   bonusExemptFromLevy: boolean;
-   bonusLevyRate: number;
-   employeeSSRate: number;
-   employeeSSMaxWage: number;
-   employerSSRate: number;
-   employerEIBRate: number;
-   employerSSMaxWage: number;
-   employerLevyRate: number;
-   employerSeveranceRate: number;
-   levySlabId: string | null;
+export interface C3ConfigData {
+  configPeriodId: string;
+  startDate: string;
+  endDate: string | null;
+  minAgeSS: number;
+  maxAgeSS: number;
+  minAgeLevy: number;
+  maxAgeLevy: number;
+  bonusExemptFromLevy: boolean;
+  bonusLevyRate: number;
+  employeeSSRate: number;
+  employeeSSMaxWage: number;
+  employerSSRate: number;
+  employerEIBRate: number;
+  employerSSMaxWage: number;
+  employerLevyRate: number;
+  employerSeveranceRate: number;
+  levySlabId: string | null;
   // Penalty rates from config
   levyPenaltyInitialRate: number;
   levyPenaltySubsequentRate: number;
@@ -43,7 +43,10 @@ import { useState, useEffect, useCallback } from 'react';
   severancePenaltySubsequentRate: number;
   ssFineInitialRate: number;
   ssFineSubsequentRate: number;
- }
+  // Monthly levy switching parameters
+  levyMonthlyThreshold: number;
+  levyUseMonthlyWhenExceeded: boolean;
+}
  
  export interface LevySlabDetail {
    id: string;
@@ -63,34 +66,37 @@ import { useState, useEffect, useCallback } from 'react';
   receivedDate?: string; // For penalty calculations
  }
  
- export interface EmployeeCalculationResult {
+export interface EmployeeCalculationResult {
   // Wage totals
   totalWages: number;      // Week1-5 + Holiday + Bonus
   taxableWages: number;    // Week1-5 + Holiday (NO bonus)
-   
-   // Employee contributions
-   employeeSS: number;
-   employeeLevy: number;
-   
-   // Employer contributions
-   employerSS: number;
-   employerEIB: number;
-   employerSSTotal: number;
-   employerLevy: number;
-   employerSeverance: number;
-   
+  
+  // Employee contributions
+  employeeSS: number;
+  employeeLevy: number;
+  
+  // Employer contributions
+  employerSS: number;
+  employerEIB: number;
+  employerSSTotal: number;
+  employerLevy: number;
+  employerSeverance: number;
+  
   // Legacy fields for compatibility
   periodGross: number;
   ssWageBase: number;
   ssInsurable: number;
-   totalWagesPlusEmployeeLevyPlusSS: number;
-   employersThreePercentLevyPlusSS: number;
-   employersOnePercentSeverancePay: number;
-   
-   // Age-based exemption flags
-   isAgeExemptSS: boolean;
-   isAgeExemptLevy: boolean;
- }
+  totalWagesPlusEmployeeLevyPlusSS: number;
+  employersThreePercentLevyPlusSS: number;
+  employersOnePercentSeverancePay: number;
+  
+  // Age-based exemption flags
+  isAgeExemptSS: boolean;
+  isAgeExemptLevy: boolean;
+  
+  // Monthly levy switching flag
+  usedMonthlyLevyLogic: boolean;
+}
  
  // Calculate age from date of birth
  function calculateAge(dateOfBirth: string): number {
@@ -161,46 +167,79 @@ import { useState, useEffect, useCallback } from 'react';
    return 0;
  }
  
- /**
-  * Calculate employee levy using slab-based calculation:
-  * - For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
-  * - If bonus is not exempt, add bonus × bonusLevyRate
-  */
- function calculateEmployeeLevy(
-   weeklyWages: number[],
-   payPeriod: string,
-   slabDetails: LevySlabDetail[],
-   bonusExemptFromLevy: boolean,
-   bonusLevyRate: number
- ): number {
-   const payPeriodCode = mapPayPeriodToCode(payPeriod);
-   
-   // Filter slabs for the matching pay period
-   const matchingSlabs = slabDetails
-     .filter(s => s.payPeriod === payPeriodCode)
-     .sort((a, b) => b.overAmt - a.overAmt); // Order by over_amt DESC
-   
-   let totalLevy = 0;
-   
-   // Calculate levy for Week1-5 (indices 0-4) and Holiday (index 6)
-   const weekIndices = [0, 1, 2, 3, 4, 6]; // Week1-5 + Holiday
-   for (const idx of weekIndices) {
-     const weekAmount = weeklyWages[idx] || 0;
-     if (weekAmount > 0) {
-       const weekLevy = calculateSlabLevy(weekAmount, matchingSlabs);
-       totalLevy += weekLevy;
-     }
-   }
-   
-   // Add bonus levy if not exempt
-   const bonus = weeklyWages[5] || 0;
-   if (!bonusExemptFromLevy && bonus > 0 && bonusLevyRate > 0) {
-     const bonusLevy = round2(bonus * bonusLevyRate);
-     totalLevy += bonusLevy;
-   }
-   
-   return round2(totalLevy);
- }
+/**
+ * Calculate employee levy using slab-based calculation:
+ * - Check if monthly levy switching should apply based on config threshold
+ * - If switching applies: use monthly slabs on combined Week1-6 total
+ * - Otherwise: For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
+ * - If bonus is not exempt, add bonus × bonusLevyRate
+ */
+function calculateEmployeeLevy(
+  weeklyWages: number[],
+  payPeriod: string,
+  slabDetails: LevySlabDetail[],
+  bonusExemptFromLevy: boolean,
+  bonusLevyRate: number,
+  levyMonthlyThreshold: number,
+  levyUseMonthlyWhenExceeded: boolean
+): { totalLevy: number; usedMonthlyLogic: boolean } {
+  // Calculate total of Week1-6 (excluding bonus at index 5)
+  // Week1-5 = indices 0-4, Holiday = index 6
+  const week1 = weeklyWages[0] || 0;
+  const week2 = weeklyWages[1] || 0;
+  const week3 = weeklyWages[2] || 0;
+  const week4 = weeklyWages[3] || 0;
+  const week5 = weeklyWages[4] || 0;
+  const holiday = weeklyWages[6] || 0;
+  const bonus = weeklyWages[5] || 0;
+  
+  // Total wages for threshold check (Week1-6, excluding bonus)
+  const totalWagesForThreshold = week1 + week2 + week3 + week4 + week5 + holiday;
+  
+  let totalLevy = 0;
+  let usedMonthlyLogic = false;
+  
+  // Check if monthly levy switching should apply
+  if (levyUseMonthlyWhenExceeded && totalWagesForThreshold > levyMonthlyThreshold) {
+    // Use monthly slabs on the combined total
+    const monthlySlabs = slabDetails
+      .filter(s => s.payPeriod === 'M') // Monthly slabs
+      .sort((a, b) => b.overAmt - a.overAmt);
+    
+    if (monthlySlabs.length > 0) {
+      totalLevy = calculateSlabLevy(totalWagesForThreshold, monthlySlabs);
+      usedMonthlyLogic = true;
+    }
+  }
+  
+  // If not using monthly logic, calculate per-week using employee's pay period
+  if (!usedMonthlyLogic) {
+    const payPeriodCode = mapPayPeriodToCode(payPeriod);
+    
+    // Filter slabs for the matching pay period
+    const matchingSlabs = slabDetails
+      .filter(s => s.payPeriod === payPeriodCode)
+      .sort((a, b) => b.overAmt - a.overAmt);
+    
+    // Calculate levy for Week1-5 (indices 0-4) and Holiday (index 6)
+    const weekIndices = [0, 1, 2, 3, 4, 6];
+    for (const idx of weekIndices) {
+      const weekAmount = weeklyWages[idx] || 0;
+      if (weekAmount > 0) {
+        const weekLevy = calculateSlabLevy(weekAmount, matchingSlabs);
+        totalLevy += weekLevy;
+      }
+    }
+  }
+  
+  // Add bonus levy if not exempt (applies in both cases)
+  if (!bonusExemptFromLevy && bonus > 0 && bonusLevyRate > 0) {
+    const bonusLevy = round2(bonus * bonusLevyRate);
+    totalLevy += bonusLevy;
+  }
+  
+  return { totalLevy: round2(totalLevy), usedMonthlyLogic };
+}
  
  /**
   * Perform calculations with config data
@@ -244,17 +283,22 @@ import { useState, useEffect, useCallback } from 'react';
     employeeSS = round2(config.employeeSSRate * cappedTaxableForEmployeeSS);
    }
    
-  // Employee Levy = (Taxable Wages × 3.5%) + (Bonus × bonusLevyRate)
-   // Employee Levy = Slab-based calculation for each week + bonus levy
+  // Employee Levy = Slab-based calculation for each week + bonus levy
+  // Uses monthly switching logic when enabled and threshold exceeded
   let employeeLevy = 0;
+  let usedMonthlyLevyLogic = false;
   if (!isAgeExemptLevy) {
-    employeeLevy = calculateEmployeeLevy(
-       weeklyWages,
-       payPeriod,
-       slabDetails,
+    const levyResult = calculateEmployeeLevy(
+      weeklyWages,
+      payPeriod,
+      slabDetails,
       config.bonusExemptFromLevy,
-      config.bonusLevyRate
+      config.bonusLevyRate,
+      config.levyMonthlyThreshold,
+      config.levyUseMonthlyWhenExceeded
     );
+    employeeLevy = levyResult.totalLevy;
+    usedMonthlyLevyLogic = levyResult.usedMonthlyLogic;
   }
    
   // ========================================
@@ -315,7 +359,10 @@ import { useState, useEffect, useCallback } from 'react';
     
     // Age exemption flags
      isAgeExemptSS,
-     isAgeExemptLevy
+     isAgeExemptLevy,
+     
+     // Monthly levy switching flag
+     usedMonthlyLevyLogic
    };
  }
  
@@ -353,32 +400,35 @@ import { useState, useEffect, useCallback } from 'react';
          }
  
          const cfg = configData[0];
-         const mappedConfig: C3ConfigData = {
-           configPeriodId: cfg.config_period_id,
-           startDate: cfg.start_date,
-           endDate: cfg.end_date,
-           minAgeSS: cfg.min_age_ss,
-           maxAgeSS: cfg.max_age_ss,
-           minAgeLevy: cfg.min_age_levy,
-           maxAgeLevy: cfg.max_age_levy,
-           bonusExemptFromLevy: cfg.bonus_exempt_from_levy,
-          bonusLevyRate: Number(cfg.bonus_levy_rate) || 0,
-          employeeSSRate: Number(cfg.employee_ss_rate) || 0.05,
-          employeeSSMaxWage: Number(cfg.employee_ss_max_wage) || 6500,
-          employerSSRate: Number(cfg.employer_ss_rate) || 0.05,
-          employerEIBRate: Number(cfg.employer_eib_rate) || 0.01,
-          employerSSMaxWage: Number(cfg.employer_ss_max_wage) || 6500,
-          employerLevyRate: Number(cfg.employer_levy_rate) || 0.03,
-          employerSeveranceRate: Number(cfg.employer_severance_rate) || 0.01,
-          levySlabId: cfg.levy_slab_id,
-          // Penalty rates
-          levyPenaltyInitialRate: Number(cfg.levy_penalty_initial_rate) || 0.10,
-          levyPenaltySubsequentRate: Number(cfg.levy_penalty_subsequent_rate) || 0.01,
-          severancePenaltyInitialRate: Number(cfg.severance_penalty_initial_rate) || 0.10,
-          severancePenaltySubsequentRate: Number(cfg.severance_penalty_subsequent_rate) || 0.01,
-          ssFineInitialRate: Number(cfg.ss_fine_initial_rate) || 0.05,
-          ssFineSubsequentRate: Number(cfg.ss_fine_subsequent_rate) || 0.05
-         };
+          const mappedConfig: C3ConfigData = {
+            configPeriodId: cfg.config_period_id,
+            startDate: cfg.start_date,
+            endDate: cfg.end_date,
+            minAgeSS: cfg.min_age_ss,
+            maxAgeSS: cfg.max_age_ss,
+            minAgeLevy: cfg.min_age_levy,
+            maxAgeLevy: cfg.max_age_levy,
+            bonusExemptFromLevy: cfg.bonus_exempt_from_levy,
+           bonusLevyRate: Number(cfg.bonus_levy_rate) || 0,
+           employeeSSRate: Number(cfg.employee_ss_rate) || 0.05,
+           employeeSSMaxWage: Number(cfg.employee_ss_max_wage) || 6500,
+           employerSSRate: Number(cfg.employer_ss_rate) || 0.05,
+           employerEIBRate: Number(cfg.employer_eib_rate) || 0.01,
+           employerSSMaxWage: Number(cfg.employer_ss_max_wage) || 6500,
+           employerLevyRate: Number(cfg.employer_levy_rate) || 0.03,
+           employerSeveranceRate: Number(cfg.employer_severance_rate) || 0.01,
+           levySlabId: cfg.levy_slab_id,
+           // Penalty rates
+           levyPenaltyInitialRate: Number(cfg.levy_penalty_initial_rate) || 0.10,
+           levyPenaltySubsequentRate: Number(cfg.levy_penalty_subsequent_rate) || 0.01,
+           severancePenaltyInitialRate: Number(cfg.severance_penalty_initial_rate) || 0.10,
+           severancePenaltySubsequentRate: Number(cfg.severance_penalty_subsequent_rate) || 0.01,
+           ssFineInitialRate: Number(cfg.ss_fine_initial_rate) || 0.05,
+           ssFineSubsequentRate: Number(cfg.ss_fine_subsequent_rate) || 0.05,
+           // Monthly levy switching parameters
+           levyMonthlyThreshold: Number(cfg.levy_monthly_threshold) || 6500,
+           levyUseMonthlyWhenExceeded: cfg.levy_use_monthly_when_exceeded || false
+          };
  
          setConfig(mappedConfig);
  
@@ -438,24 +488,25 @@ import { useState, useEffect, useCallback } from 'react';
        if (!config || slabDetails.length === 0) {
          // Return zero values if config not loaded
          return {
-          totalWages: 0,
-          taxableWages: 0,
-           periodGross: 0,
-           ssWageBase: 0,
-           ssInsurable: 0,
-           employeeSS: 0,
-           employeeLevy: 0,
-           employerSS: 0,
-           employerEIB: 0,
-           employerSSTotal: 0,
-           employerLevy: 0,
-           employerSeverance: 0,
-           totalWagesPlusEmployeeLevyPlusSS: 0,
-           employersThreePercentLevyPlusSS: 0,
-           employersOnePercentSeverancePay: 0,
-           isAgeExemptSS: false,
-           isAgeExemptLevy: false
-         };
+           totalWages: 0,
+           taxableWages: 0,
+            periodGross: 0,
+            ssWageBase: 0,
+            ssInsurable: 0,
+            employeeSS: 0,
+            employeeLevy: 0,
+            employerSS: 0,
+            employerEIB: 0,
+            employerSSTotal: 0,
+            employerLevy: 0,
+            employerSeverance: 0,
+            totalWagesPlusEmployeeLevyPlusSS: 0,
+            employersThreePercentLevyPlusSS: 0,
+            employersOnePercentSeverancePay: 0,
+            isAgeExemptSS: false,
+            isAgeExemptLevy: false,
+            usedMonthlyLevyLogic: false
+          };
        }
  
        return performCalculation(inputs, config, slabDetails);

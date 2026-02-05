@@ -49,6 +49,9 @@ export interface C3ConfigDetails {
   interest_rate_penalties: number;
   interest_rate_fines: number;
   levy_slab_id: string | null;
+  // Monthly levy switching parameters
+  levy_monthly_threshold: number;
+  levy_use_monthly_when_exceeded: boolean;
 }
 
 export interface C3ConfigWithDetails extends C3ConfigPeriod {
