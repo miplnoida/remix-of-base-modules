@@ -2,3 +2,6 @@ project_id = "pruvbfejdpodpalqafcu"
 
 [functions.workflow-notify-approvers]
 verify_jwt = false
+
+[functions.meeting-api-handler]
+verify_jwt = false

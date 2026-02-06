@@ -5713,6 +5713,290 @@ export type Database = {
           },
         ]
       }
+      meeting_api_logs: {
+        Row: {
+          action_type: string
+          api_config_id: string | null
+          created_at: string | null
+          created_by: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          is_success: boolean | null
+          meeting_id: string
+          request_headers: Json | null
+          request_method: string | null
+          request_payload: Json | null
+          request_url: string | null
+          response_headers: Json | null
+          response_payload: Json | null
+          response_status: number | null
+          retry_attempt: number | null
+        }
+        Insert: {
+          action_type: string
+          api_config_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          is_success?: boolean | null
+          meeting_id: string
+          request_headers?: Json | null
+          request_method?: string | null
+          request_payload?: Json | null
+          request_url?: string | null
+          response_headers?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          retry_attempt?: number | null
+        }
+        Update: {
+          action_type?: string
+          api_config_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          is_success?: boolean | null
+          meeting_id?: string
+          request_headers?: Json | null
+          request_method?: string | null
+          request_payload?: Json | null
+          request_url?: string | null
+          response_headers?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          retry_attempt?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_api_logs_api_config_id_fkey"
+            columns: ["api_config_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_api_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_api_logs_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_history: {
+        Row: {
+          action_taken: string
+          id: string
+          ip_address: string | null
+          meeting_id: string
+          new_date: string | null
+          new_status: Database["public"]["Enums"]["meeting_status"]
+          new_time: string | null
+          old_date: string | null
+          old_status: Database["public"]["Enums"]["meeting_status"] | null
+          old_time: string | null
+          outcome: Database["public"]["Enums"]["meeting_outcome"] | null
+          performed_at: string | null
+          performed_by: string | null
+          performed_by_name: string | null
+          remarks: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_taken: string
+          id?: string
+          ip_address?: string | null
+          meeting_id: string
+          new_date?: string | null
+          new_status: Database["public"]["Enums"]["meeting_status"]
+          new_time?: string | null
+          old_date?: string | null
+          old_status?: Database["public"]["Enums"]["meeting_status"] | null
+          old_time?: string | null
+          outcome?: Database["public"]["Enums"]["meeting_outcome"] | null
+          performed_at?: string | null
+          performed_by?: string | null
+          performed_by_name?: string | null
+          remarks?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_taken?: string
+          id?: string
+          ip_address?: string | null
+          meeting_id?: string
+          new_date?: string | null
+          new_status?: Database["public"]["Enums"]["meeting_status"]
+          new_time?: string | null
+          old_date?: string | null
+          old_status?: Database["public"]["Enums"]["meeting_status"] | null
+          old_time?: string | null
+          outcome?: Database["public"]["Enums"]["meeting_outcome"] | null
+          performed_at?: string | null
+          performed_by?: string | null
+          performed_by_name?: string | null
+          remarks?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_history_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          action_config_id: string | null
+          api_notification_at: string | null
+          api_notified: boolean | null
+          application_reference: string
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_name: string | null
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          meeting_date: string
+          meeting_reference: string
+          meeting_time: string
+          meeting_type: Database["public"]["Enums"]["meeting_type"]
+          metadata: Json | null
+          office_address: string | null
+          office_location_id: string | null
+          outcome: Database["public"]["Enums"]["meeting_outcome"] | null
+          outcome_remarks: string | null
+          parent_meeting_id: string | null
+          remarks: string | null
+          reschedule_count: number | null
+          scheduled_by: string | null
+          scheduled_by_name: string | null
+          status: Database["public"]["Enums"]["meeting_status"]
+          step_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          workflow_id: string | null
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          action_config_id?: string | null
+          api_notification_at?: string | null
+          api_notified?: boolean | null
+          application_reference: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_by_name?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          meeting_date: string
+          meeting_reference: string
+          meeting_time: string
+          meeting_type: Database["public"]["Enums"]["meeting_type"]
+          metadata?: Json | null
+          office_address?: string | null
+          office_location_id?: string | null
+          outcome?: Database["public"]["Enums"]["meeting_outcome"] | null
+          outcome_remarks?: string | null
+          parent_meeting_id?: string | null
+          remarks?: string | null
+          reschedule_count?: number | null
+          scheduled_by?: string | null
+          scheduled_by_name?: string | null
+          status?: Database["public"]["Enums"]["meeting_status"]
+          step_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          workflow_id?: string | null
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          action_config_id?: string | null
+          api_notification_at?: string | null
+          api_notified?: boolean | null
+          application_reference?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_by_name?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          meeting_date?: string
+          meeting_reference?: string
+          meeting_time?: string
+          meeting_type?: Database["public"]["Enums"]["meeting_type"]
+          metadata?: Json | null
+          office_address?: string | null
+          office_location_id?: string | null
+          outcome?: Database["public"]["Enums"]["meeting_outcome"] | null
+          outcome_remarks?: string | null
+          parent_meeting_id?: string | null
+          remarks?: string | null
+          reschedule_count?: number | null
+          scheduled_by?: string | null
+          scheduled_by_name?: string | null
+          status?: Database["public"]["Enums"]["meeting_status"]
+          step_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          workflow_id?: string | null
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_action_config_id_fkey"
+            columns: ["action_config_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_action_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_parent_meeting_id_fkey"
+            columns: ["parent_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mfa_config: {
         Row: {
           allowed_methods: string[] | null
@@ -8243,6 +8527,93 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_action_configurations: {
+        Row: {
+          action_id: string | null
+          action_type_id: string
+          api_config_id: string | null
+          created_at: string | null
+          created_by: string | null
+          custom_config: Json | null
+          id: string
+          is_active: boolean | null
+          meeting_type: Database["public"]["Enums"]["meeting_type"] | null
+          requires_api_integration: boolean | null
+          step_id: string
+          updated_at: string | null
+          updated_by: string | null
+          workflow_id: string
+        }
+        Insert: {
+          action_id?: string | null
+          action_type_id: string
+          api_config_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          meeting_type?: Database["public"]["Enums"]["meeting_type"] | null
+          requires_api_integration?: boolean | null
+          step_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          workflow_id: string
+        }
+        Update: {
+          action_id?: string | null
+          action_type_id?: string
+          api_config_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          meeting_type?: Database["public"]["Enums"]["meeting_type"] | null
+          requires_api_integration?: boolean | null
+          step_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_api_config"
+            columns: ["api_config_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_api_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_configurations_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_configurations_action_type_id_fkey"
+            columns: ["action_type_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_action_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_configurations_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_configurations_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_action_field_updates: {
         Row: {
           action_id: string
@@ -8315,6 +8686,205 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workflow_action_outcomes: {
+        Row: {
+          action_config_id: string
+          api_config_id: string | null
+          button_variant: string | null
+          created_at: string | null
+          created_by: string | null
+          creates_new_request: boolean | null
+          description: string | null
+          display_order: number | null
+          end_state: Database["public"]["Enums"]["workflow_end_state"] | null
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          new_request_module: string | null
+          next_step_id: string | null
+          next_step_type: string
+          outcome_code: Database["public"]["Enums"]["meeting_outcome"]
+          outcome_label: string
+          requires_remarks: boolean | null
+          triggers_api: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          action_config_id: string
+          api_config_id?: string | null
+          button_variant?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creates_new_request?: boolean | null
+          description?: string | null
+          display_order?: number | null
+          end_state?: Database["public"]["Enums"]["workflow_end_state"] | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          new_request_module?: string | null
+          next_step_id?: string | null
+          next_step_type?: string
+          outcome_code: Database["public"]["Enums"]["meeting_outcome"]
+          outcome_label: string
+          requires_remarks?: boolean | null
+          triggers_api?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          action_config_id?: string
+          api_config_id?: string | null
+          button_variant?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creates_new_request?: boolean | null
+          description?: string | null
+          display_order?: number | null
+          end_state?: Database["public"]["Enums"]["workflow_end_state"] | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          new_request_module?: string | null
+          next_step_id?: string | null
+          next_step_type?: string
+          outcome_code?: Database["public"]["Enums"]["meeting_outcome"]
+          outcome_label?: string
+          requires_remarks?: boolean | null
+          triggers_api?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_action_outcomes_action_config_id_fkey"
+            columns: ["action_config_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_action_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_outcomes_api_config_id_fkey"
+            columns: ["api_config_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_api_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_outcomes_next_step_id_fkey"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_action_types: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system_defined: boolean | null
+          pauses_workflow: boolean | null
+          requires_api_integration: boolean | null
+          requires_form: boolean | null
+          type_code: string
+          type_name: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_defined?: boolean | null
+          pauses_workflow?: boolean | null
+          requires_api_integration?: boolean | null
+          requires_form?: boolean | null
+          type_code: string
+          type_name: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_defined?: boolean | null
+          pauses_workflow?: boolean | null
+          requires_api_integration?: boolean | null
+          requires_form?: boolean | null
+          type_code?: string
+          type_name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      workflow_api_configurations: {
+        Row: {
+          body_template: Json | null
+          config_name: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          endpoint_url: string
+          headers_template: Json | null
+          http_method: string
+          id: string
+          is_active: boolean | null
+          retry_count: number | null
+          secret_name: string | null
+          success_condition: Json | null
+          timeout_seconds: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          body_template?: Json | null
+          config_name: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          endpoint_url: string
+          headers_template?: Json | null
+          http_method?: string
+          id?: string
+          is_active?: boolean | null
+          retry_count?: number | null
+          secret_name?: string | null
+          success_condition?: Json | null
+          timeout_seconds?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          body_template?: Json | null
+          config_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          endpoint_url?: string
+          headers_template?: Json | null
+          http_method?: string
+          id?: string
+          is_active?: boolean | null
+          retry_count?: number | null
+          secret_name?: string | null
+          success_condition?: Json | null
+          timeout_seconds?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       workflow_definitions: {
         Row: {
@@ -9106,6 +9676,7 @@ export type Database = {
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_er_regno: { Args: never; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
+      generate_meeting_reference: { Args: never; Returns: string }
       generate_temp_er_regno: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
       generate_user_code: {
@@ -9288,6 +9859,18 @@ export type Database = {
         }
         Returns: string
       }
+      process_meeting_outcome: {
+        Args: {
+          p_meeting_id: string
+          p_new_date?: string
+          p_new_time?: string
+          p_outcome: Database["public"]["Enums"]["meeting_outcome"]
+          p_remarks?: string
+          p_user_id?: string
+          p_user_name?: string
+        }
+        Returns: Json
+      }
       register_voluntary_contributor: {
         Args: {
           p_date_commenced: string
@@ -9306,6 +9889,26 @@ export type Database = {
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
+      }
+      schedule_meeting: {
+        Args: {
+          p_action_config_id: string
+          p_application_reference: string
+          p_contact_email?: string
+          p_contact_person: string
+          p_contact_phone?: string
+          p_meeting_date: string
+          p_meeting_time: string
+          p_meeting_type: Database["public"]["Enums"]["meeting_type"]
+          p_office_address?: string
+          p_remarks?: string
+          p_step_id: string
+          p_user_id?: string
+          p_user_name?: string
+          p_workflow_id: string
+          p_workflow_instance_id: string
+        }
+        Returns: Json
       }
       submit_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }
@@ -9468,6 +10071,24 @@ export type Database = {
         | "scouting"
         | "education"
         | "notice_service"
+      meeting_outcome:
+        | "ClosedWithApproval"
+        | "ClosedWithRejection"
+        | "Reschedule"
+        | "NextSchedule"
+        | "Cancel"
+      meeting_status:
+        | "Scheduled"
+        | "Rescheduled"
+        | "InProgress"
+        | "Closed"
+        | "Cancelled"
+        | "Rejected"
+      meeting_type:
+        | "IP-Registration"
+        | "Employer-Registration"
+        | "Doctor-Registration"
+        | "General"
       next_step_type:
         | "next_step"
         | "specific_step"
@@ -9503,6 +10124,7 @@ export type Database = {
         | "Escalated"
         | "Approved"
         | "Query"
+        | "AwaitingMeeting"
       workflow_status: "Draft" | "Active" | "Disabled" | "Archived"
       workflow_step_action_type:
         | "Approve"
@@ -9512,6 +10134,7 @@ export type Database = {
         | "AutoApprove"
         | "Review"
         | "Custom"
+        | "ScheduleMeeting"
       workflow_task_status:
         | "Pending"
         | "InProgress"
@@ -9787,6 +10410,27 @@ export const Constants = {
         "education",
         "notice_service",
       ],
+      meeting_outcome: [
+        "ClosedWithApproval",
+        "ClosedWithRejection",
+        "Reschedule",
+        "NextSchedule",
+        "Cancel",
+      ],
+      meeting_status: [
+        "Scheduled",
+        "Rescheduled",
+        "InProgress",
+        "Closed",
+        "Cancelled",
+        "Rejected",
+      ],
+      meeting_type: [
+        "IP-Registration",
+        "Employer-Registration",
+        "Doctor-Registration",
+        "General",
+      ],
       next_step_type: [
         "next_step",
         "specific_step",
@@ -9819,6 +10463,7 @@ export const Constants = {
         "Escalated",
         "Approved",
         "Query",
+        "AwaitingMeeting",
       ],
       workflow_status: ["Draft", "Active", "Disabled", "Archived"],
       workflow_step_action_type: [
@@ -9829,6 +10474,7 @@ export const Constants = {
         "AutoApprove",
         "Review",
         "Custom",
+        "ScheduleMeeting",
       ],
       workflow_task_status: [
         "Pending",

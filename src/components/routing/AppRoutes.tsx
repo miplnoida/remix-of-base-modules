@@ -345,6 +345,9 @@ import PaymentInquiry from '@/pages/finance/accounts-payable/PaymentInquiry';
 import BenefitFinanceMapping from '@/pages/finance/settings/BenefitFinanceMapping';
 import LifeCertificateConfig from '@/pages/nbenefit/config/LifeCertificateConfig';
 
+// Meetings Module
+import ManageMeetingsPage from '@/pages/meetings/ManageMeetingsPage';
+
 // Accounts Payable Module
 import APPendingPayables from '@/pages/finance/accounts-payable/PendingPayables';
 import APCreateBatch from '@/pages/finance/accounts-payable/CreateAPBatch';
@@ -1331,6 +1334,9 @@ export const AppRoutes = () => {
 
       {/* Applications for Review */}
       <Route path="/workflow/applications-review" element={<ProtectedLayout><ApplicationsReview /></ProtectedLayout>} />
+
+      {/* Meetings Module */}
+      <Route path="/meetings/manage" element={<ProtectedLayout><ManageMeetingsPage /></ProtectedLayout>} />
 
       {/* Workflow Instances */}
       <Route path="/admin/workflow-instances" element={<ProtectedLayout><WorkflowInstanceList /></ProtectedLayout>} />
