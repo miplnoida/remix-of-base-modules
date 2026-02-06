@@ -1,0 +1,463 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+}
+
+interface MeetingApiRequest {
+  action: 'schedule' | 'process_outcome' | 'call_external_api' | 'get_meetings' | 'get_meeting_details'
+  meetingId?: string
+  applicationReference?: string
+  workflowInstanceId?: string
+  workflowId?: string
+  stepId?: string
+  actionConfigId?: string
+  meetingType?: string
+  meetingDate?: string
+  meetingTime?: string
+  contactPerson?: string
+  contactEmail?: string
+  contactPhone?: string
+  officeAddress?: string
+  remarks?: string
+  outcome?: string
+  newDate?: string
+  newTime?: string
+  apiConfigId?: string
+  filters?: {
+    status?: string
+    dateFrom?: string
+    dateTo?: string
+    meetingType?: string
+  }
+}
+
+// Helper to resolve placeholders in templates
+function resolvePlaceholders(template: string | object, context: Record<string, any>): any {
+  const templateStr = typeof template === 'object' ? JSON.stringify(template) : template
+  
+  let resolved = templateStr
+  
+  // Replace all {{placeholder}} patterns
+  const placeholderRegex = /\{\{([^}]+)\}\}/g
+  resolved = resolved.replace(placeholderRegex, (match, key) => {
+    const trimmedKey = key.trim()
+    const value = context[trimmedKey]
+    return value !== undefined ? String(value) : match
+  })
+  
+  if (typeof template === 'object') {
+    try {
+      return JSON.parse(resolved)
+    } catch {
+      return resolved
+    }
+  }
+  
+  return resolved
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization')
+    let userId: string | null = null
+    let userName: string | null = null
+
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user } } = await supabase.auth.getUser(token)
+      if (user) {
+        userId = user.id
+        // Get user profile for name
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, user_code')
+          .eq('id', user.id)
+          .single()
+        userName = profile?.full_name || profile?.user_code || user.email
+      }
+    }
+
+    const body: MeetingApiRequest = await req.json()
+    console.log('Meeting API request:', body.action)
+
+    switch (body.action) {
+      case 'schedule': {
+        // Schedule a new meeting
+        const { data, error } = await supabase.rpc('schedule_meeting', {
+          p_application_reference: body.applicationReference,
+          p_workflow_instance_id: body.workflowInstanceId || null,
+          p_workflow_id: body.workflowId || null,
+          p_step_id: body.stepId || null,
+          p_action_config_id: body.actionConfigId || null,
+          p_meeting_type: body.meetingType || 'General',
+          p_meeting_date: body.meetingDate,
+          p_meeting_time: body.meetingTime,
+          p_contact_person: body.contactPerson,
+          p_contact_email: body.contactEmail || null,
+          p_contact_phone: body.contactPhone || null,
+          p_office_address: body.officeAddress || null,
+          p_remarks: body.remarks || null,
+          p_user_id: userId,
+          p_user_name: userName
+        })
+
+        if (error) {
+          console.error('Schedule meeting error:', error)
+          throw error
+        }
+
+        // Check if API notification is configured
+        if (body.actionConfigId) {
+          const { data: config } = await supabase
+            .from('workflow_action_configurations')
+            .select('requires_api_integration, api_config_id')
+            .eq('id', body.actionConfigId)
+            .single()
+
+          if (config?.requires_api_integration && config?.api_config_id) {
+            // Trigger external API call asynchronously
+            await callExternalApi(supabase, data.meeting_id, config.api_config_id, 'SCHEDULED', {
+              applicationReference: body.applicationReference,
+              meetingReference: data.meeting_reference,
+              meetingDate: body.meetingDate,
+              meetingTime: body.meetingTime,
+              officeAddress: body.officeAddress,
+              remarks: body.remarks
+            })
+          }
+        }
+
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'process_outcome': {
+        // Process meeting outcome
+        const { data, error } = await supabase.rpc('process_meeting_outcome', {
+          p_meeting_id: body.meetingId,
+          p_outcome: body.outcome,
+          p_remarks: body.remarks || null,
+          p_new_date: body.newDate || null,
+          p_new_time: body.newTime || null,
+          p_user_id: userId,
+          p_user_name: userName
+        })
+
+        if (error) {
+          console.error('Process outcome error:', error)
+          throw error
+        }
+
+        // Get meeting for API notification check
+        const { data: meeting } = await supabase
+          .from('meetings')
+          .select('action_config_id, application_reference, meeting_reference')
+          .eq('id', body.meetingId)
+          .single()
+
+        if (meeting?.action_config_id) {
+          // Check if outcome triggers API
+          const { data: outcomeConfig } = await supabase
+            .from('workflow_action_outcomes')
+            .select('triggers_api, api_config_id')
+            .eq('action_config_id', meeting.action_config_id)
+            .eq('outcome_code', body.outcome)
+            .single()
+
+          if (outcomeConfig?.triggers_api && outcomeConfig?.api_config_id) {
+            await callExternalApi(supabase, body.meetingId!, outcomeConfig.api_config_id, body.outcome!, {
+              applicationReference: meeting.application_reference,
+              meetingReference: meeting.meeting_reference,
+              outcome: body.outcome,
+              remarks: body.remarks
+            })
+          }
+        }
+
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'get_meetings': {
+        // Get meetings with filters
+        let query = supabase
+          .from('meetings')
+          .select(`
+            *,
+            workflow_definitions(name),
+            workflow_steps(step_name)
+          `)
+          .order('meeting_date', { ascending: true })
+          .order('meeting_time', { ascending: true })
+
+        if (body.filters?.status) {
+          query = query.eq('status', body.filters.status)
+        }
+        if (body.filters?.meetingType) {
+          query = query.eq('meeting_type', body.filters.meetingType)
+        }
+        if (body.filters?.dateFrom) {
+          query = query.gte('meeting_date', body.filters.dateFrom)
+        }
+        if (body.filters?.dateTo) {
+          query = query.lte('meeting_date', body.filters.dateTo)
+        }
+
+        const { data, error } = await query
+
+        if (error) throw error
+
+        return new Response(JSON.stringify({ meetings: data }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'get_meeting_details': {
+        // Get single meeting with full details
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select(`
+            *,
+            workflow_definitions(name, description),
+            workflow_steps(step_name, description),
+            workflow_action_configurations(
+              meeting_type,
+              requires_api_integration
+            )
+          `)
+          .eq('id', body.meetingId)
+          .single()
+
+        if (meetingError) throw meetingError
+
+        // Get meeting history
+        const { data: history } = await supabase
+          .from('meeting_history')
+          .select('*')
+          .eq('meeting_id', body.meetingId)
+          .order('performed_at', { ascending: false })
+
+        // Get available outcomes
+        let outcomes: any[] = []
+        if (meeting.action_config_id) {
+          const { data: outcomeData } = await supabase
+            .from('workflow_action_outcomes')
+            .select('*')
+            .eq('action_config_id', meeting.action_config_id)
+            .eq('is_active', true)
+            .order('display_order')
+          outcomes = outcomeData || []
+        }
+
+        // Get API logs
+        const { data: apiLogs } = await supabase
+          .from('meeting_api_logs')
+          .select('*')
+          .eq('meeting_id', body.meetingId)
+          .order('created_at', { ascending: false })
+
+        return new Response(JSON.stringify({
+          meeting,
+          history: history || [],
+          outcomes,
+          apiLogs: apiLogs || []
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'call_external_api': {
+        // Manually trigger external API call
+        if (!body.meetingId || !body.apiConfigId) {
+          throw new Error('Meeting ID and API Config ID are required')
+        }
+
+        const { data: meeting } = await supabase
+          .from('meetings')
+          .select('application_reference, meeting_reference, meeting_date, meeting_time, office_address, remarks')
+          .eq('id', body.meetingId)
+          .single()
+
+        const result = await callExternalApi(supabase, body.meetingId, body.apiConfigId, 'MANUAL', {
+          applicationReference: meeting?.application_reference,
+          meetingReference: meeting?.meeting_reference,
+          meetingDate: meeting?.meeting_date,
+          meetingTime: meeting?.meeting_time,
+          officeAddress: meeting?.office_address,
+          remarks: meeting?.remarks
+        })
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      default:
+        return new Response(JSON.stringify({ error: 'Invalid action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+    }
+  } catch (error: unknown) {
+    console.error('Meeting API error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+})
+
+// Helper function to call external APIs
+async function callExternalApi(
+  supabase: any,
+  meetingId: string,
+  apiConfigId: string,
+  actionType: string,
+  context: Record<string, any>
+): Promise<{ success: boolean; error?: string }> {
+  const startTime = Date.now()
+
+  try {
+    // Get API configuration
+    const { data: apiConfig, error: configError } = await supabase
+      .from('workflow_api_configurations')
+      .select('*')
+      .eq('id', apiConfigId)
+      .single()
+
+    if (configError || !apiConfig) {
+      throw new Error('API configuration not found')
+    }
+
+    // Get secret if configured
+    let apiKey: string | null = null
+    if (apiConfig.secret_name) {
+      // Secrets should be stored in Supabase Vault or environment
+      apiKey = Deno.env.get(apiConfig.secret_name) || null
+    }
+
+    // Resolve placeholders in body template
+    const resolvedBody = apiConfig.body_template 
+      ? resolvePlaceholders(apiConfig.body_template, context)
+      : null
+
+    // Resolve placeholders in headers
+    const resolvedHeaders: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+    
+    if (apiConfig.headers_template) {
+      const parsedHeaders = typeof apiConfig.headers_template === 'string' 
+        ? JSON.parse(apiConfig.headers_template) 
+        : apiConfig.headers_template
+      
+      for (const [key, value] of Object.entries(parsedHeaders)) {
+        resolvedHeaders[key] = resolvePlaceholders(String(value), { ...context, apiKey })
+      }
+    }
+
+    // If API key exists and no Authorization header set, add it
+    if (apiKey && !resolvedHeaders['Authorization']) {
+      resolvedHeaders['Authorization'] = `Bearer ${apiKey}`
+    }
+
+    // Resolve URL placeholders
+    const resolvedUrl = resolvePlaceholders(apiConfig.endpoint_url, context)
+
+    console.log(`Calling external API: ${apiConfig.http_method} ${resolvedUrl}`)
+
+    // Make the API call with timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), (apiConfig.timeout_seconds || 30) * 1000)
+
+    const fetchOptions: RequestInit = {
+      method: apiConfig.http_method,
+      headers: resolvedHeaders,
+      signal: controller.signal
+    }
+
+    if (resolvedBody && ['POST', 'PUT', 'PATCH'].includes(apiConfig.http_method)) {
+      fetchOptions.body = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody)
+    }
+
+    const response = await fetch(resolvedUrl, fetchOptions)
+    clearTimeout(timeoutId)
+
+    const responseText = await response.text()
+    let responseJson: any = null
+    try {
+      responseJson = JSON.parse(responseText)
+    } catch {
+      responseJson = { raw: responseText }
+    }
+
+    const duration = Date.now() - startTime
+    const isSuccess = response.ok
+
+    // Log the API call
+    await supabase.from('meeting_api_logs').insert({
+      meeting_id: meetingId,
+      api_config_id: apiConfigId,
+      action_type: actionType,
+      request_url: resolvedUrl,
+      request_method: apiConfig.http_method,
+      request_headers: resolvedHeaders,
+      request_payload: resolvedBody,
+      response_status: response.status,
+      response_payload: responseJson,
+      is_success: isSuccess,
+      error_message: isSuccess ? null : responseText,
+      duration_ms: duration
+    })
+
+    // Update meeting API notification status
+    if (isSuccess) {
+      await supabase
+        .from('meetings')
+        .update({
+          api_notified: true,
+          api_notification_at: new Date().toISOString()
+        })
+        .eq('id', meetingId)
+    }
+
+    return { success: isSuccess }
+  } catch (error: unknown) {
+    const duration = Date.now() - startTime
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    // Log the failed attempt
+    await supabase.from('meeting_api_logs').insert({
+      meeting_id: meetingId,
+      api_config_id: apiConfigId,
+      action_type: actionType,
+      is_success: false,
+      error_message: errorMessage,
+      duration_ms: duration
+    })
+
+    console.error('External API call failed:', errorMessage)
+    return { success: false, error: errorMessage }
+  }
+}

@@ -25,7 +25,8 @@ import {
   Briefcase,
   Stethoscope,
   Calculator,
-  Sliders
+  Sliders,
+  Calendar
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -236,6 +237,11 @@ export const systemAdminMenuItems = [
     title: "Applications for Review",
     url: "/workflow/applications-review",
     icon: ClipboardCheck,
+  },
+  {
+    title: "Manage Meetings",
+    url: "/meetings/manage",
+    icon: Calendar,
   },
   {
     title: "Sample Application",
