@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -360,6 +360,44 @@ export default function WorkflowForm() {
   const removeStep = (index: number) => {
     const newSteps = steps.filter((_, i) => i !== index);
     // Renumber steps
+    newSteps.forEach((step, i) => {
+      step.step_number = i + 1;
+    });
+    setSteps(newSteps);
+  };
+
+  const moveStepUp = (index: number) => {
+    if (index <= 0) return;
+    const newSteps = [...steps];
+    // Swap with the previous step
+    [newSteps[index - 1], newSteps[index]] = [newSteps[index], newSteps[index - 1]];
+    // Renumber all steps
+    newSteps.forEach((step, i) => {
+      step.step_number = i + 1;
+    });
+    setSteps(newSteps);
+  };
+
+  const moveStepDown = (index: number) => {
+    if (index >= steps.length - 1) return;
+    const newSteps = [...steps];
+    // Swap with the next step
+    [newSteps[index], newSteps[index + 1]] = [newSteps[index + 1], newSteps[index]];
+    // Renumber all steps
+    newSteps.forEach((step, i) => {
+      step.step_number = i + 1;
+    });
+    setSteps(newSteps);
+  };
+
+  const moveStepToPosition = (currentIndex: number, newPosition: number) => {
+    if (newPosition < 1 || newPosition > steps.length || newPosition === currentIndex + 1) return;
+    
+    const newSteps = [...steps];
+    const [movedStep] = newSteps.splice(currentIndex, 1);
+    newSteps.splice(newPosition - 1, 0, movedStep);
+    
+    // Renumber all steps
     newSteps.forEach((step, i) => {
       step.step_number = i + 1;
     });
@@ -752,7 +790,36 @@ export default function WorkflowForm() {
                           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                {/* Step Reorder Controls */}
+                                <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 p-0"
+                                    disabled={stepIndex === 0}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveStepUp(stepIndex);
+                                    }}
+                                    title="Move step up"
+                                  >
+                                    <ArrowUp className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 p-0"
+                                    disabled={stepIndex === steps.length - 1}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveStepDown(stepIndex);
+                                    }}
+                                    title="Move step down"
+                                  >
+                                    <ArrowDown className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                                 {step.isOpen ? (
                                   <ChevronDown className="h-4 w-4" />
                                 ) : (
@@ -802,16 +869,8 @@ export default function WorkflowForm() {
                                 value={step.step_number}
                                 onChange={(e) => {
                                   const newOrder = parseInt(e.target.value);
-                                  if (newOrder > 0 && newOrder <= steps.length) {
-                                    const newSteps = [...steps];
-                                    newSteps.forEach(s => {
-                                      if (s.step_number >= newOrder && s !== step) {
-                                        s.step_number = s.step_number + 1;
-                                      }
-                                    });
-                                    step.step_number = newOrder;
-                                    newSteps.sort((a, b) => a.step_number - b.step_number);
-                                    setSteps(newSteps);
+                                  if (!isNaN(newOrder)) {
+                                    moveStepToPosition(stepIndex, newOrder);
                                   }
                                 }}
                                 min={1}
