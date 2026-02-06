@@ -454,3 +454,62 @@ INSERT INTO workflow_action_outcomes (
 ### Meeting History Not Recording
 - Check RLS policies on `meeting_history` table
 - Verify trigger functions are active
+
+## Workflow Form Integration
+
+The workflow configuration form at `/admin/workflows/:id` dynamically fetches action types from the `workflow_action_types` database table.
+
+### How Action Types are Loaded
+
+```typescript
+// In WorkflowForm.tsx
+import { useWorkflowActionTypes } from '@/hooks/useMeetings';
+
+const { data: dbActionTypes } = useWorkflowActionTypes();
+
+const stepActionTypes = useMemo(() => {
+  if (!dbActionTypes) return fallbackTypes;
+  return dbActionTypes.map(at => ({
+    value: at.type_code,
+    label: at.type_name,
+    description: at.description,
+    pausesWorkflow: at.pauses_workflow,
+    requiresForm: at.requires_form,
+    requiresApiIntegration: at.requires_api_integration,
+  }));
+}, [dbActionTypes]);
+```
+
+### Auto-Configuration Behavior
+
+When a user selects "Schedule Meeting" action type:
+1. The `next_step_type` is automatically set to `pause_workflow`
+2. The action name is auto-populated with "Schedule Meeting"
+3. The workflow will pause at this step until a meeting outcome is processed
+
+### Available Action Types (from database)
+
+| Type Code | Type Name | Pauses Workflow | Requires Form |
+|-----------|-----------|-----------------|---------------|
+| Approve | Approve | No | No |
+| Reject | Reject | No | No |
+| ReviewForPrevious | Review for Previous Reviewer | No | No |
+| QueryToApplicant | Query to Applicant | No | Yes |
+| ScheduleMeeting | Schedule Meeting | Yes | Yes |
+| SendBack | Send Back | No | No |
+| Escalate | Escalate | No | No |
+| Review | Review | No | No |
+
+### Adding Custom Action Types
+
+To add a new action type:
+```sql
+INSERT INTO workflow_action_types (
+  type_code, type_name, description, 
+  is_active, is_system_defined, 
+  pauses_workflow, requires_form, requires_api_integration
+) VALUES (
+  'CustomAction', 'Custom Action Name', 'Description of what this action does',
+  true, false, false, false, false
+);
+```

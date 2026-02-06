@@ -36,7 +36,7 @@ export interface WorkflowStepAction {
   step_id: string;
   action_name: string;
   action_type: string;
-  next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
+  next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant' | 'pause_workflow';
   next_step_id: string | null;
   end_state: 'Approved' | 'Rejected' | null;
   is_final_action: boolean;
