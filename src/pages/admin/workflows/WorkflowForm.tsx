@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ import { useQuery } from '@tanstack/react-query';
 import ActionFieldUpdatesEditor from '@/components/workflow/ActionFieldUpdatesEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
+import { useWorkflowActionTypes } from '@/hooks/useMeetings';
 
 interface StepFormData {
   id?: string;
@@ -84,11 +85,11 @@ interface FieldUpdateFormData {
 interface ActionFormData {
   id?: string;
   action_name: string;
-  action_type: 'Approve' | 'Reject' | 'ReviewForPrevious' | 'QueryToApplicant';
+  action_type: string; // Now dynamic from database
   is_final_action: boolean;
   display_order: number;
   // Next step routing configuration
-  next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
+  next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant' | 'pause_workflow';
   next_step_id: string | null;
   end_state: 'Approved' | 'Rejected' | null;
   // Notification fields for actions
@@ -125,7 +126,8 @@ const APPROVER_TYPES = [
   { value: 'designation_hierarchy', label: 'Higher level in Designation Hierarchy' },
 ];
 
-const STEP_ACTION_TYPES = [
+// Fallback action types - used when database data isn't loaded yet
+const FALLBACK_STEP_ACTION_TYPES = [
   { value: 'Approve', label: 'Approve', description: 'Move to next step or complete workflow' },
   { value: 'Reject', label: 'Reject', description: 'Reject application and close workflow' },
   { value: 'ReviewForPrevious', label: 'Review for Previous Reviewer', description: 'Send back to previous step' },
@@ -137,6 +139,7 @@ const NEXT_STEP_TYPES = [
   { value: 'specific_step', label: 'Specific Step', description: 'Go to a specific step' },
   { value: 'end_workflow', label: 'End Workflow', description: 'Complete the workflow with final status' },
   { value: 'send_back_to_applicant', label: 'Send Back to Applicant', description: 'Request applicant to provide more info' },
+  { value: 'pause_workflow', label: 'Pause Workflow', description: 'Pause workflow and wait for external action (e.g., meeting outcome)' },
 ];
 
 const ACTION_TYPES = [
@@ -171,6 +174,28 @@ export default function WorkflowForm() {
   const { data: workflow, isLoading } = useWorkflowWithSteps(isEditing ? id : null);
   const { data: roles } = useDbRoles();
   const { data: designations } = useDesignations();
+  const { data: dbActionTypes } = useWorkflowActionTypes();
+  
+  // Create action types from database
+  const stepActionTypes = useMemo(() => {
+    if (!dbActionTypes || dbActionTypes.length === 0) {
+      // Fallback to default types if database is empty
+      return [
+        { value: 'Approve', label: 'Approve', description: 'Move to next step or complete workflow', pausesWorkflow: false },
+        { value: 'Reject', label: 'Reject', description: 'Reject application and close workflow', pausesWorkflow: false },
+        { value: 'ReviewForPrevious', label: 'Review for Previous Reviewer', description: 'Send back to previous step', pausesWorkflow: false },
+        { value: 'QueryToApplicant', label: 'Query to Applicant', description: 'Request more info from applicant', pausesWorkflow: false },
+      ];
+    }
+    return dbActionTypes.map(at => ({
+      value: at.type_code,
+      label: at.type_name,
+      description: at.description || '',
+      pausesWorkflow: at.pauses_workflow,
+      requiresForm: at.requires_form,
+      requiresApiIntegration: at.requires_api_integration,
+    }));
+  }, [dbActionTypes]);
   
   // Fetch active users for specific user assignment
   const { data: users } = useQuery({
@@ -1098,23 +1123,37 @@ export default function WorkflowForm() {
                                         <Label>Action Type *</Label>
                                         <Select
                                           value={action.action_type}
-                                          onValueChange={(value: ActionFormData['action_type']) => updateAction(stepIndex, actionIndex, 'action_type', value)}
+                                          onValueChange={(value: string) => {
+                                            updateAction(stepIndex, actionIndex, 'action_type', value);
+                                            // Auto-set next_step_type based on action type
+                                            const selectedActionType = stepActionTypes.find(t => t.value === value);
+                                            if (selectedActionType?.pausesWorkflow) {
+                                              updateAction(stepIndex, actionIndex, 'next_step_type', 'pause_workflow');
+                                            }
+                                            // Update action name to match type if it's the default
+                                            if (action.action_name === 'New Action' || action.action_name === '') {
+                                              updateAction(stepIndex, actionIndex, 'action_name', selectedActionType?.label || value);
+                                            }
+                                          }}
                                         >
                                           <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Select action type" />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            {STEP_ACTION_TYPES.map((type) => (
+                                            {stepActionTypes.map((type) => (
                                               <SelectItem key={type.value} value={type.value}>
-                                                <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
                                                   <span>{type.label}</span>
+                                                  {type.pausesWorkflow && (
+                                                    <Badge variant="outline" className="text-xs">Pauses</Badge>
+                                                  )}
                                                 </div>
                                               </SelectItem>
                                             ))}
                                           </SelectContent>
                                         </Select>
                                         <p className="text-xs text-muted-foreground">
-                                          {STEP_ACTION_TYPES.find(t => t.value === action.action_type)?.description}
+                                          {stepActionTypes.find(t => t.value === action.action_type)?.description}
                                         </p>
                                       </div>
                                     </div>
