@@ -147,7 +147,6 @@ export interface ScheduleMeetingFormData {
   workflowInstanceId?: string;
   workflowId?: string;
   stepId?: string;
-  actionConfigId?: string;
   meetingType: MeetingType;
   meetingDate: string;
   meetingTime: string;
