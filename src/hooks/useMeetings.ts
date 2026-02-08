@@ -99,6 +99,8 @@ export function useScheduleMeeting() {
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
       queryClient.invalidateQueries({ queryKey: ['my-workflow-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
       toast.success(`Meeting scheduled successfully. Reference: ${data.meeting_reference}`);
     },
     onError: (error: Error) => {
@@ -130,6 +132,8 @@ export function useProcessMeetingOutcome() {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
       toast.success(data.message || 'Meeting outcome processed successfully');
     },
     onError: (error: Error) => {

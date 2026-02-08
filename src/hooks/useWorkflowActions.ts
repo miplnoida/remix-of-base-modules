@@ -799,6 +799,8 @@ export function useExecuteWorkflowAction() {
       queryClient.invalidateQueries({ queryKey: ['ip-records'] });
       queryClient.invalidateQueries({ queryKey: ['applications-for-review'] });
       queryClient.invalidateQueries({ queryKey: ['my-workflow-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
       
       if (result.apiWarning) {
         toast.warning(`Action "${result.action}" executed with warning`, {
