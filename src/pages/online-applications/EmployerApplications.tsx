@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ import { useTableSort } from '@/hooks/useTableSort';
 import { useTablePagination } from '@/hooks/useTablePagination';
 import { SortableTableHead } from '@/components/shared/SortableTableHead';
 import { TablePagination } from '@/components/shared/TablePagination';
+import { useApplicationWorkflowStatus, getApplicationWorkflowStatus } from '@/hooks/useApplicationWorkflowStatus';
+import { WorkflowStatusCell } from '@/components/online-applications/WorkflowStatusCell';
 
 export default function EmployerApplications() {
   const navigate = useNavigate();
@@ -74,6 +76,18 @@ export default function EmployerApplications() {
       app.mobile?.toLowerCase().includes(searchLower)
     );
   });
+
+  // Get reference numbers for workflow status lookup
+  const referenceNumbers = useMemo(() => 
+    (applications || []).map(app => app.referenceNumber || app.applicationId).filter((ref): ref is string => !!ref),
+    [applications]
+  );
+
+  // Fetch workflow statuses for all applications
+  const { 
+    data: workflowStatusMap, 
+    isLoading: isLoadingWorkflowStatus 
+  } = useApplicationWorkflowStatus(referenceNumbers, 'employer', !isLoading && !error);
 
   // Sorting
   const { sortedData, sortConfig, handleSort } = useTableSort(filteredApplications, {
@@ -328,7 +342,13 @@ export default function EmployerApplications() {
                           {app.submittedAt ? format(new Date(app.submittedAt), 'MMM d, yyyy') : '—'}
                         </TableCell>
                         <TableCell className="text-right">{app.currentStep ?? '—'}</TableCell>
-                        <TableCell>{getStatusBadge(app.status, app.statusDisplay)}</TableCell>
+                        <TableCell>
+                          <WorkflowStatusCell
+                            status={getApplicationWorkflowStatus(workflowStatusMap, app.referenceNumber || app.applicationId)}
+                            isLoading={isLoadingWorkflowStatus}
+                            fallbackStatus={app.status}
+                          />
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
