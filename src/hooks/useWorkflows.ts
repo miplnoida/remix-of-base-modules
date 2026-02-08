@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 
 export interface WorkflowDefinition {
   id: string;
@@ -567,7 +568,18 @@ export function useSaveWorkflowSteps() {
       queryClient.invalidateQueries({ queryKey: ['workflow-with-steps', variables.workflowId] });
       toast({ title: 'Success', description: 'Workflow steps saved successfully' });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
+      // Log to system error logs with full context
+      logApplicationError(error, {
+        module: 'WORKFLOW_MANAGEMENT',
+        action: 'save_workflow_steps',
+        entity_type: 'workflow',
+        entity_id: variables.workflowId,
+        request_payload: {
+          stepCount: variables.steps.length,
+          stepNames: variables.steps.map(s => s.step_name),
+        },
+      });
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });

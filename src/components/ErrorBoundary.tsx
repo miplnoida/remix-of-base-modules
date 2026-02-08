@@ -2,8 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { getCorrelationId, getSessionId, getDeviceInfo } from '@/services/correlationIdService';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 
 interface Props {
   children: ReactNode;
@@ -29,30 +28,20 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
     
-    // Log to system_error_logs
+    // Log to system_error_logs using global error handler
     this.logError(error, errorInfo);
   }
 
   async logError(error: Error, errorInfo: ErrorInfo): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Create a new error with enriched stack trace including component info
+      const enrichedError = new Error(error.message);
+      enrichedError.stack = `${error.stack}\n\nComponent Stack:\n${errorInfo.componentStack}`;
+      enrichedError.name = error.name;
       
-      await supabase.from('system_error_logs').insert({
-        correlation_id: getCorrelationId(),
-        session_id: getSessionId(),
-        user_id: user?.id,
-        device_info: getDeviceInfo(),
-        timestamp: new Date().toISOString(),
-        error_type: 'ReactError',
-        error_message: error.message,
-        stack_trace: `${error.stack}\n\nComponent Stack:\n${errorInfo.componentStack}`,
-        severity: 'critical',
-        module: 'ErrorBoundary',
-        api_name: 'react-render',
-        payload_json: {
-          errorName: error.name,
-          componentStack: errorInfo.componentStack,
-        },
+      await logApplicationError(enrichedError, {
+        module: 'ERROR_BOUNDARY',
+        action: 'react_render_error',
       });
     } catch (logError) {
       console.error('Failed to log error to system:', logError);
