@@ -596,7 +596,7 @@ export function useExecuteWorkflowAction() {
       // Get user profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, user_code')
         .eq('id', userId)
         .maybeSingle();
 
@@ -611,7 +611,7 @@ export function useExecuteWorkflowAction() {
         throw new Error('Action not found');
       }
 
-      // Get the task
+      // Get the task with workflow instance
       const { data: task, error: taskError } = await supabase
         .from('workflow_tasks')
         .select('*, workflow_instance:workflow_instances(*)')
@@ -621,6 +621,8 @@ export function useExecuteWorkflowAction() {
       if (taskError || !task) {
         throw new Error('Task not found');
       }
+
+      const workflowInstance = task.workflow_instance as any;
 
       // Update task as completed
       const { error: updateError } = await supabase
@@ -665,6 +667,30 @@ export function useExecuteWorkflowAction() {
         // Don't throw - field updates are non-blocking
       }
 
+      // Execute configured API call for this workflow action
+      let apiWarning: string | undefined;
+      try {
+        const apiResult = await executeWorkflowActionApi(
+          workflowInstance?.workflow_id,
+          task.step_id,
+          task.instance_id,
+          taskId,
+          action.action_type,
+          sourceModule,
+          sourceRecordId,
+          profile?.user_code || profile?.full_name || userId,
+          comments
+        );
+        
+        if (apiResult.warning) {
+          apiWarning = apiResult.warning;
+          console.warn('Workflow API warning:', apiWarning);
+        }
+      } catch (apiError) {
+        console.error('Error executing workflow action API (non-blocking):', apiError);
+        apiWarning = 'External API notification failed. The workflow action completed but external sync may be pending.';
+      }
+
       // Get current step info
       const { data: currentStep } = await supabase
         .from('workflow_steps')
@@ -675,7 +701,6 @@ export function useExecuteWorkflowAction() {
       // Handle routing based on action configuration
       const nextStepType = action.next_step_type as NextStepType;
       const endState = action.end_state as EndState;
-      const workflowInstance = task.workflow_instance as any;
 
       if (nextStepType === 'end_workflow') {
         // End the workflow
@@ -759,6 +784,7 @@ export function useExecuteWorkflowAction() {
         success: true,
         action: action.action_name,
         endState,
+        apiWarning,
       };
     },
     onSuccess: (result, variables) => {
@@ -768,13 +794,213 @@ export function useExecuteWorkflowAction() {
       queryClient.invalidateQueries({ queryKey: ['applications-for-review'] });
       queryClient.invalidateQueries({ queryKey: ['my-workflow-tasks'] });
       
-      toast.success(`Action "${result.action}" executed successfully`);
+      if (result.apiWarning) {
+        toast.warning(`Action "${result.action}" executed with warning`, {
+          description: result.apiWarning,
+        });
+      } else {
+        toast.success(`Action "${result.action}" executed successfully`);
+      }
     },
     onError: (error: Error) => {
       console.error('Workflow action error:', error);
       toast.error(`Failed to execute action: ${error.message}`);
     },
   });
+}
+
+/**
+ * Execute configured API call for a workflow action.
+ * This function is non-blocking - failures won't break the workflow.
+ */
+async function executeWorkflowActionApi(
+  workflowId: string | undefined,
+  stepId: string,
+  instanceId: string,
+  taskId: string,
+  actionType: string,
+  sourceModule: string,
+  sourceRecordId: string,
+  userCode: string,
+  comments?: string
+): Promise<{ success: boolean; warning?: string }> {
+  if (!workflowId) {
+    return { success: true }; // No workflow ID, skip
+  }
+
+  // Normalize action code for API lookup
+  const actionCode = normalizeActionCode(actionType);
+
+  // Fetch application data based on source module
+  const applicationData = await fetchApplicationData(sourceModule, sourceRecordId);
+
+  // Fetch meeting data if applicable (for Schedule-Meeting actions)
+  let meetingData: Record<string, any> = {};
+  if (actionCode === 'ScheduleMeeting' || actionCode === 'SCHEDULE_MEETING') {
+    meetingData = await fetchMeetingData(instanceId);
+  }
+
+  // Build workflow context
+  const workflowContext = {
+    action_code: actionCode,
+    instance_id: instanceId,
+    step_id: stepId,
+    task_id: taskId,
+    source_module: sourceModule,
+    source_record_id: sourceRecordId,
+    user_remarks: comments || '',
+  };
+
+  try {
+    const { data, error } = await supabase.functions.invoke('workflow-action-api', {
+      body: {
+        action: 'execute',
+        workflowId,
+        workflowStepId: stepId,
+        workflowInstanceId: instanceId,
+        taskId,
+        actionCode,
+        applicationData,
+        meetingData,
+        workflowContext,
+      },
+    });
+
+    if (error) {
+      console.error('Workflow API execution error:', error);
+      return { success: false, warning: error.message };
+    }
+
+    if (data?.skipped) {
+      return { success: true }; // No API configured, that's fine
+    }
+
+    if (data?.warning) {
+      return { success: data.success, warning: data.warning };
+    }
+
+    return { success: data?.success ?? true };
+  } catch (error) {
+    console.error('Failed to invoke workflow action API:', error);
+    return { 
+      success: false, 
+      warning: error instanceof Error ? error.message : 'Unknown API error' 
+    };
+  }
+}
+
+/**
+ * Normalize action type to standard action code.
+ */
+function normalizeActionCode(actionType: string): string {
+  const normalized = actionType.toLowerCase().replace(/[\s_-]/g, '');
+  
+  if (normalized.includes('approve')) return 'Approve';
+  if (normalized.includes('reject')) return 'Reject';
+  if (normalized.includes('schedulemeeting') || normalized.includes('meeting')) return 'ScheduleMeeting';
+  if (normalized.includes('sendback')) return 'SendBack';
+  if (normalized.includes('query')) return 'Query';
+  
+  // Return as-is for custom action types
+  return actionType;
+}
+
+/**
+ * Fetch application data based on source module.
+ */
+async function fetchApplicationData(
+  sourceModule: string,
+  sourceRecordId: string
+): Promise<Record<string, any>> {
+  try {
+    if (sourceModule === 'insured_person_registration') {
+      const { data } = await supabase
+        .from('ip_master')
+        .select('*')
+        .eq('unique_uuid', sourceRecordId)
+        .single();
+      
+      if (data) {
+        const record = data as Record<string, any>;
+        return {
+          application_reference_no: record.ip_ref_no || record.application_id || record.unique_uuid,
+          application_reference_number: record.ip_ref_no || record.application_id || record.unique_uuid,
+          ssn: record.ssn,
+          first_name: record.first_name,
+          last_name: record.last_name,
+          full_name: `${record.first_name || ''} ${record.last_name || ''}`.trim(),
+          email: record.email,
+          status: record.status,
+          ...record,
+        };
+      }
+    }
+    
+    if (sourceModule === 'employer_registration') {
+      // Query employer data - use any to avoid type issues with dynamic table
+      const { data } = await supabase
+        .from('bema_registrations')
+        .select('*')
+        .eq('id', sourceRecordId)
+        .eq('registration_type', 'employer')
+        .single();
+      
+      if (data) {
+        const record = data as Record<string, any>;
+        return {
+          application_reference_no: record.registration_number || sourceRecordId,
+          application_reference_number: record.registration_number || sourceRecordId,
+          employer_name: record.employer_name,
+          tax_id: record.tax_id,
+          email: record.email,
+          status: record.status,
+          ...record,
+        };
+      }
+    }
+
+    // Generic fallback - try to fetch from the module's primary table
+    console.log(`Unknown source module: ${sourceModule}, using generic fetch`);
+    return { source_record_id: sourceRecordId };
+  } catch (error) {
+    console.error('Error fetching application data:', error);
+    return { source_record_id: sourceRecordId };
+  }
+}
+
+/**
+ * Fetch meeting data for a workflow instance.
+ */
+async function fetchMeetingData(instanceId: string): Promise<Record<string, any>> {
+  try {
+    const { data } = await supabase
+      .from('meetings')
+      .select('*')
+      .eq('workflow_instance_id', instanceId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data) {
+      return {
+        meeting_reference_no: data.meeting_reference,
+        meeting_reference_number: data.meeting_reference,
+        date: data.meeting_date,
+        meeting_date: data.meeting_date,
+        time: data.meeting_time,
+        meeting_time: data.meeting_time,
+        office_address: data.office_address,
+        remarks: data.remarks,
+        contact_person: data.contact_person,
+        status: data.status,
+        ...data,
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching meeting data:', error);
+  }
+  
+  return {};
 }
 
 /**

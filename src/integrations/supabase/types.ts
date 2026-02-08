@@ -8886,6 +8886,81 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_api_execution_log: {
+        Row: {
+          action_code: string
+          api_config_id: string | null
+          duration_ms: number | null
+          endpoint_url: string
+          error_message: string | null
+          executed_at: string
+          executed_by: string | null
+          execution_status: string
+          http_method: string
+          http_status: number | null
+          id: string
+          request_payload: Json
+          response_payload: Json | null
+          retry_attempt: number
+          task_id: string | null
+          workflow_instance_id: string
+          workflow_step_id: string | null
+        }
+        Insert: {
+          action_code: string
+          api_config_id?: string | null
+          duration_ms?: number | null
+          endpoint_url: string
+          error_message?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          execution_status: string
+          http_method: string
+          http_status?: number | null
+          id?: string
+          request_payload: Json
+          response_payload?: Json | null
+          retry_attempt?: number
+          task_id?: string | null
+          workflow_instance_id: string
+          workflow_step_id?: string | null
+        }
+        Update: {
+          action_code?: string
+          api_config_id?: string | null
+          duration_ms?: number | null
+          endpoint_url?: string
+          error_message?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          execution_status?: string
+          http_method?: string
+          http_status?: number | null
+          id?: string
+          request_payload?: Json
+          response_payload?: Json | null
+          retry_attempt?: number
+          task_id?: string | null
+          workflow_instance_id?: string
+          workflow_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_api_execution_log_api_config_id_fkey"
+            columns: ["api_config_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_action_api"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_api_execution_log_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_definitions: {
         Row: {
           created_at: string | null
@@ -9242,6 +9317,122 @@ export type Database = {
             columns: ["workflow_instance_id"]
             isOneToOne: false
             referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_step_action_api: {
+        Row: {
+          action_code: string
+          api_key_secret_name: string
+          content_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          endpoint_url: string
+          http_method: string
+          id: string
+          is_active: boolean
+          retry_count: number
+          timeout_seconds: number
+          updated_at: string
+          updated_by: string | null
+          workflow_id: string
+          workflow_step_id: string
+        }
+        Insert: {
+          action_code: string
+          api_key_secret_name: string
+          content_type?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          endpoint_url: string
+          http_method: string
+          id?: string
+          is_active?: boolean
+          retry_count?: number
+          timeout_seconds?: number
+          updated_at?: string
+          updated_by?: string | null
+          workflow_id: string
+          workflow_step_id: string
+        }
+        Update: {
+          action_code?: string
+          api_key_secret_name?: string
+          content_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          endpoint_url?: string
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          retry_count?: number
+          timeout_seconds?: number
+          updated_at?: string
+          updated_by?: string | null
+          workflow_id?: string
+          workflow_step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_action_api_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_action_api_workflow_step_id_fkey"
+            columns: ["workflow_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_step_action_api_body: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_required: boolean
+          json_field_name: string
+          source_key: string
+          static_value: string | null
+          value_source: string
+          workflow_action_api_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_required?: boolean
+          json_field_name: string
+          source_key: string
+          static_value?: string | null
+          value_source: string
+          workflow_action_api_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_required?: boolean
+          json_field_name?: string
+          source_key?: string
+          static_value?: string | null
+          value_source?: string
+          workflow_action_api_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_action_api_body_workflow_action_api_id_fkey"
+            columns: ["workflow_action_api_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_action_api"
             referencedColumns: ["id"]
           },
         ]
