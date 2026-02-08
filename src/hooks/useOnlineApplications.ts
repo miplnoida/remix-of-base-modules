@@ -118,7 +118,19 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
   });
 
   // Automatically bind workflows to applications when data is fetched
-  useOnlineApplicationWorkflowBinding(query.data, query.isSuccess && !query.isFetching);
+  useOnlineApplicationWorkflowBinding(
+    query.data?.map(app => ({
+      applicationId: app.applicationId,
+      referenceNumber: app.referenceNumber,
+      fullName: app.fullName,
+      email: app.email,
+      phone: app.phone,
+      status: app.status,
+      submittedAt: app.submittedAt,
+    })),
+    'insured-person',
+    query.isSuccess && !query.isFetching
+  );
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['online-applications', 'insured-person'] });
