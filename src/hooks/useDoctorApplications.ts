@@ -4,23 +4,30 @@ import { toast } from 'sonner';
 import { useOnlineApplicationWorkflowBinding } from './useOnlineApplicationWorkflowBinding';
 
 /**
- * Employer applications API (external)
- * NOTE: The configured base_url for this module points to the employer applications function.
- * The list endpoint is the root path ("/") rather than "/applications".
+ * Doctor applications API (external)
+ * Fetches doctor registration applications from external portal
  */
 
-// Raw employer list item returned by external API
-export interface ExternalEmployerApplicationListItem {
-  id: string; // e.g. "ER-2026-835294" (used for detail fetching)
+// Raw doctor list item returned by external API
+export interface ExternalDoctorApplicationListItem {
+  id: string;
   reference_number: string | null;
   registration_id: string | null;
-  contact_name: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
   email: string | null;
   mobile: string | null;
   mobile_country: string | null;
   mobile_dial_code: string | null;
-  country: string | null;
-  country_code: string | null;
+  phone: string | null;
+  phone_dial_code: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  nationality: string | null;
+  specialty: string | null;
+  license_number: string | null;
   current_step: number | null;
   status: string;
   created_at: string;
@@ -29,15 +36,25 @@ export interface ExternalEmployerApplicationListItem {
 }
 
 // Mapped type for UI display
-export interface EmployerApplication {
+export interface DoctorApplication {
   applicationId: string;
   referenceNumber: string | null;
   registrationId: string | null;
-  contactName: string | null;
+  firstName: string | null;
+  middleName: string | null;
+  lastName: string | null;
+  fullName: string;
   email: string | null;
   mobile: string | null;
   mobileDialCode: string | null;
   mobileFormatted: string;
+  phone: string | null;
+  phoneDialCode: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  nationality: string | null;
+  specialty: string | null;
+  licenseNumber: string | null;
   currentStep: number | null;
   status: string;
   statusDisplay: string;
@@ -80,22 +97,36 @@ function normalizeApiResponse<T>(response: T | T[] | ApiResponse<T[]>): T[] {
 }
 
 /**
- * Map external API employer application to internal format
+ * Map external API doctor application to internal format
  */
-function mapEmployerFromApi(item: ExternalEmployerApplicationListItem): EmployerApplication {
+function mapDoctorFromApi(item: ExternalDoctorApplicationListItem): DoctorApplication {
   const dial = item.mobile_dial_code || '';
   const mobile = item.mobile || '';
   const mobileFormatted = dial ? `(${dial}) ${mobile}` : mobile;
+
+  const fullName = item.full_name || 
+    [item.first_name, item.middle_name, item.last_name].filter(Boolean).join(' ') ||
+    'Unknown';
 
   return {
     applicationId: item.id,
     referenceNumber: item.reference_number,
     registrationId: item.registration_id,
-    contactName: item.contact_name,
+    firstName: item.first_name,
+    middleName: item.middle_name,
+    lastName: item.last_name,
+    fullName,
     email: item.email,
     mobile: item.mobile,
     mobileDialCode: item.mobile_dial_code,
     mobileFormatted,
+    phone: item.phone,
+    phoneDialCode: item.phone_dial_code,
+    dateOfBirth: item.date_of_birth,
+    gender: item.gender,
+    nationality: item.nationality,
+    specialty: item.specialty,
+    licenseNumber: item.license_number,
     currentStep: item.current_step,
     status: item.status,
     statusDisplay: formatStatusDisplay(item.status),
@@ -114,6 +145,7 @@ function formatStatusDisplay(status: string): string {
     rejected: 'Rejected',
     submitted: 'Submitted',
     in_progress: 'In Progress',
+    under_review: 'Under Review',
   };
   
   return statusMap[status?.toLowerCase()] || status;
@@ -122,7 +154,7 @@ function formatStatusDisplay(status: string): string {
 /**
  * Get status variant for Badge component
  */
-export function getEmployerStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+export function getDoctorStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   const lowerStatus = status?.toLowerCase();
   
   if (lowerStatus === 'approved') return 'default';
@@ -133,7 +165,6 @@ export function getEmployerStatusVariant(status: string): 'default' | 'secondary
 
 /**
  * Call the proxy-api edge function to fetch data from external APIs
- * The proxy always returns 200 with _proxyStatus and _proxyOk fields
  */
 async function callProxyApi(moduleName: string, endpoint: string, method: string = 'GET', body?: unknown) {
   const { data, error } = await supabase.functions.invoke('proxy-api', {
@@ -153,7 +184,6 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
   // Check if the proxied request was successful
   if (data && typeof data === 'object' && '_proxyOk' in data) {
     if (!data._proxyOk) {
-      // External API returned an error (e.g., 404)
       const errorMsg = data.error || data.message || 'Request failed';
       throw new Error(errorMsg);
     }
@@ -163,16 +193,16 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
 }
 
 /**
- * Hook to fetch employer applications from external API via edge function proxy
+ * Hook to fetch doctor applications from external API via edge function proxy
  * Automatically binds workflow instances to each application
  */
-export function useEmployerApplications(filters?: ApplicationFilters) {
+export function useDoctorApplications(filters?: ApplicationFilters) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['online-applications', 'employer', filters],
-    queryFn: async (): Promise<EmployerApplication[]> => {
-      // Build query params for the endpoint (list endpoint is root path)
+    queryKey: ['online-applications', 'doctor', filters],
+    queryFn: async (): Promise<DoctorApplication[]> => {
+      // Build query params for the endpoint
       const params = new URLSearchParams();
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters?.fromDate) params.append('fromDate', filters.fromDate);
@@ -182,15 +212,15 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
       const queryString = params.toString();
       const endpoint = `/${queryString ? `?${queryString}` : ''}`;
 
-      console.log(`Fetching employer applications via proxy, endpoint: ${endpoint}`);
+      console.log(`Fetching doctor applications via proxy, endpoint: ${endpoint}`);
 
-      const data = await callProxyApi('employer-applications', endpoint);
-      const rawApplications = normalizeApiResponse<ExternalEmployerApplicationListItem>(data);
+      const data = await callProxyApi('doctor-applications', endpoint);
+      const rawApplications = normalizeApiResponse<ExternalDoctorApplicationListItem>(data);
       
       // Map external API format to internal format
-      const applications = rawApplications.map(mapEmployerFromApi);
+      const applications = rawApplications.map(mapDoctorFromApi);
       
-      console.log(`Fetched ${applications.length} employer applications from external API`);
+      console.log(`Fetched ${applications.length} doctor applications from external API`);
       return applications;
     },
     staleTime: 30 * 1000,
@@ -199,7 +229,7 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
   });
 
   // Debug logging
-  console.log('[useEmployerApplications] Hook state:', {
+  console.log('[useDoctorApplications] Hook state:', {
     isSuccess: query.isSuccess,
     isFetching: query.isFetching,
     dataLength: query.data?.length,
@@ -211,18 +241,19 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
     query.data?.map(app => ({
       applicationId: app.applicationId,
       referenceNumber: app.referenceNumber,
-      contactName: app.contactName,
+      fullName: app.fullName,
       email: app.email,
       mobile: app.mobile,
+      phone: app.phone,
       status: app.status,
       submittedAt: app.submittedAt,
     })),
-    'employer',
+    'doctor',
     query.isSuccess && !query.isFetching
   );
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['online-applications', 'employer'] });
+    queryClient.invalidateQueries({ queryKey: ['online-applications', 'doctor'] });
   };
 
   return {
@@ -232,20 +263,53 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
 }
 
 /**
- * Hook to approve an employer application
+ * Hook to fetch a single doctor application detail
  */
-export function useApproveEmployerApplication() {
+export function useDoctorApplicationDetail(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: ['online-applications', 'doctor', 'detail', applicationId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error('Application ID is required');
+      
+      const endpoint = `/${applicationId}`;
+      console.log(`Fetching doctor application detail via proxy, endpoint: ${endpoint}`);
+      
+      const data = await callProxyApi('doctor-applications', endpoint);
+      
+      // Handle case where detail endpoint returns single item or array
+      if (Array.isArray(data)) {
+        return data[0] || null;
+      }
+      
+      // Handle wrapped response
+      if (data && typeof data === 'object') {
+        if ('data' in data && !Array.isArray(data.data)) return data.data;
+        if ('application' in data) return data.application;
+      }
+      
+      return data;
+    },
+    enabled: !!applicationId,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+}
+
+/**
+ * Hook to approve a doctor application
+ */
+export function useApproveDoctorApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      // Employer API uses applicationId path (e.g. /ER-2026-xxxxxx)
       const endpoint = `/${applicationId}/approve`;
-      return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
+      return await callProxyApi('doctor-applications', endpoint, 'POST', { remarks });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['online-applications', 'employer'] });
-      toast.success('Employer application approved successfully');
+      queryClient.invalidateQueries({ queryKey: ['online-applications', 'doctor'] });
+      toast.success('Doctor application approved successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to approve application: ${error.message}`);
@@ -254,20 +318,19 @@ export function useApproveEmployerApplication() {
 }
 
 /**
- * Hook to reject an employer application
+ * Hook to reject a doctor application
  */
-export function useRejectEmployerApplication() {
+export function useRejectDoctorApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      // Employer API uses applicationId path (e.g. /ER-2026-xxxxxx)
       const endpoint = `/${applicationId}/reject`;
-      return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
+      return await callProxyApi('doctor-applications', endpoint, 'POST', { remarks });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['online-applications', 'employer'] });
-      toast.success('Employer application rejected successfully');
+      queryClient.invalidateQueries({ queryKey: ['online-applications', 'doctor'] });
+      toast.success('Doctor application rejected successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to reject application: ${error.message}`);

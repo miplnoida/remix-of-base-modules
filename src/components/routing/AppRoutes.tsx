@@ -280,6 +280,7 @@ import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetail
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
 import EmployerApplicationDetailPage from '@/pages/online-applications/EmployerApplicationDetailPage';
 import DoctorApplications from '@/pages/online-applications/DoctorApplications';
+import DoctorApplicationDetailPage from '@/pages/online-applications/DoctorApplicationDetailPage';
 
 // IP Registration Module
 import IPRegistrationList from '@/pages/ip-registration/IPRegistrationList';
@@ -1373,7 +1374,7 @@ export const AppRoutes = () => {
       <Route path="/online-applications/employer" element={<ProtectedLayout><EmployerApplications /></ProtectedLayout>} />
       <Route path="/online-applications/employer/:applicationId" element={<ProtectedLayout><EmployerApplicationDetailPage /></ProtectedLayout>} />
       <Route path="/online-applications/doctor" element={<ProtectedLayout><DoctorApplications /></ProtectedLayout>} />
-
+      <Route path="/online-applications/doctor/:applicationId" element={<ProtectedLayout><DoctorApplicationDetailPage /></ProtectedLayout>} />
       {/* IP Registration Module - Primary route */}
       <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
       <Route path="/ip-registration/new" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />

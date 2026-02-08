@@ -36,6 +36,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { useApproveEmployerApplication, useRejectEmployerApplication, getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
+import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { toast } from 'sonner';
 
 // Helper functions
 function formatDate(dateStr: string | null | undefined): string {
@@ -193,26 +195,15 @@ export default function EmployerApplicationDetailPage() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          {canApprove && isPending && (
-            <>
-              <Button 
-                variant="default" 
-                className="gap-2"
-                onClick={() => setActionDialog({ open: true, type: 'approve' })}
-              >
-                <CheckCircle className="h-4 w-4" />
-                Approve
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="gap-2"
-                onClick={() => setActionDialog({ open: true, type: 'reject' })}
-              >
-                <XCircle className="h-4 w-4" />
-                Reject
-              </Button>
-            </>
-          )}
+          {/* Dynamic workflow action buttons based on workflow configuration */}
+          <WorkflowActionButtons
+            sourceModule="online-employer-applications"
+            sourceRecordId={application.reference_number || application.id || applicationId || null}
+            onActionComplete={(action, endState) => {
+              toast.success(`Action "${action}" completed successfully`);
+              refetch();
+            }}
+          />
         </div>
       </div>
 
