@@ -6,6 +6,7 @@ import {
   ApplicationListItem, 
   mapListItemFromApi 
 } from '@/types/externalApplication';
+import { useOnlineApplicationWorkflowBinding } from './useOnlineApplicationWorkflowBinding';
 
 // Re-export types for backward compatibility
 export type { ApplicationListItem as InsuredPersonApplication };
@@ -72,6 +73,7 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
 /**
  * Hook to fetch insured person applications from external API via edge function proxy
  * Data is fetched DIRECTLY from the external API on each request (no local caching/syncing)
+ * Automatically binds workflow instances to each application
  */
 export function useInsuredPersonApplications(filters?: ApplicationFilters) {
   const queryClient = useQueryClient();
@@ -106,6 +108,9 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
     refetchOnWindowFocus: true,
     retry: 1,
   });
+
+  // Automatically bind workflows to applications when data is fetched
+  useOnlineApplicationWorkflowBinding(query.data, query.isSuccess && !query.isFetching);
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['online-applications', 'insured-person'] });
