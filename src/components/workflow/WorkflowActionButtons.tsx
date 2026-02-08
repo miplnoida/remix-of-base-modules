@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X, ArrowRight, RotateCcw, AlertCircle } from 'lucide-react';
+import { Loader2, Check, X, ArrowRight, RotateCcw, AlertCircle, Calendar } from 'lucide-react';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useWorkflowActions, useExecuteWorkflowAction, WorkflowAction } from '@/hooks/useWorkflowActions';
 import { cn } from '@/lib/utils';
+import { ScheduleMeetingDialog } from '@/components/meetings/ScheduleMeetingDialog';
 
 interface WorkflowActionButtonsProps {
   sourceModule: string;
@@ -23,6 +24,20 @@ interface WorkflowActionButtonsProps {
   className?: string;
   onActionComplete?: (action: string, endState: string | null) => void;
 }
+
+// Helper to detect Schedule Meeting action types
+const isScheduleMeetingAction = (actionType: string): boolean => {
+  const normalized = actionType.toLowerCase().replace(/[\s_-]/g, '');
+  return normalized.includes('schedulemeeting') || normalized === 'schedule-a-meeting';
+};
+
+// Map source module to meeting type
+const getMeetingType = (sourceModule: string): 'IP-Registration' | 'Employer-Registration' | 'Doctor-Registration' | 'General' => {
+  if (sourceModule.includes('insured') || sourceModule.includes('ip')) return 'IP-Registration';
+  if (sourceModule.includes('employer')) return 'Employer-Registration';
+  if (sourceModule.includes('doctor')) return 'Doctor-Registration';
+  return 'General';
+};
 
 /**
  * Dynamic workflow action buttons component.
@@ -42,16 +57,20 @@ export function WorkflowActionButtons({
   const [selectedAction, setSelectedAction] = useState<WorkflowAction | null>(null);
   const [comments, setComments] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showMeetingDialog, setShowMeetingDialog] = useState(false);
 
   const {
     hasWorkflow,
     instanceId,
+    workflowId,
     taskId,
+    currentStepId,
     currentStepName,
     actions,
     canPerformActions,
     isLoading,
     error,
+    refetch,
   } = useWorkflowActions(sourceModule, sourceRecordId);
 
   const executeAction = useExecuteWorkflowAction();
@@ -92,7 +111,13 @@ export function WorkflowActionButtons({
   const handleActionClick = (action: WorkflowAction) => {
     setSelectedAction(action);
     setComments('');
-    setShowConfirmDialog(true);
+    
+    // Check if this is a Schedule Meeting action - show meeting dialog instead
+    if (isScheduleMeetingAction(action.action_type)) {
+      setShowMeetingDialog(true);
+    } else {
+      setShowConfirmDialog(true);
+    }
   };
 
   const handleConfirmAction = async () => {
@@ -119,7 +144,20 @@ export function WorkflowActionButtons({
     }
   };
 
+  const handleMeetingSuccess = (data: any) => {
+    setShowMeetingDialog(false);
+    setSelectedAction(null);
+    refetch();
+    
+    if (onActionComplete) {
+      onActionComplete('Schedule Meeting', null);
+    }
+  };
+
   const getActionIcon = (actionType: string) => {
+    if (isScheduleMeetingAction(actionType)) {
+      return <Calendar className="h-4 w-4" />;
+    }
     switch (actionType.toLowerCase()) {
       case 'approve':
         return <Check className="h-4 w-4" />;
@@ -148,6 +186,9 @@ export function WorkflowActionButtons({
   };
 
   const getActionClassName = (actionType: string): string => {
+    if (isScheduleMeetingAction(actionType)) {
+      return 'bg-blue-600 hover:bg-blue-700 text-white';
+    }
     switch (actionType.toLowerCase()) {
       case 'approve':
         return 'bg-green-600 hover:bg-green-700 text-white';
@@ -257,6 +298,24 @@ export function WorkflowActionButtons({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Schedule Meeting Dialog */}
+      {sourceRecordId && (
+        <ScheduleMeetingDialog
+          open={showMeetingDialog}
+          onOpenChange={(open) => {
+            setShowMeetingDialog(open);
+            if (!open) setSelectedAction(null);
+          }}
+          applicationReference={sourceRecordId}
+          meetingType={getMeetingType(sourceModule)}
+          workflowInstanceId={instanceId || undefined}
+          workflowId={workflowId || undefined}
+          stepId={currentStepId || undefined}
+          actionConfigId={selectedAction?.id}
+          onSuccess={handleMeetingSuccess}
+        />
+      )}
     </>
   );
 }

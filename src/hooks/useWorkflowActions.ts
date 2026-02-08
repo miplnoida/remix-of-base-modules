@@ -22,6 +22,7 @@ export interface WorkflowAction {
 export interface WorkflowContext {
   hasWorkflow: boolean;
   instanceId: string | null;
+  workflowId: string | null;
   taskId: string | null;
   currentStepId: string | null;
   currentStepName: string | null;
@@ -83,6 +84,7 @@ export function useWorkflowActions(
         return {
           hasWorkflow: false,
           instanceId: null,
+          workflowId: null,
           taskId: null,
           currentStepId: null,
           currentStepName: null,
@@ -113,6 +115,7 @@ export function useWorkflowActions(
         return {
           hasWorkflow: false,
           instanceId: null,
+          workflowId: null,
           taskId: null,
           currentStepId: null,
           currentStepName: null,
@@ -144,6 +147,7 @@ export function useWorkflowActions(
         return {
           hasWorkflow: true,
           instanceId: instance.id,
+          workflowId: instance.workflow_id,
           taskId: null,
           currentStepId: instance.current_step_id,
           currentStepName: null,
@@ -226,6 +230,7 @@ export function useWorkflowActions(
       return {
         hasWorkflow: true,
         instanceId: instance.id,
+        workflowId: instance.workflow_id,
         taskId: task.id,
         currentStepId: task.step_id,
         currentStepName: task.step_name,
@@ -242,6 +247,7 @@ export function useWorkflowActions(
   return {
     hasWorkflow: query.data?.hasWorkflow ?? false,
     instanceId: query.data?.instanceId ?? null,
+    workflowId: query.data?.workflowId ?? null,
     taskId: query.data?.taskId ?? null,
     currentStepId: query.data?.currentStepId ?? null,
     currentStepName: query.data?.currentStepName ?? null,
