@@ -312,7 +312,6 @@ export function WorkflowActionButtons({
           workflowInstanceId={instanceId || undefined}
           workflowId={workflowId || undefined}
           stepId={currentStepId || undefined}
-          actionConfigId={selectedAction?.id}
           onSuccess={handleMeetingSuccess}
         />
       )}

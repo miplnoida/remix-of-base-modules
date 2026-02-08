@@ -37,7 +37,6 @@ interface ScheduleMeetingDialogProps {
   workflowInstanceId?: string;
   workflowId?: string;
   stepId?: string;
-  actionConfigId?: string;
   onSuccess?: (data: any) => void;
 }
 
@@ -49,7 +48,6 @@ export function ScheduleMeetingDialog({
   workflowInstanceId,
   workflowId,
   stepId,
-  actionConfigId,
   onSuccess
 }: ScheduleMeetingDialogProps) {
   const { getSetting } = useSystemSettingsContext();
@@ -80,7 +78,6 @@ export function ScheduleMeetingDialog({
       workflowInstanceId,
       workflowId,
       stepId,
-      actionConfigId,
       meetingDate: format(values.meetingDate, 'yyyy-MM-dd'),
       meetingTime: values.meetingTime,
       contactPerson: values.contactPerson,
