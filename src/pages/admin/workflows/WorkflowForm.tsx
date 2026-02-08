@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
@@ -46,6 +52,8 @@ import ActionFieldUpdatesEditor from '@/components/workflow/ActionFieldUpdatesEd
 import { supabase } from '@/integrations/supabase/client';
 import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 import { useWorkflowActionTypes } from '@/hooks/useMeetings';
+import { WorkflowActionApiConfig } from '@/components/workflow/WorkflowActionApiConfig';
+import { useWorkflowActionApiConfig } from '@/hooks/useWorkflowActionApi';
 
 interface StepFormData {
   id?: string;
@@ -170,11 +178,33 @@ export default function WorkflowForm() {
   });
 
   const [steps, setSteps] = useState<StepFormData[]>([]);
+  
+  // State for API configuration dialog
+  const [apiConfigDialog, setApiConfigDialog] = useState<{
+    open: boolean;
+    stepId: string | null;
+    stepName: string;
+    actionCode: string;
+    actionName: string;
+  }>({
+    open: false,
+    stepId: null,
+    stepName: '',
+    actionCode: '',
+    actionName: '',
+  });
 
   const { data: workflow, isLoading } = useWorkflowWithSteps(isEditing ? id : null);
   const { data: roles } = useDbRoles();
   const { data: designations } = useDesignations();
   const { data: dbActionTypes } = useWorkflowActionTypes();
+  
+  // Fetch existing API config for the dialog
+  const { data: existingApiConfig, refetch: refetchApiConfig } = useWorkflowActionApiConfig(
+    isEditing ? id : undefined,
+    apiConfigDialog.stepId || undefined,
+    apiConfigDialog.actionCode || undefined
+  );
   
   // Create action types from database
   const stepActionTypes = useMemo(() => {
@@ -1395,14 +1425,36 @@ export default function WorkflowForm() {
                                         tableColumns={securedTableColumns || []}
                                       />
                                     </div>
+                                    </div>
+                                  <div className="flex flex-col gap-1">
+                                    {/* Configure API button - only enabled when step is saved */}
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      title={step.id ? "Configure API Integration" : "Save workflow first to configure API"}
+                                      disabled={!step.id}
+                                      onClick={() => {
+                                        if (step.id) {
+                                          setApiConfigDialog({
+                                            open: true,
+                                            stepId: step.id,
+                                            stepName: step.step_name,
+                                            actionCode: action.action_type,
+                                            actionName: action.action_name,
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <Settings2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => removeAction(stepIndex, actionIndex)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeAction(stepIndex, actionIndex)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1425,6 +1477,47 @@ export default function WorkflowForm() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* API Configuration Dialog */}
+      <Dialog open={apiConfigDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configure API for Action: {apiConfigDialog.actionName}</DialogTitle>
+          </DialogHeader>
+          {apiConfigDialog.open && apiConfigDialog.stepId && id && (
+            <WorkflowActionApiConfig
+              workflowId={id}
+              stepId={apiConfigDialog.stepId}
+              stepName={apiConfigDialog.stepName}
+              actionCode={apiConfigDialog.actionCode}
+              actionName={apiConfigDialog.actionName}
+              existingConfig={existingApiConfig ? {
+                id: existingApiConfig.id,
+                http_method: existingApiConfig.http_method,
+                endpoint_url: existingApiConfig.endpoint_url,
+                api_key_secret_name: existingApiConfig.api_key_secret_name,
+                content_type: existingApiConfig.content_type,
+                timeout_seconds: existingApiConfig.timeout_seconds,
+                retry_count: existingApiConfig.retry_count,
+                is_active: existingApiConfig.is_active,
+                description: existingApiConfig.description,
+                body_mappings: existingApiConfig.body_mappings,
+              } : null}
+              onSaved={() => {
+                setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
+                refetchApiConfig();
+              }}
+              onCancel={() => {
+                setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PermissionWrapper>
   );
 }
