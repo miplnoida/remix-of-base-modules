@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,8 +18,6 @@ import {
   Briefcase,
   Users,
   FileText,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
   Loader2,
   Calendar,
@@ -31,51 +26,17 @@ import {
   Building,
   RefreshCw,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
-import { useApproveApplication, useRejectApplication } from '@/hooks/useOnlineApplications';
 import { formatStatusDisplay, getStatusVariant } from '@/types/externalApplication';
+import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { toast } from 'sonner';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
   
-  const [actionDialog, setActionDialog] = useState<{
-    open: boolean;
-    type: 'approve' | 'reject';
-  }>({ open: false, type: 'approve' });
-  const [actionRemarks, setActionRemarks] = useState('');
-
   const { data: application, isLoading, error, refetch, isFetching } = useExternalApplicationDetail(referenceNumber);
-  const approveApplication = useApproveApplication();
-  const rejectApplication = useRejectApplication();
-
-  const isAdmin = user?.role === 'admin' || hasPermission('system_administration');
-  const isOfficer = hasPermission('process_claims') || hasPermission('approve_benefits');
-  const canApprove = isAdmin || isOfficer;
-  const isPending = application?.status?.toLowerCase() === 'pending';
-
-  const handleConfirmAction = async () => {
-    if (!referenceNumber) return;
-
-    if (actionDialog.type === 'approve') {
-      await approveApplication.mutateAsync({
-        applicationId: referenceNumber,
-        remarks: actionRemarks,
-      });
-    } else {
-      await rejectApplication.mutateAsync({
-        applicationId: referenceNumber,
-        remarks: actionRemarks,
-      });
-    }
-
-    setActionDialog({ open: false, type: 'approve' });
-    setActionRemarks('');
-    refetch();
-  };
 
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '—';
@@ -145,26 +106,15 @@ export default function ApplicationDetailPage() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          {canApprove && isPending && (
-            <>
-              <Button 
-                variant="default" 
-                className="gap-2"
-                onClick={() => setActionDialog({ open: true, type: 'approve' })}
-              >
-                <CheckCircle className="h-4 w-4" />
-                Approve
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="gap-2"
-                onClick={() => setActionDialog({ open: true, type: 'reject' })}
-              >
-                <XCircle className="h-4 w-4" />
-                Reject
-              </Button>
-            </>
-          )}
+          {/* Dynamic workflow action buttons based on workflow configuration */}
+          <WorkflowActionButtons
+            sourceModule="online-insured-person-applications"
+            sourceRecordId={referenceNumber || null}
+            onActionComplete={(action, endState) => {
+              toast.success(`Action "${action}" completed successfully`);
+              refetch();
+            }}
+          />
         </div>
       </div>
 
@@ -573,76 +523,6 @@ export default function ApplicationDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Approve/Reject Dialog */}
-      <Dialog 
-        open={actionDialog.open} 
-        onOpenChange={(open) => !open && setActionDialog({ open: false, type: 'approve' })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {actionDialog.type === 'approve' ? (
-                <CheckCircle className="h-5 w-5 text-primary" />
-              ) : (
-                <XCircle className="h-5 w-5 text-destructive" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'} Application
-            </DialogTitle>
-            <DialogDescription>
-              {actionDialog.type === 'approve' 
-                ? 'This will approve the application and notify the applicant.'
-                : 'This will reject the application. Please provide a reason.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm font-medium">Reference: {application.referenceNumber}</p>
-              <p className="text-sm text-muted-foreground">
-                {application.firstName} {application.lastName}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="remarks">
-                Remarks {actionDialog.type === 'reject' && <span className="text-destructive">*</span>}
-              </Label>
-              <Textarea
-                id="remarks"
-                value={actionRemarks}
-                onChange={(e) => setActionRemarks(e.target.value)}
-                placeholder={actionDialog.type === 'approve' 
-                  ? 'Optional remarks for the approval...'
-                  : 'Please provide a reason for rejection...'}
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setActionDialog({ open: false, type: 'approve' })}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={actionDialog.type === 'approve' ? 'default' : 'destructive'}
-              onClick={handleConfirmAction}
-              disabled={
-                (actionDialog.type === 'reject' && !actionRemarks.trim()) ||
-                approveApplication.isPending ||
-                rejectApplication.isPending
-              }
-            >
-              {(approveApplication.isPending || rejectApplication.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
