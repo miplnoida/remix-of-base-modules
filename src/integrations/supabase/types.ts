@@ -10285,6 +10285,7 @@ export type Database = {
         | "specific_step"
         | "end_workflow"
         | "send_back_to_applicant"
+        | "pause_workflow"
       notification_channel: "email" | "sms" | "push" | "in_app"
       notification_status:
         | "queued"
@@ -10627,6 +10628,7 @@ export const Constants = {
         "specific_step",
         "end_workflow",
         "send_back_to_applicant",
+        "pause_workflow",
       ],
       notification_channel: ["email", "sms", "push", "in_app"],
       notification_status: ["queued", "sending", "sent", "failed", "cancelled"],
