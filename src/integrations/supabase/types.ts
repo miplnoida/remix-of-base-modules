@@ -10081,47 +10081,26 @@ export type Database = {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
       }
-      schedule_meeting:
-        | {
-            Args: {
-              p_action_config_id: string
-              p_application_reference: string
-              p_contact_email?: string
-              p_contact_person: string
-              p_contact_phone?: string
-              p_meeting_date: string
-              p_meeting_time: string
-              p_meeting_type: Database["public"]["Enums"]["meeting_type"]
-              p_office_address?: string
-              p_remarks?: string
-              p_step_id: string
-              p_user_id?: string
-              p_user_name?: string
-              p_workflow_id: string
-              p_workflow_instance_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_action_config_id?: string
-              p_application_reference: string
-              p_contact_email?: string
-              p_contact_person?: string
-              p_contact_phone?: string
-              p_meeting_date?: string
-              p_meeting_time?: string
-              p_meeting_type?: string
-              p_office_address?: string
-              p_remarks?: string
-              p_step_id?: string
-              p_user_id?: string
-              p_user_name?: string
-              p_workflow_id?: string
-              p_workflow_instance_id?: string
-            }
-            Returns: Json
-          }
+      schedule_meeting: {
+        Args: {
+          p_action_config_id: string
+          p_application_reference: string
+          p_contact_email?: string
+          p_contact_person: string
+          p_contact_phone?: string
+          p_meeting_date: string
+          p_meeting_time: string
+          p_meeting_type: Database["public"]["Enums"]["meeting_type"]
+          p_office_address?: string
+          p_remarks?: string
+          p_step_id: string
+          p_user_id?: string
+          p_user_name?: string
+          p_workflow_id: string
+          p_workflow_instance_id: string
+        }
+        Returns: Json
+      }
       submit_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }
         Returns: Json
