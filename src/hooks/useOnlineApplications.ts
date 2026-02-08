@@ -109,6 +109,14 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
     retry: 1,
   });
 
+  // Debug logging
+  console.log('[useInsuredPersonApplications] Hook state:', {
+    isSuccess: query.isSuccess,
+    isFetching: query.isFetching,
+    dataLength: query.data?.length,
+    enabled: query.isSuccess && !query.isFetching
+  });
+
   // Automatically bind workflows to applications when data is fetched
   useOnlineApplicationWorkflowBinding(query.data, query.isSuccess && !query.isFetching);
 
