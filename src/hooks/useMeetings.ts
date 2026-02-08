@@ -97,6 +97,8 @@ export function useScheduleMeeting() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+      queryClient.invalidateQueries({ queryKey: ['my-workflow-tasks'] });
       toast.success(`Meeting scheduled successfully. Reference: ${data.meeting_reference}`);
     },
     onError: (error: Error) => {
