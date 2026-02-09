@@ -199,15 +199,21 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
         sector_code: form.sector_code || undefined,
       });
       if (sref) {
-        // Now update with remaining fields
+        // Reload activities to get the created record, then update remaining fields
         await loadActivities();
-        // Get the newly created activity to update remaining fields
         const payload = buildPayload(form);
-        // Remove fields already set during registration
         const { activity_type, date_commenced, occupation_code, office_code, sector_code, ...remaining } = payload;
-        try {
-          await updateActivity(sref, '01', remaining as any);
-        } catch { /* first save might not need extra update */ }
+        const hasRemainingData = Object.values(remaining).some(v => v !== null && v !== '' && v !== 'N');
+        if (hasRemainingData) {
+          try {
+            // Use the actual seq from newly loaded activities
+            const newActivities = await import('@/services/selfEmployedService').then(m => m.SelfEmployedService.getActivities(ssn));
+            const latestAct = newActivities.find(a => a.self_ref_no === sref);
+            if (latestAct) {
+              await updateActivity(sref, latestAct.activity_seq_no, remaining as any);
+            }
+          } catch { /* non-critical, basic fields already saved */ }
+        }
         setAddingNew(false);
         setForm({ ...emptyForm });
         onRegistrationComplete?.();
@@ -223,12 +229,14 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
         sector_code: form.sector_code || undefined,
       });
       if (seq) {
-        // Update remaining fields
         const payload = buildPayload(form);
         const { activity_type, date_commenced, occupation_code, office_code, sector_code, ...remaining } = payload;
-        try {
-          await updateActivity(selfRefNo, seq, remaining as any);
-        } catch { /* ok */ }
+        const hasRemainingData = Object.values(remaining).some(v => v !== null && v !== '' && v !== 'N');
+        if (hasRemainingData) {
+          try {
+            await updateActivity(selfRefNo, seq, remaining as any);
+          } catch { /* non-critical */ }
+        }
         setAddingNew(false);
         setForm({ ...emptyForm });
       }
