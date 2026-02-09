@@ -22,13 +22,6 @@ Deno.serve(async (req) => {
     }
 
     const secretKey = Deno.env.get("CLOUDFLARE_TURNSTILE_SECRET_KEY");
-    if (!secretKey) {
-      console.error("CLOUDFLARE_TURNSTILE_SECRET_KEY not configured");
-      return new Response(
-        JSON.stringify({ success: false, error: "Verification service misconfigured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Get client IP from headers
     const ip =
@@ -41,8 +34,36 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Handle case where Turnstile was unavailable on client (e.g. blocked by iframe/ad-blocker)
+    if (token === "turnstile-unavailable") {
+      await supabaseAdmin.from("login_security_events").insert({
+        user_email: email || null,
+        ip_address: ip,
+        device_fingerprint: deviceFingerprint || null,
+        user_agent: userAgent || null,
+        verification_result: "skipped",
+        risk_level: "medium",
+        turnstile_token_valid: false,
+        failure_reason: "Turnstile widget unavailable on client",
+      });
+
+      return new Response(
+        JSON.stringify({ success: false, error: "Verification unavailable", riskLevel: "medium" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!secretKey) {
+      console.error("CLOUDFLARE_TURNSTILE_SECRET_KEY not configured");
+      return new Response(
+        JSON.stringify({ success: false, error: "Verification service misconfigured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Rate limiting: check recent attempts from this IP
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
     const { count: recentAttempts } = await supabaseAdmin
       .from("login_security_events")
       .select("*", { count: "exact", head: true })
