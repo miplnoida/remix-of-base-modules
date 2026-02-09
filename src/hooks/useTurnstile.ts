@@ -28,6 +28,23 @@ export function useTurnstile() {
       if (window.turnstile) {
         setIsReady(true);
         scriptLoadedRef.current = true;
+      } else {
+        // Script tag exists but turnstile not ready yet — wait a bit
+        const checkInterval = setInterval(() => {
+          if (window.turnstile) {
+            setIsReady(true);
+            scriptLoadedRef.current = true;
+            clearInterval(checkInterval);
+          }
+        }, 200);
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          if (!window.turnstile) {
+            console.warn('Turnstile script loaded but API not available');
+            setIsReady(true); // Allow login to proceed without turnstile
+            scriptLoadedRef.current = true;
+          }
+        }, 5000);
       }
       return;
     }
@@ -41,7 +58,9 @@ export function useTurnstile() {
       setIsReady(true);
     };
     script.onerror = () => {
-      setError('Failed to load verification service');
+      console.warn('Failed to load Turnstile script — login will proceed without verification');
+      setIsReady(true); // Allow login to proceed
+      scriptLoadedRef.current = true;
     };
     document.head.appendChild(script);
 
