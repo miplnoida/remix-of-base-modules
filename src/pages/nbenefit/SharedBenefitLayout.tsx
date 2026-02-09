@@ -22,7 +22,7 @@ export const SharedBenefitLayout = ({ title, tabs }: SharedBenefitLayoutProps) =
       </div>
 
       <Tabs defaultValue={tabs[0]?.value} className="space-y-6">
-        <TabsList className="bg-muted">
+        <TabsList>
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               {tab.label}

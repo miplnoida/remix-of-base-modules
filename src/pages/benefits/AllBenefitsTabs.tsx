@@ -88,7 +88,7 @@ const AllBenefitsTabs = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={benefitForms[0].key} className="w-full">
-              <TabsList className="mb-6 flex flex-wrap overflow-x-auto">
+              <TabsList className="mb-6">
                 {benefitForms.map(benefit => (
                   <TabsTrigger key={benefit.key} value={benefit.key} className="whitespace-nowrap">
                     {benefit.label}
