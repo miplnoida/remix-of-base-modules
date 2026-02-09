@@ -47,8 +47,11 @@ export const SupabaseLoginScreen = () => {
     setIsLoading(true);
     setError('');
 
+    console.log('[Login] handleSubmit called, window.turnstile available:', !!window.turnstile);
+
     // If turnstile is not available (blocked by iframe, ad-blocker, etc.), skip verification
     if (!window.turnstile) {
+      console.log('[Login] Turnstile not available, proceeding without verification');
       void processLogin(null);
       return;
     }
@@ -59,9 +62,11 @@ export const SupabaseLoginScreen = () => {
 
   const processLogin = async (verificationToken: string | null) => {
     try {
+      console.log('[Login] processLogin called, token:', verificationToken ? 'present' : 'null');
       if (verificationToken) {
         // Step 1: Verify human via edge function
         const verification = await verifyTurnstileToken(verificationToken, email);
+        console.log('[Login] Turnstile verification result:', verification);
         if (!verification.success) {
           setError(verification.error || 'Human verification failed.');
           resetTurnstile();
@@ -70,10 +75,12 @@ export const SupabaseLoginScreen = () => {
         }
       } else {
         // Log unverified login attempt (Turnstile unavailable)
+        console.log('[Login] Logging unverified attempt via edge function');
         try {
-          await verifyTurnstileToken('turnstile-unavailable', email);
-        } catch {
-          // Non-blocking — just log attempt
+          const logResult = await verifyTurnstileToken('turnstile-unavailable', email);
+          console.log('[Login] Unverified attempt logged:', logResult);
+        } catch (logErr) {
+          console.error('[Login] Failed to log unverified attempt:', logErr);
         }
       }
 
