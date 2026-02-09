@@ -22,7 +22,7 @@ import { useIPStatuses, getStatusDescription } from '@/hooks/useIPMasterLookups'
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { useHasEmploymentHistory } from '@/hooks/useEmploymentHistory';
-import { VCEligibilityCheck } from '@/components/ip-registration/VCEligibilityCheck';
+import { VCEligibilityModal } from '@/components/ip-registration/VCEligibilityModal';
 import { IPStatusChangeDialog } from '@/components/ip-registration/IPStatusChangeDialog';
 import { SelfEmployDetailsTab, WagesCategoryTab, BusinessLocationsTab, ContributionHistoryTab, SEPStatusPanel } from '@/components/ip/sep';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
@@ -151,6 +151,16 @@ export default function IPRegistrationForm() {
 
   // Initialize SEP hook with the person's SSN
   const selfEmployed = useSelfEmployed(formData?.ssn && !formData.ssn.startsWith('T') ? formData.ssn : null);
+  
+  // Determine if person is already registered as self-employed (has activities from DB)
+  const isSelfEmployed = selfEmployed.activities.length > 0;
+
+  // Handle "Register as Self Employed" action - switch to edit mode and open SEP tab
+  const handleRegisterAsSelfEmployed = useCallback(() => {
+    if (!formData) return;
+    // Navigate to edit mode and activate the self-employ tab
+    navigate(`/ip-registration/edit/${formData.unique_uuid}?openTab=self-employ`);
+  }, [formData, navigate]);
   
   // Check if employment history records exist for this SSN
 
@@ -301,8 +311,12 @@ export default function IPRegistrationForm() {
     if (action === 'submit') {
       setShowSubmitConfirm(true);
     }
-    // Approve/Reject actions are now handled by WorkflowActionButtons
-  }, [action]);
+    // Handle openTab query param (e.g. from Register as Self Employed)
+    const openTab = searchParams.get('openTab');
+    if (openTab) {
+      setActiveMainTab(openTab);
+    }
+  }, [action, searchParams]);
 
   // Validate current tab before saving
   const validateCurrentTab = useCallback((): boolean => {
@@ -665,13 +679,24 @@ export default function IPRegistrationForm() {
                 Change Status
               </Button>
               <Button 
-                variant={showVCSection ? "default" : "outline"}
-                onClick={() => setShowVCSection(prev => !prev)}
+                variant="outline"
+                onClick={() => setShowVCSection(true)}
                 className="flex items-center gap-2"
               >
                 <HeartHandshake className="h-4 w-4" />
                 VC Eligibility
               </Button>
+              {/* Register as Self Employed - only if not already registered */}
+              {formData.ssn && !formData.ssn.startsWith('T') && !isSelfEmployed && (
+                <Button 
+                  variant="outline"
+                  onClick={handleRegisterAsSelfEmployed}
+                  className="flex items-center gap-2"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Register as Self Employed
+                </Button>
+              )}
             </>
           )}
           {isEditable && (
@@ -726,46 +751,46 @@ export default function IPRegistrationForm() {
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">Caricom</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="self-employ" 
-                className="flex items-center gap-2"
-                disabled={!formData.ssn || formData.ssn.startsWith('T')}
-              >
-                <Briefcase className="h-4 w-4" />
-                <span className="hidden sm:inline">Self Emp.</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="wages-category" 
-                className="flex items-center gap-2"
-                disabled={!formData.ssn || formData.ssn.startsWith('T')}
-              >
-                <DollarSign className="h-4 w-4" />
-                <span className="hidden sm:inline">Wages</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="business-locations" 
-                className="flex items-center gap-2"
-                disabled={!formData.ssn || formData.ssn.startsWith('T')}
-              >
-                <MapPin className="h-4 w-4" />
-                <span className="hidden sm:inline">Locations</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="contributions" 
-                className="flex items-center gap-2"
-                disabled={!formData.ssn || formData.ssn.startsWith('T')}
-              >
-                <Receipt className="h-4 w-4" />
-                <span className="hidden sm:inline">Contributions</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="sep-status" 
-                className="flex items-center gap-2"
-                disabled={!formData.ssn || formData.ssn.startsWith('T')}
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">SEP Status</span>
-              </TabsTrigger>
+              {/* Self-Employed tabs - only visible if registered as self-employed */}
+              {isSelfEmployed && (
+                <>
+                  <TabsTrigger 
+                    value="self-employ" 
+                    className="flex items-center gap-2"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    <span className="hidden sm:inline">Self Emp.</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="wages-category" 
+                    className="flex items-center gap-2"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden sm:inline">Wages</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="business-locations" 
+                    className="flex items-center gap-2"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span className="hidden sm:inline">Locations</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="contributions" 
+                    className="flex items-center gap-2"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    <span className="hidden sm:inline">Contributions</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="sep-status" 
+                    className="flex items-center gap-2"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="hidden sm:inline">SEP Status</span>
+                  </TabsTrigger>
+                </>
+              )}
             </TabsList>
 
             <TabsContent value="register" className="mt-6">
@@ -926,41 +951,37 @@ export default function IPRegistrationForm() {
               </div>
             </TabsContent>
 
-            {/* Self-Employed Details Tab */}
-            <TabsContent value="self-employ" className="mt-6">
-              <SelfEmployDetailsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
-            </TabsContent>
-
-            {/* Wages Category Tab */}
-            <TabsContent value="wages-category" className="mt-6">
-              <WagesCategoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
-            </TabsContent>
-
-            {/* Business Locations Tab */}
-            <TabsContent value="business-locations" className="mt-6">
-              <BusinessLocationsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
-            </TabsContent>
-
-            {/* Contributions Tab */}
-            <TabsContent value="contributions" className="mt-6">
-              <ContributionHistoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
-            </TabsContent>
-
-            {/* SEP Status & Audit Tab */}
-            <TabsContent value="sep-status" className="mt-6">
-              <SEPStatusPanel ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
-            </TabsContent>
+            {/* Self-Employed Tab Contents - only rendered if registered */}
+            {isSelfEmployed && (
+              <>
+                <TabsContent value="self-employ" className="mt-6">
+                  <SelfEmployDetailsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+                </TabsContent>
+                <TabsContent value="wages-category" className="mt-6">
+                  <WagesCategoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+                </TabsContent>
+                <TabsContent value="business-locations" className="mt-6">
+                  <BusinessLocationsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+                </TabsContent>
+                <TabsContent value="contributions" className="mt-6">
+                  <ContributionHistoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+                </TabsContent>
+                <TabsContent value="sep-status" className="mt-6">
+                  <SEPStatusPanel ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+                </TabsContent>
+              </>
+            )}
           </Tabs>
         </CardContent>
       </Card>
 
-      {/* Voluntary Contributor Section - On-demand, toggled by button */}
-      {showVCSection && isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status) && (
-        <VCEligibilityCheck 
-          ssn={formData.ssn} 
-          personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()} 
-        />
-      )}
+      {/* Voluntary Contributor Eligibility Modal */}
+      <VCEligibilityModal
+        open={showVCSection}
+        onOpenChange={setShowVCSection}
+        ssn={formData.ssn || ''}
+        personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()}
+      />
 
       {/* Duplicate Warning Dialog */}
       <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
