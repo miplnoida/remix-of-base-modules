@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMeetingDetails } from '@/hooks/useMeetings';
 import { MeetingOutcomeButtons } from './MeetingOutcomeButtons';
 import { MeetingActionButtons } from './MeetingActionButtons';
+import { RelatedMeetings } from './RelatedMeetings';
 import { 
   Calendar, 
   Clock, 
@@ -36,8 +38,9 @@ const statusColors: Record<MeetingStatus, string> = {
   'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
 };
 
-export function MeetingDetailView({ meetingId, onClose }: MeetingDetailViewProps) {
-  const { data, isLoading, error, refetch } = useMeetingDetails(meetingId);
+export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: MeetingDetailViewProps) {
+  const [activeMeetingId, setActiveMeetingId] = useState(initialMeetingId);
+  const { data, isLoading, error, refetch } = useMeetingDetails(activeMeetingId);
 
   if (isLoading) {
     return (
@@ -71,8 +74,8 @@ export function MeetingDetailView({ meetingId, onClose }: MeetingDetailViewProps
     }
   };
 
-  // Check if meeting is in an actionable state (Scheduled or Rescheduled)
-  const isActionable = ['Scheduled', 'Rescheduled'].includes(meeting.status);
+  // Only show action buttons for Scheduled meetings (not Rescheduled or InProgress)
+  const isActionable = meeting.status === 'Scheduled';
   // Check if meeting is in progress (for outcome buttons)
   const isInProgress = meeting.status === 'InProgress';
 
@@ -231,6 +234,13 @@ export function MeetingDetailView({ meetingId, onClose }: MeetingDetailViewProps
           </CardContent>
         </Card>
       )}
+
+      {/* Related Meetings */}
+      <RelatedMeetings
+        meetingId={activeMeetingId}
+        applicationReference={meeting.application_reference}
+        onMeetingClick={(id) => setActiveMeetingId(id)}
+      />
 
       {/* Tabs for History and API Logs */}
       <Tabs defaultValue="history">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,8 @@ import {
   Building2,
   Eye,
   RefreshCw,
-  PlayCircle
+  PlayCircle,
+  Layers
 } from 'lucide-react';
 
 const statusColors: Record<MeetingStatus, string> = {
@@ -42,6 +43,94 @@ const meetingTypeLabels: Record<MeetingType, string> = {
   'General': 'General'
 };
 
+function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
+  meeting: Meeting;
+  onView: (id: string) => void;
+  onResume: (id: string) => void;
+  showAppRef?: boolean;
+}) {
+  const formatTime = (time: string) => {
+    try {
+      const [hours, minutes] = time.split(':');
+      const d = new Date();
+      d.setHours(parseInt(hours), parseInt(minutes));
+      return format(d, 'h:mm a');
+    } catch {
+      return time;
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+      onClick={() => onView(meeting.id)}
+    >
+      <div className="flex items-start gap-4">
+        <div className="text-center min-w-[60px]">
+          <p className="text-2xl font-bold">
+            {format(new Date(meeting.meeting_date), 'd')}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {format(new Date(meeting.meeting_date), 'MMM')}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{meeting.meeting_reference}</span>
+            <Badge className={statusColors[meeting.status]} variant="secondary">
+              {meeting.status}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {meetingTypeLabels[meeting.meeting_type]}
+            </Badge>
+          </div>
+          {showAppRef && (
+            <p className="text-sm text-muted-foreground">
+              Application: {meeting.application_reference}
+            </p>
+          )}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatTime(meeting.meeting_time)}
+            </span>
+            {meeting.contact_person && (
+              <span className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {meeting.contact_person}
+              </span>
+            )}
+            {meeting.workflow_definitions?.name && (
+              <span className="flex items-center gap-1">
+                <Building2 className="h-3 w-3" />
+                {meeting.workflow_definitions.name}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {meeting.status === 'InProgress' && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onResume(meeting.id);
+            }}
+          >
+            <PlayCircle className="h-4 w-4 mr-1" />
+            Resume
+          </Button>
+        )}
+        <Button variant="ghost" size="sm">
+          <Eye className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ManageMeetingsPage() {
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
@@ -53,11 +142,30 @@ export default function ManageMeetingsPage() {
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
+  const isAllDates = !filters.dateFrom && !filters.dateTo;
+
   const { data: meetings, isLoading, refetch } = useMeetings({
     ...filters,
     applicationReference: searchTerm || undefined,
     meetingReference: searchTerm || undefined
   });
+
+  // Group meetings by application reference when in "All Dates" mode
+  const groupedMeetings = useMemo(() => {
+    if (!meetings || !isAllDates) return null;
+    const groups: Record<string, Meeting[]> = {};
+    for (const m of meetings) {
+      const key = m.application_reference;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    }
+    // Sort groups by most recent meeting date desc
+    return Object.entries(groups).sort((a, b) => {
+      const latestA = a[1].reduce((max, m) => m.meeting_date > max ? m.meeting_date : max, '');
+      const latestB = b[1].reduce((max, m) => m.meeting_date > max ? m.meeting_date : max, '');
+      return latestB.localeCompare(latestA);
+    });
+  }, [meetings, isAllDates]);
 
   const handleFilterChange = (key: keyof MeetingFilters, value: string | undefined) => {
     setFilters(prev => ({
@@ -109,16 +217,6 @@ export default function ManageMeetingsPage() {
     setDetailDialogOpen(true);
   };
 
-  const formatTime = (time: string) => {
-    try {
-      const [hours, minutes] = time.split(':');
-      const date = new Date();
-      date.setHours(parseInt(hours), parseInt(minutes));
-      return format(date, 'h:mm a');
-    } catch {
-      return time;
-    }
-  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -270,79 +368,42 @@ export default function ManageMeetingsPage() {
               <p>No meetings found</p>
               <p className="text-sm">Try adjusting your filters</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {meetings.map((meeting) => (
-                <div
-                  key={meeting.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => openMeetingDetail(meeting.id)}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Date/Time */}
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-2xl font-bold">
-                        {format(new Date(meeting.meeting_date), 'd')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(meeting.meeting_date), 'MMM')}
-                      </p>
-                    </div>
-
-                    {/* Details */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{meeting.meeting_reference}</span>
-                        <Badge className={statusColors[meeting.status]} variant="secondary">
-                          {meeting.status}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {meetingTypeLabels[meeting.meeting_type]}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Application: {meeting.application_reference}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatTime(meeting.meeting_time)}
-                        </span>
-                        {meeting.contact_person && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {meeting.contact_person}
-                          </span>
-                        )}
-                        {meeting.workflow_definitions?.name && (
-                          <span className="flex items-center gap-1">
-                            <Building2 className="h-3 w-3" />
-                            {meeting.workflow_definitions.name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+          ) : isAllDates && groupedMeetings ? (
+            /* Grouped by application reference */
+            <div className="space-y-6">
+              {groupedMeetings.map(([appRef, groupMeetings]) => (
+                <div key={appRef} className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted/50 px-4 py-2.5 flex items-center gap-2 border-b">
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold text-sm">{appRef}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {groupMeetings.length} meeting{groupMeetings.length > 1 ? 's' : ''}
+                    </Badge>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    {meeting.status === 'InProgress' && (
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/meetings/start/${meeting.id}`);
-                        }}
-                      >
-                        <PlayCircle className="h-4 w-4 mr-1" />
-                        Resume
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                  <div className="divide-y">
+                    {groupMeetings.map((meeting) => (
+                      <MeetingRow
+                        key={meeting.id}
+                        meeting={meeting}
+                        onView={openMeetingDetail}
+                        onResume={(id) => navigate(`/meetings/start/${id}`)}
+                      />
+                    ))}
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            /* Flat list */
+            <div className="space-y-3">
+              {meetings!.map((meeting) => (
+                <MeetingRow
+                  key={meeting.id}
+                  meeting={meeting}
+                  onView={openMeetingDetail}
+                  onResume={(id) => navigate(`/meetings/start/${id}`)}
+                  showAppRef
+                />
               ))}
             </div>
           )}
