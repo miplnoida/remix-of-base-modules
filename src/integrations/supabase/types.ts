@@ -10216,6 +10216,15 @@ export type Database = {
         }
         Returns: Json
       }
+      change_sep_status: {
+        Args: {
+          p_new_status: string
+          p_self_ref_no: string
+          p_ssn: string
+          p_userid?: string
+        }
+        Returns: undefined
+      }
       check_ip_duplicates: {
         Args: {
           p_dob: string
@@ -10363,6 +10372,60 @@ export type Database = {
       get_next_c3_schedule_no: {
         Args: { p_payer_id: string; p_payer_type: string; p_period: string }
         Returns: number
+      }
+      get_sep_audit_history: {
+        Args: { p_self_ref_no: string; p_ssn: string }
+        Returns: {
+          action: string
+          activity_seq_no: string
+          activity_type: string
+          audit_id: number
+          date_ceased: string
+          date_commenced: string
+          modified_date: string
+          modifier: string
+          status: string
+        }[]
+      }
+      get_sep_contribution_rate: {
+        Args: { p_period: string; p_wage_category: number }
+        Returns: {
+          sep_penalty_percent: number
+          sep_ss_percent: number
+        }[]
+      }
+      get_sep_contribution_summary: {
+        Args: { p_ssn: string }
+        Returns: {
+          earliest_period: string
+          latest_period: string
+          total_contributions: number
+          total_ss_amount: number
+        }[]
+      }
+      get_sep_weeks_paid: {
+        Args: { p_payer_id: string; p_ssn: string }
+        Returns: {
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          pay_period: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sep_ss_amt: number | null
+          sequence_no: number
+          ssn: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ip_self_weeks_paid"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_system_setting: { Args: { p_setting_key: string }; Returns: string }
       get_table_columns: {

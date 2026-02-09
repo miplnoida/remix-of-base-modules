@@ -7,7 +7,10 @@ import {
   SelfEmployActivity, 
   SelfEmployCategory, 
   SelfEmployLocation, 
-  SEPEligibility 
+  SEPEligibility,
+  SEPWeeksPaid,
+  SEPContributionSummary,
+  SEPAuditRecord,
 } from '@/services/selfEmployedService';
 import { toast } from 'sonner';
 
@@ -16,6 +19,9 @@ export function useSelfEmployed(ssn: string | null) {
   const [activities, setActivities] = useState<SelfEmployActivity[]>([]);
   const [categories, setCategories] = useState<SelfEmployCategory[]>([]);
   const [locations, setLocations] = useState<SelfEmployLocation[]>([]);
+  const [weeksPaid, setWeeksPaid] = useState<SEPWeeksPaid[]>([]);
+  const [contributionSummary, setContributionSummary] = useState<SEPContributionSummary | null>(null);
+  const [auditHistory, setAuditHistory] = useState<SEPAuditRecord[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<SelfEmployActivity | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +73,38 @@ export function useSelfEmployed(ssn: string | null) {
       setError(err.message);
     }
   }, [ssn]);
+
+  const loadWeeksPaid = useCallback(async (payerId?: string) => {
+    if (!ssn) return;
+    try {
+      const pid = payerId || (activities.length > 0 ? activities[0].self_ref_no : null);
+      if (!pid) return;
+      const data = await SelfEmployedService.getWeeksPaid(ssn, pid);
+      setWeeksPaid(data);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [ssn, activities]);
+
+  const loadContributionSummary = useCallback(async () => {
+    if (!ssn) return;
+    try {
+      const data = await SelfEmployedService.getContributionSummary(ssn);
+      setContributionSummary(data);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [ssn]);
+
+  const loadAuditHistory = useCallback(async () => {
+    if (!ssn || activities.length === 0) return;
+    try {
+      const data = await SelfEmployedService.getAuditHistory(ssn, activities[0].self_ref_no);
+      setAuditHistory(data);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [ssn, activities]);
 
   const registerSelfEmployed = useCallback(async (params: {
     activity_type: string;
@@ -154,6 +192,26 @@ export function useSelfEmployed(ssn: string | null) {
     }
   }, [ssn, loadActivities]);
 
+  const changeStatus = useCallback(async (
+    self_ref_no: string,
+    new_status: string,
+    userid?: string
+  ) => {
+    if (!ssn) return;
+    setLoading(true);
+    try {
+      await SelfEmployedService.changeStatus(ssn, self_ref_no, new_status, userid);
+      const statusLabels: Record<string, string> = { A: 'Active', S: 'Suspended', C: 'Ceased', V: 'Verified', P: 'Pending' };
+      toast.success(`SEP status changed to ${statusLabels[new_status] || new_status}`);
+      await loadActivities();
+      await checkEligibility();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [ssn, loadActivities, checkEligibility]);
+
   const addCategory = useCallback(async (category: SelfEmployCategory) => {
     setLoading(true);
     try {
@@ -198,6 +256,20 @@ export function useSelfEmployed(ssn: string | null) {
     }
   }, [ssn, loadLocations]);
 
+  const addWeeksPaid = useCallback(async (record: SEPWeeksPaid) => {
+    setLoading(true);
+    try {
+      await SelfEmployedService.addWeeksPaid(record);
+      toast.success('Contribution record added');
+      await loadWeeksPaid(record.payer_id);
+      await loadContributionSummary();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadWeeksPaid, loadContributionSummary]);
+
   // When selected activity changes, load related data
   useEffect(() => {
     if (selectedActivity) {
@@ -211,14 +283,18 @@ export function useSelfEmployed(ssn: string | null) {
     if (ssn) {
       checkEligibility();
       loadActivities();
+      loadContributionSummary();
     }
-  }, [ssn, checkEligibility, loadActivities]);
+  }, [ssn, checkEligibility, loadActivities, loadContributionSummary]);
 
   return {
     eligibility,
     activities,
     categories,
     locations,
+    weeksPaid,
+    contributionSummary,
+    auditHistory,
     selectedActivity,
     setSelectedActivity,
     loading,
@@ -227,12 +303,17 @@ export function useSelfEmployed(ssn: string | null) {
     loadActivities,
     loadCategories,
     loadLocations,
+    loadWeeksPaid,
+    loadContributionSummary,
+    loadAuditHistory,
     registerSelfEmployed,
     addActivity,
     updateActivity,
     ceaseActivity,
+    changeStatus,
     addCategory,
     addLocation,
     deleteLocation,
+    addWeeksPaid,
   };
 }
