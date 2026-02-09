@@ -4486,6 +4486,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_self_locations: {
+        Row: {
+          activity_seq_no: string
+          activity_type: string | null
+          location: string | null
+          self_ref_no: string
+          seq_no: number
+          ssn: string
+        }
+        Insert: {
+          activity_seq_no: string
+          activity_type?: string | null
+          location?: string | null
+          self_ref_no: string
+          seq_no?: never
+          ssn: string
+        }
+        Update: {
+          activity_seq_no?: string
+          activity_type?: string | null
+          location?: string | null
+          self_ref_no?: string
+          seq_no?: never
+          ssn?: string
+        }
+        Relationships: []
+      }
+      ip_self_weeks_paid: {
+        Row: {
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          pay_period: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sep_ss_amt: number | null
+          sequence_no: number
+          ssn: string
+        }
+        Insert: {
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          pay_period?: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sep_ss_amt?: number | null
+          sequence_no: number
+          ssn: string
+        }
+        Update: {
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          pay_period?: string | null
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          sep_ss_amt?: number | null
+          sequence_no?: number
+          ssn?: string
+        }
+        Relationships: []
+      }
       ip_status: {
         Row: {
           code: string
