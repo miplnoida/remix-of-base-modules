@@ -12,10 +12,9 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex flex-wrap items-center gap-1 rounded-md bg-muted p-1 text-muted-foreground",
+      "flex w-full flex-wrap items-center gap-1 rounded-md bg-muted p-1 text-muted-foreground",
       className
     )}
-    style={{ display: 'flex', flexWrap: 'wrap' }}
     {...props}
   />
 ))
