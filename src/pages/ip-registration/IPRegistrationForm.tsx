@@ -682,7 +682,7 @@ export default function IPRegistrationForm() {
       <Card>
         <CardContent className="p-6">
           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className="flex w-full overflow-x-auto">
+            <TabsList className="w-full">
               <TabsTrigger value="register" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Register Person</span>

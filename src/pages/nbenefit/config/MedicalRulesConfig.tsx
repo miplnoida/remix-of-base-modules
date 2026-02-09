@@ -15,7 +15,7 @@ export default function MedicalRulesConfig() {
       </div>
 
       <Tabs defaultValue="procedures" className="space-y-6">
-        <TabsList className="bg-muted">
+        <TabsList>
           <TabsTrigger value="procedures">Procedure Registry</TabsTrigger>
           <TabsTrigger value="availability">Availability & Routing</TabsTrigger>
           <TabsTrigger value="limits">Maximum Limits</TabsTrigger>
