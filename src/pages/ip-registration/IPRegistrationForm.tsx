@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, Settings2, DollarSign, MapPin, Receipt, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, Settings2, DollarSign, MapPin, Receipt, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -146,6 +146,7 @@ export default function IPRegistrationForm() {
   const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
+  const [showVCSection, setShowVCSection] = useState(false);
   const hasShownSuccessRef = useRef(false);
 
   // Initialize SEP hook with the person's SSN
@@ -654,14 +655,24 @@ export default function IPRegistrationForm() {
           )}
           {/* Status Change button - Only in View mode for non-editable records */}
           {isViewMode && !['Z', 'P'].includes(formData.status) && (
-            <Button 
-              variant="outline"
-              onClick={() => setShowStatusChangeDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Settings2 className="h-4 w-4" />
-              Change Status
-            </Button>
+            <>
+              <Button 
+                variant="outline"
+                onClick={() => setShowStatusChangeDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings2 className="h-4 w-4" />
+                Change Status
+              </Button>
+              <Button 
+                variant={showVCSection ? "default" : "outline"}
+                onClick={() => setShowVCSection(prev => !prev)}
+                className="flex items-center gap-2"
+              >
+                <HeartHandshake className="h-4 w-4" />
+                VC Eligibility
+              </Button>
+            </>
           )}
           {isEditable && (
             <Button onClick={() => setShowSubmitConfirm(true)}>
@@ -943,8 +954,8 @@ export default function IPRegistrationForm() {
         </CardContent>
       </Card>
 
-      {/* Voluntary Contributor Section - Only show in view mode for verified/active statuses */}
-      {isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status) && (
+      {/* Voluntary Contributor Section - On-demand, toggled by button */}
+      {showVCSection && isViewMode && formData.ssn && !['Z', 'P'].includes(formData.status) && (
         <VCEligibilityCheck 
           ssn={formData.ssn} 
           personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()} 
