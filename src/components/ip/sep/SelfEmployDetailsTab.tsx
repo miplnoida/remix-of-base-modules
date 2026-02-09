@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Edit, StopCircle, Eye, Briefcase } from 'lucide-react';
+import { Plus, Save, X, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { SelfEmployActivity } from '@/services/selfEmployedService';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
+import { useSEPLookups } from '@/hooks/useSEPLookups';
+import { toast } from 'sonner';
 
 interface SelfEmployDetailsTabProps {
   ssn: string;
@@ -21,596 +22,656 @@ interface SelfEmployDetailsTabProps {
 }
 
 const statusLabels: Record<string, string> = {
-  P: 'Pending',
-  V: 'Verified',
-  A: 'Active',
-  S: 'Suspended',
-  C: 'Ceased',
+  P: 'Pending', V: 'Verified', A: 'Active', S: 'Suspended', C: 'Ceased',
 };
-
 const statusColors: Record<string, string> = {
-  P: 'secondary',
-  V: 'default',
-  A: 'default',
-  S: 'destructive',
-  C: 'outline',
+  P: 'secondary', V: 'default', A: 'default', S: 'destructive', C: 'outline',
 };
 
-const sectorLabels: Record<string, string> = {
-  P: 'Private',
-  G: 'Government',
-  O: 'Other',
+// Phone format helper: (869)-123-4567
+const formatPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)})-${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)})-${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+const stripPhone = (formatted: string): string => formatted.replace(/\D/g, '');
+
+interface ActivityFormState {
+  activity_type: string;
+  date_commenced: string;
+  phone: string;
+  fax: string;
+  arrears: string;
+  legal_action: string;
+  self_maddr1: string;
+  self_maddr2: string;
+  self_paddr1: string;
+  self_paddr2: string;
+  occupation_code: string;
+  industrial_code: string;
+  office_code: string;
+  village_code: string;
+  sector_code: string;
+  inspector_code: string;
+  persons_employed: string;
+  date_of_application: string;
+  date_of_entry: string;
+  date_of_issue: string;
+  date_educated: string;
+  self_guide: string;
+  self_edu: string;
+}
+
+const emptyForm: ActivityFormState = {
+  activity_type: '', date_commenced: '', phone: '', fax: '',
+  arrears: 'N', legal_action: 'N',
+  self_maddr1: '', self_maddr2: '', self_paddr1: '', self_paddr2: '',
+  occupation_code: '', industrial_code: '', office_code: '', village_code: '',
+  sector_code: '', inspector_code: '',
+  persons_employed: '', date_of_application: '', date_of_entry: new Date().toISOString().split('T')[0],
+  date_of_issue: '', date_educated: '', self_guide: 'N', self_edu: 'N',
 };
 
-const officeLabels: Record<string, string> = {
-  STK: 'St. Kitts',
-  NEV: 'Nevis',
-};
+function activityToForm(act: SelfEmployActivity): ActivityFormState {
+  return {
+    activity_type: act.activity_type || '',
+    date_commenced: act.date_commenced ? act.date_commenced.split('T')[0] : '',
+    phone: act.phone ? formatPhone(act.phone) : '',
+    fax: act.fax ? formatPhone(act.fax) : '',
+    arrears: act.arrears || 'N',
+    legal_action: act.legal_action || 'N',
+    self_maddr1: act.self_maddr1 || '',
+    self_maddr2: act.self_maddr2 || '',
+    self_paddr1: act.self_paddr1 || '',
+    self_paddr2: act.self_paddr2 || '',
+    occupation_code: act.occupation_code || '',
+    industrial_code: act.industrial_code || '',
+    office_code: act.office_code || '',
+    village_code: act.village_code || '',
+    sector_code: act.sector_code || '',
+    inspector_code: act.inspector_code || '',
+    persons_employed: act.persons_employed != null ? String(act.persons_employed) : '',
+    date_of_application: act.date_of_application ? act.date_of_application.split('T')[0] : '',
+    date_of_entry: act.date_of_entry ? act.date_of_entry.split('T')[0] : '',
+    date_of_issue: act.date_of_issue ? act.date_of_issue.split('T')[0] : '',
+    date_educated: act.date_educated ? act.date_educated.split('T')[0] : '',
+    self_guide: act.self_guide || 'N',
+    self_edu: act.self_edu || 'N',
+  };
+}
 
-export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn, selfEmployed, isRegistrationMode, onRegistrationComplete, onRegistrationCancel }) => {
+export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
+  ssn, selfEmployed, isRegistrationMode, onRegistrationComplete, onRegistrationCancel,
+}) => {
   const {
-    eligibility,
-    activities,
-    selectedActivity,
-    setSelectedActivity,
-    loading,
-    registerSelfEmployed,
-    addActivity,
-    updateActivity,
-    ceaseActivity,
+    eligibility, activities, loading,
+    registerSelfEmployed, addActivity, updateActivity, loadActivities,
   } = selfEmployed;
 
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
-  const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showCeaseDialog, setShowCeaseDialog] = useState(false);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const lookups = useSEPLookups();
+  const [editingSeq, setEditingSeq] = useState<string | null>(null);
+  const [expandedSeq, setExpandedSeq] = useState<string | null>(null);
+  const [form, setForm] = useState<ActivityFormState>({ ...emptyForm });
+  const [addingNew, setAddingNew] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Registration form state
-  const [regForm, setRegForm] = useState({
-    activity_type: '',
-    date_commenced: '',
-    occupation_code: '',
-    office_code: 'STK',
-    sector_code: 'O',
-  });
-
-  // Cease form
-  const [ceaseDate, setCeaseDate] = useState('');
-
-  // Edit form
-  const [editForm, setEditForm] = useState<Partial<SelfEmployActivity>>({});
-
-  const isEditable = selectedActivity && ['P', 'V', 'A'].includes(selectedActivity.status || '');
   const selfRefNo = activities.length > 0 ? activities[0].self_ref_no : null;
 
-  const handleRegister = async () => {
-    if (!regForm.activity_type || !regForm.date_commenced) {
-      return;
-    }
-    const sref = await registerSelfEmployed(regForm);
-    if (sref) {
-      setShowRegisterDialog(false);
-      setRegForm({ activity_type: '', date_commenced: '', occupation_code: '', office_code: 'STK', sector_code: 'O' });
-      onRegistrationComplete?.();
-    }
+  // Can add new row only if all existing rows have date_ceased
+  const canAddNew = useMemo(() => {
+    if (activities.length === 0) return true;
+    return activities.every(a => !!a.date_ceased);
+  }, [activities]);
+
+  const validate = (f: ActivityFormState): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (!f.activity_type.trim()) errs.activity_type = 'Activity Type is required';
+    if (!f.date_commenced) errs.date_commenced = 'Date Commenced is required';
+    return errs;
   };
 
-  const handleAddActivity = async () => {
-    if (!selfRefNo || !regForm.activity_type || !regForm.date_commenced) return;
-    await addActivity({ self_ref_no: selfRefNo, ...regForm });
-    setShowAddActivityDialog(false);
-    setRegForm({ activity_type: '', date_commenced: '', occupation_code: '', office_code: 'STK', sector_code: 'O' });
+  const handlePhoneChange = (field: 'phone' | 'fax', value: string) => {
+    setForm(prev => ({ ...prev, [field]: formatPhone(value) }));
   };
 
-  const handleCease = async () => {
-    if (!selectedActivity || !ceaseDate) return;
-    await ceaseActivity(selectedActivity.self_ref_no, selectedActivity.activity_seq_no, ceaseDate);
-    setShowCeaseDialog(false);
-    setCeaseDate('');
+  const startEdit = (act: SelfEmployActivity) => {
+    setEditingSeq(act.activity_seq_no);
+    setForm(activityToForm(act));
+    setExpandedSeq(act.activity_seq_no);
+    setAddingNew(false);
+    setFormErrors({});
+  };
+
+  const startAddNew = () => {
+    setAddingNew(true);
+    setEditingSeq(null);
+    setForm({ ...emptyForm });
+    setExpandedSeq(null);
+    setFormErrors({});
+  };
+
+  const cancelEdit = () => {
+    setEditingSeq(null);
+    setAddingNew(false);
+    setForm({ ...emptyForm });
+    setFormErrors({});
+  };
+
+  const buildPayload = (f: ActivityFormState) => ({
+    activity_type: f.activity_type,
+    date_commenced: f.date_commenced,
+    phone: stripPhone(f.phone),
+    fax: stripPhone(f.fax),
+    arrears: f.arrears,
+    legal_action: f.legal_action,
+    self_maddr1: f.self_maddr1,
+    self_maddr2: f.self_maddr2,
+    self_paddr1: f.self_paddr1,
+    self_paddr2: f.self_paddr2,
+    occupation_code: f.occupation_code || null,
+    industrial_code: f.industrial_code || null,
+    office_code: f.office_code || null,
+    village_code: f.village_code || null,
+    sector_code: f.sector_code || null,
+    inspector_code: f.inspector_code || null,
+    persons_employed: f.persons_employed ? Number(f.persons_employed) : null,
+    date_of_application: f.date_of_application || null,
+    date_of_entry: f.date_of_entry || null,
+    date_of_issue: f.date_of_issue || null,
+    date_educated: f.date_educated || null,
+    self_guide: f.self_guide,
+    self_edu: f.self_edu,
+  });
+
+  const handleSaveNew = async () => {
+    const errs = validate(form);
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+
+    if (!selfRefNo) {
+      // First ever registration - use registerSelfEmployed RPC
+      const sref = await registerSelfEmployed({
+        activity_type: form.activity_type,
+        date_commenced: form.date_commenced,
+        occupation_code: form.occupation_code || undefined,
+        office_code: form.office_code || undefined,
+        sector_code: form.sector_code || undefined,
+      });
+      if (sref) {
+        // Now update with remaining fields
+        await loadActivities();
+        // Get the newly created activity to update remaining fields
+        const payload = buildPayload(form);
+        // Remove fields already set during registration
+        const { activity_type, date_commenced, occupation_code, office_code, sector_code, ...remaining } = payload;
+        try {
+          await updateActivity(sref, '01', remaining as any);
+        } catch { /* first save might not need extra update */ }
+        setAddingNew(false);
+        setForm({ ...emptyForm });
+        onRegistrationComplete?.();
+      }
+    } else {
+      // Add activity to existing self_ref_no
+      const seq = await addActivity({
+        self_ref_no: selfRefNo,
+        activity_type: form.activity_type,
+        date_commenced: form.date_commenced,
+        occupation_code: form.occupation_code || undefined,
+        office_code: form.office_code || undefined,
+        sector_code: form.sector_code || undefined,
+      });
+      if (seq) {
+        // Update remaining fields
+        const payload = buildPayload(form);
+        const { activity_type, date_commenced, occupation_code, office_code, sector_code, ...remaining } = payload;
+        try {
+          await updateActivity(selfRefNo, seq, remaining as any);
+        } catch { /* ok */ }
+        setAddingNew(false);
+        setForm({ ...emptyForm });
+      }
+    }
   };
 
   const handleSaveEdit = async () => {
-    if (!selectedActivity) return;
-    await updateActivity(selectedActivity.self_ref_no, selectedActivity.activity_seq_no, editForm);
-    setShowEditDialog(false);
+    if (!editingSeq || !selfRefNo) return;
+    const errs = validate(form);
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+
+    const payload = buildPayload(form);
+    await updateActivity(selfRefNo, editingSeq, payload as any);
+    setEditingSeq(null);
+    setForm({ ...emptyForm });
+    setFormErrors({});
   };
 
-  const openEditDialog = () => {
-    if (!selectedActivity) return;
-    setEditForm({
-      activity_type: selectedActivity.activity_type || '',
-      occupation_code: selectedActivity.occupation_code || '',
-      office_code: selectedActivity.office_code || 'STK',
-      sector_code: selectedActivity.sector_code || 'O',
-      phone: selectedActivity.phone || '',
-      fax: selectedActivity.fax || '',
-      self_maddr1: selectedActivity.self_maddr1 || '',
-      self_maddr2: selectedActivity.self_maddr2 || '',
-      self_paddr1: selectedActivity.self_paddr1 || '',
-      self_paddr2: selectedActivity.self_paddr2 || '',
-      persons_employed: selectedActivity.persons_employed,
-      industrial_code: selectedActivity.industrial_code || '',
-      village_code: selectedActivity.village_code || '',
-    });
-    setShowEditDialog(true);
-  };
+  // If no activities and in registration mode, show the add form directly
+  const showNewForm = addingNew || (isRegistrationMode && activities.length === 0);
 
-  // Handle dialog close — if in registration mode and dialog is closed without saving, cancel
-  const handleRegisterDialogChange = (open: boolean) => {
-    setShowRegisterDialog(open);
-    if (!open && isRegistrationMode && activities.length === 0) {
-      // Dialog closed without successful registration — notify parent to cancel
-      onRegistrationCancel?.();
-    }
-  };
-
-  // No SEP registration yet
-  if (!eligibility?.sep_exists && activities.length === 0) {
-    // In registration mode: show inline form instead of dialog
-    if (isRegistrationMode) {
-      return (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Register as Self-Employed
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Activity Type *</Label>
-                  <Input
-                    placeholder="e.g., Retail Shop, Carpentry"
-                    value={regForm.activity_type}
-                    onChange={(e) => setRegForm({ ...regForm, activity_type: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Date Commenced *</Label>
-                  <Input
-                    type="date"
-                    value={regForm.date_commenced}
-                    onChange={(e) => setRegForm({ ...regForm, date_commenced: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Occupation Code</Label>
-                  <Input
-                    value={regForm.occupation_code}
-                    onChange={(e) => setRegForm({ ...regForm, occupation_code: e.target.value })}
-                    maxLength={4}
-                  />
-                </div>
-                <div>
-                  <Label>Office</Label>
-                  <Select value={regForm.office_code} onValueChange={(v) => setRegForm({ ...regForm, office_code: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="STK">St. Kitts</SelectItem>
-                      <SelectItem value="NEV">Nevis</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Sector</Label>
-                  <Select value={regForm.sector_code} onValueChange={(v) => setRegForm({ ...regForm, sector_code: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="P">Private</SelectItem>
-                      <SelectItem value="G">Government</SelectItem>
-                      <SelectItem value="O">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <Button variant="outline" onClick={() => onRegistrationCancel?.()}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleRegister}
-                  disabled={!regForm.activity_type || !regForm.date_commenced || loading}
-                >
-                  {loading ? 'Registering...' : 'Submit Registration'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
+  // No SEP exists at all
+  if (!eligibility?.sep_exists && activities.length === 0 && !isRegistrationMode) {
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Self-Employment Registration</h3>
-            <p className="text-muted-foreground mb-4">
-              This insured person has not been registered as self-employed.
-            </p>
-            {eligibility?.eligible ? (
-              <Button onClick={() => setShowRegisterDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Register as Self-Employed
-              </Button>
-            ) : eligibility ? (
-              <p className="text-sm text-destructive">{eligibility?.reason}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Checking eligibility...</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Register Dialog - fallback for direct tab access */}
-        <RegisterActivityDialog
-          open={showRegisterDialog}
-          onOpenChange={handleRegisterDialogChange}
-          title="Register as Self-Employed"
-          form={regForm}
-          setForm={setRegForm}
-          onSubmit={handleRegister}
-          loading={loading}
-        />
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Self-Employment Registration</h3>
+          <p className="text-muted-foreground">This insured person has not been registered as self-employed.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Header with SREF */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div>
-            <span className="text-sm text-muted-foreground">Self Ref No:</span>
-            <span className="ml-2 font-mono font-bold text-lg">{selfRefNo}</span>
-          </div>
-          {selectedActivity && (
-            <Badge variant={statusColors[selectedActivity.status || 'P'] as any}>
-              {statusLabels[selectedActivity.status || 'P']}
-            </Badge>
+          {selfRefNo && (
+            <div>
+              <span className="text-sm text-muted-foreground">Self Ref No:</span>
+              <span className="ml-2 font-mono font-bold text-lg">{selfRefNo}</span>
+            </div>
           )}
         </div>
         <div className="flex gap-2">
-          {isEditable && (
-            <>
-              <Button variant="outline" size="sm" onClick={() => setShowAddActivityDialog(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Add Activity
-              </Button>
-              <Button variant="outline" size="sm" onClick={openEditDialog}>
-                <Edit className="h-4 w-4 mr-1" /> Edit
-              </Button>
-              {!selectedActivity?.date_ceased && (
-                <Button variant="outline" size="sm" onClick={() => setShowCeaseDialog(true)}>
-                  <StopCircle className="h-4 w-4 mr-1" /> Cease Activity
-                </Button>
-              )}
-            </>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={startAddNew}
+            disabled={!canAddNew || addingNew || !!editingSeq || loading}
+            title={!canAddNew ? 'All existing rows must have Date Ceased before adding a new row' : ''}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add New Activity
+          </Button>
+          {isRegistrationMode && activities.length === 0 && (
+            <Button variant="outline" size="sm" onClick={onRegistrationCancel}>
+              <X className="h-4 w-4 mr-1" /> Cancel Registration
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Activity Grid */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Business Activities</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Seq</TableHead>
-                <TableHead>Activity Type</TableHead>
-                <TableHead>Date Commenced</TableHead>
-                <TableHead>Date Ceased</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Office</TableHead>
-                <TableHead>Sector</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {activities.map((act) => (
-                <TableRow
-                  key={`${act.ssn}-${act.self_ref_no}-${act.activity_seq_no}`}
-                  className={`cursor-pointer ${selectedActivity?.activity_seq_no === act.activity_seq_no ? 'bg-muted' : ''}`}
-                  onClick={() => setSelectedActivity(act)}
-                >
-                  <TableCell className="font-mono">{act.activity_seq_no}</TableCell>
-                  <TableCell>{act.activity_type || '-'}</TableCell>
-                  <TableCell>{act.date_commenced ? format(new Date(act.date_commenced), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{act.date_ceased ? format(new Date(act.date_ceased), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusColors[act.status || 'P'] as any} className="text-xs">
-                      {statusLabels[act.status || 'P']}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{officeLabels[act.office_code || ''] || act.office_code}</TableCell>
-                  <TableCell>{sectorLabels[act.sector_code || ''] || act.sector_code}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedActivity(act); setShowDetailDialog(true); }}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {activities.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                    No activities found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {!canAddNew && activities.length > 0 && (
+        <p className="text-xs text-muted-foreground italic">
+          All existing activities must have a Date Ceased before adding a new activity.
+        </p>
+      )}
 
-      {/* Selected Activity Detail */}
-      {selectedActivity && (
+      {/* New Activity Form */}
+      {showNewForm && (
+        <ActivityForm
+          form={form}
+          setForm={setForm}
+          errors={formErrors}
+          lookups={lookups}
+          onSave={handleSaveNew}
+          onCancel={() => {
+            cancelEdit();
+            if (isRegistrationMode && activities.length === 0) onRegistrationCancel?.();
+          }}
+          loading={loading}
+          title={selfRefNo ? 'Add New Activity' : 'Register as Self-Employed'}
+          onPhoneChange={handlePhoneChange}
+        />
+      )}
+
+      {/* Existing Activities Table */}
+      {activities.length > 0 && (
         <Card>
           <CardHeader className="py-3">
-            <CardTitle className="text-sm">Activity Details — Seq {selectedActivity.activity_seq_no}</CardTitle>
+            <CardTitle className="text-sm">Business Activities ({activities.length})</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Mailing Address</span>
-                <p className="font-medium">{selectedActivity.self_maddr1 || '-'}</p>
-                {selectedActivity.self_maddr2 && <p className="font-medium">{selectedActivity.self_maddr2}</p>}
-              </div>
-              <div>
-                <span className="text-muted-foreground">Physical Address</span>
-                <p className="font-medium">{selectedActivity.self_paddr1 || '-'}</p>
-                {selectedActivity.self_paddr2 && <p className="font-medium">{selectedActivity.self_paddr2}</p>}
-              </div>
-              <div>
-                <span className="text-muted-foreground">Phone</span>
-                <p className="font-medium">{selectedActivity.phone || '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Fax</span>
-                <p className="font-medium">{selectedActivity.fax || '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Occupation Code</span>
-                <p className="font-medium">{selectedActivity.occupation_code || '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Industrial Code</span>
-                <p className="font-medium">{selectedActivity.industrial_code || '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Persons Employed</span>
-                <p className="font-medium">{selectedActivity.persons_employed ?? '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Entered By</span>
-                <p className="font-medium">{selectedActivity.entered_by || '-'}</p>
-              </div>
-            </div>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">Seq</TableHead>
+                  <TableHead>Activity Type</TableHead>
+                  <TableHead>Date Commenced</TableHead>
+                  <TableHead>Date Ceased</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Arrears</TableHead>
+                  <TableHead>Legal</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activities.map((act) => (
+                  <React.Fragment key={`${act.self_ref_no}-${act.activity_seq_no}`}>
+                    <TableRow
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setExpandedSeq(prev => prev === act.activity_seq_no ? null : act.activity_seq_no)}
+                    >
+                      <TableCell className="font-mono">{act.activity_seq_no}</TableCell>
+                      <TableCell>{act.activity_type || '-'}</TableCell>
+                      <TableCell>{act.date_commenced ? format(new Date(act.date_commenced), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{act.date_ceased ? format(new Date(act.date_ceased), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusColors[act.status || 'P'] as any} className="text-xs">
+                          {statusLabels[act.status || 'P']}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{act.phone ? formatPhone(act.phone) : '-'}</TableCell>
+                      <TableCell>{act.arrears === 'Y' ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>{act.legal_action === 'Y' ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); startEdit(act); }}>
+                            Edit
+                          </Button>
+                          {expandedSeq === act.activity_seq_no ? <ChevronUp className="h-4 w-4 mt-2" /> : <ChevronDown className="h-4 w-4 mt-2" />}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {/* Expanded detail row */}
+                    {expandedSeq === act.activity_seq_no && editingSeq !== act.activity_seq_no && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="bg-muted/30 p-4">
+                          <ActivityDetailView act={act} lookups={lookups} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {/* Inline edit row */}
+                    {editingSeq === act.activity_seq_no && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="p-0">
+                          <ActivityForm
+                            form={form}
+                            setForm={setForm}
+                            errors={formErrors}
+                            lookups={lookups}
+                            onSave={handleSaveEdit}
+                            onCancel={cancelEdit}
+                            loading={loading}
+                            title={`Edit Activity — Seq ${act.activity_seq_no}`}
+                            onPhoneChange={handlePhoneChange}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
-
-      {/* Dialogs */}
-      <RegisterActivityDialog
-        open={showAddActivityDialog}
-        onOpenChange={setShowAddActivityDialog}
-        title="Add New Activity"
-        form={regForm}
-        setForm={setRegForm}
-        onSubmit={handleAddActivity}
-        loading={loading}
-      />
-
-      {/* Cease Dialog */}
-      <Dialog open={showCeaseDialog} onOpenChange={setShowCeaseDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cease Activity</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Cessation Date *</Label>
-              <Input type="date" value={ceaseDate} onChange={(e) => setCeaseDate(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCeaseDialog(false)}>Cancel</Button>
-            <Button onClick={handleCease} disabled={!ceaseDate || loading}>Cease Activity</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Activity Details</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Activity Type</Label>
-              <Input value={editForm.activity_type || ''} onChange={(e) => setEditForm({ ...editForm, activity_type: e.target.value })} />
-            </div>
-            <div>
-              <Label>Occupation Code</Label>
-              <Input value={editForm.occupation_code || ''} onChange={(e) => setEditForm({ ...editForm, occupation_code: e.target.value })} maxLength={4} />
-            </div>
-            <div>
-              <Label>Office</Label>
-              <Select value={editForm.office_code || 'STK'} onValueChange={(v) => setEditForm({ ...editForm, office_code: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="STK">St. Kitts</SelectItem>
-                  <SelectItem value="NEV">Nevis</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Sector</Label>
-              <Select value={editForm.sector_code || 'O'} onValueChange={(v) => setEditForm({ ...editForm, sector_code: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="P">Private</SelectItem>
-                  <SelectItem value="G">Government</SelectItem>
-                  <SelectItem value="O">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} maxLength={10} />
-            </div>
-            <div>
-              <Label>Fax</Label>
-              <Input value={editForm.fax || ''} onChange={(e) => setEditForm({ ...editForm, fax: e.target.value })} maxLength={10} />
-            </div>
-            <div>
-              <Label>Industrial Code</Label>
-              <Input value={editForm.industrial_code || ''} onChange={(e) => setEditForm({ ...editForm, industrial_code: e.target.value })} maxLength={4} />
-            </div>
-            <div>
-              <Label>Village Code</Label>
-              <Input value={editForm.village_code || ''} onChange={(e) => setEditForm({ ...editForm, village_code: e.target.value })} maxLength={3} />
-            </div>
-            <div className="col-span-2">
-              <Label>Mailing Address Line 1</Label>
-              <Input value={editForm.self_maddr1 || ''} onChange={(e) => setEditForm({ ...editForm, self_maddr1: e.target.value })} maxLength={60} />
-            </div>
-            <div className="col-span-2">
-              <Label>Mailing Address Line 2</Label>
-              <Input value={editForm.self_maddr2 || ''} onChange={(e) => setEditForm({ ...editForm, self_maddr2: e.target.value })} maxLength={60} />
-            </div>
-            <div className="col-span-2">
-              <Label>Physical Address Line 1</Label>
-              <Input value={editForm.self_paddr1 || ''} onChange={(e) => setEditForm({ ...editForm, self_paddr1: e.target.value })} maxLength={60} />
-            </div>
-            <div className="col-span-2">
-              <Label>Physical Address Line 2</Label>
-              <Input value={editForm.self_paddr2 || ''} onChange={(e) => setEditForm({ ...editForm, self_paddr2: e.target.value })} maxLength={60} />
-            </div>
-            <div>
-              <Label>Persons Employed</Label>
-              <Input type="number" value={editForm.persons_employed ?? ''} onChange={(e) => setEditForm({ ...editForm, persons_employed: e.target.value ? Number(e.target.value) : null })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={loading}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Detail View Dialog */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Activity Detail — Seq {selectedActivity?.activity_seq_no}</DialogTitle>
-          </DialogHeader>
-          {selectedActivity && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              {Object.entries({
-                'SSN': selectedActivity.ssn,
-                'Self Ref No': selectedActivity.self_ref_no,
-                'Activity Seq': selectedActivity.activity_seq_no,
-                'Activity Type': selectedActivity.activity_type,
-                'Status': statusLabels[selectedActivity.status || 'P'],
-                'Date Commenced': selectedActivity.date_commenced ? format(new Date(selectedActivity.date_commenced), 'dd/MM/yyyy') : '-',
-                'Date Ceased': selectedActivity.date_ceased ? format(new Date(selectedActivity.date_ceased), 'dd/MM/yyyy') : '-',
-                'Office': officeLabels[selectedActivity.office_code || ''] || selectedActivity.office_code,
-                'Sector': sectorLabels[selectedActivity.sector_code || ''] || selectedActivity.sector_code,
-                'Occupation Code': selectedActivity.occupation_code || '-',
-                'Industrial Code': selectedActivity.industrial_code || '-',
-                'Phone': selectedActivity.phone || '-',
-                'Fax': selectedActivity.fax || '-',
-                'Persons Employed': selectedActivity.persons_employed?.toString() || '-',
-                'Entered By': selectedActivity.entered_by || '-',
-                'Date of Entry': selectedActivity.date_of_entry ? format(new Date(selectedActivity.date_of_entry), 'dd/MM/yyyy') : '-',
-              }).map(([label, value]) => (
-                <div key={label}>
-                  <span className="text-muted-foreground">{label}</span>
-                  <p className="font-medium">{value || '-'}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-// Reusable dialog for register/add activity
-function RegisterActivityDialog({
-  open,
-  onOpenChange,
-  title,
-  form,
-  setForm,
-  onSubmit,
-  loading,
+/* ========== Activity Form ========== */
+function ActivityForm({
+  form, setForm, errors, lookups, onSave, onCancel, loading, title, onPhoneChange,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  title: string;
-  form: { activity_type: string; date_commenced: string; occupation_code: string; office_code: string; sector_code: string };
-  setForm: React.Dispatch<React.SetStateAction<typeof form>>;
-  onSubmit: () => void;
+  form: ActivityFormState;
+  setForm: React.Dispatch<React.SetStateAction<ActivityFormState>>;
+  errors: Record<string, string>;
+  lookups: ReturnType<typeof useSEPLookups>;
+  onSave: () => void;
+  onCancel: () => void;
   loading: boolean;
+  title: string;
+  onPhoneChange: (field: 'phone' | 'fax', value: string) => void;
 }) {
+  const set = (field: keyof ActivityFormState, value: string) =>
+    setForm(prev => ({ ...prev, [field]: value }));
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Activity Type *</Label>
-            <Input value={form.activity_type} onChange={(e) => setForm({ ...form, activity_type: e.target.value })} placeholder="e.g., Retail Shop, Carpentry" />
+    <Card className="border-primary/30">
+      <CardHeader className="py-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Briefcase className="h-5 w-5" /> {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Section: Basic Activity Info */}
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Information</legend>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Activity Type <span className="text-destructive">*</span></Label>
+              <Input value={form.activity_type} onChange={(e) => set('activity_type', e.target.value)} placeholder="e.g., Retail Shop" className={errors.activity_type ? 'border-destructive' : ''} />
+              {errors.activity_type && <p className="text-xs text-destructive mt-1">{errors.activity_type}</p>}
+            </div>
+            <div>
+              <Label>Date Commenced <span className="text-destructive">*</span></Label>
+              <Input type="date" value={form.date_commenced} onChange={(e) => set('date_commenced', e.target.value)} className={errors.date_commenced ? 'border-destructive' : ''} />
+              {errors.date_commenced && <p className="text-xs text-destructive mt-1">{errors.date_commenced}</p>}
+            </div>
+            <div>
+              <Label>Business Telephone</Label>
+              <Input value={form.phone} onChange={(e) => onPhoneChange('phone', e.target.value)} placeholder="(869)-123-4567" maxLength={14} />
+            </div>
+            <div>
+              <Label>Arrears</Label>
+              <Select value={form.arrears} onValueChange={(v) => set('arrears', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="N">No</SelectItem>
+                  <SelectItem value="Y">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Legal Action</Label>
+              <Select value={form.legal_action} onValueChange={(v) => set('legal_action', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="N">No</SelectItem>
+                  <SelectItem value="Y">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <Label>Date Commenced *</Label>
-            <Input type="date" value={form.date_commenced} onChange={(e) => setForm({ ...form, date_commenced: e.target.value })} />
+        </fieldset>
+
+        {/* Section: Address */}
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Address</legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Mailing Address Line 1</Label>
+              <Input value={form.self_maddr1} onChange={(e) => set('self_maddr1', e.target.value)} maxLength={60} />
+            </div>
+            <div>
+              <Label>Mailing Address Line 2</Label>
+              <Input value={form.self_maddr2} onChange={(e) => set('self_maddr2', e.target.value)} maxLength={60} />
+            </div>
+            <div>
+              <Label>Physical Address Line 1</Label>
+              <Input value={form.self_paddr1} onChange={(e) => set('self_paddr1', e.target.value)} maxLength={60} />
+            </div>
+            <div>
+              <Label>Physical Address Line 2</Label>
+              <Input value={form.self_paddr2} onChange={(e) => set('self_paddr2', e.target.value)} maxLength={60} />
+            </div>
           </div>
-          <div>
-            <Label>Occupation Code</Label>
-            <Input value={form.occupation_code} onChange={(e) => setForm({ ...form, occupation_code: e.target.value })} maxLength={4} />
+        </fieldset>
+
+        {/* Section: Activity Details (dropdowns) */}
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Activity Details</legend>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Occupational Code</Label>
+              <Select value={form.occupation_code} onValueChange={(v) => set('occupation_code', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {lookups.occupations.map(o => (
+                    <SelectItem key={o.code} value={o.code}>{o.code} - {o.description}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Industrial Code</Label>
+              <Select value={form.industrial_code} onValueChange={(v) => set('industrial_code', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {lookups.industries.map(o => (
+                    <SelectItem key={o.code} value={o.code}>{o.code} - {o.description}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Office Code</Label>
+              <Select value={form.office_code} onValueChange={(v) => set('office_code', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {lookups.offices.map(o => (
+                    <SelectItem key={o.code} value={o.code}>{o.code} - {o.description}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Village Code</Label>
+              <Select value={form.village_code} onValueChange={(v) => set('village_code', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {lookups.villages.map(o => (
+                    <SelectItem key={o.code} value={o.code}>{o.description}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Sector Code</Label>
+              <Select value={form.sector_code} onValueChange={(v) => set('sector_code', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {lookups.sectors.map(o => (
+                    <SelectItem key={o.code} value={o.code}>{o.description}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Fax</Label>
+              <Input value={form.fax} onChange={(e) => onPhoneChange('fax', e.target.value)} placeholder="(869)-123-4567" maxLength={14} />
+            </div>
           </div>
-          <div>
-            <Label>Office</Label>
-            <Select value={form.office_code} onValueChange={(v) => setForm({ ...form, office_code: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="STK">St. Kitts</SelectItem>
-                <SelectItem value="NEV">Nevis</SelectItem>
-              </SelectContent>
-            </Select>
+        </fieldset>
+
+        {/* Section: Other Information */}
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Other Information</legend>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Inspector</Label>
+              <Select value={form.inspector_code} onValueChange={(v) => set('inspector_code', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {lookups.inspectors.map(i => (
+                    <SelectItem key={i.code} value={i.code}>{i.code} - {i.insp_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Persons Employed</Label>
+              <Input type="number" min="0" value={form.persons_employed} onChange={(e) => set('persons_employed', e.target.value)} />
+            </div>
+            <div>
+              <Label>Date of Application</Label>
+              <Input type="date" value={form.date_of_application} onChange={(e) => set('date_of_application', e.target.value)} />
+            </div>
+            <div>
+              <Label>Date of Entry</Label>
+              <Input type="date" value={form.date_of_entry} onChange={(e) => set('date_of_entry', e.target.value)} />
+            </div>
+            <div>
+              <Label>Date of Issue</Label>
+              <Input type="date" value={form.date_of_issue} onChange={(e) => set('date_of_issue', e.target.value)} />
+            </div>
+            <div>
+              <Label>Date Educated</Label>
+              <Input type="date" value={form.date_educated} onChange={(e) => set('date_educated', e.target.value)} />
+            </div>
+            <div>
+              <Label>Self Guide</Label>
+              <Select value={form.self_guide} onValueChange={(v) => set('self_guide', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="N">No</SelectItem>
+                  <SelectItem value="Y">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Self Edu</Label>
+              <Select value={form.self_edu} onValueChange={(v) => set('self_edu', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="N">No</SelectItem>
+                  <SelectItem value="Y">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <Label>Sector</Label>
-            <Select value={form.sector_code} onValueChange={(v) => setForm({ ...form, sector_code: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="P">Private</SelectItem>
-                <SelectItem value="G">Government</SelectItem>
-                <SelectItem value="O">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onSubmit} disabled={!form.activity_type || !form.date_commenced || loading}>
-            {loading ? 'Processing...' : 'Submit'}
+        </fieldset>
+
+        {/* Buttons */}
+        <div className="flex justify-end gap-2 pt-2 border-t">
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
+            <X className="h-4 w-4 mr-1" /> Cancel
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button onClick={onSave} disabled={loading}>
+            <Save className="h-4 w-4 mr-1" /> {loading ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ========== Read-Only Activity Detail ========== */
+function ActivityDetailView({ act, lookups }: { act: SelfEmployActivity; lookups: ReturnType<typeof useSEPLookups> }) {
+  const findLabel = (items: { code: string; description?: string; insp_name?: string }[], code: string | null) => {
+    if (!code) return '-';
+    const item = items.find(i => i.code === code);
+    return item ? `${code} - ${'description' in item ? item.description : (item as any).insp_name}` : code;
+  };
+
+  const fields = [
+    ['Mailing Address 1', act.self_maddr1],
+    ['Mailing Address 2', act.self_maddr2],
+    ['Physical Address 1', act.self_paddr1],
+    ['Physical Address 2', act.self_paddr2],
+    ['Phone', act.phone ? formatPhone(act.phone) : null],
+    ['Fax', act.fax ? formatPhone(act.fax) : null],
+    ['Occupation', findLabel(lookups.occupations, act.occupation_code)],
+    ['Industrial Code', findLabel(lookups.industries, act.industrial_code)],
+    ['Office', findLabel(lookups.offices, act.office_code)],
+    ['Village', findLabel(lookups.villages, act.village_code)],
+    ['Sector', findLabel(lookups.sectors, act.sector_code)],
+    ['Inspector', findLabel(lookups.inspectors.map(i => ({ code: i.code, description: i.insp_name })), act.inspector_code)],
+    ['Persons Employed', act.persons_employed != null ? String(act.persons_employed) : null],
+    ['Arrears', act.arrears === 'Y' ? 'Yes' : 'No'],
+    ['Legal Action', act.legal_action === 'Y' ? 'Yes' : 'No'],
+    ['Date of Application', act.date_of_application ? format(new Date(act.date_of_application), 'dd/MM/yyyy') : null],
+    ['Date of Entry', act.date_of_entry ? format(new Date(act.date_of_entry), 'dd/MM/yyyy') : null],
+    ['Date of Issue', act.date_of_issue ? format(new Date(act.date_of_issue), 'dd/MM/yyyy') : null],
+    ['Date Educated', act.date_educated ? format(new Date(act.date_educated), 'dd/MM/yyyy') : null],
+    ['Self Guide', act.self_guide === 'Y' ? 'Yes' : 'No'],
+    ['Self Edu', act.self_edu === 'Y' ? 'Yes' : 'No'],
+    ['Entered By', act.entered_by],
+    ['Verified By', act.verified_by],
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      {fields.map(([label, value]) => (
+        <div key={label as string}>
+          <span className="text-muted-foreground text-xs">{label}</span>
+          <p className="font-medium">{(value as string) || '-'}</p>
+        </div>
+      ))}
+    </div>
   );
 }
