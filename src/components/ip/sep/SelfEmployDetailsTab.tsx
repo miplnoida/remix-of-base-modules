@@ -41,6 +41,7 @@ const stripPhone = (formatted: string): string => formatted.replace(/\D/g, '');
 interface ActivityFormState {
   activity_type: string;
   date_commenced: string;
+  date_ceased: string;
   phone: string;
   fax: string;
   arrears: string;
@@ -65,7 +66,7 @@ interface ActivityFormState {
 }
 
 const emptyForm: ActivityFormState = {
-  activity_type: '', date_commenced: '', phone: '', fax: '',
+  activity_type: '', date_commenced: '', date_ceased: '', phone: '', fax: '',
   arrears: 'N', legal_action: 'N',
   self_maddr1: '', self_maddr2: '', self_paddr1: '', self_paddr2: '',
   occupation_code: '', industrial_code: '', office_code: '', village_code: '',
@@ -78,6 +79,7 @@ function activityToForm(act: SelfEmployActivity): ActivityFormState {
   return {
     activity_type: act.activity_type || '',
     date_commenced: act.date_commenced ? act.date_commenced.split('T')[0] : '',
+    date_ceased: act.date_ceased ? act.date_ceased.split('T')[0] : '',
     phone: act.phone ? formatPhone(act.phone) : '',
     fax: act.fax ? formatPhone(act.fax) : '',
     arrears: act.arrears || 'N',
@@ -162,6 +164,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
   const buildPayload = (f: ActivityFormState) => ({
     activity_type: f.activity_type,
     date_commenced: f.date_commenced,
+    date_ceased: f.date_ceased || null,
     phone: stripPhone(f.phone),
     fax: stripPhone(f.fax),
     arrears: f.arrears,
@@ -449,6 +452,10 @@ function ActivityForm({
               <Label>Date Commenced <span className="text-destructive">*</span></Label>
               <Input type="date" value={form.date_commenced} onChange={(e) => set('date_commenced', e.target.value)} className={errors.date_commenced ? 'border-destructive' : ''} />
               {errors.date_commenced && <p className="text-xs text-destructive mt-1">{errors.date_commenced}</p>}
+            </div>
+            <div>
+              <Label>Date Ceased</Label>
+              <Input type="date" value={form.date_ceased} onChange={(e) => set('date_ceased', e.target.value)} />
             </div>
             <div>
               <Label>Business Telephone</Label>
