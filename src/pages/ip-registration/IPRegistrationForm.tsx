@@ -163,6 +163,12 @@ export default function IPRegistrationForm() {
     setSepRegistrationMode(true);
     setActiveMainTab('self-employ');
   }, [formData]);
+
+  // Handle cancellation of SEP registration - hide tabs again
+  const handleSepRegistrationCancel = useCallback(() => {
+    setSepRegistrationMode(false);
+    setActiveMainTab('register');
+  }, []);
   
   // Check if employment history records exist for this SSN
 
@@ -691,8 +697,8 @@ export default function IPRegistrationForm() {
                 <HeartHandshake className="h-4 w-4" />
                 VC Eligibility
               </Button>
-              {/* Register as Self Employed - only if not already registered */}
-              {formData.ssn && !formData.ssn.startsWith('T') && !isSelfEmployed && (
+              {/* Register as Self Employed - only if not already registered and has permanent SSN */}
+              {formData.ssn && !formData.ssn.startsWith('T') && !isSelfEmployed && !sepRegistrationMode && (
                 <Button 
                   variant="outline"
                   onClick={handleRegisterAsSelfEmployed}
@@ -703,6 +709,17 @@ export default function IPRegistrationForm() {
                 </Button>
               )}
             </>
+          )}
+          {/* Register as Self Employed - also available in Edit mode for non-draft records */}
+          {!isViewMode && formData.ssn && !formData.ssn.startsWith('T') && !isSelfEmployed && !sepRegistrationMode && !['Z', 'P'].includes(formData.status) && (
+            <Button 
+              variant="outline"
+              onClick={handleRegisterAsSelfEmployed}
+              className="flex items-center gap-2"
+            >
+              <Briefcase className="h-4 w-4" />
+              Register as Self Employed
+            </Button>
           )}
           {isEditable && (
             <Button onClick={() => setShowSubmitConfirm(true)}>
@@ -974,6 +991,7 @@ export default function IPRegistrationForm() {
                       setSepRegistrationMode(false);
                       toast.success('Self-employed registration completed successfully');
                     }}
+                    onRegistrationCancel={handleSepRegistrationCancel}
                   />
                 </TabsContent>
                 <TabsContent value="wages-category" className="mt-6">

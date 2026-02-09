@@ -17,6 +17,7 @@ interface SelfEmployDetailsTabProps {
   selfEmployed: ReturnType<typeof useSelfEmployed>;
   isRegistrationMode?: boolean;
   onRegistrationComplete?: () => void;
+  onRegistrationCancel?: () => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -46,7 +47,7 @@ const officeLabels: Record<string, string> = {
   NEV: 'Nevis',
 };
 
-export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn, selfEmployed, isRegistrationMode, onRegistrationComplete }) => {
+export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn, selfEmployed, isRegistrationMode, onRegistrationComplete, onRegistrationCancel }) => {
   const {
     eligibility,
     activities,
@@ -135,6 +136,15 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
     setShowEditDialog(true);
   };
 
+  // Handle dialog close — if in registration mode and dialog is closed without saving, cancel
+  const handleRegisterDialogChange = (open: boolean) => {
+    setShowRegisterDialog(open);
+    if (!open && isRegistrationMode && activities.length === 0) {
+      // Dialog closed without successful registration — notify parent to cancel
+      onRegistrationCancel?.();
+    }
+  };
+
   // No SEP registration yet
   if (!eligibility?.sep_exists && activities.length === 0) {
     return (
@@ -151,8 +161,10 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
                 <Plus className="h-4 w-4 mr-2" />
                 Register as Self-Employed
               </Button>
-            ) : (
+            ) : eligibility ? (
               <p className="text-sm text-destructive">{eligibility?.reason}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Checking eligibility...</p>
             )}
           </CardContent>
         </Card>
@@ -160,7 +172,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
         {/* Register Dialog */}
         <RegisterActivityDialog
           open={showRegisterDialog}
-          onOpenChange={setShowRegisterDialog}
+          onOpenChange={handleRegisterDialogChange}
           title="Register as Self-Employed"
           form={regForm}
           setForm={setRegForm}
