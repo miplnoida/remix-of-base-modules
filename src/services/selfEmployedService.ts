@@ -202,6 +202,9 @@ export class SelfEmployedService {
     activity_seq_no: string,
     updates: Partial<SelfEmployActivity>
   ): Promise<void> {
+    if (!ssn || !self_ref_no || !activity_seq_no) {
+      throw new Error('SSN, Self Ref No, and Activity Seq No are required for update');
+    }
     const { error } = await supabase
       .from('ip_self_employ')
       .update({ ...updates, date_modified: new Date().toISOString() } as any)
