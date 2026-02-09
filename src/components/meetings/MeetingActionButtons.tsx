@@ -12,8 +12,8 @@ interface MeetingActionButtonsProps {
   onActionComplete?: () => void;
 }
 
-// Only show these actions for active meetings
-const actionableStatuses: MeetingStatus[] = ['Scheduled', 'Rescheduled'];
+// Only show these actions for Scheduled meetings
+const actionableStatuses: MeetingStatus[] = ['Scheduled'];
 
 export function MeetingActionButtons({
   meeting,
