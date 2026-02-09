@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Lock, Mail, AlertTriangle } from 'lucide-react';
+import { useTurnstile } from '@/hooks/useTurnstile';
+import { verifyTurnstileToken } from '@/services/turnstileService';
 
 export const SupabaseLoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +18,10 @@ export const SupabaseLoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
+  const { token, error: turnstileError, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
+
+  // Pending submission state — waits for turnstile token
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -23,14 +29,41 @@ export const SupabaseLoginScreen = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
+  // When turnstile token arrives and we have a pending submit, proceed
+  useEffect(() => {
+    if (pendingSubmit && token) {
+      setPendingSubmit(false);
+      void processLogin(token);
+    }
+    if (pendingSubmit && turnstileError) {
+      setPendingSubmit(false);
+      setError('Human verification failed. Please try again.');
+      setIsLoading(false);
+    }
+  }, [token, turnstileError, pendingSubmit]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setPendingSubmit(true);
+    executeTurnstile();
+  };
 
+  const processLogin = async (verificationToken: string) => {
     try {
+      // Step 1: Verify human via edge function
+      const verification = await verifyTurnstileToken(verificationToken, email);
+      if (!verification.success) {
+        setError(verification.error || 'Human verification failed.');
+        resetTurnstile();
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Proceed with login
       const result = await login(email, password);
-      
+
       if (result.success) {
         if (result.requiresPasswordChange) {
           navigate('/change-password', { state: { required: true } });
@@ -39,10 +72,12 @@ export const SupabaseLoginScreen = () => {
         }
       } else {
         setError(result.error || 'Invalid credentials');
+        resetTurnstile();
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred during login.');
+      resetTurnstile();
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +176,9 @@ export const SupabaseLoginScreen = () => {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
+
+              {/* Invisible Turnstile widget container */}
+              <div ref={containerRef} />
 
               <div className="text-center">
                 <Link 

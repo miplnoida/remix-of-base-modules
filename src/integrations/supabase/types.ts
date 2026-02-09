@@ -6120,6 +6120,54 @@ export type Database = {
           },
         ]
       }
+      login_security_events: {
+        Row: {
+          created_at: string
+          device_fingerprint: string | null
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          login_success: boolean | null
+          metadata: Json | null
+          risk_level: string
+          turnstile_token_valid: boolean | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          verification_result: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          login_success?: boolean | null
+          metadata?: Json | null
+          risk_level?: string
+          turnstile_token_valid?: boolean | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          verification_result?: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          login_success?: boolean | null
+          metadata?: Json | null
+          risk_level?: string
+          turnstile_token_valid?: boolean | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          verification_result?: string
+        }
+        Relationships: []
+      }
       meeting_api_logs: {
         Row: {
           action_type: string
