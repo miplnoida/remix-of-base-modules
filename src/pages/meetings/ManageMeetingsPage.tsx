@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,8 @@ import {
   User,
   Building2,
   Eye,
-  RefreshCw
+  RefreshCw,
+  PlayCircle
 } from 'lucide-react';
 
 const statusColors: Record<MeetingStatus, string> = {
@@ -41,6 +43,7 @@ const meetingTypeLabels: Record<MeetingType, string> = {
 };
 
 export default function ManageMeetingsPage() {
+  const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<MeetingFilters>({
     dateFrom: format(new Date(), 'yyyy-MM-dd'),
@@ -321,9 +324,24 @@ export default function ManageMeetingsPage() {
                     </div>
                   </div>
 
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {meeting.status === 'InProgress' && (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/meetings/start/${meeting.id}`);
+                        }}
+                      >
+                        <PlayCircle className="h-4 w-4 mr-1" />
+                        Resume
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
