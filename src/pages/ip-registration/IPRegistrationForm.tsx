@@ -157,18 +157,22 @@ export default function IPRegistrationForm() {
   const isSelfEmployed = selfEmployed.activities.length > 0;
   const showSepTabs = isSelfEmployed || sepRegistrationMode;
 
-  // Handle "Register as Self Employed" action - show SEP tabs and open registration
+  // Handle "Register as Self Employed" action - navigate to edit mode with SEP tabs
   const handleRegisterAsSelfEmployed = useCallback(() => {
     if (!formData) return;
-    setSepRegistrationMode(true);
-    setActiveMainTab('self-employ');
-  }, [formData]);
+    // Navigate to edit route with openTab param so SEP tabs appear inline
+    navigate(`/ip-registration/edit/${formData.unique_uuid}?openTab=self-employ`);
+  }, [formData, navigate]);
 
-  // Handle cancellation of SEP registration - hide tabs again
+  // Handle cancellation of SEP registration - go back to view mode
   const handleSepRegistrationCancel = useCallback(() => {
     setSepRegistrationMode(false);
-    setActiveMainTab('register');
-  }, []);
+    if (formData) {
+      navigate(`/ip-registration/view/${formData.unique_uuid}`);
+    } else {
+      setActiveMainTab('register');
+    }
+  }, [formData, navigate]);
   
   // Check if employment history records exist for this SSN
 

@@ -60,7 +60,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
     ceaseActivity,
   } = selfEmployed;
 
-  const [showRegisterDialog, setShowRegisterDialog] = useState(isRegistrationMode || false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCeaseDialog, setShowCeaseDialog] = useState(false);
@@ -147,6 +147,82 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
 
   // No SEP registration yet
   if (!eligibility?.sep_exists && activities.length === 0) {
+    // In registration mode: show inline form instead of dialog
+    if (isRegistrationMode) {
+      return (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                Register as Self-Employed
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Activity Type *</Label>
+                  <Input
+                    placeholder="e.g., Retail Shop, Carpentry"
+                    value={regForm.activity_type}
+                    onChange={(e) => setRegForm({ ...regForm, activity_type: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Date Commenced *</Label>
+                  <Input
+                    type="date"
+                    value={regForm.date_commenced}
+                    onChange={(e) => setRegForm({ ...regForm, date_commenced: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Occupation Code</Label>
+                  <Input
+                    value={regForm.occupation_code}
+                    onChange={(e) => setRegForm({ ...regForm, occupation_code: e.target.value })}
+                    maxLength={4}
+                  />
+                </div>
+                <div>
+                  <Label>Office</Label>
+                  <Select value={regForm.office_code} onValueChange={(v) => setRegForm({ ...regForm, office_code: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="STK">St. Kitts</SelectItem>
+                      <SelectItem value="NEV">Nevis</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Sector</Label>
+                  <Select value={regForm.sector_code} onValueChange={(v) => setRegForm({ ...regForm, sector_code: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="P">Private</SelectItem>
+                      <SelectItem value="G">Government</SelectItem>
+                      <SelectItem value="O">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" onClick={() => onRegistrationCancel?.()}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRegister}
+                  disabled={!regForm.activity_type || !regForm.date_commenced || loading}
+                >
+                  {loading ? 'Registering...' : 'Submit Registration'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <Card>
@@ -169,7 +245,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
           </CardContent>
         </Card>
 
-        {/* Register Dialog */}
+        {/* Register Dialog - fallback for direct tab access */}
         <RegisterActivityDialog
           open={showRegisterDialog}
           onOpenChange={handleRegisterDialogChange}
