@@ -26,7 +26,11 @@ import {
   Stethoscope,
   Calculator,
   Sliders,
-  Calendar
+  Calendar,
+  Monitor,
+  AlertCircle,
+  Activity,
+  Fingerprint
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -204,6 +208,67 @@ export const systemAdminMenuItems = [
         url: "/admin/c3-configuration",
         icon: Calculator,
         requiresPermission: "system_administration"
+      },
+      {
+        title: "System Monitoring & Logs",
+        icon: Monitor,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Technical Logs",
+            url: "/system-logs/technical",
+            icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Error Logs",
+            url: "/system-logs/errors",
+            icon: AlertCircle,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Business Events",
+            url: "/system-logs/business",
+            icon: Activity,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Audit Trail",
+            url: "/system-logs/audit",
+            icon: History,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Security Logs",
+            url: "/system-logs/security",
+            icon: Shield,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Login Verification Logs",
+            url: "/system-logs/login-security",
+            icon: Fingerprint,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Integration Logs",
+            url: "/system-logs/integration",
+            icon: Globe,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Performance Monitor",
+            url: "/system-logs/performance",
+            icon: BarChart3,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Logs",
+            url: "/system-logs/workflows",
+            icon: GitBranch,
+            requiresPermission: "system_administration"
+          }
+        ]
       }
     ]
   },
