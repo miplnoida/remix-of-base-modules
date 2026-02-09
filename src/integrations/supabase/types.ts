@@ -127,6 +127,156 @@ export type Database = {
           },
         ]
       }
+      au_ip_last_self_emp: {
+        Row: {
+          action: string | null
+          audit_id: number
+          date_issued: string | null
+          modified_date: string | null
+          modifier: string | null
+          self_ref_no: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id?: never
+          date_issued?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          self_ref_no?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: never
+          date_issued?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          self_ref_no?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_self_employ: {
+        Row: {
+          action: string | null
+          activity_seq_no: string | null
+          activity_type: string | null
+          arrears: string | null
+          audit_id: number
+          date_ceased: string | null
+          date_commenced: string | null
+          date_educated: string | null
+          date_modified: string | null
+          date_of_application: string | null
+          date_of_entry: string | null
+          date_of_issue: string | null
+          date_verified: string | null
+          entered_by: string | null
+          fax: string | null
+          industrial_code: string | null
+          inspector_code: string | null
+          inspector_name: string | null
+          legal_action: string | null
+          modified_date: string | null
+          modifier: string | null
+          occupation_code: string | null
+          office_code: string | null
+          persons_employed: number | null
+          phone: string | null
+          sector_code: string | null
+          self_edu: string | null
+          self_guide: string | null
+          self_maddr1: string | null
+          self_maddr2: string | null
+          self_paddr1: string | null
+          self_paddr2: string | null
+          self_ref_no: string | null
+          ssn: string | null
+          status: string | null
+          userid: string | null
+          verified_by: string | null
+          village_code: string | null
+        }
+        Insert: {
+          action?: string | null
+          activity_seq_no?: string | null
+          activity_type?: string | null
+          arrears?: string | null
+          audit_id?: never
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_educated?: string | null
+          date_modified?: string | null
+          date_of_application?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          fax?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          inspector_name?: string | null
+          legal_action?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          occupation_code?: string | null
+          office_code?: string | null
+          persons_employed?: number | null
+          phone?: string | null
+          sector_code?: string | null
+          self_edu?: string | null
+          self_guide?: string | null
+          self_maddr1?: string | null
+          self_maddr2?: string | null
+          self_paddr1?: string | null
+          self_paddr2?: string | null
+          self_ref_no?: string | null
+          ssn?: string | null
+          status?: string | null
+          userid?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Update: {
+          action?: string | null
+          activity_seq_no?: string | null
+          activity_type?: string | null
+          arrears?: string | null
+          audit_id?: never
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_educated?: string | null
+          date_modified?: string | null
+          date_of_application?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          fax?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          inspector_name?: string | null
+          legal_action?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          occupation_code?: string | null
+          office_code?: string | null
+          persons_employed?: number | null
+          phone?: string | null
+          sector_code?: string | null
+          self_edu?: string | null
+          self_guide?: string | null
+          self_maddr1?: string | null
+          self_maddr2?: string | null
+          self_paddr1?: string | null
+          self_paddr2?: string | null
+          self_ref_no?: string | null
+          ssn?: string | null
+          status?: string | null
+          userid?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Relationships: []
+      }
       audit_interviews: {
         Row: {
           audit_id: string | null
@@ -3996,6 +4146,21 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_last_self_emp: {
+        Row: {
+          date_issued: string | null
+          self_ref_no: string
+        }
+        Insert: {
+          date_issued?: string | null
+          self_ref_no: string
+        }
+        Update: {
+          date_issued?: string | null
+          self_ref_no?: string
+        }
+        Relationships: []
+      }
       ip_master: {
         Row: {
           alias: string | null
@@ -4484,7 +4649,166 @@ export type Database = {
           ssn?: string
           wage_category?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_ip_self_category_ip_self_employ"
+            columns: ["ssn", "self_ref_no", "activity_seq_no"]
+            isOneToOne: false
+            referencedRelation: "ip_self_employ"
+            referencedColumns: ["ssn", "self_ref_no", "activity_seq_no"]
+          },
+        ]
+      }
+      ip_self_commence: {
+        Row: {
+          activity_seq_no: string
+          date_ceased: string | null
+          date_commenced: string
+          self_ref_no: string
+          ssn: string
+        }
+        Insert: {
+          activity_seq_no: string
+          date_ceased?: string | null
+          date_commenced: string
+          self_ref_no: string
+          ssn: string
+        }
+        Update: {
+          activity_seq_no?: string
+          date_ceased?: string | null
+          date_commenced?: string
+          self_ref_no?: string
+          ssn?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ip_self_commence_ip_self_employ"
+            columns: ["ssn", "self_ref_no", "activity_seq_no"]
+            isOneToOne: false
+            referencedRelation: "ip_self_employ"
+            referencedColumns: ["ssn", "self_ref_no", "activity_seq_no"]
+          },
+        ]
+      }
+      ip_self_employ: {
+        Row: {
+          activity_seq_no: string
+          activity_type: string | null
+          arrears: string | null
+          date_ceased: string | null
+          date_commenced: string | null
+          date_educated: string | null
+          date_modified: string | null
+          date_of_application: string | null
+          date_of_entry: string | null
+          date_of_issue: string | null
+          date_verified: string | null
+          entered_by: string | null
+          fax: string | null
+          industrial_code: string | null
+          inspector_code: string | null
+          inspector_name: string | null
+          legal_action: string | null
+          occupation_code: string | null
+          office_code: string | null
+          persons_employed: number | null
+          phone: string | null
+          sector_code: string | null
+          self_edu: string | null
+          self_guide: string | null
+          self_maddr1: string | null
+          self_maddr2: string | null
+          self_paddr1: string | null
+          self_paddr2: string | null
+          self_ref_no: string
+          ssn: string
+          status: string | null
+          userid: string | null
+          verified_by: string | null
+          village_code: string | null
+        }
+        Insert: {
+          activity_seq_no: string
+          activity_type?: string | null
+          arrears?: string | null
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_educated?: string | null
+          date_modified?: string | null
+          date_of_application?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          fax?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          inspector_name?: string | null
+          legal_action?: string | null
+          occupation_code?: string | null
+          office_code?: string | null
+          persons_employed?: number | null
+          phone?: string | null
+          sector_code?: string | null
+          self_edu?: string | null
+          self_guide?: string | null
+          self_maddr1?: string | null
+          self_maddr2?: string | null
+          self_paddr1?: string | null
+          self_paddr2?: string | null
+          self_ref_no: string
+          ssn: string
+          status?: string | null
+          userid?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Update: {
+          activity_seq_no?: string
+          activity_type?: string | null
+          arrears?: string | null
+          date_ceased?: string | null
+          date_commenced?: string | null
+          date_educated?: string | null
+          date_modified?: string | null
+          date_of_application?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          fax?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          inspector_name?: string | null
+          legal_action?: string | null
+          occupation_code?: string | null
+          office_code?: string | null
+          persons_employed?: number | null
+          phone?: string | null
+          sector_code?: string | null
+          self_edu?: string | null
+          self_guide?: string | null
+          self_maddr1?: string | null
+          self_maddr2?: string | null
+          self_paddr1?: string | null
+          self_paddr2?: string | null
+          self_ref_no?: string
+          ssn?: string
+          status?: string | null
+          userid?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ip_self_employ_ip_master"
+            columns: ["ssn"]
+            isOneToOne: false
+            referencedRelation: "ip_master"
+            referencedColumns: ["ssn"]
+          },
+        ]
       }
       ip_self_locations: {
         Row: {
@@ -4511,7 +4835,15 @@ export type Database = {
           seq_no?: never
           ssn?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_ip_self_locations_ip_self_employ"
+            columns: ["ssn", "self_ref_no", "activity_seq_no"]
+            isOneToOne: false
+            referencedRelation: "ip_self_employ"
+            referencedColumns: ["ssn", "self_ref_no", "activity_seq_no"]
+          },
+        ]
       }
       ip_self_weeks_paid: {
         Row: {
@@ -9831,6 +10163,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_sep_activity: {
+        Args: {
+          p_activity_type: string
+          p_date_commenced: string
+          p_entered_by?: string
+          p_occupation_code?: string
+          p_office_code?: string
+          p_sector_code?: string
+          p_self_ref_no: string
+          p_ssn: string
+        }
+        Returns: string
+      }
       apply_workflow_field_updates: {
         Args: {
           p_action_id: string
@@ -9898,6 +10243,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_sep_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_vc_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_workflow_task_access: {
         Args: {
@@ -9943,6 +10289,18 @@ export type Database = {
       generate_er_regno: { Args: never; Returns: string }
       generate_ip_ssn: { Args: never; Returns: string }
       generate_meeting_reference: { Args: never; Returns: string }
+      generate_sref: {
+        Args: {
+          p_activity_type: string
+          p_date_commenced: string
+          p_entered_by?: string
+          p_occupation_code?: string
+          p_office_code?: string
+          p_sector_code?: string
+          p_ssn: string
+        }
+        Returns: string
+      }
       generate_temp_er_regno: { Args: never; Returns: string }
       generate_temp_ssn: { Args: never; Returns: string }
       generate_user_code: {

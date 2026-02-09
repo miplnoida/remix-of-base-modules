@@ -1,33 +1,27 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { toast } from 'react-toastify';
-import { SelfEmployedService } from '../../services/selfEmployedService';
+import { SelfEmployedService, SelfEmployActivity } from '../../services/selfEmployedService';
 
 /**
  * Self employed slice state interface
  */
 interface SelfEmployedState {
-  data: any[] | null;
+  data: SelfEmployActivity[] | null;
   loading: boolean;
   error: string | null;
 }
 
-/**
- * Initial state for the self employed slice
- */
 const initialState: SelfEmployedState = {
   data: null,
   loading: false,
   error: null,
 };
 
-/**
- * Async thunk for fetching self employed data
- */
 export const fetchSelfEmployedData = createAsyncThunk(
   'selfEmployed/fetchSelfEmployedData',
-  async (_, { rejectWithValue }) => {
+  async (ssn: string, { rejectWithValue }) => {
     try {
-      const response = await SelfEmployedService.getSelfEmployedData();
+      const response = await SelfEmployedService.getActivities(ssn);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch self employed data');
@@ -35,31 +29,17 @@ export const fetchSelfEmployedData = createAsyncThunk(
   }
 );
 
-/**
- * Self employed slice
- */
 const selfEmployedSlice = createSlice({
   name: 'selfEmployed',
   initialState,
   reducers: {
-    /**
-     * Clear self employed data
-     */
     clearSelfEmployedData: (state) => {
       state.data = null;
       state.error = null;
     },
-    
-    /**
-     * Set loading state
-     */
     setSelfEmployedLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
-    
-    /**
-     * Set error message
-     */
     setSelfEmployedError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
@@ -83,15 +63,11 @@ const selfEmployedSlice = createSlice({
   },
 });
 
-// Export actions
 export const {
   clearSelfEmployedData,
   setSelfEmployedLoading,
   setSelfEmployedError,
 } = selfEmployedSlice.actions;
 
-// Export reducer
 export default selfEmployedSlice.reducer;
-
-// Export types
-export type { SelfEmployedState }; 
+export type { SelfEmployedState };
