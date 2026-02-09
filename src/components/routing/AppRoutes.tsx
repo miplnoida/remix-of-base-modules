@@ -348,6 +348,7 @@ import LifeCertificateConfig from '@/pages/nbenefit/config/LifeCertificateConfig
 
 // Meetings Module
 import ManageMeetingsPage from '@/pages/meetings/ManageMeetingsPage';
+import StartMeetingPage from '@/pages/meetings/StartMeetingPage';
 
 // Accounts Payable Module
 import APPendingPayables from '@/pages/finance/accounts-payable/PendingPayables';
@@ -1338,6 +1339,8 @@ export const AppRoutes = () => {
 
       {/* Meetings Module */}
       <Route path="/meetings/manage" element={<ProtectedLayout><ManageMeetingsPage /></ProtectedLayout>} />
+      <Route path="/meetings/start/:meetingId" element={<ProtectedLayout><StartMeetingPage /></ProtectedLayout>} />
+
 
       {/* Workflow Instances */}
       <Route path="/admin/workflow-instances" element={<ProtectedLayout><WorkflowInstanceList /></ProtectedLayout>} />

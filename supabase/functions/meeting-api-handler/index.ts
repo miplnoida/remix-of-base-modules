@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 interface MeetingApiRequest {
-  action: 'schedule' | 'process_outcome' | 'call_external_api' | 'get_meetings' | 'get_meeting_details'
+  action: 'schedule' | 'process_outcome' | 'call_external_api' | 'get_meetings' | 'get_meeting_details' | 'start_meeting' | 'cancel_meeting' | 'reschedule_meeting' | 'close_meeting_approved' | 'close_meeting_rejected'
   meetingId?: string
   applicationReference?: string
   workflowInstanceId?: string
@@ -26,6 +26,7 @@ interface MeetingApiRequest {
   newDate?: string
   newTime?: string
   apiConfigId?: string
+  applicationData?: Record<string, any>
   filters?: {
     status?: string
     dateFrom?: string
@@ -141,6 +142,548 @@ Deno.serve(async (req) => {
         }
 
         return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'start_meeting': {
+        // Start a meeting - change status to InProgress
+        if (!body.meetingId) {
+          throw new Error('Meeting ID is required')
+        }
+
+        // Update meeting status
+        const { error: updateError } = await supabase
+          .from('meetings')
+          .update({
+            status: 'InProgress',
+            updated_at: new Date().toISOString(),
+            updated_by: userName?.substring(0, 10) || null
+          })
+          .eq('id', body.meetingId)
+
+        if (updateError) throw updateError
+
+        // Add history record
+        const { data: meeting } = await supabase
+          .from('meetings')
+          .select('status, meeting_reference')
+          .eq('id', body.meetingId)
+          .single()
+
+        await supabase.from('meeting_history').insert({
+          meeting_id: body.meetingId,
+          old_status: 'Scheduled',
+          new_status: 'InProgress',
+          action_taken: 'STARTED',
+          remarks: 'Meeting started',
+          performed_by: userId,
+          performed_by_name: userName
+        })
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Meeting started',
+          meeting_reference: meeting?.meeting_reference
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'cancel_meeting': {
+        // Cancel a meeting and create a new workflow instance
+        if (!body.meetingId) {
+          throw new Error('Meeting ID is required')
+        }
+        if (!body.remarks) {
+          throw new Error('Cancellation remarks are required')
+        }
+
+        // Get meeting details
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select('*, workflow_instances(workflow_id, workflow_name, source_module, source_record_id, primary_table, primary_key_column, primary_key_value)')
+          .eq('id', body.meetingId)
+          .single()
+
+        if (meetingError) throw meetingError
+
+        // Update meeting status to Cancelled
+        await supabase
+          .from('meetings')
+          .update({
+            status: 'Cancelled',
+            outcome: 'Cancel',
+            outcome_remarks: body.remarks,
+            closed_by: userId,
+            closed_by_name: userName,
+            closed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            updated_by: userName?.substring(0, 10) || null
+          })
+          .eq('id', body.meetingId)
+
+        // Add history record
+        await supabase.from('meeting_history').insert({
+          meeting_id: body.meetingId,
+          old_status: meeting.status,
+          new_status: 'Cancelled',
+          action_taken: 'CANCELLED',
+          outcome: 'Cancel',
+          remarks: body.remarks,
+          performed_by: userId,
+          performed_by_name: userName
+        })
+
+        // Close the existing workflow instance
+        if (meeting.workflow_instance_id) {
+          await supabase
+            .from('workflow_instances')
+            .update({
+              status: 'Cancelled',
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', meeting.workflow_instance_id)
+
+          // Close any pending tasks
+          await supabase
+            .from('workflow_tasks')
+            .update({
+              status: 'Cancelled',
+              completed_at: new Date().toISOString()
+            })
+            .eq('instance_id', meeting.workflow_instance_id)
+            .in('status', ['Pending', 'InProgress', 'Paused'])
+        }
+
+        // Create a new workflow instance for the same application
+        let newInstanceId: string | null = null
+        const workflowInstance = meeting.workflow_instances
+        
+        if (workflowInstance) {
+          // Get the first step of the workflow
+          const { data: firstStep } = await supabase
+            .from('workflow_steps')
+            .select('id, step_name')
+            .eq('workflow_id', workflowInstance.workflow_id)
+            .order('step_number', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (firstStep) {
+            // Create new workflow instance
+            const { data: newInstance, error: instanceError } = await supabase
+              .from('workflow_instances')
+              .insert({
+                workflow_id: workflowInstance.workflow_id,
+                workflow_name: workflowInstance.workflow_name,
+                source_module: workflowInstance.source_module,
+                source_record_id: workflowInstance.source_record_id,
+                current_step_id: firstStep.id,
+                status: 'InProgress',
+                started_by: userId,
+                started_by_name: userName,
+                primary_table: workflowInstance.primary_table,
+                primary_key_column: workflowInstance.primary_key_column,
+                primary_key_value: workflowInstance.primary_key_value,
+                metadata: { restarted_from_cancelled_meeting: meeting.meeting_reference }
+              })
+              .select('id')
+              .single()
+
+            if (!instanceError && newInstance) {
+              newInstanceId = newInstance.id
+
+              // Create first task
+              await supabase.from('workflow_tasks').insert({
+                instance_id: newInstance.id,
+                step_id: firstStep.id,
+                step_name: firstStep.step_name,
+                status: 'Pending'
+              })
+
+              // Log the workflow restart
+              await supabase.from('workflow_logs').insert({
+                instance_id: newInstance.id,
+                step_id: firstStep.id,
+                step_name: firstStep.step_name,
+                action: 'Workflow Restarted',
+                new_status: 'InProgress',
+                performed_by: userId,
+                performed_by_name: userName,
+                comments: `Workflow restarted after meeting ${meeting.meeting_reference} was cancelled`
+              })
+            }
+          }
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Meeting cancelled and workflow restarted',
+          new_instance_id: newInstanceId
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'reschedule_meeting': {
+        // Reschedule a meeting
+        if (!body.meetingId) {
+          throw new Error('Meeting ID is required')
+        }
+        if (!body.newDate || !body.newTime) {
+          throw new Error('New date and time are required')
+        }
+        if (!body.remarks) {
+          throw new Error('Rescheduling remarks are required')
+        }
+
+        // Get current meeting details
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select('*')
+          .eq('id', body.meetingId)
+          .single()
+
+        if (meetingError) throw meetingError
+
+        // Update current meeting to Rescheduled status
+        await supabase
+          .from('meetings')
+          .update({
+            status: 'Rescheduled',
+            outcome: 'Reschedule',
+            outcome_remarks: body.remarks,
+            closed_by: userId,
+            closed_by_name: userName,
+            closed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            updated_by: userName?.substring(0, 10) || null
+          })
+          .eq('id', body.meetingId)
+
+        // Add history for old meeting
+        await supabase.from('meeting_history').insert({
+          meeting_id: body.meetingId,
+          old_status: meeting.status,
+          new_status: 'Rescheduled',
+          action_taken: 'RESCHEDULED',
+          outcome: 'Reschedule',
+          old_date: meeting.meeting_date,
+          old_time: meeting.meeting_time,
+          new_date: body.newDate,
+          new_time: body.newTime,
+          remarks: body.remarks,
+          performed_by: userId,
+          performed_by_name: userName
+        })
+
+        // Generate new meeting reference
+        const { data: refData } = await supabase.rpc('generate_meeting_reference')
+        const newMeetingRef = refData || `MTG-${Date.now()}`
+
+        // Create new meeting
+        const { data: newMeeting, error: newMeetingError } = await supabase
+          .from('meetings')
+          .insert({
+            meeting_reference: newMeetingRef,
+            application_reference: meeting.application_reference,
+            workflow_instance_id: meeting.workflow_instance_id,
+            workflow_id: meeting.workflow_id,
+            step_id: meeting.step_id,
+            action_config_id: meeting.action_config_id,
+            meeting_type: meeting.meeting_type,
+            status: 'Scheduled',
+            meeting_date: body.newDate,
+            meeting_time: body.newTime,
+            contact_person: meeting.contact_person,
+            contact_email: meeting.contact_email,
+            contact_phone: meeting.contact_phone,
+            office_address: meeting.office_address,
+            remarks: body.remarks,
+            parent_meeting_id: meeting.id,
+            reschedule_count: (meeting.reschedule_count || 0) + 1,
+            scheduled_by: userId,
+            scheduled_by_name: userName,
+            created_by: userName?.substring(0, 10) || null
+          })
+          .select()
+          .single()
+
+        if (newMeetingError) throw newMeetingError
+
+        // Add history for new meeting
+        await supabase.from('meeting_history').insert({
+          meeting_id: newMeeting.id,
+          new_status: 'Scheduled',
+          action_taken: 'RESCHEDULED_FROM',
+          new_date: body.newDate,
+          new_time: body.newTime,
+          remarks: `Rescheduled from ${meeting.meeting_reference}`,
+          performed_by: userId,
+          performed_by_name: userName
+        })
+
+        // Update workflow instance metadata with new meeting reference
+        if (meeting.workflow_instance_id) {
+          const { data: instance } = await supabase
+            .from('workflow_instances')
+            .select('metadata')
+            .eq('id', meeting.workflow_instance_id)
+            .single()
+
+          const updatedMetadata = {
+            ...(instance?.metadata || {}),
+            current_meeting_id: newMeeting.id,
+            current_meeting_reference: newMeetingRef
+          }
+
+          await supabase
+            .from('workflow_instances')
+            .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+            .eq('id', meeting.workflow_instance_id)
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Meeting rescheduled successfully',
+          new_meeting_id: newMeeting.id,
+          new_meeting_reference: newMeetingRef
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'close_meeting_approved': {
+        // Close meeting with approval - save application data and execute workflow
+        if (!body.meetingId) {
+          throw new Error('Meeting ID is required')
+        }
+
+        // Get meeting and workflow details
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select('*, workflow_instances(*)')
+          .eq('id', body.meetingId)
+          .single()
+
+        if (meetingError) throw meetingError
+
+        // Save application data if provided
+        if (body.applicationData && meeting.workflow_instances) {
+          const instance = meeting.workflow_instances
+          if (instance.primary_table && instance.primary_key_column && instance.primary_key_value) {
+            // Update the primary record with edited data
+            const { error: updateError } = await supabase
+              .from(instance.primary_table)
+              .update({
+                ...body.applicationData,
+                updated_at: new Date().toISOString(),
+                updated_by: userId
+              })
+              .eq(instance.primary_key_column, instance.primary_key_value)
+
+            if (updateError) {
+              console.error('Failed to save application data:', updateError)
+              // Don't throw - continue with approval
+            }
+          }
+        }
+
+        // Update meeting status
+        await supabase
+          .from('meetings')
+          .update({
+            status: 'Closed',
+            outcome: 'ClosedWithApproval',
+            outcome_remarks: body.remarks || 'Approved during meeting',
+            closed_by: userId,
+            closed_by_name: userName,
+            closed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            updated_by: userName?.substring(0, 10) || null
+          })
+          .eq('id', body.meetingId)
+
+        // Add history record
+        await supabase.from('meeting_history').insert({
+          meeting_id: body.meetingId,
+          old_status: meeting.status,
+          new_status: 'Closed',
+          action_taken: 'APPROVED',
+          outcome: 'ClosedWithApproval',
+          remarks: body.remarks || 'Application approved',
+          performed_by: userId,
+          performed_by_name: userName
+        })
+
+        // Complete the workflow instance
+        if (meeting.workflow_instance_id) {
+          await supabase
+            .from('workflow_instances')
+            .update({
+              status: 'Approved',
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', meeting.workflow_instance_id)
+
+          // Complete any pending tasks
+          await supabase
+            .from('workflow_tasks')
+            .update({
+              status: 'Completed',
+              completed_at: new Date().toISOString()
+            })
+            .eq('instance_id', meeting.workflow_instance_id)
+            .in('status', ['Pending', 'InProgress', 'Paused'])
+
+          // Log the workflow completion
+          await supabase.from('workflow_logs').insert({
+            instance_id: meeting.workflow_instance_id,
+            step_id: meeting.step_id,
+            action: 'Approved',
+            new_status: 'Approved',
+            performed_by: userId,
+            performed_by_name: userName,
+            comments: `Application approved during meeting ${meeting.meeting_reference}`
+          })
+
+          // Trigger API if configured
+          if (meeting.action_config_id) {
+            const { data: outcomeConfig } = await supabase
+              .from('workflow_action_outcomes')
+              .select('triggers_api, api_config_id')
+              .eq('action_config_id', meeting.action_config_id)
+              .eq('outcome_code', 'ClosedWithApproval')
+              .single()
+
+            if (outcomeConfig?.triggers_api && outcomeConfig?.api_config_id) {
+              await callExternalApi(supabase, body.meetingId, outcomeConfig.api_config_id, 'APPROVED', {
+                applicationReference: meeting.application_reference,
+                meetingReference: meeting.meeting_reference,
+                outcome: 'Approved',
+                remarks: body.remarks
+              })
+            }
+          }
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Application approved successfully'
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      case 'close_meeting_rejected': {
+        // Close meeting with rejection
+        if (!body.meetingId) {
+          throw new Error('Meeting ID is required')
+        }
+        if (!body.remarks) {
+          throw new Error('Rejection remarks are required')
+        }
+
+        // Get meeting details
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select('*')
+          .eq('id', body.meetingId)
+          .single()
+
+        if (meetingError) throw meetingError
+
+        // Update meeting status
+        await supabase
+          .from('meetings')
+          .update({
+            status: 'Rejected',
+            outcome: 'ClosedWithRejection',
+            outcome_remarks: body.remarks,
+            closed_by: userId,
+            closed_by_name: userName,
+            closed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            updated_by: userName?.substring(0, 10) || null
+          })
+          .eq('id', body.meetingId)
+
+        // Add history record
+        await supabase.from('meeting_history').insert({
+          meeting_id: body.meetingId,
+          old_status: meeting.status,
+          new_status: 'Rejected',
+          action_taken: 'REJECTED',
+          outcome: 'ClosedWithRejection',
+          remarks: body.remarks,
+          performed_by: userId,
+          performed_by_name: userName
+        })
+
+        // Complete the workflow instance as rejected
+        if (meeting.workflow_instance_id) {
+          await supabase
+            .from('workflow_instances')
+            .update({
+              status: 'Rejected',
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', meeting.workflow_instance_id)
+
+          // Complete any pending tasks
+          await supabase
+            .from('workflow_tasks')
+            .update({
+              status: 'Completed',
+              completed_at: new Date().toISOString()
+            })
+            .eq('instance_id', meeting.workflow_instance_id)
+            .in('status', ['Pending', 'InProgress', 'Paused'])
+
+          // Log the workflow rejection
+          await supabase.from('workflow_logs').insert({
+            instance_id: meeting.workflow_instance_id,
+            step_id: meeting.step_id,
+            action: 'Rejected',
+            new_status: 'Rejected',
+            performed_by: userId,
+            performed_by_name: userName,
+            comments: body.remarks
+          })
+
+          // Trigger API if configured
+          if (meeting.action_config_id) {
+            const { data: outcomeConfig } = await supabase
+              .from('workflow_action_outcomes')
+              .select('triggers_api, api_config_id')
+              .eq('action_config_id', meeting.action_config_id)
+              .eq('outcome_code', 'ClosedWithRejection')
+              .single()
+
+            if (outcomeConfig?.triggers_api && outcomeConfig?.api_config_id) {
+              await callExternalApi(supabase, body.meetingId, outcomeConfig.api_config_id, 'REJECTED', {
+                applicationReference: meeting.application_reference,
+                meetingReference: meeting.meeting_reference,
+                outcome: 'Rejected',
+                remarks: body.remarks
+              })
+            }
+          }
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Application rejected'
+        }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
