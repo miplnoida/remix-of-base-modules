@@ -321,6 +321,7 @@ import ErrorLogs from '@/pages/system-logs/ErrorLogs';
 import BusinessEvents from '@/pages/system-logs/BusinessEvents';
 import AuditTrail from '@/pages/system-logs/AuditTrail';
 import SecurityLogs from '@/pages/system-logs/SecurityLogs';
+import LoginSecurityLogs from '@/pages/system-logs/LoginSecurityLogs';
 import IntegrationLogs from '@/pages/system-logs/IntegrationLogs';
 import PerformanceMonitor from '@/pages/system-logs/PerformanceMonitor';
 import SystemWorkflowLogs from '@/pages/system-logs/WorkflowLogs';
@@ -1355,6 +1356,7 @@ export const AppRoutes = () => {
       <Route path="/system-logs/integration" element={<ProtectedLayout><IntegrationLogs /></ProtectedLayout>} />
       <Route path="/system-logs/performance" element={<ProtectedLayout><PerformanceMonitor /></ProtectedLayout>} />
       <Route path="/system-logs/workflows" element={<ProtectedLayout><SystemWorkflowLogs /></ProtectedLayout>} />
+      <Route path="/system-logs/login-security" element={<ProtectedLayout><LoginSecurityLogs /></ProtectedLayout>} />
 
       {/* Data Access Control */}
       <Route path="/admin/data-access/scope-rules" element={<ProtectedLayout><DataScopeRules /></ProtectedLayout>} />
