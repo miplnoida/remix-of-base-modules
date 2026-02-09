@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMeetingDetails } from '@/hooks/useMeetings';
 import { MeetingOutcomeButtons } from './MeetingOutcomeButtons';
+import { MeetingActionButtons } from './MeetingActionButtons';
 import { 
   Calendar, 
   Clock, 
@@ -70,6 +71,11 @@ export function MeetingDetailView({ meetingId, onClose }: MeetingDetailViewProps
     }
   };
 
+  // Check if meeting is in an actionable state (Scheduled or Rescheduled)
+  const isActionable = ['Scheduled', 'Rescheduled'].includes(meeting.status);
+  // Check if meeting is in progress (for outcome buttons)
+  const isInProgress = meeting.status === 'InProgress';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -85,11 +91,29 @@ export function MeetingDetailView({ meetingId, onClose }: MeetingDetailViewProps
         </Badge>
       </div>
 
-      {/* Action Buttons */}
-      {outcomes.length > 0 && (
+      {/* Primary Action Buttons - Start, Cancel, Reschedule */}
+      {isActionable && (
         <Card>
           <CardHeader className="py-3">
-            <CardTitle className="text-sm font-medium">Actions</CardTitle>
+            <CardTitle className="text-sm font-medium">Meeting Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MeetingActionButtons
+              meeting={meeting}
+              onActionComplete={() => {
+                refetch();
+                if (onClose) onClose();
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Outcome Buttons - Only shown for InProgress meetings */}
+      {isInProgress && outcomes.length > 0 && (
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm font-medium">Complete Meeting</CardTitle>
           </CardHeader>
           <CardContent>
             <MeetingOutcomeButtons

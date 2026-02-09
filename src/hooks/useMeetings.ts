@@ -171,6 +171,200 @@ export function useTriggerMeetingApi() {
   });
 }
 
+// Start a meeting (change status to InProgress)
+export function useStartMeeting() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ meetingId }: { meetingId: string }) => {
+      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
+        body: {
+          action: 'start_meeting',
+          meetingId
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message || 'Failed to start meeting');
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+      toast.success(data.message || 'Meeting started');
+    },
+    onError: (error: Error) => {
+      console.error('Start meeting error:', error);
+      toast.error(error.message || 'Failed to start meeting');
+    }
+  });
+}
+
+// Cancel a meeting
+export function useCancelMeeting() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ meetingId, remarks }: { meetingId: string; remarks: string }) => {
+      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
+        body: {
+          action: 'cancel_meeting',
+          meetingId,
+          remarks
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message || 'Failed to cancel meeting');
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+      toast.success(data.message || 'Meeting cancelled. A new workflow has been created.');
+    },
+    onError: (error: Error) => {
+      console.error('Cancel meeting error:', error);
+      toast.error(error.message || 'Failed to cancel meeting');
+    }
+  });
+}
+
+// Reschedule a meeting
+export function useRescheduleMeeting() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      meetingId, 
+      newDate, 
+      newTime, 
+      remarks 
+    }: { 
+      meetingId: string; 
+      newDate: string; 
+      newTime: string; 
+      remarks: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
+        body: {
+          action: 'reschedule_meeting',
+          meetingId,
+          newDate,
+          newTime,
+          remarks
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message || 'Failed to reschedule meeting');
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      toast.success(data.message || `Meeting rescheduled. New reference: ${data.new_meeting_reference}`);
+    },
+    onError: (error: Error) => {
+      console.error('Reschedule meeting error:', error);
+      toast.error(error.message || 'Failed to reschedule meeting');
+    }
+  });
+}
+
+// Close meeting with approval (from Start Meeting page)
+export function useCloseMeetingWithApproval() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      meetingId, 
+      applicationData, 
+      remarks 
+    }: { 
+      meetingId: string; 
+      applicationData?: Record<string, any>;
+      remarks?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
+        body: {
+          action: 'close_meeting_approved',
+          meetingId,
+          applicationData,
+          remarks
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message || 'Failed to approve application');
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+      toast.success(data.message || 'Application approved successfully');
+    },
+    onError: (error: Error) => {
+      console.error('Close meeting approved error:', error);
+      toast.error(error.message || 'Failed to approve application');
+    }
+  });
+}
+
+// Close meeting with rejection (from Start Meeting page)
+export function useCloseMeetingWithRejection() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      meetingId, 
+      remarks 
+    }: { 
+      meetingId: string; 
+      remarks: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
+        body: {
+          action: 'close_meeting_rejected',
+          meetingId,
+          remarks
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.message || 'Failed to reject application');
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+      toast.success(data.message || 'Application rejected');
+    },
+    onError: (error: Error) => {
+      console.error('Close meeting rejected error:', error);
+      toast.error(error.message || 'Failed to reject application');
+    }
+  });
+}
+
 // Fetch workflow action types
 export function useWorkflowActionTypes() {
   return useQuery({
