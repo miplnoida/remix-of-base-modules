@@ -8,17 +8,26 @@ import { NotesTab } from './NotesTab';
 import { NPFTab } from './NPFTab';
 import { PhotoTab } from './PhotoTab';
 import { CaricomTab } from './CaricomTab';
-import { User, Users, FileText, Building, Camera, Globe, Home } from 'lucide-react';
+import { SelfEmployDetailsTab, WagesCategoryTab, BusinessLocationsTab } from './sep';
+import { User, Users, FileText, Building, Camera, Globe, Briefcase, DollarSign, MapPin } from 'lucide-react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { SuccessDialog, ErrorDialog } from '@/components/ui/feedback';
+import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 
 export const IPRegistration = () => {
   const [activeTab, setActiveTab] = useState('register');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get SSN from route state or URL params if available
+  const ssn = (location.state as any)?.ssn || '';
+  
+  // Initialize SEP hook
+  const selfEmployed = useSelfEmployed(ssn || null);
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -57,7 +66,7 @@ export const IPRegistration = () => {
      <Card>
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="register" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Register Person</span>
@@ -88,6 +97,21 @@ export const IPRegistration = () => {
                 <span className="hidden sm:inline">Caricom</span>
                 <span className="sm:hidden">Caricom</span>
               </TabsTrigger>
+              <TabsTrigger value="self-employ" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                <span className="hidden sm:inline">Self Emp. Details</span>
+                <span className="sm:hidden">SEP</span>
+              </TabsTrigger>
+              <TabsTrigger value="wages-category" className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                <span className="hidden sm:inline">Wages Category</span>
+                <span className="sm:hidden">Wages</span>
+              </TabsTrigger>
+              <TabsTrigger value="business-locations" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Business Locations</span>
+                <span className="sm:hidden">Loc</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="register" className="mt-6">
@@ -112,6 +136,18 @@ export const IPRegistration = () => {
 
             <TabsContent value="caricom" className="mt-6">
               <CaricomTab />
+            </TabsContent>
+
+            <TabsContent value="self-employ" className="mt-6">
+              <SelfEmployDetailsTab ssn={ssn} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            <TabsContent value="wages-category" className="mt-6">
+              <WagesCategoryTab ssn={ssn} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            <TabsContent value="business-locations" className="mt-6">
+              <BusinessLocationsTab ssn={ssn} selfEmployed={selfEmployed} />
             </TabsContent>
           </Tabs>
         </CardContent>
