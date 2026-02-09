@@ -8,8 +8,8 @@ import { NotesTab } from './NotesTab';
 import { NPFTab } from './NPFTab';
 import { PhotoTab } from './PhotoTab';
 import { CaricomTab } from './CaricomTab';
-import { SelfEmployDetailsTab, WagesCategoryTab, BusinessLocationsTab } from './sep';
-import { User, Users, FileText, Building, Camera, Globe, Briefcase, DollarSign, MapPin } from 'lucide-react';
+import { SelfEmployDetailsTab, WagesCategoryTab, BusinessLocationsTab, ContributionHistoryTab, SEPStatusPanel } from './sep';
+import { User, Users, FileText, Building, Camera, Globe, Briefcase, DollarSign, MapPin, Receipt, ShieldCheck } from 'lucide-react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -66,7 +66,7 @@ export const IPRegistration = () => {
      <Card>
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-9">
+            <TabsList className="grid w-full grid-cols-11">
               <TabsTrigger value="register" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Register Person</span>
@@ -112,6 +112,16 @@ export const IPRegistration = () => {
                 <span className="hidden sm:inline">Business Locations</span>
                 <span className="sm:hidden">Loc</span>
               </TabsTrigger>
+              <TabsTrigger value="contributions" className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                <span className="hidden sm:inline">Contributions</span>
+                <span className="sm:hidden">C3</span>
+              </TabsTrigger>
+              <TabsTrigger value="sep-status" className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Status & Audit</span>
+                <span className="sm:hidden">Status</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="register" className="mt-6">
@@ -148,6 +158,14 @@ export const IPRegistration = () => {
 
             <TabsContent value="business-locations" className="mt-6">
               <BusinessLocationsTab ssn={ssn} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            <TabsContent value="contributions" className="mt-6">
+              <ContributionHistoryTab ssn={ssn} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            <TabsContent value="sep-status" className="mt-6">
+              <SEPStatusPanel ssn={ssn} selfEmployed={selfEmployed} />
             </TabsContent>
           </Tabs>
         </CardContent>

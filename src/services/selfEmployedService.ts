@@ -78,6 +78,46 @@ export interface SEPEligibility {
   ip_name: string | null;
 }
 
+export interface SEPContributionRate {
+  sep_ss_percent: number;
+  sep_penalty_percent: number | null;
+}
+
+export interface SEPWeeksPaid {
+  ssn: string;
+  payer_id: string;
+  payer_type: string;
+  sequence_no: number;
+  period: string;
+  pay_period: string | null;
+  paid_code1: string | null;
+  paid_code2: string | null;
+  paid_code3: string | null;
+  paid_code4: string | null;
+  paid_code5: string | null;
+  paid_code6: string | null;
+  sep_ss_amt: number | null;
+}
+
+export interface SEPContributionSummary {
+  total_contributions: number;
+  total_ss_amount: number;
+  latest_period: string | null;
+  earliest_period: string | null;
+}
+
+export interface SEPAuditRecord {
+  audit_id: number;
+  action: string;
+  modifier: string | null;
+  modified_date: string | null;
+  status: string | null;
+  activity_seq_no: string | null;
+  activity_type: string | null;
+  date_commenced: string | null;
+  date_ceased: string | null;
+}
+
 export class SelfEmployedService {
   /**
    * Check if an insured person is eligible for SEP registration
@@ -162,24 +202,6 @@ export class SelfEmployedService {
     activity_seq_no: string,
     updates: Partial<SelfEmployActivity>
   ): Promise<void> {
-    // Log audit before update
-    const { data: current } = await supabase
-      .from('ip_self_employ')
-      .select('*')
-      .eq('ssn', ssn)
-      .eq('self_ref_no', self_ref_no)
-      .eq('activity_seq_no', activity_seq_no)
-      .single();
-
-    if (current) {
-      await supabase.from('au_ip_self_employ').insert({
-        ...current,
-        modifier: updates.userid || 'system',
-        modified_date: new Date().toISOString(),
-        action: 'Before Update',
-      } as any);
-    }
-
     const { error } = await supabase
       .from('ip_self_employ')
       .update({ ...updates, date_modified: new Date().toISOString() } as any)
@@ -187,24 +209,6 @@ export class SelfEmployedService {
       .eq('self_ref_no', self_ref_no)
       .eq('activity_seq_no', activity_seq_no);
     if (error) throw new Error(error.message);
-
-    // Log after update
-    const { data: updated } = await supabase
-      .from('ip_self_employ')
-      .select('*')
-      .eq('ssn', ssn)
-      .eq('self_ref_no', self_ref_no)
-      .eq('activity_seq_no', activity_seq_no)
-      .single();
-
-    if (updated) {
-      await supabase.from('au_ip_self_employ').insert({
-        ...updated,
-        modifier: updates.userid || 'system',
-        modified_date: new Date().toISOString(),
-        action: 'After Update',
-      } as any);
-    }
   }
 
   /**
@@ -228,7 +232,6 @@ export class SelfEmployedService {
    * Add a wage category
    */
   static async addCategory(category: SelfEmployCategory): Promise<void> {
-    // Auto-calculate end date = start + 6 months if not provided
     if (!category.effective_end_date && category.effective_start_date) {
       const start = new Date(category.effective_start_date);
       start.setMonth(start.getMonth() + 6);
@@ -306,7 +309,6 @@ export class SelfEmployedService {
       userid,
     });
 
-    // Also update commencement record
     const { error } = await supabase
       .from('ip_self_commence')
       .update({ date_ceased } as any)
@@ -318,7 +320,7 @@ export class SelfEmployedService {
   }
 
   /**
-   * Change SEP status (Active, Suspended, Ceased)
+   * Change SEP status with validated lifecycle transitions (via RPC)
    */
   static async changeStatus(
     ssn: string,
@@ -326,32 +328,84 @@ export class SelfEmployedService {
     new_status: string,
     userid?: string
   ): Promise<void> {
-    // Update all activities with this SREF
-    const { data: activities } = await supabase
-      .from('ip_self_employ')
-      .select('activity_seq_no')
-      .eq('ssn', ssn)
-      .eq('self_ref_no', self_ref_no);
+    const { error } = await supabase.rpc('change_sep_status', {
+      p_ssn: ssn,
+      p_self_ref_no: self_ref_no,
+      p_new_status: new_status,
+      p_userid: userid || null,
+    });
+    if (error) throw new Error(error.message);
+  }
 
-    if (activities) {
-      for (const act of activities) {
-        await this.updateActivity(ssn, self_ref_no, act.activity_seq_no, {
-          status: new_status,
-          userid,
-        });
+  /**
+   * Get contribution rate for a wage category and period
+   */
+  static async getContributionRate(wage_category: number, period: string): Promise<SEPContributionRate | null> {
+    const { data, error } = await supabase.rpc('get_sep_contribution_rate', {
+      p_wage_category: wage_category,
+      p_period: period,
+    });
+    if (error) throw new Error(error.message);
+    const rows = data as unknown as SEPContributionRate[];
+    return rows && rows.length > 0 ? rows[0] : null;
+  }
 
-        // If ceasing, end all active activities
-        if (new_status === 'C') {
-          const now = new Date().toISOString();
-          await supabase
-            .from('ip_self_employ')
-            .update({ date_ceased: now, date_modified: now } as any)
-            .eq('ssn', ssn)
-            .eq('self_ref_no', self_ref_no)
-            .eq('activity_seq_no', act.activity_seq_no)
-            .is('date_ceased', null);
-        }
-      }
-    }
+  /**
+   * Get weeks paid records for a self-employed person
+   */
+  static async getWeeksPaid(ssn: string, payer_id: string): Promise<SEPWeeksPaid[]> {
+    const { data, error } = await supabase.rpc('get_sep_weeks_paid', {
+      p_ssn: ssn,
+      p_payer_id: payer_id,
+    });
+    if (error) throw new Error(error.message);
+    return (data || []) as unknown as SEPWeeksPaid[];
+  }
+
+  /**
+   * Add a weeks paid record (contribution submission)
+   */
+  static async addWeeksPaid(record: SEPWeeksPaid): Promise<void> {
+    const { error } = await supabase.from('ip_self_weeks_paid').insert({
+      ...record,
+      payer_type: 'SE',
+    } as any);
+    if (error) throw new Error(error.message);
+  }
+
+  /**
+   * Get contribution summary for a self-employed person
+   */
+  static async getContributionSummary(ssn: string): Promise<SEPContributionSummary | null> {
+    const { data, error } = await supabase.rpc('get_sep_contribution_summary', {
+      p_ssn: ssn,
+    });
+    if (error) throw new Error(error.message);
+    const rows = data as unknown as SEPContributionSummary[];
+    return rows && rows.length > 0 ? rows[0] : null;
+  }
+
+  /**
+   * Get audit history for a SEP record
+   */
+  static async getAuditHistory(ssn: string, self_ref_no: string): Promise<SEPAuditRecord[]> {
+    const { data, error } = await supabase.rpc('get_sep_audit_history', {
+      p_ssn: ssn,
+      p_self_ref_no: self_ref_no,
+    });
+    if (error) throw new Error(error.message);
+    return (data || []) as unknown as SEPAuditRecord[];
+  }
+
+  /**
+   * Get all contribution rates
+   */
+  static async getAllContributionRates(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('tb_self_emp_contrib_rate')
+      .select('*')
+      .order('wage_cat', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
   }
 }
