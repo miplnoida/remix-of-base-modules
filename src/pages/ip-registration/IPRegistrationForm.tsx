@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, Settings2 } from 'lucide-react';
+import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, Settings2, DollarSign, MapPin, Receipt, ShieldCheck } from 'lucide-react';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +24,8 @@ import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButto
 import { useHasEmploymentHistory } from '@/hooks/useEmploymentHistory';
 import { VCEligibilityCheck } from '@/components/ip-registration/VCEligibilityCheck';
 import { IPStatusChangeDialog } from '@/components/ip-registration/IPStatusChangeDialog';
+import { SelfEmployDetailsTab, WagesCategoryTab, BusinessLocationsTab, ContributionHistoryTab, SEPStatusPanel } from '@/components/ip/sep';
+import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 
 export interface IPFormData {
   id?: string;
@@ -145,6 +147,9 @@ export default function IPRegistrationForm() {
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
   const hasShownSuccessRef = useRef(false);
+
+  // Initialize SEP hook with the person's SSN
+  const selfEmployed = useSelfEmployed(formData?.ssn && !formData.ssn.startsWith('T') ? formData.ssn : null);
   
   // Check if employment history records exist for this SSN
 
@@ -677,7 +682,7 @@ export default function IPRegistrationForm() {
       <Card>
         <CardContent className="p-6">
           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="flex w-full overflow-x-auto">
               <TabsTrigger value="register" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Register Person</span>
@@ -709,6 +714,46 @@ export default function IPRegistrationForm() {
               <TabsTrigger value="caricom" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">Caricom</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="self-employ" 
+                className="flex items-center gap-2"
+                disabled={!formData.ssn || formData.ssn.startsWith('T')}
+              >
+                <Briefcase className="h-4 w-4" />
+                <span className="hidden sm:inline">Self Emp.</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="wages-category" 
+                className="flex items-center gap-2"
+                disabled={!formData.ssn || formData.ssn.startsWith('T')}
+              >
+                <DollarSign className="h-4 w-4" />
+                <span className="hidden sm:inline">Wages</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="business-locations" 
+                className="flex items-center gap-2"
+                disabled={!formData.ssn || formData.ssn.startsWith('T')}
+              >
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Locations</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="contributions" 
+                className="flex items-center gap-2"
+                disabled={!formData.ssn || formData.ssn.startsWith('T')}
+              >
+                <Receipt className="h-4 w-4" />
+                <span className="hidden sm:inline">Contributions</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sep-status" 
+                className="flex items-center gap-2"
+                disabled={!formData.ssn || formData.ssn.startsWith('T')}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">SEP Status</span>
               </TabsTrigger>
             </TabsList>
 
@@ -868,6 +913,31 @@ export default function IPRegistrationForm() {
               <div className="text-center py-8 text-muted-foreground">
                 CARICOM information will be displayed here.
               </div>
+            </TabsContent>
+
+            {/* Self-Employed Details Tab */}
+            <TabsContent value="self-employ" className="mt-6">
+              <SelfEmployDetailsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            {/* Wages Category Tab */}
+            <TabsContent value="wages-category" className="mt-6">
+              <WagesCategoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            {/* Business Locations Tab */}
+            <TabsContent value="business-locations" className="mt-6">
+              <BusinessLocationsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            {/* Contributions Tab */}
+            <TabsContent value="contributions" className="mt-6">
+              <ContributionHistoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+            </TabsContent>
+
+            {/* SEP Status & Audit Tab */}
+            <TabsContent value="sep-status" className="mt-6">
+              <SEPStatusPanel ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
             </TabsContent>
           </Tabs>
         </CardContent>
