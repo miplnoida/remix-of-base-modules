@@ -15,6 +15,8 @@ import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 interface SelfEmployDetailsTabProps {
   ssn: string;
   selfEmployed: ReturnType<typeof useSelfEmployed>;
+  isRegistrationMode?: boolean;
+  onRegistrationComplete?: () => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -44,7 +46,7 @@ const officeLabels: Record<string, string> = {
   NEV: 'Nevis',
 };
 
-export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn, selfEmployed }) => {
+export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn, selfEmployed, isRegistrationMode, onRegistrationComplete }) => {
   const {
     eligibility,
     activities,
@@ -57,7 +59,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
     ceaseActivity,
   } = selfEmployed;
 
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(isRegistrationMode || false);
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCeaseDialog, setShowCeaseDialog] = useState(false);
@@ -89,6 +91,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({ ssn,
     if (sref) {
       setShowRegisterDialog(false);
       setRegForm({ activity_type: '', date_commenced: '', occupation_code: '', office_code: 'STK', sector_code: 'O' });
+      onRegistrationComplete?.();
     }
   };
 

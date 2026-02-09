@@ -147,20 +147,22 @@ export default function IPRegistrationForm() {
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
   const [showVCSection, setShowVCSection] = useState(false);
+  const [sepRegistrationMode, setSepRegistrationMode] = useState(false);
   const hasShownSuccessRef = useRef(false);
 
   // Initialize SEP hook with the person's SSN
   const selfEmployed = useSelfEmployed(formData?.ssn && !formData.ssn.startsWith('T') ? formData.ssn : null);
   
-  // Determine if person is already registered as self-employed (has activities from DB)
+  // Determine if person is already registered as self-employed (has activities from DB) or in registration mode
   const isSelfEmployed = selfEmployed.activities.length > 0;
+  const showSepTabs = isSelfEmployed || sepRegistrationMode;
 
-  // Handle "Register as Self Employed" action - switch to edit mode and open SEP tab
+  // Handle "Register as Self Employed" action - show SEP tabs and open registration
   const handleRegisterAsSelfEmployed = useCallback(() => {
     if (!formData) return;
-    // Navigate to edit mode and activate the self-employ tab
-    navigate(`/ip-registration/edit/${formData.unique_uuid}?openTab=self-employ`);
-  }, [formData, navigate]);
+    setSepRegistrationMode(true);
+    setActiveMainTab('self-employ');
+  }, [formData]);
   
   // Check if employment history records exist for this SSN
 
@@ -313,7 +315,10 @@ export default function IPRegistrationForm() {
     }
     // Handle openTab query param (e.g. from Register as Self Employed)
     const openTab = searchParams.get('openTab');
-    if (openTab) {
+    if (openTab === 'self-employ') {
+      setSepRegistrationMode(true);
+      setActiveMainTab('self-employ');
+    } else if (openTab) {
       setActiveMainTab(openTab);
     }
   }, [action, searchParams]);
@@ -752,7 +757,7 @@ export default function IPRegistrationForm() {
                 <span className="hidden sm:inline">Caricom</span>
               </TabsTrigger>
               {/* Self-Employed tabs - only visible if registered as self-employed */}
-              {isSelfEmployed && (
+              {showSepTabs && (
                 <>
                   <TabsTrigger 
                     value="self-employ" 
@@ -764,6 +769,7 @@ export default function IPRegistrationForm() {
                   <TabsTrigger 
                     value="wages-category" 
                     className="flex items-center gap-2"
+                    disabled={!isSelfEmployed}
                   >
                     <DollarSign className="h-4 w-4" />
                     <span className="hidden sm:inline">Wages</span>
@@ -771,6 +777,7 @@ export default function IPRegistrationForm() {
                   <TabsTrigger 
                     value="business-locations" 
                     className="flex items-center gap-2"
+                    disabled={!isSelfEmployed}
                   >
                     <MapPin className="h-4 w-4" />
                     <span className="hidden sm:inline">Locations</span>
@@ -778,6 +785,7 @@ export default function IPRegistrationForm() {
                   <TabsTrigger 
                     value="contributions" 
                     className="flex items-center gap-2"
+                    disabled={!isSelfEmployed}
                   >
                     <Receipt className="h-4 w-4" />
                     <span className="hidden sm:inline">Contributions</span>
@@ -785,6 +793,7 @@ export default function IPRegistrationForm() {
                   <TabsTrigger 
                     value="sep-status" 
                     className="flex items-center gap-2"
+                    disabled={!isSelfEmployed}
                   >
                     <ShieldCheck className="h-4 w-4" />
                     <span className="hidden sm:inline">SEP Status</span>
@@ -952,10 +961,20 @@ export default function IPRegistrationForm() {
             </TabsContent>
 
             {/* Self-Employed Tab Contents - only rendered if registered */}
-            {isSelfEmployed && (
+            {showSepTabs && (
               <>
                 <TabsContent value="self-employ" className="mt-6">
-                  <SelfEmployDetailsTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
+                  <SelfEmployDetailsTab 
+                    ssn={formData.ssn || ''} 
+                    selfEmployed={selfEmployed} 
+                    isRegistrationMode={sepRegistrationMode && !isSelfEmployed}
+                    onRegistrationComplete={() => {
+                      // After successful registration, refresh activities and exit registration mode
+                      selfEmployed.loadActivities();
+                      setSepRegistrationMode(false);
+                      toast.success('Self-employed registration completed successfully');
+                    }}
+                  />
                 </TabsContent>
                 <TabsContent value="wages-category" className="mt-6">
                   <WagesCategoryTab ssn={formData.ssn || ''} selfEmployed={selfEmployed} />
