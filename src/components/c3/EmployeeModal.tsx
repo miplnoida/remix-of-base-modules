@@ -11,6 +11,7 @@ import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculations';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface EmployeeData {
   ssn: string;
@@ -81,6 +82,13 @@ export default function EmployeeModal({
   const [ssnValidated, setSsnValidated] = useState(false);
   const [pendingPayPeriod, setPendingPayPeriod] = useState<string | null>(null);
   const [showPayPeriodConfirm, setShowPayPeriodConfirm] = useState(false);
+  const [defaultPayPeriodFetched, setDefaultPayPeriodFetched] = useState(false);
+
+  // Auto-calculate Term Start Date as the first date of the selected Period month
+  const periodTermStartDate = useMemo(() => {
+    const monthStr = String(periodMonth + 1).padStart(2, '0');
+    return `${periodYear}-${monthStr}-01`;
+  }, [periodYear, periodMonth]);
 
   // Calculate enabled weeks based on period
   const mondayCount = getMondayCount(periodYear, periodMonth);
@@ -107,7 +115,10 @@ export default function EmployeeModal({
   // Reset form when employee changes
   useEffect(() => {
     if (employee) {
-      setLocalEmployee(employee);
+      setLocalEmployee({
+        ...employee,
+        termStartDate: periodTermStartDate
+      });
       setSsnValidated(true);
       setSsnError('');
     } else {
@@ -123,14 +134,72 @@ export default function EmployeeModal({
         socialSecurity: 0,
         isVerified: false,
         weeklyWages: [0, 0, 0, 0, 0, 0, 0],
-        termStartDate: '',
+        termStartDate: periodTermStartDate,
         payPeriod: 'Monthly',
         dateOfBirth: ''
       });
       setSsnValidated(false);
       setSsnError('');
+      setDefaultPayPeriodFetched(false);
     }
-  }, [employee, isOpen]);
+  }, [employee, isOpen, periodTermStartDate]);
+
+  // Fetch default Pay-Period from latest ip_wages record for SSN
+  useEffect(() => {
+    if (!ssnValidated || !localEmployee.ssn || defaultPayPeriodFetched || !!employee) return;
+
+    const fetchDefaultPayPeriod = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ip_wages')
+          .select('pay_period')
+          .eq('ssn', localEmployee.ssn)
+          .eq('payer_type', 'ER')
+          .order('date_entered', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data?.pay_period) {
+          const payPeriodMap: Record<string, string> = {
+            '1': 'Monthly',
+            '2': 'Bi-Weekly',
+            '3': 'Weekly',
+            '4': '2 Monthly'
+          };
+          const mappedValue = payPeriodMap[String(data.pay_period)] || 'Monthly';
+          setLocalEmployee(prev => ({ ...prev, payPeriod: mappedValue }));
+        }
+        setDefaultPayPeriodFetched(true);
+      } catch {
+        setDefaultPayPeriodFetched(true);
+      }
+    };
+
+    fetchDefaultPayPeriod();
+  }, [ssnValidated, localEmployee.ssn, defaultPayPeriodFetched, employee]);
+
+  // Auto-check week checkboxes when pay period changes
+  useEffect(() => {
+    if (isViewMode) return;
+    const newDays = [...localEmployee.days];
+    const newWages = [...localEmployee.weeklyWages];
+    // Auto-check weeks 0-4 based on enabled textboxes
+    for (let i = 0; i < 5; i++) {
+      if (enabledTextboxes[i] && enabledWeekCheckboxes[i]) {
+        newDays[i] = true;
+      } else if (!enabledTextboxes[i]) {
+        newDays[i] = false;
+        newWages[i] = 0;
+      }
+    }
+    setLocalEmployee(prev => ({
+      ...prev,
+      days: newDays,
+      weeklyWages: newWages
+    }));
+    // Only react to payPeriod changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localEmployee.payPeriod]);
 
   const handleSSNBlur = useCallback(async () => {
     if (localEmployee.ssn && localEmployee.ssn.length === 6) {
@@ -139,7 +208,7 @@ export default function EmployeeModal({
         setLocalEmployee(prev => ({
           ...prev,
           name: result.name,
-          termStartDate: result.termStartDate,
+          termStartDate: periodTermStartDate,
           dateOfBirth: result.dateOfBirth
         }));
         setSsnValidated(true);
@@ -352,9 +421,10 @@ export default function EmployeeModal({
               <Input
                 id="termStartDate"
                 type="date"
-                value={localEmployee.termStartDate || ''}
-                onChange={(e) => handleChange('termStartDate', e.target.value)}
-                disabled={isViewMode}
+                value={periodTermStartDate}
+                readOnly
+                disabled
+                className="bg-muted"
               />
             </div>
 
@@ -383,17 +453,17 @@ export default function EmployeeModal({
             <Label className="text-sm font-medium text-primary mb-3 block">
               Record Wages/Salaries in respect of the weeks worked or Holiday Pay or Bonuses
             </Label>
-            <div className="grid grid-cols-7 gap-4">
+            <div className="grid grid-cols-7 gap-2">
               {weekLabels.map((label, index) => {
                 const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
                 const isFieldEnabled = isWeekFieldEnabled(index);
                 
                 return (
                   <div key={index} className="flex flex-col space-y-2">
-                    <span className="text-sm font-medium">{label}</span>
+                    <span className="text-xs font-medium text-center">{label}</span>
                     <div className="flex items-center gap-0">
                       <div
-                        className={`h-8 w-8 border-l border-t border-b rounded-l-md flex items-center justify-center ${
+                        className={`h-8 w-8 min-w-[2rem] border-l border-t border-b rounded-l-md flex items-center justify-center ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                         } ${
                           localEmployee.days[index]
@@ -407,13 +477,11 @@ export default function EmployeeModal({
                         )}
                       </div>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="99999999.99"
+                        type="text"
+                        inputMode="decimal"
                         value={localEmployee.weeklyWages[index] === 0 ? '' : localEmployee.weeklyWages[index]}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className={`flex-1 h-8 text-center rounded-l-none ${
+                        className={`h-8 text-right rounded-l-none min-w-[5.5rem] ${
                           localEmployee.days[index] ? 'border-primary' : ''
                         }`}
                         placeholder="0.00"
@@ -454,7 +522,7 @@ export default function EmployeeModal({
                 </p>
               )}
               
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
                   <Label className="text-sm text-muted-foreground">Total Wages</Label>
                   <div className="text-lg font-semibold">{formatCurrency(payrollCalc.totalWages)}</div>
@@ -464,11 +532,6 @@ export default function EmployeeModal({
                   <Label className="text-sm text-muted-foreground">Taxable Wages</Label>
                   <div className="text-lg font-semibold">{formatCurrency(payrollCalc.taxableWages)}</div>
                   <p className="text-xs text-muted-foreground">Week1-5 + Holiday (excl. Bonus)</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Grand Total</Label>
-                  <div className="text-lg font-semibold text-primary">{formatCurrency(payrollCalc.totalWagesPlusEmployeeLevyPlusSS)}</div>
-                  <p className="text-xs text-muted-foreground">Wages + Employee Levy + SS</p>
                 </div>
               </div>
               
@@ -483,10 +546,6 @@ export default function EmployeeModal({
                   <div>
                     <Label className="text-xs text-muted-foreground">Employee Levy (3.5% per week)</Label>
                     <div className="font-medium">{formatCurrency(payrollCalc.employeeLevy)}</div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Total Employee</Label>
-                    <div className="font-medium text-primary">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</div>
                   </div>
                 </div>
               </div>
@@ -510,10 +569,6 @@ export default function EmployeeModal({
                   <div>
                     <Label className="text-xs text-muted-foreground">Severance ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</Label>
                     <div className="font-medium">{formatCurrency(payrollCalc.employerSeverance)}</div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Total Employer</Label>
-                    <div className="font-medium text-primary">{formatCurrency(payrollCalc.employersThreePercentLevyPlusSS + payrollCalc.employerSeverance)}</div>
                   </div>
                 </div>
                 {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
