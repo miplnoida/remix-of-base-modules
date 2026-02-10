@@ -217,7 +217,7 @@ export function useSelfEmployed(ssn: string | null) {
     try {
       await SelfEmployedService.addCategory(category);
       toast.success('Wage category added');
-      await loadCategories(category.activity_seq_no);
+      await loadCategories(); // Reload all categories
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -273,7 +273,7 @@ export function useSelfEmployed(ssn: string | null) {
   // When selected activity changes, load related data
   useEffect(() => {
     if (selectedActivity) {
-      loadCategories(selectedActivity.activity_seq_no);
+      loadCategories(); // Load ALL categories for this SSN (no activity filter)
       loadLocations(selectedActivity.activity_seq_no);
     }
   }, [selectedActivity, loadCategories, loadLocations]);
