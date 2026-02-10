@@ -47,6 +47,7 @@ import { Plus, Trash2, Save, Loader2, AlertCircle, XCircle } from 'lucide-react'
 import { toast } from 'sonner';
 import {
   useSaveWorkflowActionApiConfig,
+  useDeleteWorkflowActionApiConfig,
   VALUE_SOURCE_OPTIONS,
   SOURCE_KEY_SUGGESTIONS,
   STANDARD_ACTION_CODES,
