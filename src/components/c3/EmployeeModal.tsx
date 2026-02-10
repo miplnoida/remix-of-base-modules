@@ -115,7 +115,10 @@ export default function EmployeeModal({
   // Reset form when employee changes
   useEffect(() => {
     if (employee) {
-      setLocalEmployee(employee);
+      setLocalEmployee({
+        ...employee,
+        termStartDate: periodTermStartDate
+      });
       setSsnValidated(true);
       setSsnError('');
     } else {
@@ -131,14 +134,72 @@ export default function EmployeeModal({
         socialSecurity: 0,
         isVerified: false,
         weeklyWages: [0, 0, 0, 0, 0, 0, 0],
-        termStartDate: '',
+        termStartDate: periodTermStartDate,
         payPeriod: 'Monthly',
         dateOfBirth: ''
       });
       setSsnValidated(false);
       setSsnError('');
+      setDefaultPayPeriodFetched(false);
     }
-  }, [employee, isOpen]);
+  }, [employee, isOpen, periodTermStartDate]);
+
+  // Fetch default Pay-Period from latest ip_wages record for SSN
+  useEffect(() => {
+    if (!ssnValidated || !localEmployee.ssn || defaultPayPeriodFetched || !!employee) return;
+
+    const fetchDefaultPayPeriod = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ip_wages')
+          .select('pay_period')
+          .eq('ssn', localEmployee.ssn)
+          .eq('payer_type', 'ER')
+          .order('date_entered', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data?.pay_period) {
+          const payPeriodMap: Record<string, string> = {
+            '1': 'Monthly',
+            '2': 'Bi-Weekly',
+            '3': 'Weekly',
+            '4': '2 Monthly'
+          };
+          const mappedValue = payPeriodMap[String(data.pay_period)] || 'Monthly';
+          setLocalEmployee(prev => ({ ...prev, payPeriod: mappedValue }));
+        }
+        setDefaultPayPeriodFetched(true);
+      } catch {
+        setDefaultPayPeriodFetched(true);
+      }
+    };
+
+    fetchDefaultPayPeriod();
+  }, [ssnValidated, localEmployee.ssn, defaultPayPeriodFetched, employee]);
+
+  // Auto-check week checkboxes when pay period changes
+  useEffect(() => {
+    if (isViewMode) return;
+    const newDays = [...localEmployee.days];
+    const newWages = [...localEmployee.weeklyWages];
+    // Auto-check weeks 0-4 based on enabled textboxes
+    for (let i = 0; i < 5; i++) {
+      if (enabledTextboxes[i] && enabledWeekCheckboxes[i]) {
+        newDays[i] = true;
+      } else if (!enabledTextboxes[i]) {
+        newDays[i] = false;
+        newWages[i] = 0;
+      }
+    }
+    setLocalEmployee(prev => ({
+      ...prev,
+      days: newDays,
+      weeklyWages: newWages
+    }));
+    // Only react to payPeriod changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localEmployee.payPeriod]);
 
   const handleSSNBlur = useCallback(async () => {
     if (localEmployee.ssn && localEmployee.ssn.length === 6) {
