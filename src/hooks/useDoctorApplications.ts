@@ -13,12 +13,14 @@ export interface ExternalDoctorApplicationListItem {
   id: string;
   reference_number: string | null;
   registration_id: string | null;
+  registration_number: string | null;
   first_name: string | null;
   middle_name: string | null;
   last_name: string | null;
   full_name: string | null;
   email: string | null;
   mobile: string | null;
+  mobile_number: string | null;
   mobile_country: string | null;
   mobile_dial_code: string | null;
   phone: string | null;
@@ -27,6 +29,7 @@ export interface ExternalDoctorApplicationListItem {
   gender: string | null;
   nationality: string | null;
   specialty: string | null;
+  main_speciality: string | null;
   license_number: string | null;
   current_step: number | null;
   status: string;
@@ -87,10 +90,17 @@ function normalizeApiResponse<T>(response: T | T[] | ApiResponse<T[]>): T[] {
   }
   
   if (typeof response === 'object' && response !== null) {
-    const obj = response as ApiResponse<T[]>;
-    if (obj.data && Array.isArray(obj.data)) return obj.data;
-    if (obj.records && Array.isArray(obj.records)) return obj.records;
-    if (obj.applications && Array.isArray(obj.applications)) return obj.applications;
+    const obj = response as Record<string, unknown>;
+    // Handle nested data.applications pattern (e.g., { data: { applications: [...] } })
+    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
+      const nested = obj.data as Record<string, unknown>;
+      if (nested.applications && Array.isArray(nested.applications)) return nested.applications as T[];
+      if (nested.records && Array.isArray(nested.records)) return nested.records as T[];
+      if (nested.data && Array.isArray(nested.data)) return nested.data as T[];
+    }
+    if (obj.data && Array.isArray(obj.data)) return obj.data as T[];
+    if (obj.records && Array.isArray(obj.records)) return obj.records as T[];
+    if (obj.applications && Array.isArray(obj.applications)) return obj.applications as T[];
   }
   
   return [];
@@ -101,7 +111,7 @@ function normalizeApiResponse<T>(response: T | T[] | ApiResponse<T[]>): T[] {
  */
 function mapDoctorFromApi(item: ExternalDoctorApplicationListItem): DoctorApplication {
   const dial = item.mobile_dial_code || '';
-  const mobile = item.mobile || '';
+  const mobile = item.mobile || item.mobile_number || '';
   const mobileFormatted = dial ? `(${dial}) ${mobile}` : mobile;
 
   const fullName = item.full_name || 
@@ -111,13 +121,13 @@ function mapDoctorFromApi(item: ExternalDoctorApplicationListItem): DoctorApplic
   return {
     applicationId: item.id,
     referenceNumber: item.reference_number,
-    registrationId: item.registration_id,
+    registrationId: item.registration_id || item.registration_number,
     firstName: item.first_name,
     middleName: item.middle_name,
     lastName: item.last_name,
     fullName,
     email: item.email,
-    mobile: item.mobile,
+    mobile: item.mobile || item.mobile_number,
     mobileDialCode: item.mobile_dial_code,
     mobileFormatted,
     phone: item.phone,
@@ -125,8 +135,8 @@ function mapDoctorFromApi(item: ExternalDoctorApplicationListItem): DoctorApplic
     dateOfBirth: item.date_of_birth,
     gender: item.gender,
     nationality: item.nationality,
-    specialty: item.specialty,
-    licenseNumber: item.license_number,
+    specialty: item.specialty || item.main_speciality,
+    licenseNumber: item.license_number || item.registration_number,
     currentStep: item.current_step,
     status: item.status,
     statusDisplay: formatStatusDisplay(item.status),
