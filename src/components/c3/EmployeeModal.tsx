@@ -547,10 +547,6 @@ export default function EmployeeModal({
                     <Label className="text-xs text-muted-foreground">Employee Levy (3.5% per week)</Label>
                     <div className="font-medium">{formatCurrency(payrollCalc.employeeLevy)}</div>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Total Employee</Label>
-                    <div className="font-medium text-primary">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</div>
-                  </div>
                 </div>
               </div>
               
