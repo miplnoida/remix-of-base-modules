@@ -43,7 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Trash2, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useSaveWorkflowActionApiConfig,
