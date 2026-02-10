@@ -83,7 +83,6 @@ export function WorkflowActionApiConfig({
   stepName,
   actionCode,
   actionName,
-  existingConfig,
   onSaved,
   onDeleted,
   onCancel,
@@ -92,15 +91,23 @@ export function WorkflowActionApiConfig({
   const saveConfig = useSaveWorkflowActionApiConfig();
   const deleteConfig = useDeleteWorkflowActionApiConfig();
 
+  // Fetch existing config internally
+  const { data: existingConfig, isLoading: isLoadingConfig } = useWorkflowActionApiConfig(
+    workflowId,
+    stepId,
+    actionCode
+  );
+  const [initialized, setInitialized] = useState(false);
+
   // API config state
-  const [httpMethod, setHttpMethod] = useState(existingConfig?.http_method || 'POST');
-  const [endpointUrl, setEndpointUrl] = useState(existingConfig?.endpoint_url || '');
-  const [apiKeySecretName, setApiKeySecretName] = useState(existingConfig?.api_key_secret_name || '');
-  const [contentType, setContentType] = useState(existingConfig?.content_type || 'application/json');
-  const [timeoutSeconds, setTimeoutSeconds] = useState(existingConfig?.timeout_seconds || 30);
-  const [retryCount, setRetryCount] = useState(existingConfig?.retry_count || 0);
-  const [isActive, setIsActive] = useState(existingConfig?.is_active ?? true);
-  const [description, setDescription] = useState(existingConfig?.description || '');
+  const [httpMethod, setHttpMethod] = useState('POST');
+  const [endpointUrl, setEndpointUrl] = useState('');
+  const [apiKeySecretName, setApiKeySecretName] = useState('');
+  const [contentType, setContentType] = useState('application/json');
+  const [timeoutSeconds, setTimeoutSeconds] = useState(30);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isActive, setIsActive] = useState(true);
+  const [description, setDescription] = useState('');
 
   // Body mappings state
   const [bodyMappings, setBodyMappings] = useState<BodyMappingRow[]>([]);
