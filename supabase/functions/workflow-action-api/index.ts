@@ -582,6 +582,30 @@ Deno.serve(async (req) => {
           .select('id')
           .single()
 
+        // Audit trail for retry
+        await supabase.from('system_audit_trail').insert({
+          action: executionStatus === 'SUCCESS' ? 'workflow_api_retry_success' : 'workflow_api_retry_failed',
+          entity_type: 'workflow_api_call',
+          entity_id: logEntry.action_code,
+          module: 'Workflow API',
+          user_id: userId,
+          user_name: userCode || 'SYSTEM',
+          severity: executionStatus === 'SUCCESS' ? 'info' : 'warning',
+          payload_json: {
+            action_code: logEntry.action_code,
+            execution_status: executionStatus,
+            http_status: httpStatus,
+            endpoint_url: logEntry.endpoint_url,
+            error_message: errorMessage,
+            duration_ms: duration,
+            retry_attempt: (logEntry.retry_attempt || 0) + 1,
+            original_log_id: body.executionLogId,
+            new_log_id: newLogEntry?.id,
+            workflow_instance_id: logEntry.workflow_instance_id,
+          },
+          timestamp: new Date().toISOString(),
+        })
+
         return new Response(
           JSON.stringify({
             success: executionStatus === 'SUCCESS',
