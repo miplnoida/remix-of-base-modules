@@ -121,6 +121,7 @@ export default function EmployeeModal({
       });
       setSsnValidated(true);
       setSsnError('');
+      setWageInputValues(employee.weeklyWages.map(w => w === 0 ? '' : String(w)));
     } else {
       setLocalEmployee({
         ssn: '',
@@ -141,6 +142,7 @@ export default function EmployeeModal({
       setSsnValidated(false);
       setSsnError('');
       setDefaultPayPeriodFetched(false);
+      setWageInputValues(['', '', '', '', '', '', '']);
     }
   }, [employee, isOpen, periodTermStartDate]);
 
@@ -274,6 +276,9 @@ export default function EmployeeModal({
     newDays[index] = !newDays[index];
     if (!newDays[index]) {
       newWages[index] = 0;
+      const newInputValues = [...wageInputValues];
+      newInputValues[index] = '';
+      setWageInputValues(newInputValues);
     }
     
     setLocalEmployee(prev => ({
