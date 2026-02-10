@@ -1511,6 +1511,10 @@ export default function WorkflowForm() {
                 setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
                 refetchApiConfig();
               }}
+              onDeleted={() => {
+                setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
+                refetchApiConfig();
+              }}
               onCancel={() => {
                 setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
               }}

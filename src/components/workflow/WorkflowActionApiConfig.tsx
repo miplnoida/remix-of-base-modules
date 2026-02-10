@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -32,10 +43,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Trash2, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useSaveWorkflowActionApiConfig,
+  useDeleteWorkflowActionApiConfig,
   VALUE_SOURCE_OPTIONS,
   SOURCE_KEY_SUGGESTIONS,
   STANDARD_ACTION_CODES,
@@ -62,6 +74,7 @@ interface WorkflowActionApiConfigProps {
     body_mappings?: Omit<WorkflowActionApiBodyMapping, 'id' | 'workflow_action_api_id' | 'created_at'>[];
   } | null;
   onSaved?: () => void;
+  onDeleted?: () => void;
   onCancel?: () => void;
 }
 
@@ -83,10 +96,12 @@ export function WorkflowActionApiConfig({
   actionName,
   existingConfig,
   onSaved,
+  onDeleted,
   onCancel,
 }: WorkflowActionApiConfigProps) {
   const { userCode } = useUserCode();
   const saveConfig = useSaveWorkflowActionApiConfig();
+  const deleteConfig = useDeleteWorkflowActionApiConfig();
 
   // API config state
   const [httpMethod, setHttpMethod] = useState(existingConfig?.http_method || 'POST');
@@ -461,25 +476,72 @@ export function WorkflowActionApiConfig({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
-        <Button onClick={handleSave} disabled={saveConfig.isPending}>
-          {saveConfig.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save API Configuration
-            </>
+      <div className="flex justify-between gap-2">
+        <div>
+          {existingConfig?.id && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={deleteConfig.isPending}>
+                  {deleteConfig.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Remove API Configuration
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove API Configuration?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove the API configuration and all body mappings for the "{actionName}" action on step "{stepName}". Workflow actions will no longer trigger external API calls.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      try {
+                        await deleteConfig.mutateAsync(existingConfig.id);
+                        onDeleted?.();
+                      } catch (error) {
+                        // Error handled by mutation
+                      }
+                    }}
+                  >
+                    Remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
-        </Button>
+        </div>
+        <div className="flex gap-2">
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saveConfig.isPending}>
+            {saveConfig.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save API Configuration
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
