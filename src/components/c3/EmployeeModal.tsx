@@ -421,9 +421,10 @@ export default function EmployeeModal({
               <Input
                 id="termStartDate"
                 type="date"
-                value={localEmployee.termStartDate || ''}
-                onChange={(e) => handleChange('termStartDate', e.target.value)}
-                disabled={isViewMode}
+                value={periodTermStartDate}
+                readOnly
+                disabled
+                className="bg-muted"
               />
             </div>
 
