@@ -118,10 +118,12 @@ export const LoginScreen = () => {
         const verification = await verifyTurnstileToken(tokenToSend, email);
         securityEventId = verification.eventId || null;
 
-        // If real turnstile token was used and verification failed, block login
-        if (verificationToken && !verification.success && !verification.skipped) {
+        // If Cloudflare is disabled via config, proceed (already logged server-side)
+        if (verification.skipped) {
+          // Allowed to proceed — verification was skipped by config or environment
+        } else if (verificationToken && !verification.success) {
+          // Real token used and verification failed — block login
           setError(verification.error || 'Human verification failed.');
-          // Update the event with failure
           if (securityEventId) {
             await updateLoginOutcome(securityEventId, false, 'CAPTCHA_FAILED');
           }

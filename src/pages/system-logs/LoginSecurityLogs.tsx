@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Download, ShieldCheck, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, RefreshCw, Download, ShieldCheck, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle, XCircle, Ban, ShieldOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
+import { useCloudflareConfig } from '@/hooks/useCloudflareConfig';
 
 const PAGE_SIZE = 20;
 
@@ -20,6 +22,7 @@ const LoginSecurityLogs: React.FC = () => {
   const [resultFilter, setResultFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
   const [emailFilter, setEmailFilter] = useState('');
+  const { data: cfConfig, isLoading: cfLoading } = useCloudflareConfig();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['login-security-events', page, dateFrom, dateTo, resultFilter, riskFilter, emailFilter],
@@ -97,6 +100,29 @@ const LoginSecurityLogs: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Cloudflare status banner */}
+      {!cfLoading && cfConfig && !cfConfig.enabled && (
+        <Alert variant="destructive">
+          <ShieldOff className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Warning:</strong> Cloudflare human verification is currently <strong>disabled</strong>. 
+            Login attempts are not being verified for bot activity. Enable it from{' '}
+            <a href="/admin/global-settings" className="underline font-medium">Global Settings</a>.
+          </AlertDescription>
+        </Alert>
+      )}
+      {!cfLoading && cfConfig?.enabled && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          <AlertDescription>
+            Cloudflare human verification is <strong>enabled</strong>. Allowed risk level:{' '}
+            <Badge variant="outline" className="ml-1">
+              {cfConfig.allowedRiskLevel === 'LOW' ? 'Low only' : cfConfig.allowedRiskLevel === 'MEDIUM' ? 'Low + Medium' : 'All risks'}
+            </Badge>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
