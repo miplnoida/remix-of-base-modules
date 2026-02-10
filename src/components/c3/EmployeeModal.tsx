@@ -453,17 +453,17 @@ export default function EmployeeModal({
             <Label className="text-sm font-medium text-primary mb-3 block">
               Record Wages/Salaries in respect of the weeks worked or Holiday Pay or Bonuses
             </Label>
-            <div className="grid grid-cols-7 gap-4">
+            <div className="grid grid-cols-7 gap-2">
               {weekLabels.map((label, index) => {
                 const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
                 const isFieldEnabled = isWeekFieldEnabled(index);
                 
                 return (
                   <div key={index} className="flex flex-col space-y-2">
-                    <span className="text-sm font-medium">{label}</span>
+                    <span className="text-xs font-medium text-center">{label}</span>
                     <div className="flex items-center gap-0">
                       <div
-                        className={`h-8 w-8 border-l border-t border-b rounded-l-md flex items-center justify-center ${
+                        className={`h-8 w-8 min-w-[2rem] border-l border-t border-b rounded-l-md flex items-center justify-center ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                         } ${
                           localEmployee.days[index]
@@ -477,13 +477,11 @@ export default function EmployeeModal({
                         )}
                       </div>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="99999999.99"
+                        type="text"
+                        inputMode="decimal"
                         value={localEmployee.weeklyWages[index] === 0 ? '' : localEmployee.weeklyWages[index]}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className={`flex-1 h-8 text-center rounded-l-none ${
+                        className={`h-8 text-right rounded-l-none min-w-[5.5rem] ${
                           localEmployee.days[index] ? 'border-primary' : ''
                         }`}
                         placeholder="0.00"
