@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logAuditTrail } from '@/services/auditService';
 
 export interface SystemSetting {
   id: string;
@@ -93,6 +94,15 @@ export const useUpdateSystemSetting = () => {
       settingValue: string; 
       userCode?: string;
     }) => {
+      // Fetch the current value before updating for audit trail
+      const { data: current } = await supabase
+        .from('system_settings')
+        .select('setting_value, display_name, category')
+        .eq('setting_key', settingKey)
+        .single();
+
+      const oldValue = current?.setting_value;
+
       const { data, error } = await supabase
         .from('system_settings')
         .update({
@@ -110,6 +120,18 @@ export const useUpdateSystemSetting = () => {
       // Update cache immediately
       settingsCache.set(settingKey, settingValue);
       cacheTimestamp = Date.now();
+
+      // Write audit trail entry automatically
+      await logAuditTrail({
+        action: 'update',
+        entityType: 'system_setting',
+        entityId: settingKey,
+        module: 'Global Settings',
+        beforeValue: { setting_key: settingKey, setting_value: oldValue, display_name: current?.display_name },
+        afterValue: { setting_key: settingKey, setting_value: settingValue, display_name: current?.display_name },
+        userCode: userCode || 'SYSTEM',
+        metadata: { category: current?.category, source: '/admin/global-settings' },
+      });
       
       return data;
     },
