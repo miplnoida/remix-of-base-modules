@@ -463,13 +463,13 @@ export default function EmployeeModal({
             <Label className="text-sm font-medium text-primary mb-3 block">
               Record Wages/Salaries in respect of the weeks worked or Holiday Pay or Bonuses
             </Label>
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1">
               {weekLabels.map((label, index) => {
                 const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
                 const isFieldEnabled = isWeekFieldEnabled(index);
                 
                 return (
-                  <div key={index} className="flex flex-col space-y-2">
+                  <div key={index} className="flex flex-col space-y-1">
                     <span className="text-xs font-medium text-center">{label}</span>
                     <div className="flex items-center gap-0">
                       <div
