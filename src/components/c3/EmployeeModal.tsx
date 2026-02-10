@@ -82,6 +82,13 @@ export default function EmployeeModal({
   const [ssnValidated, setSsnValidated] = useState(false);
   const [pendingPayPeriod, setPendingPayPeriod] = useState<string | null>(null);
   const [showPayPeriodConfirm, setShowPayPeriodConfirm] = useState(false);
+  const [defaultPayPeriodFetched, setDefaultPayPeriodFetched] = useState(false);
+
+  // Auto-calculate Term Start Date as the first date of the selected Period month
+  const periodTermStartDate = useMemo(() => {
+    const monthStr = String(periodMonth + 1).padStart(2, '0');
+    return `${periodYear}-${monthStr}-01`;
+  }, [periodYear, periodMonth]);
 
   // Calculate enabled weeks based on period
   const mondayCount = getMondayCount(periodYear, periodMonth);
