@@ -304,6 +304,8 @@ import AdminRoleList from '@/pages/admin/roles/RoleList';
 // Enterprise Admin - Security Settings
 import PasswordPolicySettings from '@/pages/admin/security/PasswordPolicySettings';
 import MFASettings from '@/pages/admin/security/MFASettings';
+import SecurityPolicySettingsPage from '@/pages/admin/security/SecurityPolicySettings';
+import Maintenance from '@/pages/Maintenance';
 
 // Profile Pages
 import ProfileChangePassword from '@/pages/profile/ChangePassword';
@@ -928,6 +930,7 @@ export const AppRoutes = () => {
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
       <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
+      <Route path="/admin/security/policy" element={<ProtectedLayout><SecurityPolicySettingsPage /></ProtectedLayout>} />
       <Route path="/admin/designations" element={<ProtectedLayout><DesignationManagement /></ProtectedLayout>} />
       <Route path="/admin/designation-hierarchy" element={<ProtectedLayout><DesignationHierarchy /></ProtectedLayout>} />
       <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
@@ -1392,6 +1395,9 @@ export const AppRoutes = () => {
       <Route path="/employer-registration/new" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
       <Route path="/employer-registration/edit/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
       <Route path="/employer-registration/view/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
+
+      {/* Maintenance / Lockdown */}
+      <Route path="/maintenance" element={<Maintenance />} />
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />

@@ -62,6 +62,45 @@ export type Database = {
         }
         Relationships: []
       }
+      app_lockdown_state: {
+        Row: {
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          locked_reason: string | null
+          unlock_reason: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_reason?: string | null
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_reason?: string | null
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_modules: {
         Row: {
           business_key_column: string | null
@@ -7014,6 +7053,51 @@ export type Database = {
           },
         ]
       }
+      pii_unlock_logs: {
+        Row: {
+          expires_at: string | null
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          profile_id: string
+          profile_type: string
+          success: boolean
+          unlocked_at: string
+          user_agent: string | null
+          user_code: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          profile_id: string
+          profile_type?: string
+          success: boolean
+          unlocked_at?: string
+          user_agent?: string | null
+          user_code?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          profile_id?: string
+          profile_type?: string
+          success?: boolean
+          unlocked_at?: string
+          user_agent?: string | null
+          user_code?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -7294,6 +7378,57 @@ export type Database = {
         }
         Relationships: []
       }
+      route_security_config: {
+        Row: {
+          admin_only: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_settings_route: boolean
+          module_name: string
+          requires_auth: boolean
+          route_pattern: string
+          screen_name: string | null
+          severity_on_violation: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          admin_only?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_settings_route?: boolean
+          module_name: string
+          requires_auth?: boolean
+          route_pattern: string
+          screen_name?: string | null
+          severity_on_violation?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          admin_only?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_settings_route?: boolean
+          module_name?: string
+          requires_auth?: boolean
+          route_pattern?: string
+          screen_name?: string | null
+          severity_on_violation?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       sample_applications: {
         Row: {
           amount: number
@@ -7345,6 +7480,84 @@ export type Database = {
           title?: string
           updated_at?: string
           workflow_instance_id?: string | null
+        }
+        Relationships: []
+      }
+      security_ip_blocks: {
+        Row: {
+          block_duration_minutes: number
+          block_reason: string
+          blocked_at: string
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string
+          is_active: boolean
+          unblocked_at: string | null
+          unblocked_by: string | null
+        }
+        Insert: {
+          block_duration_minutes?: number
+          block_reason: string
+          blocked_at?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address: string
+          is_active?: boolean
+          unblocked_at?: string | null
+          unblocked_by?: string | null
+        }
+        Update: {
+          block_duration_minutes?: number
+          block_reason?: string
+          blocked_at?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string
+          is_active?: boolean
+          unblocked_at?: string | null
+          unblocked_by?: string | null
+        }
+        Relationships: []
+      }
+      security_policy_config: {
+        Row: {
+          category: string
+          config_key: string
+          config_value: string
+          created_at: string
+          data_type: string
+          description: string | null
+          display_name: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          config_key: string
+          config_value: string
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -8766,6 +8979,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      unauthorized_access_logs: {
+        Row: {
+          environment: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          module_name: string | null
+          reason: string
+          route_attempted: string
+          severity: string
+          timestamp: string
+          user_agent: string | null
+          user_code: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          environment?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          module_name?: string | null
+          reason: string
+          route_attempted: string
+          severity?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_code?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          environment?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          module_name?: string | null
+          reason?: string
+          route_attempted?: string
+          severity?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_code?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       user_data_overrides: {
         Row: {
@@ -10273,6 +10534,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_and_log_unauthorized_access: {
+        Args: {
+          _ip_address: string
+          _module_name?: string
+          _reason?: string
+          _route: string
+          _severity?: string
+          _user_agent?: string
+          _user_email?: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       check_ip_duplicates: {
         Args: {
           p_dob: string
@@ -10370,6 +10644,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      get_app_security_state: { Args: never; Returns: Json }
       get_c3_config_for_period: {
         Args: { p_period_date: string }
         Returns: {

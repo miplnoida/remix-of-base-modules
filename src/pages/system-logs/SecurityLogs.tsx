@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Download, Shield, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, RefreshCw, Download, Shield, ChevronLeft, ChevronRight, CheckCircle, XCircle, ShieldAlert, Ban } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
+import UnauthorizedAccessLogs from './UnauthorizedAccessLogs';
+import IPBlocksManagement from './IPBlocksManagement';
 
 interface SecurityLog {
   id: string;
@@ -26,6 +29,7 @@ interface SecurityLog {
 const PAGE_SIZE = 20;
 
 const SecurityLogs: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('auth-events');
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -49,7 +53,34 @@ const SecurityLogs: React.FC = () => {
       const { data, error, count } = await query;
       if (error) throw error;
       return { logs: data as SecurityLog[], count: count || 0 };
-    }
+    },
+    enabled: activeTab === 'auth-events',
+  });
+
+  // Count queries for tab badges
+  const { data: unauthorizedCount } = useQuery({
+    queryKey: ['unauthorized-access-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('unauthorized_access_logs')
+        .select('*', { count: 'exact', head: true })
+        .gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      return count || 0;
+    },
+    staleTime: 30_000,
+  });
+
+  const { data: activeBlocksCount } = useQuery({
+    queryKey: ['active-blocks-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('security_ip_blocks')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true)
+        .gt('expires_at', new Date().toISOString());
+      return count || 0;
+    },
+    staleTime: 30_000,
   });
 
   const getEventBadge = (eventType: string | null) => {
@@ -72,7 +103,7 @@ const SecurityLogs: React.FC = () => {
             <Shield className="h-6 w-6" />
             Security Logs
           </h1>
-          <p className="text-muted-foreground">Monitor authentication and security events</p>
+          <p className="text-muted-foreground">Monitor authentication, unauthorized access, and security events</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetch()}>
@@ -86,111 +117,144 @@ const SecurityLogs: React.FC = () => {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label>Date From</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
-            <div>
-              <Label>Date To</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-            </div>
-            <div>
-              <Label>Event Type</Label>
-              <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Events</SelectItem>
-                  <SelectItem value="login">Login</SelectItem>
-                  <SelectItem value="logout">Logout</SelectItem>
-                  <SelectItem value="password_change">Password Change</SelectItem>
-                  <SelectItem value="permission_denied">Permission Denied</SelectItem>
-                  <SelectItem value="role_change">Role Change</SelectItem>
-                  <SelectItem value="failed_login">Failed Login</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>User</Label>
-              <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="auth-events" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Auth Events
+          </TabsTrigger>
+          <TabsTrigger value="unauthorized-access" className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4" />
+            Unauthorized Access
+            {(unauthorizedCount || 0) > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unauthorizedCount}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="ip-blocks" className="flex items-center gap-2">
+            <Ban className="h-4 w-4" />
+            IP Blocks
+            {(activeBlocksCount || 0) > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{activeBlocksCount}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Event Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Device</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-mono text-sm">
-                        {format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')}
-                      </TableCell>
-                      <TableCell>{log.user_name || log.user_id?.slice(0, 8) || '-'}</TableCell>
-                      <TableCell>{getEventBadge(log.event_type)}</TableCell>
-                      <TableCell>
-                        {log.success ? (
-                          <span className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="h-4 w-4" /> Success
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-destructive">
-                            <XCircle className="h-4 w-4" /> Failed
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{log.ip_address || '-'}</TableCell>
-                      <TableCell className="max-w-xs truncate">{log.device_info || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                  {(!data?.logs || data.logs.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No security logs found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between p-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Showing {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, data?.count || 0)} of {data?.count || 0}
+        <TabsContent value="auth-events" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Filters</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label>Date From</Label>
+                  <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= (data?.count || 0)}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                <div>
+                  <Label>Date To</Label>
+                  <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Event Type</Label>
+                  <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Events</SelectItem>
+                      <SelectItem value="login">Login</SelectItem>
+                      <SelectItem value="logout">Logout</SelectItem>
+                      <SelectItem value="password_change">Password Change</SelectItem>
+                      <SelectItem value="permission_denied">Permission Denied</SelectItem>
+                      <SelectItem value="role_change">Role Change</SelectItem>
+                      <SelectItem value="failed_login">Failed Login</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>User</Label>
+                  <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
                 </div>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Event Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>Device</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.logs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-mono text-sm">
+                            {format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')}
+                          </TableCell>
+                          <TableCell>{log.user_name || log.user_id?.slice(0, 8) || '-'}</TableCell>
+                          <TableCell>{getEventBadge(log.event_type)}</TableCell>
+                          <TableCell>
+                            {log.success ? (
+                              <span className="flex items-center gap-1 text-green-600">
+                                <CheckCircle className="h-4 w-4" /> Success
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-destructive">
+                                <XCircle className="h-4 w-4" /> Failed
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>{log.ip_address || '-'}</TableCell>
+                          <TableCell className="max-w-xs truncate">{log.device_info || '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                      {(!data?.logs || data.logs.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No security logs found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                  <div className="flex items-center justify-between p-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, data?.count || 0)} of {data?.count || 0}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= (data?.count || 0)}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="unauthorized-access">
+          <UnauthorizedAccessLogs />
+        </TabsContent>
+
+        <TabsContent value="ip-blocks">
+          <IPBlocksManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -11,6 +11,9 @@ import { LegalRoleProvider } from '@/contexts/LegalRoleContext';
 import { SupabaseAuthProvider } from '@/contexts/SupabaseAuthContext';
 import { SystemLoggingProvider } from '@/providers/SystemLoggingProvider';
 import { SystemSettingsProvider } from '@/contexts/SystemSettingsContext';
+import { SecurityPolicyProvider } from '@/contexts/SecurityPolicyContext';
+import { PIIMaskingProvider } from '@/contexts/PIIMaskingContext';
+import { PIIUnlockDialog } from '@/components/security/PIIUnlockDialog';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
@@ -23,7 +26,6 @@ setupGlobalErrorHandlers();
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
-      // Log all mutation errors to system_error_logs
       logApplicationError(error, {
         module: 'MUTATION',
         action: mutation.options.mutationKey?.join('/') || 'unknown_mutation',
@@ -32,7 +34,6 @@ const queryClient = new QueryClient({
   }),
   queryCache: new QueryCache({
     onError: (error, query) => {
-      // Log query errors to system_error_logs
       logApplicationError(error, {
         module: 'QUERY',
         action: query.queryKey?.join('/') || 'unknown_query',
@@ -53,13 +54,18 @@ function App() {
                   <LegalAuthProvider>
                     <LegalCaseProvider>
                       <Router>
-                        <SystemLoggingProvider>
-                          <div className="min-h-screen bg-background">
-                            <AppRoutes />
-                            <Toaster />
-                            <SonnerToaster />
-                          </div>
-                        </SystemLoggingProvider>
+                        <SecurityPolicyProvider>
+                          <PIIMaskingProvider>
+                            <SystemLoggingProvider>
+                              <div className="min-h-screen bg-background">
+                                <AppRoutes />
+                                <Toaster />
+                                <SonnerToaster />
+                                <PIIUnlockDialog />
+                              </div>
+                            </SystemLoggingProvider>
+                          </PIIMaskingProvider>
+                        </SecurityPolicyProvider>
                       </Router>
                     </LegalCaseProvider>
                   </LegalAuthProvider>
