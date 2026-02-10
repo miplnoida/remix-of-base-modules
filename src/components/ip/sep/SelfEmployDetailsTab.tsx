@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Save, X, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Save, X, Briefcase, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SelfEmployActivity } from '@/services/selfEmployedService';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
@@ -109,7 +110,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
 }) => {
   const {
     eligibility, activities, loading,
-    registerSelfEmployed, addActivity, updateActivity, loadActivities,
+    registerSelfEmployed, addActivity, updateActivity, loadActivities, deleteActivityRecord,
   } = selfEmployed;
 
   const lookups = useSEPLookups();
@@ -118,6 +119,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
   const [form, setForm] = useState<ActivityFormState>({ ...emptyForm });
   const [addingNew, setAddingNew] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<SelfEmployActivity | null>(null);
 
   const selfRefNo = activities.length > 0 ? activities[0].self_ref_no : null;
 
@@ -373,6 +375,9 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
                           <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); startEdit(act); }}>
                             Edit
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteTarget(act); }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                           {expandedSeq === act.activity_seq_no ? <ChevronUp className="h-4 w-4 mt-2" /> : <ChevronDown className="h-4 w-4 mt-2" />}
                         </div>
                       </TableCell>
@@ -410,6 +415,32 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Activity Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Activity?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete activity "{deleteTarget?.activity_type || 'N/A'}" (Seq {deleteTarget?.activity_seq_no})?
+              This will fail if wage categories or business locations exist for this activity.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={loading}
+              onClick={async () => {
+                if (!deleteTarget) return;
+                await deleteActivityRecord(deleteTarget.self_ref_no, deleteTarget.activity_seq_no);
+                setDeleteTarget(null);
+              }}
+            >
+              {loading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
