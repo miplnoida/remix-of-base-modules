@@ -283,6 +283,11 @@ export default function EmployeeModal({
     }));
   };
 
+  // Track raw string values for wage inputs to allow decimal entry
+  const [wageInputValues, setWageInputValues] = React.useState<string[]>(
+    localEmployee.weeklyWages.map(w => w === 0 ? '' : String(w))
+  );
+
   const handleWageChange = (index: number, value: string) => {
     if (isViewMode) return;
     
@@ -299,6 +304,11 @@ export default function EmployeeModal({
     // Validate: max 8 integer digits, max 2 decimal places
     if (integerPart.length > 8) return;
     if (decimalPart.length > 2) return;
+    
+    // Store raw string for display (preserves trailing dot/zeros while typing)
+    const newInputValues = [...wageInputValues];
+    newInputValues[index] = cleanValue;
+    setWageInputValues(newInputValues);
     
     const numValue = parseFloat(cleanValue) || 0;
     if (numValue < 0) return; // Validate non-negative
@@ -479,11 +489,9 @@ export default function EmployeeModal({
                       <Input
                         type="text"
                         inputMode="decimal"
-                        value={localEmployee.weeklyWages[index] === 0 ? '' : localEmployee.weeklyWages[index]}
+                        value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className={`h-8 text-right rounded-l-none min-w-[5.5rem] ${
-                          localEmployee.days[index] ? 'border-primary' : ''
-                        }`}
+                        className="h-8 text-right rounded-l-none min-w-[5.5rem] border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
