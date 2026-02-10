@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 
 interface BackgroundInfoStepProps {
   formData: ERMasterFormData;
@@ -45,7 +46,7 @@ export default function BackgroundInfoStep({ formData, onChange, isViewMode, err
 
   const parseDate = (dateStr: string | undefined | null): Date | undefined => {
     if (!dateStr) return undefined;
-    const date = new Date(dateStr);
+    const date = parseDateSafe(dateStr);
     return isNaN(date.getTime()) ? undefined : date;
   };
 
@@ -104,7 +105,7 @@ export default function BackgroundInfoStep({ formData, onChange, isViewMode, err
             <Label>Acquisition Date</Label>
             <DatePickerWithDropdowns
               date={parseDate(formData.date_of_acquisition)}
-              onSelect={(date) => onChange('date_of_acquisition', date?.toISOString().split('T')[0] || '')}
+              onSelect={(date) => onChange('date_of_acquisition', date ? formatDateForStorage(date) : '')}
               disabled={isViewMode || !isAcquired}
               placeholder="Select Acquisition Date"
             />
@@ -113,7 +114,7 @@ export default function BackgroundInfoStep({ formData, onChange, isViewMode, err
             <Label>Incorporated Date</Label>
             <DatePickerWithDropdowns
               date={parseDate(formData.date_incorporated)}
-              onSelect={(date) => onChange('date_incorporated', date?.toISOString().split('T')[0] || '')}
+              onSelect={(date) => onChange('date_incorporated', date ? formatDateForStorage(date) : '')}
               disabled={isViewMode}
               placeholder="Select Incorporated Date"
             />

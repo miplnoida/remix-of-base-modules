@@ -3,9 +3,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { IPFormData } from '../IPRegistrationForm';
-import { differenceInYears, format, isValid } from 'date-fns';
+import { differenceInYears, isValid } from 'date-fns';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
 import { useCountries, useEyeColors } from '@/hooks/useIPMasterLookups';
+import { parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 
 interface BasicDetailsTabProps {
   formData: IPFormData;
@@ -21,17 +22,17 @@ const suffixes = ['Jr', 'Sr', 'I', 'II', 'III', 'IV'];
 const genders = ['Male', 'Female'];
 const maritalStatuses = ['Single', 'Married', 'Common Law', 'Divorced', 'Widowed', 'Separated'];
 
-// Convert ISO date string to Date object
+// Convert date string to Date object (timezone-safe)
 const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
   if (!dateStr) return undefined;
-  const date = new Date(dateStr);
+  const date = parseDateSafe(dateStr);
   return isValid(date) ? date : undefined;
 };
 
-// Convert Date object to ISO date string (yyyy-MM-dd)
+// Convert Date object to storage format (yyyy-MM-dd)
 const formatToISO = (date: Date | undefined): string | null => {
   if (!date || !isValid(date)) return null;
-  return format(date, 'yyyy-MM-dd');
+  return formatDateForStorage(date);
 };
 
 export default function BasicDetailsTab({ 

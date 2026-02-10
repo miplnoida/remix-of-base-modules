@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
 import { Plus, Users } from 'lucide-react';
 import AddRelationDialog from '../components/AddRelationDialog';
-import { format, isValid } from 'date-fns';
+import { isValid } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
 // Helper to check if relation has data
 const hasContactData = (formData: IPFormData) => 
@@ -50,8 +51,8 @@ export default function RelationsTab({ formData, onChange, isEditable, uniqueUui
 
   const formatDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return isValid(date) ? format(date, 'dd/MM/yyyy') : '-';
+    const result = formatDisplayDate(dateStr);
+    return result || '-';
   };
 
   const renderRelationCard = (

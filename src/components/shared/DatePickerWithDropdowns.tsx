@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, getDaysInMonth, setMonth, setYear } from 'date-fns';
+import { getDaysInMonth, setMonth, setYear } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
 interface DatePickerWithDropdownsProps {
   date?: Date;
@@ -90,8 +91,8 @@ export default function DatePickerWithDropdowns({
     );
   };
 
-  const formatDisplayDate = (d: Date): string => {
-    return format(d, 'dd/MM/yyyy');
+  const formatDate = (d: Date): string => {
+    return formatDisplayDate(d);
   };
 
   return (
@@ -109,7 +110,7 @@ export default function DatePickerWithDropdowns({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? formatDisplayDate(date) : <span>{placeholder}</span>}
+            {date ? formatDate(date) : <span>{placeholder}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
