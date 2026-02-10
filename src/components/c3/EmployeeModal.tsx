@@ -473,12 +473,12 @@ export default function EmployeeModal({
                     <span className="text-xs font-medium text-center">{label}</span>
                     <div className="flex items-center gap-0">
                       <div
-                        className={`h-8 w-6 min-w-[1.5rem] border-l border-t border-b rounded-l-md flex items-center justify-center ${
+                        className={`h-8 w-7 min-w-[1.75rem] border rounded-l-md flex items-center justify-center ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                         } ${
                           localEmployee.days[index]
                             ? 'bg-primary border-primary'
-                            : 'bg-background border-input'
+                            : 'bg-background border-[#d4d4d8]'
                         }`}
                         onClick={() => isCheckboxEnabled && handleWeekToggle(index)}
                       >
@@ -491,7 +491,7 @@ export default function EmployeeModal({
                         inputMode="decimal"
                         value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className="h-8 text-right rounded-l-none min-w-[5.5rem] border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="h-8 text-right rounded-l-none min-w-[4rem] border border-l-0 border-[#d4d4d8] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
