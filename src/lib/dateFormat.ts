@@ -5,7 +5,6 @@ import { getSystemSettingFromCache } from '@/hooks/useSystemSettings';
 const DEFAULT_DATE_FORMAT = 'dd/MM/yyyy';
 
 // Map of format tokens from our system to date-fns format tokens
-// Our formats use the same tokens as date-fns, so no conversion needed
 const formatTokenMap: Record<string, string> = {
   'dd/MM/yyyy': 'dd/MM/yyyy',
   'dd-MM-yyyy': 'dd-MM-yyyy',
@@ -15,6 +14,44 @@ const formatTokenMap: Record<string, string> = {
   'yyyy/MM/dd': 'yyyy/MM/dd',
   'dd MMM yyyy': 'dd MMM yyyy',
   'MMM dd, yyyy': 'MMM dd, yyyy',
+};
+
+/**
+ * Safely parse a date string, treating date-only strings (yyyy-MM-dd) as LOCAL dates
+ * to prevent timezone offset issues (e.g., Jan 1 becoming Dec 31).
+ * 
+ * IMPORTANT: parseISO("2026-01-01") creates a UTC midnight Date, which in negative-offset
+ * timezones shifts to the previous day in local time. This function detects date-only
+ * strings and constructs a local Date instead.
+ */
+export const parseDateSafe = (dateStr: string): Date => {
+  // Match date-only formats: yyyy-MM-dd, yyyy/MM/dd
+  const dateOnlyMatch = dateStr.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, y, m, d] = dateOnlyMatch;
+    // Create as local date (noon to avoid any DST edge cases)
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), 12, 0, 0, 0);
+  }
+  // For full ISO strings with time/timezone, use parseISO
+  const parsed = parseISO(dateStr);
+  if (isValid(parsed)) return parsed;
+  // Fallback
+  return new Date(dateStr);
+};
+
+/**
+ * Internal helper: convert any date input to a valid Date object using timezone-safe parsing
+ */
+const toDateObj = (date: Date | string | number): Date | null => {
+  let dateObj: Date;
+  if (typeof date === 'string') {
+    dateObj = parseDateSafe(date);
+  } else if (typeof date === 'number') {
+    dateObj = new Date(date);
+  } else {
+    dateObj = date;
+  }
+  return isValid(dateObj) ? dateObj : null;
 };
 
 /**
@@ -37,27 +74,12 @@ export const formatDisplayDate = (
   if (!date) return '';
   
   try {
-    let dateObj: Date;
-    
-    if (typeof date === 'string') {
-      // Try to parse ISO string
-      dateObj = parseISO(date);
-      if (!isValid(dateObj)) {
-        // Try direct Date constructor as fallback
-        dateObj = new Date(date);
-      }
-    } else if (typeof date === 'number') {
-      dateObj = new Date(date);
-    } else {
-      dateObj = date;
-    }
-    
-    if (!isValid(dateObj)) {
+    const dateObj = toDateObj(date);
+    if (!dateObj) {
       console.warn('Invalid date provided to formatDisplayDate:', date);
       return '';
     }
     
-    // Use custom format or get from system settings
     const formatString = customFormat || getDisplayDateFormat();
     const dateFnsFormat = formatTokenMap[formatString] || formatString;
     
@@ -70,9 +92,6 @@ export const formatDisplayDate = (
 
 /**
  * Format a date with time using the global display_date_format system setting
- * @param date - Date object, ISO string, or any parseable date value
- * @param includeSeconds - Whether to include seconds in time display
- * @returns Formatted date and time string or empty string if invalid
  */
 export const formatDisplayDateTime = (
   date: Date | string | number | null | undefined,
@@ -81,20 +100,8 @@ export const formatDisplayDateTime = (
   if (!date) return '';
   
   try {
-    let dateObj: Date;
-    
-    if (typeof date === 'string') {
-      dateObj = parseISO(date);
-      if (!isValid(dateObj)) {
-        dateObj = new Date(date);
-      }
-    } else if (typeof date === 'number') {
-      dateObj = new Date(date);
-    } else {
-      dateObj = date;
-    }
-    
-    if (!isValid(dateObj)) {
+    const dateObj = toDateObj(date);
+    if (!dateObj) {
       console.warn('Invalid date provided to formatDisplayDateTime:', date);
       return '';
     }
@@ -112,7 +119,6 @@ export const formatDisplayDateTime = (
 
 /**
  * Get the placeholder text for date inputs based on current format
- * @returns Uppercase format placeholder (e.g., "DD/MM/YYYY")
  */
 export const getDatePlaceholder = (): string => {
   const formatString = getDisplayDateFormat();
@@ -124,30 +130,22 @@ export const getDatePlaceholder = (): string => {
 };
 
 /**
- * Format a date for storage (always uses ISO format)
+ * Format a date for storage (always uses yyyy-MM-dd format, timezone-safe)
  * @param date - Date object or string
- * @returns ISO date string (yyyy-MM-dd)
+ * @returns Date string in yyyy-MM-dd format
  */
 export const formatDateForStorage = (date: Date | string | null | undefined): string => {
   if (!date) return '';
   
   try {
-    let dateObj: Date;
+    const dateObj = toDateObj(date);
+    if (!dateObj) return '';
     
-    if (typeof date === 'string') {
-      dateObj = parseISO(date);
-      if (!isValid(dateObj)) {
-        dateObj = new Date(date);
-      }
-    } else {
-      dateObj = date;
-    }
-    
-    if (!isValid(dateObj)) {
-      return '';
-    }
-    
-    return format(dateObj, 'yyyy-MM-dd');
+    // Use manual extraction to guarantee no timezone shift
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   } catch (error) {
     console.error('Error formatting date for storage:', error, date);
     return '';
@@ -162,20 +160,8 @@ export const formatRelativeDate = (date: Date | string | null | undefined): stri
   if (!date) return '';
   
   try {
-    let dateObj: Date;
-    
-    if (typeof date === 'string') {
-      dateObj = parseISO(date);
-      if (!isValid(dateObj)) {
-        dateObj = new Date(date);
-      }
-    } else {
-      dateObj = date;
-    }
-    
-    if (!isValid(dateObj)) {
-      return '';
-    }
+    const dateObj = toDateObj(date);
+    if (!dateObj) return '';
     
     const now = new Date();
     const diffMs = now.getTime() - dateObj.getTime();

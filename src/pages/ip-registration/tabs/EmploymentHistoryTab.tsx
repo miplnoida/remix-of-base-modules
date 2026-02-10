@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Calendar, Briefcase, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -14,11 +14,8 @@ interface EmploymentHistoryTabProps {
 
 const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-';
-  try {
-    return format(new Date(dateStr), 'dd/MM/yyyy');
-  } catch {
-    return dateStr;
-  }
+  const result = formatDisplayDate(dateStr);
+  return result || dateStr;
 };
 
 const getSourceBadgeVariant = (source: string | null): 'default' | 'secondary' | 'outline' => {

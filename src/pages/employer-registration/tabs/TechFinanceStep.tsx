@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { parseDateSafe } from '@/lib/dateFormat';
 
 interface TechFinanceStepProps {
   formData: ERMasterFormData;
@@ -17,7 +18,7 @@ export default function TechFinanceStep({ formData, onChange, isViewMode, errors
 
   const parseDate = (dateStr: string | undefined | null): Date | undefined => {
     if (!dateStr) return undefined;
-    const date = new Date(dateStr);
+    const date = parseDateSafe(dateStr);
     return isNaN(date.getTime()) ? undefined : date;
   };
 

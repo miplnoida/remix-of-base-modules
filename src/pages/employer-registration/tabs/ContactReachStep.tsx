@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import { useERLookups, LookupItem } from '@/hooks/useERLookups';
 import { Loader2 } from 'lucide-react';
 
@@ -59,7 +60,7 @@ export default function ContactReachStep({ formData, onChange, isViewMode, error
 
   const parseDate = (dateStr: string | undefined | null): Date | undefined => {
     if (!dateStr) return undefined;
-    const date = new Date(dateStr);
+    const date = parseDateSafe(dateStr);
     return isNaN(date.getTime()) ? undefined : date;
   };
 
@@ -165,7 +166,7 @@ export default function ContactReachStep({ formData, onChange, isViewMode, error
             </Label>
             <DatePickerWithDropdowns
               date={parseDate(formData.application_date)}
-              onSelect={(date) => onChange('application_date', date?.toISOString().split('T')[0] || '')}
+              onSelect={(date) => onChange('application_date', date ? formatDateForStorage(date) : '')}
               disabled={isViewMode}
               placeholder="Select application date"
               error={errors.application_date}
@@ -206,7 +207,7 @@ export default function ContactReachStep({ formData, onChange, isViewMode, error
             <Label>Date Wages First Paid</Label>
             <DatePickerWithDropdowns
               date={parseDate(formData.date_wages_first_paid)}
-              onSelect={(date) => onChange('date_wages_first_paid', date?.toISOString().split('T')[0] || '')}
+              onSelect={(date) => onChange('date_wages_first_paid', date ? formatDateForStorage(date) : '')}
               disabled={isViewMode}
               placeholder="Select Date Wages First Paid"
             />

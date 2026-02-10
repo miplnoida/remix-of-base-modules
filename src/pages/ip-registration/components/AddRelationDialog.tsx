@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
-import { format, isValid } from 'date-fns';
+import { isValid } from 'date-fns';
+import { parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import { toast } from 'sonner';
 
 interface AddRelationDialogProps {
@@ -76,13 +77,13 @@ const relationTypeFields: Record<string, { fields: string[]; labels: Record<stri
 
 const parseISODate = (dateStr: string | null | undefined): Date | undefined => {
   if (!dateStr) return undefined;
-  const date = new Date(dateStr);
+  const date = parseDateSafe(dateStr);
   return isValid(date) ? date : undefined;
 };
 
 const formatToISO = (date: Date | undefined): string => {
   if (!date || !isValid(date)) return '';
-  return format(date, 'yyyy-MM-dd');
+  return formatDateForStorage(date);
 };
 
 export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, existingData = {} }: AddRelationDialogProps) {
