@@ -283,6 +283,11 @@ export default function EmployeeModal({
     }));
   };
 
+  // Track raw string values for wage inputs to allow decimal entry
+  const [wageInputValues, setWageInputValues] = React.useState<string[]>(
+    localEmployee.weeklyWages.map(w => w === 0 ? '' : String(w))
+  );
+
   const handleWageChange = (index: number, value: string) => {
     if (isViewMode) return;
     
@@ -299,6 +304,11 @@ export default function EmployeeModal({
     // Validate: max 8 integer digits, max 2 decimal places
     if (integerPart.length > 8) return;
     if (decimalPart.length > 2) return;
+    
+    // Store raw string for display (preserves trailing dot/zeros while typing)
+    const newInputValues = [...wageInputValues];
+    newInputValues[index] = cleanValue;
+    setWageInputValues(newInputValues);
     
     const numValue = parseFloat(cleanValue) || 0;
     if (numValue < 0) return; // Validate non-negative
