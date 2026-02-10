@@ -276,6 +276,9 @@ export default function EmployeeModal({
     newDays[index] = !newDays[index];
     if (!newDays[index]) {
       newWages[index] = 0;
+      const newInputValues = [...wageInputValues];
+      newInputValues[index] = '';
+      setWageInputValues(newInputValues);
     }
     
     setLocalEmployee(prev => ({
