@@ -199,12 +199,8 @@ export default function WorkflowForm() {
   const { data: designations } = useDesignations();
   const { data: dbActionTypes } = useWorkflowActionTypes();
   
-  // Fetch existing API config for the dialog
-  const { data: existingApiConfig, refetch: refetchApiConfig } = useWorkflowActionApiConfig(
-    isEditing ? id : undefined,
-    apiConfigDialog.stepId || undefined,
-    apiConfigDialog.actionCode || undefined
-  );
+  // refetchApiConfig kept for invalidation after save/delete (no longer needed for passing data)
+  const refetchApiConfig = () => {};
   
   // Create action types from database
   const stepActionTypes = useMemo(() => {
