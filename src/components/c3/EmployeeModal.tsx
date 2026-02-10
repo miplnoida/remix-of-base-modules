@@ -491,7 +491,7 @@ export default function EmployeeModal({
                         inputMode="decimal"
                         value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className="h-8 text-right rounded-l-none min-w-[5.5rem] border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="h-8 text-right rounded-l-none min-w-[4rem] border border-l-0 border-[#d4d4d8] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
