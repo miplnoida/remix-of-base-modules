@@ -107,28 +107,32 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>SSN</TableHead>
-                <TableHead>SREF</TableHead>
-                <TableHead>Activity Seq</TableHead>
+                <TableHead>Self Ref. No.</TableHead>
+                <TableHead>Activity</TableHead>
                 <TableHead>Effective Start</TableHead>
                 <TableHead>Effective End</TableHead>
                 <TableHead>Wage Category</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map((cat, idx) => (
-                <TableRow key={idx}>
-                  <TableCell className="font-mono">{cat.ssn}</TableCell>
-                  <TableCell className="font-mono">{cat.self_ref_no}</TableCell>
-                  <TableCell className="font-mono">{cat.activity_seq_no}</TableCell>
-                  <TableCell>{cat.effective_start_date ? format(new Date(cat.effective_start_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{cat.effective_end_date ? format(new Date(cat.effective_end_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{cat.wage_category ?? '-'}</TableCell>
-                </TableRow>
-              ))}
+              {categories.map((cat, idx) => {
+                const matchedActivity = activities.find(a => a.activity_seq_no === cat.activity_seq_no);
+                const activityLabel = matchedActivity
+                  ? `Seq. ${cat.activity_seq_no} - ${matchedActivity.activity_type || 'N/A'}`
+                  : `Seq. ${cat.activity_seq_no}`;
+                return (
+                  <TableRow key={idx}>
+                    <TableCell className="font-mono">{cat.self_ref_no}</TableCell>
+                    <TableCell>{activityLabel}</TableCell>
+                    <TableCell>{cat.effective_start_date ? format(new Date(cat.effective_start_date), 'dd/MM/yyyy') : '-'}</TableCell>
+                    <TableCell>{cat.effective_end_date ? format(new Date(cat.effective_end_date), 'dd/MM/yyyy') : '-'}</TableCell>
+                    <TableCell>{cat.wage_category ?? '-'}</TableCell>
+                  </TableRow>
+                );
+              })}
               {categories.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No wage categories assigned
                   </TableCell>
                 </TableRow>
