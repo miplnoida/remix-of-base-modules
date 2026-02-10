@@ -53,7 +53,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 import { useWorkflowActionTypes } from '@/hooks/useMeetings';
 import { WorkflowActionApiConfig } from '@/components/workflow/WorkflowActionApiConfig';
-import { useWorkflowActionApiConfig } from '@/hooks/useWorkflowActionApi';
+// useWorkflowActionApiConfig now used internally by WorkflowActionApiConfig
 
 interface StepFormData {
   id?: string;
