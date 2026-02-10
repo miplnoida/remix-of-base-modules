@@ -14,6 +14,8 @@ import {
   startNewCorrelation 
 } from '@/services/systemLoggerService';
 import { getDeviceInfo } from '@/services/correlationIdService';
+import { useTurnstile } from '@/hooks/useTurnstile';
+import { verifyTurnstileToken } from '@/services/turnstileService';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -22,10 +24,12 @@ export const LoginScreen = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   
   const hasRedirected = useRef(false);
   const { login, isAuthenticated, profile, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
+  const { token: turnstileToken, error: turnstileError, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -44,12 +48,23 @@ export const LoginScreen = () => {
     }
   }, [isAuthenticated, profile, authLoading, navigate]);
 
+  // When turnstile token arrives and we have a pending submit, proceed
+  useEffect(() => {
+    if (pendingSubmit && turnstileToken) {
+      setPendingSubmit(false);
+      void performLogin(turnstileToken);
+    }
+    if (pendingSubmit && turnstileError) {
+      setPendingSubmit(false);
+      void performLogin(null); // Proceed without verification
+    }
+  }, [turnstileToken, turnstileError, pendingSubmit]);
+
   // Log login attempt to system logs
   const logLoginAttempt = async (success: boolean, userEmail: string, userId?: string, reason?: string) => {
     try {
       startNewCorrelation();
       
-      // Log to system security logs
       await logSecurity({
         event_type: success ? 'login' : 'failed_login',
         user_name: userEmail,
@@ -64,7 +79,6 @@ export const LoginScreen = () => {
         },
       }, userId);
 
-      // Also log to legacy audit_logs for backwards compatibility
       await supabase.from('audit_logs').insert({
         action_type: success ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE',
         module_name: 'Authentication',
@@ -84,26 +98,51 @@ export const LoginScreen = () => {
     setError('');
     setAttemptsRemaining(null);
 
+    // If turnstile is not available (blocked by iframe, ad-blocker, etc.), skip verification
+    if (!window.turnstile) {
+      void performLogin(null);
+      return;
+    }
+
+    setPendingSubmit(true);
+    executeTurnstile();
+  };
+
+  const performLogin = async (verificationToken: string | null) => {
     try {
+      // Step 1: Verify via Turnstile edge function (always call to log the attempt)
+      const tokenToSend = verificationToken || 'turnstile-unavailable';
+      try {
+        const verification = await verifyTurnstileToken(tokenToSend, email);
+        // If turnstile was available and verification failed, block login
+        if (verificationToken && !verification.success) {
+          setError(verification.error || 'Human verification failed.');
+          resetTurnstile();
+          setIsLoading(false);
+          return;
+        }
+      } catch (verifyErr) {
+        console.error('Turnstile verification error:', verifyErr);
+        // Non-blocking — continue with login
+      }
+
+      // Step 2: Proceed with login
       const result = await login(email, password);
       
       if (result.success) {
-        // Get the user ID after successful login
         const { data: { user } } = await supabase.auth.getUser();
         await logLoginAttempt(true, email, user?.id);
         
         if (result.requiresPasswordChange) {
           navigate('/change-password', { state: { required: true }, replace: true });
         }
-        // Other redirects handled by useEffect
       } else {
         await logLoginAttempt(false, email, undefined, result.error);
+        resetTurnstile();
         
-        // Check for lockout-related messages
         if (result.error?.includes('locked')) {
           setError(result.error);
         } else if (result.error?.includes('Invalid')) {
-          // Get remaining attempts if available
           const { data: profileData } = await supabase
             .from('profiles')
             .select('failed_login_attempts')
@@ -124,7 +163,6 @@ export const LoginScreen = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       
-      // Log the error to system error logs
       await logSystemError({
         error_type: 'LoginError',
         error_message: err?.message || 'Unknown login error',
@@ -135,6 +173,7 @@ export const LoginScreen = () => {
       });
       
       setError('An unexpected error occurred');
+      resetTurnstile();
     } finally {
       setIsLoading(false);
     }
@@ -257,6 +296,9 @@ export const LoginScreen = () => {
               >
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
+
+              {/* Invisible Turnstile widget container */}
+              <div ref={containerRef} />
 
               <div className="text-center">
                 <Link 
