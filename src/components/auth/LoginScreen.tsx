@@ -15,7 +15,7 @@ import {
 } from '@/services/systemLoggerService';
 import { getDeviceInfo } from '@/services/correlationIdService';
 import { useTurnstile } from '@/hooks/useTurnstile';
-import { verifyTurnstileToken } from '@/services/turnstileService';
+import { verifyTurnstileToken, updateLoginOutcome } from '@/services/turnstileService';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -29,7 +29,7 @@ export const LoginScreen = () => {
   const hasRedirected = useRef(false);
   const { login, isAuthenticated, profile, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
-  const { token: turnstileToken, error: turnstileError, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
+  const { token: turnstileToken, error: turnstileError, isAvailable: turnstileAvailable, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -98,8 +98,8 @@ export const LoginScreen = () => {
     setError('');
     setAttemptsRemaining(null);
 
-    // If turnstile is not available (blocked by iframe, ad-blocker, etc.), skip verification
-    if (!window.turnstile) {
+    // If turnstile is not fully available, skip verification entirely
+    if (!turnstileAvailable) {
       void performLogin(null);
       return;
     }
@@ -109,35 +109,59 @@ export const LoginScreen = () => {
   };
 
   const performLogin = async (verificationToken: string | null) => {
+    let securityEventId: string | null = null;
+
     try {
-      // Step 1: Verify via Turnstile edge function (always call to log the attempt)
+      // Step 1: Log the attempt via edge function (verify or skip)
       const tokenToSend = verificationToken || 'turnstile-unavailable';
       try {
         const verification = await verifyTurnstileToken(tokenToSend, email);
-        // If turnstile was available and verification failed, block login
-        if (verificationToken && !verification.success) {
+        securityEventId = verification.eventId || null;
+
+        // If real turnstile token was used and verification failed, block login
+        if (verificationToken && !verification.success && !verification.skipped) {
           setError(verification.error || 'Human verification failed.');
+          // Update the event with failure
+          if (securityEventId) {
+            await updateLoginOutcome(securityEventId, false, 'CAPTCHA_FAILED');
+          }
           resetTurnstile();
           setIsLoading(false);
           return;
         }
       } catch (verifyErr) {
-        console.error('Turnstile verification error:', verifyErr);
+        console.error('[Login] Turnstile verification error:', verifyErr);
         // Non-blocking — continue with login
       }
 
-      // Step 2: Proceed with login
+      // Step 2: Proceed with credential check
       const result = await login(email, password);
       
       if (result.success) {
         const { data: { user } } = await supabase.auth.getUser();
+        
+        // Update security event with success
+        if (securityEventId) {
+          await updateLoginOutcome(securityEventId, true, undefined, user?.id);
+        }
+        
         await logLoginAttempt(true, email, user?.id);
         
         if (result.requiresPasswordChange) {
           navigate('/change-password', { state: { required: true }, replace: true });
         }
       } else {
-        await logLoginAttempt(false, email, undefined, result.error);
+        // Update security event with failure reason
+        const failureReason = result.error?.includes('locked') ? 'ACCOUNT_LOCKED' 
+          : result.error?.includes('Invalid') ? 'INVALID_CREDENTIALS'
+          : result.error?.includes('deactivated') ? 'ACCOUNT_DEACTIVATED'
+          : 'LOGIN_FAILED';
+
+        if (securityEventId) {
+          await updateLoginOutcome(securityEventId, false, failureReason);
+        }
+
+        await logLoginAttempt(false, email, undefined, failureReason);
         resetTurnstile();
         
         if (result.error?.includes('locked')) {
@@ -163,6 +187,11 @@ export const LoginScreen = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       
+      // Update security event with error
+      if (securityEventId) {
+        await updateLoginOutcome(securityEventId, false, 'SYSTEM_ERROR');
+      }
+
       await logSystemError({
         error_type: 'LoginError',
         error_message: err?.message || 'Unknown login error',
