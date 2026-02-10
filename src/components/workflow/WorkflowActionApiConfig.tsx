@@ -112,21 +112,34 @@ export function WorkflowActionApiConfig({
   // Body mappings state
   const [bodyMappings, setBodyMappings] = useState<BodyMappingRow[]>([]);
 
-  // Initialize body mappings from existing config
+  // Initialize form state from fetched config
   useEffect(() => {
-    if (existingConfig?.body_mappings) {
-      setBodyMappings(
-        existingConfig.body_mappings.map((m, i) => ({
-          id: `existing-${i}`,
-          json_field_name: m.json_field_name,
-          value_source: m.value_source,
-          source_key: m.source_key,
-          static_value: m.static_value || '',
-          is_required: m.is_required,
-          display_order: m.display_order,
-        }))
-      );
-    } else {
+    if (isLoadingConfig || initialized) return;
+    if (existingConfig) {
+      setHttpMethod(existingConfig.http_method || 'POST');
+      setEndpointUrl(existingConfig.endpoint_url || '');
+      setApiKeySecretName(existingConfig.api_key_secret_name || '');
+      setContentType(existingConfig.content_type || 'application/json');
+      setTimeoutSeconds(existingConfig.timeout_seconds || 30);
+      setRetryCount(existingConfig.retry_count || 0);
+      setIsActive(existingConfig.is_active ?? true);
+      setDescription(existingConfig.description || '');
+      if (existingConfig.body_mappings) {
+        setBodyMappings(
+          existingConfig.body_mappings.map((m: any, i: number) => ({
+            id: `existing-${i}`,
+            json_field_name: m.json_field_name,
+            value_source: m.value_source,
+            source_key: m.source_key,
+            static_value: m.static_value || '',
+            is_required: m.is_required,
+            display_order: m.display_order,
+          }))
+        );
+      }
+      setInitialized(true);
+    } else if (!isLoadingConfig) {
+      // No existing config - set defaults
       // Initialize with standard fields
       setBodyMappings([
         {
