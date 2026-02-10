@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calculator, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Parser } from "expr-eval";
 
 interface FormulaBuilderProps {
   value?: string;
@@ -110,11 +111,12 @@ export function FormulaBuilder({ value, onChange, benefitType }: FormulaBuilderP
       // Handle percentage operations (e.g., 60% becomes 0.60)
       evalFormula = evalFormula.replace(/(\d+\.?\d*)%/g, (match, num) => `(${num}/100)`);
 
-      // Clean up and evaluate
+      // Clean up for safe evaluation
       evalFormula = evalFormula.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
       
-      // Evaluate the formula (note: eval is used here for demo; in production use a safe math parser)
-      const result = eval(evalFormula);
+      // Use safe math expression parser (no code injection risk)
+      const parser = new Parser();
+      const result = parser.evaluate(evalFormula);
       setCalculatedResult(typeof result === 'number' ? Math.round(result * 100) / 100 : null);
     } catch (e) {
       setCalculatedResult(null);
