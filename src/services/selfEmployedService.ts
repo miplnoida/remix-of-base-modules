@@ -289,6 +289,118 @@ export class SelfEmployedService {
   }
 
   /**
+   * Update a wage category record
+   */
+  static async updateCategory(
+    ssn: string,
+    self_ref_no: string,
+    activity_seq_no: string,
+    effective_start_date: string,
+    updates: Partial<SelfEmployCategory>
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('ip_self_category')
+      .update(updates as any)
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no)
+      .eq('effective_start_date', effective_start_date);
+    if (error) throw new Error(error.message);
+  }
+
+  /**
+   * Delete a wage category record
+   */
+  static async deleteCategory(
+    ssn: string,
+    self_ref_no: string,
+    activity_seq_no: string,
+    effective_start_date: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('ip_self_category')
+      .delete()
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no)
+      .eq('effective_start_date', effective_start_date);
+    if (error) throw new Error(error.message);
+  }
+
+  /**
+   * Update a business location record
+   */
+  static async updateLocation(
+    ssn: string,
+    self_ref_no: string,
+    activity_seq_no: string,
+    seq_no: number,
+    updates: Partial<SelfEmployLocation>
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('ip_self_locations')
+      .update(updates as any)
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no)
+      .eq('seq_no', seq_no);
+    if (error) throw new Error(error.message);
+  }
+
+  /**
+   * Delete a self-employed activity with validation
+   * Checks for existing wage categories and locations before allowing deletion
+   */
+  static async deleteActivity(
+    ssn: string,
+    self_ref_no: string,
+    activity_seq_no: string
+  ): Promise<void> {
+    // Check for existing wage categories
+    const { data: cats, error: catErr } = await supabase
+      .from('ip_self_category')
+      .select('ssn')
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no)
+      .limit(1);
+    if (catErr) throw new Error(catErr.message);
+    if (cats && cats.length > 0) {
+      throw new Error('Cannot delete this activity. Wage categories exist for this activity. Please remove them first.');
+    }
+
+    // Check for existing locations
+    const { data: locs, error: locErr } = await supabase
+      .from('ip_self_locations')
+      .select('ssn')
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no)
+      .limit(1);
+    if (locErr) throw new Error(locErr.message);
+    if (locs && locs.length > 0) {
+      throw new Error('Cannot delete this activity. Business locations exist for this activity. Please remove them first.');
+    }
+
+    // Delete from ip_self_commence first
+    await supabase
+      .from('ip_self_commence')
+      .delete()
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no);
+
+    // Delete from ip_self_employ
+    const { error } = await supabase
+      .from('ip_self_employ')
+      .delete()
+      .eq('ssn', ssn)
+      .eq('self_ref_no', self_ref_no)
+      .eq('activity_seq_no', activity_seq_no);
+    if (error) throw new Error(error.message);
+  }
+
+  /**
    * Get distinct wage category values from tb_self_emp_contrib_rate
    */
   static async getWageCategoryOptions(): Promise<number[]> {

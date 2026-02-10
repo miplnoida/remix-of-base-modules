@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, AlertCircle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
-import { SelfEmployedService } from '@/services/selfEmployedService';
+import { SelfEmployedService, SelfEmployCategory } from '@/services/selfEmployedService';
 import { toast } from 'sonner';
 
 interface WagesCategoryTabProps {
@@ -18,8 +19,10 @@ interface WagesCategoryTabProps {
 }
 
 export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmployed }) => {
-  const { activities, selectedActivity, categories, addCategory, loading } = selfEmployed;
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const { activities, selectedActivity, categories, addCategory, updateCategory, deleteCategory, loading } = selfEmployed;
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<SelfEmployCategory | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SelfEmployCategory | null>(null);
   const [wageCatOptions, setWageCatOptions] = useState<number[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -29,7 +32,6 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
     wage_category: '',
   });
 
-  // Load wage category dropdown options from tb_self_emp_contrib_rate
   useEffect(() => {
     const load = async () => {
       setLoadingOptions(true);
@@ -48,13 +50,11 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
   const selfRefNo = activities.length > 0 ? activities[0].self_ref_no : null;
   const isEditable = selectedActivity && ['P', 'V', 'A'].includes(selectedActivity.status || '');
 
-  // Auto-calculated end date
   const calculatedEndDate = useMemo(() => {
     if (!form.effective_start_date) return null;
     return addMonths(new Date(form.effective_start_date), 6);
   }, [form.effective_start_date]);
 
-  // Group categories by activity_seq_no (must be before early return)
   const groupedCategories = useMemo(() => {
     const groups: Record<string, typeof categories> = {};
     for (const cat of categories) {
@@ -64,7 +64,25 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
     return groups;
   }, [categories]);
 
-  const handleAdd = async () => {
+  const openAddDialog = () => {
+    setEditingRecord(null);
+    setForm({ selected_activity_seq: '', effective_start_date: '', wage_category: '' });
+    setFormError(null);
+    setShowDialog(true);
+  };
+
+  const openEditDialog = (cat: SelfEmployCategory) => {
+    setEditingRecord(cat);
+    setForm({
+      selected_activity_seq: cat.activity_seq_no,
+      effective_start_date: cat.effective_start_date ? cat.effective_start_date.split('T')[0] : '',
+      wage_category: cat.wage_category != null ? String(cat.wage_category) : '',
+    });
+    setFormError(null);
+    setShowDialog(true);
+  };
+
+  const handleSave = async () => {
     setFormError(null);
     if (!selfRefNo || !form.selected_activity_seq || !form.effective_start_date || !form.wage_category) {
       setFormError('All fields are required.');
@@ -74,19 +92,43 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
     const endDateStr = calculatedEndDate!.toISOString();
 
     try {
-      await addCategory({
-        ssn,
-        self_ref_no: selfRefNo,
-        activity_seq_no: form.selected_activity_seq,
-        effective_start_date: form.effective_start_date,
-        effective_end_date: endDateStr,
-        wage_category: parseFloat(form.wage_category),
-      });
-      setShowAddDialog(false);
-      setForm({ selected_activity_seq: '', effective_start_date: '', wage_category: '' });
+      if (editingRecord) {
+        await updateCategory(
+          editingRecord.self_ref_no,
+          editingRecord.activity_seq_no,
+          editingRecord.effective_start_date,
+          {
+            effective_start_date: form.effective_start_date,
+            effective_end_date: endDateStr,
+            wage_category: parseFloat(form.wage_category),
+            activity_seq_no: form.selected_activity_seq,
+          }
+        );
+      } else {
+        await addCategory({
+          ssn,
+          self_ref_no: selfRefNo,
+          activity_seq_no: form.selected_activity_seq,
+          effective_start_date: form.effective_start_date,
+          effective_end_date: endDateStr,
+          wage_category: parseFloat(form.wage_category),
+        });
+      }
+      setShowDialog(false);
+      setEditingRecord(null);
     } catch (err: any) {
-      // The overlap error from service will be shown via toast from the hook
+      // error shown via toast from hook
     }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteCategory(
+      deleteTarget.self_ref_no,
+      deleteTarget.activity_seq_no,
+      deleteTarget.effective_start_date
+    );
+    setDeleteTarget(null);
   };
 
   if (activities.length === 0) {
@@ -103,7 +145,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
     <div className="space-y-4">
       <div className="flex items-center justify-end">
         {isEditable && (
-          <Button variant="outline" size="sm" onClick={() => { setShowAddDialog(true); setFormError(null); }}>
+          <Button variant="outline" size="sm" onClick={openAddDialog}>
             <Plus className="h-4 w-4 mr-1" /> Add Wage Category
           </Button>
         )}
@@ -136,6 +178,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                     <TableHead>Effective Start</TableHead>
                     <TableHead>Effective End</TableHead>
                     <TableHead>Wage Category</TableHead>
+                    {isEditable && <TableHead className="w-24">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -145,6 +188,18 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                       <TableCell>{cat.effective_start_date ? format(new Date(cat.effective_start_date), 'dd/MM/yyyy') : '-'}</TableCell>
                       <TableCell>{cat.effective_end_date ? format(new Date(cat.effective_end_date), 'dd/MM/yyyy') : '-'}</TableCell>
                       <TableCell>{cat.wage_category ?? '-'}</TableCell>
+                      {isEditable && (
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(cat)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(cat)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -154,10 +209,11 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
         );
       })}
 
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+      {/* Add/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Wage Category</DialogTitle>
+            <DialogTitle>{editingRecord ? 'Edit Wage Category' : 'Add Wage Category'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {formError && (
@@ -222,13 +278,34 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={!form.effective_start_date || !form.wage_category || loading}>
-              {loading ? 'Saving...' : 'Add Category'}
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={!form.effective_start_date || !form.wage_category || loading}>
+              {loading ? 'Saving...' : editingRecord ? 'Update' : 'Add Category'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Wage Category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the wage category
+              {deleteTarget?.wage_category ? ` (${deleteTarget.wage_category})` : ''}
+              {deleteTarget?.effective_start_date ? ` effective from ${format(new Date(deleteTarget.effective_start_date), 'dd/MM/yyyy')}` : ''}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={loading}>
+              {loading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

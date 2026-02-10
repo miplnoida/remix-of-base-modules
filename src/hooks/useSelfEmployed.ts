@@ -217,7 +217,7 @@ export function useSelfEmployed(ssn: string | null) {
     try {
       await SelfEmployedService.addCategory(category);
       toast.success('Wage category added');
-      await loadCategories(); // Reload all categories
+      await loadCategories();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -225,18 +225,74 @@ export function useSelfEmployed(ssn: string | null) {
     }
   }, [loadCategories]);
 
+  const updateCategory = useCallback(async (
+    self_ref_no: string,
+    activity_seq_no: string,
+    effective_start_date: string,
+    updates: Partial<SelfEmployCategory>
+  ) => {
+    if (!ssn) return;
+    setLoading(true);
+    try {
+      await SelfEmployedService.updateCategory(ssn, self_ref_no, activity_seq_no, effective_start_date, updates);
+      toast.success('Wage category updated');
+      await loadCategories();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [ssn, loadCategories]);
+
+  const deleteCategory = useCallback(async (
+    self_ref_no: string,
+    activity_seq_no: string,
+    effective_start_date: string
+  ) => {
+    if (!ssn) return;
+    setLoading(true);
+    try {
+      await SelfEmployedService.deleteCategory(ssn, self_ref_no, activity_seq_no, effective_start_date);
+      toast.success('Wage category removed');
+      await loadCategories();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [ssn, loadCategories]);
+
   const addLocation = useCallback(async (location: Omit<SelfEmployLocation, 'seq_no'>) => {
     setLoading(true);
     try {
       await SelfEmployedService.addLocation(location);
       toast.success('Location added');
-      await loadLocations(); // Reload ALL locations
+      await loadLocations();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
   }, [loadLocations]);
+
+  const updateLocation = useCallback(async (
+    self_ref_no: string,
+    activity_seq_no: string,
+    seq_no: number,
+    updates: Partial<SelfEmployLocation>
+  ) => {
+    if (!ssn) return;
+    setLoading(true);
+    try {
+      await SelfEmployedService.updateLocation(ssn, self_ref_no, activity_seq_no, seq_no, updates);
+      toast.success('Location updated');
+      await loadLocations();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [ssn, loadLocations]);
 
   const deleteLocation = useCallback(async (
     self_ref_no: string,
@@ -248,13 +304,31 @@ export function useSelfEmployed(ssn: string | null) {
     try {
       await SelfEmployedService.deleteLocation(ssn, self_ref_no, activity_seq_no, seq_no);
       toast.success('Location removed');
-      await loadLocations(); // Reload ALL locations
+      await loadLocations();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
   }, [ssn, loadLocations]);
+
+  const deleteActivityRecord = useCallback(async (
+    self_ref_no: string,
+    activity_seq_no: string
+  ) => {
+    if (!ssn) return;
+    setLoading(true);
+    try {
+      await SelfEmployedService.deleteActivity(ssn, self_ref_no, activity_seq_no);
+      toast.success('Activity deleted');
+      await loadActivities();
+      await checkEligibility();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [ssn, loadActivities, checkEligibility]);
 
   const addWeeksPaid = useCallback(async (record: SEPWeeksPaid) => {
     setLoading(true);
@@ -312,8 +386,12 @@ export function useSelfEmployed(ssn: string | null) {
     ceaseActivity,
     changeStatus,
     addCategory,
+    updateCategory,
+    deleteCategory,
     addLocation,
+    updateLocation,
     deleteLocation,
     addWeeksPaid,
+    deleteActivityRecord,
   };
 }
