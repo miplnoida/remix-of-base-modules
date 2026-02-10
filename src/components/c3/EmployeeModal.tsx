@@ -208,7 +208,7 @@ export default function EmployeeModal({
         setLocalEmployee(prev => ({
           ...prev,
           name: result.name,
-          termStartDate: result.termStartDate,
+          termStartDate: periodTermStartDate,
           dateOfBirth: result.dateOfBirth
         }));
         setSsnValidated(true);
