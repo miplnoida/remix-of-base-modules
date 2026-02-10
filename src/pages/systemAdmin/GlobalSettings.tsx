@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import CloudflareSettingsSection from '@/components/admin/CloudflareSettingsSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -182,12 +183,15 @@ const GlobalSettings = () => {
           </Button>
         </div>
         
+        {/* Cloudflare Human Verification Section - always shown */}
+        <CloudflareSettingsSection />
+
         {categories.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No Settings Configured</h3>
-              <p className="text-muted-foreground">System settings will appear here once configured.</p>
+              <h3 className="text-lg font-medium">No Other Settings Configured</h3>
+              <p className="text-muted-foreground">Additional system settings will appear here once configured.</p>
             </CardContent>
           </Card>
         ) : (
