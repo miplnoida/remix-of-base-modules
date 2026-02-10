@@ -230,7 +230,7 @@ export function useSelfEmployed(ssn: string | null) {
     try {
       await SelfEmployedService.addLocation(location);
       toast.success('Location added');
-      await loadLocations(location.activity_seq_no);
+      await loadLocations(); // Reload ALL locations
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -248,7 +248,7 @@ export function useSelfEmployed(ssn: string | null) {
     try {
       await SelfEmployedService.deleteLocation(ssn, self_ref_no, activity_seq_no, seq_no);
       toast.success('Location removed');
-      await loadLocations(activity_seq_no);
+      await loadLocations(); // Reload ALL locations
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -274,7 +274,7 @@ export function useSelfEmployed(ssn: string | null) {
   useEffect(() => {
     if (selectedActivity) {
       loadCategories(); // Load ALL categories for this SSN (no activity filter)
-      loadLocations(selectedActivity.activity_seq_no);
+      loadLocations(); // Load ALL locations for this SSN (no activity filter)
     }
   }, [selectedActivity, loadCategories, loadLocations]);
 
