@@ -10168,6 +10168,7 @@ export type Database = {
           notification_template_id: string | null
           notification_type: string | null
           remarks_required: boolean
+          result_status: string | null
           step_id: string
         }
         Insert: {
@@ -10184,6 +10185,7 @@ export type Database = {
           notification_template_id?: string | null
           notification_type?: string | null
           remarks_required?: boolean
+          result_status?: string | null
           step_id: string
         }
         Update: {
@@ -10200,6 +10202,7 @@ export type Database = {
           notification_template_id?: string | null
           notification_type?: string | null
           remarks_required?: boolean
+          result_status?: string | null
           step_id?: string
         }
         Relationships: [

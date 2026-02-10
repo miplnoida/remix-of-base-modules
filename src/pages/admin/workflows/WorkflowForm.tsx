@@ -96,6 +96,7 @@ interface ActionFormData {
   action_type: string; // Now dynamic from database
   is_final_action: boolean;
   remarks_required: boolean;
+  result_status: string;
   display_order: number;
   // Next step routing configuration
   next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant' | 'pause_workflow';
@@ -319,6 +320,7 @@ export default function WorkflowForm() {
             action_type: action.action_type as ActionFormData['action_type'],
             is_final_action: action.is_final_action,
             remarks_required: (action as any).remarks_required ?? false,
+            result_status: (action as any).result_status || '',
             display_order: action.display_order,
             next_step_type: ((action as any).next_step_type || 'next_step') as ActionFormData['next_step_type'],
             next_step_id: (action as any).next_step_id || null,
@@ -371,6 +373,7 @@ export default function WorkflowForm() {
             action_type: 'Approve',
             is_final_action: false,
             remarks_required: false,
+            result_status: '',
             display_order: 0,
             next_step_type: 'next_step',
             next_step_id: null,
@@ -454,6 +457,7 @@ export default function WorkflowForm() {
       action_type: 'Approve',
       is_final_action: false,
       remarks_required: false,
+      result_status: '',
       display_order: newSteps[stepIndex].actions.length,
       next_step_type: 'next_step',
       next_step_id: null,
@@ -574,21 +578,23 @@ export default function WorkflowForm() {
           escalation_notification_type: step.escalation_notification_type || null,
           escalation_module_id: step.escalation_module_id,
           escalation_template_id: step.escalation_template_id,
-          actions: step.actions.map(action => ({
-            id: action.id,
-            action_name: action.action_name,
-            action_type: action.action_type as any,
-            next_step_type: action.next_step_type,
-            next_step_id: action.next_step_id,
-            end_state: action.end_state,
-            is_final_action: action.is_final_action,
-            display_order: action.display_order,
-            notification_type: action.notification_type || null,
-            notification_module_id: action.notification_module_id,
-            notification_template_id: action.notification_template_id,
-            notifications: action.notifications,
-            fieldUpdates: action.fieldUpdates,
-          })),
+            actions: step.actions.map(action => ({
+              id: action.id,
+              action_name: action.action_name,
+              action_type: action.action_type as any,
+              next_step_type: action.next_step_type,
+              next_step_id: action.next_step_id,
+              end_state: action.end_state,
+              is_final_action: action.is_final_action,
+              remarks_required: action.remarks_required,
+              result_status: action.result_status || null,
+              display_order: action.display_order,
+              notification_type: action.notification_type || null,
+              notification_module_id: action.notification_module_id,
+              notification_template_id: action.notification_template_id,
+              notifications: action.notifications,
+              fieldUpdates: action.fieldUpdates,
+            })),
         })),
       });
 
@@ -1260,8 +1266,24 @@ export default function WorkflowForm() {
                                         </p>
                                       </div>
                                     </div>
+                                    {/* Result Status Override */}
+                                    <div className="space-y-2">
+                                      <Label className="text-sm">Result Status (Override)</Label>
+                                      <Input
+                                        value={action.result_status}
+                                        onChange={(e) => updateAction(stepIndex, actionIndex, 'result_status', e.target.value)}
+                                        placeholder={
+                                          action.action_type.toLowerCase().includes('approve') ? 'Default: approved' :
+                                          action.action_type.toLowerCase().includes('reject') ? 'Default: rejected' :
+                                          'e.g. verified, cancelled, suspended'
+                                        }
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        Custom status value applied to the record when this action is executed. Leave blank to use the default.
+                                      </p>
+                                    </div>
 
-                                    {/* Next Step Routing Configuration */}
+
                                     <div className="space-y-3 p-3 bg-background rounded-md border border-primary/20">
                                       <Label className="text-sm font-medium text-primary">Next Step Routing *</Label>
                                       <div className="grid grid-cols-2 gap-3">

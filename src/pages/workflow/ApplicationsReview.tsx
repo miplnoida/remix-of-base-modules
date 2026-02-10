@@ -69,6 +69,7 @@ const ApplicationsReview: React.FC = () => {
     endState: EndState;
     isFinalAction: boolean;
     remarksRequired: boolean;
+    resultStatus: string | null;
   } | null>(null);
   const [comments, setComments] = useState('');
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -88,6 +89,7 @@ const ApplicationsReview: React.FC = () => {
       end_state: EndState;
       is_final_action: boolean;
       remarks_required?: boolean;
+      result_status?: string | null;
     }
   ) => {
     setSelectedTask(task);
@@ -100,6 +102,7 @@ const ApplicationsReview: React.FC = () => {
       endState: action.end_state,
       isFinalAction: action.is_final_action,
       remarksRequired: action.remarks_required ?? false,
+      resultStatus: action.result_status || null,
     });
     setComments('');
     setIsActionModalOpen(true);
@@ -118,6 +121,7 @@ const ApplicationsReview: React.FC = () => {
       endState: selectedAction.endState,
       isFinalAction: selectedAction.isFinalAction,
       comments: comments || undefined,
+      resultStatus: selectedAction.resultStatus,
     });
     
     setIsActionModalOpen(false);
