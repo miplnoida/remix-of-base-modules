@@ -473,7 +473,7 @@ export default function EmployeeModal({
                     <span className="text-xs font-medium text-center">{label}</span>
                     <div className="flex items-center gap-0">
                       <div
-                        className={`h-8 w-8 min-w-[2rem] border-l border-t border-b rounded-l-md flex items-center justify-center ${
+                        className={`h-8 w-6 min-w-[1.5rem] border-l border-t border-b rounded-l-md flex items-center justify-center ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                         } ${
                           localEmployee.days[index]
