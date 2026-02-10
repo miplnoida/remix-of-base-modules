@@ -476,25 +476,72 @@ export function WorkflowActionApiConfig({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
-        <Button onClick={handleSave} disabled={saveConfig.isPending}>
-          {saveConfig.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save API Configuration
-            </>
+      <div className="flex justify-between gap-2">
+        <div>
+          {existingConfig?.id && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={deleteConfig.isPending}>
+                  {deleteConfig.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Remove API Configuration
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove API Configuration?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove the API configuration and all body mappings for the "{actionName}" action on step "{stepName}". Workflow actions will no longer trigger external API calls.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      try {
+                        await deleteConfig.mutateAsync(existingConfig.id);
+                        onDeleted?.();
+                      } catch (error) {
+                        // Error handled by mutation
+                      }
+                    }}
+                  >
+                    Remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
-        </Button>
+        </div>
+        <div className="flex gap-2">
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saveConfig.isPending}>
+            {saveConfig.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save API Configuration
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
