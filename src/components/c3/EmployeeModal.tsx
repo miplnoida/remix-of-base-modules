@@ -522,7 +522,7 @@ export default function EmployeeModal({
                 </p>
               )}
               
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
                   <Label className="text-sm text-muted-foreground">Total Wages</Label>
                   <div className="text-lg font-semibold">{formatCurrency(payrollCalc.totalWages)}</div>
@@ -532,11 +532,6 @@ export default function EmployeeModal({
                   <Label className="text-sm text-muted-foreground">Taxable Wages</Label>
                   <div className="text-lg font-semibold">{formatCurrency(payrollCalc.taxableWages)}</div>
                   <p className="text-xs text-muted-foreground">Week1-5 + Holiday (excl. Bonus)</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Grand Total</Label>
-                  <div className="text-lg font-semibold text-primary">{formatCurrency(payrollCalc.totalWagesPlusEmployeeLevyPlusSS)}</div>
-                  <p className="text-xs text-muted-foreground">Wages + Employee Levy + SS</p>
                 </div>
               </div>
               
