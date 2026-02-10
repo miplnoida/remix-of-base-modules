@@ -234,14 +234,71 @@ export class SelfEmployedService {
   /**
    * Add a wage category
    */
-  static async addCategory(category: SelfEmployCategory): Promise<void> {
-    if (!category.effective_end_date && category.effective_start_date) {
-      const start = new Date(category.effective_start_date);
-      start.setMonth(start.getMonth() + 6);
-      category.effective_end_date = start.toISOString();
+  /**
+   * Validate no overlapping wage category periods for the same SSN + activity
+   */
+  static async validateCategoryOverlap(
+    ssn: string,
+    activity_seq_no: string,
+    start: string,
+    end: string
+  ): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('ip_self_category')
+      .select('effective_start_date, effective_end_date')
+      .eq('ssn', ssn)
+      .eq('activity_seq_no', activity_seq_no);
+    if (error) throw new Error(error.message);
+
+    const newStart = new Date(start).getTime();
+    const newEnd = new Date(end).getTime();
+
+    for (const row of (data || [])) {
+      const existStart = new Date(row.effective_start_date).getTime();
+      const existEnd = row.effective_end_date ? new Date(row.effective_end_date).getTime() : Infinity;
+      if (newStart < existEnd && newEnd > existStart) {
+        return true; // overlap found
+      }
     }
+    return false;
+  }
+
+  /**
+   * Add a wage category with overlap validation
+   */
+  static async addCategory(category: SelfEmployCategory): Promise<void> {
+    // Auto-calculate end date: start + 6 months
+    const start = new Date(category.effective_start_date);
+    const endDate = new Date(start);
+    endDate.setMonth(endDate.getMonth() + 6);
+    category.effective_end_date = endDate.toISOString();
+
+    // Check for overlapping periods
+    const hasOverlap = await this.validateCategoryOverlap(
+      category.ssn,
+      category.activity_seq_no,
+      category.effective_start_date,
+      category.effective_end_date
+    );
+    if (hasOverlap) {
+      throw new Error('Overlapping wage category period exists for this activity. Please choose a different date range.');
+    }
+
     const { error } = await supabase.from('ip_self_category').insert(category as any);
     if (error) throw new Error(error.message);
+  }
+
+  /**
+   * Get distinct wage category values from tb_self_emp_contrib_rate
+   */
+  static async getWageCategoryOptions(): Promise<number[]> {
+    const { data, error } = await supabase
+      .from('tb_self_emp_contrib_rate')
+      .select('wage_cat')
+      .order('wage_cat', { ascending: true });
+    if (error) throw new Error(error.message);
+    const unique = [...new Set((data || []).map((r: any) => Number(r.wage_cat)))];
+    return unique;
   }
 
   /**
