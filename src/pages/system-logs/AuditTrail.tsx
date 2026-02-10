@@ -21,9 +21,11 @@ interface AuditEntry {
   action: string | null;
   entity_type: string | null;
   entity_id: string | null;
+  module: string | null;
   ip_address: string | null;
   before_value: any;
   after_value: any;
+  payload_json: any;
 }
 
 const PAGE_SIZE = 20;
@@ -34,10 +36,11 @@ const AuditTrail: React.FC = () => {
   const [dateTo, setDateTo] = useState('');
   const [userFilter, setUserFilter] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter],
+    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter],
     queryFn: async () => {
       let query = supabase
         .from('system_audit_trail')
@@ -49,6 +52,7 @@ const AuditTrail: React.FC = () => {
       if (dateTo) query = query.lte('timestamp', new Date(dateTo + 'T23:59:59').toISOString());
       if (userFilter) query = query.ilike('user_name', `%${userFilter}%`);
       if (entityTypeFilter) query = query.ilike('entity_type', `%${entityTypeFilter}%`);
+      if (moduleFilter) query = query.ilike('module', `%${moduleFilter}%`);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -58,9 +62,15 @@ const AuditTrail: React.FC = () => {
 
   const getActionBadge = (action: string | null) => {
     switch (action?.toLowerCase()) {
-      case 'create': return <Badge className="bg-green-500">Create</Badge>;
-      case 'update': return <Badge className="bg-blue-500">Update</Badge>;
+      case 'create': return <Badge className="bg-emerald-600 text-white">Create</Badge>;
+      case 'update': return <Badge className="bg-sky-600 text-white">Update</Badge>;
       case 'delete': return <Badge variant="destructive">Delete</Badge>;
+      case 'enable': return <Badge className="bg-emerald-600 text-white">Enable</Badge>;
+      case 'disable': return <Badge className="bg-amber-600 text-white">Disable</Badge>;
+      case 'approve': return <Badge className="bg-emerald-600 text-white">Approve</Badge>;
+      case 'reject': return <Badge variant="destructive">Reject</Badge>;
+      case 'verify': return <Badge className="bg-sky-600 text-white">Verify</Badge>;
+      case 'cancel': return <Badge className="bg-amber-600 text-white">Cancel</Badge>;
       default: return <Badge variant="secondary">{action || 'Unknown'}</Badge>;
     }
   };
@@ -92,7 +102,7 @@ const AuditTrail: React.FC = () => {
           <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <Label>Date From</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -104,6 +114,10 @@ const AuditTrail: React.FC = () => {
             <div>
               <Label>User</Label>
               <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
+            </div>
+            <div>
+              <Label>Module</Label>
+              <Input placeholder="Module / Source..." value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} />
             </div>
             <div>
               <Label>Entity Type</Label>
@@ -127,9 +141,9 @@ const AuditTrail: React.FC = () => {
                     <TableHead>Timestamp</TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Action</TableHead>
+                    <TableHead>Module</TableHead>
                     <TableHead>Entity Type</TableHead>
                     <TableHead>Entity ID</TableHead>
-                    <TableHead>IP Address</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -140,14 +154,18 @@ const AuditTrail: React.FC = () => {
                       </TableCell>
                       <TableCell>{entry.user_name || entry.user_id?.slice(0, 8) || '-'}</TableCell>
                       <TableCell>{getActionBadge(entry.action)}</TableCell>
+                      <TableCell>
+                        {entry.module ? (
+                          <Badge variant="outline">{entry.module}</Badge>
+                        ) : '-'}
+                      </TableCell>
                       <TableCell>{entry.entity_type || '-'}</TableCell>
-                      <TableCell className="font-mono text-xs">{entry.entity_id?.slice(0, 8) || '-'}</TableCell>
-                      <TableCell>{entry.ip_address || '-'}</TableCell>
+                      <TableCell className="font-mono text-xs">{entry.entity_id || '-'}</TableCell>
                     </TableRow>
                   ))}
                   {(!data?.entries || data.entries.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No audit entries found
                       </TableCell>
                     </TableRow>
@@ -184,10 +202,19 @@ const AuditTrail: React.FC = () => {
                   <div><strong>Timestamp:</strong> {format(new Date(selectedEntry.timestamp), 'yyyy-MM-dd HH:mm:ss')}</div>
                   <div><strong>User:</strong> {selectedEntry.user_name || '-'}</div>
                   <div><strong>Action:</strong> {getActionBadge(selectedEntry.action)}</div>
+                  <div><strong>Module:</strong> {selectedEntry.module || '-'}</div>
                   <div><strong>Entity Type:</strong> {selectedEntry.entity_type || '-'}</div>
                   <div><strong>Entity ID:</strong> {selectedEntry.entity_id || '-'}</div>
-                  <div><strong>IP Address:</strong> {selectedEntry.ip_address || '-'}</div>
                 </div>
+                
+                {selectedEntry.payload_json && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Metadata</h4>
+                    <pre className="bg-muted p-4 rounded-lg overflow-auto text-xs">
+                      {JSON.stringify(selectedEntry.payload_json, null, 2)}
+                    </pre>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>

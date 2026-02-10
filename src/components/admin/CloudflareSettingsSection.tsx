@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldCheck, AlertTriangle, Save, RefreshCw, Monitor } from 'lucide-react';
 import { useSystemSetting, useUpdateSystemSetting } from '@/hooks/useSystemSettings';
 import { useUserCode } from '@/hooks/useUserCode';
-import { supabase } from '@/integrations/supabase/client';
+import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 
 const CloudflareSettingsSection: React.FC = () => {
@@ -42,21 +42,17 @@ const CloudflareSettingsSection: React.FC = () => {
     setHasChanges(true);
   };
 
-  const logAuditEntry = async (action: string, oldValue: string, newValue: string) => {
-    try {
-      await supabase.from('audit_logs').insert({
-        action_type: action,
-        module_name: 'Security',
-        entity_type: 'cloudflare',
-        entity_id: 'cloudflare_settings',
-        old_value: oldValue,
-        new_value: newValue,
-        user_name: userCode || 'SYSTEM',
-        metadata: { setting: 'cloudflare_verification', timestamp: new Date().toISOString() },
-      });
-    } catch (err) {
-      console.error('Failed to log audit entry:', err);
-    }
+  const logCloudflareAudit = async (action: string, oldValue: string, newValue: string) => {
+    await logAuditTrail({
+      action,
+      entityType: 'cloudflare',
+      entityId: 'cloudflare_settings',
+      module: 'Global Settings',
+      beforeValue: { value: oldValue },
+      afterValue: { value: newValue },
+      userCode: userCode || 'SYSTEM',
+      metadata: { setting: 'cloudflare_verification', source: '/admin/global-settings' },
+    });
   };
 
   const handleSave = async () => {
@@ -70,8 +66,8 @@ const CloudflareSettingsSection: React.FC = () => {
           settingValue: String(isEnabled),
           userCode: userCode || undefined,
         });
-        await logAuditEntry(
-          isEnabled ? 'ENABLED' : 'DISABLED',
+        await logCloudflareAudit(
+          isEnabled ? 'enable' : 'disable',
           String(currentEnabled),
           String(isEnabled)
         );
@@ -83,7 +79,7 @@ const CloudflareSettingsSection: React.FC = () => {
           settingValue: riskLevel,
           userCode: userCode || undefined,
         });
-        await logAuditEntry('RISK_LEVEL_CHANGED', currentRisk, riskLevel);
+        await logCloudflareAudit('update', currentRisk, riskLevel);
       }
 
       setHasChanges(false);
