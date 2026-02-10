@@ -46,10 +46,17 @@ const LoginSecurityLogs: React.FC = () => {
     switch (result) {
       case 'passed': return <Badge className="bg-green-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Passed</Badge>;
       case 'failed': return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      case 'skipped': return <Badge className="bg-yellow-500 text-white"><AlertTriangle className="h-3 w-3 mr-1" />Skipped</Badge>;
       case 'rate_limited': return <Badge className="bg-orange-600 text-white"><Ban className="h-3 w-3 mr-1" />Rate Limited</Badge>;
       case 'pending': return <Badge variant="secondary">Pending</Badge>;
       default: return <Badge variant="outline">{result}</Badge>;
     }
+  };
+
+  const getLoginBadge = (success: boolean | null) => {
+    if (success === true) return <Badge className="bg-green-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Success</Badge>;
+    if (success === false) return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+    return <Badge variant="secondary">Pending</Badge>;
   };
 
   const getRiskBadge = (risk: string) => {
@@ -63,10 +70,11 @@ const LoginSecurityLogs: React.FC = () => {
 
   const handleExport = () => {
     if (!data?.logs?.length) return;
-    const headers = ['Timestamp', 'Email', 'Result', 'Risk Level', 'Token Valid', 'IP Address', 'Device Fingerprint', 'Failure Reason'];
+    const headers = ['Timestamp', 'Email', 'Login Result', 'Verification', 'Risk Level', 'Token Valid', 'IP Address', 'Device Fingerprint', 'Failure Reason'];
     const rows = data.logs.map((log: any) => [
       format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss'),
       log.user_email || '',
+      log.login_success ? 'Success' : 'Failed',
       log.verification_result,
       log.risk_level,
       log.turnstile_token_valid ? 'Yes' : 'No',
@@ -132,6 +140,7 @@ const LoginSecurityLogs: React.FC = () => {
                   <SelectItem value="all">All Results</SelectItem>
                   <SelectItem value="passed">Passed</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="skipped">Skipped</SelectItem>
                   <SelectItem value="rate_limited">Rate Limited</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
@@ -168,14 +177,13 @@ const LoginSecurityLogs: React.FC = () => {
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
+                   <TableRow>
                     <TableHead>Timestamp</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Login Result</TableHead>
                     <TableHead>Verification</TableHead>
                     <TableHead>Risk Level</TableHead>
-                    <TableHead>Token Valid</TableHead>
                     <TableHead>IP Address</TableHead>
-                    <TableHead>Fingerprint</TableHead>
                     <TableHead>Failure Reason</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -186,17 +194,10 @@ const LoginSecurityLogs: React.FC = () => {
                         {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
                       </TableCell>
                       <TableCell className="text-sm">{log.user_email || '-'}</TableCell>
+                      <TableCell>{getLoginBadge(log.login_success)}</TableCell>
                       <TableCell>{getResultBadge(log.verification_result)}</TableCell>
                       <TableCell>{getRiskBadge(log.risk_level)}</TableCell>
-                      <TableCell>
-                        {log.turnstile_token_valid ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-destructive" />
-                        )}
-                      </TableCell>
                       <TableCell className="font-mono text-xs">{log.ip_address || '-'}</TableCell>
-                      <TableCell className="font-mono text-xs">{log.device_fingerprint || '-'}</TableCell>
                       <TableCell className="text-xs max-w-[200px] truncate text-destructive">
                         {log.failure_reason || '-'}
                       </TableCell>
@@ -204,7 +205,7 @@ const LoginSecurityLogs: React.FC = () => {
                   ))}
                   {(!data?.logs || data.logs.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No login verification events found
                       </TableCell>
                     </TableRow>

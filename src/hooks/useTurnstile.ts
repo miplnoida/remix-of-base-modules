@@ -14,10 +14,23 @@ declare global {
   }
 }
 
+/**
+ * Check if the Turnstile API is fully functional (not a stub/partial load).
+ */
+function isTurnstileFullyAvailable(): boolean {
+  return !!(
+    window.turnstile &&
+    typeof window.turnstile.render === 'function' &&
+    typeof window.turnstile.execute === 'function' &&
+    typeof window.turnstile.reset === 'function'
+  );
+}
+
 export function useTurnstile() {
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scriptLoadedRef = useRef(false);
@@ -25,27 +38,25 @@ export function useTurnstile() {
   // Load the Turnstile script
   useEffect(() => {
     if (scriptLoadedRef.current || document.querySelector(`script[src*="turnstile"]`)) {
-      if (window.turnstile) {
-        setIsReady(true);
-        scriptLoadedRef.current = true;
-      } else {
-        // Script tag exists but turnstile not ready yet — wait a bit
-        const checkInterval = setInterval(() => {
-          if (window.turnstile) {
-            setIsReady(true);
-            scriptLoadedRef.current = true;
-            clearInterval(checkInterval);
-          }
-        }, 200);
-        setTimeout(() => {
+      // Script tag exists — wait for full API
+      const checkInterval = setInterval(() => {
+        if (isTurnstileFullyAvailable()) {
+          setIsReady(true);
+          setIsAvailable(true);
+          scriptLoadedRef.current = true;
           clearInterval(checkInterval);
-          if (!window.turnstile) {
-            console.warn('Turnstile script loaded but API not available');
-            setIsReady(true); // Allow login to proceed without turnstile
-            scriptLoadedRef.current = true;
-          }
-        }, 5000);
-      }
+        }
+      }, 200);
+      // Timeout after 5s — mark ready but unavailable
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        scriptLoadedRef.current = true;
+        setIsReady(true);
+        if (!isTurnstileFullyAvailable()) {
+          console.warn('[Turnstile] Script loaded but API not fully available (preview/iframe restriction)');
+          setIsAvailable(false);
+        }
+      }, 5000);
       return;
     }
 
@@ -55,27 +66,32 @@ export function useTurnstile() {
     script.defer = true;
     script.onload = () => {
       scriptLoadedRef.current = true;
-      setIsReady(true);
+      // Give the API a moment to initialize
+      setTimeout(() => {
+        const available = isTurnstileFullyAvailable();
+        setIsAvailable(available);
+        setIsReady(true);
+        if (!available) {
+          console.warn('[Turnstile] Script loaded but API not fully functional');
+        }
+      }, 500);
     };
     script.onerror = () => {
-      console.warn('Failed to load Turnstile script — login will proceed without verification');
-      setIsReady(true); // Allow login to proceed
+      console.warn('[Turnstile] Failed to load script — login will proceed without verification');
+      setIsReady(true);
+      setIsAvailable(false);
       scriptLoadedRef.current = true;
     };
     document.head.appendChild(script);
-
-    return () => {
-      // Don't remove the script on unmount — it's shared
-    };
   }, []);
 
-  // Render the invisible widget once ready
+  // Render the invisible widget once ready and available
   useEffect(() => {
-    if (!isReady || !window.turnstile || !containerRef.current) return;
-    if (widgetIdRef.current) return; // Already rendered
+    if (!isReady || !isAvailable || !containerRef.current) return;
+    if (widgetIdRef.current) return;
 
     try {
-      const id = window.turnstile.render(containerRef.current, {
+      const id = window.turnstile!.render(containerRef.current, {
         sitekey: TURNSTILE_SITE_KEY,
         size: 'invisible',
         callback: (tkn: string) => {
@@ -91,34 +107,42 @@ export function useTurnstile() {
         },
       });
       widgetIdRef.current = id;
-    } catch {
-      setError('Failed to initialize verification');
+    } catch (err) {
+      console.warn('[Turnstile] Failed to render widget:', err);
+      setIsAvailable(false);
     }
-  }, [isReady]);
+  }, [isReady, isAvailable]);
 
   // Execute verification (call on form submit)
   const execute = useCallback(() => {
     setToken(null);
     setError(null);
 
-    if (!window.turnstile || !containerRef.current) {
-      setError('Verification not ready');
+    if (!isTurnstileFullyAvailable() || !containerRef.current) {
+      // Not available — signal immediately via error so caller can proceed without
+      setError('turnstile-unavailable');
       return;
     }
 
-    // Reset and re-execute
-    if (widgetIdRef.current) {
-      window.turnstile.reset(widgetIdRef.current);
+    try {
+      if (widgetIdRef.current) {
+        window.turnstile!.reset(widgetIdRef.current);
+      }
+      window.turnstile!.execute(containerRef.current);
+    } catch (err) {
+      console.warn('[Turnstile] Execute failed:', err);
+      setError('turnstile-unavailable');
     }
-    window.turnstile.execute(containerRef.current);
   }, []);
 
   // Reset the widget
   const reset = useCallback(() => {
     setToken(null);
     setError(null);
-    if (window.turnstile && widgetIdRef.current) {
-      window.turnstile.reset(widgetIdRef.current);
+    if (isTurnstileFullyAvailable() && widgetIdRef.current) {
+      try {
+        window.turnstile!.reset(widgetIdRef.current);
+      } catch { /* noop */ }
     }
   }, []);
 
@@ -134,5 +158,5 @@ export function useTurnstile() {
     };
   }, []);
 
-  return { token, error, isReady, execute, reset, containerRef };
+  return { token, error, isReady, isAvailable, execute, reset, containerRef };
 }
