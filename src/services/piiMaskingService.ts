@@ -124,16 +124,27 @@ export async function logPIIUnlock(params: {
 }
 
 /**
- * Verify user credentials for PII unlock
+ * Verify user credentials for PII unlock via backend edge function.
+ * Uses a server-side verification to avoid disrupting the current session.
  */
 export async function verifyCredentialsForPIIUnlock(
   email: string,
   password: string
 ): Promise<boolean> {
   try {
-    // Verify by attempting a sign in (this doesn't change session if already logged in)
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return !error;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return false;
+
+    const { data, error } = await supabase.functions.invoke('verify-pii-credentials', {
+      body: { password },
+    });
+
+    if (error) {
+      console.error('[PIIMasking] Credential verification failed:', error);
+      return false;
+    }
+
+    return data?.success === true;
   } catch {
     return false;
   }
