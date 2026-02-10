@@ -967,6 +967,31 @@ async function fetchApplicationData(
       }
     }
 
+    // Handle online application modules by reading workflow instance metadata
+    if (sourceModule.startsWith('online-')) {
+      const { data: instance } = await supabase
+        .from('workflow_instances')
+        .select('metadata, source_record_id, source_record_name')
+        .eq('source_module', sourceModule)
+        .eq('source_record_id', sourceRecordId)
+        .maybeSingle();
+
+      if (instance) {
+        const meta = (instance.metadata || {}) as Record<string, any>;
+        return {
+          application_reference_no: instance.source_record_id,
+          application_reference_number: instance.source_record_id,
+          reference_number: instance.source_record_id,
+          full_name: instance.source_record_name || meta.applicant_name,
+          email: meta.email,
+          phone: meta.phone,
+          application_id: meta.application_id,
+          status: meta.status,
+          ...meta,
+        };
+      }
+    }
+
     // Generic fallback - try to fetch from the module's primary table
     console.log(`Unknown source module: ${sourceModule}, using generic fetch`);
     return { source_record_id: sourceRecordId };
