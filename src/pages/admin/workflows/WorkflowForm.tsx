@@ -95,6 +95,7 @@ interface ActionFormData {
   action_name: string;
   action_type: string; // Now dynamic from database
   is_final_action: boolean;
+  remarks_required: boolean;
   display_order: number;
   // Next step routing configuration
   next_step_type: 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant' | 'pause_workflow';
@@ -317,6 +318,7 @@ export default function WorkflowForm() {
             action_name: action.action_name,
             action_type: action.action_type as ActionFormData['action_type'],
             is_final_action: action.is_final_action,
+            remarks_required: (action as any).remarks_required ?? false,
             display_order: action.display_order,
             next_step_type: ((action as any).next_step_type || 'next_step') as ActionFormData['next_step_type'],
             next_step_id: (action as any).next_step_id || null,
@@ -365,9 +367,10 @@ export default function WorkflowForm() {
         escalation_template_id: null,
         actions: [
           {
-            action_name: 'Approve',
+      action_name: 'Approve',
             action_type: 'Approve',
             is_final_action: false,
+            remarks_required: false,
             display_order: 0,
             next_step_type: 'next_step',
             next_step_id: null,
@@ -450,6 +453,7 @@ export default function WorkflowForm() {
       action_name: 'New Action',
       action_type: 'Approve',
       is_final_action: false,
+      remarks_required: false,
       display_order: newSteps[stepIndex].actions.length,
       next_step_type: 'next_step',
       next_step_id: null,
@@ -1239,6 +1243,20 @@ export default function WorkflowForm() {
                                         </Select>
                                         <p className="text-xs text-muted-foreground">
                                           {stepActionTypes.find(t => t.value === action.action_type)?.description}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Mandatory Remarks Toggle */}
+                                    <div className="flex items-center gap-3 py-1">
+                                      <Switch
+                                        checked={action.remarks_required}
+                                        onCheckedChange={(checked) => updateAction(stepIndex, actionIndex, 'remarks_required', checked)}
+                                      />
+                                      <div>
+                                        <Label className="text-sm">Mandatory Reviewer Comments</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                          When enabled, reviewers must provide remarks before executing this action
                                         </p>
                                       </div>
                                     </div>

@@ -68,6 +68,7 @@ const ApplicationsReview: React.FC = () => {
     nextStepId: string | null;
     endState: EndState;
     isFinalAction: boolean;
+    remarksRequired: boolean;
   } | null>(null);
   const [comments, setComments] = useState('');
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -85,7 +86,8 @@ const ApplicationsReview: React.FC = () => {
       next_step_type: NextStepType;
       next_step_id: string | null; 
       end_state: EndState;
-      is_final_action: boolean 
+      is_final_action: boolean;
+      remarks_required?: boolean;
     }
   ) => {
     setSelectedTask(task);
@@ -97,6 +99,7 @@ const ApplicationsReview: React.FC = () => {
       nextStepId: action.next_step_id,
       endState: action.end_state,
       isFinalAction: action.is_final_action,
+      remarksRequired: action.remarks_required ?? false,
     });
     setComments('');
     setIsActionModalOpen(true);
@@ -397,14 +400,22 @@ const ApplicationsReview: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="comments">Comments (Optional)</Label>
+              <Label htmlFor="comments">
+                Comments {selectedAction?.remarksRequired ? <span className="text-destructive">*</span> : '(Optional)'}
+              </Label>
               <Textarea
                 id="comments"
-                placeholder="Add any comments or notes about this action..."
+                placeholder={selectedAction?.remarksRequired 
+                  ? "Comments are required for this action..." 
+                  : "Add any comments or notes about this action..."}
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 rows={4}
+                className={selectedAction?.remarksRequired && !comments.trim() ? 'border-destructive' : ''}
               />
+              {selectedAction?.remarksRequired && !comments.trim() && (
+                <p className="text-xs text-destructive">Reviewer comments are mandatory for this action</p>
+              )}
             </div>
             {selectedAction?.type === 'reject' && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -426,7 +437,7 @@ const ApplicationsReview: React.FC = () => {
             <Button
               variant={selectedAction?.type === 'reject' ? 'destructive' : 'default'}
               onClick={handleProcessAction}
-              disabled={processAction.isPending}
+              disabled={processAction.isPending || (selectedAction?.remarksRequired && !comments.trim())}
             >
               {processAction.isPending ? (
                 <>

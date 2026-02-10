@@ -17,6 +17,7 @@ export interface WorkflowAction {
   end_state: EndState;
   is_final_action: boolean;
   display_order: number;
+  remarks_required: boolean;
 }
 
 export interface WorkflowContext {
@@ -223,6 +224,7 @@ export function useWorkflowActions(
             end_state: a.end_state as EndState,
             is_final_action: a.is_final_action,
             display_order: a.display_order,
+            remarks_required: (a as any).remarks_required ?? false,
           }));
         }
       }
@@ -615,6 +617,11 @@ export function useExecuteWorkflowAction() {
 
       if (actionError || !action) {
         throw new Error('Action not found');
+      }
+
+      // Server-side enforcement: check if remarks are required
+      if ((action as any).remarks_required && (!comments || !comments.trim())) {
+        throw new Error('Reviewer comments are mandatory for this action');
       }
 
       // Get the task with workflow instance
