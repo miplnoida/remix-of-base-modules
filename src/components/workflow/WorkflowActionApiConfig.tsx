@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import {
   useSaveWorkflowActionApiConfig,
   useDeleteWorkflowActionApiConfig,
+  useWorkflowActionApiConfig,
   VALUE_SOURCE_OPTIONS,
   SOURCE_KEY_SUGGESTIONS,
   STANDARD_ACTION_CODES,
