@@ -24,6 +24,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState({
+    selected_activity_seq: '',
     effective_start_date: '',
     wage_category: '',
   });
@@ -55,7 +56,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
 
   const handleAdd = async () => {
     setFormError(null);
-    if (!selectedActivity || !selfRefNo || !form.effective_start_date || !form.wage_category) {
+    if (!selfRefNo || !form.selected_activity_seq || !form.effective_start_date || !form.wage_category) {
       setFormError('All fields are required.');
       return;
     }
@@ -66,13 +67,13 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
       await addCategory({
         ssn,
         self_ref_no: selfRefNo,
-        activity_seq_no: selectedActivity.activity_seq_no,
+        activity_seq_no: form.selected_activity_seq,
         effective_start_date: form.effective_start_date,
         effective_end_date: endDateStr,
         wage_category: parseFloat(form.wage_category),
       });
       setShowAddDialog(false);
-      setForm({ effective_start_date: '', wage_category: '' });
+      setForm({ selected_activity_seq: '', effective_start_date: '', wage_category: '' });
     } catch (err: any) {
       // The overlap error from service will be shown via toast from the hook
     }
@@ -149,6 +150,24 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                 {formError}
               </div>
             )}
+            <div>
+              <Label>Activity *</Label>
+              <Select
+                value={form.selected_activity_seq}
+                onValueChange={(val) => setForm({ ...form, selected_activity_seq: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select activity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activities.map((act) => (
+                    <SelectItem key={act.activity_seq_no} value={act.activity_seq_no}>
+                      Seq {act.activity_seq_no} — {act.activity_type || 'N/A'} (commenced {act.date_commenced ? format(new Date(act.date_commenced), 'dd/MM/yyyy') : '—'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Effective Start Date *</Label>
               <Input
