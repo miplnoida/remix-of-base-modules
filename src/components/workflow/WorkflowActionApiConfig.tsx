@@ -62,18 +62,6 @@ interface WorkflowActionApiConfigProps {
   stepName: string;
   actionCode: string;
   actionName: string;
-  existingConfig?: {
-    id: string;
-    http_method: string;
-    endpoint_url: string;
-    api_key_secret_name: string;
-    content_type: string;
-    timeout_seconds: number;
-    retry_count: number;
-    is_active: boolean;
-    description?: string;
-    body_mappings?: Omit<WorkflowActionApiBodyMapping, 'id' | 'workflow_action_api_id' | 'created_at'>[];
-  } | null;
   onSaved?: () => void;
   onDeleted?: () => void;
   onCancel?: () => void;
