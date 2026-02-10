@@ -493,6 +493,7 @@ export function useSaveWorkflowSteps() {
             next_step_id: action.next_step_id || null,
             end_state: (action as any).end_state || null,
             is_final_action: action.is_final_action,
+            remarks_required: (action as any).remarks_required ?? false,
             display_order: action.display_order,
             notification_type: (action as any).notification_type || null,
             notification_module_id: (action as any).notification_module_id || null,

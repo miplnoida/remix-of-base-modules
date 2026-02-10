@@ -48,6 +48,7 @@ export interface ApplicationForReview {
     end_state: EndState;
     is_final_action: boolean;
     display_order: number;
+    remarks_required: boolean;
   }>;
 }
 

@@ -199,8 +199,12 @@ export function WorkflowActionButtons({
     }
   };
 
-  const requiresComment = (actionType: string): boolean => {
-    const type = actionType.toLowerCase();
+  const requiresComment = (action: WorkflowAction | null): boolean => {
+    if (!action) return false;
+    // Check database-configured remarks_required flag first
+    if (action.remarks_required) return true;
+    // Fallback: always require comments for reject/send_back
+    const type = action.action_type.toLowerCase();
     return type === 'reject' || type === 'send_back' || type === 'send_back_to_applicant';
   };
 
@@ -250,24 +254,26 @@ export function WorkflowActionButtons({
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {requiresComment(selectedAction?.action_type || '') && (
-            <div className="space-y-2 py-4">
+          <div className="space-y-2 py-4">
               <Label htmlFor="comments">
-                {selectedAction?.action_type === 'Reject' ? 'Rejection Reason *' : 'Comments'}
+                Comments {requiresComment(selectedAction) && <span className="text-destructive">*</span>}
               </Label>
               <Textarea
                 id="comments"
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder={
-                  selectedAction?.action_type === 'Reject'
-                    ? 'Please provide a reason for rejection...'
-                    : 'Add any comments or notes...'
+                  requiresComment(selectedAction)
+                    ? 'Comments are required for this action...'
+                    : 'Add any comments or notes (optional)...'
                 }
                 rows={3}
+                className={requiresComment(selectedAction) && !comments.trim() ? 'border-destructive' : ''}
               />
+              {requiresComment(selectedAction) && !comments.trim() && (
+                <p className="text-xs text-destructive">Reviewer comments are mandatory for this action</p>
+              )}
             </div>
-          )}
 
           <AlertDialogFooter>
             <AlertDialogCancel disabled={executeAction.isPending}>
@@ -277,9 +283,7 @@ export function WorkflowActionButtons({
               onClick={handleConfirmAction}
               disabled={
                 executeAction.isPending ||
-                (requiresComment(selectedAction?.action_type || '') && 
-                 selectedAction?.action_type === 'Reject' && 
-                 !comments.trim())
+                (requiresComment(selectedAction) && !comments.trim())
               }
               className={getActionClassName(selectedAction?.action_type || '')}
             >
