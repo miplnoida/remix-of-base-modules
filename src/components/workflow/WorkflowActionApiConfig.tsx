@@ -74,6 +74,7 @@ interface WorkflowActionApiConfigProps {
     body_mappings?: Omit<WorkflowActionApiBodyMapping, 'id' | 'workflow_action_api_id' | 'created_at'>[];
   } | null;
   onSaved?: () => void;
+  onDeleted?: () => void;
   onCancel?: () => void;
 }
 
