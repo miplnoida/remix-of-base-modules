@@ -49,6 +49,7 @@ export interface ApplicationForReview {
     is_final_action: boolean;
     display_order: number;
     remarks_required: boolean;
+    result_status: string | null;
   }>;
 }
 
@@ -188,7 +189,8 @@ export function useProcessReviewAction() {
       nextStepId,
       endState,
       isFinalAction,
-      comments 
+      comments,
+      resultStatus,
     }: { 
       taskId: string;
       actionId: string;
@@ -199,6 +201,7 @@ export function useProcessReviewAction() {
       endState: EndState;
       isFinalAction: boolean;
       comments?: string;
+      resultStatus?: string | null;
     }) => {
       const { data: user } = await supabase.auth.getUser();
       const { data: profile } = await supabase
@@ -409,7 +412,7 @@ export function useProcessReviewAction() {
             if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
               await supabase
                 .from('sample_applications')
-                .update({ status: endState || 'Approved' })
+                .update({ status: resultStatus || endState || 'Approved' })
                 .eq('id', task.workflow_instance.source_record_id);
             }
             break;
@@ -446,7 +449,7 @@ export function useProcessReviewAction() {
         if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
           await supabase
             .from('sample_applications')
-            .update({ status: 'Rejected' })
+            .update({ status: resultStatus || 'Rejected' })
             .eq('id', task.workflow_instance.source_record_id);
         }
       } else if (isFinalAction) {
@@ -462,7 +465,7 @@ export function useProcessReviewAction() {
         if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
           await supabase
             .from('sample_applications')
-            .update({ status: endState || 'Approved' })
+            .update({ status: resultStatus || endState || 'Approved' })
             .eq('id', task.workflow_instance.source_record_id);
         }
       } else {

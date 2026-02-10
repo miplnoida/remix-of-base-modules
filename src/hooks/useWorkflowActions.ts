@@ -18,6 +18,7 @@ export interface WorkflowAction {
   is_final_action: boolean;
   display_order: number;
   remarks_required: boolean;
+  result_status: string | null;
 }
 
 export interface WorkflowContext {
@@ -225,6 +226,7 @@ export function useWorkflowActions(
             is_final_action: a.is_final_action,
             display_order: a.display_order,
             remarks_required: (a as any).remarks_required ?? false,
+            result_status: (a as any).result_status || null,
           }));
         }
       }
@@ -650,7 +652,8 @@ export function useExecuteWorkflowAction() {
 
       if (updateError) throw updateError;
 
-      // Log the action
+      // Log the action with configured result_status for audit
+      const configuredStatus = (action as any).result_status || null;
       await supabase
         .from('workflow_logs')
         .insert({
@@ -661,6 +664,7 @@ export function useExecuteWorkflowAction() {
           performed_by: userId,
           performed_by_name: profile?.full_name || 'System',
           details: comments,
+          metadata: configuredStatus ? { result_status: configuredStatus } : undefined,
         });
 
       // Apply configured field updates for this action
@@ -714,6 +718,8 @@ export function useExecuteWorkflowAction() {
       // Handle routing based on action configuration
       const nextStepType = action.next_step_type as NextStepType;
       const endState = action.end_state as EndState;
+      // Use admin-configured result_status if set, otherwise derive from endState
+      const configuredResultStatus = (action as any).result_status || null;
 
       if (nextStepType === 'end_workflow') {
         // End the workflow
@@ -732,7 +738,8 @@ export function useExecuteWorkflowAction() {
           sourceRecordId,
           endState,
           userId,
-          comments
+          comments,
+          configuredResultStatus
         );
       } else if (nextStepType === 'send_back_to_applicant') {
         // Put workflow in Query state
@@ -755,7 +762,8 @@ export function useExecuteWorkflowAction() {
           sourceRecordId,
           'Query' as any,
           userId,
-          comments
+          comments,
+          configuredResultStatus
         );
       } else if (nextStepType === 'specific_step' && action.next_step_id) {
         // Go to specific step
@@ -776,7 +784,8 @@ export function useExecuteWorkflowAction() {
             sourceRecordId,
             'Approved',
             userId,
-            comments
+            comments,
+            configuredResultStatus
           );
         } else {
           // Find next step
@@ -1154,7 +1163,8 @@ async function updateSourceRecordStatus(
   sourceRecordId: string,
   endState: EndState | 'Query',
   userId?: string,
-  comments?: string
+  comments?: string,
+  configuredResultStatus?: string | null
 ) {
   if (sourceModule === 'insured_person_registration') {
     let newStatus: string;
@@ -1163,7 +1173,11 @@ async function updateSourceRecordStatus(
       updated_by: userId,
     };
 
-    if (endState === 'Approved') {
+    if (configuredResultStatus) {
+      // Admin-configured status override
+      newStatus = configuredResultStatus;
+      updateData.status = newStatus;
+    } else if (endState === 'Approved') {
       newStatus = 'V'; // Verified
       updateData.status = newStatus;
       updateData.verified_by = userId;
