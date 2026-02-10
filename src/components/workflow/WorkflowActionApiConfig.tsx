@@ -179,8 +179,9 @@ export function WorkflowActionApiConfig({
           display_order: 3,
         },
       ]);
+      setInitialized(true);
     }
-  }, [existingConfig]);
+  }, [existingConfig, isLoadingConfig, initialized]);
 
   const addBodyMapping = () => {
     setBodyMappings([

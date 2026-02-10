@@ -1491,18 +1491,6 @@ export default function WorkflowForm() {
               stepName={apiConfigDialog.stepName}
               actionCode={apiConfigDialog.actionCode}
               actionName={apiConfigDialog.actionName}
-              existingConfig={existingApiConfig ? {
-                id: existingApiConfig.id,
-                http_method: existingApiConfig.http_method,
-                endpoint_url: existingApiConfig.endpoint_url,
-                api_key_secret_name: existingApiConfig.api_key_secret_name,
-                content_type: existingApiConfig.content_type,
-                timeout_seconds: existingApiConfig.timeout_seconds,
-                retry_count: existingApiConfig.retry_count,
-                is_active: existingApiConfig.is_active,
-                description: existingApiConfig.description,
-                body_mappings: existingApiConfig.body_mappings,
-              } : null}
               onSaved={() => {
                 setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
                 refetchApiConfig();
