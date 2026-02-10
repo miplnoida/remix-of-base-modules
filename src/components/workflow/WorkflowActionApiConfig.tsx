@@ -96,10 +96,12 @@ export function WorkflowActionApiConfig({
   actionName,
   existingConfig,
   onSaved,
+  onDeleted,
   onCancel,
 }: WorkflowActionApiConfigProps) {
   const { userCode } = useUserCode();
   const saveConfig = useSaveWorkflowActionApiConfig();
+  const deleteConfig = useDeleteWorkflowActionApiConfig();
 
   // API config state
   const [httpMethod, setHttpMethod] = useState(existingConfig?.http_method || 'POST');
