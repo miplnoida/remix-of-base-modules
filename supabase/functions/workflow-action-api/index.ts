@@ -197,6 +197,20 @@ Deno.serve(async (req) => {
           )
         }
 
+        // Fetch workflow name for audit logging
+        const { data: workflowDef } = await supabase
+          .from('workflow_definitions')
+          .select('name')
+          .eq('id', body.workflowId)
+          .single()
+        const workflowName = workflowDef?.name || body.workflowId
+
+        // Resolve application reference number from context
+        const appRefNo = body.applicationData?.application_reference_number 
+          || body.applicationData?.reference_number 
+          || body.workflowContext?.source_record_id 
+          || body.workflowInstanceId
+
         // Get API configuration
         const { data: config, error: configError } = await supabase
           .from('workflow_step_action_api')
@@ -208,8 +222,26 @@ Deno.serve(async (req) => {
           .single()
 
         if (configError || !config) {
-          // No API configured - this is not an error, just return success
+          // No API configured - log as info in audit trail
           console.log('No API configured for this action, skipping')
+
+          await supabase.from('system_audit_trail').insert({
+            action: 'workflow_api_skipped',
+            entity_type: 'workflow_api_call',
+            entity_id: appRefNo,
+            module: 'Workflow API',
+            user_id: userId,
+            user_name: userCode || 'SYSTEM',
+            severity: 'info',
+            payload_json: {
+              workflow_name: workflowName,
+              action_code: body.actionCode,
+              reason: 'No active API configuration found for this workflow step and action',
+              workflow_instance_id: body.workflowInstanceId,
+            },
+            timestamp: new Date().toISOString(),
+          })
+
           return new Response(
             JSON.stringify({ success: true, skipped: true, message: 'No API configured for this action' }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -265,7 +297,6 @@ Deno.serve(async (req) => {
         }
 
         if (apiKey) {
-          // Support different auth header formats
           if (config.api_key_secret_name.toLowerCase().includes('bearer')) {
             headers['Authorization'] = `Bearer ${apiKey}`
           } else {
@@ -273,8 +304,30 @@ Deno.serve(async (req) => {
           }
         }
 
+        // --- PRE-EXECUTION AUDIT LOG ---
+        await supabase.from('system_audit_trail').insert({
+          action: 'workflow_api_attempt',
+          entity_type: 'workflow_api_call',
+          entity_id: appRefNo,
+          module: 'Workflow API',
+          user_id: userId,
+          user_name: userCode || 'SYSTEM',
+          severity: 'info',
+          payload_json: {
+            workflow_name: workflowName,
+            action_code: body.actionCode,
+            http_method: config.http_method,
+            endpoint_url: resolvedUrl,
+            request_payload: requestBody,
+            workflow_instance_id: body.workflowInstanceId,
+            task_id: body.taskId,
+            api_config_id: config.id,
+            api_key_configured: !!apiKey,
+          },
+          timestamp: new Date().toISOString(),
+        })
+
         console.log(`Calling external API: ${config.http_method} ${resolvedUrl}`)
-        // Log request payload (safe to log)
         console.log('Request payload:', JSON.stringify(requestBody))
 
         // Execute API call with timeout
@@ -330,7 +383,7 @@ Deno.serve(async (req) => {
 
         const duration = Date.now() - startTime
 
-        // Log the execution (NEVER include API key in logs)
+        // Log the execution to workflow_api_execution_log (NEVER include API key)
         const { data: logEntry } = await supabase
           .from('workflow_api_execution_log')
           .insert({
@@ -341,7 +394,7 @@ Deno.serve(async (req) => {
             api_config_id: config.id,
             endpoint_url: resolvedUrl,
             http_method: config.http_method,
-            request_payload: requestBody, // Safe - no secrets here
+            request_payload: requestBody,
             response_payload: responseJson,
             http_status: httpStatus,
             execution_status: executionStatus,
@@ -353,6 +406,34 @@ Deno.serve(async (req) => {
           .select('id')
           .single()
 
+        // --- POST-EXECUTION AUDIT LOG ---
+        await supabase.from('system_audit_trail').insert({
+          action: executionStatus === 'SUCCESS' ? 'workflow_api_success' : 'workflow_api_failed',
+          entity_type: 'workflow_api_call',
+          entity_id: appRefNo,
+          module: 'Workflow API',
+          user_id: userId,
+          user_name: userCode || 'SYSTEM',
+          severity: executionStatus === 'SUCCESS' ? 'info' : 'warning',
+          payload_json: {
+            workflow_name: workflowName,
+            action_code: body.actionCode,
+            execution_status: executionStatus,
+            http_status: httpStatus,
+            http_method: config.http_method,
+            endpoint_url: resolvedUrl,
+            error_message: errorMessage,
+            duration_ms: duration,
+            response_summary: responseJson 
+              ? (typeof responseJson === 'object' ? JSON.stringify(responseJson).substring(0, 500) : String(responseJson).substring(0, 500))
+              : null,
+            execution_log_id: logEntry?.id,
+            workflow_instance_id: body.workflowInstanceId,
+            task_id: body.taskId,
+          },
+          timestamp: new Date().toISOString(),
+        })
+
         // Return result
         const result = {
           success: executionStatus === 'SUCCESS',
@@ -362,7 +443,6 @@ Deno.serve(async (req) => {
           errorMessage,
           duration,
           logId: logEntry?.id,
-          // Include warning if API failed but don't fail the workflow
           warning: executionStatus !== 'SUCCESS' 
             ? `API call failed: ${errorMessage}. Workflow action completed but external sync may be pending.`
             : undefined
@@ -501,6 +581,30 @@ Deno.serve(async (req) => {
           })
           .select('id')
           .single()
+
+        // Audit trail for retry
+        await supabase.from('system_audit_trail').insert({
+          action: executionStatus === 'SUCCESS' ? 'workflow_api_retry_success' : 'workflow_api_retry_failed',
+          entity_type: 'workflow_api_call',
+          entity_id: logEntry.action_code,
+          module: 'Workflow API',
+          user_id: userId,
+          user_name: userCode || 'SYSTEM',
+          severity: executionStatus === 'SUCCESS' ? 'info' : 'warning',
+          payload_json: {
+            action_code: logEntry.action_code,
+            execution_status: executionStatus,
+            http_status: httpStatus,
+            endpoint_url: logEntry.endpoint_url,
+            error_message: errorMessage,
+            duration_ms: duration,
+            retry_attempt: (logEntry.retry_attempt || 0) + 1,
+            original_log_id: body.executionLogId,
+            new_log_id: newLogEntry?.id,
+            workflow_instance_id: logEntry.workflow_instance_id,
+          },
+          timestamp: new Date().toISOString(),
+        })
 
         return new Response(
           JSON.stringify({
