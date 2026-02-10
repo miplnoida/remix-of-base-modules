@@ -54,6 +54,16 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
     return addMonths(new Date(form.effective_start_date), 6);
   }, [form.effective_start_date]);
 
+  // Group categories by activity_seq_no (must be before early return)
+  const groupedCategories = useMemo(() => {
+    const groups: Record<string, typeof categories> = {};
+    for (const cat of categories) {
+      if (!groups[cat.activity_seq_no]) groups[cat.activity_seq_no] = [];
+      groups[cat.activity_seq_no].push(cat);
+    }
+    return groups;
+  }, [categories]);
+
   const handleAdd = async () => {
     setFormError(null);
     if (!selfRefNo || !form.selected_activity_seq || !form.effective_start_date || !form.wage_category) {
@@ -91,14 +101,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Showing categories for: <strong>
-            {selectedActivity
-              ? `Seq. ${selectedActivity.activity_seq_no} - ${selectedActivity.activity_type || 'N/A'}`
-              : '-'}
-          </strong>
-        </div>
+      <div className="flex items-center justify-end">
         {isEditable && (
           <Button variant="outline" size="sm" onClick={() => { setShowAddDialog(true); setFormError(null); }}>
             <Plus className="h-4 w-4 mr-1" /> Add Wage Category
@@ -106,37 +109,50 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
         )}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Self Ref. No.</TableHead>
-                <TableHead>Effective Start</TableHead>
-                <TableHead>Effective End</TableHead>
-                <TableHead>Wage Category</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((cat, idx) => (
-                <TableRow key={idx}>
-                  <TableCell className="font-mono">{cat.self_ref_no}</TableCell>
-                  <TableCell>{cat.effective_start_date ? format(new Date(cat.effective_start_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{cat.effective_end_date ? format(new Date(cat.effective_end_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{cat.wage_category ?? '-'}</TableCell>
-                </TableRow>
-              ))}
-              {categories.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No wage categories assigned
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {Object.keys(groupedCategories).length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            No wage categories assigned
+          </CardContent>
+        </Card>
+      )}
+
+      {Object.entries(groupedCategories).map(([seqNo, cats]) => {
+        const matchedActivity = activities.find(a => a.activity_seq_no === seqNo);
+        const groupLabel = matchedActivity
+          ? `Seq. ${seqNo} - ${matchedActivity.activity_type || 'N/A'}`
+          : `Seq. ${seqNo}`;
+
+        return (
+          <Card key={seqNo}>
+            <CardContent className="p-0">
+              <div className="px-4 py-2 bg-muted/50 border-b text-sm font-medium text-foreground">
+                {groupLabel}
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Self Ref. No.</TableHead>
+                    <TableHead>Effective Start</TableHead>
+                    <TableHead>Effective End</TableHead>
+                    <TableHead>Wage Category</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cats.map((cat, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-mono">{cat.self_ref_no}</TableCell>
+                      <TableCell>{cat.effective_start_date ? format(new Date(cat.effective_start_date), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{cat.effective_end_date ? format(new Date(cat.effective_end_date), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{cat.wage_category ?? '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
