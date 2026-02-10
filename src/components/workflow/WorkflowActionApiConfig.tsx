@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import {
   useSaveWorkflowActionApiConfig,
   useDeleteWorkflowActionApiConfig,
+  useWorkflowActionApiConfig,
   VALUE_SOURCE_OPTIONS,
   SOURCE_KEY_SUGGESTIONS,
   STANDARD_ACTION_CODES,
@@ -61,18 +62,6 @@ interface WorkflowActionApiConfigProps {
   stepName: string;
   actionCode: string;
   actionName: string;
-  existingConfig?: {
-    id: string;
-    http_method: string;
-    endpoint_url: string;
-    api_key_secret_name: string;
-    content_type: string;
-    timeout_seconds: number;
-    retry_count: number;
-    is_active: boolean;
-    description?: string;
-    body_mappings?: Omit<WorkflowActionApiBodyMapping, 'id' | 'workflow_action_api_id' | 'created_at'>[];
-  } | null;
   onSaved?: () => void;
   onDeleted?: () => void;
   onCancel?: () => void;
@@ -94,7 +83,6 @@ export function WorkflowActionApiConfig({
   stepName,
   actionCode,
   actionName,
-  existingConfig,
   onSaved,
   onDeleted,
   onCancel,
@@ -103,34 +91,55 @@ export function WorkflowActionApiConfig({
   const saveConfig = useSaveWorkflowActionApiConfig();
   const deleteConfig = useDeleteWorkflowActionApiConfig();
 
+  // Fetch existing config internally
+  const { data: existingConfig, isLoading: isLoadingConfig } = useWorkflowActionApiConfig(
+    workflowId,
+    stepId,
+    actionCode
+  );
+  const [initialized, setInitialized] = useState(false);
+
   // API config state
-  const [httpMethod, setHttpMethod] = useState(existingConfig?.http_method || 'POST');
-  const [endpointUrl, setEndpointUrl] = useState(existingConfig?.endpoint_url || '');
-  const [apiKeySecretName, setApiKeySecretName] = useState(existingConfig?.api_key_secret_name || '');
-  const [contentType, setContentType] = useState(existingConfig?.content_type || 'application/json');
-  const [timeoutSeconds, setTimeoutSeconds] = useState(existingConfig?.timeout_seconds || 30);
-  const [retryCount, setRetryCount] = useState(existingConfig?.retry_count || 0);
-  const [isActive, setIsActive] = useState(existingConfig?.is_active ?? true);
-  const [description, setDescription] = useState(existingConfig?.description || '');
+  const [httpMethod, setHttpMethod] = useState('POST');
+  const [endpointUrl, setEndpointUrl] = useState('');
+  const [apiKeySecretName, setApiKeySecretName] = useState('');
+  const [contentType, setContentType] = useState('application/json');
+  const [timeoutSeconds, setTimeoutSeconds] = useState(30);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isActive, setIsActive] = useState(true);
+  const [description, setDescription] = useState('');
 
   // Body mappings state
   const [bodyMappings, setBodyMappings] = useState<BodyMappingRow[]>([]);
 
-  // Initialize body mappings from existing config
+  // Initialize form state from fetched config
   useEffect(() => {
-    if (existingConfig?.body_mappings) {
-      setBodyMappings(
-        existingConfig.body_mappings.map((m, i) => ({
-          id: `existing-${i}`,
-          json_field_name: m.json_field_name,
-          value_source: m.value_source,
-          source_key: m.source_key,
-          static_value: m.static_value || '',
-          is_required: m.is_required,
-          display_order: m.display_order,
-        }))
-      );
-    } else {
+    if (isLoadingConfig || initialized) return;
+    if (existingConfig) {
+      setHttpMethod(existingConfig.http_method || 'POST');
+      setEndpointUrl(existingConfig.endpoint_url || '');
+      setApiKeySecretName(existingConfig.api_key_secret_name || '');
+      setContentType(existingConfig.content_type || 'application/json');
+      setTimeoutSeconds(existingConfig.timeout_seconds || 30);
+      setRetryCount(existingConfig.retry_count || 0);
+      setIsActive(existingConfig.is_active ?? true);
+      setDescription(existingConfig.description || '');
+      if (existingConfig.body_mappings) {
+        setBodyMappings(
+          existingConfig.body_mappings.map((m: any, i: number) => ({
+            id: `existing-${i}`,
+            json_field_name: m.json_field_name,
+            value_source: m.value_source,
+            source_key: m.source_key,
+            static_value: m.static_value || '',
+            is_required: m.is_required,
+            display_order: m.display_order,
+          }))
+        );
+      }
+      setInitialized(true);
+    } else if (!isLoadingConfig) {
+      // No existing config - set defaults
       // Initialize with standard fields
       setBodyMappings([
         {
@@ -170,8 +179,9 @@ export function WorkflowActionApiConfig({
           display_order: 3,
         },
       ]);
+      setInitialized(true);
     }
-  }, [existingConfig]);
+  }, [existingConfig, isLoadingConfig, initialized]);
 
   const addBodyMapping = () => {
     setBodyMappings([
@@ -250,6 +260,15 @@ export function WorkflowActionApiConfig({
       // Error handled by mutation
     }
   };
+
+  if (isLoadingConfig) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading API configuration...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -53,7 +53,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 import { useWorkflowActionTypes } from '@/hooks/useMeetings';
 import { WorkflowActionApiConfig } from '@/components/workflow/WorkflowActionApiConfig';
-import { useWorkflowActionApiConfig } from '@/hooks/useWorkflowActionApi';
+// useWorkflowActionApiConfig now used internally by WorkflowActionApiConfig
 
 interface StepFormData {
   id?: string;
@@ -199,12 +199,8 @@ export default function WorkflowForm() {
   const { data: designations } = useDesignations();
   const { data: dbActionTypes } = useWorkflowActionTypes();
   
-  // Fetch existing API config for the dialog
-  const { data: existingApiConfig, refetch: refetchApiConfig } = useWorkflowActionApiConfig(
-    isEditing ? id : undefined,
-    apiConfigDialog.stepId || undefined,
-    apiConfigDialog.actionCode || undefined
-  );
+  // refetchApiConfig kept for invalidation after save/delete (no longer needed for passing data)
+  const refetchApiConfig = () => {};
   
   // Create action types from database
   const stepActionTypes = useMemo(() => {
@@ -1495,18 +1491,6 @@ export default function WorkflowForm() {
               stepName={apiConfigDialog.stepName}
               actionCode={apiConfigDialog.actionCode}
               actionName={apiConfigDialog.actionName}
-              existingConfig={existingApiConfig ? {
-                id: existingApiConfig.id,
-                http_method: existingApiConfig.http_method,
-                endpoint_url: existingApiConfig.endpoint_url,
-                api_key_secret_name: existingApiConfig.api_key_secret_name,
-                content_type: existingApiConfig.content_type,
-                timeout_seconds: existingApiConfig.timeout_seconds,
-                retry_count: existingApiConfig.retry_count,
-                is_active: existingApiConfig.is_active,
-                description: existingApiConfig.description,
-                body_mappings: existingApiConfig.body_mappings,
-              } : null}
               onSaved={() => {
                 setApiConfigDialog({ open: false, stepId: null, stepName: '', actionCode: '', actionName: '' });
                 refetchApiConfig();
