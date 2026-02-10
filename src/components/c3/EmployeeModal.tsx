@@ -11,6 +11,7 @@ import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculations';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface EmployeeData {
   ssn: string;
