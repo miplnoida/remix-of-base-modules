@@ -261,6 +261,15 @@ export function WorkflowActionApiConfig({
     }
   };
 
+  if (isLoadingConfig) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading API configuration...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
