@@ -570,10 +570,6 @@ export default function EmployeeModal({
                     <Label className="text-xs text-muted-foreground">Severance ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</Label>
                     <div className="font-medium">{formatCurrency(payrollCalc.employerSeverance)}</div>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Total Employer</Label>
-                    <div className="font-medium text-primary">{formatCurrency(payrollCalc.employersThreePercentLevyPlusSS + payrollCalc.employerSeverance)}</div>
-                  </div>
                 </div>
                 {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
                   <div className="mt-2 space-y-1">
