@@ -88,11 +88,16 @@ export interface C3ListFilters {
   payer_type?: 'ER' | 'SE' | 'VC';
   payer_id?: string;
   period?: string;
+  period_month?: number;
+  period_year?: number;
   status?: string;
   entered_by?: string;
   verified_by?: string;
   date_received_from?: string;
   date_received_to?: string;
+  date_entered_from?: string;
+  date_entered_to?: string;
+  schedule_no?: number;
   page?: number;
   pageSize?: number;
 }
@@ -579,15 +584,28 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
     }
 
     if (filters.entered_by) {
-      query = query.ilike('entered_by', `%${filters.entered_by}%`);
+      query = query.eq('entered_by', filters.entered_by);
     }
 
     if (filters.verified_by) {
-      query = query.ilike('verified_by', `%${filters.verified_by}%`);
+      query = query.eq('verified_by', filters.verified_by);
     }
 
     if (filters.period) {
       query = query.eq('period', filters.period);
+    }
+
+    // Period month/year filter: match records where period starts with YYYY-MM
+    if (filters.period_year && filters.period_month !== undefined && filters.period_month !== null) {
+      const monthStr = String(filters.period_month + 1).padStart(2, '0');
+      const periodPrefix = `${filters.period_year}-${monthStr}`;
+      query = query.gte('period', `${periodPrefix}-01`).lte('period', `${periodPrefix}-31`);
+    } else if (filters.period_year) {
+      query = query.gte('period', `${filters.period_year}-01-01`).lte('period', `${filters.period_year}-12-31`);
+    }
+
+    if (filters.schedule_no) {
+      query = query.eq('sequence_no', filters.schedule_no);
     }
 
     if (filters.date_received_from) {
@@ -596,6 +614,14 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
 
     if (filters.date_received_to) {
       query = query.lte('date_received', filters.date_received_to);
+    }
+
+    if (filters.date_entered_from) {
+      query = query.gte('date_entered', filters.date_entered_from);
+    }
+
+    if (filters.date_entered_to) {
+      query = query.lte('date_entered', filters.date_entered_to);
     }
 
     // Pagination
@@ -1369,4 +1395,34 @@ export async function saveVoluntaryContributorC3(
     console.error('Error saving voluntary contributor C3:', error);
     return { success: false, error: error.message };
   }
+}
+
+// Fetch C3 status master data from tb_c3_status
+export async function getC3Statuses(): Promise<{ code: string; description: string }[]> {
+  const { data, error } = await supabase
+    .from('tb_c3_status')
+    .select('code, description')
+    .eq('isactive', true)
+    .order('description');
+
+  if (error) {
+    console.error('Error fetching C3 statuses:', error);
+    return [];
+  }
+  return data || [];
+}
+
+// Fetch active profiles for Entered By / Verified By dropdowns
+export async function getActiveProfiles(): Promise<{ user_code: string; full_name: string }[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('user_code, full_name')
+    .eq('is_active', true)
+    .order('full_name');
+
+  if (error) {
+    console.error('Error fetching profiles:', error);
+    return [];
+  }
+  return (data || []).filter(p => p.user_code && p.full_name);
 }
