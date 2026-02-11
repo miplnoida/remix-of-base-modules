@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
@@ -413,7 +414,7 @@ export default function IPRegistrationList() {
       return '-';
     }
     if (record.registration_date) {
-      return format(new Date(record.registration_date), 'dd/MM/yyyy');
+      return formatDisplayDate(record.registration_date) || '-';
     }
     return '-';
   };
@@ -422,7 +423,7 @@ export default function IPRegistrationList() {
   const getDateOfBirth = (record: IPRecord): string => {
     const dob = record.dob || record.date_of_birth;
     if (!dob) return '-';
-    return format(new Date(dob), 'dd/MM/yyyy');
+    return formatDisplayDate(dob) || '-';
   };
 
   // Get gender display

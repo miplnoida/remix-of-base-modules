@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 
 interface SEPStatusPanelProps {
@@ -147,9 +148,9 @@ export const SEPStatusPanel: React.FC<SEPStatusPanelProps> = ({ ssn, selfEmploye
               <p><span className="text-muted-foreground">Total SS Paid:</span> <strong>${(contributionSummary?.total_ss_amount ?? 0).toFixed(2)}</strong></p>
               <p><span className="text-muted-foreground">Period Range:</span></p>
               <p className="text-xs">
-                {contributionSummary?.earliest_period ? format(new Date(contributionSummary.earliest_period), 'dd/MM/yyyy') : '-'}
+                {contributionSummary?.earliest_period ? formatDisplayDate(contributionSummary.earliest_period) : '-'}
                 {' → '}
-                {contributionSummary?.latest_period ? format(new Date(contributionSummary.latest_period), 'dd/MM/yyyy') : '-'}
+                {contributionSummary?.latest_period ? formatDisplayDate(contributionSummary.latest_period) : '-'}
               </p>
             </div>
           </CardContent>
