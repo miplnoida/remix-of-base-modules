@@ -91,16 +91,18 @@ export default function EmployeeModal({
   }, [periodYear, periodMonth]);
 
   // Calculate enabled weeks based on period
-  const mondayCount = getMondayCount(periodYear, periodMonth);
+  const safePeriodYear = isNaN(periodYear) ? new Date().getFullYear() : periodYear;
+  const safePeriodMonth = isNaN(periodMonth) ? new Date().getMonth() : periodMonth;
+  const mondayCount = getMondayCount(safePeriodYear, safePeriodMonth);
   const enabledWeekCheckboxes = [true, true, true, true, mondayCount >= 5];
 
   // Calculate enabled textboxes based on pay period
   const enabledTextboxes = getEnabledWeekTextboxes(
     localEmployee.payPeriod || 'Monthly',
-    periodYear,
-    periodMonth,
+    safePeriodYear,
+    safePeriodMonth,
     localEmployee.termStartDate
-  );
+  ) || [false, false, false, false, false];
 
   // Calculate payroll contributions using database-driven C3 configuration
   const payrollCalc = useMemo(() => {
@@ -353,7 +355,7 @@ export default function EmployeeModal({
   const isWeekFieldEnabled = (index: number) => {
     // Week 1-5 (indices 0-4): based on pay period and week checkbox
     if (index < 5) {
-      return localEmployee.days[index] && enabledTextboxes[index];
+      return localEmployee.days?.[index] && enabledTextboxes?.[index];
     }
     // Bonus Pay (index 5): enabled only if checkbox is checked
     if (index === 5) {
