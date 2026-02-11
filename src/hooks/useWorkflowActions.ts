@@ -56,6 +56,7 @@ interface WorkflowInstance {
   source_record_id: string;
   current_step_id: string | null;
   status: string;
+  started_by: string | null;
 }
 
 /**
@@ -207,6 +208,32 @@ export function useWorkflowActions(
       let actions: WorkflowAction[] = [];
       
       if (canPerformActions) {
+        // Step 4b: Maker-checker enforcement
+        // Check if workflow has maker_checker_enabled and if the current user is the record creator
+        const makerCheckerBlocked = await checkMakerCheckerRestriction(
+          instance.workflow_id,
+          instance.started_by,
+          userId,
+          sourceModule,
+          sourceRecordId
+        );
+
+        if (makerCheckerBlocked) {
+          console.log('Maker-checker restriction: user is the record creator/submitter, hiding actions');
+          return {
+            hasWorkflow: true,
+            instanceId: instance.id,
+            workflowId: instance.workflow_id,
+            taskId: task.id,
+            currentStepId: task.step_id,
+            currentStepName: task.step_name,
+            workflowName: instance.workflow_name,
+            workflowStatus: instance.status,
+            actions: [],
+            canPerformActions: false,
+          };
+        }
+
         const { data: stepActions, error: actionsError } = await supabase
           .from('workflow_step_actions')
           .select('*')
@@ -577,6 +604,82 @@ async function checkTaskLevelAssignment(
 }
 
 /**
+ * Check if maker-checker restriction blocks the current user from performing workflow actions.
+ * Returns true if the user should be BLOCKED (i.e., they are the creator and maker-checker is enabled).
+ */
+async function checkMakerCheckerRestriction(
+  workflowId: string | null,
+  instanceStartedBy: string | null,
+  currentUserId: string,
+  sourceModule: string,
+  sourceRecordId: string
+): Promise<boolean> {
+  if (!workflowId) return false;
+
+  // Check if the workflow has maker-checker enabled
+  const { data: workflowDef, error } = await supabase
+    .from('workflow_definitions')
+    .select('maker_checker_enabled')
+    .eq('id', workflowId)
+    .single();
+
+  if (error || !workflowDef) return false;
+  if (!(workflowDef as any).maker_checker_enabled) return false;
+
+  // Check 1: Compare with workflow instance started_by
+  if (instanceStartedBy && instanceStartedBy === currentUserId) {
+    console.log('Maker-checker: blocked (user is workflow instance starter)');
+    return true;
+  }
+
+  // Check 2: Look up the source record's creator (entered_by / created_by)
+  // This handles cases where the workflow was auto-started but the record was created by this user
+  try {
+    // Determine the table and creator column based on module
+    const creatorCheckMap: Record<string, { table: string; idCol: string; creatorCols: string[] }> = {
+      'insured_person_registration': { table: 'ip_master', idCol: 'unique_uuid', creatorCols: ['entered_by'] },
+      'employer_registration': { table: 'er_master', idCol: 'unique_uuid', creatorCols: ['entered_by'] },
+    };
+
+    const config = creatorCheckMap[sourceModule];
+    if (config) {
+      const { data: record } = await supabase
+        .from(config.table as any)
+        .select(config.creatorCols.join(', '))
+        .eq(config.idCol, sourceRecordId)
+        .maybeSingle();
+
+      if (record) {
+        // Get the current user's user_code for comparison
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_code')
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+        if (profile?.user_code) {
+          for (const col of config.creatorCols) {
+            if ((record as any)[col] && (record as any)[col] === profile.user_code) {
+              console.log('Maker-checker: blocked (user_code matches record creator)', {
+                userCode: profile.user_code,
+                creatorField: col,
+                creatorValue: (record as any)[col],
+              });
+              return true;
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Maker-checker: Error checking source record creator:', err);
+    // Don't block on error - fail open for non-critical check
+  }
+
+  return false;
+}
+
+/**
  * Hook to execute a workflow action.
  */
 export function useExecuteWorkflowAction() {
@@ -638,6 +741,40 @@ export function useExecuteWorkflowAction() {
       }
 
       const workflowInstance = task.workflow_instance as any;
+
+      // Server-side maker-checker enforcement (defense in depth)
+      const makerCheckerBlocked = await checkMakerCheckerRestriction(
+        workflowInstance?.workflow_id,
+        workflowInstance?.started_by,
+        userId,
+        sourceModule,
+        sourceRecordId
+      );
+
+      if (makerCheckerBlocked) {
+        // Log the blocked attempt
+        await supabase.from('system_audit_trail').insert({
+          action: 'maker_checker_blocked',
+          entity_type: 'workflow_action',
+          entity_id: actionId,
+          module: sourceModule,
+          user_id: userId,
+          user_name: profile?.user_code || 'UNKNOWN',
+          timestamp: new Date().toISOString(),
+          severity: 'warn',
+          payload_json: {
+            workflow_id: workflowInstance?.workflow_id,
+            workflow_name: workflowInstance?.workflow_name,
+            source_record_id: sourceRecordId,
+            action_name: action.action_name,
+            reason: 'Maker-checker restriction: creator cannot execute workflow actions on own record',
+          },
+        }).then(() => {}, (err) => console.error('[Audit] Failed to log maker-checker block:', err));
+
+        throw new Error('You cannot perform this action on a record you created or submitted (maker-checker policy).');
+      }
+
+      // workflowInstance already declared above
 
       // Update task as completed
       const { error: updateError } = await supabase
