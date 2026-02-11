@@ -117,13 +117,21 @@ export default function EmployeeModal({
   // Reset form when employee changes
   useEffect(() => {
     if (employee) {
+      const safeDays = Array.isArray(employee.days) && employee.days.length === 7
+        ? employee.days
+        : [false, false, false, false, false, false, false];
+      const safeWages = Array.isArray(employee.weeklyWages) && employee.weeklyWages.length === 7
+        ? employee.weeklyWages
+        : [0, 0, 0, 0, 0, 0, 0];
       setLocalEmployee({
         ...employee,
+        days: safeDays,
+        weeklyWages: safeWages,
         termStartDate: periodTermStartDate
       });
       setSsnValidated(true);
       setSsnError('');
-      setWageInputValues(employee.weeklyWages.map(w => w === 0 ? '' : String(w)));
+      setWageInputValues(safeWages.map(w => w === 0 ? '' : String(w)));
     } else {
       setLocalEmployee({
         ssn: '',
@@ -185,8 +193,8 @@ export default function EmployeeModal({
   // Auto-check week checkboxes when pay period changes
   useEffect(() => {
     if (isViewMode) return;
-    const newDays = [...localEmployee.days];
-    const newWages = [...localEmployee.weeklyWages];
+    const newDays = [...(localEmployee.days || [false, false, false, false, false, false, false])];
+    const newWages = [...(localEmployee.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
     // Auto-check weeks 0-4 based on enabled textboxes
     for (let i = 0; i < 5; i++) {
       if (enabledTextboxes[i] && enabledWeekCheckboxes[i]) {
@@ -359,11 +367,11 @@ export default function EmployeeModal({
     }
     // Bonus Pay (index 5): enabled only if checkbox is checked
     if (index === 5) {
-      return localEmployee.days[5];
+      return localEmployee.days?.[5] ?? false;
     }
     // Holiday Pay (index 6): enabled only if checkbox is checked
     if (index === 6) {
-      return localEmployee.days[6];
+      return localEmployee.days?.[6] ?? false;
     }
     return false;
   };
@@ -483,13 +491,13 @@ export default function EmployeeModal({
                         className={`h-8 w-7 min-w-[1.75rem] border rounded-l-md flex items-center justify-center ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                         } ${
-                          localEmployee.days[index]
+                          localEmployee.days?.[index]
                             ? 'bg-primary border-primary'
                             : 'bg-background border-[#d4d4d8]'
                         }`}
                         onClick={() => isCheckboxEnabled && handleWeekToggle(index)}
                       >
-                        {localEmployee.days[index] && (
+                        {localEmployee.days?.[index] && (
                           <span className="text-primary-foreground text-sm font-bold">✓</span>
                         )}
                       </div>
