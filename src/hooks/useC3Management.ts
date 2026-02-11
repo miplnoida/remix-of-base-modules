@@ -126,12 +126,24 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
     wage.wages_paid7 || 0, // Holiday
   ];
 
+  // Build days (checkboxes) from paid_code1..7: '1' = checked, '0' = unchecked
+  const days = [
+    wage.paid_code1 === '1',
+    wage.paid_code2 === '1',
+    wage.paid_code3 === '1',
+    wage.paid_code4 === '1',
+    wage.paid_code5 === '1',
+    wage.paid_code6 === '1', // Bonus
+    wage.paid_code7 === '1', // Holiday
+  ];
+
   return {
     id: wage.id,
     ssn: wage.ssn,
     name: wage.employee_name || '',
     payPeriod: mapPayPeriodCodeToString(wage.pay_period),
     weeklyWages,
+    days,
     totalWages: wage.total_wages || 0,
     periodGross: wage.total_wages || 0,
     // Employee contributions
