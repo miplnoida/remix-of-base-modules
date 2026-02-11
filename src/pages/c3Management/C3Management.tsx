@@ -1218,14 +1218,37 @@ export default function C3Management() {
               {
                 key: 'actions',
                 label: 'Actions',
-                minWidth: '200px',
+                minWidth: '280px',
                 render: (_, record) => {
                   const isDraft = record.postingStatus === 'DFT' || record.postingStatus === 'Z';
-                  const isPending = record.postingStatus === 'PEN' || record.postingStatus === 'P';
                   const sourceModule = `c3_${(record.payerType || 'er').toLowerCase()}_submission`;
                   
                   return (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 flex-nowrap">
+                      {/* View button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="View Details"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleView(record);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {/* Edit button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="Edit"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(record);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       {/* Submit button for Draft records */}
                       {isDraft && (
                         <Button
@@ -1262,9 +1285,7 @@ export default function C3Management() {
             ]}
             title={`C3 Records (${total} total)`}
             searchPlaceholder="Search by Payer ID, Name, or Type"
-            actions={{ view: true, edit: true }}
-            onView={(record) => handleView(record)}
-            onEdit={(record) => handleEdit(record)}
+            actions={false}
           />
         )}
       </div>
