@@ -386,7 +386,7 @@ export default function EmployeeModal({
     </AlertDialog>
 
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ width: '65vw', maxWidth: '65vw', minWidth: '1000px' }}>
         <DialogHeader>
           <DialogTitle>
             {isViewMode ? 'View Employee' : (employee ? 'Edit Employee' : 'Add New Employee')}
