@@ -6945,6 +6945,7 @@ export type Database = {
       }
       password_policies: {
         Row: {
+          auto_refresh_enabled: boolean | null
           created_at: string | null
           id: string
           idle_timeout_minutes: number | null
@@ -6964,6 +6965,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          auto_refresh_enabled?: boolean | null
           created_at?: string | null
           id?: string
           idle_timeout_minutes?: number | null
@@ -6983,6 +6985,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          auto_refresh_enabled?: boolean | null
           created_at?: string | null
           id?: string
           idle_timeout_minutes?: number | null
