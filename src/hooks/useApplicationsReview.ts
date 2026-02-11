@@ -218,6 +218,43 @@ export function useProcessReviewAction() {
         .single();
       
       if (taskError) throw taskError;
+
+      // Server-side maker-checker enforcement
+      const workflowInstance = task.workflow_instance as any;
+      if (workflowInstance?.workflow_id) {
+        const { data: workflowDef } = await supabase
+          .from('workflow_definitions')
+          .select('maker_checker_enabled')
+          .eq('id', workflowInstance.workflow_id)
+          .single();
+
+        if ((workflowDef as any)?.maker_checker_enabled) {
+          const currentUserId = user.user?.id;
+          // Check if current user is the workflow starter
+          if (workflowInstance.started_by && workflowInstance.started_by === currentUserId) {
+            // Log the blocked attempt
+            await supabase.from('system_audit_trail').insert({
+              action: 'maker_checker_blocked',
+              entity_type: 'workflow_action',
+              entity_id: actionId,
+              module: workflowInstance.source_module || 'applications_review',
+              user_id: currentUserId,
+              user_name: profile?.full_name || 'UNKNOWN',
+              timestamp: new Date().toISOString(),
+              severity: 'warn',
+              payload_json: {
+                workflow_id: workflowInstance.workflow_id,
+                workflow_name: workflowInstance.workflow_name,
+                source_record_id: workflowInstance.source_record_id,
+                action_name: actionName,
+                reason: 'Maker-checker restriction: creator cannot execute workflow actions on own record',
+              },
+            }).then(() => {}, (err) => console.error('[Audit] Failed to log maker-checker block:', err));
+
+            throw new Error('You cannot perform this action on a record you created or submitted (maker-checker policy).');
+          }
+        }
+      }
       
       // Update task as completed
       const { error: updateError } = await supabase

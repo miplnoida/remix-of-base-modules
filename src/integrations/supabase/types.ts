@@ -9685,6 +9685,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          maker_checker_enabled: boolean
           name: string
           process_type: string
           secured_module_id: string | null
@@ -9699,6 +9700,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          maker_checker_enabled?: boolean
           name: string
           process_type: string
           secured_module_id?: string | null
@@ -9713,6 +9715,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          maker_checker_enabled?: boolean
           name?: string
           process_type?: string
           secured_module_id?: string | null

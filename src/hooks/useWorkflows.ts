@@ -16,6 +16,7 @@ export interface WorkflowDefinition {
   updated_at: string;
   secured_module_id: string | null;
   secured_table: string | null;
+  maker_checker_enabled: boolean;
 }
 
 export interface WorkflowStep {
@@ -214,10 +215,11 @@ export function useCreateWorkflow() {
           process_type: data.process_type,
           default_sla_hours: data.default_sla_hours || 24,
           is_active: data.is_active || false,
+          maker_checker_enabled: data.maker_checker_enabled || false,
           created_by: user.user?.id,
           secured_module_id: data.secured_module_id || null,
           secured_table: data.secured_table || null,
-        })
+        } as any)
         .select()
         .single();
       
@@ -248,9 +250,10 @@ export function useUpdateWorkflow() {
           process_type: data.process_type,
           default_sla_hours: data.default_sla_hours,
           is_active: data.is_active,
+          maker_checker_enabled: data.maker_checker_enabled,
           secured_module_id: data.secured_module_id,
           secured_table: data.secured_table,
-        })
+        } as any)
         .eq('id', id)
         .select()
         .single();

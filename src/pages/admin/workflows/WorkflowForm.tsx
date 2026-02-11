@@ -175,6 +175,7 @@ export default function WorkflowForm() {
     process_type: '',
     default_sla_hours: 24,
     is_active: false,
+    maker_checker_enabled: false,
     secured_module_id: null as string | null,
     secured_table: null as string | null,
   });
@@ -284,6 +285,7 @@ export default function WorkflowForm() {
         process_type: workflow.process_type,
         default_sla_hours: workflow.default_sla_hours,
         is_active: workflow.is_active,
+        maker_checker_enabled: (workflow as any).maker_checker_enabled || false,
         secured_module_id: (workflow as any).secured_module_id || null,
         secured_table: (workflow as any).secured_table || null,
       });
@@ -680,7 +682,7 @@ export default function WorkflowForm() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sla">Default SLA (hours)</Label>
                 <Input
@@ -698,6 +700,19 @@ export default function WorkflowForm() {
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
                 <Label htmlFor="active">Active</Label>
+              </div>
+              <div className="space-y-1 pt-6">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="maker_checker"
+                    checked={formData.maker_checker_enabled}
+                    onCheckedChange={(checked) => setFormData({ ...formData, maker_checker_enabled: checked })}
+                  />
+                  <Label htmlFor="maker_checker">Maker–Checker</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Prevents the record creator from performing workflow actions
+                </p>
               </div>
             </div>
 
