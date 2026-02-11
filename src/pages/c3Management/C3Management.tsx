@@ -23,6 +23,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
 import { useC3Submit } from "@/hooks/useC3Submit";
 import { WorkflowActionButtonsCompact } from "@/components/workflow/WorkflowActionButtons";
+import { getC3Statuses, getActiveProfiles } from "@/services/c3Service";
+import MonthYearPicker from "@/components/c3/MonthYearPicker";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -70,13 +72,24 @@ export default function C3Management() {
   const [filters, setFilters] = useState({
     regNo: "",
     scheduleNo: "",
-    period: "",
+    periodMonth: undefined as number | undefined,
+    periodYear: undefined as number | undefined,
     dateReceived: "",
     enteredBy: "",
     verifiedBy: "",
     dateEntered: "",
     status: ""
   });
+
+  // Lookup data for dropdowns
+  const [c3Statuses, setC3Statuses] = useState<{ code: string; description: string }[]>([]);
+  const [profilesList, setProfilesList] = useState<{ user_code: string; full_name: string }[]>([]);
+
+  // Fetch lookup data on mount
+  useEffect(() => {
+    getC3Statuses().then(setC3Statuses);
+    getActiveProfiles().then(setProfilesList);
+  }, []);
 
   // Fetch records on mount and when contribution type changes
   useEffect(() => {
@@ -95,9 +108,9 @@ export default function C3Management() {
       case "employer":
         return "Add New C3-Employer";
       case "self-employed":
-        return "Add New C3-Self Contributor";
+        return "Add New C3-Self Employed";
       case "voluntary":
-        return "Add New C3-Voluntary Contribution";
+        return "Add New C3-Voluntary Contributor";
       default:
         return "Add New C3";
     }
@@ -115,11 +128,14 @@ export default function C3Management() {
     fetchRecords({
       payer_type: payerType,
       payer_id: filters.regNo || undefined,
-      period: filters.period || undefined,
-      status: filters.status ? filters.status.charAt(0).toUpperCase() : undefined,
+      period_month: filters.periodMonth !== undefined ? filters.periodMonth : undefined,
+      period_year: filters.periodYear !== undefined ? filters.periodYear : undefined,
+      status: filters.status || undefined,
       entered_by: filters.enteredBy || undefined,
       verified_by: filters.verifiedBy || undefined,
       date_received_from: filters.dateReceived || undefined,
+      date_entered_from: filters.dateEntered || undefined,
+      schedule_no: filters.scheduleNo ? parseInt(filters.scheduleNo) : undefined,
     });
   }, [filters, contributionType, fetchRecords]);
 
@@ -127,7 +143,8 @@ export default function C3Management() {
     setFilters({
       regNo: "",
       scheduleNo: "",
-      period: "",
+      periodMonth: undefined,
+      periodYear: undefined,
       dateReceived: "",
       enteredBy: "",
       verifiedBy: "",
@@ -135,7 +152,6 @@ export default function C3Management() {
       status: ""
     });
     setSearchTerm("");
-    // Refetch with default filters
     const payerType = contributionTypeToPayerType(contributionType);
     fetchRecords({ payer_type: payerType });
   };
@@ -430,8 +446,8 @@ export default function C3Management() {
   // Filter data based on active tab (type) and search term
   const contributionTypeToLabel = (type: string) => {
     if (type === 'employer') return 'Employer';
-    if (type === 'self-employed') return 'Self-Employed';
-    return 'Voluntary Contribution';
+    if (type === 'self-employed') return 'Self Employed';
+    return 'Voluntary Contributor';
   };
 
   // Use the records from the hook, filter by search term locally
@@ -654,8 +670,8 @@ export default function C3Management() {
               <h1 className="text-3xl font-bold tracking-tight">
                 {formMode === 'add' ? 
                   (contributionType === 'employer' ? 'Add New C3 Employer' :
-                   contributionType === 'self-employed' ? 'Add New C3 Self Contributor' :
-                   contributionType === 'voluntary' ? 'Add New C3 Voluntary Contribution' : 'New C3 Submission') :
+                   contributionType === 'self-employed' ? 'Add New C3 Self Employed' :
+                   contributionType === 'voluntary' ? 'Add New C3 Voluntary Contributor' : 'New C3 Submission') :
                  formMode === 'edit' ? 'Edit C3 Record' : 'View C3 Record'}
               </h1>
               {/* Breadcrumb */}
@@ -668,18 +684,18 @@ export default function C3Management() {
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       <BreadcrumbPage>
-                        {contributionType === 'employer' ? 'Employer' : contributionType === 'self-employed' ? 'Self Contributor' : 'Voluntary Contribution'}
+                        {contributionType === 'employer' ? 'Employer' : contributionType === 'self-employed' ? 'Self Employed' : 'Voluntary Contributor'}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       <BreadcrumbPage className="text-[#0284C7]">
                         {formMode === 'add' ? (
-                          contributionType === 'employer' ? 'Add New C3-Employer' : contributionType === 'self-employed' ? 'Add New C3-Self Contributor' : 'Add New C3-Voluntary Contribution'
+                          contributionType === 'employer' ? 'Add New C3-Employer' : contributionType === 'self-employed' ? 'Add New C3-Self Employed' : 'Add New C3-Voluntary Contributor'
                         ) : formMode === 'edit' ? (
-                          contributionType === 'employer' ? 'Edit C3-Employer' : contributionType === 'self-employed' ? 'Edit C3-Self Contributor' : 'Edit C3-Voluntary Contribution'
+                          contributionType === 'employer' ? 'Edit C3-Employer' : contributionType === 'self-employed' ? 'Edit C3-Self Employed' : 'Edit C3-Voluntary Contributor'
                         ) : (
-                          contributionType === 'employer' ? 'C3-Employer View' : contributionType === 'self-employed' ? 'C3-Self Contributor View' : 'C3-Voluntary Contribution View'
+                          contributionType === 'employer' ? 'C3-Employer View' : contributionType === 'self-employed' ? 'C3-Self Employed View' : 'C3-Voluntary Contributor View'
                         )}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
@@ -1031,8 +1047,8 @@ export default function C3Management() {
       <Tabs value={contributionType} onValueChange={setContributionType} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="employer">Employer</TabsTrigger>
-          <TabsTrigger value="self-employed">Self Contributor</TabsTrigger>
-          <TabsTrigger value="voluntary">Voluntary Contribution</TabsTrigger>
+          <TabsTrigger value="self-employed">Self Employed</TabsTrigger>
+          <TabsTrigger value="voluntary">Voluntary Contributor</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -1080,12 +1096,13 @@ export default function C3Management() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="period">Period</Label>
-                  <Input
-                    id="period"
-                    placeholder="Auto-populated"
-                    value={filters.period}
-                    onChange={(e) => setFilters({ ...filters, period: e.target.value })}
+                  <Label>Period (Month & Year)</Label>
+                  <MonthYearPicker
+                    value={filters.periodMonth !== undefined && filters.periodYear !== undefined 
+                      ? { month: filters.periodMonth, year: filters.periodYear } 
+                      : undefined}
+                    onChange={(val) => setFilters({ ...filters, periodMonth: val.month, periodYear: val.year })}
+                    placeholder="Select period"
                   />
                 </div>
 
@@ -1101,22 +1118,32 @@ export default function C3Management() {
 
                 <div className="space-y-2">
                   <Label htmlFor="enteredBy">Entered By</Label>
-                  <Input
-                    id="enteredBy"
-                    placeholder="Auto-populated"
-                    value={filters.enteredBy}
-                    onChange={(e) => setFilters({ ...filters, enteredBy: e.target.value })}
-                  />
+                  <Select value={filters.enteredBy} onValueChange={(value) => setFilters({ ...filters, enteredBy: value === '__all__' ? '' : value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All</SelectItem>
+                      {profilesList.map((p) => (
+                        <SelectItem key={p.user_code} value={p.user_code}>{p.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="verifiedBy">Verified By</Label>
-                  <Input
-                    id="verifiedBy"
-                    placeholder="Auto-populated"
-                    value={filters.verifiedBy}
-                    onChange={(e) => setFilters({ ...filters, verifiedBy: e.target.value })}
-                  />
+                  <Select value={filters.verifiedBy} onValueChange={(value) => setFilters({ ...filters, verifiedBy: value === '__all__' ? '' : value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All</SelectItem>
+                      {profilesList.map((p) => (
+                        <SelectItem key={p.user_code} value={p.user_code}>{p.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -1131,14 +1158,15 @@ export default function C3Management() {
 
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+                  <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value === '__all__' ? '' : value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="verified">Verified</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="__all__">All</SelectItem>
+                      {c3Statuses.map((s) => (
+                        <SelectItem key={s.code} value={s.code}>{s.description}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1178,7 +1206,7 @@ export default function C3Management() {
           <Card>
             <CardContent className="p-6">
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <p className="text-muted-foreground mb-4">No C3 records found for {contributionType === 'employer' ? 'employers' : contributionType === 'self-employed' ? 'self-contributors' : 'voluntary contributions'}.</p>
+                <p className="text-muted-foreground mb-4">No C3 records found for {contributionType === 'employer' ? 'employers' : contributionType === 'self-employed' ? 'self employed' : 'voluntary contributors'}.</p>
                 <Button onClick={handleAddNewC3}>
                   <Plus className="h-4 w-4 mr-2" />
                   {getAddButtonText()}

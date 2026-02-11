@@ -8071,6 +8071,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_c3_status: {
+        Row: {
+          code: string
+          description: string
+          isactive: boolean
+        }
+        Insert: {
+          code: string
+          description: string
+          isactive?: boolean
+        }
+        Update: {
+          code?: string
+          description?: string
+          isactive?: boolean
+        }
+        Relationships: []
+      }
       tb_country: {
         Row: {
           caricom: number | null

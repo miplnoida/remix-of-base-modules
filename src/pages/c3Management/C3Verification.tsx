@@ -44,7 +44,7 @@ export default function C3Verification() {
       id: "C3-2024-007",
       payerId: "VOL007",
       payerName: "John Doe",
-      type: "Voluntary Contribution",
+      type: "Voluntary Contributor",
       period: "2024-01",
       dateSubmitted: "2024-01-18",
       submittedBy: "System",
@@ -202,7 +202,7 @@ export default function C3Verification() {
                 <SelectContent className="bg-background border shadow-md z-50">
                   <SelectItem value="Employer">Employer</SelectItem>
                   <SelectItem value="Self-Employed">Self-Employed</SelectItem>
-                  <SelectItem value="Voluntary Contribution">Voluntary Contribution</SelectItem>
+                  <SelectItem value="Voluntary Contribution">Voluntary Contributor</SelectItem>
                 </SelectContent>
               </Select>
             </div>

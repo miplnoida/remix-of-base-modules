@@ -54,7 +54,7 @@ const recentC3Entries = [
     verifiedBy: "BNG",
     dateEntered: "12-Dec-2023",
     verifiedDate: "19-Dec-2023",
-    type: "Self Contributor",
+    type: "Self Employed",
     status: "Verified"
   },
   {
@@ -66,7 +66,7 @@ const recentC3Entries = [
     verifiedBy: "BNG",
     dateEntered: "12-Dec-2023",
     verifiedDate: "19-Dec-2023",
-    type: "Voluntary Contribution",
+    type: "Voluntary Contributor",
     status: "Not Verified"
   },
   {
@@ -78,7 +78,7 @@ const recentC3Entries = [
     verifiedBy: "BNG",
     dateEntered: "12-Dec-2023",
     verifiedDate: "19-Dec-2023",
-    type: "Self Contributor",
+    type: "Self Employed",
     status: "Verified"
   }
 ];

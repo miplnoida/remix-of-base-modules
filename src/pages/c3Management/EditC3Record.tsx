@@ -117,7 +117,7 @@ export default function EditC3Record() {
                   <SelectContent>
                     <SelectItem value="Employer">Employer</SelectItem>
                     <SelectItem value="Self-Employed">Self-Employed</SelectItem>
-                    <SelectItem value="Voluntary Contribution">Voluntary Contribution</SelectItem>
+                    <SelectItem value="Voluntary Contribution">Voluntary Contributor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
