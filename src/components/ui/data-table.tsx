@@ -342,7 +342,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                 {displayColumns.map((column) => (
                   <TableHead 
                     key={column.key} 
-                    className={column.minWidth ? `min-w-[${column.minWidth}]` : ''}
+                    className={`${column.minWidth ? `min-w-[${column.minWidth}]` : ''} ${column.key === 'actions' ? 'sticky right-0 bg-background z-10' : ''}`}
                   >
                     {column.label}
                   </TableHead>
@@ -358,7 +358,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               {paginatedData.map((row, index) => (
                 <TableRow key={index}>
                   {displayColumns.map((column) => (
-                    <TableCell key={column.key}>
+                    <TableCell key={column.key} className={column.key === 'actions' ? 'sticky right-0 bg-background z-10' : ''}>
                       {column.render 
                         ? column.render(row[column.key], row)
                         : column.key === statusField && getStatusBadge
