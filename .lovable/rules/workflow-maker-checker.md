@@ -17,5 +17,6 @@ The system checks two sources to identify the record creator:
 ## Important Rules
 - Maker-checker is **disabled by default** on all workflows.
 - The check applies generically across all modules using the workflow engine.
-- Admin users are **not exempt** from maker-checker — it applies to all users equally.
+- **Admin users ARE exempt** from maker-checker — they can always perform workflow actions even on their own records.
+- Admin role is detected from the `user_roles` table in Supabase (not hardcoded).
 - Both UI hiding and backend validation are enforced (defense in depth).

@@ -626,6 +626,18 @@ async function checkMakerCheckerRestriction(
   if (error || !workflowDef) return false;
   if (!(workflowDef as any).maker_checker_enabled) return false;
 
+  // Admin exception: Admin users are exempt from maker-checker restriction
+  const { data: userRolesData } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', currentUserId);
+
+  const isAdmin = userRolesData?.some(r => (r.role as string).toLowerCase() === 'admin');
+  if (isAdmin) {
+    console.log('Maker-checker: Admin user exempt from restriction');
+    return false;
+  }
+
   // Check 1: Compare with workflow instance started_by
   if (instanceStartedBy && instanceStartedBy === currentUserId) {
     console.log('Maker-checker: blocked (user is workflow instance starter)');
