@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Plus, DollarSign, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 import { SelfEmployedService, SEPContributionRate } from '@/services/selfEmployedService';
 
@@ -134,7 +135,7 @@ export const ContributionHistoryTab: React.FC<ContributionHistoryTabProps> = ({ 
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Earliest Period</p>
             <p className="text-sm font-medium">
-              {contributionSummary?.earliest_period ? format(new Date(contributionSummary.earliest_period), 'dd/MM/yyyy') : '-'}
+              {contributionSummary?.earliest_period ? formatDisplayDate(contributionSummary.earliest_period) : '-'}
             </p>
           </CardContent>
         </Card>
@@ -142,7 +143,7 @@ export const ContributionHistoryTab: React.FC<ContributionHistoryTabProps> = ({ 
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Latest Period</p>
             <p className="text-sm font-medium">
-              {contributionSummary?.latest_period ? format(new Date(contributionSummary.latest_period), 'dd/MM/yyyy') : '-'}
+              {contributionSummary?.latest_period ? formatDisplayDate(contributionSummary.latest_period) : '-'}
             </p>
           </CardContent>
         </Card>
@@ -183,7 +184,7 @@ export const ContributionHistoryTab: React.FC<ContributionHistoryTabProps> = ({ 
               {weeksPaid.map((w) => (
                 <TableRow key={`${w.ssn}-${w.payer_id}-${w.sequence_no}-${w.period}`}>
                   <TableCell className="font-mono">{w.sequence_no}</TableCell>
-                  <TableCell>{w.period ? format(new Date(w.period), 'dd/MM/yyyy') : '-'}</TableCell>
+                  <TableCell>{w.period ? formatDisplayDate(w.period) : '-'}</TableCell>
                   <TableCell>{w.pay_period || '-'}</TableCell>
                   <TableCell><PaidCodeBadge code={w.paid_code1} /></TableCell>
                   <TableCell><PaidCodeBadge code={w.paid_code2} /></TableCell>

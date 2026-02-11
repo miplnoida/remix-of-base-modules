@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Save, X, Briefcase, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { SelfEmployActivity } from '@/services/selfEmployedService';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 import { useSEPLookups } from '@/hooks/useSEPLookups';
@@ -360,8 +361,8 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
                     >
                       <TableCell className="font-mono">{act.activity_seq_no}</TableCell>
                       <TableCell>{act.activity_type || '-'}</TableCell>
-                      <TableCell>{act.date_commenced ? format(new Date(act.date_commenced), 'dd/MM/yyyy') : '-'}</TableCell>
-                      <TableCell>{act.date_ceased ? format(new Date(act.date_ceased), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{act.date_commenced ? formatDisplayDate(act.date_commenced) : '-'}</TableCell>
+                      <TableCell>{act.date_ceased ? formatDisplayDate(act.date_ceased) : '-'}</TableCell>
                       <TableCell>
                         <Badge variant={statusColors[act.status || 'P'] as any} className="text-xs">
                           {statusLabels[act.status || 'P']}
@@ -700,10 +701,10 @@ function ActivityDetailView({ act, lookups }: { act: SelfEmployActivity; lookups
     ['Persons Employed', act.persons_employed != null ? String(act.persons_employed) : null],
     ['Arrears', act.arrears === 'Y' ? 'Yes' : 'No'],
     ['Legal Action', act.legal_action === 'Y' ? 'Yes' : 'No'],
-    ['Date of Application', act.date_of_application ? format(new Date(act.date_of_application), 'dd/MM/yyyy') : null],
-    ['Date of Entry', act.date_of_entry ? format(new Date(act.date_of_entry), 'dd/MM/yyyy') : null],
-    ['Date of Issue', act.date_of_issue ? format(new Date(act.date_of_issue), 'dd/MM/yyyy') : null],
-    ['Date Educated', act.date_educated ? format(new Date(act.date_educated), 'dd/MM/yyyy') : null],
+    ['Date of Application', act.date_of_application ? formatDisplayDate(act.date_of_application) : null],
+    ['Date of Entry', act.date_of_entry ? formatDisplayDate(act.date_of_entry) : null],
+    ['Date of Issue', act.date_of_issue ? formatDisplayDate(act.date_of_issue) : null],
+    ['Date Educated', act.date_educated ? formatDisplayDate(act.date_educated) : null],
     ['Self Guide', act.self_guide === 'Y' ? 'Yes' : 'No'],
     ['Self Edu', act.self_edu === 'Y' ? 'Yes' : 'No'],
     ['Entered By', act.entered_by],

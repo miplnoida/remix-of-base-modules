@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -169,11 +170,7 @@ export default function EmployerRegistrationList() {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
-    try {
-      return format(new Date(dateStr), 'dd/MM/yyyy');
-    } catch {
-      return '-';
-    }
+    return formatDisplayDate(dateStr) || '-';
   };
 
   // Export functions

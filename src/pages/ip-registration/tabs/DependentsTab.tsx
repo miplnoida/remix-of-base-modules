@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { useAuth } from '@/contexts/AuthContext';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
 
@@ -386,7 +387,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
                       <div className="text-sm text-muted-foreground space-y-1 mt-2">
                         {dependent.depend_ssn && <p>SSN: {dependent.depend_ssn}</p>}
                         {dependent.dob && (
-                          <p>Date of Birth: {format(new Date(dependent.dob), 'dd/MM/yyyy')}</p>
+                          <p>Date of Birth: {formatDisplayDate(dependent.dob)}</p>
                         )}
                         {dependent.sex && (
                           <p>Gender: {genders.find(g => g.value === dependent.sex)?.label || dependent.sex}</p>
@@ -396,7 +397,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
                         )}
                         {getAddress(dependent) && <p>Address: {getAddress(dependent)}</p>}
                         {dependent.date_of_death && (
-                          <p className="text-destructive">Date of Death: {format(new Date(dependent.date_of_death), 'dd/MM/yyyy')}</p>
+                          <p className="text-destructive">Date of Death: {formatDisplayDate(dependent.date_of_death)}</p>
                         )}
                         <div className="flex gap-4">
                           {dependent.school_child === 'Y' && <span className="text-primary">School Child</span>}

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 import { SelfEmployedService, SelfEmployCategory } from '@/services/selfEmployedService';
 import { toast } from 'sonner';
@@ -185,8 +186,8 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                   {cats.map((cat, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="font-mono">{cat.self_ref_no}</TableCell>
-                      <TableCell>{cat.effective_start_date ? format(new Date(cat.effective_start_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                      <TableCell>{cat.effective_end_date ? format(new Date(cat.effective_end_date), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{cat.effective_start_date ? formatDisplayDate(cat.effective_start_date) : '-'}</TableCell>
+                      <TableCell>{cat.effective_end_date ? formatDisplayDate(cat.effective_end_date) : '-'}</TableCell>
                       <TableCell>{cat.wage_category ?? '-'}</TableCell>
                       {isEditable && (
                         <TableCell>
@@ -234,7 +235,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                 <SelectContent>
                   {activities.map((act) => (
                     <SelectItem key={act.activity_seq_no} value={act.activity_seq_no}>
-                      Seq {act.activity_seq_no} — {act.activity_type || 'N/A'} (commenced {act.date_commenced ? format(new Date(act.date_commenced), 'dd/MM/yyyy') : '—'})
+                      Seq {act.activity_seq_no} — {act.activity_type || 'N/A'} (commenced {act.date_commenced ? formatDisplayDate(act.date_commenced) : '—'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -294,7 +295,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
             <AlertDialogDescription>
               Are you sure you want to delete the wage category
               {deleteTarget?.wage_category ? ` (${deleteTarget.wage_category})` : ''}
-              {deleteTarget?.effective_start_date ? ` effective from ${format(new Date(deleteTarget.effective_start_date), 'dd/MM/yyyy')}` : ''}?
+              {deleteTarget?.effective_start_date ? ` effective from ${formatDisplayDate(deleteTarget.effective_start_date)}` : ''}?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

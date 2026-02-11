@@ -15,6 +15,7 @@ import { DatePicker } from './DatePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { cn } from '@/lib/utils';
 import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
@@ -1189,7 +1190,7 @@ export const RegisterPersonForm = () => {
                 {/* Third Row: Sex, Date of Birth, Marital Status */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <PreviewField label="Sex" value={previewData.sex} required />
-                  <PreviewField label="Date of Birth" value={previewData.dateOfBirth ? format(previewData.dateOfBirth, 'dd/MM/yyyy') : null} required />
+                  <PreviewField label="Date of Birth" value={previewData.dateOfBirth ? formatDisplayDate(previewData.dateOfBirth) : null} required />
                   <PreviewField label="Marital Status" value={previewData.maritalStatus} required />
                 </div>
 
@@ -1209,7 +1210,7 @@ export const RegisterPersonForm = () => {
                 {/* Conditional Date Married field */}
                 {(previewData.maritalStatus === 'Married' || previewData.maritalStatus === 'Common Law') && (
                   <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                    <PreviewField label="Date Married" value={previewData.dateMarried ? format(previewData.dateMarried, 'dd/MM/yyyy') : null} />
+                    <PreviewField label="Date Married" value={previewData.dateMarried ? formatDisplayDate(previewData.dateMarried) : null} />
                   </div>
                 )}
               </CardContent>
@@ -1637,8 +1638,8 @@ export const RegisterPersonForm = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <PreviewField label="Application Date" value={previewData.applicationDate ? format(previewData.applicationDate, 'dd/MM/yyyy') : null} />
-                    <PreviewField label="Date Resident" value={previewData.dateResident ? format(previewData.dateResident, 'dd/MM/yyyy') : null} />
+                    <PreviewField label="Application Date" value={previewData.applicationDate ? formatDisplayDate(previewData.applicationDate) : null} />
+                    <PreviewField label="Date Resident" value={previewData.dateResident ? formatDisplayDate(previewData.dateResident) : null} />
                     <PreviewField label="Place of Residence" value={previewData.plOfResidence} required />
                   </div>
 
@@ -1657,7 +1658,7 @@ export const RegisterPersonForm = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <PreviewField label="Citizenship" value={previewData.citizenship} />
-                    <PreviewField label="Date of Death" value={previewData.dateOfDeath ? format(previewData.dateOfDeath, 'dd/MM/yyyy') : null} />
+                    <PreviewField label="Date of Death" value={previewData.dateOfDeath ? formatDisplayDate(previewData.dateOfDeath) : null} />
                     <PreviewField label="Signature on File" value={previewData.signatureOnFile} />
                   </div>
                 </CardContent>
