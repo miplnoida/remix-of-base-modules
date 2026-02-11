@@ -8,6 +8,7 @@ import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, S
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
 import BasicDetailsTab from './tabs/BasicDetailsTab';
 import AddressContactTab from './tabs/AddressContactTab';
 import RelationsTab from './tabs/RelationsTab';
@@ -90,6 +91,7 @@ export interface IPFormData {
   ben_addr2?: string | null;
   status: string;
   created_by?: string | null;
+  entered_by?: string | null;
   created_at?: string | null;
   updated_by?: string | null;
   updated_at?: string | null;
@@ -127,6 +129,7 @@ export default function IPRegistrationForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { userCode } = useUserCode();
   const { data: ipStatuses } = useIPStatuses();
   const isViewMode = window.location.pathname.includes('/view/');
   const isNewMode = window.location.pathname.includes('/new');
@@ -190,6 +193,7 @@ export default function IPRegistrationForm() {
       const newFormData = getInitialFormData();
       newFormData.application_id = appIdData;
       newFormData.created_by = user?.id;
+      newFormData.entered_by = userCode || undefined;
       
       setFormData(newFormData);
       setIsNewRecord(true);
@@ -413,7 +417,6 @@ export default function IPRegistrationForm() {
           application_id: formData.application_id,
           ssn: tempSsnData, // Temporary SSN for dependents/notes
           status: 'Z', // Draft status
-          created_by: user?.id,
           application_date: formData.application_date || new Date().toISOString().split('T')[0],
           // Provide required fields with defaults
           first_name: data.first_name || '',
@@ -423,6 +426,9 @@ export default function IPRegistrationForm() {
           marital_status: data.marital_status || '',
           nationality: data.nationality || '',
           ...data,
+          // Set created_by AFTER spread to prevent overwrite
+          created_by: user?.id,
+          entered_by: userCode || null,
         };
 
         const { data: insertedData, error } = await supabase
