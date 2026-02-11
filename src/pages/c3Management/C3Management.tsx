@@ -692,33 +692,7 @@ export default function C3Management() {
           <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
             {formMode === 'view' ? (
               <>
-                {/* Workflow action buttons for submitted records */}
-                {viewingRecord && viewingRecord.id && 
-                 viewingRecord.postingStatus !== 'DFT' && 
-                 viewingRecord.postingStatus !== 'Z' && (
-                  <WorkflowActionButtonsCompact
-                    sourceModule={`c3_${(viewingRecord.payerType || 'er').toLowerCase()}_submission`}
-                    sourceRecordId={viewingRecord.id}
-                    onActionComplete={handleWorkflowActionComplete}
-                  />
-                )}
-                
-                {/* Submit button for Draft records in view mode */}
-                {viewingRecord && viewingRecord.id && 
-                 (viewingRecord.postingStatus === 'DFT' || viewingRecord.postingStatus === 'Z') && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSubmitFromList(viewingRecord)}
-                    disabled={isSubmittingC3}
-                    className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
-                  >
-                    {isSubmittingC3 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    Submit
-                  </Button>
-                )}
-                
-                <Button 
+                <Button
                   type="button" 
                   variant="outline"
                   onClick={() => viewingRecord && handleC3Notes(viewingRecord)}
@@ -784,31 +758,6 @@ export default function C3Management() {
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save
                 </Button>
-                
-                {/* Submit button for Draft records in edit mode */}
-                {editingRecord && editingRecord.id && 
-                 (editingRecord.postingStatus === 'DFT' || editingRecord.postingStatus === 'Z') && (
-                  <Button 
-                    type="button" 
-                    className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
-                    disabled={isSubmittingC3}
-                    onClick={() => handleSubmitFromList(editingRecord)}
-                  >
-                    {isSubmittingC3 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    Submit
-                  </Button>
-                )}
-                
-                {/* Workflow action buttons for submitted records in edit mode */}
-                {editingRecord && editingRecord.id && 
-                 editingRecord.postingStatus !== 'DFT' && 
-                 editingRecord.postingStatus !== 'Z' && (
-                  <WorkflowActionButtonsCompact
-                    sourceModule={`c3_${(editingRecord.payerType || 'er').toLowerCase()}_submission`}
-                    sourceRecordId={editingRecord.id}
-                    onActionComplete={handleWorkflowActionComplete}
-                  />
-                )}
               </>
             ) : (
               // Add Mode - Only show Save button (no Submit until record is saved)
