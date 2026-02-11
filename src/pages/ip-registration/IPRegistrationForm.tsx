@@ -560,6 +560,7 @@ export default function IPRegistrationForm() {
   };
 
   const handleSuccessComplete = useCallback(() => {
+    setShowStepSuccess(false);
     if (pendingTabChange) {
       setActiveTab(pendingTabChange);
       setPendingTabChange(null);
