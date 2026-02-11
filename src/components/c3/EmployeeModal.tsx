@@ -557,7 +557,20 @@ export default function EmployeeModal({
                     <div className="font-medium">{formatCurrency(payrollCalc.employeeSS)}</div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Employee Levy (3.5% per week)</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Employee Levy ({payrollCalc.usedMonthlyLevyLogic ? 'as per monthly Levy slab' : 'as per weekly Levy slab'}
+                      {(() => {
+                        const bonusAmount = localEmployee.weeklyWages[5] || 0;
+                        if (bonusAmount > 0) {
+                          if (config.bonusExemptFromLevy) {
+                            return ' | levy on Bonus exempted';
+                          } else if (config.bonusLevyRate > 0) {
+                            return ' | included levy on Bonus';
+                          }
+                        }
+                        return '';
+                      })()})
+                    </Label>
                     <div className="font-medium">{formatCurrency(payrollCalc.employeeLevy)}</div>
                   </div>
                 </div>
