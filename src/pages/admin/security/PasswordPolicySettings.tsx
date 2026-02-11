@@ -24,6 +24,7 @@ interface PasswordPolicy {
   session_timeout_minutes: number;
   idle_timeout_minutes: number;
   max_concurrent_sessions: number;
+  auto_refresh_enabled: boolean;
   is_active: boolean;
 }
 
@@ -42,6 +43,7 @@ const PasswordPolicySettings = () => {
     session_timeout_minutes: 480,
     idle_timeout_minutes: 30,
     max_concurrent_sessions: 3,
+    auto_refresh_enabled: true,
     is_active: true,
   });
 
@@ -250,7 +252,7 @@ const PasswordPolicySettings = () => {
             </CardTitle>
             <CardDescription>Configure session timeout and concurrency limits</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="session_timeout_minutes">Session Timeout (minutes)</Label>
@@ -285,6 +287,22 @@ const PasswordPolicySettings = () => {
                   onChange={(e) => setFormData({ ...formData, max_concurrent_sessions: parseInt(e.target.value) })}
                 />
               </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="space-y-1">
+                <Label htmlFor="auto_refresh_enabled">Auto-Refresh Token</Label>
+                <p className="text-xs text-muted-foreground">
+                  Automatically refresh access tokens before expiry to prevent session interruptions
+                </p>
+              </div>
+              <Switch
+                id="auto_refresh_enabled"
+                checked={formData.auto_refresh_enabled}
+                onCheckedChange={(checked) => setFormData({ ...formData, auto_refresh_enabled: checked })}
+              />
             </div>
           </CardContent>
         </Card>

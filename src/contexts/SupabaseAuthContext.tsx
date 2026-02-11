@@ -22,6 +22,17 @@ interface UserRole {
   role: string;
 }
 
+interface SessionPolicy {
+  sessionTimeoutMinutes: number;
+  idleTimeoutMinutes: number;
+  autoRefreshEnabled: boolean;
+}
+
+const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 15;
+const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000; // Refresh 2 minutes before expiry
+const SESSION_CHECK_INTERVAL_MS = 30_000; // Check every 30 seconds
+
 interface SupabaseAuthContextType {
   user: User | null;
   profile: UserProfile | null;
@@ -48,9 +59,6 @@ export const useSupabaseAuth = () => {
   return context;
 };
 
-const SESSION_TIMEOUT_MINUTES = 30;
-const IDLE_TIMEOUT_MINUTES = 15;
-
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -58,13 +66,18 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Timeouts (configurable via Password & Security Policy)
-  const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number>(IDLE_TIMEOUT_MINUTES);
-  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState<number>(SESSION_TIMEOUT_MINUTES);
+  // Session policy from DB
+  const policyRef = useRef<SessionPolicy>({
+    sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT_MINUTES,
+    idleTimeoutMinutes: DEFAULT_IDLE_TIMEOUT_MINUTES,
+    autoRefreshEnabled: true,
+  });
 
-  // Track activity without triggering rerenders
+  // Track activity and session start without triggering rerenders
   const lastActivityRef = useRef<number>(Date.now());
   const sessionStartRef = useRef<number>(Date.now());
+  const isLoggingOutRef = useRef(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
@@ -114,93 +127,209 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     lastActivityRef.current = Date.now();
   }, []);
 
-  // Load timeout settings from active policy (if available)
-  useEffect(() => {
-    if (!session) return;
+  // Graceful logout (prevents duplicate logouts)
+  const logout = useCallback(async () => {
+    if (isLoggingOutRef.current) return;
+    isLoggingOutRef.current = true;
 
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('password_policies')
-          .select('session_timeout_minutes, idle_timeout_minutes')
-          .eq('is_active', true)
-          .single();
+    try {
+      startNewCorrelation();
+      
+      if (user) {
+        await logSecurity({
+          event_type: 'logout',
+          user_name: user.email || profile?.full_name || 'Unknown',
+          success: true,
+          module: 'Authentication',
+          api_name: 'logout',
+          severity: 'info',
+          payload_json: {
+            device: getDeviceInfo(),
+            timestamp: new Date().toISOString(),
+          },
+        }, user.id);
 
-        if (cancelled) return;
-        if (error) return;
-
-        const idle = typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : IDLE_TIMEOUT_MINUTES;
-        const sess = typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : SESSION_TIMEOUT_MINUTES;
-        setIdleTimeoutMinutes(idle);
-        setSessionTimeoutMinutes(sess);
-      } catch {
-        // If policy can't be loaded due to permissions or missing row, fall back to defaults.
+        await supabase.from('audit_logs').insert({
+          action_type: 'LOGOUT',
+          module_name: 'Authentication',
+          entity_type: 'user',
+          user_id: user.id,
+          user_email: user.email,
+        });
       }
-    })();
+      
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setRoles([]);
+      setSession(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      isLoggingOutRef.current = false;
+    }
+  }, [user, profile]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [session]);
+  // Schedule proactive token refresh before expiry
+  const scheduleTokenRefresh = useCallback((currentSession: Session | null) => {
+    // Clear any existing refresh timer
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
 
-  // Check for idle timeout
+    if (!currentSession || !policyRef.current.autoRefreshEnabled) return;
+
+    const expiresAt = currentSession.expires_at;
+    if (!expiresAt) return;
+
+    const expiresAtMs = expiresAt * 1000;
+    const now = Date.now();
+    const msUntilExpiry = expiresAtMs - now;
+    const refreshIn = Math.max(msUntilExpiry - TOKEN_REFRESH_BUFFER_MS, 5000); // At least 5s from now
+
+    if (refreshIn > 0 && refreshIn < 60 * 60 * 1000) { // Only schedule if < 1 hour
+      refreshTimerRef.current = setTimeout(async () => {
+        try {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.warn('Proactive token refresh failed:', error.message);
+            // Don't logout here - Supabase's autoRefreshToken may still recover
+          } else if (data.session) {
+            console.info('Token refreshed proactively');
+          }
+        } catch (err) {
+          console.warn('Token refresh error:', err);
+        }
+      }, refreshIn);
+    }
+  }, []);
+
+  // Load timeout settings from active policy
+  const loadSessionPolicy = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('password_policies')
+        .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
+        .eq('is_active', true)
+        .single();
+
+      if (error) return;
+
+      policyRef.current = {
+        sessionTimeoutMinutes: typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : DEFAULT_SESSION_TIMEOUT_MINUTES,
+        idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : DEFAULT_IDLE_TIMEOUT_MINUTES,
+        autoRefreshEnabled: data?.auto_refresh_enabled !== false, // default true
+      };
+    } catch {
+      // Fall back to defaults
+    }
+  }, []);
+
+  // Idle & session timeout checker
   useEffect(() => {
     if (!session) return;
 
-    const checkIdleTimeout = () => {
-      const idleTime = (Date.now() - lastActivityRef.current) / 1000 / 60; // minutes
-      if (idleTime >= idleTimeoutMinutes) {
+    // Load policy once when session becomes available
+    loadSessionPolicy();
+
+    const checkTimeouts = () => {
+      if (isLoggingOutRef.current) return;
+
+      const now = Date.now();
+      const idleMinutes = (now - lastActivityRef.current) / 60_000;
+      const sessionMinutes = (now - sessionStartRef.current) / 60_000;
+
+      if (idleMinutes >= policyRef.current.idleTimeoutMinutes) {
         toast.warning('Session expired due to inactivity');
         void logout();
+        return;
       }
-    };
 
-    const checkSessionTimeout = () => {
-      const sessionAge = (Date.now() - sessionStartRef.current) / 1000 / 60; // minutes
-      if (sessionAge >= sessionTimeoutMinutes) {
+      if (sessionMinutes >= policyRef.current.sessionTimeoutMinutes) {
         toast.warning('Session expired');
         void logout();
+        return;
       }
     };
 
-    const interval = setInterval(() => {
-      checkIdleTimeout();
-      checkSessionTimeout();
-    }, 60000); // Check every minute
+    const interval = setInterval(checkTimeouts, SESSION_CHECK_INTERVAL_MS);
 
-    // Add activity listeners
+    // Activity listeners
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
-    events.forEach(event => window.addEventListener(event, updateActivity));
+    events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
 
     return () => {
       clearInterval(interval);
       events.forEach(event => window.removeEventListener(event, updateActivity));
     };
-  }, [session, idleTimeoutMinutes, sessionTimeoutMinutes, updateActivity]);
+  }, [session, logout, updateActivity, loadSessionPolicy]);
+
+  // Handle tab visibility change - refresh session when tab becomes visible
+  useEffect(() => {
+    if (!session) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !isLoggingOutRef.current) {
+        // Update activity on return
+        lastActivityRef.current = Date.now();
+
+        // Check if session is still valid by refreshing
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          if (error || !data.session) {
+            console.warn('Session invalid after tab switch');
+            toast.warning('Session expired. Please log in again.');
+            void logout();
+          } else {
+            // Reload policy in case admin changed it
+            await loadSessionPolicy();
+            // Re-schedule refresh timer
+            scheduleTokenRefresh(data.session);
+          }
+        } catch (err) {
+          console.warn('Error checking session on visibility change:', err);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [session, logout, loadSessionPolicy, scheduleTokenRefresh]);
 
   // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        // Ignore events during intentional logout
+        if (isLoggingOutRef.current && event === 'SIGNED_OUT') {
+          return;
+        }
+
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
         if (event === 'SIGNED_IN' && currentSession) {
           sessionStartRef.current = Date.now();
           lastActivityRef.current = Date.now();
+          scheduleTokenRefresh(currentSession);
         }
-        
+
+        if (event === 'TOKEN_REFRESHED' && currentSession) {
+          // Token refreshed successfully - update activity, re-schedule next refresh
+          lastActivityRef.current = Date.now();
+          scheduleTokenRefresh(currentSession);
+          console.info('Auth token refreshed successfully');
+        }
+
         if (currentSession?.user) {
-          // Use setTimeout to prevent Supabase deadlock
           setTimeout(async () => {
             const profileData = await fetchProfile(currentSession.user.id);
             const rolesData = await fetchRoles(currentSession.user.id);
             setProfile(profileData);
             setRoles(rolesData);
           }, 0);
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
         }
@@ -209,7 +338,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -217,6 +345,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (currentSession) {
         sessionStartRef.current = Date.now();
         lastActivityRef.current = Date.now();
+        scheduleTokenRefresh(currentSession);
+        loadSessionPolicy();
       }
       
       if (currentSession?.user) {
@@ -227,13 +357,17 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [fetchProfile, fetchRoles]);
+    return () => {
+      subscription.unsubscribe();
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [fetchProfile, fetchRoles, scheduleTokenRefresh, loadSessionPolicy]);
 
   // Login function with lockout check
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }> => {
     try {
-      // First check if account is locked (query by email in profiles)
       const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
@@ -254,24 +388,22 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       }
 
-      // Attempt login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        // Increment failed login attempts
         if (existingProfile) {
           const newAttempts = (existingProfile.failed_login_attempts || 0) + 1;
-          const lockoutThreshold = 5; // TODO: Get from password_policies table
+          const lockoutThreshold = 5;
           
           const updateData: Record<string, unknown> = { 
             failed_login_attempts: newAttempts 
           };
           
           if (newAttempts >= lockoutThreshold) {
-            const lockDuration = 30; // TODO: Get from password_policies table
+            const lockDuration = 30;
             updateData.locked_until = new Date(Date.now() + lockDuration * 60000).toISOString();
           }
 
@@ -284,8 +416,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
 
-      // Reset failed attempts and update last login on success
       if (data.user) {
+        // Reset timers on fresh login
+        sessionStartRef.current = Date.now();
+        lastActivityRef.current = Date.now();
+        isLoggingOutRef.current = false;
+
+        // Load session policy for the new session
+        await loadSessionPolicy();
+
         await supabase
           .from('profiles')
           .update({ 
@@ -295,7 +434,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           })
           .eq('id', data.user.id);
 
-        // Check if password change is required
         const profile = await fetchProfile(data.user.id);
         if (profile?.force_password_change) {
           return { success: true, requiresPasswordChange: true };
@@ -309,64 +447,18 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Logout function with audit logging
-  const logout = async () => {
-    try {
-      startNewCorrelation();
-      
-      // Log logout event to system security logs
-      if (user) {
-        await logSecurity({
-          event_type: 'logout',
-          user_name: user.email || profile?.full_name || 'Unknown',
-          success: true,
-          module: 'Authentication',
-          api_name: 'logout',
-          severity: 'info',
-          payload_json: {
-            device: getDeviceInfo(),
-            timestamp: new Date().toISOString(),
-          },
-        }, user.id);
-
-        // Also log to legacy audit_logs for backwards compatibility
-        await supabase.from('audit_logs').insert({
-          action_type: 'LOGOUT',
-          module_name: 'Authentication',
-          entity_type: 'user',
-          user_id: user.id,
-          user_email: user.email,
-        });
-      }
-      
-      await supabase.auth.signOut();
-      setUser(null);
-      setProfile(null);
-      setRoles([]);
-      setSession(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
   // Check if user has a specific role
-  const hasRole = (role: string): boolean => {
-    return roles.includes(role);
-  };
+  const hasRole = (role: string): boolean => roles.includes(role);
 
   // Check if user has any of the specified roles
-  const hasAnyRole = (checkRoles: string[]): boolean => {
-    return checkRoles.some(role => roles.includes(role));
-  };
+  const hasAnyRole = (checkRoles: string[]): boolean => checkRoles.some(role => roles.includes(role));
 
   // Check if user is Admin
   const isAdmin = roles.includes('Admin');
 
-  // Check if user has permission for a specific module action
+  // Check permission
   const hasPermission = async (moduleName: string, actionName: string): Promise<boolean> => {
     if (!user) return false;
-    
-    // Admin role always has permission
     if (isAdmin) return true;
     
     try {
