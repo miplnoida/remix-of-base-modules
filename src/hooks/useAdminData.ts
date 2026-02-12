@@ -74,6 +74,7 @@ export interface UserProfile {
   employee_code: string | null;
   office_code: string | null;
   department_id: string | null;
+  designation_id: string | null;
   is_active: boolean | null;
   force_password_change: boolean | null;
   last_login: string | null;

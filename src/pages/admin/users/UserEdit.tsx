@@ -21,6 +21,7 @@ const UserEdit = () => {
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>("");
   const { data: departments = [] } = useDepartments(selectedOfficeId);
   
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     title: "",
     first_name: "",
@@ -56,15 +57,34 @@ const UserEdit = () => {
     }
   }, [user]);
 
+  const clearError = (field: string) => {
+    setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const newErrors: Record<string, string> = {};
+    if (!formData.gender) newErrors.gender = "Gender is required";
+    if (!formData.date_of_birth) newErrors.date_of_birth = "Date of Birth is required";
+    if (!formData.office_code) newErrors.office_code = "Office Location is required";
+    if (!formData.department_id) newErrors.department_id = "Department is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fill in all mandatory fields");
+      return;
+    }
+
     try {
       const fullName = `${formData.first_name} ${formData.last_name}`.trim();
       await updateUser.mutateAsync({ 
         id: userId!, 
         ...formData,
         full_name: fullName,
+        department_id: formData.department_id || null,
+        designation_id: formData.designation_id || null,
+        date_of_birth: formData.date_of_birth || null,
       });
       toast.success("User updated successfully");
       navigate(`/admin/users/${userId}`);
@@ -93,7 +113,7 @@ const UserEdit = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -120,29 +140,15 @@ const UserEdit = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="first_name">First Name *</Label>
-                <Input 
-                  id="first_name"
-                  required
-                  value={formData.first_name} 
-                  onChange={(e) => setFormData({...formData, first_name: e.target.value})} 
-                />
+                <Input id="first_name" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="middle_name">Middle Name</Label>
-                <Input 
-                  id="middle_name"
-                  value={formData.middle_name} 
-                  onChange={(e) => setFormData({...formData, middle_name: e.target.value})} 
-                />
+                <Input id="middle_name" value={formData.middle_name} onChange={(e) => setFormData({...formData, middle_name: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name">Last Name *</Label>
-                <Input 
-                  id="last_name"
-                  required
-                  value={formData.last_name} 
-                  onChange={(e) => setFormData({...formData, last_name: e.target.value})} 
-                />
+                <Input id="last_name" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} />
               </div>
             </div>
 
@@ -150,101 +156,87 @@ const UserEdit = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input 
-                  id="email"
-                  type="email"
-                  value={user.email || ''}
-                  disabled
-                  className="bg-muted"
-                />
+                <Input id="email" type="email" value={user.email || ''} disabled className="bg-muted" />
                 <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input 
-                  id="phone"
-                  type="tel"
-                  value={formData.phone} 
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})} 
-                />
+                <Input id="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
               </div>
             </div>
 
             {/* Additional Details */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <Select value={formData.gender} onValueChange={(v) => setFormData({...formData, gender: v})}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <Label htmlFor="gender">Gender *</Label>
+                <Select value={formData.gender} onValueChange={(v) => { setFormData({...formData, gender: v}); clearError('gender'); }}>
+                  <SelectTrigger className={errors.gender ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="M">Male</SelectItem>
+                    <SelectItem value="F">Female</SelectItem>
+                    <SelectItem value="N">Not-Specified</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.gender && <p className="text-xs text-destructive mt-1">{errors.gender}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date_of_birth">Date of Birth</Label>
+                <Label htmlFor="date_of_birth">Date of Birth *</Label>
                 <Input 
-                  id="date_of_birth"
-                  type="date"
-                  value={formData.date_of_birth} 
-                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})} 
+                  id="date_of_birth" type="date" value={formData.date_of_birth} 
+                  className={errors.date_of_birth ? "border-destructive focus-visible:ring-destructive" : ""}
+                  onChange={(e) => { setFormData({...formData, date_of_birth: e.target.value}); clearError('date_of_birth'); }} 
                 />
+                {errors.date_of_birth && <p className="text-xs text-destructive mt-1">{errors.date_of_birth}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="employee_code">Employee Code</Label>
-                <Input 
-                  id="employee_code"
-                  value={formData.employee_code} 
-                  onChange={(e) => setFormData({...formData, employee_code: e.target.value})} 
-                />
+                <Input id="employee_code" value={formData.employee_code} onChange={(e) => setFormData({...formData, employee_code: e.target.value})} />
               </div>
             </div>
 
             {/* Office & Department */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="office_id">Office Location</Label>
+                <Label htmlFor="office_id">Office Location *</Label>
                 <Select 
                   value={formData.office_code} 
                   onValueChange={(v) => {
                     setFormData({...formData, office_code: v, department_id: ""});
                     setSelectedOfficeId(v);
+                    clearError('office_code');
                   }}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select office" /></SelectTrigger>
+                  <SelectTrigger className={errors.office_code ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder="Select office" /></SelectTrigger>
                   <SelectContent>
                     {offices.map(office => (
                       <SelectItem key={office.code} value={office.code}>{office.description}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.office_code && <p className="text-xs text-destructive mt-1">{errors.office_code}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department_id">Department</Label>
+                <Label htmlFor="department_id">Department *</Label>
                 <Select 
                   value={formData.department_id} 
-                  onValueChange={(v) => setFormData({...formData, department_id: v})}
+                  onValueChange={(v) => { setFormData({...formData, department_id: v}); clearError('department_id'); }}
                   disabled={!selectedOfficeId}
                 >
-                  <SelectTrigger><SelectValue placeholder={selectedOfficeId ? "Select department" : "Select office first"} /></SelectTrigger>
+                  <SelectTrigger className={errors.department_id ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder={selectedOfficeId ? "Select department" : "Select office first"} /></SelectTrigger>
                   <SelectContent>
                     {departments.map(dept => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.department_id && <p className="text-xs text-destructive mt-1">{errors.department_id}</p>}
               </div>
             </div>
 
             {/* Designation */}
             <div className="space-y-2">
               <Label htmlFor="designation_id">Designation</Label>
-              <Select 
-                value={formData.designation_id} 
-                onValueChange={(v) => setFormData({...formData, designation_id: v})}
-              >
+              <Select value={formData.designation_id} onValueChange={(v) => setFormData({...formData, designation_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
                 <SelectContent>
                   {designations.filter(d => d.is_active).map(designation => (
@@ -254,9 +246,7 @@ const UserEdit = () => {
               </Select>
             </div>
             <div className="flex justify-end gap-4 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => navigate(`/admin/users/${userId}`)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate(`/admin/users/${userId}`)}>Cancel</Button>
               <Button type="submit" disabled={updateUser.isPending}>
                 <Save className="h-4 w-4 mr-2" />
                 {updateUser.isPending ? 'Saving...' : 'Save Changes'}
