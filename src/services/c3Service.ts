@@ -595,33 +595,39 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
       query = query.eq('period', filters.period);
     }
 
-    // Period month/year filter: match records where period starts with YYYY-MM
+    // Period month/year filter: use proper month boundaries to avoid invalid dates (e.g. Feb 31)
     if (filters.period_year && filters.period_month !== undefined && filters.period_month !== null) {
-      const monthStr = String(filters.period_month + 1).padStart(2, '0');
-      const periodPrefix = `${filters.period_year}-${monthStr}`;
-      query = query.gte('period', `${periodPrefix}-01`).lte('period', `${periodPrefix}-31`);
+      const month0 = filters.period_month; // 0-indexed
+      const startDate = `${filters.period_year}-${String(month0 + 1).padStart(2, '0')}-01`;
+      // Compute first day of next month safely
+      const nextMonth = new Date(filters.period_year, month0 + 1, 1);
+      const endDate = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
+      query = query.gte('period', startDate).lt('period', endDate);
     } else if (filters.period_year) {
-      query = query.gte('period', `${filters.period_year}-01-01`).lte('period', `${filters.period_year}-12-31`);
+      query = query.gte('period', `${filters.period_year}-01-01`).lt('period', `${filters.period_year + 1}-01-01`);
     }
 
     if (filters.schedule_no) {
       query = query.eq('sequence_no', filters.schedule_no);
     }
 
+    // Date Received filter: exact calendar date match (ignore time component)
+    // Use range: date >= 'YYYY-MM-DD' AND date < 'YYYY-MM-DD+1day'
     if (filters.date_received_from) {
-      query = query.gte('date_received', filters.date_received_from);
+      const d = new Date(filters.date_received_from);
+      const dayStart = filters.date_received_from; // YYYY-MM-DD
+      const nextDay = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      const dayEnd = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+      query = query.gte('date_received', dayStart).lt('date_received', dayEnd);
     }
 
-    if (filters.date_received_to) {
-      query = query.lte('date_received', filters.date_received_to);
-    }
-
+    // Date Entered filter: exact calendar date match (ignore time component)
     if (filters.date_entered_from) {
-      query = query.gte('date_entered', filters.date_entered_from);
-    }
-
-    if (filters.date_entered_to) {
-      query = query.lte('date_entered', filters.date_entered_to);
+      const d = new Date(filters.date_entered_from);
+      const dayStart = filters.date_entered_from;
+      const nextDay = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      const dayEnd = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+      query = query.gte('date_entered', dayStart).lt('date_entered', dayEnd);
     }
 
     // Pagination
