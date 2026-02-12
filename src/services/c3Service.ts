@@ -561,91 +561,35 @@ export async function rejectC3Record(c3Id: string, userId?: string, reason?: str
 }
 
 // Get C3 records list with pagination and filters
+// Uses server-side RPC for proper date_part() and ::date casting
 export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Record[]; total: number; error?: string }> {
   try {
-    let query = supabase
-      .from('cn_c3_reported')
-      .select('*', { count: 'exact' });
+    // Convert 0-indexed month (from UI MonthYearPicker) to 1-indexed (for Postgres EXTRACT)
+    const periodMonth = (filters.period_month !== undefined && filters.period_month !== null)
+      ? filters.period_month + 1
+      : null;
 
-    // Apply filters
-    if (filters.payer_type) {
-      query = query.eq('payer_type', filters.payer_type);
-    }
-
-    if (filters.payer_id) {
-      query = query.ilike('payer_id', `%${filters.payer_id}%`);
-    }
-
-    if (filters.status) {
-      query = query.eq('posting_status', filters.status);
-    } else {
-      // Exclude deleted records by default (both new and legacy codes)
-      query = query.not('posting_status', 'in', '("DEL","D")');
-    }
-
-    if (filters.entered_by) {
-      query = query.eq('entered_by', filters.entered_by);
-    }
-
-    if (filters.verified_by) {
-      query = query.eq('verified_by', filters.verified_by);
-    }
-
-    if (filters.period) {
-      query = query.eq('period', filters.period);
-    }
-
-    // Period month/year filter: use proper month boundaries to avoid invalid dates (e.g. Feb 31)
-    if (filters.period_year && filters.period_month !== undefined && filters.period_month !== null) {
-      const month0 = filters.period_month; // 0-indexed
-      const startDate = `${filters.period_year}-${String(month0 + 1).padStart(2, '0')}-01`;
-      // Compute first day of next month safely
-      const nextMonth = new Date(filters.period_year, month0 + 1, 1);
-      const endDate = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
-      query = query.gte('period', startDate).lt('period', endDate);
-    } else if (filters.period_year) {
-      query = query.gte('period', `${filters.period_year}-01-01`).lt('period', `${filters.period_year + 1}-01-01`);
-    }
-
-    if (filters.schedule_no) {
-      query = query.eq('sequence_no', filters.schedule_no);
-    }
-
-    // Date Received filter: exact calendar date match (ignore time component)
-    // Use range: date >= 'YYYY-MM-DD' AND date < 'YYYY-MM-DD+1day'
-    if (filters.date_received_from) {
-      const d = new Date(filters.date_received_from);
-      const dayStart = filters.date_received_from; // YYYY-MM-DD
-      const nextDay = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-      const dayEnd = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
-      query = query.gte('date_received', dayStart).lt('date_received', dayEnd);
-    }
-
-    // Date Entered filter: exact calendar date match (ignore time component)
-    if (filters.date_entered_from) {
-      const d = new Date(filters.date_entered_from);
-      const dayStart = filters.date_entered_from;
-      const nextDay = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-      const dayEnd = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
-      query = query.gte('date_entered', dayStart).lt('date_entered', dayEnd);
-    }
-
-    // Pagination
-    const page = filters.page || 1;
-    const pageSize = filters.pageSize || 20;
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize - 1;
-
-    query = query
-      .order('period', { ascending: false })
-      .order('date_entered', { ascending: false })
-      .range(start, end);
-
-    const { data, count, error } = await query;
+    const { data, error } = await supabase.rpc('get_c3_records_filtered', {
+      p_payer_type: filters.payer_type || null,
+      p_payer_id: filters.payer_id || null,
+      p_status: filters.status || null,
+      p_entered_by: filters.entered_by || null,
+      p_verified_by: filters.verified_by || null,
+      p_period_month: periodMonth,
+      p_period_year: filters.period_year || null,
+      p_date_received: filters.date_received_from || null,
+      p_date_entered: filters.date_entered_from || null,
+      p_schedule_no: filters.schedule_no || null,
+      p_exclude_deleted: !filters.status, // If a specific status is selected, don't auto-exclude deleted
+      p_page: filters.page || 1,
+      p_page_size: filters.pageSize || 20,
+    });
 
     if (error) throw error;
 
-    return { data: data || [], total: count || 0 };
+    // RPC returns { data: [...], total: N }
+    const result = data as any;
+    return { data: result?.data || [], total: result?.total || 0 };
   } catch (error: any) {
     console.error('Error fetching C3 records:', error);
     return { data: [], total: 0, error: error.message };
