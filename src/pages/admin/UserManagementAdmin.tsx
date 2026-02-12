@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { useUserProfiles, useUpdateUserProfile, useOfficeLocations, useDepartments, useAssignRole, useRemoveRole, useUserRoles, AppRole } from "@/hooks/useAdminData";
+import { useUserProfiles, useUpdateUserProfile, useTbOffices, useDepartments, useAssignRole, useRemoveRole, useUserRoles, AppRole } from "@/hooks/useAdminData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
@@ -37,13 +37,13 @@ const UserManagementContent = () => {
     gender: "",
     date_of_birth: "",
     employee_code: "",
-    office_id: "",
+    office_code: "",
     department_id: "",
   });
 
   const { data: users = [], isLoading } = useUserProfiles();
-  const { data: offices = [] } = useOfficeLocations();
-  const { data: departments = [] } = useDepartments(selectedOfficeId || formData.office_id);
+  const { data: offices = [] } = useTbOffices();
+  const { data: departments = [] } = useDepartments(selectedOfficeId || formData.office_code);
   const updateUser = useUpdateUserProfile();
 
   // Get roles for selected user
@@ -89,10 +89,10 @@ const UserManagementContent = () => {
       gender: user.gender || "",
       date_of_birth: user.date_of_birth || "",
       employee_code: user.employee_code || "",
-      office_id: user.office_id || "",
+      office_code: user.office_code || "",
       department_id: user.department_id || "",
     });
-    setSelectedOfficeId(user.office_id || "");
+    setSelectedOfficeId(user.office_code || "");
     setShowEditDialog(true);
   };
 
@@ -211,7 +211,7 @@ const UserManagementContent = () => {
                   <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
                   <TableCell>{user.email || '-'}</TableCell>
                   <TableCell>{user.employee_code || '-'}</TableCell>
-                  <TableCell>{user.office?.branch_name || '-'}</TableCell>
+                  <TableCell>{user.office?.description || '-'}</TableCell>
                   <TableCell>{user.department?.name || '-'}</TableCell>
                   <TableCell>{getStatusBadge(user.is_active, user.locked_until)}</TableCell>
                   <TableCell>{user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</TableCell>
@@ -311,16 +311,16 @@ const UserManagementContent = () => {
               <div className="space-y-2">
                 <Label>Office Location</Label>
                 <Select 
-                  value={formData.office_id} 
+                  value={formData.office_code} 
                   onValueChange={(v) => {
-                    setFormData({...formData, office_id: v, department_id: ""});
+                    setFormData({...formData, office_code: v, department_id: ""});
                     setSelectedOfficeId(v);
                   }}
                 >
                   <SelectTrigger><SelectValue placeholder="Select office" /></SelectTrigger>
                   <SelectContent>
                     {offices.map(office => (
-                      <SelectItem key={office.id} value={office.id}>{office.branch_name}</SelectItem>
+                      <SelectItem key={office.code} value={office.code}>{office.description}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

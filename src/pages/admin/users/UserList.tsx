@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye, ChevronLeft, ChevronRight } from "lucide-react";
-import { useUserProfiles, useUpdateUserProfile, useOfficeLocations } from "@/hooks/useAdminData";
+import { useUserProfiles, useUpdateUserProfile, useTbOffices } from "@/hooks/useAdminData";
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
@@ -20,7 +20,7 @@ const UserList = () => {
   const [pageSize, setPageSize] = useState(10);
 
   const { data: users = [], isLoading } = useUserProfiles();
-  const { data: offices = [] } = useOfficeLocations();
+  const { data: offices = [] } = useTbOffices();
   const updateUser = useUpdateUserProfile();
 
   // Filter users
@@ -35,7 +35,7 @@ const UserList = () => {
       (statusFilter === "inactive" && !user.is_active) ||
       (statusFilter === "locked" && user.locked_until && new Date(user.locked_until) > new Date());
     
-    const matchesOffice = officeFilter === "all" || user.office_id === officeFilter;
+    const matchesOffice = officeFilter === "all" || user.office_code === officeFilter;
     
     return matchesSearch && matchesStatus && matchesOffice;
   });
@@ -135,7 +135,7 @@ const UserList = () => {
               <SelectContent>
                 <SelectItem value="all">All Offices</SelectItem>
                 {offices.map(office => (
-                  <SelectItem key={office.id} value={office.id}>{office.branch_name}</SelectItem>
+                  <SelectItem key={office.code} value={office.code}>{office.description}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -161,7 +161,7 @@ const UserList = () => {
                   <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
                   <TableCell>{user.email || '-'}</TableCell>
                   <TableCell>{user.employee_code || '-'}</TableCell>
-                  <TableCell>{user.office?.branch_name || '-'}</TableCell>
+                  <TableCell>{user.office?.description || '-'}</TableCell>
                   <TableCell>{user.department?.name || '-'}</TableCell>
                   <TableCell>{getStatusBadge(user.is_active, user.locked_until)}</TableCell>
                   <TableCell>{user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</TableCell>

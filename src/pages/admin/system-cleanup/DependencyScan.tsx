@@ -59,7 +59,7 @@ const CORE_TABLES = [
   'notification_templates', 'notification_logs', 'notification_providers',
   'in_app_notifications', 'user_notification_preferences',
   'data_scope_rules', 'field_security_rules', 'user_data_overrides', 'data_policy_audit_log',
-  'office_locations', 'office_departments', 'departments', 'designations', 'designation_hierarchy',
+  'office_locations', 'tb_office_departments', 'designations', 'designation_hierarchy',
   'role_hierarchy', 'password_policies', 'password_history', 'mfa_config', 'user_sessions'
 ];
 
