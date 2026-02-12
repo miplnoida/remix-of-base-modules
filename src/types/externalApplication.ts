@@ -142,6 +142,9 @@ export interface ExternalApplicationDetail {
   // Dependants
   dependants: ExternalDependant[];
   
+  // Documents
+  documents?: ExternalDocument[];
+  
   // Notes
   notes: ExternalNote[];
 }
@@ -157,6 +160,15 @@ export interface ExternalDependant {
   livesAtSameAddress: boolean;
   isInSchool: boolean;
   schoolName: string | null;
+}
+
+export interface ExternalDocument {
+  id?: string;
+  name: string;
+  type?: string;
+  url?: string;
+  fileSize?: string;
+  uploadedAt?: string;
 }
 
 export interface ExternalNote {

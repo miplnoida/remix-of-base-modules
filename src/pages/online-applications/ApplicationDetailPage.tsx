@@ -25,12 +25,15 @@ import {
   UserPlus,
   Building,
   RefreshCw,
+  Download,
+  Eye as EyeIcon,
+  MessageSquare,
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { formatStatusDisplay, getStatusVariant } from '@/types/externalApplication';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { toast } from 'sonner';
+import { useCountries, useDistricts, useRelations, useOccupations } from '@/hooks/useIPMasterLookups';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
@@ -38,10 +41,51 @@ export default function ApplicationDetailPage() {
   
   const { data: application, isLoading, error, refetch, isFetching } = useExternalApplicationDetail(referenceNumber);
 
-  const formatDate = (dateStr: string | null | undefined) => {
+  // Master table lookups
+  const { data: countries } = useCountries();
+  const { data: districts } = useDistricts();
+  const { data: relations } = useRelations();
+  const { data: occupations } = useOccupations();
+
+  // Lookup helpers
+  const getCountryName = (code: string | null | undefined): string | null => {
+    if (!code) return null;
+    const country = countries?.find(c => c.code === code || c.code === code.toUpperCase());
+    return country?.description || code;
+  };
+
+  const getDistrictName = (code: string | null | undefined): string | null => {
+    if (!code) return null;
+    const district = districts?.find(d => d.code === code || d.code === code.toUpperCase());
+    return district?.description || code;
+  };
+
+  const getRelationName = (code: string | null | undefined): string | null => {
+    if (!code) return null;
+    const relation = relations?.find(r => r.code === code || r.code === code.toUpperCase());
+    return relation?.description || code;
+  };
+
+  const getOccupationName = (code: string | null | undefined): string | null => {
+    if (!code) return null;
+    const occupation = occupations?.find(o => o.code === code || o.code === code.toUpperCase());
+    return occupation?.short_description || code;
+  };
+
+  /**
+   * Format date string WITHOUT timezone conversion.
+   * If the API returns "2026-02-10", display exactly "Feb 10, 2026".
+   */
+  const formatDateRaw = (dateStr: string | null | undefined) => {
     if (!dateStr) return '—';
     try {
-      return format(new Date(dateStr), 'MMM d, yyyy');
+      // Extract date parts directly from the string to avoid timezone shifting
+      const dateOnly = dateStr.split('T')[0]; // Get "YYYY-MM-DD" part
+      const [year, month, day] = dateOnly.split('-').map(Number);
+      if (!year || !month || !day) return dateStr;
+      
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[month - 1]} ${day}, ${year}`;
     } catch {
       return dateStr;
     }
@@ -94,7 +138,7 @@ export default function ApplicationDetailPage() {
               Application: {application.referenceNumber}
             </h1>
             <p className="text-muted-foreground">
-              Submitted on {formatDate(application.submittedAt)}
+              Submitted on {formatDateRaw(application.submittedAt)}
             </p>
           </div>
         </div>
@@ -106,7 +150,6 @@ export default function ApplicationDetailPage() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          {/* Dynamic workflow action buttons based on workflow configuration */}
           <WorkflowActionButtons
             sourceModule="online-insured-person-applications"
             sourceRecordId={referenceNumber || null}
@@ -147,7 +190,7 @@ export default function ApplicationDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  DOB: {formatDate(application.dateOfBirth)}
+                  DOB: {formatDateRaw(application.dateOfBirth)}
                 </div>
               </div>
             </div>
@@ -157,7 +200,7 @@ export default function ApplicationDetailPage() {
 
       {/* Tabbed Details */}
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="personal" className="gap-2">
             <User className="h-4 w-4" />
             Personal
@@ -182,6 +225,10 @@ export default function ApplicationDetailPage() {
             <FileText className="h-4 w-4" />
             Documents
           </TabsTrigger>
+          <TabsTrigger value="remarks" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Remarks
+          </TabsTrigger>
         </TabsList>
 
         {/* Personal Information Tab */}
@@ -203,12 +250,12 @@ export default function ApplicationDetailPage() {
                 <InfoField label="Maiden Name" value={application.maidenName} />
                 <InfoField label="Alias" value={application.alias} />
                 <InfoField label="Gender" value={formatGender(application.gender)} />
-                <InfoField label="Date of Birth" value={formatDate(application.dateOfBirth)} />
-                <InfoField label="Place of Birth" value={application.placeOfBirth} />
-                <InfoField label="Nationality" value={application.nationality} />
+                <InfoField label="Date of Birth" value={formatDateRaw(application.dateOfBirth)} />
+                <InfoField label="Place of Birth" value={getCountryName(application.placeOfBirth)} />
+                <InfoField label="Nationality" value={getCountryName(application.nationality)} />
                 <InfoField label="Marital Status" value={formatMaritalStatus(application.maritalStatus)} />
                 {application.dateMarried && (
-                  <InfoField label="Date Married" value={formatDate(application.dateMarried)} />
+                  <InfoField label="Date Married" value={formatDateRaw(application.dateMarried)} />
                 )}
               </div>
               
@@ -262,9 +309,10 @@ export default function ApplicationDetailPage() {
                   <InfoField label="Address Line 1" value={application.addressLine1} />
                   <InfoField label="Address Line 2" value={application.addressLine2} />
                   <InfoField label="City" value={application.city} />
-                  <InfoField label="Parish" value={application.parish} />
-                  <InfoField label="Postal District" value={application.postalDistrict} />
-                  <InfoField label="Country" value={application.country} />
+                  <InfoField label="Postal District" value={getDistrictName(application.postalDistrict)} />
+                  <InfoField label="Country" value={getCountryName(application.country)} />
+                  <InfoField label="Place of Residency" value={application.placeOfResidency} />
+                  <InfoField label="Residency Date" value={formatDateRaw(application.residencyDate)} />
                 </div>
               </div>
               
@@ -287,7 +335,7 @@ export default function ApplicationDetailPage() {
                 </h3>
                 <div className="grid grid-cols-3 gap-6">
                   <InfoField label="Name" value={application.contactName} />
-                  <InfoField label="Relationship" value={application.contactRelation} />
+                  <InfoField label="Relationship" value={getRelationName(application.contactRelation)} />
                   <InfoField label="Address" value={application.contactAddress} />
                   <InfoField label="Phone" value={formatPhone(application.contactPhone, application.contactPhoneDialCode)} />
                   <InfoField label="Mobile" value={formatPhone(application.contactMobile, application.contactMobileDialCode)} />
@@ -314,7 +362,7 @@ export default function ApplicationDetailPage() {
                   <InfoField label="First Name" value={application.fatherFirstName} />
                   <InfoField label="Last Name" value={application.fatherLastName} />
                   <InfoField label="SSN" value={application.fatherSSN} />
-                  <InfoField label="Date of Birth" value={formatDate(application.fatherDOB)} />
+                  <InfoField label="Date of Birth" value={formatDateRaw(application.fatherDOB)} />
                 </div>
               </div>
               
@@ -327,7 +375,7 @@ export default function ApplicationDetailPage() {
                   <InfoField label="Last Name" value={application.motherLastName} />
                   <InfoField label="Maiden Name" value={application.motherMaidenName} />
                   <InfoField label="SSN" value={application.motherSSN} />
-                  <InfoField label="Date of Birth" value={formatDate(application.motherDOB)} />
+                  <InfoField label="Date of Birth" value={formatDateRaw(application.motherDOB)} />
                 </div>
               </div>
               
@@ -339,7 +387,7 @@ export default function ApplicationDetailPage() {
                   <InfoField label="First Name" value={application.spouseFirstName} />
                   <InfoField label="Last Name" value={application.spouseLastName} />
                   <InfoField label="SSN" value={application.spouseSSN} />
-                  <InfoField label="Date of Birth" value={formatDate(application.spouseDOB)} />
+                  <InfoField label="Date of Birth" value={formatDateRaw(application.spouseDOB)} />
                 </div>
               </div>
               
@@ -353,18 +401,14 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
               
-              {(application.witnessName || application.witnessDate) && (
-                <>
-                  <Separator />
-                  <div>
-                    <h3 className="font-medium mb-3">Witness Information</h3>
-                    <div className="grid grid-cols-3 gap-6">
-                      <InfoField label="Name" value={application.witnessName} />
-                      <InfoField label="Date" value={formatDate(application.witnessDate)} />
-                    </div>
-                  </div>
-                </>
-              )}
+              <Separator />
+              <div>
+                <h3 className="font-medium mb-3">Witness Information</h3>
+                <div className="grid grid-cols-3 gap-6">
+                  <InfoField label="Witness Name" value={application.witnessName} />
+                  <InfoField label="Witness Date" value={formatDateRaw(application.witnessDate)} />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -382,10 +426,8 @@ export default function ApplicationDetailPage() {
               <div className="grid grid-cols-3 gap-6">
                 <InfoField label="Self-Employed" value={application.isSelfEmployed ? 'Yes' : 'No'} />
                 <InfoField label="Has Work Permit" value={application.hasWorkPermit ? 'Yes' : 'No'} />
-                {application.hasWorkPermit && (
-                  <InfoField label="Work Permit Expiry" value={formatDate(application.workPermitExpiry)} />
-                )}
-                <InfoField label="Occupation" value={application.occupation} />
+                <InfoField label="Work Permit Expiry" value={formatDateRaw(application.workPermitExpiry)} />
+                <InfoField label="Occupation" value={getOccupationName(application.occupation)} />
               </div>
               
               <Separator />
@@ -401,19 +443,9 @@ export default function ApplicationDetailPage() {
                   <InfoField label="Town" value={application.employerTown} />
                   <InfoField label="Phone" value={formatPhone(application.employerPhone, application.employerPhoneDialCode)} />
                   <InfoField label="Email" value={application.employerEmail} />
-                  <InfoField label="Start Date" value={formatDate(application.employmentStartDate)} />
+                  <InfoField label="Start Date" value={formatDateRaw(application.employmentStartDate)} />
                 </div>
               </div>
-              
-              {application.remarks && (
-                <>
-                  <Separator />
-                  <div>
-                    <h3 className="font-medium mb-3">Remarks</h3>
-                    <p className="text-muted-foreground">{application.remarks}</p>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -441,7 +473,7 @@ export default function ApplicationDetailPage() {
                       <TableHead>Gender</TableHead>
                       <TableHead>Relationship</TableHead>
                       <TableHead>In School</TableHead>
-                      <TableHead>Same Address</TableHead>
+                      <TableHead>Address</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -450,9 +482,9 @@ export default function ApplicationDetailPage() {
                         <TableCell className="font-medium">
                           {dep.firstName} {dep.lastName}
                         </TableCell>
-                        <TableCell>{formatDate(dep.dateOfBirth)}</TableCell>
+                        <TableCell>{formatDateRaw(dep.dateOfBirth)}</TableCell>
                         <TableCell>{formatGender(dep.gender)}</TableCell>
-                        <TableCell>{dep.relationship}</TableCell>
+                        <TableCell>{getRelationName(dep.relationship)}</TableCell>
                         <TableCell>
                           {dep.isInSchool ? (
                             <Badge variant="default">Yes</Badge>
@@ -462,9 +494,9 @@ export default function ApplicationDetailPage() {
                         </TableCell>
                         <TableCell>
                           {dep.livesAtSameAddress ? (
-                            <Badge variant="default">Yes</Badge>
+                            <Badge variant="default">Same as Applicant</Badge>
                           ) : (
-                            <span className="text-muted-foreground">{dep.address || 'No'}</span>
+                            <span className="text-muted-foreground">{dep.address || '—'}</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -488,13 +520,16 @@ export default function ApplicationDetailPage() {
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Attached Documents
+                <Badge variant="secondary">
+                  {(application.documents?.length || 0) + (application.photoUrl ? 1 : 0)}
+                </Badge>
               </CardTitle>
               <CardDescription>
                 Documents submitted with this application
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {application.photoUrl && (
                   <div className="flex items-center gap-4 p-4 border rounded-lg">
                     <FileText className="h-8 w-8 text-primary" />
@@ -502,15 +537,48 @@ export default function ApplicationDetailPage() {
                       <p className="font-medium">Passport Photo</p>
                       <p className="text-sm text-muted-foreground">Applicant photograph</p>
                     </div>
-                    <Button variant="outline" asChild>
-                      <a href={application.photoUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={application.photoUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
+                        <EyeIcon className="h-4 w-4" />
                         View
                       </a>
                     </Button>
                   </div>
                 )}
                 
-                {!application.photoUrl && (
+                {application.documents && application.documents.length > 0 && (
+                  application.documents.map((doc, index) => (
+                    <div key={doc.id || index} className="flex items-center gap-4 p-4 border rounded-lg">
+                      <FileText className="h-8 w-8 text-primary" />
+                      <div className="flex-1">
+                        <p className="font-medium">{doc.name || `Document ${index + 1}`}</p>
+                        <div className="flex gap-3 text-sm text-muted-foreground">
+                          {doc.type && <span>Type: {doc.type}</span>}
+                          {doc.fileSize && <span>Size: {doc.fileSize}</span>}
+                          {doc.uploadedAt && <span>Uploaded: {formatDateRaw(doc.uploadedAt)}</span>}
+                        </div>
+                      </div>
+                      {doc.url && (
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="gap-2">
+                              <EyeIcon className="h-4 w-4" />
+                              View
+                            </a>
+                          </Button>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={doc.url} download className="gap-2">
+                              <Download className="h-4 w-4" />
+                              Download
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                
+                {!application.photoUrl && (!application.documents || application.documents.length === 0) && (
                   <div className="text-center py-12 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No documents attached</p>
@@ -518,6 +586,30 @@ export default function ApplicationDetailPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Remarks Tab */}
+        <TabsContent value="remarks">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Remarks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {application.remarks ? (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="whitespace-pre-wrap">{application.remarks}</p>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No remarks provided</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
