@@ -283,14 +283,7 @@ export default function InsuredPersonApplications() {
                       >
                         Name
                       </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="dateOfBirth"
-                        currentSortKey={sortConfig.key}
-                        direction={sortConfig.direction}
-                        onSort={handleSort}
-                      >
-                        Date of Birth
-                      </SortableTableHead>
+                      
                       <SortableTableHead
                         sortKey="phone"
                         currentSortKey={sortConfig.key}
@@ -331,9 +324,7 @@ export default function InsuredPersonApplications() {
                       <TableRow key={app.applicationId}>
                         <TableCell className="font-medium">{app.referenceNumber || '—'}</TableCell>
                         <TableCell>{app.fullName || '—'}</TableCell>
-                        <TableCell>
-                          {app.dateOfBirth ? format(new Date(app.dateOfBirth), 'MMM d, yyyy') : '—'}
-                        </TableCell>
+                        
                         <TableCell>{app.phoneFormatted || app.phone || '—'}</TableCell>
                         <TableCell>{app.email || '—'}</TableCell>
                         <TableCell>
