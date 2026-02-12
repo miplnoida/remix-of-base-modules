@@ -43,8 +43,26 @@ const UserCreate = () => {
   const passwordValidation = validatePassword(formData.password, passwordPolicy);
   const passwordsMatch = formData.password === formData.confirm_password && formData.password.length > 0;
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const clearError = (field: string) => {
+    setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const newErrors: Record<string, string> = {};
+    if (!formData.gender) newErrors.gender = "Gender is required";
+    if (!formData.date_of_birth) newErrors.date_of_birth = "Date of Birth is required";
+    if (!formData.office_code) newErrors.office_code = "Office Location is required";
+    if (!formData.department_id) newErrors.department_id = "Department is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fill in all mandatory fields");
+      return;
+    }
     
     if (!passwordValidation.isValid) {
       toast.error("Password does not meet policy requirements");
@@ -121,7 +139,7 @@ const UserCreate = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -175,19 +193,23 @@ const UserCreate = () => {
             {/* Additional Details */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <Select value={formData.gender} onValueChange={(v) => setFormData({...formData, gender: v})}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <Label htmlFor="gender">Gender *</Label>
+                <Select value={formData.gender} onValueChange={(v) => { setFormData({...formData, gender: v}); clearError('gender'); }}>
+                  <SelectTrigger className={errors.gender ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="M">Male</SelectItem>
                     <SelectItem value="F">Female</SelectItem>
                     <SelectItem value="N">Not-Specified</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.gender && <p className="text-xs text-destructive mt-1">{errors.gender}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date_of_birth">Date of Birth</Label>
-                <Input id="date_of_birth" type="date" value={formData.date_of_birth} onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})} />
+                <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                <Input id="date_of_birth" type="date" value={formData.date_of_birth} 
+                  className={errors.date_of_birth ? "border-destructive focus-visible:ring-destructive" : ""}
+                  onChange={(e) => { setFormData({...formData, date_of_birth: e.target.value}); clearError('date_of_birth'); }} />
+                {errors.date_of_birth && <p className="text-xs text-destructive mt-1">{errors.date_of_birth}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="employee_code">Employee Code</Label>
@@ -198,26 +220,28 @@ const UserCreate = () => {
             {/* Office & Department */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="office_code">Office Location</Label>
-                <Select value={formData.office_code} onValueChange={(v) => { setFormData({...formData, office_code: v, department_id: ""}); setSelectedOfficeCode(v); }}>
-                  <SelectTrigger><SelectValue placeholder="Select office" /></SelectTrigger>
+                <Label htmlFor="office_code">Office Location *</Label>
+                <Select value={formData.office_code} onValueChange={(v) => { setFormData({...formData, office_code: v, department_id: ""}); setSelectedOfficeCode(v); clearError('office_code'); }}>
+                  <SelectTrigger className={errors.office_code ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder="Select office" /></SelectTrigger>
                   <SelectContent>
                     {offices.map(office => (
                       <SelectItem key={office.code} value={office.code}>{office.description}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.office_code && <p className="text-xs text-destructive mt-1">{errors.office_code}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department_id">Department</Label>
-                <Select value={formData.department_id} onValueChange={(v) => setFormData({...formData, department_id: v})} disabled={!selectedOfficeCode}>
-                  <SelectTrigger><SelectValue placeholder={selectedOfficeCode ? "Select department" : "Select office first"} /></SelectTrigger>
+                <Label htmlFor="department_id">Department *</Label>
+                <Select value={formData.department_id} onValueChange={(v) => { setFormData({...formData, department_id: v}); clearError('department_id'); }} disabled={!selectedOfficeCode}>
+                  <SelectTrigger className={errors.department_id ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder={selectedOfficeCode ? "Select department" : "Select office first"} /></SelectTrigger>
                   <SelectContent>
                     {departments.map(dept => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.department_id && <p className="text-xs text-destructive mt-1">{errors.department_id}</p>}
               </div>
             </div>
 
