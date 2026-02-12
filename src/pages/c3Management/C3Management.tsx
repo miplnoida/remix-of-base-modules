@@ -69,7 +69,9 @@ export default function C3Management() {
   const [viewingRecord, setViewingRecord] = useState<any>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit' | 'view'>('add');
   const [isSaving, setIsSaving] = useState(false);
-  const [filters, setFilters] = useState({
+
+  // Default empty filter state
+  const emptyFilters = {
     regNo: "",
     scheduleNo: "",
     periodMonth: undefined as number | undefined,
@@ -79,7 +81,20 @@ export default function C3Management() {
     verifiedBy: "",
     dateEntered: "",
     status: ""
+  };
+
+  // Per-tab independent filter state
+  const [tabFilters, setTabFilters] = useState<Record<string, typeof emptyFilters>>({
+    employer: { ...emptyFilters },
+    "self-employed": { ...emptyFilters },
+    voluntary: { ...emptyFilters },
   });
+
+  // Current tab's filters
+  const filters = tabFilters[contributionType] || { ...emptyFilters };
+  const setFilters = useCallback((newFilters: typeof emptyFilters) => {
+    setTabFilters(prev => ({ ...prev, [contributionType]: newFilters }));
+  }, [contributionType]);
 
   // Lookup data for dropdowns
   const [c3Statuses, setC3Statuses] = useState<{ code: string; description: string }[]>([]);
@@ -91,14 +106,23 @@ export default function C3Management() {
     getActiveProfiles().then(setProfilesList);
   }, []);
 
-  // Fetch records on mount and when contribution type changes
+  // Fetch records on mount and when contribution type changes (using that tab's filters)
   useEffect(() => {
     const payerType = contributionTypeToPayerType(contributionType);
     const filterStatus = searchParams.get('filter');
+    const currentFilters = tabFilters[contributionType] || emptyFilters;
     
     fetchRecords({
       payer_type: payerType,
-      status: filterStatus === 'pending' ? 'P' : undefined,
+      status: filterStatus === 'pending' ? 'P' : (currentFilters.status || undefined),
+      payer_id: currentFilters.regNo || undefined,
+      period_month: currentFilters.periodMonth,
+      period_year: currentFilters.periodYear,
+      entered_by: currentFilters.enteredBy || undefined,
+      verified_by: currentFilters.verifiedBy || undefined,
+      date_received_from: currentFilters.dateReceived || undefined,
+      date_entered_from: currentFilters.dateEntered || undefined,
+      schedule_no: currentFilters.scheduleNo ? parseInt(currentFilters.scheduleNo) : undefined,
     });
   }, [contributionType, searchParams]);
 
@@ -140,17 +164,7 @@ export default function C3Management() {
   }, [filters, contributionType, fetchRecords]);
 
   const handleReset = () => {
-    setFilters({
-      regNo: "",
-      scheduleNo: "",
-      periodMonth: undefined,
-      periodYear: undefined,
-      dateReceived: "",
-      enteredBy: "",
-      verifiedBy: "",
-      dateEntered: "",
-      status: ""
-    });
+    setTabFilters(prev => ({ ...prev, [contributionType]: { ...emptyFilters } }));
     setSearchTerm("");
     const payerType = contributionTypeToPayerType(contributionType);
     fetchRecords({ payer_type: payerType });
