@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save, User } from "lucide-react";
 import { toast } from "sonner";
-import { useUserProfile, useUpdateUserProfile, useOfficeLocations, useDepartments } from "@/hooks/useAdminData";
+import { useUserProfile, useUpdateUserProfile, useTbOffices, useDepartments } from "@/hooks/useAdminData";
 import { useDesignations } from "@/hooks/useDesignations";
 
 const UserEdit = () => {
@@ -15,7 +15,7 @@ const UserEdit = () => {
   const { userId } = useParams<{ userId: string }>();
   const { data: user, isLoading } = useUserProfile(userId || '');
   const updateUser = useUpdateUserProfile();
-  const { data: offices = [] } = useOfficeLocations();
+  const { data: offices = [] } = useTbOffices();
   const { data: designations = [] } = useDesignations();
   
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>("");
@@ -31,7 +31,7 @@ const UserEdit = () => {
     gender: "",
     date_of_birth: "",
     employee_code: "",
-    office_id: "",
+    office_code: "",
     department_id: "",
     designation_id: "",
   });
@@ -48,11 +48,11 @@ const UserEdit = () => {
         gender: user.gender || "",
         date_of_birth: user.date_of_birth || "",
         employee_code: user.employee_code || "",
-        office_id: user.office_id || "",
+        office_code: user.office_code || "",
         department_id: user.department_id || "",
         designation_id: (user as any).designation_id || "",
       });
-      setSelectedOfficeId(user.office_id || "");
+      setSelectedOfficeId(user.office_code || "");
     }
   }, [user]);
 
@@ -207,16 +207,16 @@ const UserEdit = () => {
               <div className="space-y-2">
                 <Label htmlFor="office_id">Office Location</Label>
                 <Select 
-                  value={formData.office_id} 
+                  value={formData.office_code} 
                   onValueChange={(v) => {
-                    setFormData({...formData, office_id: v, department_id: ""});
+                    setFormData({...formData, office_code: v, department_id: ""});
                     setSelectedOfficeId(v);
                   }}
                 >
                   <SelectTrigger><SelectValue placeholder="Select office" /></SelectTrigger>
                   <SelectContent>
                     {offices.map(office => (
-                      <SelectItem key={office.id} value={office.id}>{office.branch_name}</SelectItem>
+                      <SelectItem key={office.code} value={office.code}>{office.description}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Save, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useOfficeLocations, useDepartments } from "@/hooks/useAdminData";
+import { useTbOffices, useDepartments } from "@/hooks/useAdminData";
 import { useDesignations } from "@/hooks/useDesignations";
 import { usePasswordPolicy, validatePassword } from "@/hooks/usePasswordPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 const UserCreate = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedOfficeId, setSelectedOfficeId] = useState<string>("");
+  const [selectedOfficeCode, setSelectedOfficeCode] = useState<string>("");
   
   const [formData, setFormData] = useState({
     title: "",
@@ -28,19 +28,18 @@ const UserCreate = () => {
     gender: "",
     date_of_birth: "",
     employee_code: "",
-    office_id: "",
+    office_code: "",
     department_id: "",
     designation_id: "",
     password: "",
     confirm_password: "",
   });
 
-  const { data: offices = [] } = useOfficeLocations();
-  const { data: departments = [] } = useDepartments(selectedOfficeId);
+  const { data: offices = [] } = useTbOffices();
+  const { data: departments = [] } = useDepartments(selectedOfficeCode);
   const { data: designations = [] } = useDesignations();
   const { data: passwordPolicy } = usePasswordPolicy();
 
-  // Validate password against policy
   const passwordValidation = validatePassword(formData.password, passwordPolicy);
   const passwordsMatch = formData.password === formData.confirm_password && formData.password.length > 0;
 
@@ -60,7 +59,6 @@ const UserCreate = () => {
     setIsSubmitting(true);
 
     try {
-      // Use edge function for secure user creation
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.access_token) {
@@ -88,7 +86,7 @@ const UserCreate = () => {
             gender: formData.gender,
             date_of_birth: formData.date_of_birth || null,
             employee_code: formData.employee_code || null,
-            office_id: formData.office_id || null,
+            office_code: formData.office_code || null,
             department_id: formData.department_id || null,
             designation_id: formData.designation_id || null,
           }),
@@ -150,29 +148,15 @@ const UserCreate = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="first_name">First Name *</Label>
-                <Input 
-                  id="first_name"
-                  required
-                  value={formData.first_name} 
-                  onChange={(e) => setFormData({...formData, first_name: e.target.value})} 
-                />
+                <Input id="first_name" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="middle_name">Middle Name</Label>
-                <Input 
-                  id="middle_name"
-                  value={formData.middle_name} 
-                  onChange={(e) => setFormData({...formData, middle_name: e.target.value})} 
-                />
+                <Input id="middle_name" value={formData.middle_name} onChange={(e) => setFormData({...formData, middle_name: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name">Last Name *</Label>
-                <Input 
-                  id="last_name"
-                  required
-                  value={formData.last_name} 
-                  onChange={(e) => setFormData({...formData, last_name: e.target.value})} 
-                />
+                <Input id="last_name" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} />
               </div>
             </div>
 
@@ -180,22 +164,11 @@ const UserCreate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
-                <Input 
-                  id="email"
-                  type="email"
-                  required
-                  value={formData.email} 
-                  onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                />
+                <Input id="email" type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input 
-                  id="phone"
-                  type="tel"
-                  value={formData.phone} 
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})} 
-                />
+                <Input id="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
               </div>
             </div>
 
@@ -206,58 +179,39 @@ const UserCreate = () => {
                 <Select value={formData.gender} onValueChange={(v) => setFormData({...formData, gender: v})}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="M">Male</SelectItem>
+                    <SelectItem value="F">Female</SelectItem>
+                    <SelectItem value="N">Not-Specified</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date_of_birth">Date of Birth</Label>
-                <Input 
-                  id="date_of_birth"
-                  type="date"
-                  value={formData.date_of_birth} 
-                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})} 
-                />
+                <Input id="date_of_birth" type="date" value={formData.date_of_birth} onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="employee_code">Employee Code</Label>
-                <Input 
-                  id="employee_code"
-                  value={formData.employee_code} 
-                  onChange={(e) => setFormData({...formData, employee_code: e.target.value})} 
-                />
+                <Input id="employee_code" value={formData.employee_code} onChange={(e) => setFormData({...formData, employee_code: e.target.value})} />
               </div>
             </div>
 
             {/* Office & Department */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="office_id">Office Location</Label>
-                <Select 
-                  value={formData.office_id} 
-                  onValueChange={(v) => {
-                    setFormData({...formData, office_id: v, department_id: ""});
-                    setSelectedOfficeId(v);
-                  }}
-                >
+                <Label htmlFor="office_code">Office Location</Label>
+                <Select value={formData.office_code} onValueChange={(v) => { setFormData({...formData, office_code: v, department_id: ""}); setSelectedOfficeCode(v); }}>
                   <SelectTrigger><SelectValue placeholder="Select office" /></SelectTrigger>
                   <SelectContent>
                     {offices.map(office => (
-                      <SelectItem key={office.id} value={office.id}>{office.branch_name}</SelectItem>
+                      <SelectItem key={office.code} value={office.code}>{office.description}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="department_id">Department</Label>
-                <Select 
-                  value={formData.department_id} 
-                  onValueChange={(v) => setFormData({...formData, department_id: v})}
-                  disabled={!selectedOfficeId}
-                >
-                  <SelectTrigger><SelectValue placeholder={selectedOfficeId ? "Select department" : "Select office first"} /></SelectTrigger>
+                <Select value={formData.department_id} onValueChange={(v) => setFormData({...formData, department_id: v})} disabled={!selectedOfficeCode}>
+                  <SelectTrigger><SelectValue placeholder={selectedOfficeCode ? "Select department" : "Select office first"} /></SelectTrigger>
                   <SelectContent>
                     {departments.map(dept => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
@@ -270,10 +224,7 @@ const UserCreate = () => {
             {/* Designation */}
             <div className="space-y-2">
               <Label htmlFor="designation_id">Designation</Label>
-              <Select 
-                value={formData.designation_id} 
-                onValueChange={(v) => setFormData({...formData, designation_id: v})}
-              >
+              <Select value={formData.designation_id} onValueChange={(v) => setFormData({...formData, designation_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
                 <SelectContent>
                   {designations.filter(d => d.is_active).map(designation => (
@@ -287,27 +238,14 @@ const UserCreate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Initial Password *</Label>
-                <Input 
-                  id="password"
-                  type="password"
-                  required
-                  value={formData.password} 
-                  onChange={(e) => setFormData({...formData, password: e.target.value})} 
-                />
+                <Input id="password" type="password" required value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirm Password *</Label>
-                <Input 
-                  id="confirm_password"
-                  type="password"
-                  required
-                  value={formData.confirm_password} 
-                  onChange={(e) => setFormData({...formData, confirm_password: e.target.value})} 
-                />
+                <Input id="confirm_password" type="password" required value={formData.confirm_password} onChange={(e) => setFormData({...formData, confirm_password: e.target.value})} />
               </div>
             </div>
 
-            {/* Password Requirements */}
             {formData.password && (
               <div className="p-4 bg-muted rounded-lg space-y-2">
                 <p className="text-sm font-medium mb-2">Password Requirements:</p>
@@ -348,11 +286,8 @@ const UserCreate = () => {
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex justify-end gap-4 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => navigate('/admin/users')}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate('/admin/users')}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
                 <Save className="h-4 w-4 mr-2" />
                 {isSubmitting ? 'Creating...' : 'Create User'}

@@ -3100,60 +3100,6 @@ export type Database = {
           },
         ]
       }
-      departments: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          department_head_user_id: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          office_id: string
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          department_head_user_id?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          office_id: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          department_head_user_id?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          office_id?: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "departments_department_head_user_id_fkey"
-            columns: ["department_head_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "departments_office_id_fkey"
-            columns: ["office_id"]
-            isOneToOne: false
-            referencedRelation: "office_locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       designation_hierarchy: {
         Row: {
           created_at: string
@@ -6844,42 +6790,6 @@ export type Database = {
           },
         ]
       }
-      office_departments: {
-        Row: {
-          created_at: string
-          department_id: string
-          id: string
-          office_id: string
-        }
-        Insert: {
-          created_at?: string
-          department_id: string
-          id?: string
-          office_id: string
-        }
-        Update: {
-          created_at?: string
-          department_id?: string
-          id?: string
-          office_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "office_departments_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "office_departments_office_id_fkey"
-            columns: ["office_id"]
-            isOneToOne: false
-            referencedRelation: "office_locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       office_locations: {
         Row: {
           address: string | null
@@ -7123,7 +7033,7 @@ export type Database = {
           mfa_enabled: boolean | null
           mfa_method: string | null
           middle_name: string | null
-          office_id: string | null
+          office_code: string | null
           phone: string | null
           title: string | null
           updated_at: string | null
@@ -7151,7 +7061,7 @@ export type Database = {
           mfa_enabled?: boolean | null
           mfa_method?: string | null
           middle_name?: string | null
-          office_id?: string | null
+          office_code?: string | null
           phone?: string | null
           title?: string | null
           updated_at?: string | null
@@ -7179,7 +7089,7 @@ export type Database = {
           mfa_enabled?: boolean | null
           mfa_method?: string | null
           middle_name?: string | null
-          office_id?: string | null
+          office_code?: string | null
           phone?: string | null
           title?: string | null
           updated_at?: string | null
@@ -7191,7 +7101,7 @@ export type Database = {
             foreignKeyName: "profiles_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
-            referencedRelation: "departments"
+            referencedRelation: "tb_office_departments"
             referencedColumns: ["id"]
           },
           {
@@ -7202,11 +7112,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "profiles_office_id_fkey"
-            columns: ["office_id"]
+            foreignKeyName: "profiles_office_code_fkey"
+            columns: ["office_code"]
             isOneToOne: false
-            referencedRelation: "office_locations"
-            referencedColumns: ["id"]
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -8429,18 +8339,62 @@ export type Database = {
       }
       tb_office: {
         Row: {
+          address1: string
+          address2: string
           code: string
           description: string
         }
         Insert: {
+          address1?: string
+          address2?: string
           code: string
           description: string
         }
         Update: {
+          address1?: string
+          address2?: string
           code?: string
           description?: string
         }
         Relationships: []
+      }
+      tb_office_departments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          office_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          office_code?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          office_code?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_office_departments_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       tb_penalty: {
         Row: {

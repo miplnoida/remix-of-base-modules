@@ -15,16 +15,21 @@ export interface OfficeLocation {
   country: string | null;
   is_active: boolean;
   created_at: string;
-  departments?: Department[];
+}
+
+export interface TbOffice {
+  code: string;
+  description: string;
+  address1: string;
+  address2: string;
 }
 
 export interface Department {
   id: string;
-  office_id: string;
+  office_code: string;
   name: string;
   description: string | null;
   is_active: boolean;
-  department_head_user_id?: string | null;
 }
 
 export interface AppModule {
@@ -50,11 +55,6 @@ export interface ModuleAction {
 }
 
 // Partial types for nested selects
-interface OfficePartial {
-  id: string;
-  branch_name: string;
-}
-
 interface DepartmentPartial {
   id: string;
   name: string;
@@ -72,7 +72,7 @@ export interface UserProfile {
   gender: string | null;
   date_of_birth: string | null;
   employee_code: string | null;
-  office_id: string | null;
+  office_code: string | null;
   department_id: string | null;
   is_active: boolean | null;
   force_password_change: boolean | null;
@@ -80,7 +80,7 @@ export interface UserProfile {
   mfa_enabled: boolean | null;
   failed_login_attempts: number | null;
   locked_until: string | null;
-  office?: OfficePartial | null;
+  office?: TbOffice | null;
   department?: DepartmentPartial | null;
   roles?: { role: AppRole }[];
 }
@@ -153,25 +153,28 @@ export function useOfficeLocations() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('office_locations')
-        .select(`
-          *,
-          departments(
-            id,
-            office_id,
-            name,
-            description,
-            is_active,
-            department_head_user_id,
-            created_at,
-            updated_at
-          )
-        `)
+        .select('*')
         .order('branch_name');
       if (error) {
         console.error('Error fetching office locations:', error);
         throw error;
       }
       return (data || []) as OfficeLocation[];
+    },
+  });
+}
+
+// tb_office master table
+export function useTbOffices() {
+  return useQuery({
+    queryKey: ['tb-offices'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_office')
+        .select('*')
+        .order('description');
+      if (error) throw error;
+      return (data || []) as TbOffice[];
     },
   });
 }
@@ -217,28 +220,27 @@ export function useUpdateOfficeLocation() {
   });
 }
 
-// Departments
-export function useDepartments(officeId?: string | null) {
+// Departments (from tb_office_departments, filtered by office_code)
+export function useDepartments(officeCode?: string | null) {
   return useQuery({
-    queryKey: ['departments', officeId],
+    queryKey: ['departments', officeCode],
     queryFn: async () => {
-      let query = supabase.from('departments').select('*').order('name');
-      if (officeId) query = query.eq('office_id', officeId);
+      let query = supabase.from('tb_office_departments').select('*').order('name');
+      if (officeCode) query = query.eq('office_code', officeCode);
       const { data, error } = await query;
       if (error) throw error;
       return data as Department[];
     },
-    // Only fetch when officeId is provided and not empty, or when explicitly undefined (fetch all)
-    enabled: officeId === undefined || (typeof officeId === 'string' && officeId.length > 0),
+    enabled: officeCode === undefined || (typeof officeCode === 'string' && officeCode.length > 0),
   });
 }
 
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { office_id: string; name: string; description?: string; is_active?: boolean; department_head_user_id?: string | null }) => {
+    mutationFn: async (data: { office_code: string; name: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
-        .from('departments')
+        .from('tb_office_departments')
         .insert(data)
         .select()
         .single();
@@ -247,7 +249,7 @@ export function useCreateDepartment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
+      queryClient.invalidateQueries({ queryKey: ['office-departments'] });
       toast.success('Department created successfully');
     },
     onError: (error: Error) => toast.error(error.message),
@@ -257,9 +259,9 @@ export function useCreateDepartment() {
 export function useUpdateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean; department_head_user_id?: string | null }) => {
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
-        .from('departments')
+        .from('tb_office_departments')
         .update(data)
         .eq('id', id)
         .select()
@@ -269,7 +271,7 @@ export function useUpdateDepartment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
+      queryClient.invalidateQueries({ queryKey: ['office-departments'] });
       toast.success('Department updated successfully');
     },
     onError: (error: Error) => toast.error(error.message),
@@ -281,14 +283,14 @@ export function useDeleteDepartment() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('departments')
+        .from('tb_office_departments')
         .delete()
         .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
+      queryClient.invalidateQueries({ queryKey: ['office-departments'] });
       toast.success('Department deleted successfully');
     },
     onError: (error: Error) => toast.error(error.message),
@@ -470,7 +472,7 @@ export function useUserProfiles() {
           gender,
           date_of_birth,
           employee_code,
-          office_id,
+          office_code,
           department_id,
           is_active,
           force_password_change,
@@ -478,15 +480,15 @@ export function useUserProfiles() {
           mfa_enabled,
           failed_login_attempts,
           locked_until,
-          office:office_locations(id, branch_name),
-          department:departments!profiles_department_id_fkey(id, name)
+          office:tb_office!profiles_office_code_fkey(code, description, address1, address2),
+          department:tb_office_departments!profiles_department_id_fkey(id, name)
         `)
         .order('full_name');
       if (error) {
         console.error('Error fetching user profiles:', error);
         throw error;
       }
-      return (data || []) as UserProfile[];
+      return (data || []) as unknown as UserProfile[];
     },
   });
 }
@@ -499,8 +501,8 @@ export function useUserProfile(userId: string) {
         .from('profiles')
         .select(`
           *,
-          office:office_locations(id, branch_name),
-          department:departments!profiles_department_id_fkey(id, name)
+          office:tb_office!profiles_office_code_fkey(code, description, address1, address2),
+          department:tb_office_departments!profiles_department_id_fkey(id, name)
         `)
         .eq('id', userId)
         .single();
@@ -512,7 +514,7 @@ export function useUserProfile(userId: string) {
         .eq('user_id', userId);
       if (rolesError) throw rolesError;
 
-      return { ...profile, roles } as UserProfile;
+      return { ...profile, roles } as unknown as UserProfile;
     },
     enabled: !!userId,
   });

@@ -4,59 +4,89 @@ import { toast } from 'sonner';
 
 export interface OfficeDepartment {
   id: string;
-  office_id: string;
-  department_id: string;
-  created_at: string;
+  office_code: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
-export function useOfficeDepartments(officeId?: string) {
+export function useOfficeDepartments(officeCode?: string) {
   return useQuery({
-    queryKey: ['office-departments', officeId],
+    queryKey: ['office-departments', officeCode],
     queryFn: async () => {
       let query = supabase
-        .from('office_departments')
-        .select('*, department:departments!office_departments_department_id_fkey(*)');
+        .from('tb_office_departments')
+        .select('*')
+        .order('name');
       
-      if (officeId) {
-        query = query.eq('office_id', officeId);
+      if (officeCode) {
+        query = query.eq('office_code', officeCode);
       }
       
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as OfficeDepartment[];
     },
-    enabled: officeId !== null,
+    enabled: officeCode !== null,
   });
 }
 
-export function useSetOfficeDepartments() {
+export function useCreateOfficeDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ officeId, departmentIds }: { officeId: string; departmentIds: string[] }) => {
-      // Delete existing associations
-      const { error: deleteError } = await supabase
-        .from('office_departments')
-        .delete()
-        .eq('office_id', officeId);
-      if (deleteError) throw deleteError;
-
-      // Insert new associations
-      if (departmentIds.length > 0) {
-        const newAssociations = departmentIds.map(deptId => ({
-          office_id: officeId,
-          department_id: deptId,
-        }));
-        
-        const { error: insertError } = await supabase
-          .from('office_departments')
-          .insert(newAssociations);
-        if (insertError) throw insertError;
-      }
+    mutationFn: async (data: { office_code: string; name: string; description?: string; is_active?: boolean }) => {
+      const { data: result, error } = await supabase
+        .from('tb_office_departments')
+        .insert(data)
+        .select()
+        .single();
+      if (error) throw error;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['office-departments'] });
-      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
-      toast.success('Office departments updated');
+      toast.success('Department created successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateOfficeDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
+      const { data: result, error } = await supabase
+        .from('tb_office_departments')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['office-departments'] });
+      toast.success('Department updated successfully');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteOfficeDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('tb_office_departments')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['office-departments'] });
+      toast.success('Department deleted successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });
