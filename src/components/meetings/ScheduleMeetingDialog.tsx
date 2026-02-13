@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatDisplayDate, formatDateForStorage } from '@/lib/dateFormat';
 import { CalendarIcon, Clock, Loader2, User, Building2, AlertTriangle } from 'lucide-react';
 import { useScheduleMeeting } from '@/hooks/useMeetings';
 import { useSystemSettingsContext } from '@/contexts/SystemSettingsContext';
@@ -115,7 +116,7 @@ export function ScheduleMeetingDialog({
   const { data: usersInDept = [] } = useUsersForOfficeDepartment(selectedOffice, selectedDepartment);
 
   // Fetch selected user's meetings for the selected date
-  const dateStr = meetingDate ? format(meetingDate, 'yyyy-MM-dd') : undefined;
+  const dateStr = meetingDate ? formatDateForStorage(meetingDate) : undefined;
   const { data: userMeetings = [] } = useUserMeetingsForDate(selectedUserId, dateStr);
 
   // Get office timings for time slot generation
@@ -189,7 +190,7 @@ export function ScheduleMeetingDialog({
       workflowInstanceId,
       workflowId,
       stepId,
-      meetingDate: format(meetingDate, 'yyyy-MM-dd'),
+      meetingDate: formatDateForStorage(meetingDate),
       meetingTime: selectedTime,
       contactPerson: selectedUser?.full_name || profile?.full_name || '',
       contactEmail: selectedUser?.email || '',
@@ -258,7 +259,7 @@ export function ScheduleMeetingDialog({
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {meetingDate ? format(meetingDate, 'PPP') : 'Select date'}
+                  {meetingDate ? formatDisplayDate(meetingDate) : 'Select date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -351,7 +352,7 @@ export function ScheduleMeetingDialog({
           {/* User's existing meetings for selected date */}
           {selectedUserId && dateStr && userMeetings.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-sm">Existing Meetings on {format(meetingDate!, 'PPP')}</Label>
+              <Label className="text-sm">Existing Meetings on {formatDisplayDate(meetingDate!)}</Label>
               <div className="flex flex-wrap gap-2">
                 {userMeetings.map((m: any) => (
                   <Badge key={m.meeting_id} variant="secondary" className="text-xs">

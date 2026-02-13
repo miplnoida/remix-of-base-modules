@@ -100,6 +100,7 @@ export function MeetingActionButtons({
         meetingReference={meeting.meeting_reference}
         currentDate={meeting.meeting_date}
         currentTime={meeting.meeting_time}
+        workflowId={meeting.workflow_id}
         onSuccess={handleActionComplete}
       />
     </>
