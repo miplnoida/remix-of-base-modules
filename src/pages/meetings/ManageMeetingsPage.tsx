@@ -150,11 +150,21 @@ export default function ManageMeetingsPage() {
     meetingReference: searchTerm || undefined
   });
 
+  // Sort meetings by date and time
+  const sortedMeetings = useMemo(() => {
+    if (!meetings) return [];
+    return [...meetings].sort((a, b) => {
+      const dateCmp = a.meeting_date.localeCompare(b.meeting_date);
+      if (dateCmp !== 0) return dateCmp;
+      return (a.meeting_time || '').localeCompare(b.meeting_time || '');
+    });
+  }, [meetings]);
+
   // Group meetings by application reference when in "All Dates" mode
   const groupedMeetings = useMemo(() => {
-    if (!meetings || !isAllDates) return null;
+    if (!sortedMeetings.length || !isAllDates) return null;
     const groups: Record<string, Meeting[]> = {};
-    for (const m of meetings) {
+    for (const m of sortedMeetings) {
       const key = m.application_reference;
       if (!groups[key]) groups[key] = [];
       groups[key].push(m);
@@ -165,7 +175,7 @@ export default function ManageMeetingsPage() {
       const latestB = b[1].reduce((max, m) => m.meeting_date > max ? m.meeting_date : max, '');
       return latestB.localeCompare(latestA);
     });
-  }, [meetings, isAllDates]);
+  }, [sortedMeetings, isAllDates]);
 
   const handleFilterChange = (key: keyof MeetingFilters, value: string | undefined) => {
     setFilters(prev => ({
@@ -340,9 +350,9 @@ export default function ManageMeetingsPage() {
         <CardHeader>
           <CardTitle>
             Meetings
-            {meetings && (
+            {sortedMeetings.length > 0 && (
               <Badge variant="secondary" className="ml-2">
-                {meetings.length}
+                {sortedMeetings.length}
               </Badge>
             )}
           </CardTitle>
@@ -362,7 +372,7 @@ export default function ManageMeetingsPage() {
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : !meetings || meetings.length === 0 ? (
+          ) : !sortedMeetings.length ? (
             <div className="text-center py-12 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No meetings found</p>
@@ -396,7 +406,7 @@ export default function ManageMeetingsPage() {
           ) : (
             /* Flat list */
             <div className="space-y-3">
-              {meetings!.map((meeting) => (
+              {sortedMeetings.map((meeting) => (
                 <MeetingRow
                   key={meeting.id}
                   meeting={meeting}
