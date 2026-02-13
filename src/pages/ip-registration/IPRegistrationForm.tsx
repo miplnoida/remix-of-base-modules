@@ -357,6 +357,37 @@ export default function IPRegistrationForm() {
       }
     }
 
+    if (activeTab === 'address') {
+      // Phone validation - digits only (stored with dial code prefix like +18681234567)
+      const phoneDigitsOnly = /^\+?[0-9]*$/;
+      if (formData.telephone && formData.telephone.trim() !== '') {
+        const trimmedPhone = formData.telephone.trim();
+        if (!phoneDigitsOnly.test(trimmedPhone)) {
+          newErrors.telephone = 'Phone number must contain only digits';
+        } else if (trimmedPhone.replace(/^\+/, '').length > 15) {
+          newErrors.telephone = 'Phone number is too long (max 15 digits)';
+        }
+      }
+      if (formData.mobile && formData.mobile.trim() !== '') {
+        const trimmedMobile = formData.mobile.trim();
+        if (!phoneDigitsOnly.test(trimmedMobile)) {
+          newErrors.mobile = 'Mobile number must contain only digits';
+        } else if (trimmedMobile.replace(/^\+/, '').length > 15) {
+          newErrors.mobile = 'Mobile number is too long (max 15 digits)';
+        }
+      }
+      // Email validation
+      const emailPattern = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+      if (formData.email && formData.email.trim() !== '') {
+        const trimmedEmail = formData.email.trim();
+        if (trimmedEmail.length > 40) {
+          newErrors.email = 'Email address exceeds maximum length of 40 characters';
+        } else if (!emailPattern.test(trimmedEmail)) {
+          newErrors.email = 'Invalid email format (e.g. user@example.com)';
+        }
+      }
+    }
+
     if (activeTab === 'employment') {
       if (formData.citizenship === 'N' && formData.place_of_residence === 'RES') {
         if (!formData.work_permit_status || formData.work_permit_status === 'N') {
@@ -365,7 +396,6 @@ export default function IPRegistrationForm() {
         if (!formData.work_permit_expiry) {
           newErrors.work_permit_expiry = 'Work permit expiry is required';
         }
-        // No future date validation for work permit expiry
       }
     }
 

@@ -106,7 +106,27 @@ export default function AddressContactTab({
     },
   ];
 
+  const [dialogError, setDialogError] = useState('');
+
   const handleSaveAddress = () => {
+    setDialogError('');
+    
+    // Validate email in dialog before saving
+    if (editingAddress === 'email') {
+      const val = (tempAddress.value || '').trim();
+      if (val) {
+        if (val.length > 40) {
+          setDialogError('Email exceeds maximum length of 40 characters');
+          return;
+        }
+        const emailPattern = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+        if (!emailPattern.test(val)) {
+          setDialogError('Invalid email format (e.g. user@example.com)');
+          return;
+        }
+      }
+    }
+
     if (editingAddress === 'resident') {
       const updates = {
         resident_address_1: tempAddress.line1,
@@ -119,8 +139,9 @@ export default function AddressContactTab({
       handleFieldChange('mailing_address', tempAddress.value);
       onSave({ mailing_address: tempAddress.value });
     } else if (editingAddress === 'email') {
-      handleFieldChange('email', tempAddress.value);
-      onSave({ email: tempAddress.value });
+      const trimmed = (tempAddress.value || '').trim();
+      handleFieldChange('email', trimmed);
+      onSave({ email: trimmed });
     }
     setEditingAddress(null);
     setTempAddress({});
@@ -325,10 +346,16 @@ export default function AddressContactTab({
               <Label>{editingAddress === 'email' ? 'Email Address' : 'Mailing Address'}</Label>
               <Input
                 value={tempAddress.value || ''}
-                onChange={(e) => setTempAddress({ ...tempAddress, value: e.target.value })}
+                onChange={(e) => {
+                  setTempAddress({ ...tempAddress, value: e.target.value });
+                  setDialogError('');
+                }}
                 placeholder={editingAddress === 'email' ? 'Enter email address' : 'Enter mailing address'}
                 type={editingAddress === 'email' ? 'email' : 'text'}
+                maxLength={editingAddress === 'email' ? 40 : undefined}
+                className={dialogError ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
+              {dialogError && <p className="text-xs text-destructive">{dialogError}</p>}
             </div>
           )}
           
