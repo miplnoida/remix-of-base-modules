@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Phone } from 'lucide-react';
+import { sanitizePhoneInput, getPhoneMaxLength, validatePhone } from '@/lib/contactValidation';
 
 interface EmergencyContactTabProps {
   formData: any;
@@ -11,6 +12,18 @@ interface EmergencyContactTabProps {
 }
 
 export const EmergencyContactTab = ({ formData, handleInputChange }: EmergencyContactTabProps) => {
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const handlePhoneChange = (field: string, value: string) => {
+    handleInputChange(field, sanitizePhoneInput(value));
+    setFieldErrors(prev => { const n = {...prev}; delete n[field]; return n; });
+  };
+
+  const handlePhoneBlur = (field: string, label: string) => {
+    const r = validatePhone(formData[field], field, label);
+    if (!r.valid) setFieldErrors(prev => ({...prev, [field]: r.error!}));
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -49,12 +62,17 @@ export const EmergencyContactTab = ({ formData, handleInputChange }: EmergencyCo
             />
           </div>
           <div>
-            <Label htmlFor="contactPhoneNumber">Phone Number</Label>
+            <Label htmlFor="contactPhoneNumber" className={fieldErrors.contactPhoneNumber ? 'text-destructive' : ''}>Phone Number</Label>
             <Input
               id="contactPhoneNumber"
               value={formData.contactPhoneNumber}
-              onChange={(e) => handleInputChange('contactPhoneNumber', e.target.value)}
+              onChange={(e) => handlePhoneChange('contactPhoneNumber', e.target.value)}
+              onBlur={() => handlePhoneBlur('contactPhoneNumber', 'Phone number')}
+              maxLength={getPhoneMaxLength('contact_phone')}
+              placeholder="Digits only"
+              className={fieldErrors.contactPhoneNumber ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
+            {fieldErrors.contactPhoneNumber && <p className="text-xs text-destructive mt-1">{fieldErrors.contactPhoneNumber}</p>}
           </div>
         </div>
 
@@ -68,12 +86,17 @@ export const EmergencyContactTab = ({ formData, handleInputChange }: EmergencyCo
             />
           </div>
           <div>
-            <Label htmlFor="contactMobileNumber">Mobile Number</Label>
+            <Label htmlFor="contactMobileNumber" className={fieldErrors.contactMobileNumber ? 'text-destructive' : ''}>Mobile Number</Label>
             <Input
               id="contactMobileNumber"
               value={formData.contactMobileNumber}
-              onChange={(e) => handleInputChange('contactMobileNumber', e.target.value)}
+              onChange={(e) => handlePhoneChange('contactMobileNumber', e.target.value)}
+              onBlur={() => handlePhoneBlur('contactMobileNumber', 'Mobile number')}
+              maxLength={getPhoneMaxLength('contact_mobile')}
+              placeholder="Digits only"
+              className={fieldErrors.contactMobileNumber ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
+            {fieldErrors.contactMobileNumber && <p className="text-xs text-destructive mt-1">{fieldErrors.contactMobileNumber}</p>}
           </div>
         </div>
       </CardContent>

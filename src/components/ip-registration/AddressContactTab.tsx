@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MapPin } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
 import { useDistricts } from '@/hooks/useIPMasterLookups';
+import { validatePhone, validateEmail, sanitizePhoneInput, getPhoneMaxLength, getEmailMaxLength } from '@/lib/contactValidation';
 
 interface AddressContactTabProps {
   formData: IPMasterFormData;
@@ -28,6 +29,7 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
   updateField,
   isEditable,
 }) => {
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { data: districts = [], isLoading: loadingDistricts } = useDistricts();
 
   // Get district description for view mode
@@ -142,32 +144,59 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
             {isEditable ? (
               <>
                 <div>
-                  <Label htmlFor="email_addr">Email Address</Label>
+                  <Label htmlFor="email_addr" className={fieldErrors.email_addr ? 'text-destructive' : ''}>Email Address</Label>
                   <Input
                     id="email_addr"
                     type="email"
                     value={formData.email_addr}
-                    onChange={(e) => updateField('email_addr', e.target.value)}
-                    maxLength={40}
+                    onChange={(e) => {
+                      updateField('email_addr', e.target.value);
+                      setFieldErrors(prev => { const n = {...prev}; delete n.email_addr; return n; });
+                    }}
+                    onBlur={() => {
+                      const r = validateEmail(formData.email_addr, 'email_addr', 'Email');
+                      if (!r.valid) setFieldErrors(prev => ({...prev, email_addr: r.error!}));
+                    }}
+                    maxLength={getEmailMaxLength('email_addr')}
+                    className={fieldErrors.email_addr ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
+                  {fieldErrors.email_addr && <p className="text-xs text-destructive mt-1">{fieldErrors.email_addr}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="phone">Telephone Number</Label>
+                  <Label htmlFor="phone" className={fieldErrors.phone ? 'text-destructive' : ''}>Telephone Number</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                    maxLength={10}
+                    onChange={(e) => {
+                      updateField('phone', sanitizePhoneInput(e.target.value));
+                      setFieldErrors(prev => { const n = {...prev}; delete n.phone; return n; });
+                    }}
+                    onBlur={() => {
+                      const r = validatePhone(formData.phone, 'phone', 'Telephone');
+                      if (!r.valid) setFieldErrors(prev => ({...prev, phone: r.error!}));
+                    }}
+                    maxLength={getPhoneMaxLength('phone')}
+                    className={fieldErrors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
+                  {fieldErrors.phone && <p className="text-xs text-destructive mt-1">{fieldErrors.phone}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="phone_mobile">Mobile Number</Label>
+                  <Label htmlFor="phone_mobile" className={fieldErrors.phone_mobile ? 'text-destructive' : ''}>Mobile Number</Label>
                   <Input
                     id="phone_mobile"
                     value={formData.phone_mobile}
-                    onChange={(e) => updateField('phone_mobile', e.target.value)}
-                    maxLength={10}
+                    onChange={(e) => {
+                      updateField('phone_mobile', sanitizePhoneInput(e.target.value));
+                      setFieldErrors(prev => { const n = {...prev}; delete n.phone_mobile; return n; });
+                    }}
+                    onBlur={() => {
+                      const r = validatePhone(formData.phone_mobile, 'phone_mobile', 'Mobile');
+                      if (!r.valid) setFieldErrors(prev => ({...prev, phone_mobile: r.error!}));
+                    }}
+                    maxLength={getPhoneMaxLength('phone_mobile')}
+                    className={fieldErrors.phone_mobile ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
+                  {fieldErrors.phone_mobile && <p className="text-xs text-destructive mt-1">{fieldErrors.phone_mobile}</p>}
                 </div>
               </>
             ) : (

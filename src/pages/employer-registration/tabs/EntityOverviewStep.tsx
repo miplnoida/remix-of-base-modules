@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ERMasterFormData } from '@/types/employerRegistration';
 import { useERLookups, LookupItem } from '@/hooks/useERLookups';
 import { Loader2 } from 'lucide-react';
+import { getEmailMaxLength } from '@/lib/contactValidation';
 
 interface EntityOverviewStepProps {
   formData: ERMasterFormData;
@@ -124,9 +125,9 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
             <InputWithCounter
               type="email"
               value={formData.email || ''}
-              onChange={(e) => onChange('email', e.target.value)}
+              onChange={(e) => onChange('email', e.target.value.trim())}
               disabled={isViewMode}
-              maxLength={40}
+              maxLength={getEmailMaxLength('email')}
               placeholder="Enter email address"
               error={!!errors.email}
             />

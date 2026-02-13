@@ -9,6 +9,7 @@ import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns
 import { isValid } from 'date-fns';
 import { parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import { toast } from 'sonner';
+import { validatePhone, validateEmail, sanitizePhoneInput, getPhoneMaxLength, getEmailMaxLength } from '@/lib/contactValidation';
 
 interface AddRelationDialogProps {
   open: boolean;
@@ -139,8 +140,26 @@ export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, e
       return;
     }
 
-    // Check if at least one field has data
+    // Validate phone/email fields before save
     const fieldConfig = relationTypeFields[relationType];
+    for (const field of fieldConfig.fields) {
+      if (field.includes('phone') || field.includes('mobile')) {
+        const r = validatePhone(formData[field], field, fieldConfig.labels[field]);
+        if (!r.valid) {
+          toast.error(r.error!);
+          return;
+        }
+      }
+      if (field.includes('email')) {
+        const r = validateEmail(formData[field], field, fieldConfig.labels[field]);
+        if (!r.valid) {
+          toast.error(r.error!);
+          return;
+        }
+      }
+    }
+
+    // Check if at least one field has data
     const hasData = fieldConfig.fields.some(field => formData[field]?.toString().trim());
     if (!hasData) {
       toast.error('Please fill at least one field');
@@ -217,14 +236,25 @@ export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, e
             );
           }
 
+          const isPhoneField = field.includes('phone') || field.includes('mobile');
           return (
             <div key={field} className="space-y-2">
               <Label>{labels[field]}</Label>
               <Input
                 value={formData[field] || ''}
-                onChange={(e) => handleFieldChange(field, e.target.value)}
-                placeholder={`Enter ${labels[field]}`}
-                maxLength={field.includes('addr') ? 30 : isEmailField ? 75 : 35}
+                onChange={(e) => {
+                  if (isPhoneField) {
+                    handleFieldChange(field, sanitizePhoneInput(e.target.value));
+                  } else {
+                    handleFieldChange(field, e.target.value);
+                  }
+                }}
+                placeholder={isPhoneField ? 'Digits only' : `Enter ${labels[field]}`}
+                maxLength={
+                  field.includes('addr') ? 30 : 
+                  isEmailField ? getEmailMaxLength(field) : 
+                  isPhoneField ? getPhoneMaxLength(field) : 35
+                }
                 type={isEmailField ? 'email' : 'text'}
               />
             </div>
