@@ -42,8 +42,11 @@ import {
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
+import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import type { MeetingType } from '@/types/meetings';
+import type { ExternalApplicationDetail } from '@/types/externalApplication';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
@@ -73,6 +76,8 @@ export default function StartMeetingPage() {
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
   const rejectMutation = useCloseMeetingWithRejection();
+  const convertMutation = useConvertApplicationToIP();
+  const { user } = useSupabaseAuth();
 
   // Get application reference from meeting
   const applicationReference = meetingData?.meeting?.application_reference;
@@ -102,6 +107,23 @@ export default function StartMeetingPage() {
         applicationData: hasChanges ? editedData : undefined,
         remarks: approvalRemarks || undefined
       });
+
+      // Convert the approved application to ip_master record
+      if (meetingType === 'IP-Registration' && applicationData) {
+        try {
+          await convertMutation.mutateAsync({
+            applicationDetail: applicationData as ExternalApplicationDetail,
+            approvedBy: user?.id || '',
+            sourceRoute: `/meetings/start/${meetingId}`,
+          });
+        } catch (convErr: any) {
+          console.error('IP conversion after approval:', convErr);
+          // Don't block navigation - approval already succeeded
+          if (!convErr.message?.includes('DUPLICATE_CONVERSION')) {
+            toast.warning('Application approved but IP record conversion needs attention.');
+          }
+        }
+      }
       
       setApprovalDialogOpen(false);
       navigate('/meetings/manage');

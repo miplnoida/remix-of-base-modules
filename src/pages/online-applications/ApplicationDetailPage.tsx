@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ import {
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { formatStatusDisplay, getStatusVariant } from '@/types/externalApplication';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { useCountries, useDistricts, useRelations, useOccupations } from '@/hooks/useIPMasterLookups';
 
@@ -40,6 +42,8 @@ export default function ApplicationDetailPage() {
   const navigate = useNavigate();
   
   const { data: application, isLoading, error, refetch, isFetching } = useExternalApplicationDetail(referenceNumber);
+  const convertMutation = useConvertApplicationToIP();
+  const { user } = useSupabaseAuth();
 
   // Master table lookups
   const { data: countries } = useCountries();
@@ -153,9 +157,25 @@ export default function ApplicationDetailPage() {
           <WorkflowActionButtons
             sourceModule="online-insured-person-applications"
             sourceRecordId={referenceNumber || null}
-            onActionComplete={(action, endState) => {
+            onActionComplete={async (action, endState) => {
               toast.success(`Action "${action}" completed successfully`);
               refetch();
+              // Auto-convert to IP record on approval
+              if (endState === 'Approved' || endState === 'Completed') {
+                if (application) {
+                  try {
+                    await convertMutation.mutateAsync({
+                      applicationDetail: application,
+                      approvedBy: user?.id || '',
+                      sourceRoute: `/online-applications/insured-person/${referenceNumber}`,
+                    });
+                  } catch (convErr: any) {
+                    if (!convErr.message?.includes('DUPLICATE_CONVERSION')) {
+                      console.error('IP conversion after workflow approval:', convErr);
+                    }
+                  }
+                }
+              }
             }}
           />
         </div>

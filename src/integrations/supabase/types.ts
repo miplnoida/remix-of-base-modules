@@ -4151,6 +4151,8 @@ export type Database = {
           alias: string | null
           application_date: string | null
           application_id: string
+          application_reference_number: string | null
+          application_remarks: string | null
           asp_num: string | null
           ben_addr1: string | null
           ben_addr2: string | null
@@ -4278,6 +4280,8 @@ export type Database = {
           alias?: string | null
           application_date?: string | null
           application_id: string
+          application_reference_number?: string | null
+          application_remarks?: string | null
           asp_num?: string | null
           ben_addr1?: string | null
           ben_addr2?: string | null
@@ -4405,6 +4409,8 @@ export type Database = {
           alias?: string | null
           application_date?: string | null
           application_id?: string
+          application_reference_number?: string | null
+          application_remarks?: string | null
           asp_num?: string | null
           ben_addr1?: string | null
           ben_addr2?: string | null
@@ -10698,6 +10704,64 @@ export type Database = {
       clone_workflow: {
         Args: { p_new_name?: string; p_source_workflow_id: string }
         Returns: string
+      }
+      convert_application_to_ip: {
+        Args: {
+          p_address_line1?: string
+          p_address_line2?: string
+          p_alias?: string
+          p_application_date?: string
+          p_approved_by?: string
+          p_ben_addr1?: string
+          p_ben_addr2?: string
+          p_beneficiary_name?: string
+          p_birth_place?: string
+          p_citizenship?: string
+          p_contact_addr1?: string
+          p_contact_addr2?: string
+          p_contact_email?: string
+          p_contact_mobile?: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_contact_relation?: string
+          p_date_married?: string
+          p_date_of_birth?: string
+          p_date_of_residency?: string
+          p_dependants?: Json
+          p_email?: string
+          p_eye_color?: string
+          p_father_name?: string
+          p_first_name?: string
+          p_gender?: string
+          p_has_work_permit?: string
+          p_height_feet?: number
+          p_height_inches?: number
+          p_last_name?: string
+          p_maiden_name?: string
+          p_mailing_addr1?: string
+          p_mailing_addr2?: string
+          p_marital_status?: string
+          p_middle_name?: string
+          p_mother_name?: string
+          p_nationality?: string
+          p_occupation?: string
+          p_phone?: string
+          p_phone_mobile?: string
+          p_photo_url?: string
+          p_postal_district?: string
+          p_reference_number: string
+          p_remarks?: string
+          p_source_route?: string
+          p_spouse_dob?: string
+          p_spouse_name?: string
+          p_spouse_ssn?: string
+          p_suffix?: string
+          p_title?: string
+          p_witness_date?: string
+          p_witness_name?: string
+          p_work_permit_expiry?: string
+        }
+        Returns: Json
       }
       find_eligible_approver: {
         Args: {
