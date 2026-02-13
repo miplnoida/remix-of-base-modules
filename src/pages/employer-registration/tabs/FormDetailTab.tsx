@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
+import { validatePhone, validateEmail, validateContactFields } from '@/lib/contactValidation';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import SuccessAnimation from '@/components/shared/SuccessAnimation';
 import EntityOverviewStep from './EntityOverviewStep';
@@ -33,10 +34,10 @@ const validateStep = (step: number, formData: ERMasterFormData): Record<string, 
       if (!formData.name?.trim()) {
         errors.name = 'Employer name is required';
       }
-      if (!formData.email?.trim()) {
-        errors.email = 'Email address is required';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        errors.email = 'Invalid email format';
+      // Email validation using global utility
+      const emailResult = validateEmail(formData.email, 'email', 'Email address', true);
+      if (!emailResult.valid && emailResult.error) {
+        errors.email = emailResult.error;
       }
       if (!formData.hq_addr1?.trim()) {
         errors.hq_addr1 = 'HQ Address 1 is required';
@@ -48,10 +49,15 @@ const validateStep = (step: number, formData: ERMasterFormData): Record<string, 
     case 1: // Background Info
       // No required fields
       break;
-    case 2: // Contact & Reach
-      if (!formData.phone?.trim()) {
-        errors.phone = 'Contact telephone is required';
-      }
+    case 2: { // Contact & Reach
+      // Phone validation using global utility
+      const contactErrors = validateContactFields([
+        { value: formData.phone, fieldName: 'phone', label: 'Contact telephone', type: 'phone', required: true },
+        { value: formData.mobile, fieldName: 'mobile', label: 'Mobile number', type: 'phone' },
+        { value: formData.fax, fieldName: 'fax', label: 'Fax number', type: 'phone' },
+      ]);
+      Object.assign(errors, contactErrors);
+
       if (!formData.village_code || formData.village_code === '000') {
         errors.village_code = 'Village is required';
       }
@@ -65,6 +71,7 @@ const validateStep = (step: number, formData: ERMasterFormData): Record<string, 
         errors.application_date = 'Application date is required';
       }
       break;
+    }
     case 3: // Tech & Finance
       // No required fields
       break;

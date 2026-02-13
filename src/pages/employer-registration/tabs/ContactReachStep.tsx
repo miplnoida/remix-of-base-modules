@@ -7,6 +7,7 @@ import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns
 import { parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import { useERLookups, LookupItem } from '@/hooks/useERLookups';
 import { Loader2 } from 'lucide-react';
+import { sanitizePhoneInput, getPhoneMaxLength } from '@/lib/contactValidation';
 
 interface ContactReachStepProps {
   formData: ERMasterFormData;
@@ -76,30 +77,37 @@ export default function ContactReachStep({ formData, onChange, isViewMode, error
             </Label>
             <Input
               value={formData.phone || ''}
-              onChange={(e) => onChange('phone', e.target.value)}
+              onChange={(e) => onChange('phone', sanitizePhoneInput(e.target.value))}
               disabled={isViewMode}
-              placeholder="Enter phone number"
+              placeholder="Enter phone number (digits only)"
+              maxLength={getPhoneMaxLength('phone')}
               className={errors.phone ? 'border-destructive' : ''}
             />
             {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
           </div>
           <div>
-            <Label>Contact Fax Number</Label>
+            <Label className={errors.fax ? 'text-destructive' : ''}>Contact Fax Number</Label>
             <Input
               value={formData.fax || ''}
-              onChange={(e) => onChange('fax', e.target.value)}
+              onChange={(e) => onChange('fax', sanitizePhoneInput(e.target.value))}
               disabled={isViewMode}
-              placeholder="Enter fax number"
+              placeholder="Enter fax number (digits only)"
+              maxLength={getPhoneMaxLength('fax')}
+              className={errors.fax ? 'border-destructive' : ''}
             />
+            {errors.fax && <p className="text-xs text-destructive mt-1">{errors.fax}</p>}
           </div>
           <div>
-            <Label>Mobile Number</Label>
+            <Label className={errors.mobile ? 'text-destructive' : ''}>Mobile Number</Label>
             <Input
               value={formData.mobile || ''}
-              onChange={(e) => onChange('mobile', e.target.value)}
+              onChange={(e) => onChange('mobile', sanitizePhoneInput(e.target.value))}
               disabled={isViewMode}
-              placeholder="Enter mobile number"
+              placeholder="Enter mobile number (digits only)"
+              maxLength={getPhoneMaxLength('mobile')}
+              className={errors.mobile ? 'border-destructive' : ''}
             />
+            {errors.mobile && <p className="text-xs text-destructive mt-1">{errors.mobile}</p>}
           </div>
         </div>
       </div>

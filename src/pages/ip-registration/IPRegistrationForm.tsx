@@ -8,6 +8,7 @@ import { ArrowLeft, User, Users, FileText, Building, Camera, Globe, Briefcase, S
 import { Stepper, StepperStep } from '@/components/ui/stepper';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { validateContactFields } from '@/lib/contactValidation';
 import { useUserCode } from '@/hooks/useUserCode';
 import BasicDetailsTab from './tabs/BasicDetailsTab';
 import AddressContactTab from './tabs/AddressContactTab';
@@ -358,34 +359,13 @@ export default function IPRegistrationForm() {
     }
 
     if (activeTab === 'address') {
-      // Phone validation - digits only (stored with dial code prefix like +18681234567)
-      const phoneDigitsOnly = /^\+?[0-9]*$/;
-      if (formData.telephone && formData.telephone.trim() !== '') {
-        const trimmedPhone = formData.telephone.trim();
-        if (!phoneDigitsOnly.test(trimmedPhone)) {
-          newErrors.telephone = 'Phone number must contain only digits';
-        } else if (trimmedPhone.replace(/^\+/, '').length > 15) {
-          newErrors.telephone = 'Phone number is too long (max 15 digits)';
-        }
-      }
-      if (formData.mobile && formData.mobile.trim() !== '') {
-        const trimmedMobile = formData.mobile.trim();
-        if (!phoneDigitsOnly.test(trimmedMobile)) {
-          newErrors.mobile = 'Mobile number must contain only digits';
-        } else if (trimmedMobile.replace(/^\+/, '').length > 15) {
-          newErrors.mobile = 'Mobile number is too long (max 15 digits)';
-        }
-      }
-      // Email validation
-      const emailPattern = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-      if (formData.email && formData.email.trim() !== '') {
-        const trimmedEmail = formData.email.trim();
-        if (trimmedEmail.length > 40) {
-          newErrors.email = 'Email address exceeds maximum length of 40 characters';
-        } else if (!emailPattern.test(trimmedEmail)) {
-          newErrors.email = 'Invalid email format (e.g. user@example.com)';
-        }
-      }
+      // Use centralized validation for phone/mobile/email
+      const contactErrors = validateContactFields([
+        { value: formData.telephone, fieldName: 'telephone', label: 'Telephone', type: 'phone' },
+        { value: formData.mobile, fieldName: 'mobile', label: 'Mobile', type: 'phone' },
+        { value: formData.email, fieldName: 'email', label: 'Email', type: 'email' },
+      ]);
+      Object.assign(newErrors, contactErrors);
     }
 
     if (activeTab === 'employment') {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
 import { Plus, Edit, Trash2, MapPin, Mail } from 'lucide-react';
+import { validateEmail, getEmailMaxLength } from '@/lib/contactValidation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhoneInput, { parsePhoneNumber, combinePhoneNumber } from '@/components/shared/PhoneInput';
@@ -111,17 +112,13 @@ export default function AddressContactTab({
   const handleSaveAddress = () => {
     setDialogError('');
     
-    // Validate email in dialog before saving
+    // Validate email in dialog before saving using centralized validation
     if (editingAddress === 'email') {
       const val = (tempAddress.value || '').trim();
       if (val) {
-        if (val.length > 40) {
-          setDialogError('Email exceeds maximum length of 40 characters');
-          return;
-        }
-        const emailPattern = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-        if (!emailPattern.test(val)) {
-          setDialogError('Invalid email format (e.g. user@example.com)');
+        const result = validateEmail(val, 'email', 'Email');
+        if (!result.valid) {
+          setDialogError(result.error!);
           return;
         }
       }
@@ -352,7 +349,7 @@ export default function AddressContactTab({
                 }}
                 placeholder={editingAddress === 'email' ? 'Enter email address' : 'Enter mailing address'}
                 type={editingAddress === 'email' ? 'email' : 'text'}
-                maxLength={editingAddress === 'email' ? 40 : undefined}
+                maxLength={editingAddress === 'email' ? getEmailMaxLength('email') : undefined}
                 className={dialogError ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {dialogError && <p className="text-xs text-destructive">{dialogError}</p>}

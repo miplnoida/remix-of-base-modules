@@ -22,7 +22,7 @@ const compactEmployerSchema = z.object({
   // Left Column - Core Employer Information
   employerFullName: z.string().min(1, 'Employer full name is required'),
   businessTradeName: z.string().min(1, 'Business/Trade name is required'),
-  phoneNumber: z.string().min(1, 'Phone number is required'),
+  phoneNumber: z.string().min(1, 'Phone number is required').regex(/^\+?\d+$/, 'Phone must contain only digits').max(15, 'Phone exceeds max length'),
   businessLocation: z.string().min(1, 'Business location is required'),
   additionalLocations: z.array(z.string()).optional(),
   businessType: z.string().min(1, 'Business type is required'),
@@ -35,7 +35,7 @@ const compactEmployerSchema = z.object({
   numberOfEmployees: z.number().min(0, 'Number of employees must be 0 or greater'),
   businessActivities: z.string().min(1, 'Business activities description is required'),
   mailingAddress: z.string().min(1, 'Mailing address is required'),
-  emailAddress: z.string().email('Invalid email address'),
+  emailAddress: z.string().email('Invalid email address').max(75, 'Email exceeds max length'),
 
   // Business Acquisition (Conditional)
   businessAcquired: z.enum(['yes', 'no']),

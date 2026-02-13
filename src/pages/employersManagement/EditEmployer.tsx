@@ -38,9 +38,9 @@ const employerSchema = z.object({
   })).optional(),
   
   // Contact Information
-  telephone: z.string().min(1, "Telephone is required"),
-  fax: z.string().optional(),
-  email: z.string().email("Invalid email").min(1, "Email is required"),
+  telephone: z.string().min(1, "Telephone is required").regex(/^\+?\d+$/, "Telephone must contain only digits").max(15, "Telephone exceeds max length"),
+  fax: z.string().optional().refine(v => !v || /^\+?\d*$/.test(v), "Fax must contain only digits"),
+  email: z.string().email("Invalid email format").min(1, "Email is required").max(40, "Email exceeds max length of 40"),
   
   // Organizational Information
   parentRegNo: z.string().optional(),
