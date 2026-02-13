@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -140,7 +141,7 @@ export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: Meet
             <div>
               <p className="font-medium">Date</p>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(meeting.meeting_date), 'EEEE, MMMM d, yyyy')}
+                {formatDisplayDate(meeting.meeting_date)}
               </p>
             </div>
           </div>

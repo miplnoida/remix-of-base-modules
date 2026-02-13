@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,10 +69,10 @@ function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
       <div className="flex items-start gap-4">
         <div className="text-center min-w-[60px]">
           <p className="text-2xl font-bold">
-            {format(new Date(meeting.meeting_date), 'd')}
+            {format(parseDateSafe(meeting.meeting_date), 'd')}
           </p>
           <p className="text-xs text-muted-foreground">
-            {format(new Date(meeting.meeting_date), 'MMM')}
+            {format(parseDateSafe(meeting.meeting_date), 'MMM')}
           </p>
         </div>
         <div className="space-y-1">
