@@ -62,7 +62,16 @@ export const getDisplayDateFormat = (): string => {
 };
 
 /**
- * Format a date using the global display_date_format system setting
+ * Resolve a format string to its date-fns equivalent
+ */
+const resolveFormat = (fmt?: string): string => {
+  const f = fmt || getDisplayDateFormat();
+  return formatTokenMap[f] || f;
+};
+
+/**
+ * Format a date using the global display_date_format system setting.
+ * For BUSINESS dates only (DOB, period, expiry, etc.) — no timezone conversion.
  * @param date - Date object, ISO string, or any parseable date value
  * @param customFormat - Optional custom format to override system setting
  * @returns Formatted date string or empty string if invalid
@@ -80,10 +89,7 @@ export const formatDisplayDate = (
       return '';
     }
     
-    const formatString = customFormat || getDisplayDateFormat();
-    const dateFnsFormat = formatTokenMap[formatString] || formatString;
-    
-    return format(dateObj, dateFnsFormat);
+    return format(dateObj, resolveFormat(customFormat));
   } catch (error) {
     console.error('Error formatting date:', error, date);
     return '';
@@ -91,7 +97,8 @@ export const formatDisplayDate = (
 };
 
 /**
- * Format a date with time using the global display_date_format system setting
+ * Format a date with time using the global display_date_format system setting.
+ * For BUSINESS dates only — no timezone conversion.
  */
 export const formatDisplayDateTime = (
   date: Date | string | number | null | undefined,
@@ -106,16 +113,68 @@ export const formatDisplayDateTime = (
       return '';
     }
     
-    const dateFormatString = getDisplayDateFormat();
-    const dateFnsFormat = formatTokenMap[dateFormatString] || dateFormatString;
     const timeFormat = includeSeconds ? 'HH:mm:ss' : 'HH:mm';
-    
-    return format(dateObj, `${dateFnsFormat} ${timeFormat}`);
+    return format(dateObj, `${resolveFormat()} ${timeFormat}`);
   } catch (error) {
     console.error('Error formatting datetime:', error, date);
     return '';
   }
 };
+
+/**
+ * Format an AUDIT/TIMESTAMP field (created_at, updated_at, modified_on, etc.)
+ * These are stored in UTC and must be displayed in the user's local timezone.
+ * Uses the global display_date_format setting for the date portion.
+ * 
+ * @param date - UTC timestamp (ISO string from database, Date object, or number)
+ * @param includeTime - Whether to include HH:mm (default: true for audit fields)
+ * @param includeSeconds - Whether to include seconds
+ */
+export const formatAuditDate = (
+  date: Date | string | number | null | undefined,
+  includeTime: boolean = true,
+  includeSeconds: boolean = false
+): string => {
+  if (!date) return '';
+
+  try {
+    let dateObj: Date;
+    if (typeof date === 'string') {
+      // Audit timestamps always have time component — use parseISO which preserves UTC
+      dateObj = parseISO(date);
+      if (!isValid(dateObj)) dateObj = new Date(date);
+    } else if (typeof date === 'number') {
+      dateObj = new Date(date);
+    } else {
+      dateObj = date;
+    }
+
+    if (!isValid(dateObj)) {
+      console.warn('Invalid audit date:', date);
+      return '';
+    }
+
+    // date-fns format() uses the local timezone automatically when given a UTC Date,
+    // so the UTC→local conversion happens implicitly.
+    const datePart = resolveFormat();
+    if (!includeTime) return format(dateObj, datePart);
+
+    const timeFmt = includeSeconds ? 'HH:mm:ss' : 'HH:mm';
+    return format(dateObj, `${datePart} ${timeFmt}`);
+  } catch (error) {
+    console.error('Error formatting audit date:', error, date);
+    return '';
+  }
+};
+
+/**
+ * Alias for formatAuditDate — specifically for datetime audit fields.
+ * Always includes time.
+ */
+export const formatAuditDateTime = (
+  date: Date | string | number | null | undefined,
+  includeSeconds: boolean = false
+): string => formatAuditDate(date, true, includeSeconds);
 
 /**
  * Get the placeholder text for date inputs based on current format

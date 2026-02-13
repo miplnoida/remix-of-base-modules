@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { FileText, Search, Download, Eye, Filter, Mail, MessageSquare, Bell, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { formatAuditDateTime, formatDateForStorage } from '@/lib/dateFormat';
 
 interface NotificationLog {
   id: string;
@@ -121,7 +121,7 @@ const NotificationLogs = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `notification-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `notification-logs-${formatDateForStorage(new Date())}.csv`;
     a.click();
   };
 
@@ -230,7 +230,7 @@ const NotificationLogs = () => {
                 {filteredLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="text-sm">
-                      {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                      {formatAuditDateTime(log.created_at, true)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ const NotificationLogs = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Timestamp</p>
-                  <p className="font-medium">{format(new Date(selectedLog.created_at), 'PPpp')}</p>
+                  <p className="font-medium">{formatAuditDateTime(selectedLog.created_at, true)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Channel</p>
@@ -322,7 +322,7 @@ const NotificationLogs = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Sent At</p>
-                  <p>{selectedLog.sent_at ? format(new Date(selectedLog.sent_at), 'PPpp') : '-'}</p>
+                  <p>{selectedLog.sent_at ? formatAuditDateTime(selectedLog.sent_at, true) : '-'}</p>
                 </div>
               </div>
             </div>

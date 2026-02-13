@@ -7,7 +7,7 @@
  import { Badge } from '@/components/ui/badge';
  import { Switch } from '@/components/ui/switch';
  import { Loader2, Copy, Settings, Calendar } from 'lucide-react';
- import { format } from 'date-fns';
+ import { formatDisplayDate } from '@/lib/dateFormat';
  import { C3ConfigCloneDialog } from '@/components/admin/c3-period-config/C3ConfigCloneDialog';
  import { C3ConfigDetailsDialog } from '@/components/admin/c3-period-config/C3ConfigDetailsDialog';
  
@@ -57,7 +57,7 @@
  
    const formatDate = (dateStr: string | null) => {
      if (!dateStr) return 'Open-ended';
-     return format(new Date(dateStr), 'dd MMM yyyy');
+     return formatDisplayDate(dateStr);
    };
  
    const formatRate = (rate: number) => {

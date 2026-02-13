@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, RefreshCw, Download, History, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatAuditDateTime } from '@/lib/dateFormat';
 import { Label } from '@/components/ui/label';
 
 interface AuditEntry {
@@ -150,7 +150,7 @@ const AuditTrail: React.FC = () => {
                   {data?.entries.map((entry) => (
                     <TableRow key={entry.id} className="cursor-pointer hover:bg-muted" onClick={() => setSelectedEntry(entry)}>
                       <TableCell className="font-mono text-sm">
-                        {format(new Date(entry.timestamp), 'yyyy-MM-dd HH:mm:ss')}
+                        {formatAuditDateTime(entry.timestamp, true)}
                       </TableCell>
                       <TableCell>{entry.user_name || entry.user_id?.slice(0, 8) || '-'}</TableCell>
                       <TableCell>{getActionBadge(entry.action)}</TableCell>
@@ -199,7 +199,7 @@ const AuditTrail: React.FC = () => {
             {selectedEntry && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><strong>Timestamp:</strong> {format(new Date(selectedEntry.timestamp), 'yyyy-MM-dd HH:mm:ss')}</div>
+                  <div><strong>Timestamp:</strong> {formatAuditDateTime(selectedEntry.timestamp, true)}</div>
                   <div><strong>User:</strong> {selectedEntry.user_name || '-'}</div>
                   <div><strong>Action:</strong> {getActionBadge(selectedEntry.action)}</div>
                   <div><strong>Module:</strong> {selectedEntry.module || '-'}</div>

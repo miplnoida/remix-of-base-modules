@@ -1,59 +1,42 @@
 import { useSystemSettingsContext } from '@/contexts/SystemSettingsContext';
-import { formatDisplayDate, formatDisplayDateTime, formatRelativeDate, getDatePlaceholder, formatDateForStorage } from '@/lib/dateFormat';
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  formatRelativeDate,
+  getDatePlaceholder,
+  formatDateForStorage,
+  formatAuditDate,
+  formatAuditDateTime,
+} from '@/lib/dateFormat';
 
 /**
- * Hook to access date formatting utilities with real-time system settings
- * 
- * This hook provides access to all date formatting functions that read from
- * the global display_date_format system setting. Use this hook in components
- * where you need to format dates.
- * 
- * The format is cached and automatically updated when the setting changes.
- * 
- * @example
- * ```tsx
- * const { formatDate, formatDateTime } = useDateFormat();
- * 
- * return <span>{formatDate(record.createdAt)}</span>;
- * ```
+ * Hook to access date formatting utilities with real-time system settings.
+ *
+ * Business dates (DOB, period, expiry…) → formatDate / formatDateTime
+ *   No timezone conversion – displayed exactly as stored.
+ *
+ * Audit timestamps (created_at, updated_at…) → formatAudit / formatAuditDT
+ *   Stored in UTC, converted to the user's local timezone on display.
  */
 export const useDateFormat = () => {
-  // This triggers a re-render when settings change
   const { getSetting } = useSystemSettingsContext();
-  
-  // Access the setting to ensure component re-renders on change
+  // Touch the setting so the component re-renders when it changes
   getSetting('display_date_format', 'dd/MM/yyyy');
-  
+
   return {
-    /**
-     * Format a date using the global display_date_format setting
-     * @param date - Date object, ISO string, or timestamp
-     * @param customFormat - Optional custom format to override system setting
-     */
+    /** Format a business date (no TZ conversion) */
     formatDate: formatDisplayDate,
-    
-    /**
-     * Format a date with time using the global display_date_format setting
-     * @param date - Date object, ISO string, or timestamp
-     * @param includeSeconds - Whether to include seconds (default: false)
-     */
+    /** Format a business date + time (no TZ conversion) */
     formatDateTime: formatDisplayDateTime,
-    
-    /**
-     * Format a date as relative time (e.g., "2 hours ago", "yesterday")
-     * Falls back to formatted date for older dates
-     */
+    /** Relative time string ("2 hours ago") */
     formatRelative: formatRelativeDate,
-    
-    /**
-     * Get the placeholder text for date inputs based on current format
-     * @returns Uppercase format placeholder (e.g., "DD/MM/YYYY")
-     */
+    /** Placeholder for date inputs (e.g. "DD/MM/YYYY") */
     getPlaceholder: getDatePlaceholder,
-    
-    /**
-     * Format a date for storage (always uses ISO format yyyy-MM-dd)
-     */
+    /** Format for storage (always yyyy-MM-dd, TZ-safe) */
     formatForStorage: formatDateForStorage,
+    /** Format an audit timestamp (UTC → local TZ, date only) */
+    formatAudit: (d: Date | string | number | null | undefined) => formatAuditDate(d, false),
+    /** Format an audit timestamp (UTC → local TZ, date + time) */
+    formatAuditDT: formatAuditDateTime,
   };
 };
