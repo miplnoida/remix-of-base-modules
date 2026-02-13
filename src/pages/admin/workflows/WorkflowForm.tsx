@@ -53,6 +53,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useModuleTables, useTableColumns } from '@/hooks/useModuleTables';
 import { useWorkflowActionTypes } from '@/hooks/useMeetings';
 import { WorkflowActionApiConfig } from '@/components/workflow/WorkflowActionApiConfig';
+import { MeetingDepartmentConfig } from '@/components/workflow/MeetingDepartmentConfig';
+import { useUpdateMeetingNotifyConfig } from '@/hooks/useWorkflowMeetingDepartments';
 // useWorkflowActionApiConfig now used internally by WorkflowActionApiConfig
 
 interface StepFormData {
@@ -1465,6 +1467,24 @@ export default function WorkflowForm() {
                                         Notification sent when this action is executed.
                                       </p>
                                     </div>
+
+                                    {/* Meeting Department Config - shown when action type is Schedule Meeting */}
+                                    {step.id && id && (() => {
+                                      const actionTypeInfo = stepActionTypes.find(t => t.value === action.action_type);
+                                      const isScheduleMeeting = actionTypeInfo?.pausesWorkflow && 
+                                        (action.action_type.toLowerCase().includes('schedule') || 
+                                         action.action_type.toLowerCase().includes('meeting'));
+                                      if (!isScheduleMeeting) return null;
+                                      return (
+                                        <MeetingDepartmentConfig
+                                          workflowId={id}
+                                          stepId={step.id!}
+                                          actionId={action.id}
+                                          notifyAssignedPerson={false}
+                                          onNotifyChange={() => {}}
+                                        />
+                                      );
+                                    })()}
 
                                     {/* Action Field Updates Section */}
                                     <div className="space-y-3 p-3 bg-background rounded-md border border-orange-200 dark:border-orange-800">

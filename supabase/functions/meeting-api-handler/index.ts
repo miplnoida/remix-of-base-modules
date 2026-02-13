@@ -27,6 +27,10 @@ interface MeetingApiRequest {
   newTime?: string
   apiConfigId?: string
   applicationData?: Record<string, any>
+  // New fields for department-based scheduling
+  officeCode?: string
+  departmentId?: string
+  assignedUserId?: string
   filters?: {
     status?: string
     dateFrom?: string
@@ -120,6 +124,40 @@ Deno.serve(async (req) => {
           throw error
         }
 
+        // Update meeting with new department fields if provided
+        if (data?.meeting_id && (body.officeCode || body.departmentId || body.assignedUserId)) {
+          await supabase
+            .from('meetings')
+            .update({
+              office_code: body.officeCode || null,
+              department_id: body.departmentId || null,
+              assigned_user_id: body.assignedUserId || null,
+            })
+            .eq('id', data.meeting_id)
+        }
+
+        // Send in-app notification to assigned person if configured
+        if (body.assignedUserId && body.workflowId) {
+          const { data: actionConfig } = await supabase
+            .from('workflow_action_configurations')
+            .select('notify_assigned_person')
+            .eq('workflow_id', body.workflowId)
+            .eq('step_id', body.stepId)
+            .single()
+
+          if (actionConfig?.notify_assigned_person) {
+            await supabase.from('in_app_notifications').insert({
+              user_id: body.assignedUserId,
+              title: 'New Meeting Scheduled',
+              message: `A meeting has been scheduled for application ${body.applicationReference} on ${body.meetingDate} at ${body.meetingTime}.`,
+              type: 'meeting',
+              priority: 'normal',
+              link: `/meetings/manage`,
+              metadata: { meeting_id: data.meeting_id, meeting_reference: data.meeting_reference },
+            })
+          }
+        }
+
         // Check if API notification is configured
         if (body.actionConfigId) {
           const { data: config } = await supabase
@@ -129,7 +167,6 @@ Deno.serve(async (req) => {
             .single()
 
           if (config?.requires_api_integration && config?.api_config_id) {
-            // Trigger external API call asynchronously
             await callExternalApi(supabase, data.meeting_id, config.api_config_id, 'SCHEDULED', {
               applicationReference: body.applicationReference,
               meetingReference: data.meeting_reference,

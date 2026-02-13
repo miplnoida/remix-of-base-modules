@@ -6299,6 +6299,7 @@ export type Database = {
           api_notification_at: string | null
           api_notified: boolean | null
           application_reference: string
+          assigned_user_id: string | null
           closed_at: string | null
           closed_by: string | null
           closed_by_name: string | null
@@ -6307,13 +6308,16 @@ export type Database = {
           contact_phone: string | null
           created_at: string | null
           created_by: string | null
+          department_id: string | null
           id: string
           meeting_date: string
+          meeting_end_time: string | null
           meeting_reference: string
           meeting_time: string
           meeting_type: Database["public"]["Enums"]["meeting_type"]
           metadata: Json | null
           office_address: string | null
+          office_code: string | null
           office_location_id: string | null
           outcome: Database["public"]["Enums"]["meeting_outcome"] | null
           outcome_remarks: string | null
@@ -6334,6 +6338,7 @@ export type Database = {
           api_notification_at?: string | null
           api_notified?: boolean | null
           application_reference: string
+          assigned_user_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closed_by_name?: string | null
@@ -6342,13 +6347,16 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string | null
           created_by?: string | null
+          department_id?: string | null
           id?: string
           meeting_date: string
+          meeting_end_time?: string | null
           meeting_reference: string
           meeting_time: string
           meeting_type: Database["public"]["Enums"]["meeting_type"]
           metadata?: Json | null
           office_address?: string | null
+          office_code?: string | null
           office_location_id?: string | null
           outcome?: Database["public"]["Enums"]["meeting_outcome"] | null
           outcome_remarks?: string | null
@@ -6369,6 +6377,7 @@ export type Database = {
           api_notification_at?: string | null
           api_notified?: boolean | null
           application_reference?: string
+          assigned_user_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closed_by_name?: string | null
@@ -6377,13 +6386,16 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string | null
           created_by?: string | null
+          department_id?: string | null
           id?: string
           meeting_date?: string
+          meeting_end_time?: string | null
           meeting_reference?: string
           meeting_time?: string
           meeting_type?: Database["public"]["Enums"]["meeting_type"]
           metadata?: Json | null
           office_address?: string | null
+          office_code?: string | null
           office_location_id?: string | null
           outcome?: Database["public"]["Enums"]["meeting_outcome"] | null
           outcome_remarks?: string | null
@@ -6405,6 +6417,13 @@ export type Database = {
             columns: ["action_config_id"]
             isOneToOne: false
             referencedRelation: "workflow_action_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "tb_office_departments"
             referencedColumns: ["id"]
           },
           {
@@ -8343,18 +8362,24 @@ export type Database = {
           address2: string
           code: string
           description: string
+          office_end_time: string | null
+          office_start_time: string | null
         }
         Insert: {
           address1?: string
           address2?: string
           code: string
           description: string
+          office_end_time?: string | null
+          office_start_time?: string | null
         }
         Update: {
           address1?: string
           address2?: string
           code?: string
           description?: string
+          office_end_time?: string | null
+          office_start_time?: string | null
         }
         Relationships: []
       }
@@ -9229,6 +9254,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           meeting_type: Database["public"]["Enums"]["meeting_type"] | null
+          notify_assigned_person: boolean | null
           requires_api_integration: boolean | null
           step_id: string
           updated_at: string | null
@@ -9245,6 +9271,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           meeting_type?: Database["public"]["Enums"]["meeting_type"] | null
+          notify_assigned_person?: boolean | null
           requires_api_integration?: boolean | null
           step_id: string
           updated_at?: string | null
@@ -9261,6 +9288,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           meeting_type?: Database["public"]["Enums"]["meeting_type"] | null
+          notify_assigned_person?: boolean | null
           requires_api_integration?: boolean | null
           step_id?: string
           updated_at?: string | null
@@ -9943,6 +9971,68 @@ export type Database = {
           },
         ]
       }
+      workflow_meeting_departments: {
+        Row: {
+          action_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string
+          id: string
+          office_code: string
+          step_id: string
+          workflow_id: string
+        }
+        Insert: {
+          action_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id: string
+          id?: string
+          office_code: string
+          step_id: string
+          workflow_id: string
+        }
+        Update: {
+          action_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string
+          id?: string
+          office_code?: string
+          step_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_meeting_departments_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_meeting_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "tb_office_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_meeting_departments_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_meeting_departments_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_security_audit_log: {
         Row: {
           access_granted: boolean
@@ -10548,6 +10638,22 @@ export type Database = {
           ssn: string
         }[]
       }
+      check_meeting_overlap: {
+        Args: {
+          p_assigned_user_id: string
+          p_buffer_minutes?: number
+          p_exclude_meeting_id?: string
+          p_meeting_date: string
+          p_meeting_start_time: string
+        }
+        Returns: {
+          conflicting_end_time: string
+          conflicting_meeting_id: string
+          conflicting_reference: string
+          conflicting_start_time: string
+          has_overlap: boolean
+        }[]
+      }
       check_row_access: {
         Args: {
           _action: string
@@ -10774,6 +10880,18 @@ export type Database = {
           sort_order: number
         }[]
       }
+      get_user_meetings_for_date: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: {
+          application_reference: string
+          meeting_end_time: string
+          meeting_id: string
+          meeting_reference: string
+          meeting_time: string
+          meeting_type: string
+          status: string
+        }[]
+      }
       get_user_permissions: {
         Args: { _user_id: string }
         Returns: {
@@ -10950,6 +11068,20 @@ export type Database = {
           p_user_code?: string
         }
         Returns: boolean
+      }
+      validate_meeting_office_hours: {
+        Args: {
+          p_buffer_minutes?: number
+          p_meeting_time: string
+          p_office_code: string
+        }
+        Returns: {
+          is_valid: boolean
+          latest_allowed: string
+          message: string
+          office_end: string
+          office_start: string
+        }[]
       }
       verify_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }
