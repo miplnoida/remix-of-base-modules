@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -91,7 +92,7 @@ export function RelatedMeetings({ meetingId, applicationReference, onMeetingClic
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {format(new Date(m.meeting_date), 'MMM d, yyyy')} at {formatTime(m.meeting_time)}
+                  {formatDisplayDate(m.meeting_date)} at {formatTime(m.meeting_time)}
                 </p>
               </div>
               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />

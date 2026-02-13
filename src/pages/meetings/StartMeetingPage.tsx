@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -254,7 +255,7 @@ export default function StartMeetingPage() {
               <Label className="text-xs text-muted-foreground">Scheduled Date/Time</Label>
               <p className="font-medium flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {format(new Date(meeting.meeting_date), 'dd MMM yyyy')}
+                {formatDisplayDate(meeting.meeting_date)}
                 <Clock className="h-4 w-4 ml-2" />
                 {formatTime(meeting.meeting_time)}
               </p>
