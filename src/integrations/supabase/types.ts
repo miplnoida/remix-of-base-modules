@@ -10018,6 +10018,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflow_meeting_departments_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "workflow_meeting_departments_step_id_fkey"
             columns: ["step_id"]
             isOneToOne: false
