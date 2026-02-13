@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -266,10 +267,10 @@ const PersonApproval = () => {
                     {person.firstName} {person.lastName}
                   </TableCell>
                   <TableCell>{person.socialSecurityNo}</TableCell>
-                  <TableCell>{new Date(person.dateOfBirth).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatDisplayDate(person.dateOfBirth)}</TableCell>
                   <TableCell>{person.occupation}</TableCell>
                   <TableCell>{person.employer}</TableCell>
-                  <TableCell>{new Date(person.submittedDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatDisplayDate(person.submittedDate)}</TableCell>
                   <TableCell>{getStatusBadge(person.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -312,7 +313,7 @@ const PersonApproval = () => {
                                   </div>
                                   <div>
                                     <Label className="text-sm font-medium text-gray-500">Date of Birth</Label>
-                                    <p className="text-sm">{new Date(selectedPerson.dateOfBirth).toLocaleDateString()}</p>
+                                    <p className="text-sm">{formatDisplayDate(selectedPerson.dateOfBirth)}</p>
                                   </div>
                                   <div>
                                     <Label className="text-sm font-medium text-gray-500">Gender</Label>
@@ -400,7 +401,7 @@ const PersonApproval = () => {
                                           <TableRow key={index}>
                                             <TableCell>{dependant.name}</TableCell>
                                             <TableCell>{dependant.relationship}</TableCell>
-                                            <TableCell>{new Date(dependant.dateOfBirth).toLocaleDateString()}</TableCell>
+                                            <TableCell>{formatDisplayDate(dependant.dateOfBirth)}</TableCell>
                                           </TableRow>
                                         ))}
                                       </TableBody>

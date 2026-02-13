@@ -4,18 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { formatDisplayDate, getDatePlaceholder } from '@/lib/dateFormat';
 
 interface DatePickerProps {
   date?: Date;
   onSelect: (date: Date | undefined) => void;
-  placeholder: string;
+  placeholder?: string;
   className?: string;
+  /** @deprecated – use system setting; kept for backward compat only */
   dateFormat?: string;
 }
 
-export const DatePicker = ({ date, onSelect, placeholder, className, dateFormat = "dd/MM/yyyy" }: DatePickerProps) => (
+export const DatePicker = ({ date, onSelect, placeholder, className }: DatePickerProps) => (
   <Popover>
     <PopoverTrigger asChild>
       <Button
@@ -27,7 +28,7 @@ export const DatePicker = ({ date, onSelect, placeholder, className, dateFormat 
         )}
       >
         <CalendarIcon className="mr-2 h-4 w-4" />
-        {date ? format(date, dateFormat) : <span>{placeholder}</span>}
+        {date ? formatDisplayDate(date) : <span>{placeholder || getDatePlaceholder()}</span>}
       </Button>
     </PopoverTrigger>
     <PopoverContent className="w-auto p-0">

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, Plus } from 'lucide-react';
 import { IPNoteData } from '@/types/ipRegistration';
-import { format } from 'date-fns';
+import { formatAuditDateTime } from '@/lib/dateFormat';
 
 interface NotesTabProps {
   notes: IPNoteData[];
@@ -100,7 +100,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-sm text-muted-foreground">
                       {note.note_date 
-                        ? format(new Date(note.note_date), 'dd/MM/yyyy HH:mm')
+                        ? formatAuditDateTime(note.note_date)
                         : 'Unknown date'}
                     </span>
                     {note.userid && (

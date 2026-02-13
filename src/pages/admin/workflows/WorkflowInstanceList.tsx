@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
+import { formatAuditDateTime } from '@/lib/dateFormat';
 import { useNavigate } from 'react-router-dom';
 import { 
   History, 
@@ -237,11 +237,11 @@ const WorkflowInstanceList: React.FC = () => {
                       <TableCell>{getStatusBadge(instance.status)}</TableCell>
                       <TableCell>{instance.started_by_name || 'System'}</TableCell>
                       <TableCell>
-                        {format(new Date(instance.started_at), 'MMM d, yyyy HH:mm')}
+                        {formatAuditDateTime(instance.started_at)}
                       </TableCell>
                       <TableCell>
                         {instance.completed_at 
-                          ? format(new Date(instance.completed_at), 'MMM d, yyyy HH:mm')
+                          ? formatAuditDateTime(instance.completed_at)
                           : '-'
                         }
                       </TableCell>

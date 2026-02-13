@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { formatAuditDateTime } from '@/lib/dateFormat';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NotesTabProps {
@@ -189,7 +189,7 @@ export default function NotesTab({ uniqueUuid, ssn, recordStatus, isEditable }: 
                     <p className="text-sm">{note.note}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                       {note.note_date && (
-                        <span>{format(new Date(note.note_date), 'dd/MM/yyyy HH:mm')}</span>
+                        <span>{formatAuditDateTime(note.note_date)}</span>
                       )}
                       {note.note_seq && <span>Seq: {note.note_seq}</span>}
                     </div>

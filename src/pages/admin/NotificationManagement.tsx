@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Bell, Mail, MessageSquare, Smartphone, Plus, Edit, Trash2, RotateCcw, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useNotificationTemplates, useCreateNotificationTemplate, useUpdateNotificationTemplate, useDeleteNotificationTemplate, useNotificationLogs, NotificationTemplate, NotificationLog } from "@/hooks/useAdminData";
-import { format } from "date-fns";
+import { formatAuditDateTime } from '@/lib/dateFormat';
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -293,7 +293,7 @@ const NotificationManagement = () => {
                     {filteredLogs.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-sm">
-                          {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}
+                          {formatAuditDateTime(log.created_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">

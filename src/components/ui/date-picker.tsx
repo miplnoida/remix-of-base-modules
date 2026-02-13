@@ -1,5 +1,4 @@
 import * as React from "react";
-import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -10,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { formatDisplayDate, getDatePlaceholder } from "@/lib/dateFormat";
 
 interface DatePickerProps {
   date: Date | undefined;
@@ -22,7 +22,7 @@ interface DatePickerProps {
 export function DatePicker({
   date,
   onDateChange,
-  placeholder = "Pick a date",
+  placeholder,
   disabled = false,
   className,
 }: DatePickerProps) {
@@ -39,7 +39,7 @@ export function DatePicker({
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+          {date ? formatDisplayDate(date) : <span>{placeholder || getDatePlaceholder()}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

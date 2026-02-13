@@ -8,8 +8,16 @@ All date displays in the application MUST use the global `display_date_format` s
 
 ## System Setting
 - **Setting Key**: `display_date_format`
-- **Location**: System Administration → Global Settings
+- **Location**: System Administration → Global Settings → Display Settings
 - **Default**: `dd/MM/yyyy`
+
+## Two Date Categories
+
+### Business Dates (no TZ conversion)
+DOB, Period, Expiry, Meeting Date, Application Date, etc. Use `formatDisplayDate` / `formatDisplayDateTime`.
+
+### Audit Timestamps (UTC → local TZ)
+`created_at`, `updated_at`, `modified_on`, `inserted_on`, etc. Use `formatAuditDate` / `formatAuditDateTime`.
 
 ## Required Implementation
 
@@ -17,13 +25,19 @@ All date displays in the application MUST use the global `display_date_format` s
 Always import and use the centralized formatting utilities:
 
 ```typescript
-import { formatDisplayDate, formatDisplayDateTime } from '@/lib/dateFormat';
+import { formatDisplayDate, formatDisplayDateTime, formatAuditDate, formatAuditDateTime } from '@/lib/dateFormat';
 
-// Display a date
-<span>{formatDisplayDate(record.createdAt)}</span>
+// Business date
+<span>{formatDisplayDate(record.dateOfBirth)}</span>
 
-// Display date with time
-<span>{formatDisplayDateTime(record.updatedAt)}</span>
+// Business date with time
+<span>{formatDisplayDateTime(record.meetingDate)}</span>
+
+// Audit timestamp (UTC → local, date + time)
+<span>{formatAuditDateTime(record.created_at)}</span>
+
+// Audit timestamp (UTC → local, date only)
+<span>{formatAuditDate(record.created_at, false)}</span>
 ```
 
 ### Hook-Based Approach (for reactive updates)
@@ -31,10 +45,18 @@ import { formatDisplayDate, formatDisplayDateTime } from '@/lib/dateFormat';
 import { useDateFormat } from '@/hooks/useDateFormat';
 
 const MyComponent = () => {
-  const { formatDate, formatDateTime } = useDateFormat();
-  return <span>{formatDate(someDate)}</span>;
+  const { formatDate, formatDateTime, formatAudit, formatAuditDT } = useDateFormat();
+  return (
+    <>
+      <span>{formatDate(record.dateOfBirth)}</span>
+      <span>{formatAuditDT(record.created_at)}</span>
+    </>
+  );
 };
 ```
+
+### DatePicker Components
+Both `src/components/ip/DatePicker.tsx` and `src/components/ui/date-picker.tsx` automatically use the system format. No manual format prop needed.
 
 ## Prohibited Patterns
 Do NOT use these patterns:
@@ -42,6 +64,7 @@ Do NOT use these patterns:
 - `date-fns format()` with hardcoded format strings
 - Custom inline formatDate functions
 - Any hardcoded date format like `dd-MM-yyyy` in component code
+- `format(new Date(dateStr), 'MMM d, yyyy')` or similar
 
 ## Available Formats
 Administrators can choose from:
