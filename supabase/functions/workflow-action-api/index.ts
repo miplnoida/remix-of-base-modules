@@ -282,12 +282,30 @@ Deno.serve(async (req) => {
         }
         const resolvedUrl = resolveUrlPlaceholders(config.endpoint_url, allContext)
 
-        // Get API key from secrets
+        // Get API key - first try Deno env secrets, then fall back to api_settings table
         let apiKey: string | null = null
+        let headerName: string = 'X-API-Key'
         if (config.api_key_secret_name) {
+          // 1. Try Deno environment (Supabase secrets)
           apiKey = Deno.env.get(config.api_key_secret_name) || null
+
+          // 2. Fall back to api_settings table
           if (!apiKey) {
-            console.warn(`API key secret '${config.api_key_secret_name}' not found`)
+            console.log(`Secret '${config.api_key_secret_name}' not in env, checking api_settings table...`)
+            const { data: apiSetting } = await supabase
+              .from('api_settings')
+              .select('api_key, header_name')
+              .eq('setting_key', config.api_key_secret_name)
+              .eq('is_active', true)
+              .single()
+
+            if (apiSetting?.api_key) {
+              apiKey = apiSetting.api_key
+              headerName = apiSetting.header_name || 'X-API-Key'
+              console.log(`API key resolved from api_settings table, header: ${headerName}`)
+            } else {
+              console.warn(`API key '${config.api_key_secret_name}' not found in env or api_settings`)
+            }
           }
         }
 
@@ -297,10 +315,10 @@ Deno.serve(async (req) => {
         }
 
         if (apiKey) {
-          if (config.api_key_secret_name.toLowerCase().includes('bearer')) {
+          if (headerName.toLowerCase() === 'authorization' || config.api_key_secret_name.toLowerCase().includes('bearer')) {
             headers['Authorization'] = `Bearer ${apiKey}`
           } else {
-            headers['X-API-Key'] = apiKey
+            headers[headerName] = apiKey
           }
         }
 
@@ -511,10 +529,25 @@ Deno.serve(async (req) => {
           throw new Error('API configuration not found')
         }
 
-        // Get API key
+        // Get API key - first try Deno env secrets, then fall back to api_settings table
         let apiKey: string | null = null
+        let headerName: string = 'X-API-Key'
         if (config.api_key_secret_name) {
           apiKey = Deno.env.get(config.api_key_secret_name) || null
+
+          if (!apiKey) {
+            const { data: apiSetting } = await supabase
+              .from('api_settings')
+              .select('api_key, header_name')
+              .eq('setting_key', config.api_key_secret_name)
+              .eq('is_active', true)
+              .single()
+
+            if (apiSetting?.api_key) {
+              apiKey = apiSetting.api_key
+              headerName = apiSetting.header_name || 'X-API-Key'
+            }
+          }
         }
 
         // Build headers
@@ -523,10 +556,10 @@ Deno.serve(async (req) => {
         }
 
         if (apiKey) {
-          if (config.api_key_secret_name.toLowerCase().includes('bearer')) {
+          if (headerName.toLowerCase() === 'authorization' || config.api_key_secret_name.toLowerCase().includes('bearer')) {
             headers['Authorization'] = `Bearer ${apiKey}`
           } else {
-            headers['X-API-Key'] = apiKey
+            headers[headerName] = apiKey
           }
         }
 
