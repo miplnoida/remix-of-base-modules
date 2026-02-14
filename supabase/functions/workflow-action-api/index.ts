@@ -406,6 +406,31 @@ Deno.serve(async (req) => {
           .select('id')
           .single()
 
+        // --- Log to centralized api_logs table (non-blocking) ---
+        try {
+          const sanitizedHeaders: Record<string, any> = { 'Content-Type': config.content_type }
+          await supabase.from('api_logs').insert({
+            api_name: `Workflow-${body.actionCode}`,
+            endpoint_url: resolvedUrl,
+            http_method: config.http_method,
+            request_headers: sanitizedHeaders,
+            request_payload: requestBody,
+            response_status: httpStatus,
+            response_body: responseJson,
+            is_success: executionStatus === 'SUCCESS',
+            error_message: errorMessage,
+            duration_ms: duration,
+            module: 'Workflow API',
+            related_entity_type: 'workflow_instance',
+            related_entity_id: body.workflowInstanceId,
+            user_id: userId,
+            correlation_id: logEntry?.id || null,
+            execution_timestamp: new Date().toISOString(),
+          })
+        } catch (apiLogErr) {
+          console.warn('Failed to write to api_logs (non-blocking):', apiLogErr)
+        }
+
         // --- POST-EXECUTION AUDIT LOG ---
         await supabase.from('system_audit_trail').insert({
           action: executionStatus === 'SUCCESS' ? 'workflow_api_success' : 'workflow_api_failed',
