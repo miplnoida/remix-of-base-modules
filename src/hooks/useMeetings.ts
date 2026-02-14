@@ -286,6 +286,9 @@ export function useRescheduleMeeting() {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
       queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['related-meetings'] });
       toast.success(data.message || `Meeting rescheduled. New reference: ${data.new_meeting_reference}`);
     },
     onError: (error: Error) => {
