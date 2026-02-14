@@ -571,9 +571,12 @@ const ModuleManagementContent = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="none">None (top level)</SelectItem>
-                      {parentModules.filter((m) => m.id !== selectedModule?.id).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
-                      ))}
+                      {modules
+                        .filter((m) => m.id !== selectedModule?.id && !m.route && m.is_enabled)
+                        .sort((a, b) => a.display_name.localeCompare(b.display_name))
+                        .map((m) => (
+                          <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
