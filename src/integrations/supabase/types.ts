@@ -10961,8 +10961,8 @@ export type Database = {
         Args: { p_date: string; p_user_id: string }
         Returns: {
           application_reference: string
+          id: string
           meeting_end_time: string
-          meeting_id: string
           meeting_reference: string
           meeting_time: string
           meeting_type: string
