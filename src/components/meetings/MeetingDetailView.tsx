@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useProfileNameByUserCode } from '@/hooks/useProfileByUserCode';
 import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +43,7 @@ const statusColors: Record<MeetingStatus, string> = {
 export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: MeetingDetailViewProps) {
   const [activeMeetingId, setActiveMeetingId] = useState(initialMeetingId);
   const { data, isLoading, error, refetch } = useMeetingDetails(activeMeetingId);
+  const { data: contactPersonName } = useProfileNameByUserCode(data?.meeting?.contact_person);
 
   if (isLoading) {
     return (
@@ -161,7 +163,7 @@ export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: Meet
             <div>
               <p className="font-medium">Contact Person</p>
               <p className="text-sm text-muted-foreground">
-                {meeting.contact_person || 'N/A'}
+                {contactPersonName || meeting.contact_person || 'N/A'}
               </p>
               {meeting.contact_email && (
                 <p className="text-xs text-muted-foreground">{meeting.contact_email}</p>
