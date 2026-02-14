@@ -237,6 +237,7 @@ import UserNotificationPreferences from '@/pages/admin/UserNotificationPreferenc
 import DataMigration from '@/pages/admin/DataMigration';
 import UpdateUserPassword from '@/pages/admin/users/UpdateUserPassword';
 import ModuleButtonBindings from '@/pages/admin/ModuleButtonBindings';
+import ApiKeysManagement from '@/pages/admin/ApiKeysManagement';
 
 import WorkflowList from '@/pages/admin/workflows/WorkflowList';
 import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
@@ -938,6 +939,7 @@ export const AppRoutes = () => {
       <Route path="/admin/data-migration" element={<ProtectedLayout><DataMigration /></ProtectedLayout>} />
       <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
+      <Route path="/admin/api-keys" element={<ProtectedLayout><ApiKeysManagement /></ProtectedLayout>} />
       <Route path="/admin/c3-calculation-config" element={<ProtectedLayout><C3CalculationConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
