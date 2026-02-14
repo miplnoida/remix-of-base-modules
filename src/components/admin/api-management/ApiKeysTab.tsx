@@ -115,7 +115,11 @@ const ApiKeysTab: React.FC = () => {
     setRevealCopied(false);
     try {
       const response = await supabase.functions.invoke('manage-api-keys', { body: { action: 'reveal', key_id: key.id } });
-      if (response.error) throw response.error;
+      if (response.error) {
+        // Try to extract message from response data
+        const msg = response.data?.message || response.error.message || 'Failed to reveal API key';
+        throw new Error(msg);
+      }
       if (response.data?.status === 'success') {
         setRevealedPlainKey(response.data.data.plain_key);
       } else {
