@@ -101,6 +101,9 @@ export function MeetingActionButtons({
         currentDate={meeting.meeting_date}
         currentTime={meeting.meeting_time}
         workflowId={meeting.workflow_id}
+        workflowInstanceId={meeting.workflow_instance_id}
+        stepId={meeting.step_id}
+        applicationReference={meeting.application_reference}
         onSuccess={handleActionComplete}
       />
     </>
