@@ -213,7 +213,16 @@ export function ScheduleMeetingDialog({
 
     try {
       const result = await scheduleMutation.mutateAsync(formData);
-      if (onSuccess) onSuccess(result);
+      // Enrich result with form data for workflow API integration
+      const enrichedResult = {
+        ...result,
+        meeting_date: formData.meetingDate,
+        meeting_time: formData.meetingTime,
+        office_address: formData.officeAddress,
+        contact_person: formData.contactPerson,
+        remarks: formData.remarks || '',
+      };
+      if (onSuccess) onSuccess(enrichedResult);
       onOpenChange(false);
       resetForm();
     } catch (err) {

@@ -16,6 +16,9 @@ import { Label } from '@/components/ui/label';
 import { useWorkflowActions, useExecuteWorkflowAction, WorkflowAction } from '@/hooks/useWorkflowActions';
 import { cn } from '@/lib/utils';
 import { ScheduleMeetingDialog } from '@/components/meetings/ScheduleMeetingDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { toast } from 'sonner';
 
 interface WorkflowActionButtonsProps {
   sourceModule: string;
@@ -74,6 +77,7 @@ export function WorkflowActionButtons({
   } = useWorkflowActions(sourceModule, sourceRecordId);
 
   const executeAction = useExecuteWorkflowAction();
+  const { profile } = useSupabaseAuth();
 
   // Don't render anything if there's no workflow or no active task
   if (isLoading) {
@@ -144,11 +148,68 @@ export function WorkflowActionButtons({
     }
   };
 
-  const handleMeetingSuccess = (data: any) => {
+  const handleMeetingSuccess = async (data: any) => {
     setShowMeetingDialog(false);
+    const meetingAction = selectedAction;
     setSelectedAction(null);
     refetch();
-    
+
+    // Trigger the configured external API for ScheduleMeeting action (non-blocking)
+    if (workflowId && currentStepId && instanceId && taskId) {
+      try {
+        console.log('[WorkflowActionButtons] Triggering workflow action API for ScheduleMeeting');
+        const { data: apiResult, error: apiError } = await supabase.functions.invoke('workflow-action-api', {
+          body: {
+            action: 'execute',
+            workflowId,
+            workflowStepId: currentStepId,
+            workflowInstanceId: instanceId,
+            taskId,
+            actionCode: 'ScheduleMeeting',
+            applicationData: {
+              application_reference_no: sourceRecordId,
+              application_reference_number: sourceRecordId,
+              reference_number: sourceRecordId,
+            },
+            meetingData: {
+              meeting_reference_no: data?.meeting_reference || '',
+              meeting_reference_number: data?.meeting_reference || '',
+              meeting_date: data?.meeting_date || '',
+              meeting_time: data?.meeting_time || '',
+              office_address: data?.office_address || '',
+              contact_person: data?.contact_person || profile?.user_code || '',
+              remarks: data?.remarks || '',
+              status: 'Scheduled',
+            },
+            workflowContext: {
+              action_code: 'ScheduleMeeting',
+              instance_id: instanceId,
+              step_id: currentStepId,
+              task_id: taskId,
+              source_module: sourceModule,
+              source_record_id: sourceRecordId || '',
+              user_remarks: '',
+            },
+          },
+        });
+
+        if (apiError) {
+          console.error('[WorkflowActionButtons] Workflow API error (non-blocking):', apiError);
+        } else if (apiResult?.warning) {
+          console.warn('[WorkflowActionButtons] Workflow API warning:', apiResult.warning);
+          toast.warning('External API notification issue', {
+            description: apiResult.warning,
+          });
+        } else if (apiResult?.success) {
+          console.log('[WorkflowActionButtons] Workflow action API executed successfully');
+        } else if (apiResult?.skipped) {
+          console.log('[WorkflowActionButtons] No external API configured for ScheduleMeeting');
+        }
+      } catch (err) {
+        console.error('[WorkflowActionButtons] Failed to invoke workflow action API (non-blocking):', err);
+      }
+    }
+
     if (onActionComplete) {
       onActionComplete('Schedule Meeting', null);
     }
