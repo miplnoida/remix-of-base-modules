@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useProfileNameByUserCode } from '@/hooks/useProfileByUserCode';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { useNavigate } from 'react-router-dom';
@@ -43,6 +44,11 @@ const meetingTypeLabels: Record<MeetingType, string> = {
   'Doctor-Registration': 'Doctor',
   'General': 'General'
 };
+
+function ContactPersonName({ userCode }: { userCode: string }) {
+  const { data: name } = useProfileNameByUserCode(userCode);
+  return <>{name || userCode}</>;
+}
 
 function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
   meeting: Meeting;
@@ -98,7 +104,7 @@ function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
             {meeting.contact_person && (
               <span className="flex items-center gap-1">
                 <User className="h-3 w-3" />
-                {meeting.contact_person}
+                <ContactPersonName userCode={meeting.contact_person} />
               </span>
             )}
             {meeting.workflow_definitions?.name && (
