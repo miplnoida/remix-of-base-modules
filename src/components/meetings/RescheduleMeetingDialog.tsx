@@ -22,6 +22,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDisplayDate, formatDateForStorage } from '@/lib/dateFormat';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useMeetingDepartmentsForWorkflow,
   useUsersForOfficeDepartment,
@@ -38,6 +39,9 @@ interface RescheduleMeetingDialogProps {
   currentDate?: string;
   currentTime?: string;
   workflowId?: string;
+  workflowInstanceId?: string;
+  stepId?: string;
+  applicationReference?: string;
   onSuccess?: () => void;
 }
 
@@ -71,6 +75,9 @@ export function RescheduleMeetingDialog({
   currentDate,
   currentTime,
   workflowId,
+  workflowInstanceId,
+  stepId,
+  applicationReference,
   onSuccess,
 }: RescheduleMeetingDialogProps) {
   const { getSetting } = useSystemSettingsContext();
@@ -223,6 +230,57 @@ export function RescheduleMeetingDialog({
 
       onOpenChange(false);
       resetForm();
+
+      // Trigger workflow action API for reschedule (non-blocking)
+      if (workflowId && workflowInstanceId && stepId) {
+        try {
+          console.log('[RescheduleMeetingDialog] Triggering workflow action API for ScheduleMeeting (reschedule)');
+          const { data: apiResult, error: apiError } = await supabase.functions.invoke('workflow-action-api', {
+            body: {
+              action: 'execute',
+              workflowId,
+              workflowStepId: stepId,
+              workflowInstanceId,
+              taskId: null,
+              actionCode: 'ScheduleMeeting',
+              applicationData: {
+                application_reference_no: applicationReference || '',
+                application_reference_number: applicationReference || '',
+                reference_number: applicationReference || '',
+              },
+              meetingData: {
+                meeting_reference_no: meetingReference,
+                meeting_reference_number: meetingReference,
+                meeting_date: dateStr,
+                meeting_time: selectedTime,
+                office_address: officeAddr,
+                contact_person: selectedUser?.user_code || profile?.user_code || '',
+                remarks: remarks.trim(),
+                status: 'Rescheduled',
+              },
+              workflowContext: {
+                action_code: 'ScheduleMeeting',
+                instance_id: workflowInstanceId,
+                step_id: stepId,
+                source_module: 'meeting_reschedule',
+                source_record_id: applicationReference || meetingId,
+                user_remarks: remarks.trim(),
+              },
+            },
+          });
+
+          if (apiError) {
+            console.error('[RescheduleMeetingDialog] Workflow API error (non-blocking):', apiError);
+          } else if (apiResult?.warning) {
+            console.warn('[RescheduleMeetingDialog] Workflow API warning:', apiResult.warning);
+          } else if (apiResult?.success) {
+            console.log('[RescheduleMeetingDialog] Workflow action API executed successfully for reschedule');
+          }
+        } catch (err) {
+          console.error('[RescheduleMeetingDialog] Failed to invoke workflow action API (non-blocking):', err);
+        }
+      }
+
       if (onSuccess) onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reschedule meeting');
