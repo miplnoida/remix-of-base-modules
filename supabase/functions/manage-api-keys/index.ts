@@ -34,13 +34,36 @@ function generateApiKey(): string {
   return key;
 }
 
+function getServiceClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+}
+
+async function saveScopes(supabase: ReturnType<typeof createClient>, keyId: string, registryIds: string[], userId: string) {
+  // Delete existing scopes
+  await supabase.from("api_key_scope_assignments").delete().eq("api_key_id", keyId);
+  
+  // Insert new scopes
+  if (registryIds.length > 0) {
+    const rows = registryIds.map((rid) => ({
+      api_key_id: keyId,
+      api_registry_id: rid,
+      is_allowed: true,
+      created_by: userId,
+    }));
+    const { error } = await supabase.from("api_key_scope_assignments").insert(rows);
+    if (error) throw error;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate caller via JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ status: "error", message: "Unauthorized" }, 401);
@@ -52,27 +75,19 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await supabaseAuth.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
       return jsonResponse({ status: "error", message: "Invalid token" }, 401);
     }
+    const userId = user.id;
 
-    const userId = claimsData.claims.sub as string;
-
-    // Use service role for DB operations
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+    const supabase = getServiceClient();
     const body = await req.json();
     const { action } = body;
 
     switch (action) {
       case "generate": {
-        const { app_name, rate_limit_per_minute = 60, allowed_endpoints = [], allowed_ip_addresses = [], expires_at } = body;
+        const { app_name, rate_limit_per_minute = 60, allowed_endpoints = [], allowed_ip_addresses = [], expires_at, scope_api_registry_ids = [] } = body;
 
         if (!app_name?.trim()) {
           return jsonResponse({ status: "error", message: "app_name is required" }, 400);
@@ -99,6 +114,11 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
+        // Save scope assignments
+        if (scope_api_registry_ids.length > 0) {
+          await saveScopes(supabase, data.id, scope_api_registry_ids, userId);
+        }
+
         return jsonResponse({
           status: "success",
           message: "API key generated. Store it securely — it won't be shown again.",
@@ -114,21 +134,24 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
-        // Get last used timestamp per key
-        const keyIds = (data || []).map((k: Record<string, unknown>) => k.id);
+        const keyIds = (data || []).map((k: Record<string, unknown>) => k.id as string);
         let lastUsedMap: Record<string, string> = {};
-        if (keyIds.length > 0) {
-          const { data: logs } = await supabase
-            .from("public_api_access_logs")
-            .select("api_key_id, created_at")
-            .in("api_key_id", keyIds)
-            .order("created_at", { ascending: false });
+        let scopeCountMap: Record<string, number> = {};
 
-          if (logs) {
-            for (const log of logs) {
-              if (!lastUsedMap[log.api_key_id]) {
-                lastUsedMap[log.api_key_id] = log.created_at;
-              }
+        if (keyIds.length > 0) {
+          const [logsRes, scopesRes] = await Promise.all([
+            supabase.from("public_api_access_logs").select("api_key_id, created_at").in("api_key_id", keyIds).order("created_at", { ascending: false }),
+            supabase.from("api_key_scope_assignments").select("api_key_id").in("api_key_id", keyIds).eq("is_allowed", true),
+          ]);
+
+          if (logsRes.data) {
+            for (const log of logsRes.data) {
+              if (!lastUsedMap[log.api_key_id]) lastUsedMap[log.api_key_id] = log.created_at;
+            }
+          }
+          if (scopesRes.data) {
+            for (const s of scopesRes.data) {
+              scopeCountMap[s.api_key_id] = (scopeCountMap[s.api_key_id] || 0) + 1;
             }
           }
         }
@@ -136,6 +159,7 @@ Deno.serve(async (req) => {
         const enriched = (data || []).map((key: Record<string, unknown>) => ({
           ...key,
           last_used: lastUsedMap[key.id as string] || null,
+          scope_count: scopeCountMap[key.id as string] ?? null,
         }));
 
         return jsonResponse({ status: "success", data: enriched });
@@ -143,17 +167,11 @@ Deno.serve(async (req) => {
 
       case "revoke": {
         const { key_id, reason } = body;
-        if (!key_id) {
-          return jsonResponse({ status: "error", message: "key_id is required" }, 400);
-        }
+        if (!key_id) return jsonResponse({ status: "error", message: "key_id is required" }, 400);
 
         const { error } = await supabase
           .from("public_api_keys")
-          .update({
-            status: "revoked",
-            revoked_at: new Date().toISOString(),
-            revoked_by: userId,
-          })
+          .update({ status: "revoked", revoked_at: new Date().toISOString(), revoked_by: userId })
           .eq("id", key_id);
 
         if (error) throw error;
@@ -161,10 +179,8 @@ Deno.serve(async (req) => {
       }
 
       case "update": {
-        const { key_id, rate_limit_per_minute, allowed_endpoints, allowed_ip_addresses, expires_at } = body;
-        if (!key_id) {
-          return jsonResponse({ status: "error", message: "key_id is required" }, 400);
-        }
+        const { key_id, rate_limit_per_minute, allowed_endpoints, allowed_ip_addresses, expires_at, scope_api_registry_ids } = body;
+        if (!key_id) return jsonResponse({ status: "error", message: "key_id is required" }, 400);
 
         const updateData: Record<string, unknown> = {};
         if (rate_limit_per_minute !== undefined) updateData.rate_limit_per_minute = rate_limit_per_minute;
@@ -172,20 +188,22 @@ Deno.serve(async (req) => {
         if (allowed_ip_addresses !== undefined) updateData.allowed_ip_addresses = allowed_ip_addresses;
         if (expires_at !== undefined) updateData.expires_at = expires_at;
 
-        const { error } = await supabase
-          .from("public_api_keys")
-          .update(updateData)
-          .eq("id", key_id);
+        if (Object.keys(updateData).length > 0) {
+          const { error } = await supabase.from("public_api_keys").update(updateData).eq("id", key_id);
+          if (error) throw error;
+        }
 
-        if (error) throw error;
+        // Update scope assignments if provided
+        if (scope_api_registry_ids !== undefined) {
+          await saveScopes(supabase, key_id, scope_api_registry_ids, userId);
+        }
+
         return jsonResponse({ status: "success", message: "API key updated" });
       }
 
       case "usage": {
         const { key_id, limit = 100 } = body;
-        if (!key_id) {
-          return jsonResponse({ status: "error", message: "key_id is required" }, 400);
-        }
+        if (!key_id) return jsonResponse({ status: "error", message: "key_id is required" }, 400);
 
         const { data, error } = await supabase
           .from("public_api_access_logs")
@@ -199,16 +217,10 @@ Deno.serve(async (req) => {
       }
 
       default:
-        return jsonResponse(
-          { status: "error", message: "Unknown action. Use: generate, list, revoke, update, usage" },
-          400
-        );
+        return jsonResponse({ status: "error", message: "Unknown action. Use: generate, list, revoke, update, usage" }, 400);
     }
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    return jsonResponse(
-      { status: "error", message: "Server error", error: { details: errorMessage } },
-      500
-    );
+    return jsonResponse({ status: "error", message: "Server error", error: { details: errorMessage } }, 500);
   }
 });

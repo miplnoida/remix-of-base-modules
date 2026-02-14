@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Ban, BarChart3, RefreshCw } from 'lucide-react';
+import { Plus, Ban, BarChart3, RefreshCw, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { GenerateApiKeyDialog } from '@/components/admin/GenerateApiKeyDialog';
+import { EditApiKeyDialog } from '@/components/admin/EditApiKeyDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 
@@ -17,6 +18,7 @@ interface ApiKeyRow {
   status: string;
   rate_limit_per_minute: number;
   allowed_endpoints: string[];
+  allowed_ip_addresses: string[];
   expires_at: string | null;
   created_at: string;
   last_used: string | null;
@@ -26,6 +28,7 @@ const ApiKeysTab: React.FC = () => {
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showGenerate, setShowGenerate] = useState(false);
+  const [editKey, setEditKey] = useState<ApiKeyRow | null>(null);
   const [revokeKey, setRevokeKey] = useState<ApiKeyRow | null>(null);
   const [usageKeyId, setUsageKeyId] = useState<string | null>(null);
   const [usageLogs, setUsageLogs] = useState<any[]>([]);
@@ -96,7 +99,7 @@ const ApiKeysTab: React.FC = () => {
                   <TableHead>Application</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Rate Limit</TableHead>
-                  <TableHead>Endpoints</TableHead>
+                  <TableHead>Scoped Endpoints</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Last Used</TableHead>
                   <TableHead>Actions</TableHead>
@@ -109,13 +112,16 @@ const ApiKeysTab: React.FC = () => {
                     <TableCell className="font-medium">{key.app_name}</TableCell>
                     <TableCell>{statusBadge(key.status)}</TableCell>
                     <TableCell>{key.rate_limit_per_minute}/min</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-xs">
-                      {key.allowed_endpoints?.length > 0 ? key.allowed_endpoints.join(', ') : 'All'}
+                    <TableCell className="text-xs">
+                      {(key as any).scope_count != null ? `${(key as any).scope_count} endpoints` : 'All'}
                     </TableCell>
                     <TableCell className="text-xs">{key.created_at ? format(new Date(key.created_at), 'dd/MM/yyyy') : '-'}</TableCell>
                     <TableCell className="text-xs">{key.last_used ? format(new Date(key.last_used), 'dd/MM/yyyy') : 'Never'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        {key.status === 'active' && (
+                          <Button size="icon" variant="ghost" onClick={() => setEditKey(key)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                        )}
                         <Button size="icon" variant="ghost" onClick={() => fetchUsage(key.id)} title="View Usage"><BarChart3 className="h-4 w-4" /></Button>
                         {key.status === 'active' && (
                           <Button size="icon" variant="ghost" onClick={() => setRevokeKey(key)} title="Revoke" className="text-destructive hover:text-destructive"><Ban className="h-4 w-4" /></Button>
@@ -176,6 +182,7 @@ const ApiKeysTab: React.FC = () => {
       )}
 
       <GenerateApiKeyDialog open={showGenerate} onOpenChange={setShowGenerate} onKeyGenerated={fetchKeys} />
+      <EditApiKeyDialog open={!!editKey} onOpenChange={(v) => { if (!v) setEditKey(null); }} onKeyUpdated={fetchKeys} apiKey={editKey} />
 
       <AlertDialog open={!!revokeKey} onOpenChange={() => setRevokeKey(null)}>
         <AlertDialogContent>
