@@ -29,6 +29,32 @@ function getServiceClient() {
   );
 }
 
+// ── Middleware: Check API Registry (enabled/disabled) ──
+async function checkApiRegistry(
+  supabase: ReturnType<typeof createClient>,
+  endpointPath: string,
+  httpMethod: string
+): Promise<{ allowed: boolean; registryEntry?: Record<string, unknown> }> {
+  const { data, error } = await supabase
+    .from("api_registry")
+    .select("*")
+    .eq("endpoint_path", endpointPath)
+    .eq("http_method", httpMethod)
+    .single();
+
+  // If not found in registry, treat as not found
+  if (error || !data) {
+    return { allowed: false };
+  }
+
+  // If disabled, block with no metadata exposure
+  if (!data.is_enabled) {
+    return { allowed: false };
+  }
+
+  return { allowed: true, registryEntry: data };
+}
+
 // ── Middleware: Validate API Key ──
 async function validateApiKey(apiKey: string, supabase: ReturnType<typeof createClient>) {
   const keyHash = await hashKey(apiKey);
@@ -80,7 +106,6 @@ function logAccess(supabase: ReturnType<typeof createClient>, params: Record<str
 }
 
 // ── Master Data Table Mapping ──
-// Maps API path segments to database table names
 const MASTER_TABLE_MAP: Record<string, { table: string; label: string; orderBy?: string }> = {
   "countries": { table: "tb_country", label: "Countries", orderBy: "name" },
   "districts": { table: "tb_district", label: "Districts", orderBy: "name" },
@@ -122,12 +147,10 @@ async function handleMasterGet(
 
   let query = supabase.from(config.table).select("*", { count: "exact" });
 
-  // Apply search filter if provided
   if (queryParams.search && config.orderBy) {
     query = query.ilike(config.orderBy, `%${queryParams.search}%`);
   }
 
-  // Apply ordering
   if (config.orderBy) {
     query = query.order(config.orderBy, { ascending: true });
   }
@@ -146,7 +169,14 @@ async function handleMasterGet(
 }
 
 // ── Health Check ──
-async function handleHealth() {
+async function handleHealth(supabase: ReturnType<typeof createClient>) {
+  // Fetch enabled endpoints dynamically from registry
+  const { data: enabledApis } = await supabase
+    .from("api_registry")
+    .select("endpoint_path")
+    .eq("is_enabled", true)
+    .order("sort_order");
+
   return {
     status: "success",
     message: "API is healthy",
@@ -154,10 +184,7 @@ async function handleHealth() {
       timestamp: new Date().toISOString(),
       version: "1.0.0",
       phase: "Phase 1 — Master Data APIs",
-      available_endpoints: [
-        "/api/v1/health",
-        ...Object.keys(MASTER_TABLE_MAP).map((k) => `/api/v1/${k}`),
-      ],
+      available_endpoints: (enabledApis || []).map((a: { endpoint_path: string }) => a.endpoint_path),
     },
   };
 }
@@ -168,7 +195,6 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
     return { handler: "health", params: {} };
   }
 
-  // Master data routes: /api/v1/{resource}
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
   if (masterMatch && method === "GET") {
     const resource = masterMatch[1];
@@ -190,7 +216,7 @@ async function executeHandler(
 ) {
   switch (handlerName) {
     case "health":
-      return handleHealth();
+      return handleHealth(supabase);
     case "masterGet":
       return handleMasterGet(supabase, routeParams.resource, queryParams);
     default:
@@ -227,9 +253,20 @@ Deno.serve(async (req) => {
     endpoint = path;
     httpMethod = method.toUpperCase();
 
+    // ── API Registry Check ──
+    // Check if this endpoint is registered and enabled (health check always allowed)
+    if (path !== "/api/v1/health") {
+      const registryCheck = await checkApiRegistry(supabase, path, httpMethod);
+      if (!registryCheck.allowed) {
+        // Return 404 with no metadata about the endpoint
+        logAccess(supabase, { api_key_id: null, endpoint, http_method: httpMethod, request_ip: requestIp, response_status: 404, response_time_ms: Date.now() - startTime, error_message: "Endpoint not found or disabled" });
+        return jsonResponse({ status: "error", message: "Not Found", error: { code: "NOT_FOUND" } }, 404);
+      }
+    }
+
     // Health check — no auth required
     if (path === "/api/v1/health" && httpMethod === "GET") {
-      const result = await handleHealth();
+      const result = await handleHealth(supabase);
       logAccess(supabase, { api_key_id: null, endpoint, http_method: httpMethod, request_ip: requestIp, response_status: 200, response_time_ms: Date.now() - startTime });
       return jsonResponse(result);
     }
