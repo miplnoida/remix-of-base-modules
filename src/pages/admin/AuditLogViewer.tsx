@@ -6,9 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Search, Download, Eye, Filter } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FileText, Search, Download, Eye, Filter, Globe } from "lucide-react";
 import { useAuditLogs, AuditLog } from "@/hooks/useAdminData";
 import { format } from "date-fns";
+import ApiLogsTab from "@/components/admin/ApiLogsTab";
 
 const ACTION_TYPES = [
   'LOGIN_SUCCESS', 'LOGIN_FAILURE', 'LOGOUT', 'PASSWORD_CHANGE', 'PASSWORD_RESET',
@@ -74,170 +76,131 @@ const AuditLogViewer = () => {
     a.click();
   };
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64">Loading audit logs...</div>;
-  }
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Audit Log</h1>
-          <p className="text-muted-foreground mt-1">View and export system audit trail</p>
+          <p className="text-muted-foreground mt-1">View and export system audit trail and API logs</p>
         </div>
-        <Button onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by user or entity..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={filters.actionType || 'all'} onValueChange={(v) => setFilters({...filters, actionType: v === 'all' ? undefined : v})}>
-              <SelectTrigger><SelectValue placeholder="Action Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
-                {ACTION_TYPES.map(type => (
-                  <SelectItem key={type} value={type}>{type.replace(/_/g, ' ')}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input 
-              type="date" 
-              placeholder="Start Date"
-              value={filters.startDate || ''}
-              onChange={(e) => setFilters({...filters, startDate: e.target.value || undefined})}
-            />
-            <Input 
-              type="date" 
-              placeholder="End Date"
-              value={filters.endDate || ''}
-              onChange={(e) => setFilters({...filters, endDate: e.target.value || undefined})}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="audit" className="w-full">
+        <TabsList>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Audit Trail
+          </TabsTrigger>
+          <TabsTrigger value="api-logs" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            API Logs
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Audit Trail ({filteredLogs.length} records)</CardTitle>
-          <CardDescription>Immutable record of all system activities</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Module</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>IP Address</TableHead>
-                <TableHead className="text-right">Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-sm">
-                    {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{log.user_name || 'System'}</p>
-                      <p className="text-xs text-muted-foreground">{log.user_email}</p>
+        <TabsContent value="audit">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">Loading audit logs...</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <Button onClick={handleExport} size="sm">
+                  <Download className="mr-2 h-4 w-4" />Export CSV
+                </Button>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Filter className="h-5 w-5" />Filters</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="relative md:col-span-2">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Search by user or entity..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getActionBadgeVariant(log.action_type)}>
-                      {log.action_type.replace(/_/g, ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{log.module_name || '-'}</TableCell>
-                  <TableCell>
-                    {log.entity_type ? (
-                      <span className="text-sm">{log.entity_type}</span>
-                    ) : '-'}
-                  </TableCell>
-                  <TableCell className="text-sm font-mono">{log.ip_address || '-'}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedLog(log)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    <Select value={filters.actionType || 'all'} onValueChange={(v) => setFilters({...filters, actionType: v === 'all' ? undefined : v})}>
+                      <SelectTrigger><SelectValue placeholder="Action Type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Actions</SelectItem>
+                        {ACTION_TYPES.map(type => (<SelectItem key={type} value={type}>{type.replace(/_/g, ' ')}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                    <Input type="date" placeholder="Start Date" value={filters.startDate || ''} onChange={(e) => setFilters({...filters, startDate: e.target.value || undefined})} />
+                    <Input type="date" placeholder="End Date" value={filters.endDate || ''} onChange={(e) => setFilters({...filters, endDate: e.target.value || undefined})} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Audit Trail ({filteredLogs.length} records)</CardTitle>
+                  <CardDescription>Immutable record of all system activities</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Module</TableHead>
+                        <TableHead>Entity</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead className="text-right">Details</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-sm">{format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{log.user_name || 'System'}</p>
+                              <p className="text-xs text-muted-foreground">{log.user_email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell><Badge variant={getActionBadgeVariant(log.action_type)}>{log.action_type.replace(/_/g, ' ')}</Badge></TableCell>
+                          <TableCell>{log.module_name || '-'}</TableCell>
+                          <TableCell>{log.entity_type ? <span className="text-sm">{log.entity_type}</span> : '-'}</TableCell>
+                          <TableCell className="text-sm font-mono">{log.ip_address || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedLog(log)}><Eye className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="api-logs">
+          <ApiLogsTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Detail Dialog */}
       <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Audit Log Details</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Audit Log Details</DialogTitle></DialogHeader>
           {selectedLog && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Timestamp</p>
-                  <p className="font-medium">{format(new Date(selectedLog.created_at), 'PPpp')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">User</p>
-                  <p className="font-medium">{selectedLog.user_name || 'System'}</p>
-                  <p className="text-xs text-muted-foreground">{selectedLog.user_email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Action</p>
-                  <Badge variant={getActionBadgeVariant(selectedLog.action_type)}>
-                    {selectedLog.action_type.replace(/_/g, ' ')}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">IP Address</p>
-                  <p className="font-mono">{selectedLog.ip_address || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Module</p>
-                  <p className="font-medium">{selectedLog.module_name || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Entity</p>
-                  <p className="font-medium">{selectedLog.entity_type || '-'}</p>
-                  <p className="text-xs font-mono text-muted-foreground">{selectedLog.entity_id}</p>
-                </div>
+                <div><p className="text-sm text-muted-foreground">Timestamp</p><p className="font-medium">{format(new Date(selectedLog.created_at), 'PPpp')}</p></div>
+                <div><p className="text-sm text-muted-foreground">User</p><p className="font-medium">{selectedLog.user_name || 'System'}</p><p className="text-xs text-muted-foreground">{selectedLog.user_email}</p></div>
+                <div><p className="text-sm text-muted-foreground">Action</p><Badge variant={getActionBadgeVariant(selectedLog.action_type)}>{selectedLog.action_type.replace(/_/g, ' ')}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">IP Address</p><p className="font-mono">{selectedLog.ip_address || '-'}</p></div>
+                <div><p className="text-sm text-muted-foreground">Module</p><p className="font-medium">{selectedLog.module_name || '-'}</p></div>
+                <div><p className="text-sm text-muted-foreground">Entity</p><p className="font-medium">{selectedLog.entity_type || '-'}</p><p className="text-xs font-mono text-muted-foreground">{selectedLog.entity_id}</p></div>
               </div>
               {selectedLog.field_name && (
                 <div className="border-t pt-4">
                   <p className="text-sm text-muted-foreground mb-2">Field Changed: <span className="font-medium">{selectedLog.field_name}</span></p>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                      <p className="text-xs text-muted-foreground">Old Value</p>
-                      <p className="font-mono text-sm">{selectedLog.old_value || '(empty)'}</p>
-                    </div>
-                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <p className="text-xs text-muted-foreground">New Value</p>
-                      <p className="font-mono text-sm">{selectedLog.new_value || '(empty)'}</p>
-                    </div>
+                    <div className="p-3 bg-destructive/10 rounded-lg"><p className="text-xs text-muted-foreground">Old Value</p><p className="font-mono text-sm">{selectedLog.old_value || '(empty)'}</p></div>
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"><p className="text-xs text-muted-foreground">New Value</p><p className="font-mono text-sm">{selectedLog.new_value || '(empty)'}</p></div>
                   </div>
                 </div>
               )}
