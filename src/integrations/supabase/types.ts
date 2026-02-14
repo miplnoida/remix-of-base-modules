@@ -7211,6 +7211,133 @@ export type Database = {
           },
         ]
       }
+      public_api_access_logs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          endpoint: string | null
+          error_message: string | null
+          http_method: string | null
+          id: string
+          request_ip: string | null
+          request_payload_summary: string | null
+          response_status: number | null
+          response_time_ms: number | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          endpoint?: string | null
+          error_message?: string | null
+          http_method?: string | null
+          id?: string
+          request_ip?: string | null
+          request_payload_summary?: string | null
+          response_status?: number | null
+          response_time_ms?: number | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          endpoint?: string | null
+          error_message?: string | null
+          http_method?: string | null
+          id?: string
+          request_ip?: string | null
+          request_payload_summary?: string | null
+          response_status?: number | null
+          response_time_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_api_access_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "public_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_api_keys: {
+        Row: {
+          allowed_endpoints: string[] | null
+          allowed_ip_addresses: string[] | null
+          app_name: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          rate_limit_per_minute: number
+          revoked_at: string | null
+          revoked_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_endpoints?: string[] | null
+          allowed_ip_addresses?: string[] | null
+          app_name: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          rate_limit_per_minute?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_endpoints?: string[] | null
+          allowed_ip_addresses?: string[] | null
+          app_name?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          rate_limit_per_minute?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      public_api_rate_limits: {
+        Row: {
+          api_key_id: string
+          id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          api_key_id: string
+          id?: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          api_key_id?: string
+          id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_api_rate_limits_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "public_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       remittance_schedule: {
         Row: {
           auto_generate_voucher: boolean | null

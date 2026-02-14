@@ -9,6 +9,7 @@ export const routes = {
   ADMIN_ROLES: '/admin/roles',
   ADMIN_SECURITY: '/admin/security',
   ADMIN_PERMISSIONS: '/admin/permissions',
+  ADMIN_API_KEYS: '/admin/api-keys',
   EXAMPLE_CRUD: '/example-crud',
   ACCESS_DENIED: '/access-denied',
   UNAUTHORIZED: '/unauthorized',
