@@ -345,7 +345,7 @@ export function RescheduleMeetingDialog({
                   {newDate ? formatDisplayDate(newDate) : 'Select new date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                 <Calendar
                   mode="single"
                   selected={newDate}
@@ -357,6 +357,7 @@ export function RescheduleMeetingDialog({
                   }}
                   disabled={(date) => date < new Date()}
                   initialFocus
+                  className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
