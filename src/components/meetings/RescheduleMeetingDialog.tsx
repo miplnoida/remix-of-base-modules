@@ -345,6 +345,27 @@ export function RescheduleMeetingDialog({
             </>
           )}
 
+          {/* Office Details Display */}
+          {selectedOffice && selectedOfficeInfo && (
+            <div className="p-3 bg-muted/50 border rounded-lg space-y-1">
+              <Label className="text-xs text-muted-foreground font-semibold">Office Details</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs">Meeting Location</span>
+                  <p className="font-medium">{[selectedOfficeInfo.description, selectedOfficeInfo.address1, selectedOfficeInfo.address2].filter(Boolean).join(', ')}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Email</span>
+                  <p className="font-medium">{selectedOfficeInfo.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Phone</span>
+                  <p className="font-medium">{selectedOfficeInfo.phone || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Step 3: Select Person */}
           {selectedDepartment && (
             <div className="space-y-2">
@@ -375,17 +396,28 @@ export function RescheduleMeetingDialog({
           )}
 
           {/* User's existing meetings for selected date */}
-          {selectedUserId && dateStr && userMeetings.length > 0 && (
+          {selectedUserId && dateStr && (
             <div className="space-y-2">
               <Label className="text-sm">Existing Meetings on {formatDisplayDate(newDate!)}</Label>
-              <div className="flex flex-wrap gap-2">
-                {userMeetings.map((m: any) => (
-                  <Badge key={m.meeting_id} variant="secondary" className="text-xs">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {to12Hour(m.meeting_time)} - {m.meeting_reference}
-                  </Badge>
-                ))}
-              </div>
+              {userMeetings.length > 0 ? (
+                <div className="space-y-1.5">
+                  {userMeetings.map((m: any) => (
+                    <div key={m.meeting_id} className="flex items-center gap-2 p-2 bg-muted/50 border rounded text-xs">
+                      <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="font-medium">{to12Hour(m.meeting_time)}</span>
+                      <span className="text-muted-foreground">—</span>
+                      <span>{m.meeting_reference}</span>
+                      {m.status && (
+                        <Badge variant={m.status === 'Scheduled' ? 'secondary' : m.status === 'InProgress' ? 'default' : 'outline'} className="text-[10px] ml-auto">
+                          {m.status}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No existing meetings for this person on the selected date.</p>
+              )}
             </div>
           )}
 
