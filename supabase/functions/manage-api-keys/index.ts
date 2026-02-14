@@ -112,13 +112,17 @@ async function saveScopes(supabase: ReturnType<typeof createClient>, keyId: stri
 }
 
 async function isAdmin(supabase: ReturnType<typeof createClient>, userId: string): Promise<boolean> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
-    .eq("role", "administrator")
-    .maybeSingle();
-  return !!data;
+    .eq("role", "Admin")
+    .limit(1);
+  if (error) {
+    console.error("isAdmin check error:", JSON.stringify(error));
+    return false;
+  }
+  return !!(data && data.length > 0);
 }
 
 Deno.serve(async (req) => {
