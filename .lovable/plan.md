@@ -1,236 +1,206 @@
 
-# Workflow Step Notifications & Action Visibility Implementation Plan
-
-## Status: ✅ IMPLEMENTED
+# Public API Gateway Implementation Plan
 
 ## Overview
-This plan addresses the complete implementation of workflow-driven notifications and action visibility so that when a workflow is initiated, the correct approver is notified and can see/perform the configured actions in both list and detail views.
 
-## Implementation Completed
-- Workflow triggers are configured to auto-start workflows on application submit
-- `WorkflowActionButtons` component correctly identifies available actions based on step configuration
-- Permission checking via `checkUserPermission()` validates approver roles/designations/users
-- Task creation correctly assigns `assigned_role`, `assigned_designation`, or `assigned_to`
-- `in_app_notifications` table exists with user_id, title, body, link, is_read columns
+Since Lovable cannot create a separate Git repository or standalone backend project, this plan builds a **production-grade public API gateway** using backend functions connected to the same database. This gives you a fully independent API layer that external applications can call, while keeping the UI project unchanged.
 
-### What's Missing
-1. **No Approver Notification**: When workflow tasks are created, approvers are not notified
-2. **WorkflowApprovals uses mock data**: The component uses hardcoded mock approvals instead of real tasks
-3. **No notification on step transitions**: When workflow moves to next step, new approver is not notified
-4. **Missing notification bell badge for pending tasks**: The notification bell shows generic notifications but not workflow-specific pending tasks
+When you're ready to migrate to ASP.NET, the API contracts, key management tables, and patterns established here will serve as the exact blueprint.
 
 ---
 
-## Implementation Plan
-
-### Phase 1: Backend - Notification Service Edge Function
-
-**File: `supabase/functions/workflow-notify-approvers/index.ts`** (new)
-
-Creates a Supabase Edge Function to notify approvers when a workflow task is created or transitions to a new step.
+## Architecture
 
 ```text
-Function Logic:
-1. Receive: instance_id, step_id, source_record_name, workflow_name
-2. Fetch step configuration (approver_type, approver_role_ids, etc.)
-3. Based on approver_type:
-   - 'role': Find all users with matching roles
-   - 'designation': Find all users with matching designations  
-   - 'user': Use specified user IDs
-4. For each eligible approver:
-   - Insert into in_app_notifications with:
-     - user_id: approver's ID
-     - title: "Pending Approval: {workflow_name}"
-     - body: "Application {source_record_name} requires your approval at step: {step_name}"
-     - link: "/workflow/approvals?task={task_id}"
-5. Optionally queue email notification via notification_logs table
+  External App          External App          External App
+       |                     |                     |
+       |   x-api-key         |   x-api-key         |   x-api-key
+       v                     v                     v
+  +----------------------------------------------------------+
+  |              public-api  (Edge Function)                  |
+  |  /api/v1/ip-master, /api/v1/ip-depend, /api/v1/ip-notes  |
+  |                                                          |
+  |  Middleware Chain:                                        |
+  |  1. CORS check                                           |
+  |  2. API Key validation (hashed lookup)                   |
+  |  3. Rate limiting check                                  |
+  |  4. Endpoint authorization                               |
+  |  5. Request validation                                   |
+  |  6. Execute query via Supabase client (RLS respected)    |
+  |  7. Access logging                                       |
+  +----------------------------------------------------------+
+       |
+       v
+  +------------------+
+  |   PostgreSQL DB   |
+  |  (same instance)  |
+  |   RLS enforced    |
+  +------------------+
 ```
 
-### Phase 2: Hook Updates - Integrate Notification Calls
+---
 
-**File: `src/hooks/useIPRegistrationSubmit.ts`**
+## What Will Be Built
 
-Update `triggerWorkflow()` to call notification edge function after task creation:
-- After creating the first workflow task, invoke `workflow-notify-approvers` function
-- Pass instance_id, step_id, record name, workflow name
+### 1. Database Tables (Migration)
 
-**File: `src/hooks/useWorkflowActions.ts`**
+**`public_api_keys`** -- Stores hashed API keys with metadata:
+- `id` (UUID, PK)
+- `key_hash` (VARCHAR 128) -- SHA-256 hash, never plain text
+- `key_prefix` (VARCHAR 8) -- First 8 chars for identification (e.g., "pk_live_a")
+- `app_name` (VARCHAR 100) -- Name of consuming application
+- `status` (VARCHAR 20) -- active / revoked / expired
+- `rate_limit_per_minute` (INT, default 60)
+- `allowed_endpoints` (TEXT[]) -- Array of permitted endpoint patterns, e.g., ["/api/v1/ip-master/*"]
+- `allowed_ip_addresses` (TEXT[]) -- Optional IP whitelist
+- `expires_at` (TIMESTAMPTZ, nullable)
+- `created_at`, `updated_at`, `created_by`, `revoked_at`, `revoked_by`
 
-Update `createNextStepTask()` function:
-- After creating the next step's task, call `workflow-notify-approvers` function
-- This ensures each step transition notifies the new approver(s)
+**`public_api_access_logs`** -- Logs every API request:
+- `id` (UUID, PK)
+- `api_key_id` (UUID, FK to public_api_keys)
+- `endpoint` (VARCHAR 255)
+- `http_method` (VARCHAR 10)
+- `request_ip` (VARCHAR 45)
+- `response_status` (INT)
+- `response_time_ms` (INT)
+- `request_payload_summary` (TEXT, truncated)
+- `error_message` (TEXT, nullable)
+- `created_at` (TIMESTAMPTZ)
 
-### Phase 3: Create Pending Approvals Hook
+**`public_api_rate_limits`** -- Sliding window rate limit tracking:
+- `api_key_id` (UUID)
+- `window_start` (TIMESTAMPTZ)
+- `request_count` (INT)
+- Unique constraint on (api_key_id, window_start)
 
-**File: `src/hooks/useWorkflowPendingApprovals.ts`** (new)
+### 2. Edge Function: `public-api`
 
-A dedicated hook to fetch pending workflow tasks for the current user:
+A single backend function handling all versioned routes:
 
-```text
-Interface: PendingApproval {
-  id: string;
-  instance_id: string;
-  workflow_name: string;
-  step_name: string;
-  source_record_id: string;
-  source_record_name: string;
-  source_module: string;
-  status: string;
-  created_at: string;
-  due_at: string;
-  is_overdue: boolean;
-  priority: 'High' | 'Medium' | 'Low';
-  actions: WorkflowAction[];
+**Route structure:**
+- `POST /public-api` with JSON body containing `path`, `method`, and `payload`
+- Paths follow `/api/v1/{resource}` pattern
+
+**Supported endpoints (Phase 1):**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/v1/ip-master | List insured persons (paginated) |
+| GET | /api/v1/ip-master/:id | Get single IP by UUID |
+| POST | /api/v1/ip-master | Create new IP record |
+| PUT | /api/v1/ip-master/:id | Update IP record |
+| GET | /api/v1/ip-depend/:ip_id | List dependents for an IP |
+| POST | /api/v1/ip-depend | Create dependent |
+| PUT | /api/v1/ip-depend/:id | Update dependent |
+| DELETE | /api/v1/ip-depend/:id | Delete dependent |
+| GET | /api/v1/ip-notes/:ip_id | List notes for an IP |
+| POST | /api/v1/ip-notes | Create note |
+| GET | /api/v1/health | Health check |
+
+**Middleware chain (executed in order):**
+
+1. **CORS** -- Configurable allowed origins
+2. **API Key Validation** -- Hash incoming key, look up in `public_api_keys`, check status/expiry
+3. **Rate Limiting** -- Sliding window per key, returns 429 if exceeded
+4. **Endpoint Authorization** -- Check key's `allowed_endpoints` against requested path
+5. **Request Validation** -- Validate payload schema per endpoint
+6. **Execution** -- Query database using service role with RLS-aware patterns
+7. **Access Logging** -- Non-blocking log to `public_api_access_logs`
+
+**Standard response format:**
+```json
+{
+  "status": "success",
+  "message": "Records retrieved successfully",
+  "data": [...],
+  "meta": {
+    "page": 1,
+    "limit": 50,
+    "total": 234
+  }
 }
-
-Functions:
-- useMyPendingApprovals(): Fetches all pending tasks for current user
-- usePendingApprovalCount(): Returns count for badge display
-- useMarkApprovalNotificationRead(): Marks notification as read when task is viewed
 ```
 
-### Phase 4: Update WorkflowApprovals Component
+**Error response format:**
+```json
+{
+  "status": "error",
+  "message": "Invalid API key",
+  "error": {
+    "code": "UNAUTHORIZED",
+    "details": "The provided API key is invalid or has been revoked"
+  }
+}
+```
 
-**File: `src/components/workflow/WorkflowApprovals.tsx`**
+### 3. Edge Function: `manage-api-keys`
 
-Replace mock data with real database queries:
-- Use `useMyPendingApprovals()` hook instead of mock data
-- Display actual workflow tasks from `workflow_tasks` table
-- Calculate waiting time and overdue status from `created_at` and `due_at`
-- Wire up Approve/Reject buttons to `useExecuteWorkflowAction` mutation
-- Add navigation to detail view on row click
+Admin-only function for key lifecycle management:
 
-### Phase 5: Update Notification Bell Component
+- **Generate key** -- Creates a cryptographically random key, stores SHA-256 hash, returns plain key once
+- **List keys** -- Returns key metadata (prefix, app name, status) without the actual key
+- **Revoke key** -- Sets status to "revoked" with timestamp and reason
+- **Update key** -- Modify rate limits, allowed endpoints, expiry
 
-**File: `src/components/notifications/InAppNotificationBell.tsx`**
+### 4. Admin UI Page: `/admin/api-keys`
 
-Enhance to show pending approval count:
-- Add separate query for workflow-specific pending tasks
-- Show combined badge count (general notifications + pending approvals)
-- Add "Pending Approvals" section in dropdown
-- Link directly to WorkflowApprovals page
+A management screen in the existing admin panel:
+- Table listing all API keys (prefix, app name, status, rate limit, last used)
+- "Generate New Key" dialog -- shows the key ONCE with copy button
+- Revoke/Edit actions per key
+- Usage statistics pulled from `public_api_access_logs`
 
-### Phase 6: Application List Integration
+### 5. Configuration
 
-Verify `WorkflowActionButtonsCompact` works correctly in:
-- `src/pages/ip-registration/IPRegistrationList.tsx` - Already integrated
-- Any other application list pages
+**`supabase/config.toml` additions:**
+```toml
+[functions.public-api]
+verify_jwt = false
 
-The component already:
-- Fetches workflow context via `useWorkflowActions`
-- Shows action buttons only when `canPerformActions` is true
-- Hides buttons for non-approvers
+[functions.manage-api-keys]
+verify_jwt = false
+```
 
-### Phase 7: Application Detail Integration
-
-Verify `WorkflowActionButtons` works correctly in:
-- `src/pages/ip-registration/IPRegistrationForm.tsx` - Already integrated
-
-The component already:
-- Shows current step name
-- Displays action buttons based on user permissions
-- Handles action confirmation dialogs
-- Calls `onActionComplete` callback after action execution
+The `public-api` function skips JWT verification because it uses its own API key authentication. The `manage-api-keys` function validates JWT in code to restrict to admin users.
 
 ---
 
-## Database Schema Reference
+## Security Measures
 
-Existing tables used:
-
-```text
-in_app_notifications:
-- id, user_id, title, body, link, is_read, read_at, created_at
-
-workflow_tasks:
-- id, instance_id, step_id, step_name
-- assigned_role, assigned_designation, assigned_to
-- status, due_at, created_at, completed_at
-- action_taken, comments
-
-workflow_instances:
-- id, workflow_id, workflow_name
-- source_module, source_record_id, source_record_name
-- current_step_id, status, started_by, started_by_name
-- started_at, completed_at, due_at, metadata
-
-workflow_steps:
-- id, workflow_id, step_number, step_name
-- approver_type, approver_role_ids, approver_designation_ids, approver_user_ids
-- sla_hours, is_final_step
-```
-
----
-
-## Technical Flow Summary
-
-```text
-1. User Submits Application
-   ↓
-2. useIPRegistrationSubmit.triggerWorkflow()
-   ↓
-3. Creates workflow_instance + workflow_task (status: Pending)
-   ↓
-4. Calls workflow-notify-approvers Edge Function
-   ↓
-5. Edge Function identifies approvers via step config
-   ↓
-6. Creates in_app_notifications for each approver
-   ↓
-7. Approver sees notification in bell + Pending Approvals page
-   ↓
-8. Approver clicks → navigates to list/detail view
-   ↓
-9. WorkflowActionButtons shows Approve/Reject based on permissions
-   ↓
-10. Approver takes action → useExecuteWorkflowAction
-   ↓
-11. Task completed, workflow transitions to next step (or ends)
-   ↓
-12. If next step exists: createNextStepTask() + workflow-notify-approvers
-   ↓
-13. Previous approver no longer sees actions (task completed)
-```
+- API keys hashed with SHA-256 before storage; plain text never persisted
+- Rate limiting per key (default 60 req/min, configurable)
+- Endpoint-level authorization per key
+- Optional IP whitelisting
+- All payloads validated against strict schemas before DB interaction
+- Service role used only for controlled operations; RLS policies remain enforced where applicable
+- Sensitive fields redacted from logs
+- CORS restricted to configured origins
+- All access attempts logged with IP, timestamp, status, and duration
 
 ---
 
 ## Files to Create/Modify
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `supabase/functions/workflow-notify-approvers/index.ts` | Create | Edge function to notify approvers |
-| `src/hooks/useWorkflowPendingApprovals.ts` | Create | Hook for fetching pending approvals |
-| `src/hooks/useIPRegistrationSubmit.ts` | Modify | Add notification call after task creation |
-| `src/hooks/useWorkflowActions.ts` | Modify | Add notification call in createNextStepTask |
-| `src/components/workflow/WorkflowApprovals.tsx` | Modify | Replace mock data with real queries |
-| `src/components/notifications/InAppNotificationBell.tsx` | Modify | Add pending approvals section |
-| `supabase/config.toml` | Modify | Register new edge function |
+| Action | File |
+|--------|------|
+| Create | `supabase/functions/public-api/index.ts` (~400 lines) |
+| Create | `supabase/functions/manage-api-keys/index.ts` (~200 lines) |
+| Create | `src/pages/admin/ApiKeysManagement.tsx` |
+| Create | `src/components/admin/GenerateApiKeyDialog.tsx` |
+| Create | `src/components/admin/ApiKeyUsageStats.tsx` |
+| Migration | Tables: `public_api_keys`, `public_api_access_logs`, `public_api_rate_limits` |
+| Modify | `supabase/config.toml` (add function entries) |
+| Modify | App router (add `/admin/api-keys` route) |
 
 ---
 
-## Verification Checklist
+## Testing Strategy
 
-After implementation, verify:
-
-1. Submit a new IP Registration → workflow instance created
-2. Check workflow_tasks table → task with correct assigned_role
-3. Check in_app_notifications → notification created for approver
-4. Log in as approver → see notification in bell
-5. Navigate to Pending Approvals → see the task in list
-6. Navigate to IP Registration List → see action buttons on pending row
-7. Click View → navigate to detail form
-8. See WorkflowActionButtons with Approve/Reject options
-9. Take action (e.g., Approve) → workflow transitions
-10. Check workflow_logs → action logged correctly
-11. If next step exists → new task created, new approver notified
-12. Log in as original submitter → no action buttons visible (only status)
-13. Previous approver no longer sees actions for that application
-
----
-
-## Security Considerations
-
-- Edge function uses service role to create notifications for any user
-- RLS on in_app_notifications ensures users only see their own notifications
-- Permission checks in useWorkflowActions prevent unauthorized action execution
-- All actions are logged in workflow_logs for audit trail
+After implementation:
+1. Generate an API key from the admin screen
+2. Call `GET /api/v1/health` with the key in `x-api-key` header to verify connectivity
+3. Call `GET /api/v1/ip-master` to confirm data retrieval with RLS respected
+4. Send requests without a key to confirm 401 response
+5. Send rapid requests to confirm rate limiting returns 429
+6. Verify access logs are recorded in the database
