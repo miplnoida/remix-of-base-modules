@@ -217,7 +217,7 @@ export function RescheduleMeetingDialog({
         assignedUserId: selectedUserId,
         contactPerson: selectedUser?.user_code || profile?.user_code || '',
         contactEmail: selectedOfficeInfo?.email || '',
-        contactPhone: selectedOfficeInfo?.phone || '',
+        contactPhone: (selectedOfficeInfo?.phone || '').replace(/[^+\d]/g, ''),
         officeAddress: officeAddr,
       });
 
