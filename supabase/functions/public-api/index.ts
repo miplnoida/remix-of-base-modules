@@ -88,11 +88,29 @@ async function checkRateLimit(keyId: string, limit: number, supabase: ReturnType
   return true;
 }
 
-function isEndpointAllowed(allowedEndpoints: string[], requestedPath: string): boolean {
-  if (!allowedEndpoints || allowedEndpoints.length === 0) return true;
-  return allowedEndpoints.some((pattern) => {
-    const regex = new RegExp("^" + pattern.replace(/\*/g, ".*").replace(/\//g, "\\/") + "$");
-    return regex.test(requestedPath);
+// ── Middleware: Scope-based endpoint authorization via api_key_scope_assignments ──
+async function checkScopeAuthorization(
+  supabase: ReturnType<typeof createClient>,
+  apiKeyId: string,
+  endpointPath: string,
+  httpMethod: string
+): Promise<boolean> {
+  // Check if key has any scope assignments
+  const { data: scopes, error } = await supabase
+    .from("api_key_scope_assignments")
+    .select("api_registry_id, api_registry:api_registry!api_key_scope_assignments_api_registry_id_fkey(endpoint_path, http_method)")
+    .eq("api_key_id", apiKeyId)
+    .eq("is_allowed", true);
+
+  if (error) return false;
+
+  // No scopes = allow all (backward compatible)
+  if (!scopes || scopes.length === 0) return true;
+
+  // Check if requested endpoint matches any assigned scope
+  return scopes.some((s: any) => {
+    const reg = s.api_registry;
+    return reg && reg.endpoint_path === endpointPath && reg.http_method === httpMethod;
   });
 }
 
@@ -299,10 +317,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ status: "error", message: "Rate limit exceeded", error: { code: "RATE_LIMITED", details: `Limit: ${keyData.rate_limit_per_minute} requests/minute` } }, 429);
     }
 
-    // ── Endpoint Authorization ──
-    if (!isEndpointAllowed(keyData.allowed_endpoints, path)) {
-      logAccess(supabase, { api_key_id: apiKeyId, endpoint, http_method: httpMethod, request_ip: requestIp, response_status: 403, response_time_ms: Date.now() - startTime, error_message: "Endpoint not allowed" });
-      return jsonResponse({ status: "error", message: "Endpoint not authorized", error: { code: "FORBIDDEN", details: "This API key does not have access to this endpoint" } }, 403);
+    // ── Scope-based Endpoint Authorization ──
+    const scopeAllowed = await checkScopeAuthorization(supabase, apiKeyId, path, httpMethod);
+    if (!scopeAllowed) {
+      logAccess(supabase, { api_key_id: apiKeyId, endpoint, http_method: httpMethod, request_ip: requestIp, response_status: 403, response_time_ms: Date.now() - startTime, error_message: "Endpoint not in allowed scope" });
+      return jsonResponse({ status: "error", message: "Endpoint not authorized for this API key", error: { code: "FORBIDDEN", details: "This API key does not have access to this endpoint" } }, 403);
     }
 
     // ── Route Matching ──
