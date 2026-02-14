@@ -423,7 +423,7 @@ Deno.serve(async (req) => {
         const { data: refData } = await supabase.rpc('generate_meeting_reference')
         const newMeetingRef = refData || `MTG-${Date.now()}`
 
-        // Create new meeting
+        // Create new meeting with updated contact/office info from body params
         const { data: newMeeting, error: newMeetingError } = await supabase
           .from('meetings')
           .insert({
@@ -437,10 +437,13 @@ Deno.serve(async (req) => {
             status: 'Scheduled',
             meeting_date: body.newDate,
             meeting_time: body.newTime,
-            contact_person: meeting.contact_person,
-            contact_email: meeting.contact_email,
-            contact_phone: meeting.contact_phone,
-            office_address: meeting.office_address,
+            contact_person: body.contactPerson || meeting.contact_person,
+            contact_email: body.contactEmail || meeting.contact_email,
+            contact_phone: body.contactPhone || meeting.contact_phone,
+            office_address: body.officeAddress || meeting.office_address,
+            office_code: body.officeCode || meeting.office_code,
+            department_id: body.departmentId || meeting.department_id,
+            assigned_user_id: body.assignedUserId || meeting.assigned_user_id,
             remarks: body.remarks,
             parent_meeting_id: meeting.id,
             reschedule_count: (meeting.reschedule_count || 0) + 1,

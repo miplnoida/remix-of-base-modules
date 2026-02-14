@@ -8368,7 +8368,9 @@ export type Database = {
           address2: string
           code: string
           description: string
+          office_email: string | null
           office_end_time: string | null
+          office_phone: string | null
           office_start_time: string | null
         }
         Insert: {
@@ -8376,7 +8378,9 @@ export type Database = {
           address2?: string
           code: string
           description: string
+          office_email?: string | null
           office_end_time?: string | null
+          office_phone?: string | null
           office_start_time?: string | null
         }
         Update: {
@@ -8384,7 +8388,9 @@ export type Database = {
           address2?: string
           code?: string
           description?: string
+          office_email?: string | null
           office_end_time?: string | null
+          office_phone?: string | null
           office_start_time?: string | null
         }
         Relationships: []
