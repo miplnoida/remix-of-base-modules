@@ -17,6 +17,7 @@ interface AddRelationDialogProps {
   onSave: (relationType: string, data: Record<string, any>) => void;
   uniqueUuid: string;
   existingData?: Record<string, any>;
+  editRelationType?: string | null;
 }
 
 // Fixed relation types - NOT from master table
@@ -87,18 +88,33 @@ const formatToISO = (date: Date | undefined): string => {
   return formatDateForStorage(date);
 };
 
-export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, existingData = {} }: AddRelationDialogProps) {
+export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, existingData = {}, editRelationType = null }: AddRelationDialogProps) {
   const [relationType, setRelationType] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
 
+  const isEditMode = !!editRelationType;
+
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setRelationType('');
-      setFormData({ ...existingData });
+      if (editRelationType) {
+        setRelationType(editRelationType);
+        // Pre-fill with existing data for the edit type
+        const fieldConfig = relationTypeFields[editRelationType];
+        if (fieldConfig) {
+          const newData: Record<string, any> = {};
+          fieldConfig.fields.forEach(field => {
+            newData[field] = existingData[field] || '';
+          });
+          setFormData(newData);
+        }
+      } else {
+        setRelationType('');
+        setFormData({ ...existingData });
+      }
     }
-  }, [open, existingData]);
+  }, [open, existingData, editRelationType]);
 
   const handleRelationTypeChange = (value: string) => {
     setRelationType(value);
@@ -268,13 +284,13 @@ export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, e
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Relation</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Relation' : 'Add Relation'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Relation Type *</Label>
-            <Select value={relationType} onValueChange={handleRelationTypeChange}>
+            <Select value={relationType} onValueChange={handleRelationTypeChange} disabled={isEditMode}>
               <SelectTrigger>
                 <SelectValue placeholder="Select relation type" />
               </SelectTrigger>
@@ -296,7 +312,7 @@ export default function AddRelationDialog({ open, onClose, onSave, uniqueUuid, e
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!relationType || saving}>
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? 'Saving...' : isEditMode ? 'Update' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>
