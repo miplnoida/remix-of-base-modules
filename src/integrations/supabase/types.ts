@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_config_audit_logs: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          entity_id: string
+          entity_type: string
+          field_name: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          entity_id: string
+          entity_type: string
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
+      api_key_scope_assignments: {
+        Row: {
+          api_key_id: string
+          api_registry_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_allowed: boolean
+        }
+        Insert: {
+          api_key_id: string
+          api_registry_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_allowed?: boolean
+        }
+        Update: {
+          api_key_id?: string
+          api_registry_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_allowed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_scope_assignments_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "public_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_key_scope_assignments_api_registry_id_fkey"
+            columns: ["api_registry_id"]
+            isOneToOne: false
+            referencedRelation: "api_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_logs: {
         Row: {
           api_name: string
@@ -77,6 +161,108 @@ export type Database = {
           response_status?: number | null
           session_id?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      api_rate_limit_policies: {
+        Row: {
+          burst_limit: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          policy_name: string
+          requests_per_day: number | null
+          requests_per_hour: number | null
+          requests_per_minute: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          burst_limit?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          policy_name: string
+          requests_per_day?: number | null
+          requests_per_hour?: number | null
+          requests_per_minute?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          burst_limit?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          policy_name?: string
+          requests_per_day?: number | null
+          requests_per_hour?: number | null
+          requests_per_minute?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      api_registry: {
+        Row: {
+          api_name: string
+          api_version: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          endpoint_path: string
+          http_method: string
+          id: string
+          is_enabled: boolean
+          rate_limit_override: number | null
+          requires_auth: boolean
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_name: string
+          api_version?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          endpoint_path: string
+          http_method?: string
+          id?: string
+          is_enabled?: boolean
+          rate_limit_override?: number | null
+          requires_auth?: boolean
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_name?: string
+          api_version?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          endpoint_path?: string
+          http_method?: string
+          id?: string
+          is_enabled?: boolean
+          rate_limit_override?: number | null
+          requires_auth?: boolean
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
