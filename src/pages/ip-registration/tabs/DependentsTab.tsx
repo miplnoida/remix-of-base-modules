@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useAuth } from '@/contexts/AuthContext';
 import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { IP_DEPEND_FIELDS } from '@/lib/fieldLengths';
 
 interface DependentsTabProps {
   uniqueUuid: string;
@@ -470,32 +471,32 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
             </div>
 
             <div className="space-y-2">
-              <Label>First Name <span className="text-destructive">*</span></Label>
+              <Label>First Name <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">{formData.firstname?.length || 0}/{IP_DEPEND_FIELDS.firstname.maxLength}</span></Label>
               <Input
                 value={formData.firstname || ''}
-                onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, firstname: e.target.value.slice(0, IP_DEPEND_FIELDS.firstname.maxLength) })}
                 placeholder="Enter first name"
-                maxLength={25}
+                maxLength={IP_DEPEND_FIELDS.firstname.maxLength}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Middle Name</Label>
+              <Label>Middle Name <span className="text-xs text-muted-foreground">{formData.middle_name?.length || 0}/{IP_DEPEND_FIELDS.middle_name.maxLength}</span></Label>
               <Input
                 value={formData.middle_name || ''}
-                onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, middle_name: e.target.value.slice(0, IP_DEPEND_FIELDS.middle_name.maxLength) })}
                 placeholder="Enter middle name"
-                maxLength={25}
+                maxLength={IP_DEPEND_FIELDS.middle_name.maxLength}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Surname <span className="text-destructive">*</span></Label>
+              <Label>Surname <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">{formData.surname?.length || 0}/{IP_DEPEND_FIELDS.surname.maxLength}</span></Label>
               <Input
                 value={formData.surname || ''}
-                onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, surname: e.target.value.slice(0, IP_DEPEND_FIELDS.surname.maxLength) })}
                 placeholder="Enter surname"
-                maxLength={50}
+                maxLength={IP_DEPEND_FIELDS.surname.maxLength}
               />
             </div>
 
@@ -535,22 +536,22 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>Address Line 1</Label>
+              <Label>Address Line 1 <span className="text-xs text-muted-foreground">{(formData.depend_addr1 || '').length}/{IP_DEPEND_FIELDS.depend_addr1.maxLength}</span></Label>
               <Input
                 value={formData.depend_addr1 || ''}
-                onChange={(e) => setFormData({ ...formData, depend_addr1: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, depend_addr1: e.target.value.slice(0, IP_DEPEND_FIELDS.depend_addr1.maxLength) })}
                 placeholder="Enter address"
-                maxLength={30}
+                maxLength={IP_DEPEND_FIELDS.depend_addr1.maxLength}
               />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>Address Line 2</Label>
+              <Label>Address Line 2 <span className="text-xs text-muted-foreground">{(formData.depend_addr2 || '').length}/{IP_DEPEND_FIELDS.depend_addr2.maxLength}</span></Label>
               <Input
                 value={formData.depend_addr2 || ''}
-                onChange={(e) => setFormData({ ...formData, depend_addr2: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, depend_addr2: e.target.value.slice(0, IP_DEPEND_FIELDS.depend_addr2.maxLength) })}
                 placeholder="Enter address"
-                maxLength={30}
+                maxLength={IP_DEPEND_FIELDS.depend_addr2.maxLength}
               />
             </div>
 

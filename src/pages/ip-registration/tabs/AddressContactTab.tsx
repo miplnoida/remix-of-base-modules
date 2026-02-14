@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { IPFormData } from '../IPRegistrationForm';
 import { Plus, Edit, Trash2, MapPin, Mail } from 'lucide-react';
 import { validateEmail, getEmailMaxLength } from '@/lib/contactValidation';
+import { IP_MASTER_FIELDS } from '@/lib/fieldLengths';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhoneInput, { parsePhoneNumber, combinePhoneNumber } from '@/components/shared/PhoneInput';
@@ -303,19 +304,21 @@ export default function AddressContactTab({
           {editingAddress === 'resident' ? (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Address Line 1</Label>
+                <Label>Address Line 1 <span className="text-xs text-muted-foreground">{(tempAddress.line1 || '').length}/{IP_MASTER_FIELDS.resident_address_1.maxLength}</span></Label>
                 <Input
                   value={tempAddress.line1 || ''}
-                  onChange={(e) => setTempAddress({ ...tempAddress, line1: e.target.value })}
+                  onChange={(e) => setTempAddress({ ...tempAddress, line1: e.target.value.slice(0, IP_MASTER_FIELDS.resident_address_1.maxLength) })}
                   placeholder="Enter address line 1"
+                  maxLength={IP_MASTER_FIELDS.resident_address_1.maxLength}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Address Line 2</Label>
+                <Label>Address Line 2 <span className="text-xs text-muted-foreground">{(tempAddress.line2 || '').length}/{IP_MASTER_FIELDS.resident_address_2.maxLength}</span></Label>
                 <Input
                   value={tempAddress.line2 || ''}
-                  onChange={(e) => setTempAddress({ ...tempAddress, line2: e.target.value })}
+                  onChange={(e) => setTempAddress({ ...tempAddress, line2: e.target.value.slice(0, IP_MASTER_FIELDS.resident_address_2.maxLength) })}
                   placeholder="Enter address line 2"
+                  maxLength={IP_MASTER_FIELDS.resident_address_2.maxLength}
                 />
               </div>
               <div className="space-y-2">
@@ -344,12 +347,13 @@ export default function AddressContactTab({
               <Input
                 value={tempAddress.value || ''}
                 onChange={(e) => {
-                  setTempAddress({ ...tempAddress, value: e.target.value });
+                  const maxLen = editingAddress === 'email' ? IP_MASTER_FIELDS.email.maxLength : IP_MASTER_FIELDS.mailing_address.maxLength;
+                  setTempAddress({ ...tempAddress, value: e.target.value.slice(0, maxLen) });
                   setDialogError('');
                 }}
                 placeholder={editingAddress === 'email' ? 'Enter email address' : 'Enter mailing address'}
                 type={editingAddress === 'email' ? 'email' : 'text'}
-                maxLength={editingAddress === 'email' ? getEmailMaxLength('email') : undefined}
+                maxLength={editingAddress === 'email' ? IP_MASTER_FIELDS.email.maxLength : IP_MASTER_FIELDS.mailing_address.maxLength}
                 className={dialogError ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {dialogError && <p className="text-xs text-destructive">{dialogError}</p>}
