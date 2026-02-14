@@ -122,6 +122,10 @@ const ApiKeysTab: React.FC = () => {
       }
       if (response.data?.status === 'success') {
         setRevealedPlainKey(response.data.data.plain_key);
+        if (response.data.data.regenerated) {
+          toast.info('This key was created before encrypted storage. A new key has been generated automatically. Please update your integrations.');
+          fetchKeys();
+        }
       } else {
         throw new Error(response.data?.message || 'Failed to reveal key');
       }

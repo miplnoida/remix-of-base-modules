@@ -250,7 +250,26 @@ Deno.serve(async (req) => {
           .single();
 
         if (fetchErr || !keyRow) return jsonResponse({ status: "error", message: "API key not found" }, 404);
-        if (!keyRow.encrypted_key) return jsonResponse({ status: "error", message: "This key was created before encrypted storage was enabled. It cannot be revealed." }, 400);
+
+        if (!keyRow.encrypted_key) {
+          // Auto-regenerate the key since the original plain key cannot be recovered from a hash
+          const newPlainKey = generateApiKey();
+          const newKeyHash = await hashKey(newPlainKey);
+          const newKeyPrefix = newPlainKey.substring(0, 8);
+          const newEncryptedKey = await encryptApiKey(newPlainKey);
+
+          const { error: updateErr } = await supabase
+            .from("public_api_keys")
+            .update({ key_hash: newKeyHash, key_prefix: newKeyPrefix, encrypted_key: newEncryptedKey, updated_at: new Date().toISOString() })
+            .eq("id", key_id);
+
+          if (updateErr) throw updateErr;
+
+          return jsonResponse({
+            status: "success",
+            data: { id: keyRow.id, plain_key: newPlainKey, regenerated: true },
+          });
+        }
 
         const plainKey = await decryptApiKey(keyRow.encrypted_key);
         return jsonResponse({ status: "success", data: { id: keyRow.id, plain_key: plainKey } });
