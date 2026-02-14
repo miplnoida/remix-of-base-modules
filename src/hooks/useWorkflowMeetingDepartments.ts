@@ -122,7 +122,7 @@ export function useUsersForOfficeDepartment(officeCode?: string, departmentId?: 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, employee_code')
+        .select('id, full_name, email, employee_code, user_code')
         .eq('office_code', officeCode!)
         .eq('department_id', departmentId!)
         .eq('is_active', true)

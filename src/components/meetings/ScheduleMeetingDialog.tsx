@@ -192,7 +192,7 @@ export function ScheduleMeetingDialog({
       stepId,
       meetingDate: formatDateForStorage(meetingDate),
       meetingTime: selectedTime,
-      contactPerson: selectedUser?.full_name || profile?.full_name || '',
+      contactPerson: selectedUser?.user_code || profile?.user_code || '',
       contactEmail: selectedUser?.email || '',
       officeAddress: selectedOfficeInfo ? `${selectedOfficeInfo.description}` : defaultAddress,
       remarks: remarks || undefined,
