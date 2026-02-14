@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_logs: {
+        Row: {
+          api_name: string
+          correlation_id: string | null
+          created_at: string
+          duration_ms: number | null
+          endpoint_url: string | null
+          error_message: string | null
+          execution_timestamp: string
+          http_method: string | null
+          id: string
+          is_success: boolean | null
+          module: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          request_headers: Json | null
+          request_payload: Json | null
+          response_body: Json | null
+          response_status: number | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_name: string
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint_url?: string | null
+          error_message?: string | null
+          execution_timestamp?: string
+          http_method?: string | null
+          id?: string
+          is_success?: boolean | null
+          module?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          request_headers?: Json | null
+          request_payload?: Json | null
+          response_body?: Json | null
+          response_status?: number | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint_url?: string | null
+          error_message?: string | null
+          execution_timestamp?: string
+          http_method?: string | null
+          id?: string
+          is_success?: boolean | null
+          module?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          request_headers?: Json | null
+          request_payload?: Json | null
+          response_body?: Json | null
+          response_status?: number | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       api_settings: {
         Row: {
           api_key: string | null
