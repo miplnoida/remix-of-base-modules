@@ -12,7 +12,7 @@ export interface WorkflowMeetingDepartment {
   created_at: string;
   created_by: string | null;
   // Joined fields
-  office?: { code: string; description: string; address1: string; address2: string; office_start_time: string; office_end_time: string };
+  office?: { code: string; description: string; address1: string; address2: string; office_start_time: string; office_end_time: string; office_email: string | null; office_phone: string | null };
   department?: { id: string; name: string };
 }
 
@@ -24,7 +24,7 @@ export function useWorkflowMeetingDepartments(workflowId?: string, stepId?: stri
         .from('workflow_meeting_departments')
         .select(`
           *,
-          office:tb_office!workflow_meeting_departments_office_code_fkey(code, description, address1, address2, office_start_time, office_end_time),
+          office:tb_office!workflow_meeting_departments_office_code_fkey(code, description, address1, address2, office_start_time, office_end_time, office_email, office_phone),
           department:tb_office_departments!workflow_meeting_departments_department_id_fkey(id, name)
         `)
         .order('created_at');
@@ -102,7 +102,7 @@ export function useMeetingDepartmentsForWorkflow(workflowId?: string) {
           id,
           office_code,
           department_id,
-          office:tb_office!workflow_meeting_departments_office_code_fkey(code, description, address1, address2, office_start_time, office_end_time),
+          office:tb_office!workflow_meeting_departments_office_code_fkey(code, description, address1, address2, office_start_time, office_end_time, office_email, office_phone),
           department:tb_office_departments!workflow_meeting_departments_department_id_fkey(id, name)
         `)
         .eq('workflow_id', workflowId)

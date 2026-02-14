@@ -251,6 +251,8 @@ export function useRescheduleMeeting() {
       assignedUserId,
       contactPerson,
       contactEmail,
+      contactPhone,
+      officeAddress,
     }: { 
       meetingId: string; 
       newDate: string; 
@@ -261,6 +263,8 @@ export function useRescheduleMeeting() {
       assignedUserId?: string;
       contactPerson?: string;
       contactEmail?: string;
+      contactPhone?: string;
+      officeAddress?: string;
     }) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -274,6 +278,8 @@ export function useRescheduleMeeting() {
           assignedUserId,
           contactPerson,
           contactEmail,
+          contactPhone,
+          officeAddress,
         }
       });
 

@@ -91,7 +91,7 @@ export function ScheduleMeetingDialog({
 
   // Get unique offices from configured departments
   const availableOffices = useMemo(() => {
-    const officeMap = new Map<string, { code: string; description: string; start_time?: string; end_time?: string }>();
+    const officeMap = new Map<string, { code: string; description: string; start_time?: string; end_time?: string; email?: string; phone?: string; address1?: string; address2?: string }>();
     configuredDepts.forEach((d) => {
       if (d.office && !officeMap.has(d.office_code)) {
         officeMap.set(d.office_code, {
@@ -99,6 +99,10 @@ export function ScheduleMeetingDialog({
           description: d.office.description,
           start_time: d.office.office_start_time,
           end_time: d.office.office_end_time,
+          email: d.office.office_email || undefined,
+          phone: d.office.office_phone || undefined,
+          address1: d.office.address1,
+          address2: d.office.address2,
         });
       }
     });
@@ -184,6 +188,9 @@ export function ScheduleMeetingDialog({
     }
 
     const selectedUser = usersInDept.find((u) => u.id === selectedUserId);
+    const officeAddr = selectedOfficeInfo
+      ? [selectedOfficeInfo.description, selectedOfficeInfo.address1, selectedOfficeInfo.address2].filter(Boolean).join(', ')
+      : defaultAddress;
     const formData: ScheduleMeetingFormData = {
       applicationReference,
       meetingType,
@@ -193,8 +200,9 @@ export function ScheduleMeetingDialog({
       meetingDate: formatDateForStorage(meetingDate),
       meetingTime: selectedTime,
       contactPerson: selectedUser?.user_code || profile?.user_code || '',
-      contactEmail: selectedUser?.email || '',
-      officeAddress: selectedOfficeInfo ? `${selectedOfficeInfo.description}` : defaultAddress,
+      contactEmail: selectedOfficeInfo?.email || '',
+      contactPhone: selectedOfficeInfo?.phone || '',
+      officeAddress: officeAddr,
       remarks: remarks || undefined,
     };
 
