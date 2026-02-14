@@ -7451,6 +7451,7 @@ export type Database = {
           app_name: string
           created_at: string
           created_by: string | null
+          encrypted_key: string | null
           expires_at: string | null
           id: string
           key_hash: string
@@ -7467,6 +7468,7 @@ export type Database = {
           app_name: string
           created_at?: string
           created_by?: string | null
+          encrypted_key?: string | null
           expires_at?: string | null
           id?: string
           key_hash: string
@@ -7483,6 +7485,7 @@ export type Database = {
           app_name?: string
           created_at?: string
           created_by?: string | null
+          encrypted_key?: string | null
           expires_at?: string | null
           id?: string
           key_hash?: string
