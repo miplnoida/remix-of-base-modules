@@ -208,7 +208,7 @@ export function RescheduleMeetingDialog({
         officeCode: selectedOffice,
         departmentId: selectedDepartment,
         assignedUserId: selectedUserId,
-        contactPerson: selectedUser?.full_name || profile?.full_name || '',
+        contactPerson: selectedUser?.user_code || profile?.user_code || '',
         contactEmail: selectedUser?.email || '',
       });
 
