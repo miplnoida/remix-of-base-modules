@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, RefreshCw, Download, History, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Loader2, RefreshCw, Download, History, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { formatAuditDateTime } from '@/lib/dateFormat';
 import { Label } from '@/components/ui/label';
+import ApiLogsTab from '@/components/admin/ApiLogsTab';
 
 interface AuditEntry {
   id: string;
@@ -83,112 +85,132 @@ const AuditTrail: React.FC = () => {
             <History className="h-6 w-6" />
             Audit Trail
           </h1>
-          <p className="text-muted-foreground">Track data changes with before/after values</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <p className="text-muted-foreground">Track data changes with before/after values and API logs</p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <Label>Date From</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
-            <div>
-              <Label>Date To</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-            </div>
-            <div>
-              <Label>User</Label>
-              <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
-            </div>
-            <div>
-              <Label>Module</Label>
-              <Input placeholder="Module / Source..." value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} />
-            </div>
-            <div>
-              <Label>Entity Type</Label>
-              <Input placeholder="Entity type..." value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="audit" className="w-full">
+        <TabsList>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Audit Trail
+          </TabsTrigger>
+          <TabsTrigger value="api-logs" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            API Logs
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin" />
+        <TabsContent value="audit">
+          <div className="space-y-4">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />Refresh
+              </Button>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />Export
+              </Button>
             </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Module</TableHead>
-                    <TableHead>Entity Type</TableHead>
-                    <TableHead>Entity ID</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.entries.map((entry) => (
-                    <TableRow key={entry.id} className="cursor-pointer hover:bg-muted" onClick={() => setSelectedEntry(entry)}>
-                      <TableCell className="font-mono text-sm">
-                        {formatAuditDateTime(entry.timestamp, true)}
-                      </TableCell>
-                      <TableCell>{entry.user_name || entry.user_id?.slice(0, 8) || '-'}</TableCell>
-                      <TableCell>{getActionBadge(entry.action)}</TableCell>
-                      <TableCell>
-                        {entry.module ? (
-                          <Badge variant="outline">{entry.module}</Badge>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>{entry.entity_type || '-'}</TableCell>
-                      <TableCell className="font-mono text-xs">{entry.entity_id || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                  {(!data?.entries || data.entries.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No audit entries found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between p-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Showing {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, data?.count || 0)} of {data?.count || 0}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div>
+                    <Label>Date From</Label>
+                    <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Date To</Label>
+                    <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>User</Label>
+                    <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Module</Label>
+                    <Input placeholder="Module / Source..." value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Entity Type</Label>
+                    <Input placeholder="Entity type..." value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)} />
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= (data?.count || 0)}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Timestamp</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Action</TableHead>
+                          <TableHead>Module</TableHead>
+                          <TableHead>Entity Type</TableHead>
+                          <TableHead>Entity ID</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data?.entries.map((entry) => (
+                          <TableRow key={entry.id} className="cursor-pointer hover:bg-muted" onClick={() => setSelectedEntry(entry)}>
+                            <TableCell className="font-mono text-sm">
+                              {formatAuditDateTime(entry.timestamp, true)}
+                            </TableCell>
+                            <TableCell>{entry.user_name || entry.user_id?.slice(0, 8) || '-'}</TableCell>
+                            <TableCell>{getActionBadge(entry.action)}</TableCell>
+                            <TableCell>
+                              {entry.module ? (
+                                <Badge variant="outline">{entry.module}</Badge>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>{entry.entity_type || '-'}</TableCell>
+                            <TableCell className="font-mono text-xs">{entry.entity_id || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!data?.entries || data.entries.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              No audit entries found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                    <div className="flex items-center justify-between p-4 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, data?.count || 0)} of {data?.count || 0}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= (data?.count || 0)}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="api-logs">
+          <ApiLogsTab />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!selectedEntry} onOpenChange={() => setSelectedEntry(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -219,7 +241,7 @@ const AuditTrail: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-semibold mb-2 text-destructive">Before Value</h4>
-                    <pre className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg overflow-auto text-xs">
+                    <pre className="bg-destructive/10 p-4 rounded-lg overflow-auto text-xs">
                       {JSON.stringify(selectedEntry.before_value, null, 2) || 'No data'}
                     </pre>
                   </div>
