@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { WORKFLOW_CONFIGS, ApplicationType } from './useOnlineApplicationWorkflowBinding';
+import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 
 /**
  * Status information for an application's workflow
@@ -149,21 +150,21 @@ async function fetchWorkflowStatuses(
         
         if (meetingDate) {
           try {
-            const date = new Date(meetingDate);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
+            const formattedDate = formatDisplayDate(meetingDate);
             
             let timeStr = '';
             if (meetingTime) {
-              // meetingTime is in format "HH:mm:ss" or "HH:mm"
               const timeParts = meetingTime.split(':');
               if (timeParts.length >= 2) {
-                timeStr = ` ${timeParts[0]}:${timeParts[1]}`;
+                const hours = parseInt(timeParts[0]);
+                const minutes = timeParts[1];
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                timeStr = ` ${displayHours}:${minutes} ${ampm}`;
               }
             }
             
-            displayStatus = `Meeting Scheduled – ${day}-${month}-${year}${timeStr}`;
+            displayStatus = `Meeting Scheduled – ${formattedDate}${timeStr}`;
           } catch (e) {
             displayStatus = 'Meeting Scheduled';
           }
@@ -223,7 +224,7 @@ export function useApplicationWorkflowStatus(
     queryKey: ['application-workflow-status', applicationType, referenceNumbers.sort().join(',')],
     queryFn: () => fetchWorkflowStatuses(referenceNumbers, applicationType),
     enabled: enabled && referenceNumbers.length > 0,
-    staleTime: 30000, // 30 seconds
+    staleTime: 10000, // 10 seconds - refresh quickly after reschedule
     refetchOnWindowFocus: true,
   });
 }

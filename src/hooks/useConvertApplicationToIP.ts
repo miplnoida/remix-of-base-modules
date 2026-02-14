@@ -109,7 +109,7 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     p_remarks: detail.remarks || null,
     p_approved_by: approvedBy,
     p_source_route: sourceRoute,
-    p_dependants: JSON.stringify(dependants),
+    p_dependants: dependants,
   };
 }
 

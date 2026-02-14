@@ -112,8 +112,9 @@ export default function StartMeetingPage() {
       // Convert the approved application to ip_master record
       if (meetingType === 'IP-Registration' && applicationData) {
         try {
+          const dataForConversion = hasChanges ? { ...applicationData, ...editedData } : applicationData;
           await convertMutation.mutateAsync({
-            applicationDetail: applicationData as ExternalApplicationDetail,
+            applicationDetail: dataForConversion as ExternalApplicationDetail,
             approvedBy: user?.id || '',
             sourceRoute: `/meetings/start/${meetingId}`,
           });
