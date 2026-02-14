@@ -165,6 +165,38 @@ Deno.serve(async (req) => {
         return jsonResponse({ status: "success", data: enriched });
       }
 
+      case "regenerate": {
+        const { key_id: regenKeyId } = body;
+        if (!regenKeyId) return jsonResponse({ status: "error", message: "key_id is required" }, 400);
+
+        // Verify key exists and is active
+        const { data: existingKey, error: fetchErr } = await supabase
+          .from("public_api_keys")
+          .select("id, app_name, status")
+          .eq("id", regenKeyId)
+          .single();
+
+        if (fetchErr || !existingKey) return jsonResponse({ status: "error", message: "API key not found" }, 404);
+        if (existingKey.status !== "active") return jsonResponse({ status: "error", message: "Only active keys can be regenerated" }, 400);
+
+        const newPlainKey = generateApiKey();
+        const newKeyHash = await hashKey(newPlainKey);
+        const newKeyPrefix = newPlainKey.substring(0, 8);
+
+        const { error: updateErr } = await supabase
+          .from("public_api_keys")
+          .update({ key_hash: newKeyHash, key_prefix: newKeyPrefix, updated_at: new Date().toISOString() })
+          .eq("id", regenKeyId);
+
+        if (updateErr) throw updateErr;
+
+        return jsonResponse({
+          status: "success",
+          message: "API key regenerated. Store the new key securely — it won't be shown again.",
+          data: { id: regenKeyId, key_prefix: newKeyPrefix, plain_key: newPlainKey },
+        });
+      }
+
       case "revoke": {
         const { key_id, reason } = body;
         if (!key_id) return jsonResponse({ status: "error", message: "key_id is required" }, 400);
@@ -217,7 +249,7 @@ Deno.serve(async (req) => {
       }
 
       default:
-        return jsonResponse({ status: "error", message: "Unknown action. Use: generate, list, revoke, update, usage" }, 400);
+        return jsonResponse({ status: "error", message: "Unknown action. Use: generate, list, revoke, regenerate, update, usage" }, 400);
     }
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);

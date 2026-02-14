@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Ban, BarChart3, RefreshCw, Pencil } from 'lucide-react';
+import { Plus, Ban, BarChart3, RefreshCw, Pencil, RotateCw, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { GenerateApiKeyDialog } from '@/components/admin/GenerateApiKeyDialog';
 import { EditApiKeyDialog } from '@/components/admin/EditApiKeyDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 
 interface ApiKeyRow {
@@ -22,6 +24,7 @@ interface ApiKeyRow {
   expires_at: string | null;
   created_at: string;
   last_used: string | null;
+  scope_count?: number | null;
 }
 
 const ApiKeysTab: React.FC = () => {
@@ -30,6 +33,11 @@ const ApiKeysTab: React.FC = () => {
   const [showGenerate, setShowGenerate] = useState(false);
   const [editKey, setEditKey] = useState<ApiKeyRow | null>(null);
   const [revokeKey, setRevokeKey] = useState<ApiKeyRow | null>(null);
+  const [regenerateKey, setRegenerateKey] = useState<ApiKeyRow | null>(null);
+  const [regeneratedPlainKey, setRegeneratedPlainKey] = useState('');
+  const [regenerating, setRegenerating] = useState(false);
+  const [showRegenKey, setShowRegenKey] = useState(false);
+  const [regenCopied, setRegenCopied] = useState(false);
   const [usageKeyId, setUsageKeyId] = useState<string | null>(null);
   const [usageLogs, setUsageLogs] = useState<any[]>([]);
   const [usageLoading, setUsageLoading] = useState(false);
@@ -55,6 +63,40 @@ const ApiKeysTab: React.FC = () => {
       setRevokeKey(null);
       fetchKeys();
     } catch { toast.error('Failed to revoke key'); }
+  };
+
+  const handleRegenerate = async () => {
+    if (!regenerateKey) return;
+    setRegenerating(true);
+    try {
+      const response = await supabase.functions.invoke('manage-api-keys', { body: { action: 'regenerate', key_id: regenerateKey.id } });
+      if (response.error) throw response.error;
+      if (response.data?.status === 'success') {
+        setRegeneratedPlainKey(response.data.data.plain_key);
+        toast.success('API key regenerated successfully');
+        fetchKeys();
+      } else {
+        throw new Error(response.data?.message || 'Failed');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to regenerate key');
+      setRegenerateKey(null);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const handleCloseRegenDialog = () => {
+    setRegenerateKey(null);
+    setRegeneratedPlainKey('');
+    setShowRegenKey(false);
+    setRegenCopied(false);
+  };
+
+  const handleCopyRegen = () => {
+    navigator.clipboard.writeText(regeneratedPlainKey);
+    setRegenCopied(true);
+    setTimeout(() => setRegenCopied(false), 2000);
   };
 
   const fetchUsage = async (keyId: string) => {
@@ -120,7 +162,10 @@ const ApiKeysTab: React.FC = () => {
                     <TableCell>
                       <div className="flex gap-1">
                         {key.status === 'active' && (
-                          <Button size="icon" variant="ghost" onClick={() => setEditKey(key)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                          <>
+                            <Button size="icon" variant="ghost" onClick={() => setEditKey(key)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" onClick={() => setRegenerateKey(key)} title="Regenerate Key"><RotateCw className="h-4 w-4" /></Button>
+                          </>
                         )}
                         <Button size="icon" variant="ghost" onClick={() => fetchUsage(key.id)} title="View Usage"><BarChart3 className="h-4 w-4" /></Button>
                         {key.status === 'active' && (
@@ -183,6 +228,50 @@ const ApiKeysTab: React.FC = () => {
 
       <GenerateApiKeyDialog open={showGenerate} onOpenChange={setShowGenerate} onKeyGenerated={fetchKeys} />
       <EditApiKeyDialog open={!!editKey} onOpenChange={(v) => { if (!v) setEditKey(null); }} onKeyUpdated={fetchKeys} apiKey={editKey} />
+
+      {/* Regenerate Key Dialog */}
+      <Dialog open={!!regenerateKey} onOpenChange={(v) => { if (!v) handleCloseRegenDialog(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Regenerate API Key</DialogTitle>
+            <DialogDescription>
+              {regeneratedPlainKey
+                ? 'A new key has been generated. Copy it now — the old key is no longer valid.'
+                : `This will invalidate the current key for "${regenerateKey?.app_name}" and generate a new one. All existing integrations using the old key will stop working immediately.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {regeneratedPlainKey ? (
+            <div className="space-y-4">
+              <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4">
+                <p className="text-sm font-medium text-destructive mb-2">
+                  ⚠️ Copy this key now — it won't be shown again!
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input readOnly value={showRegenKey ? regeneratedPlainKey : '•'.repeat(regeneratedPlainKey.length)} className="font-mono text-xs" />
+                  <Button size="icon" variant="outline" onClick={() => setShowRegenKey(!showRegenKey)}>
+                    {showRegenKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button size="icon" variant="outline" onClick={handleCopyRegen}>
+                    {regenCopied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleCloseRegenDialog}>Done</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseRegenDialog}>Cancel</Button>
+              <Button variant="destructive" onClick={handleRegenerate} disabled={regenerating}>
+                {regenerating ? 'Regenerating...' : 'Regenerate Key'}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!revokeKey} onOpenChange={() => setRevokeKey(null)}>
         <AlertDialogContent>
