@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 // External API endpoint for fetching additional pending applications
-const EXTERNAL_API_URL = 'https://hekgiuycrjncxalcapfz.supabase.co/functions/v1/applications';
+const EXTERNAL_API_URL = 'https://fiqyahojoouloswmnhcu.supabase.co/functions/v1/applications';
 
 // Interface for external application data
 export interface ExternalApplication {
