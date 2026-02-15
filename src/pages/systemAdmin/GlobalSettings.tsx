@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Settings, Save, RefreshCw, Clock, User, Info, Calendar, Eye, Globe } from 'lucide-react';
 import { useSystemSettings, useUpdateSystemSetting, SystemSetting } from '@/hooks/useSystemSettings';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -69,8 +70,38 @@ const GlobalSettings = () => {
     }
   };
   
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
   const renderSettingInput = (setting: SystemSetting, value: string, onChange: (val: string) => void, showPreview = false) => {
     const allowedValues = setting.allowed_values as { value: string; label: string }[] | null;
+
+    // Special checkbox UI for non_working_days
+    if (setting.setting_key === 'non_working_days') {
+      const selectedDays = value.split(',').map(d => d.trim()).filter(Boolean);
+      const toggleDay = (dayVal: string) => {
+        const newDays = selectedDays.includes(dayVal)
+          ? selectedDays.filter(d => d !== dayVal)
+          : [...selectedDays, dayVal].sort((a, b) => Number(a) - Number(b));
+        onChange(newDays.join(','));
+      };
+      return (
+        <div className="space-y-2">
+          {DAY_NAMES.map((name, idx) => {
+            const val = String(idx);
+            return (
+              <div key={val} className="flex items-center gap-2.5">
+                <Checkbox
+                  id={`nwd-${val}`}
+                  checked={selectedDays.includes(val)}
+                  onCheckedChange={() => toggleDay(val)}
+                />
+                <Label htmlFor={`nwd-${val}`} className="text-sm cursor-pointer">{name}</Label>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
     
     switch (setting.setting_type) {
       case 'select':
@@ -139,6 +170,13 @@ const GlobalSettings = () => {
   
   const renderSettingValue = (setting: SystemSetting) => {
     const allowedValues = setting.allowed_values as { value: string; label: string }[] | null;
+
+    // Show day names for non_working_days
+    if (setting.setting_key === 'non_working_days') {
+      const days = setting.setting_value.split(',').map(d => d.trim()).filter(Boolean);
+      if (days.length === 0) return 'None';
+      return days.map(d => DAY_NAMES[Number(d)] || d).join(', ');
+    }
     
     if (setting.setting_type === 'select' && allowedValues) {
       const option = allowedValues.find(o => o.value === setting.setting_value);
