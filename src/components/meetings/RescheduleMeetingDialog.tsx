@@ -85,6 +85,8 @@ export function RescheduleMeetingDialog({
   const [error, setError] = useState<string | null>(null);
 
   const bufferMinutes = parseInt(getSetting('meeting_buffer_minutes', '20'), 10);
+  const nonWorkingDaysSetting = getSetting('non_working_days', '0,6');
+  const nonWorkingDays = useMemo(() => nonWorkingDaysSetting.split(',').map(d => parseInt(d.trim(), 10)).filter(n => !isNaN(n)), [nonWorkingDaysSetting]);
 
   const { data: configuredDepts = [] } = useMeetingDepartmentsForWorkflow(workflowId);
 
@@ -291,13 +293,13 @@ export function RescheduleMeetingDialog({
                         const dayStr = format(day, 'yyyy-MM-dd');
                         const dayMeetings = meetingsByDate.get(dayStr) || [];
                         const isSelected = newDate && formatDateForStorage(newDate) === dayStr;
-                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        const isNonWorking = nonWorkingDays.includes(day.getDay());
                         const elements: React.ReactNode[] = [];
                         if (i === 0) { for (let pad = 0; pad < day.getDay(); pad++) elements.push(<div key={`pad-${pad}`} />); }
                         elements.push(
-                          <button key={dayStr} type="button"
-                            onClick={() => { setNewDate(day); setSelectedTime(''); setOverlapError(''); }}
-                            className={cn('relative p-2 rounded text-center transition-colors', isSelected ? 'bg-primary text-primary-foreground font-bold' : '', !isSelected && isWeekend ? 'text-muted-foreground/50' : '', !isSelected && !isWeekend ? 'hover:bg-accent' : '')}>
+                          <button key={dayStr} type="button" disabled={isNonWorking}
+                            onClick={() => { if (!isNonWorking) { setNewDate(day); setSelectedTime(''); setOverlapError(''); } }}
+                            className={cn('relative p-2 rounded text-center transition-colors', isSelected ? 'bg-primary text-primary-foreground font-bold' : '', isNonWorking ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed line-through' : '', !isSelected && !isNonWorking ? 'hover:bg-accent' : '')}>
                             <span className="block text-sm">{day.getDate()}</span>
                             <span className="block text-[9px] text-muted-foreground">{format(day, 'MMM')}</span>
                             {dayMeetings.length > 0 && (
