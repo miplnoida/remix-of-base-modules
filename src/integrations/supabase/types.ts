@@ -11072,7 +11072,7 @@ export type Database = {
       check_meeting_overlap: {
         Args: {
           p_assigned_user_id: string
-          p_buffer_minutes?: number
+          p_buffer_minutes: number
           p_exclude_meeting_id?: string
           p_meeting_date: string
           p_meeting_start_time: string

@@ -114,9 +114,9 @@ export function RescheduleMeetingDialog({
   useEffect(() => { if (usersInDept.length > 0 && !usersInDept.find(u => u.id === selectedUserId)) setSelectedUserId(usersInDept[0].id); }, [usersInDept, selectedUserId]);
 
   const today = new Date();
-  const twoWeeksLater = addDays(today, 14);
+  const fourWeeksLater = addDays(today, 28);
   const rangeStart = format(today, 'yyyy-MM-dd');
-  const rangeEnd = format(twoWeeksLater, 'yyyy-MM-dd');
+  const rangeEnd = format(fourWeeksLater, 'yyyy-MM-dd');
   const { data: rangeMeetings = [] } = useUserMeetingsForDateRange(selectedUserId, rangeStart, rangeEnd);
 
   const dateStr = newDate ? formatDateForStorage(newDate) : undefined;
@@ -280,13 +280,13 @@ export function RescheduleMeetingDialog({
                 <>
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold">
-                      {usersInDept.find(u => u.id === selectedUserId)?.full_name}'s Schedule — Next 2 Weeks
+                      {usersInDept.find(u => u.id === selectedUserId)?.full_name}'s Schedule — Next 4 Weeks
                     </Label>
                     <div className="grid grid-cols-7 gap-1 text-xs">
                       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                         <div key={d} className="text-center font-medium text-muted-foreground py-1">{d}</div>
                       ))}
-                      {Array.from({ length: 14 }, (_, i) => {
+                      {Array.from({ length: 28 }, (_, i) => {
                         const day = addDays(today, i);
                         const dayStr = format(day, 'yyyy-MM-dd');
                         const dayMeetings = meetingsByDate.get(dayStr) || [];
@@ -342,8 +342,10 @@ export function RescheduleMeetingDialog({
                             const isOccupied = userMeetings.some((m: any) => {
                               if (!m.meeting_time) return false;
                               const meetingMin = parseInt(m.meeting_time.split(':')[0]) * 60 + parseInt(m.meeting_time.split(':')[1]);
+                              const meetingEndMin = m.meeting_end_time ? parseInt(m.meeting_end_time.split(':')[0]) * 60 + parseInt(m.meeting_end_time.split(':')[1]) : meetingMin + bufferMinutes;
                               const slotMin = parseInt(slot.split(':')[0]) * 60 + parseInt(slot.split(':')[1]);
-                              return Math.abs(meetingMin - slotMin) < bufferMinutes;
+                              const slotEndMin = slotMin + bufferMinutes;
+                              return slotMin < meetingEndMin && slotEndMin > meetingMin;
                             });
                             return (
                               <Button key={slot} type="button" variant={selectedTime === slot ? 'default' : isOccupied ? 'ghost' : 'outline'} size="sm" disabled={isOccupied}
