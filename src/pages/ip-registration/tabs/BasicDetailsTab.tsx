@@ -19,7 +19,11 @@ interface BasicDetailsTabProps {
 
 const titles = ['Mr', 'Mrs', 'Ms', 'Miss', 'Dr', 'Hon', 'Rev'];
 const suffixes = ['Jr', 'Sr', 'I', 'II', 'III', 'IV'];
-const genders = ['Male', 'Female'];
+const genders = [
+  { value: 'M', label: 'Male' },
+  { value: 'F', label: 'Female' },
+  { value: 'N', label: 'Not-Specified' },
+];
 const maritalStatuses = ['Single', 'Married', 'Common Law', 'Divorced', 'Widowed', 'Separated'];
 
 // Convert date string to Date object (timezone-safe)
@@ -238,7 +242,7 @@ export default function BasicDetailsTab({
               <SelectValue placeholder="Select Gender" />
             </SelectTrigger>
             <SelectContent>
-              {genders.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              {genders.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
             </SelectContent>
           </Select>
           {errors.gender && <p className="text-xs text-destructive mt-1">{errors.gender}</p>}
