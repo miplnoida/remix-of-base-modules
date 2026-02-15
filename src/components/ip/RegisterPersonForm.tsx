@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, CalendarIcon, User, MapPin, Phone, Briefcase, Users, Shield, CreditCard, Camera, Save, Printer, FileText, Plus, Edit, Eye, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { DatePicker } from './DatePicker';
+import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -1408,10 +1409,11 @@ export const RegisterPersonForm = () => {
               <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                 <div>
                   <Label>Date Married</Label>
-                  <DatePicker
+                  <DatePickerWithDropdowns
                     date={form.watch('dateMarried')}
                     onSelect={(date) => form.setValue('dateMarried', date)}
                     placeholder="dd/mm/yyyy"
+                    maxDate={new Date()}
                   />
                 </div>
               </div>
