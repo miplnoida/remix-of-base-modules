@@ -86,6 +86,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
         surname: ipRecord.surname || ipRecord.last_name || '',
         firstname: ipRecord.firstname || ipRecord.first_name || '',
         middle_name: ipRecord.middle_name || '',
+        second_middle_name: ipRecord.second_middle_name || '',
         previous_name: ipRecord.previous_name || ipRecord.maiden_name || '',
         alias: ipRecord.alias || '',
         sex: ipRecord.sex || ipRecord.gender || '',
@@ -134,6 +135,10 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
         citizenship_flag: ipRecord.citizenship_flag || ipRecord.citizenship || 'N',
         ip_signature: ipRecord.ip_signature || ipRecord.signature_on_file || 'N',
         work_permit_expiration: ipRecord.work_permit_expiration || ipRecord.work_permit_expiry || '',
+        employer_name: ipRecord.employer_name || '',
+        employer_address: ipRecord.employer_address || '',
+        employer_phone: ipRecord.employer_phone || '',
+        employer_town: ipRecord.employer_town || '',
         verify_birth_code: ipRecord.verify_birth_code || '',
         verify_name_code: ipRecord.verify_name_code || '',
         verify_marital_code: ipRecord.verify_marital_code || '',
@@ -229,6 +234,7 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
         surname: formData.surname,
         firstname: formData.firstname,
         middle_name: formData.middle_name,
+        second_middle_name: formData.second_middle_name,
         previous_name: formData.previous_name,
         alias: formData.alias,
         sex: formData.sex,
@@ -420,6 +426,10 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
           citizenship_flag: formData.citizenship_flag,
           ip_signature: formData.ip_signature,
           work_permit_expiration: formData.work_permit_expiration || null,
+          employer_name: formData.employer_name || null,
+          employer_address: formData.employer_address || null,
+          employer_phone: formData.employer_phone || null,
+          employer_town: formData.employer_town || null,
           date_modified: new Date().toISOString(),
           // Legacy columns
           work_permit_status: formData.work_permit,
@@ -535,6 +545,52 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
     try {
       // Save all pending changes first
       await saveCurrentTab();
+
+      // Validate: if marital_status is Married, check for Marriage Certificate document
+      if (formData.marital_status === 'M') {
+        const { data: docs } = await supabase
+          .from('ip_documents' as any)
+          .select('id')
+          .eq('ssn', formData.ssn)
+          .eq('document_type', 'Marriage Certificate');
+        
+        if (!docs || (docs as any[]).length === 0) {
+          toast({
+            title: 'Marriage Certificate Required',
+            description: 'Marital status is Married. Please upload a Marriage Certificate in the Verification tab before submitting.',
+            variant: 'destructive',
+          });
+          setIsSaving(false);
+          isSavingRef.current = false;
+          return false;
+        }
+      }
+
+      // Validate: if work_permit is Y, work_permit_expiration is required
+      if (formData.work_permit === 'Y' && !formData.work_permit_expiration) {
+        toast({
+          title: 'Work Permit Expiration Required',
+          description: 'Work Permit is set to Yes. Please provide the expiration date in the Employment tab.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        isSavingRef.current = false;
+        return false;
+      }
+
+      // Validate: if birth_place != place_of_residence, date_of_residency required
+      if (formData.birth_place_code && formData.place_of_residence_code
+        && formData.birth_place_code !== formData.place_of_residence_code
+        && !formData.date_of_residency) {
+        toast({
+          title: 'Date of Residency Required',
+          description: 'Birth Place and Place of Residence differ. Please provide Date of Residency in the Employment tab.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        isSavingRef.current = false;
+        return false;
+      }
 
       // Update status to Pending
       const { error } = await supabase

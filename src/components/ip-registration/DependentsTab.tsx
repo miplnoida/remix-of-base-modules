@@ -245,7 +245,7 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
                 <Input
                   value={newDependent.depend_addr1}
                   onChange={(e) => updateNewDependent('depend_addr1', e.target.value)}
-                  maxLength={30}
+                  maxLength={50}
                 />
               </div>
               <div>
@@ -253,7 +253,7 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
                 <Input
                   value={newDependent.depend_addr2}
                   onChange={(e) => updateNewDependent('depend_addr2', e.target.value)}
-                  maxLength={30}
+                  maxLength={50}
                 />
               </div>
             </div>

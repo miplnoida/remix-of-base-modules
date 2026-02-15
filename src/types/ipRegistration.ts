@@ -7,6 +7,7 @@ export interface IPMasterFormData {
   surname: string;
   firstname: string;
   middle_name: string;
+  second_middle_name: string;
   previous_name: string; // Maiden Name
   alias: string;
   sex: string; // M/F/N
@@ -70,6 +71,12 @@ export interface IPMasterFormData {
   ip_signature: string; // Y/N
   work_permit_expiration: string;
   
+  // Current Employer
+  employer_name: string;
+  employer_address: string;
+  employer_phone: string;
+  employer_town: string;
+  
   // Document Verification
   verify_birth_code: string; // 1-char verification code
   verify_name_code: string;
@@ -124,6 +131,7 @@ export const initialIPMasterFormData: IPMasterFormData = {
   surname: '',
   firstname: '',
   middle_name: '',
+  second_middle_name: '',
   previous_name: '',
   alias: '',
   sex: '',
@@ -172,6 +180,10 @@ export const initialIPMasterFormData: IPMasterFormData = {
   citizenship_flag: 'N',
   ip_signature: 'N',
   work_permit_expiration: '',
+  employer_name: '',
+  employer_address: '',
+  employer_phone: '',
+  employer_town: '',
   verify_birth_code: '',
   verify_name_code: '',
   verify_marital_code: '',

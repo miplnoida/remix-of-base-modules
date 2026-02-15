@@ -120,10 +120,10 @@ export default function BasicDetailsTab({
           {errors.first_name && <p className="text-xs text-destructive mt-1">{errors.first_name}</p>}
         </div>
 
-        {/* Middle Name */}
+        {/* First Middle Name */}
         <div className="space-y-2">
           <Label htmlFor="middle_name">
-            Middle Name
+            First Middle Name
             <span className="text-xs text-muted-foreground ml-2">{formData.middle_name?.length || 0}/25</span>
           </Label>
           <Input
@@ -131,7 +131,24 @@ export default function BasicDetailsTab({
             value={formData.middle_name || ''}
             onChange={(e) => handleFieldChange('middle_name', e.target.value.slice(0, 25))}
             onBlur={() => handleBlur('middle_name')}
-            placeholder="Enter Middle Name"
+            placeholder="Enter First Middle Name"
+            maxLength={25}
+            disabled={!isEditable}
+          />
+        </div>
+
+        {/* Second Middle Name */}
+        <div className="space-y-2">
+          <Label htmlFor="second_middle_name">
+            Second Middle Name
+            <span className="text-xs text-muted-foreground ml-2">{formData.second_middle_name?.length || 0}/25</span>
+          </Label>
+          <Input
+            id="second_middle_name"
+            value={formData.second_middle_name || ''}
+            onChange={(e) => handleFieldChange('second_middle_name', e.target.value.slice(0, 25))}
+            onBlur={() => handleBlur('second_middle_name')}
+            placeholder="Enter Second Middle Name"
             maxLength={25}
             disabled={!isEditable}
           />

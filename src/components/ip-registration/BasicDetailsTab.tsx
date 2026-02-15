@@ -88,11 +88,25 @@ export const BasicDetailsTab: React.FC<BasicDetailsTabProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="middle_name">Middle Name</Label>
+            <Label htmlFor="middle_name">First Middle Name</Label>
             <Input
               id="middle_name"
               value={formData.middle_name}
               onChange={(e) => updateField('middle_name', e.target.value)}
+              disabled={!isEditable}
+              maxLength={25}
+            />
+          </div>
+        </div>
+
+        {/* Second Middle Name */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="second_middle_name">Second Middle Name</Label>
+            <Input
+              id="second_middle_name"
+              value={formData.second_middle_name}
+              onChange={(e) => updateField('second_middle_name', e.target.value)}
               disabled={!isEditable}
               maxLength={25}
             />

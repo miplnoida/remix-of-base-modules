@@ -4442,6 +4442,10 @@ export type Database = {
           dob: string | null
           email: string | null
           email_addr: string | null
+          employer_address: string | null
+          employer_name: string | null
+          employer_phone: string | null
+          employer_town: string | null
           entered_by: string | null
           eye_color: string | null
           eyecolor: string | null
@@ -4491,6 +4495,7 @@ export type Database = {
           resident_addr2: string | null
           resident_address_1: string | null
           resident_address_2: string | null
+          second_middle_name: string | null
           self_ref_no: string | null
           sex: string | null
           signature_location: string | null
@@ -4571,6 +4576,10 @@ export type Database = {
           dob?: string | null
           email?: string | null
           email_addr?: string | null
+          employer_address?: string | null
+          employer_name?: string | null
+          employer_phone?: string | null
+          employer_town?: string | null
           entered_by?: string | null
           eye_color?: string | null
           eyecolor?: string | null
@@ -4620,6 +4629,7 @@ export type Database = {
           resident_addr2?: string | null
           resident_address_1?: string | null
           resident_address_2?: string | null
+          second_middle_name?: string | null
           self_ref_no?: string | null
           sex?: string | null
           signature_location?: string | null
@@ -4700,6 +4710,10 @@ export type Database = {
           dob?: string | null
           email?: string | null
           email_addr?: string | null
+          employer_address?: string | null
+          employer_name?: string | null
+          employer_phone?: string | null
+          employer_town?: string | null
           entered_by?: string | null
           eye_color?: string | null
           eyecolor?: string | null
@@ -4749,6 +4763,7 @@ export type Database = {
           resident_addr2?: string | null
           resident_address_1?: string | null
           resident_address_2?: string | null
+          second_middle_name?: string | null
           self_ref_no?: string | null
           sex?: string | null
           signature_location?: string | null
