@@ -95,7 +95,8 @@ export default function AddressContactTab({
       label: 'Mailing Address',
       icon: <MapPin className="h-4 w-4 text-muted-foreground" />,
       fields: {
-        value: formData.mailing_address,
+        line1: formData.mail_addr1,
+        line2: formData.mail_addr2,
       },
     },
     {
@@ -134,8 +135,12 @@ export default function AddressContactTab({
       Object.entries(updates).forEach(([key, value]) => handleFieldChange(key, value));
       onSave(updates);
     } else if (editingAddress === 'mailing') {
-      handleFieldChange('mailing_address', tempAddress.value);
-      onSave({ mailing_address: tempAddress.value });
+      const updates = {
+        mail_addr1: tempAddress.line1,
+        mail_addr2: tempAddress.line2,
+      };
+      Object.entries(updates).forEach(([key, value]) => handleFieldChange(key, value));
+      onSave(updates);
     } else if (editingAddress === 'email') {
       const trimmed = (tempAddress.value || '').trim();
       handleFieldChange('email', trimmed);
@@ -208,16 +213,16 @@ export default function AddressContactTab({
                     {address.icon}
                     <div>
                       <h3 className="font-medium">{address.label}</h3>
-                      {address.type === 'resident' ? (
+                      {address.type === 'resident' || address.type === 'mailing' ? (
                         <div className="text-sm text-muted-foreground">
-                          {/* In View mode, show blank if no data; in Edit mode show "Not set" */}
-                          <p>Resident Address 1: {address.fields.line1 || (isEditable ? 'Not set' : '')}</p>
-                          <p>Resident Address 2: {address.fields.line2 || (isEditable ? 'Not set' : '')}</p>
-                          <p>Postal District: {getDistrictDisplay(address.fields.postal) || (isEditable ? 'Not set' : '')}</p>
+                          <p>{address.type === 'resident' ? 'Address Line 1' : 'Mailing Address Line1'}: {address.fields.line1 || (isEditable ? 'Not set' : '')}</p>
+                          <p>{address.type === 'resident' ? 'Address Line 2' : 'Mailing Address Line2'}: {address.fields.line2 || (isEditable ? 'Not set' : '')}</p>
+                          {address.type === 'resident' && (
+                            <p>Postal District: {getDistrictDisplay(address.fields.postal) || (isEditable ? 'Not set' : '')}</p>
+                          )}
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          {address.type === 'mailing' ? 'Mailing Address: ' : ''}
                           {address.fields.value || (isEditable ? 'Not set' : '')}
                         </p>
                       )}
@@ -242,8 +247,9 @@ export default function AddressContactTab({
                             handleFieldChange('postal_district', '');
                             onSave({ resident_address_1: '', resident_address_2: '', postal_district: '' });
                           } else if (address.type === 'mailing') {
-                            handleFieldChange('mailing_address', '');
-                            onSave({ mailing_address: '' });
+                            handleFieldChange('mail_addr1', '');
+                            handleFieldChange('mail_addr2', '');
+                            onSave({ mail_addr1: '', mail_addr2: '' });
                           } else {
                             handleFieldChange('email', '');
                             onSave({ email: '' });
@@ -301,59 +307,66 @@ export default function AddressContactTab({
             </DialogTitle>
           </DialogHeader>
           
-          {editingAddress === 'resident' ? (
+          {editingAddress === 'resident' || editingAddress === 'mailing' ? (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Address Line 1 <span className="text-xs text-muted-foreground">{(tempAddress.line1 || '').length}/{IP_MASTER_FIELDS.resident_address_1.maxLength}</span></Label>
+                <Label>{editingAddress === 'mailing' ? 'Mailing Address Line1' : 'Address Line 1'} <span className="text-xs text-muted-foreground">{(tempAddress.line1 || '').length}/{editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_address_1.maxLength}</span></Label>
                 <Input
                   value={tempAddress.line1 || ''}
-                  onChange={(e) => setTempAddress({ ...tempAddress, line1: e.target.value.slice(0, IP_MASTER_FIELDS.resident_address_1.maxLength) })}
-                  placeholder="Enter address line 1"
-                  maxLength={IP_MASTER_FIELDS.resident_address_1.maxLength}
+                  onChange={(e) => {
+                    const maxLen = editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_address_1.maxLength;
+                    setTempAddress({ ...tempAddress, line1: e.target.value.slice(0, maxLen) });
+                  }}
+                  placeholder={editingAddress === 'mailing' ? 'Enter mailing address line 1' : 'Enter address line 1'}
+                  maxLength={editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_address_1.maxLength}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Address Line 2 <span className="text-xs text-muted-foreground">{(tempAddress.line2 || '').length}/{IP_MASTER_FIELDS.resident_address_2.maxLength}</span></Label>
+                <Label>{editingAddress === 'mailing' ? 'Mailing Address Line2' : 'Address Line 2'} <span className="text-xs text-muted-foreground">{(tempAddress.line2 || '').length}/{editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_address_2.maxLength}</span></Label>
                 <Input
                   value={tempAddress.line2 || ''}
-                  onChange={(e) => setTempAddress({ ...tempAddress, line2: e.target.value.slice(0, IP_MASTER_FIELDS.resident_address_2.maxLength) })}
-                  placeholder="Enter address line 2"
-                  maxLength={IP_MASTER_FIELDS.resident_address_2.maxLength}
+                  onChange={(e) => {
+                    const maxLen = editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_address_2.maxLength;
+                    setTempAddress({ ...tempAddress, line2: e.target.value.slice(0, maxLen) });
+                  }}
+                  placeholder={editingAddress === 'mailing' ? 'Enter mailing address line 2' : 'Enter address line 2'}
+                  maxLength={editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_address_2.maxLength}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Postal District</Label>
-                <Select
-                  value={tempAddress.postal || ''}
-                  onValueChange={(value) => setTempAddress({ ...tempAddress, postal: value })}
-                  disabled={loadingDistricts}
-                >
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select postal district" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50 max-h-[200px]">
-                    {districts.map((district) => (
-                      <SelectItem key={district.code} value={district.code}>
-                        {district.code} - {district.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {editingAddress === 'resident' && (
+                <div className="space-y-2">
+                  <Label>Postal District</Label>
+                  <Select
+                    value={tempAddress.postal || ''}
+                    onValueChange={(value) => setTempAddress({ ...tempAddress, postal: value })}
+                    disabled={loadingDistricts}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select postal district" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50 max-h-[200px]">
+                      {districts.map((district) => (
+                        <SelectItem key={district.code} value={district.code}>
+                          {district.code} - {district.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
-              <Label>{editingAddress === 'email' ? 'Email Address' : 'Mailing Address'}</Label>
+              <Label>Email Address</Label>
               <Input
                 value={tempAddress.value || ''}
                 onChange={(e) => {
-                  const maxLen = editingAddress === 'email' ? IP_MASTER_FIELDS.email.maxLength : IP_MASTER_FIELDS.mailing_address.maxLength;
-                  setTempAddress({ ...tempAddress, value: e.target.value.slice(0, maxLen) });
+                  setTempAddress({ ...tempAddress, value: e.target.value.slice(0, IP_MASTER_FIELDS.email.maxLength) });
                   setDialogError('');
                 }}
-                placeholder={editingAddress === 'email' ? 'Enter email address' : 'Enter mailing address'}
-                type={editingAddress === 'email' ? 'email' : 'text'}
-                maxLength={editingAddress === 'email' ? IP_MASTER_FIELDS.email.maxLength : IP_MASTER_FIELDS.mailing_address.maxLength}
+                placeholder="Enter email address"
+                type="email"
+                maxLength={IP_MASTER_FIELDS.email.maxLength}
                 className={dialogError ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {dialogError && <p className="text-xs text-destructive">{dialogError}</p>}
