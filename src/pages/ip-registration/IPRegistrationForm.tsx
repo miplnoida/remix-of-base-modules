@@ -37,6 +37,7 @@ export interface IPFormData {
   title?: string | null;
   first_name?: string | null;
   middle_name?: string | null;
+  second_middle_name?: string | null;
   last_name?: string | null;
   suffix?: string | null;
   maiden_name?: string | null;
@@ -247,6 +248,7 @@ export default function IPRegistrationForm() {
         title: recordData.title,
         first_name: recordData.first_name,
         middle_name: recordData.middle_name,
+        second_middle_name: recordData.second_middle_name,
         last_name: recordData.last_name,
         suffix: recordData.suffix,
         maiden_name: recordData.maiden_name,
