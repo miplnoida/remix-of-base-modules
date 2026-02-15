@@ -577,6 +577,10 @@ export default function IPRegistrationForm() {
     if (currentIndex < tabSteps.length - 1) {
       setPendingTabChange(tabSteps[currentIndex + 1].id);
       setShowStepSuccess(true);
+    } else {
+      // Last sub-tab (Document Verification) — move to Dependent main tab
+      setPendingTabChange('__main_dependent__');
+      setShowStepSuccess(true);
     }
   }, [isViewMode, validateCurrentTab, saveToDatabase, formData, completedTabs, activeTab, isNewRecord]);
 
@@ -594,7 +598,13 @@ export default function IPRegistrationForm() {
   const handleSuccessComplete = useCallback(() => {
     setShowStepSuccess(false);
     if (pendingTabChange) {
-      setActiveTab(pendingTabChange);
+      if (pendingTabChange === '__main_dependent__') {
+        // Switch to Dependent main tab
+        setActiveMainTab('dependent');
+        setActiveTab('basic'); // Reset sub-tab for next time
+      } else {
+        setActiveTab(pendingTabChange);
+      }
       setPendingTabChange(null);
     }
   }, [pendingTabChange]);
