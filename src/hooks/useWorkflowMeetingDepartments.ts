@@ -151,6 +151,33 @@ export function useUserMeetingsForDate(userId?: string, date?: string) {
   });
 }
 
+// Hook to get user's meetings for a date range (2-week calendar view)
+export function useUserMeetingsForDateRange(userId?: string, startDate?: string, endDate?: string) {
+  return useQuery({
+    queryKey: ['user-meetings-date-range', userId, startDate, endDate],
+    queryFn: async () => {
+      if (!userId || !startDate || !endDate) return [];
+      // Query all dates in the range by iterating
+      const results: any[] = [];
+      const start = new Date(startDate + 'T12:00:00');
+      const end = new Date(endDate + 'T12:00:00');
+      const promises: Promise<any>[] = [];
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const p = supabase.rpc('get_user_meetings_for_date', {
+          p_user_id: userId,
+          p_date: dateStr,
+        }).then(({ data }: any) => (data || []).map((m: any) => ({ ...m, date: dateStr }))) as unknown as Promise<any>;
+        promises.push(p);
+      }
+      const allResults = await Promise.all(promises);
+      return allResults.flat();
+    },
+    enabled: !!userId && !!startDate && !!endDate,
+    staleTime: 30000,
+  });
+}
+
 // Hook to check meeting overlap
 export function useCheckMeetingOverlap() {
   return useMutation({
