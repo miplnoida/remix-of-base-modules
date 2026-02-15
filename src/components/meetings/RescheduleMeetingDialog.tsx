@@ -51,9 +51,12 @@ function generateTimeSlots(bufferMinutes: number, startTime?: string, endTime?: 
   const start = startTime ? startTime.split(':').map(Number) : [8, 0];
   const end = endTime ? endTime.split(':').map(Number) : [16, 0];
   const interval = Math.max(bufferMinutes, 10);
+  // Calculate last allowed slot: office_end_time minus buffer
+  const endTotalMins = end[0] * 60 + end[1];
+  const lastSlotMins = endTotalMins - interval;
   const slots: string[] = [];
   let h = start[0], m = start[1];
-  while (h < end[0] || (h === end[0] && m <= end[1])) {
+  while (h * 60 + m <= lastSlotMins) {
     slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
     m += interval;
     if (m >= 60) { h += Math.floor(m / 60); m = m % 60; }
