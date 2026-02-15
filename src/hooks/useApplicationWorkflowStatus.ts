@@ -100,8 +100,8 @@ async function fetchWorkflowStatuses(
       .select('id, meeting_reference, workflow_instance_id, meeting_date, meeting_time, status')
       .in('workflow_instance_id', instanceIds)
       .in('status', ['Scheduled', 'Rescheduled', 'InProgress'])
-      .order('meeting_date', { ascending: true })
-      .order('meeting_time', { ascending: true });
+      .order('meeting_date', { ascending: false })
+      .order('meeting_time', { ascending: false });
 
     if (meetingsError) {
       console.error('[ApplicationWorkflowStatus] Error fetching meetings:', meetingsError);
@@ -111,7 +111,7 @@ async function fetchWorkflowStatuses(
     const meetingsByInstance: Record<string, typeof meetings extends (infer T)[] ? T : never> = {};
     meetings?.forEach(meeting => {
       if (meeting.workflow_instance_id) {
-        // Keep only the earliest scheduled meeting
+        // Keep only the latest scheduled meeting
         if (!meetingsByInstance[meeting.workflow_instance_id]) {
           meetingsByInstance[meeting.workflow_instance_id] = meeting;
         }
