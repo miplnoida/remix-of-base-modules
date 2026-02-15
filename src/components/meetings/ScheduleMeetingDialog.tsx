@@ -230,7 +230,7 @@ export function ScheduleMeetingDialog({
 
               {/* Office Info */}
               {selectedOffice && selectedOfficeInfo && (
-                <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-lg space-y-1.5 text-xs">
+                <div className="p-2.5 bg-primary/5 rounded-lg space-y-1.5 text-xs">
                   <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-muted-foreground shrink-0" /><span className="truncate">{[selectedOfficeInfo.address1, selectedOfficeInfo.address2].filter(Boolean).join(', ') || 'N/A'}</span></div>
                   <div className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-muted-foreground shrink-0" /><span className="truncate">{selectedOfficeInfo.email || 'N/A'}</span></div>
                   <div className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-muted-foreground shrink-0" /><span>{selectedOfficeInfo.phone || 'N/A'}</span></div>
@@ -304,7 +304,7 @@ export function ScheduleMeetingDialog({
                         elements.push(
                           <button key={dayStr} type="button" disabled={isNonWorking}
                             onClick={() => { if (!isNonWorking) { setMeetingDate(day); setSelectedTime(''); setOverlapError(''); } }}
-                            className={cn('relative p-2 rounded text-center transition-colors', isSelected ? 'bg-primary text-primary-foreground font-bold' : '', isNonWorking ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed line-through' : '', !isSelected && !isNonWorking ? 'hover:bg-accent' : '')}>
+                            className={cn('relative p-2 rounded text-center transition-colors', isSelected ? 'bg-primary text-primary-foreground font-bold' : '', isNonWorking ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed' : '', !isSelected && !isNonWorking ? 'hover:bg-accent' : '')}>
                             <span className="block text-sm">{day.getDate()}</span>
                             <span className="block text-[9px] text-muted-foreground">{format(day, 'MMM')}</span>
                             {dayMeetings.length > 0 && (
@@ -361,7 +361,7 @@ export function ScheduleMeetingDialog({
                             return (
                               <Button key={slot} type="button" variant={selectedTime === slot ? 'default' : isOccupied ? 'ghost' : 'outline'} size="sm" disabled={isOccupied}
                                 onClick={() => handleTimeSelect(slot)}
-                                className={cn('text-xs h-7', isOccupied && 'opacity-40 line-through', selectedTime === slot && 'ring-2 ring-primary')}>
+                                className={cn('text-xs h-7', isOccupied && 'opacity-40', selectedTime === slot && 'ring-2 ring-primary')}>
                                 {to12Hour(slot)}
                               </Button>
                             );
