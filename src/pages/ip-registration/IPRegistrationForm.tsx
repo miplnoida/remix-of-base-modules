@@ -55,6 +55,12 @@ export interface IPFormData {
   resident_address_2?: string | null;
   postal_district?: string | null;
   mailing_address?: string | null;
+  mail_addr1?: string | null;
+  mail_addr2?: string | null;
+  employer_name?: string | null;
+  employer_address?: string | null;
+  employer_phone?: string | null;
+  employer_town?: string | null;
   email?: string | null;
   telephone?: string | null;
   mobile?: string | null;
@@ -266,6 +272,8 @@ export default function IPRegistrationForm() {
         resident_address_2: recordData.resident_address_2,
         postal_district: recordData.postal_district,
         mailing_address: recordData.mailing_address,
+        mail_addr1: recordData.mail_addr1,
+        mail_addr2: recordData.mail_addr2,
         email: recordData.email,
         telephone: recordData.telephone,
         mobile: recordData.mobile,
@@ -278,6 +286,10 @@ export default function IPRegistrationForm() {
         work_permit_expiry: recordData.work_permit_expiry,
         citizenship: recordData.citizenship,
         signature_on_file: recordData.signature_on_file,
+        employer_name: recordData.employer_name,
+        employer_address: recordData.employer_address,
+        employer_phone: recordData.employer_phone,
+        employer_town: recordData.employer_town,
         marital_doc_type: recordData.marital_doc_type,
         birth_doc_type: recordData.birth_doc_type,
         death_doc_type: recordData.death_doc_type,
@@ -371,12 +383,14 @@ export default function IPRegistrationForm() {
     }
 
     if (activeTab === 'employment') {
-      if (formData.citizenship === 'N' && formData.place_of_residence === 'RES') {
-        if (!formData.work_permit_status || formData.work_permit_status === 'N') {
-          newErrors.work_permit_status = 'Work permit is required for non-citizen residents';
-        }
-        if (!formData.work_permit_expiry) {
-          newErrors.work_permit_expiry = 'Work permit expiry is required';
+      // Work permit expiry required when work permit is Yes
+      if (formData.work_permit_status === 'Y' && !formData.work_permit_expiry) {
+        newErrors.work_permit_expiry = 'Work permit expiry date is required when work permit is enabled';
+      }
+      // Date resident required when birth_place differs from place_of_residence
+      if (formData.birth_place && formData.place_of_residence && formData.birth_place !== formData.place_of_residence) {
+        if (!formData.date_resident) {
+          newErrors.date_resident = 'Date resident is required when birth place differs from place of residence';
         }
       }
     }
