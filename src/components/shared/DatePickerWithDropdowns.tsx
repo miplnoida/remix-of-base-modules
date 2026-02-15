@@ -77,8 +77,15 @@ export default function DatePickerWithDropdowns({
   
   const isDateDisabled = (day: number): boolean => {
     const checkDate = new Date(selectedYear, selectedMonth, day);
-    if (minDate && checkDate < minDate) return true;
-    if (maxDate && checkDate > maxDate) return true;
+    // Normalize min/max to midnight for date-only comparison
+    if (minDate) {
+      const minNorm = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+      if (checkDate < minNorm) return true;
+    }
+    if (maxDate) {
+      const maxNorm = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+      if (checkDate > maxNorm) return true;
+    }
     return false;
   };
 
