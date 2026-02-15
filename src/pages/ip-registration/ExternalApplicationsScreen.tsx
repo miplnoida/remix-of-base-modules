@@ -26,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // External API endpoint
-const EXTERNAL_API_URL = 'https://hekgiuycrjncxalcapfz.supabase.co/functions/v1/applications';
+const EXTERNAL_API_URL = 'https://fiqyahojoouloswmnhcu.supabase.co/functions/v1/applications';
 
 // Date display format (consistent with project standards)
 const DATE_DISPLAY_FORMAT = 'dd/MM/yyyy';
