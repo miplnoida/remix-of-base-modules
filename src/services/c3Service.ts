@@ -205,7 +205,7 @@ export async function validateEmployer(regNo: string) {
 export async function validateContributor(ssn: string, payerType: 'SE' | 'VC') {
   const query = supabase
     .from('ip_master')
-    .select('ssn, first_name, last_name, resident_addr1, resident_addr2, status, vol_contrib')
+    .select('ssn, firstname, surname, resident_addr1, resident_addr2, status, vol_contrib')
     .eq('ssn', ssn)
     .eq('status', 'A');
 
@@ -223,7 +223,7 @@ export async function validateContributor(ssn: string, payerType: 'SE' | 'VC') {
 
   return {
     isValid: true,
-    name: [data.first_name, data.last_name].filter(Boolean).join(' ').trim(),
+    name: [data.firstname, data.surname].filter(Boolean).join(' ').trim(),
     address: [data.resident_addr1, data.resident_addr2].filter(Boolean).join(' ').trim(),
     message: `${payerType === 'VC' ? 'Voluntary' : 'Self-employed'} contributor validated successfully`
   };
@@ -809,7 +809,7 @@ export async function validateSelfContributorSSN(
     // First, get the person's info from ip_master
     const { data: personData, error: personError } = await supabase
       .from('ip_master')
-      .select('ssn, first_name, last_name, resident_address_1, resident_address_2')
+      .select('ssn, firstname, surname, resident_addr1, resident_addr2')
       .eq('ssn', ssn)
       .single();
 
@@ -823,8 +823,8 @@ export async function validateSelfContributorSSN(
       };
     }
 
-    const name = [personData.first_name, personData.last_name].filter(Boolean).join(' ').trim();
-    const address = [personData.resident_address_1, personData.resident_address_2].filter(Boolean).join(' ').trim();
+    const name = [personData.firstname, personData.surname].filter(Boolean).join(' ').trim();
+    const address = [personData.resident_addr1, personData.resident_addr2].filter(Boolean).join(' ').trim();
 
     // Check ip_self_category for wage_category with valid period
     // Period must fall between effective_start_date and effective_end_date
@@ -880,7 +880,7 @@ export async function getPersonBySSN(ssn: string): Promise<{
   try {
     const { data, error } = await supabase
       .from('ip_master')
-      .select('ssn, first_name, last_name, resident_address_1, resident_address_2')
+      .select('ssn, firstname, surname, resident_addr1, resident_addr2')
       .eq('ssn', ssn)
       .single();
 
@@ -895,8 +895,8 @@ export async function getPersonBySSN(ssn: string): Promise<{
 
     return {
       isValid: true,
-      name: [data.first_name, data.last_name].filter(Boolean).join(' ').trim(),
-      address: [data.resident_address_1, data.resident_address_2].filter(Boolean).join(' ').trim(),
+      name: [data.firstname, data.surname].filter(Boolean).join(' ').trim(),
+      address: [data.resident_addr1, data.resident_addr2].filter(Boolean).join(' ').trim(),
       message: 'Person found'
     };
   } catch (error: any) {
@@ -1121,7 +1121,7 @@ export async function validateVoluntaryContributorSSN(
     // First, get the person's info from ip_master
     const { data: personData, error: personError } = await supabase
       .from('ip_master')
-      .select('ssn, first_name, last_name, resident_address_1, resident_address_2')
+      .select('ssn, firstname, surname, resident_addr1, resident_addr2')
       .eq('ssn', ssn)
       .single();
 
@@ -1136,8 +1136,8 @@ export async function validateVoluntaryContributorSSN(
       };
     }
 
-    const name = [personData.first_name, personData.last_name].filter(Boolean).join(' ').trim();
-    const address = [personData.resident_address_1, personData.resident_address_2].filter(Boolean).join(' ').trim();
+    const name = [personData.firstname, personData.surname].filter(Boolean).join(' ').trim();
+    const address = [personData.resident_addr1, personData.resident_addr2].filter(Boolean).join(' ').trim();
 
     // Check ip_vol_contrib for avg_weekly_wage and contrib_amt (note: column is contrib_amt not contrib_amount)
     const { data: volContribData, error: volContribError } = await supabase

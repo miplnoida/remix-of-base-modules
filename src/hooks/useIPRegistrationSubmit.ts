@@ -140,7 +140,7 @@ export function useIPRegistrationSubmit() {
   const fetchRecordData = async (uniqueUuid: string): Promise<IPSubmitData | null> => {
     const { data, error } = await supabase
       .from('ip_master')
-      .select('unique_uuid, application_id, first_name, middle_name, last_name, gender, date_of_birth, marital_status, date_married, nationality, birth_place, title, citizenship, place_of_residence, work_permit_status, work_permit_expiry, birth_doc_type, name_doc_type, status, id')
+      .select('unique_uuid, application_id, firstname, middle_name, surname, sex, dob, marital_status, date_married, nationality, birth_place, name_prefix, citizenship, place_of_residence, work_permit, work_permit_expiration, birth_doc_type, name_doc_type, status, id')
       .eq('unique_uuid', uniqueUuid)
       .single();
 

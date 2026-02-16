@@ -12,8 +12,8 @@ export interface IPMasterFormData {
   alias: string;
   sex: string; // M/F/N
   dob: string; // Date of Birth
-  birth_place_code: string; // 3-char country code
-  nationality_code: string; // 3-char country code
+  birth_place: string; // 3-char country code
+  nationality: string; // 3-char country code
   marital_status: string; // Single char
   heightfeet: number | null;
   heightinches: number | null;
@@ -66,7 +66,7 @@ export interface IPMasterFormData {
   npf: string; // Y/N
   application_date: string;
   date_of_residency: string;
-  place_of_residence_code: string; // 3-char country code
+  place_of_residence: string; // 3-char country code
   citizenship_flag: string; // Y/N
   ip_signature: string; // Y/N
   work_permit_expiration: string;
@@ -136,8 +136,8 @@ export const initialIPMasterFormData: IPMasterFormData = {
   alias: '',
   sex: '',
   dob: '',
-  birth_place_code: '',
-  nationality_code: '',
+  birth_place: '',
+  nationality: '',
   marital_status: '',
   heightfeet: null,
   heightinches: null,
@@ -176,7 +176,7 @@ export const initialIPMasterFormData: IPMasterFormData = {
   npf: 'N',
   application_date: new Date().toISOString().split('T')[0],
   date_of_residency: '',
-  place_of_residence_code: '',
+  place_of_residence: '',
   citizenship_flag: 'N',
   ip_signature: 'N',
   work_permit_expiration: '',

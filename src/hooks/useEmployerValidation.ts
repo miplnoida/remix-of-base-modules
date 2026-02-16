@@ -88,7 +88,7 @@ export function useEmployerValidation() {
     try {
       const { data, error } = await supabase
         .from('ip_master')
-        .select('ssn, first_name, last_name, status, date_of_birth')
+        .select('ssn, firstname, surname, status, dob')
         .eq('ssn', ssn.trim())
         .maybeSingle();
 
@@ -118,12 +118,10 @@ export function useEmployerValidation() {
         };
       }
 
-      const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ').trim();
+      const fullName = [data.firstname, data.surname].filter(Boolean).join(' ').trim();
       
-      // Use date_of_birth as a proxy for term_start_date since term_start_date column doesn't exist
-      // In production, this should be fetched from employment records
-      const termStartDate = data.date_of_birth || '';
-      const dateOfBirth = data.date_of_birth || '';
+      const termStartDate = data.dob || '';
+      const dateOfBirth = data.dob || '';
 
       return { 
         isValid: true, 
