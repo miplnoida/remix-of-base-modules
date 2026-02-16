@@ -4708,7 +4708,6 @@ export type Database = {
           maiden_name: string | null
           mail_addr1: string | null
           mail_addr2: string | null
-          mailing_address: string | null
           marital_doc_type: string | null
           marital_status: string
           middle_name: string | null
@@ -4842,7 +4841,6 @@ export type Database = {
           maiden_name?: string | null
           mail_addr1?: string | null
           mail_addr2?: string | null
-          mailing_address?: string | null
           marital_doc_type?: string | null
           marital_status: string
           middle_name?: string | null
@@ -4976,7 +4974,6 @@ export type Database = {
           maiden_name?: string | null
           mail_addr1?: string | null
           mail_addr2?: string | null
-          mailing_address?: string | null
           marital_doc_type?: string | null
           marital_status?: string
           middle_name?: string | null

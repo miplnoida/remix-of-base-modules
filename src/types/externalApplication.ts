@@ -89,6 +89,7 @@ export interface ExternalApplicationDetail {
   contactName: string;
   contactRelation: string;
   contactAddress: string;
+  contactAddress1: string;
   contactPhone: string;
   contactPhoneCountry: string | null;
   contactPhoneDialCode: string;
@@ -98,25 +99,30 @@ export interface ExternalApplicationDetail {
   contactEmail: string;
   
   // Parent Information
-  fatherFirstName: string;
-  fatherLastName: string;
+  fatherName: string;
+  fatherFirstName?: string;
+  fatherLastName?: string;
   fatherSSN: string | null;
   fatherDOB: string | null;
-  motherFirstName: string;
-  motherLastName: string;
+  motherName: string;
+  motherFirstName?: string;
+  motherLastName?: string;
   motherMaidenName: string | null;
   motherSSN: string | null;
   motherDOB: string | null;
   
   // Spouse Information
-  spouseFirstName: string;
-  spouseLastName: string;
+  spouseName: string;
+  spouseFirstName?: string;
+  spouseLastName?: string;
   spouseSSN: string | null;
   spouseDOB: string | null;
+  spouseDateOfBirth?: string | null;
   
   // Beneficiary
   beneficiaryName: string;
   beneficiaryAddress: string;
+  beneficiaryAddress1: string;
   
   // Witness
   witnessName: string | null;

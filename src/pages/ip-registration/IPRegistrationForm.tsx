@@ -54,7 +54,6 @@ export interface IPFormData {
   resident_address_1?: string | null;
   resident_address_2?: string | null;
   postal_district?: string | null;
-  mailing_address?: string | null;
   mail_addr1?: string | null;
   mail_addr2?: string | null;
   employer_name?: string | null;
@@ -271,7 +270,6 @@ export default function IPRegistrationForm() {
         resident_address_1: recordData.resident_address_1,
         resident_address_2: recordData.resident_address_2,
         postal_district: recordData.postal_district,
-        mailing_address: recordData.mailing_address,
         mail_addr1: recordData.mail_addr1,
         mail_addr2: recordData.mail_addr2,
         email: recordData.email,

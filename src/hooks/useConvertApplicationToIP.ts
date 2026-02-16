@@ -28,22 +28,18 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
   const contactPhone = [detail.contactPhoneDialCode, detail.contactPhone].filter(Boolean).join('');
   const contactMobile = [detail.contactMobileDialCode, detail.contactMobile].filter(Boolean).join('');
 
-  // Build father/mother full name
-  const fatherName = [detail.fatherFirstName, detail.fatherLastName].filter(Boolean).join(' ');
-  const motherName = [detail.motherFirstName, detail.motherLastName].filter(Boolean).join(' ');
-  const spouseName = [detail.spouseFirstName, detail.spouseLastName].filter(Boolean).join(' ');
+  // fatherName and motherName come directly as single strings from API
+  const fatherName = detail.fatherName || [detail.fatherFirstName, detail.fatherLastName].filter(Boolean).join(' ');
+  const motherName = detail.motherName || [detail.motherFirstName, detail.motherLastName].filter(Boolean).join(' ');
+  const spouseName = detail.spouseName || [detail.spouseFirstName, detail.spouseLastName].filter(Boolean).join(' ');
 
-  // Split beneficiary address at midpoint or first comma
-  const benAddr = detail.beneficiaryAddress || '';
-  const commaIdx = benAddr.indexOf(',');
-  const benAddr1 = commaIdx > 0 ? benAddr.substring(0, commaIdx).trim() : benAddr;
-  const benAddr2 = commaIdx > 0 ? benAddr.substring(commaIdx + 1).trim() : '';
+  // contactAddress → contact_addr1, contactAddress1 → contact_addr2
+  const contactAddr1 = detail.contactAddress || '';
+  const contactAddr2 = detail.contactAddress1 || '';
 
-  // Split contact address similarly
-  const cAddr = detail.contactAddress || '';
-  const cComma = cAddr.indexOf(',');
-  const contactAddr1 = cComma > 0 ? cAddr.substring(0, cComma).trim() : cAddr;
-  const contactAddr2 = cComma > 0 ? cAddr.substring(cComma + 1).trim() : '';
+  // beneficiaryAddress → ben_addr1, beneficiaryAddress1 → ben_addr2
+  const benAddr1 = detail.beneficiaryAddress || '';
+  const benAddr2 = detail.beneficiaryAddress1 || '';
 
   // Map dependants
   const dependants = (detail.dependants || []).map(dep => ({
@@ -94,7 +90,7 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     p_mother_name: motherName || null,
     p_spouse_name: spouseName || null,
     p_spouse_ssn: detail.spouseSSN || null,
-    p_spouse_dob: detail.spouseDOB || null,
+    p_spouse_dob: detail.spouseDOB || detail.spouseDateOfBirth || null,
     p_beneficiary_name: detail.beneficiaryName || null,
     p_ben_addr1: benAddr1 || null,
     p_ben_addr2: benAddr2 || null,
