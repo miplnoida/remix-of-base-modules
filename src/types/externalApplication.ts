@@ -37,6 +37,7 @@ export interface ExternalApplicationDetail {
   title: string | null;
   firstName: string;
   middleName: string;
+  middleName1?: string;
   lastName: string;
   suffix: string | null;
   maidenName: string;
@@ -72,6 +73,9 @@ export interface ExternalApplicationDetail {
   // Residential Address
   addressLine1: string;
   addressLine2: string;
+  resAddr1?: string;
+  resAddr2?: string;
+  resDistrict?: string;
   city: string;
   parish: string;
   postalDistrict: string;
