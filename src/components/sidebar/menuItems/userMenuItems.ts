@@ -10,7 +10,8 @@ import {
   FileText,
   Bell,
   Monitor,
-  Mail
+  Mail,
+  BookOpen
 } from "lucide-react";
 
 // User Profile menu items - always visible to all users regardless of permissions
@@ -127,5 +128,12 @@ export const userMenuItems = [
         description: "Configure notification providers"
       }
     ]
+  },
+  {
+    title: "API Documentation",
+    url: "/external/api-docs",
+    icon: BookOpen,
+    alwaysVisible: true,
+    description: "Browse and test external APIs"
   }
 ];

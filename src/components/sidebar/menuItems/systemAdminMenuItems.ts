@@ -192,6 +192,12 @@ export const systemAdminMenuItems = [
         ]
       },
       {
+        title: "External API Management",
+        url: "/admin/external-apis",
+        icon: Globe,
+        requiresPermission: "system_administration"
+      },
+      {
         title: "API Configuration",
         url: "/admin/api-configuration",
         icon: Globe,
