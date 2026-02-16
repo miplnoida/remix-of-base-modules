@@ -63,6 +63,7 @@ const PUBLIC_ROUTES = [
   '/404',
   '/500',
   '/maintenance',
+  '/public/api-docs',
 ];
 
 function isPublicRoute(path: string): boolean {

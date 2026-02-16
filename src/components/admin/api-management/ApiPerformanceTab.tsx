@@ -46,7 +46,7 @@ const ApiPerformanceTab: React.FC = () => {
   const fetchLogs = async () => {
     setLoading(true);
     let query = supabase
-      .from('public_api_access_logs' as any)
+      .from('public_api_access_logs')
       .select('*')
       .gte('created_at', `${dateFrom}T00:00:00`)
       .lte('created_at', `${dateTo}T23:59:59`)
