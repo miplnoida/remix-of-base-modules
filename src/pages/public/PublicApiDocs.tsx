@@ -10,45 +10,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
-interface PublicApi {
+interface RegistryApi {
   id: string;
-  api_code: string;
   api_name: string;
-  api_group: string;
-  description: string | null;
+  api_version: string;
   http_method: string;
-  endpoint_url: string;
+  endpoint_path: string;
+  description: string | null;
   requires_auth: boolean;
-  auth_type: string;
-  version: string;
+  rate_limit_override: number | null;
+  is_enabled: boolean;
+  category: string | null;
+  sort_order: number | null;
   updated_at: string;
-}
-
-interface RequestField {
-  id: string;
-  field_name: string;
-  data_type: string;
-  is_required: boolean;
-  location: string;
-  sample_value: string | null;
-  description: string | null;
-  display_order: number;
-}
-
-interface ResponseField {
-  id: string;
-  field_name: string;
-  data_type: string;
-  description: string | null;
-  sample_value: string | null;
-  display_order: number;
-}
-
-interface ChangeLog {
-  id: string;
-  version: string;
-  change_description: string;
-  changed_at: string;
 }
 
 const METHOD_COLORS: Record<string, string> = {
@@ -58,132 +32,62 @@ const METHOD_COLORS: Record<string, string> = {
   DELETE: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
 };
 
-function usePublicApis() {
+function useRegistryApis() {
   return useQuery({
-    queryKey: ['public-apis'],
+    queryKey: ['public-registry-apis'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('external_api_master')
+        .from('api_registry')
         .select('*')
-        .eq('is_active', true)
-        .eq('is_public', true)
-        .order('api_group')
+        .eq('is_enabled', true)
+        .order('sort_order')
         .order('api_name');
       if (error) throw error;
-      return data as PublicApi[];
+      return data as RegistryApi[];
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
 
-function usePublicApiDetails(apiId: string | null) {
-  const requestFields = useQuery({
-    queryKey: ['public-api-request-fields', apiId],
+function useBaseUrl() {
+  return useQuery({
+    queryKey: ['public-api-base-url'],
     queryFn: async () => {
-      if (!apiId) return [];
-      const { data, error } = await supabase
-        .from('external_api_request_fields')
-        .select('*')
-        .eq('api_id', apiId)
-        .order('display_order');
-      if (error) throw error;
-      return data as RequestField[];
+      const { data } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'public_api_base_url')
+        .single();
+      if (data) return data.setting_value;
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      return url ? `${url}/functions/v1/public-api` : '';
     },
-    enabled: !!apiId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
   });
-
-  const responseFields = useQuery({
-    queryKey: ['public-api-response-fields', apiId],
-    queryFn: async () => {
-      if (!apiId) return [];
-      const { data, error } = await supabase
-        .from('external_api_response_fields')
-        .select('*')
-        .eq('api_id', apiId)
-        .order('display_order');
-      if (error) throw error;
-      return data as ResponseField[];
-    },
-    enabled: !!apiId,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const changeLogs = useQuery({
-    queryKey: ['public-api-change-logs', apiId],
-    queryFn: async () => {
-      if (!apiId) return [];
-      const { data, error } = await supabase
-        .from('external_api_change_log')
-        .select('*')
-        .eq('api_id', apiId)
-        .order('changed_at', { ascending: false });
-      if (error) throw error;
-      return data as ChangeLog[];
-    },
-    enabled: !!apiId,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  return { requestFields, responseFields, changeLogs };
 }
 
-function generateSampleJson(fields: { field_name: string; data_type: string; sample_value: string | null }[]) {
-  const obj: Record<string, unknown> = {};
-  fields.forEach((f) => {
-    if (f.sample_value) {
-      try { obj[f.field_name] = JSON.parse(f.sample_value); } catch { obj[f.field_name] = f.sample_value; }
-    } else {
-      const defaults: Record<string, unknown> = { string: '', number: 0, boolean: false, date: '2026-01-01', json: {} };
-      obj[f.field_name] = defaults[f.data_type] ?? '';
-    }
-  });
-  return JSON.stringify(obj, null, 2);
+function buildFullUrl(baseUrl: string, endpointPath: string) {
+  return `${baseUrl}${endpointPath}`;
 }
 
-function buildExampleUrl(endpoint: string, fields: RequestField[]) {
-  let url = endpoint;
-  const pathFields = fields.filter(f => f.location === 'path');
-  pathFields.forEach(f => { url = url.replace(`{${f.field_name}}`, f.sample_value || `<${f.field_name}>`); });
-  const queryFields = fields.filter(f => f.location === 'query');
-  if (queryFields.length > 0) {
-    const qs = queryFields.map(f => `${f.field_name}=${encodeURIComponent(f.sample_value || `<${f.field_name}>`)}`).join('&');
-    url += `?${qs}`;
-  }
-  return url;
-}
-
-function buildCurl(api: PublicApi, fields: RequestField[]) {
-  const url = buildExampleUrl(api.endpoint_url, fields);
+function buildCurl(api: RegistryApi, baseUrl: string) {
+  const url = buildFullUrl(baseUrl, api.endpoint_path);
   let curl = `curl -X ${api.http_method} "${url}"`;
-  const headerFields = fields.filter(f => f.location === 'header');
-  headerFields.forEach(f => { curl += ` \\\n  -H "${f.field_name}: ${f.sample_value || '<value>'}"` });
   if (api.requires_auth) {
-    if (api.auth_type === 'bearer_token') curl += ` \\\n  -H "Authorization: Bearer <your_token>"`;
-    if (api.auth_type === 'api_key') curl += ` \\\n  -H "x-api-key: <your_api_key>"`;
+    curl += ` \\\n  -H "x-api-key: <your_api_key>"`;
   }
-  const bodyFields = fields.filter(f => f.location === 'body');
-  if (['POST', 'PUT'].includes(api.http_method) && bodyFields.length > 0) {
-    curl += ` \\\n  -H "Content-Type: application/json"`;
-    curl += ` \\\n  -d '${generateSampleJson(bodyFields)}'`;
-  }
+  curl += ` \\\n  -H "Content-Type: application/json"`;
   return curl;
 }
 
-function buildHttpRequest(api: PublicApi, fields: RequestField[]) {
-  const url = buildExampleUrl(api.endpoint_url, fields);
+function buildHttpRequest(api: RegistryApi, baseUrl: string) {
+  const url = buildFullUrl(baseUrl, api.endpoint_path);
   let req = `${api.http_method} ${url} HTTP/1.1`;
-  const headerFields = fields.filter(f => f.location === 'header');
-  headerFields.forEach(f => { req += `\n${f.field_name}: ${f.sample_value || '<value>'}` });
+  req += `\nHost: ${new URL(baseUrl).host}`;
+  req += `\nContent-Type: application/json`;
   if (api.requires_auth) {
-    if (api.auth_type === 'bearer_token') req += `\nAuthorization: Bearer <your_token>`;
-    if (api.auth_type === 'api_key') req += `\nx-api-key: <your_api_key>`;
-  }
-  const bodyFields = fields.filter(f => f.location === 'body');
-  if (['POST', 'PUT'].includes(api.http_method) && bodyFields.length > 0) {
-    req += `\nContent-Type: application/json`;
-    req += `\n\n${generateSampleJson(bodyFields)}`;
+    req += `\nx-api-key: <your_api_key>`;
   }
   return req;
 }
@@ -214,30 +118,24 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
   );
 }
 
-function ApiDetailPanel({ api }: { api: PublicApi }) {
-  const { requestFields, responseFields, changeLogs } = usePublicApiDetails(api.id);
-  const reqFields = requestFields.data || [];
-  const resFields = responseFields.data || [];
-  const logs = changeLogs.data || [];
+function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string }) {
+  const fullUrl = buildFullUrl(baseUrl, api.endpoint_path);
+  const curlExample = useMemo(() => buildCurl(api, baseUrl), [api, baseUrl]);
+  const httpExample = useMemo(() => buildHttpRequest(api, baseUrl), [api, baseUrl]);
 
-  const groupedReqFields = useMemo(() => {
-    const groups: Record<string, RequestField[]> = {};
-    reqFields.forEach(f => {
-      if (!groups[f.location]) groups[f.location] = [];
-      groups[f.location].push(f);
-    });
-    return groups;
-  }, [reqFields]);
+  // Check if endpoint has path params like {id}
+  const pathParams = api.endpoint_path.match(/\{(\w+)\}/g)?.map(p => p.replace(/[{}]/g, '')) || [];
 
-  const sampleRequest = useMemo(() => {
-    const bodyFields = reqFields.filter(f => f.location === 'body');
-    return bodyFields.length > 0 ? generateSampleJson(bodyFields) : null;
-  }, [reqFields]);
-
-  const sampleResponse = useMemo(() => resFields.length > 0 ? generateSampleJson(resFields) : null, [resFields]);
-  const curlExample = useMemo(() => buildCurl(api, reqFields), [api, reqFields]);
-  const httpExample = useMemo(() => buildHttpRequest(api, reqFields), [api, reqFields]);
-  const exampleUrl = useMemo(() => buildExampleUrl(api.endpoint_url, reqFields), [api, reqFields]);
+  // Build sample response based on the endpoint name
+  const sampleResponse = useMemo(() => {
+    return JSON.stringify({
+      success: true,
+      data: [
+        { code: "SAMPLE_CODE", description: "Sample Description" }
+      ],
+      count: 1
+    }, null, 2);
+  }, []);
 
   return (
     <div className="space-y-6 p-6 border rounded-lg bg-card">
@@ -248,142 +146,212 @@ function ApiDetailPanel({ api }: { api: PublicApi }) {
             {api.http_method}
           </Badge>
           <h2 className="text-xl font-bold text-foreground">{api.api_name}</h2>
-          <Badge variant="outline" className="text-xs">v{api.version}</Badge>
+          <Badge variant="outline" className="text-xs">{api.api_version}</Badge>
         </div>
         {api.description && <p className="text-sm text-muted-foreground">{api.description}</p>}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <code className="bg-muted px-2 py-1 rounded font-mono text-foreground">{api.endpoint_url}</code>
+        <div className="flex items-center gap-2 text-xs">
+          <code className="bg-muted px-2 py-1 rounded font-mono text-foreground break-all">{fullUrl}</code>
+          <CopyButton text={fullUrl} />
         </div>
-        {api.requires_auth && (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">🔒 Auth: {api.auth_type.replace('_', ' ')}</Badge>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant={api.requires_auth ? 'default' : 'secondary'} className="text-xs">
+            {api.requires_auth ? '🔒 API Key Required' : '🌐 Public'}
+          </Badge>
+          {api.rate_limit_override && (
+            <Badge variant="outline" className="text-xs">Rate Limit: {api.rate_limit_override}/min</Badge>
+          )}
+          {api.category && (
+            <Badge variant="outline" className="text-xs capitalize">{api.category}</Badge>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           Last updated: {format(new Date(api.updated_at), 'dd MMM yyyy')}
         </div>
       </div>
 
-      {/* Example URL for GET endpoints */}
-      {api.http_method === 'GET' && reqFields.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Example URL</p>
-          <div className="flex items-center gap-2">
-            <code className="bg-muted px-3 py-1.5 rounded text-xs font-mono flex-1 text-foreground break-all">{exampleUrl}</code>
-            <CopyButton text={exampleUrl} />
-          </div>
-        </div>
-      )}
-
-      {/* Request & Response Models */}
-      <Tabs defaultValue="request" className="w-full">
+      {/* Tabs */}
+      <Tabs defaultValue="details" className="w-full">
         <TabsList className="w-full">
-          <TabsTrigger value="request" className="flex-1"><FileText className="h-3.5 w-3.5 mr-1.5" />Request Model</TabsTrigger>
-          <TabsTrigger value="response" className="flex-1"><FileText className="h-3.5 w-3.5 mr-1.5" />Response Model</TabsTrigger>
+          <TabsTrigger value="details" className="flex-1"><FileText className="h-3.5 w-3.5 mr-1.5" />Details</TabsTrigger>
           <TabsTrigger value="examples" className="flex-1"><Code className="h-3.5 w-3.5 mr-1.5" />Examples</TabsTrigger>
-          {logs.length > 0 && (
-            <TabsTrigger value="changelog" className="flex-1"><Clock className="h-3.5 w-3.5 mr-1.5" />Changelog</TabsTrigger>
-          )}
+          <TabsTrigger value="response" className="flex-1"><FileText className="h-3.5 w-3.5 mr-1.5" />Response</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="request" className="space-y-4">
-          {reqFields.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic p-4">No request parameters required.</p>
-          ) : (
-            Object.entries(groupedReqFields).map(([location, fields]) => (
-              <div key={location} className="space-y-2">
-                <h4 className="text-sm font-semibold capitalize text-foreground">{location} Parameters</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Field</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Required</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Example</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fields.map(f => (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-mono text-xs font-medium">{f.field_name}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{f.data_type}</Badge></TableCell>
-                        <TableCell>{f.is_required ? <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs">Required</Badge> : <span className="text-xs text-muted-foreground">Optional</span>}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{f.description || '—'}</TableCell>
-                        <TableCell className="font-mono text-xs">{f.sample_value || '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ))
+        <TabsContent value="details" className="space-y-4">
+          {/* Auth info */}
+          {api.requires_auth && (
+            <div className="p-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+              <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2">Authentication</h4>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Include your API key in the <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">x-api-key</code> request header.
+                API keys can be obtained from the system administrator.
+              </p>
+            </div>
           )}
-          {sampleRequest && <CodeBlock code={sampleRequest} label="Sample Request Body (JSON)" />}
+
+          {/* Path parameters */}
+          {pathParams.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Path Parameters</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parameter</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Required</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pathParams.map(param => (
+                    <TableRow key={param}>
+                      <TableCell className="font-mono text-xs font-medium">{param}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs">string</Badge></TableCell>
+                      <TableCell><Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs">Required</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground">Path parameter</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Query parameters info */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-foreground">Query Parameters</h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Parameter</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Required</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-mono text-xs font-medium">search</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">string</Badge></TableCell>
+                  <TableCell><span className="text-xs text-muted-foreground">Optional</span></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Filter results by search term (case-insensitive)</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* No request body for GET */}
+          {api.http_method === 'GET' && (
+            <p className="text-sm text-muted-foreground italic">This is a GET endpoint — no request body required.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="examples" className="space-y-4">
+          <CodeBlock code={curlExample} label="cURL" />
+          <CodeBlock code={httpExample} label="HTTP Request" />
+          {api.http_method === 'GET' && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Example URL with search</p>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-3 py-1.5 rounded text-xs font-mono flex-1 text-foreground break-all">
+                  {fullUrl}?search=example
+                </code>
+                <CopyButton text={`${fullUrl}?search=example`} />
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="response" className="space-y-4">
-          {resFields.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic p-4">No response model defined.</p>
-          ) : (
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-foreground">Response Structure</h4>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Field</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Example</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resFields.map(f => (
-                  <TableRow key={f.id}>
-                    <TableCell className="font-mono text-xs font-medium">{f.field_name}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{f.data_type}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{f.description || '—'}</TableCell>
-                    <TableCell className="font-mono text-xs">{f.sample_value || '—'}</TableCell>
-                  </TableRow>
-                ))}
+                <TableRow>
+                  <TableCell className="font-mono text-xs font-medium">success</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">boolean</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Whether the request was successful</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs font-medium">data</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">array</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Array of result objects</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs font-medium">count</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">number</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Total number of results</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs font-medium">error</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">string</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Error message (only on failure)</TableCell>
+                </TableRow>
               </TableBody>
             </Table>
-          )}
-          {sampleResponse && <CodeBlock code={sampleResponse} label="Sample Response (JSON)" />}
-        </TabsContent>
+          </div>
 
-        <TabsContent value="examples" className="space-y-4">
-          <CodeBlock code={curlExample} label="cURL" />
-          <CodeBlock code={httpExample} label="HTTP Request" />
-        </TabsContent>
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-foreground">HTTP Status Codes</h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell><Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">200</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Success</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">401</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Unauthorized — missing or invalid API key</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">403</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Forbidden — API key lacks scope for this endpoint</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><Badge className="bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">404</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Endpoint not found or disabled</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><Badge className="bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">429</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Rate limit exceeded</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
 
-        {logs.length > 0 && (
-          <TabsContent value="changelog" className="space-y-2">
-            {logs.map(log => (
-              <div key={log.id} className="flex items-start gap-3 p-3 border rounded bg-muted/20">
-                <Badge variant="outline" className="text-xs shrink-0">v{log.version}</Badge>
-                <div className="flex-1">
-                  <p className="text-sm text-foreground">{log.change_description}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{format(new Date(log.changed_at), 'dd MMM yyyy HH:mm')}</p>
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-        )}
+          <CodeBlock code={sampleResponse} label="Sample Success Response (JSON)" />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
 
 export default function PublicApiDocs() {
-  const { data: apis, isLoading, error } = usePublicApis();
+  const { data: apis, isLoading, error } = useRegistryApis();
+  const { data: baseUrl } = useBaseUrl();
   const [selectedApiId, setSelectedApiId] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   const grouped = useMemo(() => {
     if (!apis) return {};
-    const g: Record<string, PublicApi[]> = {};
+    const g: Record<string, RegistryApi[]> = {};
     apis.forEach(a => {
-      if (!g[a.api_group]) g[a.api_group] = [];
-      g[a.api_group].push(a);
+      const group = a.category || 'General';
+      if (!g[group]) g[group] = [];
+      g[group].push(a);
     });
     return g;
   }, [apis]);
@@ -417,6 +385,13 @@ export default function PublicApiDocs() {
               <p className="text-sm text-muted-foreground">Browse available APIs, view request/response models, and get integration examples</p>
             </div>
           </div>
+          {baseUrl && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Base URL:</span>
+              <code className="bg-muted px-2 py-1 rounded text-xs font-mono text-foreground select-all">{baseUrl}</code>
+              <CopyButton text={baseUrl} />
+            </div>
+          )}
         </div>
       </header>
 
@@ -451,7 +426,7 @@ export default function PublicApiDocs() {
                 <Collapsible key={group} open={openGroups.has(group)} onOpenChange={() => toggleGroup(group)}>
                   <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 rounded-lg hover:bg-muted/50 transition-colors text-left">
                     {openGroups.has(group) ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
-                    <span className="font-semibold text-sm text-foreground">{group}</span>
+                    <span className="font-semibold text-sm text-foreground capitalize">{group.replace(/-/g, ' ')}</span>
                     <Badge variant="secondary" className="ml-auto text-xs">{groupApis.length}</Badge>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pl-6 space-y-1 mt-1">
@@ -479,8 +454,8 @@ export default function PublicApiDocs() {
 
             {/* Right: Detail panel */}
             <div className="lg:col-span-2">
-              {selectedApi ? (
-                <ApiDetailPanel api={selectedApi} />
+              {selectedApi && baseUrl ? (
+                <ApiDetailPanel api={selectedApi} baseUrl={baseUrl} />
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center border rounded-lg bg-card">
                   <ExternalLink className="h-10 w-10 text-muted-foreground/40 mb-4" />
