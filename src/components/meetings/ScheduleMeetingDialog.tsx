@@ -298,13 +298,14 @@ export function ScheduleMeetingDialog({
                         const dayStr = format(day, 'yyyy-MM-dd');
                         const dayMeetings = meetingsByDate.get(dayStr) || [];
                         const isSelected = meetingDate && formatDateForStorage(meetingDate) === dayStr;
+                        const isToday = format(new Date(), 'yyyy-MM-dd') === dayStr;
                         const isNonWorking = nonWorkingDays.includes(day.getDay());
                         const elements: React.ReactNode[] = [];
                         if (i === 0) { for (let pad = 0; pad < day.getDay(); pad++) elements.push(<div key={`pad-${pad}`} />); }
                         elements.push(
                           <button key={dayStr} type="button" disabled={isNonWorking}
                             onClick={() => { if (!isNonWorking) { setMeetingDate(day); setSelectedTime(''); setOverlapError(''); } }}
-                            className={cn('relative p-2 rounded text-center transition-colors', isSelected ? 'bg-primary text-primary-foreground font-bold' : '', isNonWorking ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed' : '', !isSelected && !isNonWorking ? 'hover:bg-accent' : '')}>
+                            className={cn('relative p-2 rounded text-center transition-colors', isSelected ? 'bg-gray-700 text-white font-bold' : '', isToday && !isSelected ? 'bg-gray-200 dark:bg-gray-600' : '', isNonWorking ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed' : '', !isSelected && !isToday && !isNonWorking ? 'hover:bg-accent' : '')}>
                             <span className="block text-sm">{day.getDate()}</span>
                             <span className="block text-[9px] text-muted-foreground">{format(day, 'MMM')}</span>
                             {dayMeetings.length > 0 && (
