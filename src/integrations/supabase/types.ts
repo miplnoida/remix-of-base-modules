@@ -3886,6 +3886,247 @@ export type Database = {
         }
         Relationships: []
       }
+      external_api_change_log: {
+        Row: {
+          api_id: string
+          change_description: string
+          changed_at: string
+          changed_by: string | null
+          id: string
+          version: string
+        }
+        Insert: {
+          api_id: string
+          change_description: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          version: string
+        }
+        Update: {
+          api_id?: string
+          change_description?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_api_change_log_api_id_fkey"
+            columns: ["api_id"]
+            isOneToOne: false
+            referencedRelation: "external_api_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_api_execution_logs: {
+        Row: {
+          api_id: string
+          created_at: string
+          error_message: string | null
+          executed_by: string | null
+          execution_time_ms: number | null
+          http_status_code: number | null
+          id: string
+          is_success: boolean | null
+          request_payload: Json | null
+          response_payload: Json | null
+        }
+        Insert: {
+          api_id: string
+          created_at?: string
+          error_message?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          http_status_code?: number | null
+          id?: string
+          is_success?: boolean | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+        }
+        Update: {
+          api_id?: string
+          created_at?: string
+          error_message?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          http_status_code?: number | null
+          id?: string
+          is_success?: boolean | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_api_execution_logs_api_id_fkey"
+            columns: ["api_id"]
+            isOneToOne: false
+            referencedRelation: "external_api_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_api_master: {
+        Row: {
+          api_code: string
+          api_group: string
+          api_name: string
+          auth_type: string
+          created_at: string
+          description: string | null
+          endpoint_url: string
+          http_method: string
+          id: string
+          is_active: boolean
+          requires_auth: boolean
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          api_code: string
+          api_group: string
+          api_name: string
+          auth_type?: string
+          created_at?: string
+          description?: string | null
+          endpoint_url: string
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          requires_auth?: boolean
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          api_code?: string
+          api_group?: string
+          api_name?: string
+          auth_type?: string
+          created_at?: string
+          description?: string | null
+          endpoint_url?: string
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          requires_auth?: boolean
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      external_api_request_fields: {
+        Row: {
+          api_id: string
+          data_type: string
+          description: string | null
+          display_order: number
+          field_name: string
+          id: string
+          is_required: boolean
+          location: string
+          sample_value: string | null
+        }
+        Insert: {
+          api_id: string
+          data_type?: string
+          description?: string | null
+          display_order?: number
+          field_name: string
+          id?: string
+          is_required?: boolean
+          location?: string
+          sample_value?: string | null
+        }
+        Update: {
+          api_id?: string
+          data_type?: string
+          description?: string | null
+          display_order?: number
+          field_name?: string
+          id?: string
+          is_required?: boolean
+          location?: string
+          sample_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_api_request_fields_api_id_fkey"
+            columns: ["api_id"]
+            isOneToOne: false
+            referencedRelation: "external_api_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_api_response_fields: {
+        Row: {
+          api_id: string
+          data_type: string
+          description: string | null
+          display_order: number
+          field_name: string
+          id: string
+          sample_value: string | null
+        }
+        Insert: {
+          api_id: string
+          data_type?: string
+          description?: string | null
+          display_order?: number
+          field_name: string
+          id?: string
+          sample_value?: string | null
+        }
+        Update: {
+          api_id?: string
+          data_type?: string
+          description?: string | null
+          display_order?: number
+          field_name?: string
+          id?: string
+          sample_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_api_response_fields_api_id_fkey"
+            columns: ["api_id"]
+            isOneToOne: false
+            referencedRelation: "external_api_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_api_role_mapping: {
+        Row: {
+          api_id: string
+          created_at: string
+          id: string
+          role_name: string
+        }
+        Insert: {
+          api_id: string
+          created_at?: string
+          id?: string
+          role_name: string
+        }
+        Update: {
+          api_id?: string
+          created_at?: string
+          id?: string
+          role_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_api_role_mapping_api_id_fkey"
+            columns: ["api_id"]
+            isOneToOne: false
+            referencedRelation: "external_api_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_security_rules: {
         Row: {
           can_edit: boolean

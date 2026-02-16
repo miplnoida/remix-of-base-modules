@@ -239,6 +239,8 @@ import UpdateUserPassword from '@/pages/admin/users/UpdateUserPassword';
 import ModuleButtonBindings from '@/pages/admin/ModuleButtonBindings';
 import ApiKeysManagement from '@/pages/admin/ApiKeysManagement';
 import PublicApiManagement from '@/pages/admin/PublicApiManagement';
+import ExternalApiManagement from '@/pages/admin/ExternalApiManagement';
+import ExternalApiDocs from '@/pages/external/ExternalApiDocs';
 
 import WorkflowList from '@/pages/admin/workflows/WorkflowList';
 import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
@@ -942,6 +944,8 @@ export const AppRoutes = () => {
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
       <Route path="/admin/api-keys" element={<ProtectedLayout><ApiKeysManagement /></ProtectedLayout>} />
       <Route path="/admin/public-api" element={<ProtectedLayout><PublicApiManagement /></ProtectedLayout>} />
+      <Route path="/admin/external-apis" element={<ProtectedLayout><ExternalApiManagement /></ProtectedLayout>} />
+      <Route path="/external/api-docs" element={<ProtectedLayout><ExternalApiDocs /></ProtectedLayout>} />
       <Route path="/admin/c3-calculation-config" element={<ProtectedLayout><C3CalculationConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
