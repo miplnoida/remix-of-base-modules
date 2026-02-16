@@ -118,7 +118,7 @@ const ApiPerformanceTab: React.FC = () => {
     return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredLogs]);
 
-  const uniqueEndpoints = useMemo(() => [...new Set(logs.map(l => l.endpoint))], [logs]);
+  const uniqueEndpoints = useMemo(() => [...new Set(logs.map(l => l.endpoint).filter(Boolean))], [logs]);
 
   const pieData = [
     { name: 'Success', value: metrics.success },
