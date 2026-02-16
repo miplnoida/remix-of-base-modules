@@ -24,8 +24,8 @@ export const EmploymentDetailsTab: React.FC<EmploymentDetailsTabProps> = ({
   const { data: countries = [], isLoading: loadingCountries } = useCountries();
 
   // Conditional logic: if birth_place and place_of_residence are same, hide date_of_residency
-  const birthAndResidenceSame = formData.birth_place_code && formData.place_of_residence_code
-    && formData.birth_place_code === formData.place_of_residence_code;
+  const birthAndResidenceSame = formData.birth_place && formData.place_of_residence
+    && formData.birth_place === formData.place_of_residence;
 
   return (
     <div className="space-y-6">
@@ -151,10 +151,10 @@ export const EmploymentDetailsTab: React.FC<EmploymentDetailsTabProps> = ({
           {/* Birth Place, Place of Residence & Date of Residency */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="birth_place_code">Birth Place</Label>
+              <Label htmlFor="birth_place">Birth Place</Label>
               <Select
-                value={formData.birth_place_code}
-                onValueChange={(value) => updateField('birth_place_code', value)}
+                value={formData.birth_place}
+                onValueChange={(value) => updateField('birth_place', value)}
                 disabled={!isEditable || loadingCountries}
               >
                 <SelectTrigger className="bg-background">
@@ -170,10 +170,10 @@ export const EmploymentDetailsTab: React.FC<EmploymentDetailsTabProps> = ({
               </Select>
             </div>
             <div>
-              <Label htmlFor="place_of_residence_code">Place of Residence</Label>
+              <Label htmlFor="place_of_residence">Place of Residence</Label>
               <Select
-                value={formData.place_of_residence_code}
-                onValueChange={(value) => updateField('place_of_residence_code', value)}
+                value={formData.place_of_residence}
+                onValueChange={(value) => updateField('place_of_residence', value)}
                 disabled={!isEditable || loadingCountries}
               >
                 <SelectTrigger className="bg-background">

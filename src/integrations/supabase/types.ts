@@ -4655,7 +4655,6 @@ export type Database = {
           beneficiary: string | null
           birth_doc_type: string | null
           birth_place: string | null
-          birth_place_code: string | null
           card_expiration: string | null
           citizenship: string | null
           citizenship_flag: string | null
@@ -4672,40 +4671,30 @@ export type Database = {
           date_died: string | null
           date_married: string | null
           date_modified: string | null
-          date_of_birth: string
           date_of_entry: string | null
           date_of_residency: string | null
           date_rejected: string | null
-          date_resident: string | null
           date_verified: string | null
           date_witnessed: string | null
           death_doc_type: string | null
           deb_crd_amount: number | null
           delivery_zone: string | null
           district: string | null
-          dob: string | null
-          email: string | null
+          dob: string
           email_addr: string | null
           employer_address: string | null
           employer_name: string | null
           employer_phone: string | null
           employer_town: string | null
           entered_by: string | null
-          eye_color: string | null
           eyecolor: string | null
           father_name: string | null
-          first_name: string
-          firstname: string | null
-          gender: string
-          height_feet: number | null
-          height_inches: number | null
+          firstname: string
           heightfeet: number | null
           heightinches: number | null
           id: string
           ip_code: string | null
           ip_signature: string | null
-          last_name: string
-          maiden_name: string | null
           mail_addr1: string | null
           mail_addr2: string | null
           marital_doc_type: string | null
@@ -4717,18 +4706,13 @@ export type Database = {
           name_prefix: string | null
           name_suffix: string | null
           nationality: string
-          nationality_code: string | null
           npf: string | null
-          npf_status: string | null
-          occupation: string | null
           old_card_attached: string | null
           perm_card_date: string | null
           phone: string | null
           phone_mobile: string | null
           photo_location: string | null
           place_of_residence: string | null
-          place_of_residence_code: string | null
-          postal_district: string | null
           previous_name: string | null
           primary_occup: string | null
           registration_date: string | null
@@ -4736,13 +4720,10 @@ export type Database = {
           rejection_reason: string | null
           resident_addr1: string | null
           resident_addr2: string | null
-          resident_address_1: string | null
-          resident_address_2: string | null
           second_middle_name: string | null
           self_ref_no: string | null
-          sex: string | null
+          sex: string
           signature_location: string | null
-          signature_on_file: string | null
           spouse_addr1: string | null
           spouse_addr2: string | null
           spouse_dob: string | null
@@ -4752,13 +4733,11 @@ export type Database = {
           status: string
           submitted_at: string | null
           submitted_by: string | null
-          suffix: string | null
-          surname: string | null
+          surname: string
           telephone: string | null
           temp_card_date: string | null
           termination_code: string | null
           termination_date: string | null
-          title: string | null
           tran_code: string | null
           unique_uuid: string
           updated_at: string | null
@@ -4773,8 +4752,6 @@ export type Database = {
           witness_name: string | null
           work_permit: string | null
           work_permit_expiration: string | null
-          work_permit_expiry: string | null
-          work_permit_status: string | null
         }
         Insert: {
           alias?: string | null
@@ -4788,7 +4765,6 @@ export type Database = {
           beneficiary?: string | null
           birth_doc_type?: string | null
           birth_place?: string | null
-          birth_place_code?: string | null
           card_expiration?: string | null
           citizenship?: string | null
           citizenship_flag?: string | null
@@ -4805,40 +4781,30 @@ export type Database = {
           date_died?: string | null
           date_married?: string | null
           date_modified?: string | null
-          date_of_birth: string
           date_of_entry?: string | null
           date_of_residency?: string | null
           date_rejected?: string | null
-          date_resident?: string | null
           date_verified?: string | null
           date_witnessed?: string | null
           death_doc_type?: string | null
           deb_crd_amount?: number | null
           delivery_zone?: string | null
           district?: string | null
-          dob?: string | null
-          email?: string | null
+          dob: string
           email_addr?: string | null
           employer_address?: string | null
           employer_name?: string | null
           employer_phone?: string | null
           employer_town?: string | null
           entered_by?: string | null
-          eye_color?: string | null
           eyecolor?: string | null
           father_name?: string | null
-          first_name: string
-          firstname?: string | null
-          gender: string
-          height_feet?: number | null
-          height_inches?: number | null
+          firstname: string
           heightfeet?: number | null
           heightinches?: number | null
           id?: string
           ip_code?: string | null
           ip_signature?: string | null
-          last_name: string
-          maiden_name?: string | null
           mail_addr1?: string | null
           mail_addr2?: string | null
           marital_doc_type?: string | null
@@ -4850,18 +4816,13 @@ export type Database = {
           name_prefix?: string | null
           name_suffix?: string | null
           nationality: string
-          nationality_code?: string | null
           npf?: string | null
-          npf_status?: string | null
-          occupation?: string | null
           old_card_attached?: string | null
           perm_card_date?: string | null
           phone?: string | null
           phone_mobile?: string | null
           photo_location?: string | null
           place_of_residence?: string | null
-          place_of_residence_code?: string | null
-          postal_district?: string | null
           previous_name?: string | null
           primary_occup?: string | null
           registration_date?: string | null
@@ -4869,13 +4830,10 @@ export type Database = {
           rejection_reason?: string | null
           resident_addr1?: string | null
           resident_addr2?: string | null
-          resident_address_1?: string | null
-          resident_address_2?: string | null
           second_middle_name?: string | null
           self_ref_no?: string | null
-          sex?: string | null
+          sex: string
           signature_location?: string | null
-          signature_on_file?: string | null
           spouse_addr1?: string | null
           spouse_addr2?: string | null
           spouse_dob?: string | null
@@ -4885,13 +4843,11 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
-          suffix?: string | null
-          surname?: string | null
+          surname: string
           telephone?: string | null
           temp_card_date?: string | null
           termination_code?: string | null
           termination_date?: string | null
-          title?: string | null
           tran_code?: string | null
           unique_uuid?: string
           updated_at?: string | null
@@ -4906,8 +4862,6 @@ export type Database = {
           witness_name?: string | null
           work_permit?: string | null
           work_permit_expiration?: string | null
-          work_permit_expiry?: string | null
-          work_permit_status?: string | null
         }
         Update: {
           alias?: string | null
@@ -4921,7 +4875,6 @@ export type Database = {
           beneficiary?: string | null
           birth_doc_type?: string | null
           birth_place?: string | null
-          birth_place_code?: string | null
           card_expiration?: string | null
           citizenship?: string | null
           citizenship_flag?: string | null
@@ -4938,40 +4891,30 @@ export type Database = {
           date_died?: string | null
           date_married?: string | null
           date_modified?: string | null
-          date_of_birth?: string
           date_of_entry?: string | null
           date_of_residency?: string | null
           date_rejected?: string | null
-          date_resident?: string | null
           date_verified?: string | null
           date_witnessed?: string | null
           death_doc_type?: string | null
           deb_crd_amount?: number | null
           delivery_zone?: string | null
           district?: string | null
-          dob?: string | null
-          email?: string | null
+          dob?: string
           email_addr?: string | null
           employer_address?: string | null
           employer_name?: string | null
           employer_phone?: string | null
           employer_town?: string | null
           entered_by?: string | null
-          eye_color?: string | null
           eyecolor?: string | null
           father_name?: string | null
-          first_name?: string
-          firstname?: string | null
-          gender?: string
-          height_feet?: number | null
-          height_inches?: number | null
+          firstname?: string
           heightfeet?: number | null
           heightinches?: number | null
           id?: string
           ip_code?: string | null
           ip_signature?: string | null
-          last_name?: string
-          maiden_name?: string | null
           mail_addr1?: string | null
           mail_addr2?: string | null
           marital_doc_type?: string | null
@@ -4983,18 +4926,13 @@ export type Database = {
           name_prefix?: string | null
           name_suffix?: string | null
           nationality?: string
-          nationality_code?: string | null
           npf?: string | null
-          npf_status?: string | null
-          occupation?: string | null
           old_card_attached?: string | null
           perm_card_date?: string | null
           phone?: string | null
           phone_mobile?: string | null
           photo_location?: string | null
           place_of_residence?: string | null
-          place_of_residence_code?: string | null
-          postal_district?: string | null
           previous_name?: string | null
           primary_occup?: string | null
           registration_date?: string | null
@@ -5002,13 +4940,10 @@ export type Database = {
           rejection_reason?: string | null
           resident_addr1?: string | null
           resident_addr2?: string | null
-          resident_address_1?: string | null
-          resident_address_2?: string | null
           second_middle_name?: string | null
           self_ref_no?: string | null
-          sex?: string | null
+          sex?: string
           signature_location?: string | null
-          signature_on_file?: string | null
           spouse_addr1?: string | null
           spouse_addr2?: string | null
           spouse_dob?: string | null
@@ -5018,13 +4953,11 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
-          suffix?: string | null
-          surname?: string | null
+          surname?: string
           telephone?: string | null
           temp_card_date?: string | null
           termination_code?: string | null
           termination_date?: string | null
-          title?: string | null
           tran_code?: string | null
           unique_uuid?: string
           updated_at?: string | null
@@ -5039,8 +4972,36 @@ export type Database = {
           witness_name?: string | null
           work_permit?: string | null
           work_permit_expiration?: string | null
-          work_permit_expiry?: string | null
-          work_permit_status?: string | null
+        }
+        Relationships: []
+      }
+      ip_master_column_conflicts: {
+        Row: {
+          canonical_column_name: string
+          canonical_value: string | null
+          detected_at: string
+          duplicate_column_name: string
+          duplicate_value: string | null
+          id: string
+          ip_master_id: string
+        }
+        Insert: {
+          canonical_column_name: string
+          canonical_value?: string | null
+          detected_at?: string
+          duplicate_column_name: string
+          duplicate_value?: string | null
+          id?: string
+          ip_master_id: string
+        }
+        Update: {
+          canonical_column_name?: string
+          canonical_value?: string | null
+          detected_at?: string
+          duplicate_column_name?: string
+          duplicate_value?: string | null
+          id?: string
+          ip_master_id?: string
         }
         Relationships: []
       }
@@ -8056,6 +8017,30 @@ export type Database = {
           title?: string
           updated_at?: string
           workflow_instance_id?: string | null
+        }
+        Relationships: []
+      }
+      schema_migration_logs: {
+        Row: {
+          column_pair: string
+          executed_at: string
+          id: string
+          migration_name: string
+          rows_migrated: number
+        }
+        Insert: {
+          column_pair: string
+          executed_at?: string
+          id?: string
+          migration_name: string
+          rows_migrated?: number
+        }
+        Update: {
+          column_pair?: string
+          executed_at?: string
+          id?: string
+          migration_name?: string
+          rows_migrated?: number
         }
         Relationships: []
       }
