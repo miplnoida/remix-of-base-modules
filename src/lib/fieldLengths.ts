@@ -54,7 +54,8 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   resident_address_1:  { maxLength: 30,  type: 'varchar', label: 'Resident Address 1' },
   resident_address_2:  { maxLength: 30,  type: 'varchar', label: 'Resident Address 2' },
   postal_district:     { maxLength: 3,   type: 'varchar', label: 'Postal District' },
-  mailing_address:     { maxLength: 60,  type: 'varchar', label: 'Mailing Address' },
+  mail_addr1:          { maxLength: 30,  type: 'varchar', label: 'Mailing Address 1' },
+  mail_addr2:          { maxLength: 30,  type: 'varchar', label: 'Mailing Address 2' },
 
   // Contact
   email:               { maxLength: 40,  type: 'varchar', label: 'Email' },
@@ -117,8 +118,6 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   deb_crd_amount:      { maxLength: 12,  type: 'numeric', precision: 10, scale: 2, label: 'Debit/Credit Amount' },
   resident_addr1:      { maxLength: 30,  type: 'varchar', label: 'Resident Addr 1 (Legacy)' },
   resident_addr2:      { maxLength: 30,  type: 'varchar', label: 'Resident Addr 2 (Legacy)' },
-  mail_addr1:          { maxLength: 30,  type: 'varchar', label: 'Mail Addr 1 (Legacy)' },
-  mail_addr2:          { maxLength: 30,  type: 'varchar', label: 'Mail Addr 2 (Legacy)' },
   phone:               { maxLength: 10,  type: 'varchar', label: 'Phone (Legacy)' },
 };
 
