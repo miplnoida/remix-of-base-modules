@@ -3980,6 +3980,7 @@ export type Database = {
           http_method: string
           id: string
           is_active: boolean
+          is_public: boolean
           requires_auth: boolean
           updated_at: string
           version: string
@@ -3995,6 +3996,7 @@ export type Database = {
           http_method?: string
           id?: string
           is_active?: boolean
+          is_public?: boolean
           requires_auth?: boolean
           updated_at?: string
           version?: string
@@ -4010,6 +4012,7 @@ export type Database = {
           http_method?: string
           id?: string
           is_active?: boolean
+          is_public?: boolean
           requires_auth?: boolean
           updated_at?: string
           version?: string

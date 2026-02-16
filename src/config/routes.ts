@@ -42,6 +42,7 @@ export const routes = {
   BENEFIT_ELIGIBILITY: '/person/benefit-eligibility',
   ID_CARD_GENERATION: '/person/id-card',
   EXTERNAL_APPLICATIONS: '/ip-registration/external',
+  PUBLIC_API_DOCS: '/public/api-docs',
 
   // Online Applications routes
   ONLINE_APPLICATIONS_EMPLOYER_DETAIL: '/online-applications/employer/:applicationId',

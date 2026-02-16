@@ -241,6 +241,7 @@ import ApiKeysManagement from '@/pages/admin/ApiKeysManagement';
 import PublicApiManagement from '@/pages/admin/PublicApiManagement';
 import ExternalApiManagement from '@/pages/admin/ExternalApiManagement';
 import ExternalApiDocs from '@/pages/external/ExternalApiDocs';
+import PublicApiDocs from '@/pages/public/PublicApiDocs';
 
 import WorkflowList from '@/pages/admin/workflows/WorkflowList';
 import WorkflowForm from '@/pages/admin/workflows/WorkflowForm';
@@ -656,6 +657,7 @@ export const AppRoutes = () => {
       <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/mfa-verify" element={<MFAVerify />} />
       <Route path="/inspector/login" element={<InspectorLogin />} />
+      <Route path="/public/api-docs" element={<PublicApiDocs />} />
       
       {/* Inspector Routes */}
       <Route path="/inspector" element={<InspectorLayout />}>
