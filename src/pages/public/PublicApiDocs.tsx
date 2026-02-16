@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight, Globe, Copy, Check, ExternalLink, Code, FileText, Clock, Play, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Globe, Copy, Check, ExternalLink, Code, FileText, Clock, Play, Loader2, AlertCircle, KeyRound, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -61,6 +61,14 @@ interface ExecutionResult {
   error_message: string | null;
 }
 
+interface KeyValidationResult {
+  valid: boolean;
+  app_name?: string;
+  key_prefix?: string;
+  permitted_apis?: RegistryApi[];
+  error?: string;
+}
+
 const METHOD_COLORS: Record<string, string> = {
   GET: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
   POST: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
@@ -70,24 +78,6 @@ const METHOD_COLORS: Record<string, string> = {
 
 function normalizeGroup(cat: string | null): string {
   return (cat || 'General').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
-}
-
-function useRegistryApis() {
-  return useQuery({
-    queryKey: ['public-registry-apis'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('api_registry')
-        .select('*')
-        .eq('is_enabled', true)
-        .order('sort_order')
-        .order('api_name');
-      if (error) throw error;
-      return data as RegistryApi[];
-    },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
 }
 
 function useBaseUrl() {
@@ -245,21 +235,17 @@ function JsonViewer({ data, level = 0 }: { data: unknown; level?: number }) {
   return <span>{String(data)}</span>;
 }
 
-function ExecuteApiSection({ api }: { api: RegistryApi }) {
+function ExecuteApiSection({ api, userApiKey }: { api: RegistryApi; userApiKey: string }) {
   const { data: requestFields } = useRequestFields(api.id);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
-  const [apiKey, setApiKey] = useState('');
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Extract path params from endpoint_path
   const pathParams = api.endpoint_path.match(/\{(\w+)\}/g)?.map(p => p.replace(/[{}]/g, '')) || [];
 
-  // Build effective fields: use configured fields + add path params if not already in config
   const effectiveFields = useMemo(() => {
     const fields: RequestField[] = [...(requestFields || [])];
-    // Add path params not already in config
     pathParams.forEach((param, idx) => {
       if (!fields.some(f => f.field_name === param && f.location === 'path')) {
         fields.push({
@@ -275,7 +261,6 @@ function ExecuteApiSection({ api }: { api: RegistryApi }) {
         });
       }
     });
-    // Add default search param for GET if no query fields configured
     if (api.http_method === 'GET' && !fields.some(f => f.location === 'query')) {
       fields.push({
         id: 'auto-search',
@@ -302,16 +287,12 @@ function ExecuteApiSection({ api }: { api: RegistryApi }) {
   }, []);
 
   const handleExecute = async () => {
-    // Validate required fields
     const errors: Record<string, string> = {};
     effectiveFields.forEach(f => {
       if (f.is_required && !fieldValues[f.field_name]?.trim()) {
         errors[f.field_name] = `${f.field_name} is required`;
       }
     });
-    if (api.requires_auth && !apiKey.trim()) {
-      errors['__api_key'] = 'API key is required for this endpoint';
-    }
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
@@ -348,7 +329,7 @@ function ExecuteApiSection({ api }: { api: RegistryApi }) {
           query_params: queryParams,
           path_params: pathParamsObj,
           headers: headerParams,
-          api_key: apiKey || undefined,
+          api_key: userApiKey || undefined,
         }),
       });
 
@@ -384,22 +365,13 @@ function ExecuteApiSection({ api }: { api: RegistryApi }) {
         <h4 className="text-sm font-semibold text-foreground">Execute API</h4>
       </div>
 
-      {/* API Key */}
-      {api.requires_auth && (
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium">API Key <span className="text-destructive">*</span></Label>
-          <Input
-            type="password"
-            placeholder="Enter your API key"
-            value={apiKey}
-            onChange={e => { setApiKey(e.target.value); setValidationErrors(prev => { const n = {...prev}; delete n['__api_key']; return n; }); }}
-            className={cn(validationErrors['__api_key'] && 'border-destructive')}
-          />
-          {validationErrors['__api_key'] && <p className="text-xs text-destructive">{validationErrors['__api_key']}</p>}
-        </div>
-      )}
+      <div className="p-3 rounded-lg border bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800">
+        <p className="text-xs text-emerald-700 dark:text-emerald-400">
+          <KeyRound className="h-3 w-3 inline mr-1" />
+          Your authenticated API key will be used automatically for this request.
+        </p>
+      </div>
 
-      {/* Dynamic fields by location */}
       {Object.entries(groupedFields).map(([location, fields]) => (
         <div key={location} className="space-y-3">
           <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -460,7 +432,6 @@ function ExecuteApiSection({ api }: { api: RegistryApi }) {
         {executing ? 'Executing...' : 'Execute'}
       </Button>
 
-      {/* Result */}
       {result && (
         <div className="space-y-3 mt-4">
           <div className="flex items-center gap-3 flex-wrap">
@@ -503,7 +474,7 @@ function ExecuteApiSection({ api }: { api: RegistryApi }) {
   );
 }
 
-function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string }) {
+function ApiDetailPanel({ api, baseUrl, userApiKey }: { api: RegistryApi; baseUrl: string; userApiKey: string }) {
   const fullUrl = buildFullUrl(baseUrl, api.endpoint_path);
   const curlExample = useMemo(() => buildCurl(api, baseUrl), [api, baseUrl]);
   const httpExample = useMemo(() => buildHttpRequest(api, baseUrl), [api, baseUrl]);
@@ -548,7 +519,6 @@ function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string })
 
   return (
     <div className="space-y-6 p-6 border rounded-lg bg-card">
-      {/* Header */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <Badge className={cn('text-xs font-bold uppercase px-3 py-1', METHOD_COLORS[api.http_method] || 'bg-muted')}>
@@ -576,7 +546,6 @@ function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string })
         </div>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="w-full">
           <TabsTrigger value="details" className="flex-1"><FileText className="h-3.5 w-3.5 mr-1.5" />Request</TabsTrigger>
@@ -617,7 +586,6 @@ function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string })
             </div>
           )}
 
-          {/* Configured request fields */}
           {requestFields && requestFields.filter(f => f.location !== 'path').length > 0 && (
             <>
               {['query', 'header', 'body'].map(loc => {
@@ -645,7 +613,6 @@ function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string })
             </>
           )}
 
-          {/* Default query params for GET when no configured fields */}
           {(!requestFields || requestFields.filter(f => f.location === 'query').length === 0) && api.http_method === 'GET' && (
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-foreground">Query Parameters</h4>
@@ -708,14 +675,14 @@ function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string })
               <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Description</TableHead></TableRow></TableHeader>
               <TableBody>
                 {[
-                  ['200', 'Success', 'emerald'],
-                  ['401', 'Unauthorized — missing or invalid API key', 'amber'],
-                  ['403', 'Forbidden — API key lacks scope', 'amber'],
-                  ['404', 'Endpoint not found or disabled', 'red'],
-                  ['429', 'Rate limit exceeded', 'red'],
-                ].map(([code, desc, color]) => (
+                  ['200', 'Success'],
+                  ['401', 'Unauthorized — missing or invalid API key'],
+                  ['403', 'Forbidden — API key lacks scope'],
+                  ['404', 'Endpoint not found or disabled'],
+                  ['429', 'Rate limit exceeded'],
+                ].map(([code, desc]) => (
                   <TableRow key={code}>
-                    <TableCell><Badge className={`bg-${color}-100 text-${color}-800 dark:bg-${color}-900/40 dark:text-${color}-300`}>{code}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{code}</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{desc}</TableCell>
                   </TableRow>
                 ))}
@@ -743,20 +710,144 @@ function ApiDetailPanel({ api, baseUrl }: { api: RegistryApi; baseUrl: string })
         </TabsContent>
 
         <TabsContent value="execute" className="space-y-4">
-          <ExecuteApiSection api={api} />
+          <ExecuteApiSection api={api} userApiKey={userApiKey} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
+// ── API Key Entry Gate ──
+function ApiKeyGate({ onValidated }: { onValidated: (key: string, result: KeyValidationResult) => void }) {
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [validating, setValidating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    const trimmedKey = apiKeyInput.trim();
+    if (!trimmedKey) {
+      setError('Please enter an API key');
+      return;
+    }
+
+    setValidating(true);
+    setError(null);
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/public-api-validate-key`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ api_key: trimmedKey }),
+      });
+
+      const data: KeyValidationResult = await response.json();
+
+      if (!data.valid) {
+        setError(data.error || 'Invalid API key');
+        return;
+      }
+
+      onValidated(trimmedKey, data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to validate API key');
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      <header className="border-b bg-card shrink-0">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Globe className="h-7 w-7 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Public API Documentation</h1>
+              <p className="text-xs text-muted-foreground">Enter your API key to browse available endpoints</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <KeyRound className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground">API Key Required</h2>
+            <p className="text-sm text-muted-foreground">
+              Enter your API key to view the endpoints you have access to. Only APIs permitted by your key will be displayed.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="api-key-input" className="text-sm font-medium">API Key</Label>
+            <Input
+              id="api-key-input"
+              type="password"
+              placeholder="Enter your API key..."
+              value={apiKeyInput}
+              onChange={e => { setApiKeyInput(e.target.value); setError(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+              className={cn(error && 'border-destructive focus-visible:ring-destructive')}
+              autoFocus
+            />
+            {error && (
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p className="text-xs">{error}</p>
+              </div>
+            )}
+          </div>
+
+          <Button onClick={handleSubmit} disabled={validating} className="w-full">
+            {validating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
+            {validating ? 'Validating...' : 'Validate & Continue'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ──
 export default function PublicApiDocs() {
-  const { data: apis, isLoading, error } = useRegistryApis();
   const { data: baseUrl } = useBaseUrl();
   const [selectedApiId, setSelectedApiId] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
-  // Merge groups by normalized name
+  // API key state
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const [appName, setAppName] = useState<string | null>(null);
+  const [keyPrefix, setKeyPrefix] = useState<string | null>(null);
+  const [apis, setApis] = useState<RegistryApi[] | null>(null);
+
+  const handleKeyValidated = useCallback((key: string, result: KeyValidationResult) => {
+    setUserApiKey(key);
+    setAppName(result.app_name || null);
+    setKeyPrefix(result.key_prefix || null);
+    setApis(result.permitted_apis || []);
+    setSelectedApiId(null);
+    setOpenGroups(new Set());
+  }, []);
+
+  const handleSwitchKey = useCallback(() => {
+    setUserApiKey(null);
+    setAppName(null);
+    setKeyPrefix(null);
+    setApis(null);
+    setSelectedApiId(null);
+    setOpenGroups(new Set());
+  }, []);
+
+  // Group APIs
   const grouped = useMemo(() => {
     if (!apis) return {};
     const g: Record<string, RegistryApi[]> = {};
@@ -768,9 +859,9 @@ export default function PublicApiDocs() {
     return g;
   }, [apis]);
 
-  // Auto-open all groups on load
+  // Auto-open all groups when apis load
   useMemo(() => {
-    if (apis && openGroups.size === 0) {
+    if (apis && apis.length > 0 && openGroups.size === 0) {
       setOpenGroups(new Set(Object.keys(grouped)));
     }
   }, [apis, grouped]);
@@ -785,17 +876,30 @@ export default function PublicApiDocs() {
     });
   };
 
+  // If no API key yet, show the gate
+  if (!userApiKey || !apis) {
+    return <ApiKeyGate onValidated={handleKeyValidated} />;
+  }
+
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
       <header className="border-b bg-card shrink-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Globe className="h-7 w-7 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Public API Documentation</h1>
-              <p className="text-xs text-muted-foreground">Browse available APIs, view models, and test endpoints</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Globe className="h-7 w-7 text-primary" />
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Public API Documentation</h1>
+                <p className="text-xs text-muted-foreground">
+                  Authenticated as <span className="font-semibold text-foreground">{appName}</span>
+                  {keyPrefix && <span className="text-muted-foreground"> ({keyPrefix}...)</span>}
+                </p>
+              </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handleSwitchKey}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Switch API Key
+            </Button>
           </div>
           {baseUrl && (
             <div className="mt-2 flex items-center gap-2">
@@ -809,28 +913,19 @@ export default function PublicApiDocs() {
 
       <div className="flex-1 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 h-full">
-          {isLoading && (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          )}
-
-          {error && (
-            <div className="text-center py-20">
-              <p className="text-destructive">Failed to load API documentation. Please try again later.</p>
-            </div>
-          )}
-
-          {apis && apis.length === 0 && (
+          {apis.length === 0 && (
             <div className="text-center py-20">
               <Globe className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No public APIs available at this time.</p>
+              <p className="text-muted-foreground">No APIs are available for this API key.</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={handleSwitchKey}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Try a Different Key
+              </Button>
             </div>
           )}
 
-          {apis && apis.length > 0 && (
+          {apis.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full py-4">
-              {/* Left: Scrollable API list */}
               <div className="lg:col-span-3 flex flex-col min-h-0">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 shrink-0">
                   {apis.length} API{apis.length !== 1 ? 's' : ''} Available
@@ -869,12 +964,11 @@ export default function PublicApiDocs() {
                 </ScrollArea>
               </div>
 
-              {/* Right: Detail panel - scrollable independently */}
               <div className="lg:col-span-9 min-h-0 overflow-hidden">
                 <ScrollArea className="h-full">
                   <div className="pr-3">
                     {selectedApi && baseUrl ? (
-                      <ApiDetailPanel api={selectedApi} baseUrl={baseUrl} />
+                      <ApiDetailPanel api={selectedApi} baseUrl={baseUrl} userApiKey={userApiKey} />
                     ) : (
                       <div className="flex flex-col items-center justify-center py-20 text-center border rounded-lg bg-card">
                         <ExternalLink className="h-10 w-10 text-muted-foreground/40 mb-4" />
