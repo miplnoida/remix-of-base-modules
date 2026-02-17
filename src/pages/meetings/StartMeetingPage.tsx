@@ -558,7 +558,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
 
   const openAddDependant = () => {
     setDepEditIndex(null);
-    setDepForm({ id: `temp-${Date.now()}`, firstName: '', lastName: '', dateOfBirth: '', gender: '', relationship: '', address1: '', address2: '', isSchoolChild: false, isInvalid: false, livesAtSameAddress: false });
+    setDepForm({ id: `temp-${Date.now()}`, ssn: '', firstName: '', middleName: '', lastName: '', dateOfBirth: '', dateOfDeath: '', gender: '', relationship: '', address1: '', address2: '', isSchoolChild: false, isInvalid: false });
     setDepDialogOpen(true);
   };
 
@@ -1065,65 +1065,176 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
 
         {/* Dependant Add/Edit Dialog */}
         <Dialog open={depDialogOpen} onOpenChange={setDepDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{depEditIndex !== null ? 'Edit Dependant' : 'Add Dependant'}</DialogTitle>
-              <DialogDescription>
-                {depEditIndex !== null ? 'Modify dependant details (in-memory only).' : 'Add a new dependant (in-memory only).'}
-              </DialogDescription>
+              <DialogTitle>{depEditIndex !== null ? 'Edit Dependent' : 'Add Dependent'}</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-2">
-              <div className="space-y-2">
-                <Label className="text-sm">First Name</Label>
-                <Input value={depForm.firstName || ''} onChange={(e) => setDepForm(p => ({ ...p, firstName: e.target.value }))} className="h-9" />
+            <div className="space-y-4 py-2">
+              {/* Row 1: SSN + Relation */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Dependent SSN (6 digits)</Label>
+                  <Input
+                    placeholder="Enter 6-digit SSN to auto-fill"
+                    value={depForm.ssn || ''}
+                    maxLength={6}
+                    onChange={(e) => setDepForm(p => ({ ...p, ssn: e.target.value.replace(/\D/g, '') }))}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Relation</Label>
+                  <Select value={depForm.relationship || ''} onValueChange={(v) => setDepForm(p => ({ ...p, relationship: v }))}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select relation">
+                        {depForm.relationship ? (getRelationName(depForm.relationship) || depForm.relationship) : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relations?.map(r => (
+                        <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Last Name</Label>
-                <Input value={depForm.lastName || ''} onChange={(e) => setDepForm(p => ({ ...p, lastName: e.target.value }))} className="h-9" />
+
+              {/* Row 2: First Name + Middle Name */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    First Name <span className="text-destructive">*</span>{' '}
+                    <span className="text-muted-foreground font-normal">{(depForm.firstName || '').length}/25</span>
+                  </Label>
+                  <Input
+                    placeholder="Enter first name"
+                    value={depForm.firstName || ''}
+                    maxLength={25}
+                    onChange={(e) => setDepForm(p => ({ ...p, firstName: e.target.value }))}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    Middle Name{' '}
+                    <span className="text-muted-foreground font-normal">{(depForm.middleName || '').length}/25</span>
+                  </Label>
+                  <Input
+                    placeholder="Enter middle name"
+                    value={depForm.middleName || ''}
+                    maxLength={25}
+                    onChange={(e) => setDepForm(p => ({ ...p, middleName: e.target.value }))}
+                    className="h-10"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Date of Birth</Label>
-                <Input type="date" value={depForm.dateOfBirth?.split('T')[0] || ''} onChange={(e) => setDepForm(p => ({ ...p, dateOfBirth: e.target.value }))} className="h-9" />
+
+              {/* Row 3: Surname + Date of Birth */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    Surname <span className="text-destructive">*</span>{' '}
+                    <span className="text-muted-foreground font-normal">{(depForm.lastName || '').length}/25</span>
+                  </Label>
+                  <Input
+                    placeholder="Enter surname"
+                    value={depForm.lastName || ''}
+                    maxLength={25}
+                    onChange={(e) => setDepForm(p => ({ ...p, lastName: e.target.value }))}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Date of Birth</Label>
+                  <Input
+                    type="date"
+                    value={depForm.dateOfBirth?.split('T')[0] || ''}
+                    onChange={(e) => setDepForm(p => ({ ...p, dateOfBirth: e.target.value }))}
+                    className="h-10"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Gender</Label>
-                <Select value={depForm.gender || ''} onValueChange={(v) => setDepForm(p => ({ ...p, gender: v }))}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Male</SelectItem>
-                    <SelectItem value="F">Female</SelectItem>
-                    <SelectItem value="N">Not-Specified</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              {/* Row 4: Gender + Date of Death */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Gender</Label>
+                  <Select value={depForm.gender || ''} onValueChange={(v) => setDepForm(p => ({ ...p, gender: v }))}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Male</SelectItem>
+                      <SelectItem value="F">Female</SelectItem>
+                      <SelectItem value="N">Not-Specified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Date of Death</Label>
+                  <Input
+                    type="date"
+                    value={depForm.dateOfDeath?.split('T')[0] || ''}
+                    onChange={(e) => setDepForm(p => ({ ...p, dateOfDeath: e.target.value }))}
+                    className="h-10"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Relationship</Label>
-                <Select value={depForm.relationship || ''} onValueChange={(v) => setDepForm(p => ({ ...p, relationship: v }))}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select">{getRelationName(depForm.relationship) || 'Select'}</SelectValue></SelectTrigger>
-                  <SelectContent>
-                    {relations?.map(r => (
-                      <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              {/* Row 5: Address Line 1 (full width) */}
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">
+                  Address Line 1{' '}
+                  <span className="text-muted-foreground font-normal">{(depForm.address1 || '').length}/50</span>
+                </Label>
+                <Input
+                  placeholder="Enter address"
+                  value={depForm.address1 || ''}
+                  maxLength={50}
+                  onChange={(e) => setDepForm(p => ({ ...p, address1: e.target.value }))}
+                  className="h-10"
+                />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Address</Label>
-                <Input value={depForm.address1 || depForm.address || ''} onChange={(e) => setDepForm(p => ({ ...p, address1: e.target.value, address: e.target.value }))} className="h-9" />
+
+              {/* Row 6: Address Line 2 (full width) */}
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">
+                  Address Line 2{' '}
+                  <span className="text-muted-foreground font-normal">{(depForm.address2 || '').length}/50</span>
+                </Label>
+                <Input
+                  placeholder="Enter address"
+                  value={depForm.address2 || ''}
+                  maxLength={50}
+                  onChange={(e) => setDepForm(p => ({ ...p, address2: e.target.value }))}
+                  className="h-10"
+                />
               </div>
-              <div className="flex items-center gap-2 pt-4">
-                <Checkbox checked={!!depForm.isSchoolChild} onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))} />
-                <Label className="text-sm">School Child</Label>
-              </div>
-              <div className="flex items-center gap-2 pt-4">
-                <Checkbox checked={!!depForm.isInvalid} onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))} />
-                <Label className="text-sm">Invalid</Label>
+
+              {/* Row 7: Checkboxes */}
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="dep-school-child"
+                    checked={!!depForm.isSchoolChild}
+                    onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))}
+                  />
+                  <Label htmlFor="dep-school-child" className="text-sm font-medium cursor-pointer">School Child</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="dep-invalid"
+                    checked={!!depForm.isInvalid}
+                    onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))}
+                  />
+                  <Label htmlFor="dep-invalid" className="text-sm font-medium cursor-pointer">Invalid</Label>
+                </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDepDialogOpen(false)}>Cancel</Button>
-              <Button onClick={saveDependant} disabled={!depForm.firstName || !depForm.lastName}>
-                {depEditIndex !== null ? 'Update' : 'Add'}
+              <Button onClick={saveDependant} disabled={!depForm.firstName?.trim() || !depForm.lastName?.trim()}>
+                Save
               </Button>
             </DialogFooter>
           </DialogContent>
