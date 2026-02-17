@@ -58,6 +58,35 @@ export default function ApplicationDetailPage() {
     return country?.description || code;
   };
 
+  const getNationalityName = (code: string | null | undefined): string | null => {
+    if (!code) return null;
+    const country = countries?.find(c => c.code === code || c.code === code.toUpperCase());
+    return country?.nationality || country?.description || code;
+  };
+
+  /** Resolve NPF value from API (npfMember boolean or npf Y/N string) */
+  const resolveNpf = (): string => {
+    const raw = (application as any)?.npfMember;
+    if (raw === true || raw === 'true' || raw === 'Y' || raw === 'Yes') return 'Yes';
+    if (raw === false || raw === 'false' || raw === 'N' || raw === 'No') return 'No';
+    // fall back to npf field
+    const npf = application?.npf;
+    if (npf === 'Y') return 'Yes';
+    if (npf === 'N') return 'No';
+    return npf || '—';
+  };
+
+  /** Resolve Citizenship value from API (isCitizen boolean or citizenship Y/N string) */
+  const resolveCitizenship = (): string => {
+    const raw = (application as any)?.isCitizen;
+    if (raw === true || raw === 'true' || raw === 'Y' || raw === 'Yes') return 'Yes';
+    if (raw === false || raw === 'false' || raw === 'N' || raw === 'No') return 'No';
+    const cit = application?.citizenship;
+    if (cit === 'Y') return 'Yes';
+    if (cit === 'N') return 'No';
+    return cit || '—';
+  };
+
   const getDistrictName = (code: string | null | undefined): string | null => {
     if (!code) return null;
     const district = districts?.find(d => d.code === code || d.code === code.toUpperCase());
@@ -264,7 +293,8 @@ export default function ApplicationDetailPage() {
               <div className="grid grid-cols-3 gap-6">
                 <InfoField label="Title" value={application.title} />
                 <InfoField label="First Name" value={application.firstName} />
-                <InfoField label="Middle Name" value={application.middleName} />
+                <InfoField label="First Middle Name" value={application.middleName} />
+                <InfoField label="Second Middle Name" value={application.middleName1} />
                 <InfoField label="Last Name" value={application.lastName} />
                 <InfoField label="Suffix" value={application.suffix} />
                 <InfoField label="Maiden Name" value={application.maidenName} />
@@ -272,7 +302,7 @@ export default function ApplicationDetailPage() {
                 <InfoField label="Gender" value={formatGender(application.gender)} />
                 <InfoField label="Date of Birth" value={formatDateRaw(application.dateOfBirth)} />
                 <InfoField label="Place of Birth" value={getCountryName(application.placeOfBirth)} />
-                <InfoField label="Nationality" value={getCountryName(application.nationality)} />
+                <InfoField label="Nationality" value={getNationalityName(application.nationality)} />
                 <InfoField label="Marital Status" value={formatMaritalStatus(application.maritalStatus)} />
                 {application.dateMarried && (
                   <InfoField label="Date Married" value={formatDateRaw(application.dateMarried)} />
@@ -386,7 +416,7 @@ export default function ApplicationDetailPage() {
               <div>
                 <h3 className="font-medium mb-3">Spouse Information</h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="Name" value={application.spouseFirstName || application.spouseName} />
+                  <InfoField label="Name" value={application.spouseName} />
                   <InfoField label="SSN" value={application.spouseSSN} />
                   <InfoField label="Date of Birth" value={formatDateRaw(application.spouseDOB || application.spouseDateOfBirth)} />
                   <InfoField label="Address Line 1" value={application.spouseAddress1} />
@@ -431,8 +461,8 @@ export default function ApplicationDetailPage() {
                 <InfoField label="Has Work Permit" value={application.hasWorkPermit ? 'Yes' : 'No'} />
                 <InfoField label="Work Permit Expiry" value={formatDateRaw(application.workPermitExpiry)} />
                 <InfoField label="Occupation" value={getOccupationName(application.occupation)} />
-                <InfoField label="NPF" value={application.npf === 'Y' ? 'Yes' : application.npf === 'N' ? 'No' : (application.npf || '—')} />
-                <InfoField label="Citizenship" value={application.citizenship === 'Y' ? 'Yes' : application.citizenship === 'N' ? 'No' : (application.citizenship || '—')} />
+                <InfoField label="NPF" value={resolveNpf()} />
+                <InfoField label="Citizenship" value={resolveCitizenship()} />
               </div>
               
               <Separator />
@@ -472,12 +502,10 @@ export default function ApplicationDetailPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>SSN</TableHead>
                       <TableHead>Date of Birth</TableHead>
                       <TableHead>Gender</TableHead>
                       <TableHead>Relationship</TableHead>
-                      <TableHead>Address 1</TableHead>
-                      <TableHead>Address 2</TableHead>
+                      <TableHead>Address</TableHead>
                       <TableHead>School Child</TableHead>
                       <TableHead>Invalid</TableHead>
                     </TableRow>
@@ -488,12 +516,10 @@ export default function ApplicationDetailPage() {
                         <TableCell className="font-medium">
                           {dep.firstName} {dep.lastName}
                         </TableCell>
-                        <TableCell>{dep.ssn || '—'}</TableCell>
                         <TableCell>{formatDateRaw(dep.dateOfBirth)}</TableCell>
                         <TableCell>{formatGender(dep.gender)}</TableCell>
                         <TableCell>{getRelationName(dep.relationship)}</TableCell>
                         <TableCell>{dep.address1 || (dep.livesAtSameAddress ? 'Same as Applicant' : dep.address) || '—'}</TableCell>
-                        <TableCell>{dep.address2 || '—'}</TableCell>
                         <TableCell>
                           {(dep.isSchoolChild ?? dep.isInSchool) ? (
                             <Badge variant="default">Yes</Badge>

@@ -57,6 +57,20 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     isInSchool: dep.isInSchool,
   }));
 
+  // Resolve NPF from npfMember (boolean) or npf (string)
+  const npfRaw = (detail as any).npfMember;
+  let npfValue: string | null = null;
+  if (npfRaw === true || npfRaw === 'true' || npfRaw === 'Y' || npfRaw === 'Yes') npfValue = 'Y';
+  else if (npfRaw === false || npfRaw === 'false' || npfRaw === 'N' || npfRaw === 'No') npfValue = 'N';
+  else if (detail.npf) npfValue = detail.npf === 'Y' || detail.npf === 'N' ? detail.npf : null;
+
+  // Resolve Citizenship from isCitizen (boolean) or citizenship (string)
+  const citRaw = (detail as any).isCitizen;
+  let citizenshipValue: string | null = null;
+  if (citRaw === true || citRaw === 'true' || citRaw === 'Y' || citRaw === 'Yes') citizenshipValue = 'Y';
+  else if (citRaw === false || citRaw === 'false' || citRaw === 'N' || citRaw === 'No') citizenshipValue = 'N';
+  else if (detail.citizenship) citizenshipValue = detail.citizenship === 'Y' || detail.citizenship === 'N' ? detail.citizenship : null;
+
   return {
     p_reference_number: detail.referenceNumber,
     p_title: detail.title || null,
@@ -103,7 +117,8 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     p_ben_addr1: benAddr1 || null,
     p_ben_addr2: benAddr2 || null,
     p_occupation: detail.occupation || null,
-    p_citizenship: detail.placeOfResidency || null,
+    p_citizenship: citizenshipValue,
+    p_npf: npfValue,
     p_date_of_residency: detail.residencyDate || null,
     p_has_work_permit: detail.hasWorkPermit ? 'Y' : 'N',
     p_work_permit_expiry: detail.workPermitExpiry || null,
