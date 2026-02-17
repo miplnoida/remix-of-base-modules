@@ -136,6 +136,7 @@ export interface ExternalApplicationDetail {
   beneficiaryName: string;
   beneficiaryAddress: string;
   beneficiaryAddress1: string;
+  beneficiaryAddress2?: string | null;
   
   // Witness
   witnessName: string | null;

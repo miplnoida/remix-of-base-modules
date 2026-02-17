@@ -312,8 +312,6 @@ export default function ApplicationDetailPage() {
                 <div className="grid grid-cols-3 gap-6">
                   <InfoField label="Mobile Phone" value={formatPhone(application.phoneMobile, application.phoneMobileDialCode)} />
                   <InfoField label="Home Phone" value={formatPhone(application.phoneHome, application.phoneHomeDialCode)} />
-                  <InfoField label="Work Phone" value={formatPhone(application.phoneWork, application.phoneWorkDialCode)} />
-                  <InfoField label="Fax" value={formatPhone(application.fax, application.faxDialCode)} />
                   <InfoField label="Email" value={application.email} />
                 </div>
               </div>
@@ -397,6 +395,8 @@ export default function ApplicationDetailPage() {
                 <h3 className="font-medium mb-3">Spouse Information</h3>
                 <div className="grid grid-cols-3 gap-6">
                   <InfoField label="Name" value={application.spouseFirstName || application.spouseName} />
+                  <InfoField label="SSN" value={application.spouseSSN} />
+                  <InfoField label="Date of Birth" value={formatDateRaw(application.spouseDOB || application.spouseDateOfBirth)} />
                   <InfoField label="Address Line 1" value={application.spouseAddress1} />
                   <InfoField label="Address Line 2" value={application.spouseAddress2} />
                 </div>
@@ -408,7 +408,8 @@ export default function ApplicationDetailPage() {
                 <h3 className="font-medium mb-3">Beneficiary Information</h3>
                 <div className="grid grid-cols-3 gap-6">
                   <InfoField label="Name" value={application.beneficiaryName} />
-                  <InfoField label="Address" value={application.beneficiaryAddress} />
+                  <InfoField label="Address Line 1" value={application.beneficiaryAddress1 || application.beneficiaryAddress} />
+                  <InfoField label="Address Line 2" value={application.beneficiaryAddress2} />
                 </div>
               </div>
               
