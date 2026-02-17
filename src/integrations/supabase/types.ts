@@ -11507,6 +11507,7 @@ export type Database = {
           p_middle_name?: string
           p_mother_name?: string
           p_nationality?: string
+          p_npf?: string
           p_occupation?: string
           p_phone?: string
           p_phone_mobile?: string
