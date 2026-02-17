@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, X } from 'lucide-react';
+import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2 } from 'lucide-react';
 import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,13 +15,30 @@ interface ApplicationDocumentsTabProps {
   photoUrl?: string | null;
 }
 
-/** Determine file category from name or type */
-function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'other' {
-  const name = (doc.name || '').toLowerCase();
-  const type = (doc.type || '').toLowerCase();
+/** Get the effective URL for a document (signedUrl takes priority) */
+function getDocUrl(doc: ExternalDocument): string | undefined {
+  return doc.signedUrl || doc.url;
+}
 
-  if (type.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
+/** Get display name for a document */
+function getDocName(doc: ExternalDocument, index: number): string {
+  return doc.fileName || doc.name || `Document ${index + 1}`;
+}
+
+/** Get display type for a document */
+function getDocType(doc: ExternalDocument): string {
+  return doc.documentType || doc.type || getFileCategory(doc).toUpperCase();
+}
+
+/** Determine file category from name, type, or mimeType */
+function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'other' {
+  const name = (doc.fileName || doc.name || '').toLowerCase();
+  const type = (doc.documentType || doc.type || '').toLowerCase();
+  const mime = (doc.mimeType || '').toLowerCase();
+
+  if (mime.includes('pdf') || type.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
   if (
+    mime.includes('image') ||
     type.includes('image') ||
     name.endsWith('.jpg') || name.endsWith('.jpeg') ||
     name.endsWith('.png') || name.endsWith('.gif') ||
@@ -37,7 +54,15 @@ function getFileIcon(doc: ExternalDocument) {
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
-/** Format a date string for display */
+function formatFileSize(size?: string | number): string {
+  if (size === undefined || size === null) return '—';
+  const bytes = typeof size === 'string' ? parseInt(size, 10) : size;
+  if (isNaN(bytes)) return String(size);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function formatDocDate(dateStr?: string): string {
   if (!dateStr) return '—';
   try {
@@ -47,29 +72,20 @@ function formatDocDate(dateStr?: string): string {
   }
 }
 
-function formatFileSize(size?: string | number): string {
-  if (!size) return '—';
-  const bytes = typeof size === 'string' ? parseInt(size, 10) : size;
-  if (isNaN(bytes)) return size as string;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocumentsTabProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Build a combined list: photo first, then documents
   const allDocs: ExternalDocument[] = [];
   if (photoUrl) {
     allDocs.push({
       id: '__photo__',
-      name: 'Passport Photo',
-      type: 'image',
-      url: photoUrl,
+      fileName: 'Passport Photo',
+      documentType: 'Photo',
+      mimeType: 'image/png',
+      signedUrl: photoUrl,
       uploadedAt: undefined,
     });
   }
@@ -79,132 +95,90 @@ export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocu
 
   const totalCount = allDocs.length;
 
-  /** Stream a document through the secure edge function */
-  const getSecureUrl = useCallback(async (docUrl: string, action: 'stream' | 'download', fileName: string) => {
-    const { data, error } = await supabase.functions.invoke('document-proxy', {
-      method: 'POST',
-      body: { action, documentUrl: docUrl, fileName },
-    });
+  /** Fetch document blob through the secure document-proxy edge function */
+  const fetchDocBlob = useCallback(async (docUrl: string, fileName: string, action: 'stream' | 'download') => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
 
-    if (error) {
-      throw new Error(error.message || 'Failed to access document');
+    const proxyResponse = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action, documentUrl: docUrl, fileName }),
+      }
+    );
+
+    if (!proxyResponse.ok) {
+      const errBody = await proxyResponse.json().catch(() => ({}));
+      throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
     }
-    return data;
+
+    return proxyResponse.blob();
   }, []);
 
   /** Handle View click */
-  const handleView = useCallback(async (doc: ExternalDocument) => {
-    if (!doc.url) {
+  const handleView = useCallback(async (doc: ExternalDocument, index: number) => {
+    const docUrl = getDocUrl(doc);
+    if (!docUrl) {
       toast.error('No document URL available');
       return;
     }
 
     const category = getFileCategory(doc);
-    const docId = doc.id || doc.name;
+    const docId = doc.id || `doc-${index}`;
+    const name = getDocName(doc, index);
     setLoadingDocId(docId);
-    setPreviewLoading(true);
 
     try {
-      // For images and PDFs, stream through proxy and create blob URL
-      const response = await supabase.functions.invoke('document-proxy', {
-        method: 'POST',
-        body: { action: 'stream', documentUrl: doc.url, fileName: doc.name },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to load document');
-      }
-
-      // The response.data is the raw response when responseType is not set
-      // We need to fetch directly with auth
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      const proxyResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ action: 'stream', documentUrl: doc.url, fileName: doc.name }),
-        }
-      );
-
-      if (!proxyResponse.ok) {
-        const errBody = await proxyResponse.json().catch(() => ({}));
-        throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
-      }
-
-      const blob = await proxyResponse.blob();
+      const blob = await fetchDocBlob(docUrl, name, 'stream');
       const blobUrl = URL.createObjectURL(blob);
-
-      setPreviewDoc({ url: blobUrl, name: doc.name || 'Document', category });
+      setPreviewDoc({ url: blobUrl, name, category });
       setPreviewOpen(true);
     } catch (err: any) {
       console.error('Document view error:', err);
       toast.error('Failed to load document', { description: err.message });
     } finally {
       setLoadingDocId(null);
-      setPreviewLoading(false);
     }
-  }, []);
+  }, [fetchDocBlob]);
 
   /** Handle Download click */
-  const handleDownload = useCallback(async (doc: ExternalDocument) => {
-    if (!doc.url) {
+  const handleDownload = useCallback(async (doc: ExternalDocument, index: number) => {
+    const docUrl = getDocUrl(doc);
+    if (!docUrl) {
       toast.error('No document URL available');
       return;
     }
 
-    const docId = doc.id || doc.name;
+    const docId = doc.id || `doc-${index}`;
+    const name = getDocName(doc, index);
     setLoadingDocId(docId);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      const proxyResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ action: 'download', documentUrl: doc.url, fileName: doc.name }),
-        }
-      );
-
-      if (!proxyResponse.ok) {
-        const errBody = await proxyResponse.json().catch(() => ({}));
-        throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
-      }
-
-      const blob = await proxyResponse.blob();
+      const blob = await fetchDocBlob(docUrl, name, 'download');
       const blobUrl = URL.createObjectURL(blob);
-      
+
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = doc.name || 'document';
+      link.download = name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Cleanup after short delay
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-      
-      toast.success('Download started', { description: doc.name });
+      toast.success('Download started', { description: name });
     } catch (err: any) {
       console.error('Document download error:', err);
       toast.error('Failed to download document', { description: err.message });
     } finally {
       setLoadingDocId(null);
     }
-  }, []);
+  }, [fetchDocBlob]);
 
   /** Cleanup blob URL on preview close */
   const handleClosePreview = useCallback(() => {
@@ -244,14 +218,15 @@ export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocu
               <TableBody>
                 {allDocs.map((doc, index) => {
                   const docId = doc.id || `doc-${index}`;
-                  const isLoading = loadingDocId === docId || loadingDocId === doc.name;
+                  const isLoading = loadingDocId === docId;
+                  const hasUrl = !!getDocUrl(doc);
                   return (
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
-                      <TableCell className="font-medium">{doc.name || `Document ${index + 1}`}</TableCell>
+                      <TableCell className="font-medium">{getDocName(doc, index)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {doc.type || getFileCategory(doc).toUpperCase()}
+                          {getDocType(doc)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
@@ -262,12 +237,12 @@ export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocu
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          {doc.url ? (
+                          {hasUrl ? (
                             <>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleView(doc)}
+                                onClick={() => handleView(doc, index)}
                                 disabled={isLoading}
                                 className="gap-1.5"
                               >
@@ -281,7 +256,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocu
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleDownload(doc)}
+                                onClick={() => handleDownload(doc, index)}
                                 disabled={isLoading}
                                 className="gap-1.5"
                               >
@@ -314,7 +289,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocu
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {previewDoc && getFileIcon({ name: previewDoc.name, type: previewDoc.category } as ExternalDocument)}
               {previewDoc?.name || 'Document Preview'}
             </DialogTitle>
             <DialogDescription>

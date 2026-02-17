@@ -196,10 +196,15 @@ export interface ExternalDependant {
 
 export interface ExternalDocument {
   id?: string;
-  name: string;
+  name?: string;
+  fileName?: string;
+  documentType?: string;
   type?: string;
+  filePath?: string;
   url?: string;
-  fileSize?: string;
+  signedUrl?: string;
+  fileSize?: string | number;
+  mimeType?: string;
   uploadedAt?: string;
 }
 
