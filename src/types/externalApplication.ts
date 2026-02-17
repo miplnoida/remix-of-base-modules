@@ -85,6 +85,10 @@ export interface ExternalApplicationDetail {
   mailingAddr1: string;
   mailingAddr2: string;
   
+  // Spouse Address
+  spouseAddress1?: string | null;
+  spouseAddress2?: string | null;
+  
   // Residency
   placeOfResidency: string;
   residencyDate: string | null;
@@ -94,6 +98,7 @@ export interface ExternalApplicationDetail {
   contactRelation: string;
   contactAddress: string;
   contactAddress1: string;
+  contactAddress2?: string;
   contactPhone: string;
   contactPhoneCountry: string | null;
   contactPhoneDialCode: string;
@@ -101,6 +106,10 @@ export interface ExternalApplicationDetail {
   contactMobileCountry: string | null;
   contactMobileDialCode: string;
   contactEmail: string;
+
+  // NPF & Citizenship
+  npf?: string | null;
+  citizenship?: string | null;
   
   // Parent Information
   fatherName: string;
@@ -167,8 +176,13 @@ export interface ExternalDependant {
   gender: string;
   relationship: string;
   address: string;
+  address1?: string | null;
+  address2?: string | null;
+  ssn?: string | null;
   livesAtSameAddress: boolean;
   isInSchool: boolean;
+  isSchoolChild?: boolean;
+  isInvalid?: boolean;
   schoolName: string | null;
 }
 

@@ -328,10 +328,8 @@ export default function ApplicationDetailPage() {
                 <div className="grid grid-cols-3 gap-6">
                   <InfoField label="Address Line 1" value={application.addressLine1} />
                   <InfoField label="Address Line 2" value={application.addressLine2} />
-                  <InfoField label="City" value={application.city} />
                   <InfoField label="Postal District" value={getDistrictName(application.postalDistrict)} />
-                  <InfoField label="Country" value={getCountryName(application.country)} />
-                  <InfoField label="Place of Residency" value={application.placeOfResidency} />
+                  <InfoField label="Place of Residency" value={getCountryName(application.placeOfResidency)} />
                   <InfoField label="Residency Date" value={formatDateRaw(application.residencyDate)} />
                 </div>
               </div>
@@ -356,7 +354,8 @@ export default function ApplicationDetailPage() {
                 <div className="grid grid-cols-3 gap-6">
                   <InfoField label="Name" value={application.contactName} />
                   <InfoField label="Relationship" value={getRelationName(application.contactRelation)} />
-                  <InfoField label="Address" value={application.contactAddress} />
+                  <InfoField label="Address Line 1" value={application.contactAddress1 || application.contactAddress} />
+                  <InfoField label="Address Line 2" value={application.contactAddress2} />
                   <InfoField label="Phone" value={formatPhone(application.contactPhone, application.contactPhoneDialCode)} />
                   <InfoField label="Mobile" value={formatPhone(application.contactMobile, application.contactMobileDialCode)} />
                   <InfoField label="Email" value={application.contactEmail} />
@@ -379,10 +378,7 @@ export default function ApplicationDetailPage() {
               <div>
                 <h3 className="font-medium mb-3">Father's Information</h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="First Name" value={application.fatherFirstName} />
-                  <InfoField label="Last Name" value={application.fatherLastName} />
-                  <InfoField label="SSN" value={application.fatherSSN} />
-                  <InfoField label="Date of Birth" value={formatDateRaw(application.fatherDOB)} />
+                  <InfoField label="Name" value={application.fatherName || [application.fatherFirstName, application.fatherLastName].filter(Boolean).join(' ')} />
                 </div>
               </div>
               
@@ -391,11 +387,7 @@ export default function ApplicationDetailPage() {
               <div>
                 <h3 className="font-medium mb-3">Mother's Information</h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="First Name" value={application.motherFirstName} />
-                  <InfoField label="Last Name" value={application.motherLastName} />
-                  <InfoField label="Maiden Name" value={application.motherMaidenName} />
-                  <InfoField label="SSN" value={application.motherSSN} />
-                  <InfoField label="Date of Birth" value={formatDateRaw(application.motherDOB)} />
+                  <InfoField label="Name" value={application.motherName || [application.motherFirstName, application.motherLastName].filter(Boolean).join(' ')} />
                 </div>
               </div>
               
@@ -404,10 +396,9 @@ export default function ApplicationDetailPage() {
               <div>
                 <h3 className="font-medium mb-3">Spouse Information</h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="First Name" value={application.spouseFirstName} />
-                  <InfoField label="Last Name" value={application.spouseLastName} />
-                  <InfoField label="SSN" value={application.spouseSSN} />
-                  <InfoField label="Date of Birth" value={formatDateRaw(application.spouseDOB)} />
+                  <InfoField label="Name" value={application.spouseFirstName || application.spouseName} />
+                  <InfoField label="Address Line 1" value={application.spouseAddress1} />
+                  <InfoField label="Address Line 2" value={application.spouseAddress2} />
                 </div>
               </div>
               
@@ -444,10 +435,11 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-3 gap-6">
-                <InfoField label="Self-Employed" value={application.isSelfEmployed ? 'Yes' : 'No'} />
                 <InfoField label="Has Work Permit" value={application.hasWorkPermit ? 'Yes' : 'No'} />
                 <InfoField label="Work Permit Expiry" value={formatDateRaw(application.workPermitExpiry)} />
                 <InfoField label="Occupation" value={getOccupationName(application.occupation)} />
+                <InfoField label="NPF" value={application.npf === 'Y' ? 'Yes' : application.npf === 'N' ? 'No' : (application.npf || '—')} />
+                <InfoField label="Citizenship" value={application.citizenship === 'Y' ? 'Yes' : application.citizenship === 'N' ? 'No' : (application.citizenship || '—')} />
               </div>
               
               <Separator />
@@ -462,8 +454,6 @@ export default function ApplicationDetailPage() {
                   <InfoField label="Address" value={application.employerAddress} />
                   <InfoField label="Town" value={application.employerTown} />
                   <InfoField label="Phone" value={formatPhone(application.employerPhone, application.employerPhoneDialCode)} />
-                  <InfoField label="Email" value={application.employerEmail} />
-                  <InfoField label="Start Date" value={formatDateRaw(application.employmentStartDate)} />
                 </div>
               </div>
             </CardContent>
@@ -489,11 +479,14 @@ export default function ApplicationDetailPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>SSN</TableHead>
                       <TableHead>Date of Birth</TableHead>
                       <TableHead>Gender</TableHead>
                       <TableHead>Relationship</TableHead>
-                      <TableHead>In School</TableHead>
-                      <TableHead>Address</TableHead>
+                      <TableHead>Address 1</TableHead>
+                      <TableHead>Address 2</TableHead>
+                      <TableHead>School Child</TableHead>
+                      <TableHead>Invalid</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -502,21 +495,24 @@ export default function ApplicationDetailPage() {
                         <TableCell className="font-medium">
                           {dep.firstName} {dep.lastName}
                         </TableCell>
+                        <TableCell>{dep.ssn || '—'}</TableCell>
                         <TableCell>{formatDateRaw(dep.dateOfBirth)}</TableCell>
                         <TableCell>{formatGender(dep.gender)}</TableCell>
                         <TableCell>{getRelationName(dep.relationship)}</TableCell>
+                        <TableCell>{dep.address1 || (dep.livesAtSameAddress ? 'Same as Applicant' : dep.address) || '—'}</TableCell>
+                        <TableCell>{dep.address2 || '—'}</TableCell>
                         <TableCell>
-                          {dep.isInSchool ? (
+                          {(dep.isSchoolChild ?? dep.isInSchool) ? (
                             <Badge variant="default">Yes</Badge>
                           ) : (
                             <Badge variant="secondary">No</Badge>
                           )}
                         </TableCell>
                         <TableCell>
-                          {dep.livesAtSameAddress ? (
-                            <Badge variant="default">Same as Applicant</Badge>
+                          {dep.isInvalid ? (
+                            <Badge variant="destructive">Yes</Badge>
                           ) : (
-                            <span className="text-muted-foreground">{dep.address || '—'}</span>
+                            <Badge variant="secondary">No</Badge>
                           )}
                         </TableCell>
                       </TableRow>
