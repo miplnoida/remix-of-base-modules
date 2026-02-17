@@ -341,6 +341,28 @@ Deno.serve(async (req) => {
             })
           }
 
+          // ─── STEP 7: Trigger Workflow-ScheduleMeeting API (same as reschedule_meeting) ───
+          if (newMeeting.action_config_id) {
+            const { data: apiConfig } = await supabase
+              .from('workflow_action_configurations')
+              .select('requires_api_integration, api_config_id')
+              .eq('id', newMeeting.action_config_id)
+              .single()
+
+            if (apiConfig?.requires_api_integration && apiConfig?.api_config_id) {
+              console.log('Auto-reschedule: triggering Workflow-ScheduleMeeting API for new meeting:', newMeetingRef)
+              await callExternalApi(supabase, newMeeting.id, apiConfig.api_config_id, 'RESCHEDULED', {
+                applicationReference: newMeeting.application_reference,
+                meetingReference: newMeetingRef,
+                meetingDate: todayDate,
+                meetingTime: currentTime,
+                officeAddress: newMeeting.office_address,
+                contactPerson: newMeeting.contact_person,
+                remarks: `Auto-rescheduled: meeting started today before scheduled date ${meeting.meeting_date}`
+              })
+            }
+          }
+
           return new Response(JSON.stringify({
             success: true,
             message: `Future meeting auto-rescheduled. New meeting created for today (${todayDate}).`,
