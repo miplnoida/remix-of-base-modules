@@ -36,8 +36,9 @@ export interface ExternalApplicationDetail {
   // Personal Information
   title: string | null;
   firstName: string;
-  middleName: string;
+  middleName?: string;
   middleName1?: string;
+  middleName2?: string;
   
   // API alternate property names for NPF and Citizenship
   npfMember?: boolean | string | null;
@@ -150,7 +151,9 @@ export interface ExternalApplicationDetail {
   isSelfEmployed: boolean;
   hasWorkPermit: boolean;
   workPermitExpiry: string | null;
-  occupation: string;
+  occupation?: string;
+  occupationCode?: string;
+  occupationName?: string;
   employerName: string;
   employerAddress: string;
   employerTown: string;
