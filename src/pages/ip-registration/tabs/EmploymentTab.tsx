@@ -65,12 +65,12 @@ export default function EmploymentTab({
     const value = checked ? 'Y' : 'N';
     handleFieldChange(field, value);
     // If turning off work permit, clear expiry
-    if (field === 'work_permit_status' && !checked) {
-      handleFieldChange('work_permit_expiry', null);
+    if (field === 'work_permit' && !checked) {
+      handleFieldChange('work_permit_expiration', null);
     }
   }, [handleFieldChange]);
 
-  const workPermitOn = formData.work_permit_status === 'Y';
+  const workPermitOn = formData.work_permit === 'Y';
   const birthPlaceSameAsResidence = formData.birth_place && formData.place_of_residence && formData.birth_place === formData.place_of_residence;
   const showDateResident = !birthPlaceSameAsResidence && (formData.birth_place || formData.place_of_residence);
 
@@ -81,10 +81,10 @@ export default function EmploymentTab({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Occupation */}
         <div className="space-y-2">
-          <Label htmlFor="occupation">Occupation</Label>
+          <Label htmlFor="primary_occup">Occupation</Label>
           <Select 
-            value={formData.occupation || ''} 
-            onValueChange={(v) => handleSelectChange('occupation', v)}
+            value={formData.primary_occup || ''} 
+            onValueChange={(v) => handleSelectChange('primary_occup', v)}
             disabled={!isEditable || occupationsLoading}
           >
             <SelectTrigger>
@@ -113,10 +113,10 @@ export default function EmploymentTab({
 
         {/* Signature on File */}
         <div className="space-y-2">
-          <Label htmlFor="signature_on_file">Signature on File</Label>
+          <Label htmlFor="ip_signature">Signature on File</Label>
           <Select 
-            value={formData.signature_on_file || ''} 
-            onValueChange={(v) => handleSelectChange('signature_on_file', v)}
+            value={formData.ip_signature || ''} 
+            onValueChange={(v) => handleSelectChange('ip_signature', v)}
             disabled={!isEditable}
           >
             <SelectTrigger>
@@ -137,32 +137,32 @@ export default function EmploymentTab({
           <div className="flex items-center justify-between rounded-lg border p-3">
             <Label htmlFor="work_permit_toggle" className="cursor-pointer">
               Work Permit
-              {errors.work_permit_status && <span className="text-destructive ml-1">*</span>}
+              {errors.work_permit && <span className="text-destructive ml-1">*</span>}
             </Label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{workPermitOn ? 'Yes' : 'No'}</span>
               <Switch
                 id="work_permit_toggle"
                 checked={workPermitOn}
-                onCheckedChange={(checked) => handleToggleChange('work_permit_status', checked)}
+                onCheckedChange={(checked) => handleToggleChange('work_permit', checked)}
                 disabled={!isEditable}
               />
             </div>
           </div>
-          {errors.work_permit_status && <p className="text-xs text-destructive">{errors.work_permit_status}</p>}
+          {errors.work_permit && <p className="text-xs text-destructive">{errors.work_permit}</p>}
           
           {/* Work Permit Expiration - only visible when Work Permit is Yes */}
           {workPermitOn && (
             <div className="space-y-2 pl-2 border-l-2 border-l-primary/30">
-              <Label htmlFor="work_permit_expiry">
+              <Label htmlFor="work_permit_expiration">
                 Work Permit Expiration <span className="text-destructive">*</span>
               </Label>
               <DatePickerWithDropdowns
-                date={parseISODate(formData.work_permit_expiry)}
-                onSelect={(date) => handleDateChange('work_permit_expiry', date)}
+                date={parseISODate(formData.work_permit_expiration)}
+                onSelect={(date) => handleDateChange('work_permit_expiration', date)}
                 placeholder="Select Expiry Date"
                 disabled={!isEditable}
-                error={errors.work_permit_expiry}
+                error={errors.work_permit_expiration}
               />
             </div>
           )}
@@ -173,11 +173,11 @@ export default function EmploymentTab({
           <div className="flex items-center justify-between rounded-lg border p-3">
             <Label htmlFor="npf_toggle" className="cursor-pointer">NPF</Label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{formData.npf_status === 'Y' ? 'Yes' : 'No'}</span>
+              <span className="text-sm text-muted-foreground">{formData.npf === 'Y' ? 'Yes' : 'No'}</span>
               <Switch
                 id="npf_toggle"
-                checked={formData.npf_status === 'Y'}
-                onCheckedChange={(checked) => handleToggleChange('npf_status', checked)}
+                checked={formData.npf === 'Y'}
+                onCheckedChange={(checked) => handleToggleChange('npf', checked)}
                 disabled={!isEditable}
               />
             </div>
@@ -249,15 +249,15 @@ export default function EmploymentTab({
         {/* Date Resident - only visible when birth_place ≠ place_of_residence */}
         {showDateResident && (
           <div className="space-y-2">
-            <Label htmlFor="date_resident">
+          <Label htmlFor="date_of_residency">
               Date Resident <span className="text-destructive">*</span>
             </Label>
             <DatePickerWithDropdowns
-              date={parseISODate(formData.date_resident)}
-              onSelect={(date) => handleDateChange('date_resident', date)}
+              date={parseISODate(formData.date_of_residency)}
+              onSelect={(date) => handleDateChange('date_of_residency', date)}
               placeholder="Select Date Resident"
               disabled={!isEditable}
-              error={errors.date_resident}
+              error={errors.date_of_residency}
             />
           </div>
         )}

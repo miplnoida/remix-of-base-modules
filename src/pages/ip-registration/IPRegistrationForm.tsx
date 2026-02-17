@@ -34,44 +34,44 @@ export interface IPFormData {
   unique_uuid: string;
   application_id: string;
   ssn?: string | null;
-  title?: string | null;
-  first_name?: string | null;
+  name_prefix?: string | null;
+  firstname?: string | null;
   middle_name?: string | null;
   second_middle_name?: string | null;
-  last_name?: string | null;
-  suffix?: string | null;
-  maiden_name?: string | null;
+  surname?: string | null;
+  name_suffix?: string | null;
+  previous_name?: string | null;
   alias?: string | null;
-  gender?: string | null;
-  date_of_birth?: string | null;
+  sex?: string | null;
+  dob?: string | null;
   marital_status?: string | null;
   date_married?: string | null;
-  height_feet?: number | null;
-  height_inches?: number | null;
+  heightfeet?: number | null;
+  heightinches?: number | null;
   birth_place?: string | null;
   nationality?: string | null;
-  eye_color?: string | null;
-  resident_address_1?: string | null;
-  resident_address_2?: string | null;
-  postal_district?: string | null;
+  eyecolor?: string | null;
+  resident_addr1?: string | null;
+  resident_addr2?: string | null;
+  district?: string | null;
   mail_addr1?: string | null;
   mail_addr2?: string | null;
   employer_name?: string | null;
   employer_address?: string | null;
   employer_phone?: string | null;
   employer_town?: string | null;
-  email?: string | null;
+  email_addr?: string | null;
   telephone?: string | null;
   mobile?: string | null;
-  occupation?: string | null;
-  work_permit_status?: string | null;
-  npf_status?: string | null;
+  primary_occup?: string | null;
+  work_permit?: string | null;
+  npf?: string | null;
   application_date?: string | null;
-  date_resident?: string | null;
+  date_of_residency?: string | null;
   place_of_residence?: string | null;
-  work_permit_expiry?: string | null;
+  work_permit_expiration?: string | null;
   citizenship?: string | null;
-  signature_on_file?: string | null;
+  ip_signature?: string | null;
   marital_doc_type?: string | null;
   birth_doc_type?: string | null;
   death_doc_type?: string | null;
@@ -250,40 +250,40 @@ export default function IPRegistrationForm() {
         unique_uuid: recordData.unique_uuid,
         application_id: recordData.application_id,
         ssn: currentSsn,
-        title: recordData.title,
-        first_name: recordData.first_name,
+        name_prefix: recordData.name_prefix,
+        firstname: recordData.firstname,
         middle_name: recordData.middle_name,
         second_middle_name: recordData.second_middle_name,
-        last_name: recordData.last_name,
-        suffix: recordData.suffix,
-        maiden_name: recordData.maiden_name,
+        surname: recordData.surname,
+        name_suffix: recordData.name_suffix,
+        previous_name: recordData.previous_name,
         alias: recordData.alias,
-        gender: recordData.gender,
-        date_of_birth: recordData.date_of_birth,
+        sex: recordData.sex,
+        dob: recordData.dob,
         marital_status: recordData.marital_status,
         date_married: recordData.date_married,
-        height_feet: recordData.height_feet,
-        height_inches: recordData.height_inches,
+        heightfeet: recordData.heightfeet,
+        heightinches: recordData.heightinches,
         birth_place: recordData.birth_place,
         nationality: recordData.nationality,
-        eye_color: recordData.eye_color,
-        resident_address_1: recordData.resident_address_1,
-        resident_address_2: recordData.resident_address_2,
-        postal_district: recordData.postal_district,
+        eyecolor: recordData.eyecolor,
+        resident_addr1: recordData.resident_addr1,
+        resident_addr2: recordData.resident_addr2,
+        district: recordData.district,
         mail_addr1: recordData.mail_addr1,
         mail_addr2: recordData.mail_addr2,
-        email: recordData.email,
+        email_addr: recordData.email_addr,
         telephone: recordData.telephone,
         mobile: recordData.mobile,
-        occupation: recordData.occupation,
-        work_permit_status: recordData.work_permit_status,
-        npf_status: recordData.npf_status,
+        primary_occup: recordData.primary_occup,
+        work_permit: recordData.work_permit,
+        npf: recordData.npf,
         application_date: recordData.application_date,
-        date_resident: recordData.date_resident,
+        date_of_residency: recordData.date_of_residency,
         place_of_residence: recordData.place_of_residence,
-        work_permit_expiry: recordData.work_permit_expiry,
+        work_permit_expiration: recordData.work_permit_expiration,
         citizenship: recordData.citizenship,
-        signature_on_file: recordData.signature_on_file,
+        ip_signature: recordData.ip_signature,
         employer_name: recordData.employer_name,
         employer_address: recordData.employer_address,
         employer_phone: recordData.employer_phone,
@@ -356,14 +356,14 @@ export default function IPRegistrationForm() {
     const newErrors: ValidationErrors = {};
 
     if (activeTab === 'basic') {
-      if (!formData.first_name?.trim()) newErrors.first_name = 'First name is required';
-      if (!formData.last_name?.trim()) newErrors.last_name = 'Last name is required';
-      if (!formData.gender) newErrors.gender = 'Gender is required';
-      if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
+      if (!formData.firstname?.trim()) newErrors.firstname = 'First name is required';
+      if (!formData.surname?.trim()) newErrors.surname = 'Last name is required';
+      if (!formData.sex) newErrors.sex = 'Gender is required';
+      if (!formData.dob) newErrors.dob = 'Date of birth is required';
       if (!formData.marital_status) newErrors.marital_status = 'Marital status is required';
       if (!formData.nationality) newErrors.nationality = 'Nationality is required';
       if (!formData.birth_place) newErrors.birth_place = 'Birth place is required';
-      if (!formData.title) newErrors.title = 'Title is required';
+      if (!formData.name_prefix) newErrors.name_prefix = 'Title is required';
 
       if ((formData.marital_status === 'Married' || formData.marital_status === 'Common Law') && !formData.date_married) {
         newErrors.date_married = 'Date married is required';
@@ -375,20 +375,20 @@ export default function IPRegistrationForm() {
       const contactErrors = validateContactFields([
         { value: formData.telephone, fieldName: 'telephone', label: 'Telephone', type: 'phone' },
         { value: formData.mobile, fieldName: 'mobile', label: 'Mobile', type: 'phone' },
-        { value: formData.email, fieldName: 'email', label: 'Email', type: 'email' },
+        { value: formData.email_addr, fieldName: 'email_addr', label: 'Email', type: 'email' },
       ]);
       Object.assign(newErrors, contactErrors);
     }
 
     if (activeTab === 'employment') {
       // Work permit expiry required when work permit is Yes
-      if (formData.work_permit_status === 'Y' && !formData.work_permit_expiry) {
-        newErrors.work_permit_expiry = 'Work permit expiry date is required when work permit is enabled';
+      if (formData.work_permit === 'Y' && !formData.work_permit_expiration) {
+        newErrors.work_permit_expiration = 'Work permit expiry date is required when work permit is enabled';
       }
       // Date resident required when birth_place differs from place_of_residence
       if (formData.birth_place && formData.place_of_residence && formData.birth_place !== formData.place_of_residence) {
-        if (!formData.date_resident) {
-          newErrors.date_resident = 'Date resident is required when birth place differs from place of residence';
+        if (!formData.date_of_residency) {
+          newErrors.date_of_residency = 'Date resident is required when birth place differs from place of residence';
         }
       }
     }
@@ -443,10 +443,10 @@ export default function IPRegistrationForm() {
           status: 'Z', // Draft status
           application_date: formData.application_date || new Date().toISOString().split('T')[0],
           // Provide required fields with defaults
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          gender: data.gender || '',
-          date_of_birth: data.date_of_birth || new Date().toISOString().split('T')[0],
+          firstname: data.firstname || '',
+          surname: data.surname || '',
+          sex: data.sex || '',
+          dob: data.dob || new Date().toISOString().split('T')[0],
           marital_status: data.marital_status || '',
           nationality: data.nationality || '',
           ...data,
@@ -524,21 +524,21 @@ export default function IPRegistrationForm() {
     clearError(field);
 
     // Check for duplicates on key fields
-    if (['first_name', 'last_name', 'date_of_birth', 'gender'].includes(field)) {
+    if (['firstname', 'surname', 'dob', 'sex'].includes(field)) {
       checkDuplicates(newData);
     }
   }, [formData, clearError]);
 
   const checkDuplicates = async (data: IPFormData) => {
-    if (!data.first_name || !data.last_name || !data.date_of_birth || !data.gender) return;
+    if (!data.firstname || !data.surname || !data.dob || !data.sex) return;
 
     try {
       const { data: dups, error } = await supabase
         .rpc('check_ip_duplicates', {
-          p_first_name: data.first_name,
-          p_last_name: data.last_name,
-          p_dob: data.date_of_birth,
-          p_gender: data.gender,
+          p_first_name: data.firstname,
+          p_last_name: data.surname,
+          p_dob: data.dob,
+          p_gender: data.sex,
           p_exclude_uuid: data.unique_uuid,
         });
 
@@ -1062,7 +1062,7 @@ export default function IPRegistrationForm() {
         open={showVCSection}
         onOpenChange={setShowVCSection}
         ssn={formData.ssn || ''}
-        personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()}
+        personName={`${formData.firstname || ''} ${formData.surname || ''}`.trim()}
       />
 
       {/* Duplicate Warning Dialog */}
@@ -1134,7 +1134,7 @@ export default function IPRegistrationForm() {
         uniqueUuid={formData.unique_uuid}
         currentStatus={formData.status}
         ssn={formData.ssn}
-        personName={`${formData.first_name || ''} ${formData.last_name || ''}`.trim()}
+        personName={`${formData.firstname || ''} ${formData.surname || ''}`.trim()}
         onStatusChanged={fetchData}
       />
       {/* Approve/Reject dialogs removed - now handled by WorkflowActionButtons component */}

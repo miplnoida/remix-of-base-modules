@@ -147,7 +147,7 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       // Query ip_master to check if this SSN exists
       const { data, error } = await supabase
         .from('ip_master')
-        .select('first_name, firstname, middle_name, last_name, surname, date_of_birth, dob, gender, sex, resident_address_1, resident_address_2, resident_addr1, resident_addr2')
+        .select('firstname, middle_name, surname, dob, sex, resident_addr1, resident_addr2')
         .eq('ssn', dependentSSN)
         .maybeSingle();
       
@@ -155,14 +155,13 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
       
       if (data) {
         setSsnFound(true);
-        // Map data using available columns (prefer newer columns, fallback to legacy)
-        const firstName = data.first_name || data.firstname || '';
+        const firstName = data.firstname || '';
         const middleName = data.middle_name || '';
-        const lastName = data.last_name || data.surname || '';
-        const dateOfBirth = data.date_of_birth || data.dob || '';
-        const genderValue = data.gender || data.sex || '';
-        const addr1 = data.resident_address_1 || data.resident_addr1 || '';
-        const addr2 = data.resident_address_2 || data.resident_addr2 || '';
+        const lastName = data.surname || '';
+        const dateOfBirth = data.dob || '';
+        const genderValue = data.sex || '';
+        const addr1 = data.resident_addr1 || '';
+        const addr2 = data.resident_addr2 || '';
         
         // Convert gender to M/F/N format
         let sexCode = 'N';

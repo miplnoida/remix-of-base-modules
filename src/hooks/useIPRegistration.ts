@@ -552,8 +552,8 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       }
 
       // Validate: if birth_place != place_of_residence, date_of_residency required
-      if (formData.birth_place_code && formData.place_of_residence_code
-        && formData.birth_place_code !== formData.place_of_residence_code
+      if (formData.birth_place && formData.place_of_residence
+        && formData.birth_place !== formData.place_of_residence
         && !formData.date_of_residency) {
         toast({
           title: 'Date of Residency Required',

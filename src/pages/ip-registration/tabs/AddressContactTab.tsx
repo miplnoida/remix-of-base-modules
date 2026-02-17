@@ -85,9 +85,9 @@ export default function AddressContactTab({
       label: 'Resident Address',
       icon: <MapPin className="h-4 w-4 text-muted-foreground" />,
       fields: {
-        line1: formData.resident_address_1,
-        line2: formData.resident_address_2,
-        postal: formData.postal_district,
+        line1: formData.resident_addr1,
+        line2: formData.resident_addr2,
+        postal: formData.district,
       },
     },
     {
@@ -104,7 +104,7 @@ export default function AddressContactTab({
       label: 'Email Address',
       icon: <Mail className="h-4 w-4 text-muted-foreground" />,
       fields: {
-        value: formData.email,
+        value: formData.email_addr,
       },
     },
   ];
@@ -127,15 +127,15 @@ export default function AddressContactTab({
     }
 
     if (editingAddress === 'resident') {
-      const updates = {
-        resident_address_1: tempAddress.line1,
-        resident_address_2: tempAddress.line2,
-        postal_district: tempAddress.postal,
+      const updates: Partial<IPFormData> = {
+        resident_addr1: tempAddress.line1,
+        resident_addr2: tempAddress.line2,
+        district: tempAddress.postal,
       };
       Object.entries(updates).forEach(([key, value]) => handleFieldChange(key, value));
       onSave(updates);
     } else if (editingAddress === 'mailing') {
-      const updates = {
+      const updates: Partial<IPFormData> = {
         mail_addr1: tempAddress.line1,
         mail_addr2: tempAddress.line2,
       };
@@ -143,8 +143,8 @@ export default function AddressContactTab({
       onSave(updates);
     } else if (editingAddress === 'email') {
       const trimmed = (tempAddress.value || '').trim();
-      handleFieldChange('email', trimmed);
-      onSave({ email: trimmed });
+      handleFieldChange('email_addr', trimmed);
+      onSave({ email_addr: trimmed });
     }
     setEditingAddress(null);
     setTempAddress({});
@@ -242,17 +242,17 @@ export default function AddressContactTab({
                         size="icon"
                         onClick={() => {
                           if (address.type === 'resident') {
-                            handleFieldChange('resident_address_1', '');
-                            handleFieldChange('resident_address_2', '');
-                            handleFieldChange('postal_district', '');
-                            onSave({ resident_address_1: '', resident_address_2: '', postal_district: '' });
+                            handleFieldChange('resident_addr1', '');
+                            handleFieldChange('resident_addr2', '');
+                            handleFieldChange('district', '');
+                            onSave({ resident_addr1: '', resident_addr2: '', district: '' } as Partial<IPFormData>);
                           } else if (address.type === 'mailing') {
                             handleFieldChange('mail_addr1', '');
                             handleFieldChange('mail_addr2', '');
                             onSave({ mail_addr1: '', mail_addr2: '' });
                           } else {
-                            handleFieldChange('email', '');
-                            onSave({ email: '' });
+                            handleFieldChange('email_addr', '');
+                            onSave({ email_addr: '' });
                           }
                         }}
                       >
@@ -310,27 +310,27 @@ export default function AddressContactTab({
           {editingAddress === 'resident' || editingAddress === 'mailing' ? (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{editingAddress === 'mailing' ? 'Mailing Address Line1' : 'Address Line 1'} <span className="text-xs text-muted-foreground">{(tempAddress.line1 || '').length}/{editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_address_1.maxLength}</span></Label>
+                <Label>{editingAddress === 'mailing' ? 'Mailing Address Line1' : 'Address Line 1'} <span className="text-xs text-muted-foreground">{(tempAddress.line1 || '').length}/{editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_addr1.maxLength}</span></Label>
                 <Input
                   value={tempAddress.line1 || ''}
                   onChange={(e) => {
-                    const maxLen = editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_address_1.maxLength;
+                    const maxLen = editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_addr1.maxLength;
                     setTempAddress({ ...tempAddress, line1: e.target.value.slice(0, maxLen) });
                   }}
                   placeholder={editingAddress === 'mailing' ? 'Enter mailing address line 1' : 'Enter address line 1'}
-                  maxLength={editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_address_1.maxLength}
+                  maxLength={editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr1.maxLength : IP_MASTER_FIELDS.resident_addr1.maxLength}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{editingAddress === 'mailing' ? 'Mailing Address Line2' : 'Address Line 2'} <span className="text-xs text-muted-foreground">{(tempAddress.line2 || '').length}/{editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_address_2.maxLength}</span></Label>
+                <Label>{editingAddress === 'mailing' ? 'Mailing Address Line2' : 'Address Line 2'} <span className="text-xs text-muted-foreground">{(tempAddress.line2 || '').length}/{editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_addr2.maxLength}</span></Label>
                 <Input
                   value={tempAddress.line2 || ''}
                   onChange={(e) => {
-                    const maxLen = editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_address_2.maxLength;
+                    const maxLen = editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_addr2.maxLength;
                     setTempAddress({ ...tempAddress, line2: e.target.value.slice(0, maxLen) });
                   }}
                   placeholder={editingAddress === 'mailing' ? 'Enter mailing address line 2' : 'Enter address line 2'}
-                  maxLength={editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_address_2.maxLength}
+                  maxLength={editingAddress === 'mailing' ? IP_MASTER_FIELDS.mail_addr2.maxLength : IP_MASTER_FIELDS.resident_addr2.maxLength}
                 />
               </div>
               {editingAddress === 'resident' && (
@@ -361,12 +361,12 @@ export default function AddressContactTab({
               <Input
                 value={tempAddress.value || ''}
                 onChange={(e) => {
-                  setTempAddress({ ...tempAddress, value: e.target.value.slice(0, IP_MASTER_FIELDS.email.maxLength) });
+                  setTempAddress({ ...tempAddress, value: e.target.value.slice(0, IP_MASTER_FIELDS.email_addr.maxLength) });
                   setDialogError('');
                 }}
                 placeholder="Enter email address"
                 type="email"
-                maxLength={IP_MASTER_FIELDS.email.maxLength}
+                maxLength={IP_MASTER_FIELDS.email_addr.maxLength}
                 className={dialogError ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {dialogError && <p className="text-xs text-destructive">{dialogError}</p>}

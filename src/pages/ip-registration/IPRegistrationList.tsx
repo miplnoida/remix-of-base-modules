@@ -39,15 +39,10 @@ interface IPRecord {
   application_id: string;
   ssn: string | null;
   firstname: string | null;
-  first_name: string | null;
   middle_name: string | null;
   surname: string | null;
-  last_name: string | null;
   dob: string | null;
-  date_of_birth: string | null;
   sex: string | null;
-  gender: string | null;
-  nationality_code: string | null;
   nationality: string | null;
   phone: string | null;
   telephone: string | null;
@@ -140,9 +135,9 @@ export default function IPRegistrationList() {
 
   // Get full name from record
   const getFullName = (record: IPRecord): string => {
-    const firstName = record.firstname || record.first_name || '';
+    const firstName = record.firstname || '';
     const middleName = record.middle_name || '';
-    const lastName = record.surname || record.last_name || '';
+    const lastName = record.surname || '';
     return [firstName, middleName, lastName].filter(Boolean).join(' ') || '-';
   };
 
@@ -164,19 +159,19 @@ export default function IPRegistrationList() {
           query = query.or(`ssn.ilike.%${filters.ssn}%,application_id.ilike.%${filters.ssn}%`);
         }
         if (filters.dob) {
-          query = query.or(`dob.eq.${filters.dob},date_of_birth.eq.${filters.dob}`);
+          query = query.eq('dob', filters.dob);
         }
         if (filters.surname) {
-          query = query.or(`surname.ilike.%${filters.surname}%,last_name.ilike.%${filters.surname}%`);
+          query = query.ilike('surname', `%${filters.surname}%`);
         }
         if (filters.firstName) {
-          query = query.or(`firstname.ilike.%${filters.firstName}%,first_name.ilike.%${filters.firstName}%`);
+          query = query.ilike('firstname', `%${filters.firstName}%`);
         }
         if (filters.phone) {
           query = query.or(`phone.ilike.%${filters.phone}%,telephone.ilike.%${filters.phone}%`);
         }
         if (filters.gender && filters.gender !== 'all') {
-          query = query.or(`sex.eq.${filters.gender},gender.eq.${filters.gender}`);
+          query = query.eq('sex', filters.gender);
         }
         if (filters.status && filters.status !== 'all') {
           query = query.eq('status', filters.status);
@@ -421,14 +416,14 @@ export default function IPRegistrationList() {
 
   // Get date of birth
   const getDateOfBirth = (record: IPRecord): string => {
-    const dob = record.dob || record.date_of_birth;
+    const dob = record.dob;
     if (!dob) return '-';
     return formatDisplayDate(dob) || '-';
   };
 
   // Get gender display
   const getGenderDisplay = (record: IPRecord): string => {
-    const gender = record.sex || record.gender;
+    const gender = record.sex;
     if (gender === 'M') return 'Male';
     if (gender === 'F') return 'Female';
     if (gender === 'N') return 'Not-Specified';
@@ -463,7 +458,7 @@ export default function IPRegistrationList() {
             row[col.key] = getGenderDisplay(record);
             break;
           case 'nationality':
-            row[col.key] = getCountryDescription(record.nationality_code || record.nationality);
+            row[col.key] = getCountryDescription(record.nationality);
             break;
           case 'registration_date':
             row[col.key] = getRegistrationDate(record);
@@ -811,7 +806,7 @@ export default function IPRegistrationList() {
                             )}
                             {col.key === 'date_of_birth' && getDateOfBirth(record)}
                             {col.key === 'gender' && getGenderDisplay(record)}
-                            {col.key === 'nationality' && getCountryDescription(record.nationality_code || record.nationality)}
+                            {col.key === 'nationality' && getCountryDescription(record.nationality)}
                             {col.key === 'registration_date' && getRegistrationDate(record)}
                             {col.key === 'telephone' && (record.phone || record.telephone || '-')}
                           </TableCell>
