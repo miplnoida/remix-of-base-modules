@@ -9,10 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCountries, useDistricts, useRelations, useOccupations, useEyeColors } from '@/hooks/useIPMasterLookups';
 import {
   Dialog,
   DialogContent,
@@ -38,8 +40,10 @@ import {
   Users,
   Heart,
   Building,
+  UserPlus,
   RefreshCw,
 } from 'lucide-react';
+import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
@@ -502,11 +506,81 @@ function ApplicationEditForm({ meetingType, data, onChange }: ApplicationEditFor
   );
 }
 
-// Insured Person Edit Form
+// Insured Person Edit Form — aligned with ApplicationDetailPage
 function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void }) {
+  // Master table lookups
+  const { data: countries } = useCountries();
+  const { data: districts } = useDistricts();
+  const { data: relations } = useRelations();
+  const { data: occupations } = useOccupations();
+  const { data: eyeColors } = useEyeColors();
+
+  // Lookup helpers
+  const getCountryName = (code: string | null | undefined): string => {
+    if (!code) return '';
+    const country = countries?.find(c => c.code === code || c.code === code.toUpperCase());
+    return country?.description || code;
+  };
+  const getNationalityName = (code: string | null | undefined): string => {
+    if (!code) return '';
+    const country = countries?.find(c => c.code === code || c.code === code.toUpperCase());
+    return country?.nationality || country?.description || code;
+  };
+  const getDistrictName = (code: string | null | undefined): string => {
+    if (!code) return '';
+    const district = districts?.find(d => d.code === code || d.code === code.toUpperCase());
+    return district?.description || code;
+  };
+  const getRelationName = (code: string | null | undefined): string => {
+    if (!code) return '';
+    const relation = relations?.find(r => r.code === code || r.code === code.toUpperCase());
+    return relation?.description || code;
+  };
+  const getOccupationName = (code: string | null | undefined): string => {
+    if (!code) return '';
+    const occupation = occupations?.find(o => o.code === code || o.code === code.toUpperCase());
+    return occupation?.short_description || code;
+  };
+
+  const resolveNpf = (): string => {
+    const raw = data.npfMember;
+    if (raw === true || raw === 'true' || raw === 'Y' || raw === 'Yes') return 'Y';
+    if (raw === false || raw === 'false' || raw === 'N' || raw === 'No') return 'N';
+    const npf = data.npf;
+    if (npf === 'Y' || npf === 'N') return npf;
+    return '';
+  };
+
+  const resolveCitizenship = (): string => {
+    const raw = data.isCitizen;
+    if (raw === true || raw === 'true' || raw === 'Y' || raw === 'Yes') return 'Y';
+    if (raw === false || raw === 'false' || raw === 'N' || raw === 'No') return 'N';
+    const cit = data.citizenship;
+    if (cit === 'Y' || cit === 'N') return cit;
+    return '';
+  };
+
+  const formatPhone = (phone: string | null | undefined, dialCode: string | null | undefined) => {
+    if (!phone) return '';
+    return dialCode ? `(${dialCode}) ${phone}` : phone;
+  };
+
+  const formatDateRaw = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '';
+    try {
+      const dateOnly = dateStr.split('T')[0];
+      const [year, month, day] = dateOnly.split('-').map(Number);
+      if (!year || !month || !day) return dateStr;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[month - 1]} ${day}, ${year}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <Tabs defaultValue="personal" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-7">
         <TabsTrigger value="personal" className="gap-1 text-xs">
           <User className="h-3 w-3" />
           Personal
@@ -527,20 +601,31 @@ function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; 
           <Users className="h-3 w-3" />
           Dependants
         </TabsTrigger>
+        <TabsTrigger value="documents" className="gap-1 text-xs">
+          <FileText className="h-3 w-3" />
+          Documents
+        </TabsTrigger>
+        <TabsTrigger value="remarks" className="gap-1 text-xs">
+          <FileText className="h-3 w-3" />
+          Remarks
+        </TabsTrigger>
       </TabsList>
 
+      {/* Personal Information Tab */}
       <TabsContent value="personal" className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <EditableField label="Title" value={data.title} onChange={(v) => onChange('title', v)} />
           <EditableField label="First Name" value={data.firstName} onChange={(v) => onChange('firstName', v)} />
-          <EditableField label="Middle Name" value={data.middleName} onChange={(v) => onChange('middleName', v)} />
+          <EditableField label="First Middle Name" value={data.middleName1 || data.middleName} onChange={(v) => onChange('middleName1', v)} />
+          <EditableField label="Second Middle Name" value={data.middleName2} onChange={(v) => onChange('middleName2', v)} />
           <EditableField label="Last Name" value={data.lastName} onChange={(v) => onChange('lastName', v)} />
+          <EditableField label="Suffix" value={data.suffix} onChange={(v) => onChange('suffix', v)} />
           <EditableField label="Maiden Name" value={data.maidenName} onChange={(v) => onChange('maidenName', v)} />
           <EditableField label="Alias" value={data.alias} onChange={(v) => onChange('alias', v)} />
           <div className="space-y-2">
-            <Label>Gender</Label>
+            <Label className="text-sm">Gender</Label>
             <Select value={data.gender || ''} onValueChange={(v) => onChange('gender', v)}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
               <SelectContent>
@@ -551,83 +636,318 @@ function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; 
             </Select>
           </div>
           <EditableField label="Date of Birth" value={data.dateOfBirth} onChange={(v) => onChange('dateOfBirth', v)} type="date" />
-          <EditableField label="Place of Birth" value={data.placeOfBirth} onChange={(v) => onChange('placeOfBirth', v)} />
-          <EditableField label="Nationality" value={data.nationality} onChange={(v) => onChange('nationality', v)} />
+          <div className="space-y-2">
+            <Label className="text-sm">Place of Birth</Label>
+            <Select value={data.placeOfBirth || ''} onValueChange={(v) => onChange('placeOfBirth', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select country">{getCountryName(data.placeOfBirth) || 'Select country'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {countries?.map(c => (
+                  <SelectItem key={c.code} value={c.code}>{c.description || c.code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">Nationality</Label>
+            <Select value={data.nationality || ''} onValueChange={(v) => onChange('nationality', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select nationality">{getNationalityName(data.nationality) || 'Select nationality'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {countries?.map(c => (
+                  <SelectItem key={c.code} value={c.code}>{c.nationality || c.description || c.code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">Marital Status</Label>
+            <Select value={data.maritalStatus || ''} onValueChange={(v) => onChange('maritalStatus', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="S">Single</SelectItem>
+                <SelectItem value="M">Married</SelectItem>
+                <SelectItem value="D">Divorced</SelectItem>
+                <SelectItem value="W">Widowed</SelectItem>
+                <SelectItem value="P">Separated</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {data.maritalStatus === 'M' && (
+            <EditableField label="Date Married" value={data.dateMarried} onChange={(v) => onChange('dateMarried', v)} type="date" />
+          )}
+        </div>
+        <Separator />
+        <h4 className="font-medium">Physical Characteristics</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <EditableField label="Height (Feet)" value={data.heightFeet} onChange={(v) => onChange('heightFeet', v)} type="number" />
+          <EditableField label="Height (Inches)" value={data.heightInches} onChange={(v) => onChange('heightInches', v)} type="number" />
+          <div className="space-y-2">
+            <Label className="text-sm">Eye Color</Label>
+            <Select value={data.eyeColor || ''} onValueChange={(v) => onChange('eyeColor', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select eye color" />
+              </SelectTrigger>
+              <SelectContent>
+                {eyeColors?.map(e => (
+                  <SelectItem key={e.code} value={e.code}>{e.description || e.code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </TabsContent>
 
+      {/* Contact Information Tab */}
       <TabsContent value="contact" className="space-y-4">
+        <h4 className="font-medium">Phone & Email</h4>
         <div className="grid grid-cols-3 gap-4">
-          <EditableField label="Email" value={data.email} onChange={(v) => onChange('email', v)} type="email" />
           <EditableField label="Mobile Phone" value={data.phoneMobile} onChange={(v) => onChange('phoneMobile', v)} />
           <EditableField label="Home Phone" value={data.phoneHome} onChange={(v) => onChange('phoneHome', v)} />
-          <EditableField label="Work Phone" value={data.phoneWork} onChange={(v) => onChange('phoneWork', v)} />
+          <EditableField label="Email" value={data.email} onChange={(v) => onChange('email', v)} type="email" />
         </div>
         <Separator />
         <h4 className="font-medium flex items-center gap-2">
           <MapPin className="h-4 w-4" />
-          Address
+          Residential Address
         </h4>
         <div className="grid grid-cols-3 gap-4">
           <EditableField label="Address Line 1" value={data.addressLine1} onChange={(v) => onChange('addressLine1', v)} />
           <EditableField label="Address Line 2" value={data.addressLine2} onChange={(v) => onChange('addressLine2', v)} />
-          <EditableField label="City" value={data.city} onChange={(v) => onChange('city', v)} />
-          <EditableField label="Parish" value={data.parish} onChange={(v) => onChange('parish', v)} />
-          <EditableField label="Country" value={data.country} onChange={(v) => onChange('country', v)} />
+          <div className="space-y-2">
+            <Label className="text-sm">Postal District</Label>
+            <Select value={data.postalDistrict || ''} onValueChange={(v) => onChange('postalDistrict', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select district">{getDistrictName(data.postalDistrict) || 'Select district'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {districts?.map(d => (
+                  <SelectItem key={d.code} value={d.code}>{d.description || d.code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">Place of Residency</Label>
+            <Select value={data.placeOfResidency || ''} onValueChange={(v) => onChange('placeOfResidency', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select country">{getCountryName(data.placeOfResidency) || 'Select country'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {countries?.map(c => (
+                  <SelectItem key={c.code} value={c.code}>{c.description || c.code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <EditableField label="Residency Date" value={data.residencyDate} onChange={(v) => onChange('residencyDate', v)} type="date" />
+        </div>
+        <Separator />
+        <h4 className="font-medium">Mailing Address</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <EditableField label="Mailing Address 1" value={data.mailingAddr1} onChange={(v) => onChange('mailingAddr1', v)} />
+          <EditableField label="Mailing Address 2" value={data.mailingAddr2} onChange={(v) => onChange('mailingAddr2', v)} />
+        </div>
+        <Separator />
+        <h4 className="font-medium flex items-center gap-2">
+          <UserPlus className="h-4 w-4" />
+          Emergency Contact
+        </h4>
+        <div className="grid grid-cols-3 gap-4">
+          <EditableField label="Name" value={data.contactName} onChange={(v) => onChange('contactName', v)} />
+          <div className="space-y-2">
+            <Label className="text-sm">Relationship</Label>
+            <Select value={data.contactRelation || ''} onValueChange={(v) => onChange('contactRelation', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select relation">{getRelationName(data.contactRelation) || 'Select relation'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {relations?.map(r => (
+                  <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <EditableField label="Address Line 1" value={data.contactAddress1 || data.contactAddress} onChange={(v) => onChange('contactAddress1', v)} />
+          <EditableField label="Address Line 2" value={data.contactAddress2} onChange={(v) => onChange('contactAddress2', v)} />
+          <EditableField label="Phone" value={data.contactPhone} onChange={(v) => onChange('contactPhone', v)} />
+          <EditableField label="Mobile" value={data.contactMobile} onChange={(v) => onChange('contactMobile', v)} />
+          <EditableField label="Email" value={data.contactEmail} onChange={(v) => onChange('contactEmail', v)} type="email" />
         </div>
       </TabsContent>
 
+      {/* Relations Tab */}
       <TabsContent value="relations" className="space-y-4">
-        <h4 className="font-medium">Father's Information</h4>
+        <h4 className="font-medium">Parent's Information</h4>
         <div className="grid grid-cols-3 gap-4">
-          <EditableField label="First Name" value={data.fatherFirstName} onChange={(v) => onChange('fatherFirstName', v)} />
-          <EditableField label="Last Name" value={data.fatherLastName} onChange={(v) => onChange('fatherLastName', v)} />
-          <EditableField label="SSN" value={data.fatherSSN} onChange={(v) => onChange('fatherSSN', v)} />
-        </div>
-        <Separator />
-        <h4 className="font-medium">Mother's Information</h4>
-        <div className="grid grid-cols-3 gap-4">
-          <EditableField label="First Name" value={data.motherFirstName} onChange={(v) => onChange('motherFirstName', v)} />
-          <EditableField label="Last Name" value={data.motherLastName} onChange={(v) => onChange('motherLastName', v)} />
-          <EditableField label="Maiden Name" value={data.motherMaidenName} onChange={(v) => onChange('motherMaidenName', v)} />
+          <EditableField label="Father's Name" value={data.fatherName || [data.fatherFirstName, data.fatherLastName].filter(Boolean).join(' ')} onChange={(v) => onChange('fatherName', v)} />
+          <EditableField label="Mother's Name" value={data.motherName || [data.motherFirstName, data.motherLastName].filter(Boolean).join(' ')} onChange={(v) => onChange('motherName', v)} />
         </div>
         <Separator />
         <h4 className="font-medium">Spouse Information</h4>
         <div className="grid grid-cols-3 gap-4">
-          <EditableField label="First Name" value={data.spouseFirstName} onChange={(v) => onChange('spouseFirstName', v)} />
-          <EditableField label="Last Name" value={data.spouseLastName} onChange={(v) => onChange('spouseLastName', v)} />
+          <EditableField label="Name" value={data.spouseName || [data.spouseFirstName, data.spouseLastName].filter(Boolean).join(' ') || ''} onChange={(v) => onChange('spouseName', v)} />
           <EditableField label="SSN" value={data.spouseSSN} onChange={(v) => onChange('spouseSSN', v)} />
+          <EditableField label="Date of Birth" value={data.spouseDOB || data.spouseDateOfBirth} onChange={(v) => onChange('spouseDOB', v)} type="date" />
+          <EditableField label="Address Line 1" value={data.spouseAddress1} onChange={(v) => onChange('spouseAddress1', v)} />
+          <EditableField label="Address Line 2" value={data.spouseAddress2} onChange={(v) => onChange('spouseAddress2', v)} />
+        </div>
+        <Separator />
+        <h4 className="font-medium">Beneficiary Information</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <EditableField label="Name" value={data.beneficiaryName} onChange={(v) => onChange('beneficiaryName', v)} />
+          <EditableField label="Address Line 1" value={data.beneficiaryAddress1 || data.beneficiaryAddress} onChange={(v) => onChange('beneficiaryAddress1', v)} />
+          <EditableField label="Address Line 2" value={data.beneficiaryAddress2} onChange={(v) => onChange('beneficiaryAddress2', v)} />
+        </div>
+        <Separator />
+        <h4 className="font-medium">Witness Information</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <EditableField label="Witness Name" value={data.witnessName} onChange={(v) => onChange('witnessName', v)} />
+          <EditableField label="Witness Date" value={data.witnessDate} onChange={(v) => onChange('witnessDate', v)} type="date" />
         </div>
       </TabsContent>
 
+      {/* Employment Tab */}
       <TabsContent value="employment" className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
-          <EditableField label="Occupation" value={data.occupation} onChange={(v) => onChange('occupation', v)} />
+          <div className="space-y-2">
+            <Label className="text-sm">Has Work Permit</Label>
+            <Select value={data.hasWorkPermit === true || data.hasWorkPermit === 'true' ? 'Y' : 'N'} onValueChange={(v) => onChange('hasWorkPermit', v === 'Y')}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Y">Yes</SelectItem>
+                <SelectItem value="N">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(data.hasWorkPermit === true || data.hasWorkPermit === 'true') && (
+            <EditableField label="Work Permit Expiry" value={data.workPermitExpiry} onChange={(v) => onChange('workPermitExpiry', v)} type="date" />
+          )}
+          <div className="space-y-2">
+            <Label className="text-sm">Occupation</Label>
+            <Select value={data.occupationCode || data.occupation || ''} onValueChange={(v) => onChange('occupationCode', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select occupation">{data.occupationName || getOccupationName(data.occupationCode || data.occupation) || 'Select occupation'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {occupations?.map(o => (
+                  <SelectItem key={o.code} value={o.code}>{o.short_description || o.code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">NPF</Label>
+            <Select value={resolveNpf()} onValueChange={(v) => { onChange('npf', v); onChange('npfMember', v === 'Y'); }}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Y">Yes</SelectItem>
+                <SelectItem value="N">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">Citizenship</Label>
+            <Select value={resolveCitizenship()} onValueChange={(v) => { onChange('citizenship', v); onChange('isCitizen', v === 'Y'); }}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Y">Yes</SelectItem>
+                <SelectItem value="N">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Separator />
+        <h4 className="font-medium flex items-center gap-2">
+          <Building className="h-4 w-4" />
+          Employer Details
+        </h4>
+        <div className="grid grid-cols-3 gap-4">
           <EditableField label="Employer Name" value={data.employerName} onChange={(v) => onChange('employerName', v)} />
-          <EditableField label="Employer Address" value={data.employerAddress} onChange={(v) => onChange('employerAddress', v)} />
-          <EditableField label="Employer Town" value={data.employerTown} onChange={(v) => onChange('employerTown', v)} />
-          <EditableField label="Employer Phone" value={data.employerPhone} onChange={(v) => onChange('employerPhone', v)} />
-          <EditableField label="Employment Start Date" value={data.employmentStartDate} onChange={(v) => onChange('employmentStartDate', v)} type="date" />
+          <EditableField label="Address" value={data.employerAddress} onChange={(v) => onChange('employerAddress', v)} />
+          <EditableField label="Town" value={data.employerTown} onChange={(v) => onChange('employerTown', v)} />
+          <EditableField label="Phone" value={data.employerPhone} onChange={(v) => onChange('employerPhone', v)} />
         </div>
       </TabsContent>
 
+      {/* Dependants Tab */}
       <TabsContent value="dependants" className="space-y-4">
-        <p className="text-muted-foreground text-sm">
-          Dependant information is displayed in read-only mode. Use the dedicated dependants management screen to make changes.
-        </p>
         {data.dependants && Array.isArray(data.dependants) && data.dependants.length > 0 ? (
-          <div className="space-y-2">
-            {data.dependants.map((dep: any, index: number) => (
-              <div key={index} className="p-3 border rounded-lg">
-                <p className="font-medium">{dep.firstName} {dep.lastName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {dep.relationship} • DOB: {dep.dateOfBirth}
-                </p>
-              </div>
-            ))}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Date of Birth</TableHead>
+                <TableHead>Gender</TableHead>
+                <TableHead>Relationship</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>School Child</TableHead>
+                <TableHead>Invalid</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.dependants.map((dep: any, index: number) => (
+                <TableRow key={dep.id || index}>
+                  <TableCell className="font-medium">{dep.firstName} {dep.lastName}</TableCell>
+                  <TableCell>{formatDateRaw(dep.dateOfBirth)}</TableCell>
+                  <TableCell>{dep.gender === 'M' ? 'Male' : dep.gender === 'F' ? 'Female' : dep.gender === 'N' ? 'Not-Specified' : dep.gender || '—'}</TableCell>
+                  <TableCell>{getRelationName(dep.relationship)}</TableCell>
+                  <TableCell>{dep.address1 || (dep.livesAtSameAddress ? 'Same as Applicant' : dep.address) || '—'}</TableCell>
+                  <TableCell>
+                    {(dep.isSchoolChild ?? dep.isInSchool) ? (
+                      <Badge variant="default">Yes</Badge>
+                    ) : (
+                      <Badge variant="secondary">No</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {dep.isInvalid ? (
+                      <Badge variant="destructive">Yes</Badge>
+                    ) : (
+                      <Badge variant="secondary">No</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No dependants registered</p>
+          </div>
+        )}
+      </TabsContent>
+
+      {/* Documents Tab */}
+      <TabsContent value="documents" className="space-y-4">
+        <ApplicationDocumentsTab 
+          documents={data.documents} 
+          photoUrl={data.photoUrl} 
+        />
+      </TabsContent>
+
+      {/* Remarks Tab */}
+      <TabsContent value="remarks" className="space-y-4">
+        {data.remarks ? (
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <p className="whitespace-pre-wrap">{data.remarks}</p>
           </div>
         ) : (
-          <p className="text-muted-foreground">No dependants registered</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No remarks provided</p>
+          </div>
         )}
       </TabsContent>
     </Tabs>
