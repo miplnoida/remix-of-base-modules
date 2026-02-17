@@ -22,24 +22,29 @@ interface ConversionResult {
  * Maps an ExternalApplicationDetail to the RPC parameters and calls convert_application_to_ip
  */
 function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, sourceRoute: string) {
-  // Concatenate phone with dial code
-  const phone = [detail.phoneHomeDialCode, detail.phoneHome].filter(Boolean).join('');
-  const phoneMobile = [detail.phoneMobileDialCode, detail.phoneMobile].filter(Boolean).join('');
-  const contactPhone = [detail.contactPhoneDialCode, detail.contactPhone].filter(Boolean).join('');
-  const contactMobile = [detail.contactMobileDialCode, detail.contactMobile].filter(Boolean).join('');
+  // Phone digits only (no dial codes for db storage)
+  const phone = detail.phoneHome || null;
+  const phoneMobile = detail.phoneMobile || null;
+  const contactPhone = detail.contactPhone || null;
+  const contactMobile = detail.contactMobile || null;
 
-  // fatherName and motherName come directly as single strings from API
+  // Parent names: use single-string field first, fall back to first+last concatenation
   const fatherName = detail.fatherName || [detail.fatherFirstName, detail.fatherLastName].filter(Boolean).join(' ');
   const motherName = detail.motherName || [detail.motherFirstName, detail.motherLastName].filter(Boolean).join(' ');
+  // Spouse: use spouseFirstName per mapping (spouse_name ← spouse_first_name)
   const spouseName = detail.spouseName || [detail.spouseFirstName, detail.spouseLastName].filter(Boolean).join(' ');
 
-  // contactAddress → contact_addr1, contactAddress1 → contact_addr2
+  // Contact address: contactAddress → contact_addr1, contactAddress1 → contact_addr2
   const contactAddr1 = detail.contactAddress || '';
   const contactAddr2 = detail.contactAddress1 || '';
 
-  // beneficiaryAddress → ben_addr1, beneficiaryAddress1 → ben_addr2
+  // Beneficiary address
   const benAddr1 = detail.beneficiaryAddress || '';
   const benAddr2 = detail.beneficiaryAddress1 || '';
+
+  // Spouse address (from ExternalApplicationDetail)
+  const spouseAddr1 = (detail as any).spouseAddressLine1 || '';
+  const spouseAddr2 = (detail as any).spouseAddressLine2 || '';
 
   // Map dependants
   const dependants = (detail.dependants || []).map(dep => ({
@@ -77,19 +82,21 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     p_postal_district: detail.resDistrict || detail.postalDistrict || null,
     p_mailing_addr1: detail.mailingAddr1 || null,
     p_mailing_addr2: detail.mailingAddr2 || null,
-    p_phone: phone || null,
-    p_phone_mobile: phoneMobile || null,
+    p_phone: phone,
+    p_phone_mobile: phoneMobile,
     p_email: detail.email || null,
     p_contact_name: detail.contactName || null,
     p_contact_relation: detail.contactRelation || null,
     p_contact_addr1: contactAddr1 || null,
     p_contact_addr2: contactAddr2 || null,
     p_contact_email: detail.contactEmail || null,
-    p_contact_phone: contactPhone || null,
-    p_contact_mobile: contactMobile || null,
+    p_contact_phone: contactPhone,
+    p_contact_mobile: contactMobile,
     p_father_name: fatherName || null,
     p_mother_name: motherName || null,
     p_spouse_name: spouseName || null,
+    p_spouse_addr1: spouseAddr1 || null,
+    p_spouse_addr2: spouseAddr2 || null,
     p_spouse_ssn: detail.spouseSSN || null,
     p_spouse_dob: detail.spouseDOB || detail.spouseDateOfBirth || null,
     p_beneficiary_name: detail.beneficiaryName || null,
@@ -102,11 +109,17 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     p_work_permit_expiry: detail.workPermitExpiry || null,
     p_witness_name: detail.witnessName || null,
     p_witness_date: detail.witnessDate || null,
-    p_application_date: detail.submittedAt ? detail.submittedAt.substring(0, 10) : null,
+    p_application_date: detail.employmentStartDate || null,
     p_remarks: detail.remarks || null,
     p_approved_by: approvedBy,
     p_source_route: sourceRoute,
     p_dependants: dependants,
+    p_employer_name: detail.employerName || null,
+    p_employer_address: detail.employerAddress || null,
+    p_employer_phone: detail.employerPhone || null,
+    p_employer_town: detail.employerTown || null,
+    p_submitted_by: null,
+    p_submitted_at: detail.submittedAt || null,
   };
 }
 
