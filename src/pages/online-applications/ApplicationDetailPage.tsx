@@ -224,7 +224,7 @@ export default function ApplicationDetailPage() {
               <div className="flex items-center gap-2">
                 {application.title && <span className="text-muted-foreground">{application.title}</span>}
                 <h2 className="text-xl font-semibold">
-                  {application.firstName} {application.middleName} {application.lastName}
+                  {application.firstName} {application.middleName1 || application.middleName} {application.lastName}
                   {application.suffix && <span className="ml-1">{application.suffix}</span>}
                 </h2>
               </div>
@@ -293,8 +293,8 @@ export default function ApplicationDetailPage() {
               <div className="grid grid-cols-3 gap-6">
                 <InfoField label="Title" value={application.title} />
                 <InfoField label="First Name" value={application.firstName} />
-                <InfoField label="First Middle Name" value={application.middleName} />
-                <InfoField label="Second Middle Name" value={application.middleName1} />
+                <InfoField label="First Middle Name" value={application.middleName1 || application.middleName} />
+                <InfoField label="Second Middle Name" value={application.middleName2} />
                 <InfoField label="Last Name" value={application.lastName} />
                 <InfoField label="Suffix" value={application.suffix} />
                 <InfoField label="Maiden Name" value={application.maidenName} />
@@ -416,7 +416,7 @@ export default function ApplicationDetailPage() {
               <div>
                 <h3 className="font-medium mb-3">Spouse Information</h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="Name" value={application.spouseName} />
+                  <InfoField label="Name" value={application.spouseName || [application.spouseFirstName, application.spouseLastName].filter(Boolean).join(' ') || null} />
                   <InfoField label="SSN" value={application.spouseSSN} />
                   <InfoField label="Date of Birth" value={formatDateRaw(application.spouseDOB || application.spouseDateOfBirth)} />
                   <InfoField label="Address Line 1" value={application.spouseAddress1} />
@@ -460,7 +460,7 @@ export default function ApplicationDetailPage() {
               <div className="grid grid-cols-3 gap-6">
                 <InfoField label="Has Work Permit" value={application.hasWorkPermit ? 'Yes' : 'No'} />
                 <InfoField label="Work Permit Expiry" value={formatDateRaw(application.workPermitExpiry)} />
-                <InfoField label="Occupation" value={getOccupationName(application.occupation)} />
+                <InfoField label="Occupation" value={application.occupationName || getOccupationName(application.occupationCode || application.occupation)} />
                 <InfoField label="NPF" value={resolveNpf()} />
                 <InfoField label="Citizenship" value={resolveCitizenship()} />
               </div>
