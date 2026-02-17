@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useCountries, useDistricts, useRelations, useOccupations, useEyeColors } from '@/hooks/useIPMasterLookups';
 import {
   Dialog,
@@ -42,6 +43,9 @@ import {
   Building,
   UserPlus,
   RefreshCw,
+  Plus,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
@@ -51,7 +55,7 @@ import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import type { MeetingType } from '@/types/meetings';
-import type { ExternalApplicationDetail } from '@/types/externalApplication';
+import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
@@ -89,12 +93,12 @@ export default function StartMeetingPage() {
   const meetingType = meetingData?.meeting?.meeting_type;
   
   // Fetch application data based on meeting type
-  const { data: applicationData, isLoading: appLoading } = useExternalApplicationDetail(applicationReference);
+  const { data: applicationData, isLoading: appLoading, refetch: refetchApplication, isFetching: appFetching } = useExternalApplicationDetail(applicationReference);
 
   // Initialize edited data when application loads
   useEffect(() => {
     if (applicationData) {
-      setEditedData(applicationData);
+      setEditedData({ ...applicationData });
     }
   }, [applicationData]);
 
@@ -102,6 +106,16 @@ export default function StartMeetingPage() {
     setEditedData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refetchApplication();
+      setHasChanges(false);
+      toast.success('Application data refreshed');
+    } catch {
+      toast.error('Failed to refresh application data');
+    }
+  }, [refetchApplication]);
 
   const handleApprove = async () => {
     if (!meetingId) return;
@@ -280,6 +294,21 @@ export default function StartMeetingPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              className="gap-2"
+              disabled={appFetching}
+            >
+              {appFetching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh Data
+            </Button>
+
             {/* Approve Button */}
             <Button
               onClick={() => setApprovalDialogOpen(true)}
@@ -363,6 +392,7 @@ export default function StartMeetingPage() {
               meetingType={meeting.meeting_type}
               data={editedData}
               onChange={handleFieldChange}
+              onDataChange={(newData) => { setEditedData(newData); setHasChanges(true); }}
             />
           ) : (
             <Alert>
@@ -483,11 +513,12 @@ interface ApplicationEditFormProps {
   meetingType: MeetingType;
   data: Record<string, any>;
   onChange: (field: string, value: any) => void;
+  onDataChange: (newData: Record<string, any>) => void;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
-    return <InsuredPersonEditForm data={data} onChange={onChange} />;
+    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} />;
   }
   
   if (meetingType === 'Employer-Registration') {
@@ -507,13 +538,64 @@ function ApplicationEditForm({ meetingType, data, onChange }: ApplicationEditFor
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
   const { data: relations } = useRelations();
   const { data: occupations } = useOccupations();
   const { data: eyeColors } = useEyeColors();
+
+  // Dependant CRUD state
+  const [depDialogOpen, setDepDialogOpen] = useState(false);
+  const [depEditIndex, setDepEditIndex] = useState<number | null>(null);
+  const [depForm, setDepForm] = useState<Record<string, any>>({});
+  const [depDeleteIndex, setDepDeleteIndex] = useState<number | null>(null);
+  // Document delete state
+  const [docDeleteIndex, setDocDeleteIndex] = useState<number | null>(null);
+
+  const dependants: any[] = Array.isArray(data.dependants) ? data.dependants : [];
+
+  const openAddDependant = () => {
+    setDepEditIndex(null);
+    setDepForm({ id: `temp-${Date.now()}`, firstName: '', lastName: '', dateOfBirth: '', gender: '', relationship: '', address1: '', address2: '', isSchoolChild: false, isInvalid: false, livesAtSameAddress: false });
+    setDepDialogOpen(true);
+  };
+
+  const openEditDependant = (index: number) => {
+    setDepEditIndex(index);
+    setDepForm({ ...dependants[index] });
+    setDepDialogOpen(true);
+  };
+
+  const saveDependant = () => {
+    const updated = [...dependants];
+    if (depEditIndex !== null) {
+      updated[depEditIndex] = depForm;
+    } else {
+      updated.push(depForm);
+    }
+    onDataChange({ ...data, dependants: updated });
+    setDepDialogOpen(false);
+    toast.success(depEditIndex !== null ? 'Dependant updated' : 'Dependant added');
+  };
+
+  const confirmDeleteDependant = () => {
+    if (depDeleteIndex === null) return;
+    const updated = dependants.filter((_, i) => i !== depDeleteIndex);
+    onDataChange({ ...data, dependants: updated });
+    setDepDeleteIndex(null);
+    toast.success('Dependant removed');
+  };
+
+  const confirmDeleteDocument = () => {
+    if (docDeleteIndex === null) return;
+    const docs: any[] = Array.isArray(data.documents) ? [...data.documents] : [];
+    docs.splice(docDeleteIndex, 1);
+    onDataChange({ ...data, documents: docs });
+    setDocDeleteIndex(null);
+    toast.success('Document removed from list');
+  };
 
   // Lookup helpers
   const getCountryName = (code: string | null | undefined): string => {
@@ -882,7 +964,17 @@ function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; 
 
       {/* Dependants Tab */}
       <TabsContent value="dependants" className="space-y-4">
-        {data.dependants && Array.isArray(data.dependants) && data.dependants.length > 0 ? (
+        <div className="flex justify-between items-center">
+          <h4 className="font-medium flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Dependants ({dependants.length})
+          </h4>
+          <Button size="sm" onClick={openAddDependant} className="gap-1">
+            <Plus className="h-4 w-4" />
+            Add Dependant
+          </Button>
+        </div>
+        {dependants.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -893,10 +985,11 @@ function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; 
                 <TableHead>Address</TableHead>
                 <TableHead>School Child</TableHead>
                 <TableHead>Invalid</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.dependants.map((dep: any, index: number) => (
+              {dependants.map((dep: any, index: number) => (
                 <TableRow key={dep.id || index}>
                   <TableCell className="font-medium">{dep.firstName} {dep.lastName}</TableCell>
                   <TableCell>{formatDateRaw(dep.dateOfBirth)}</TableCell>
@@ -917,6 +1010,16 @@ function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; 
                       <Badge variant="secondary">No</Badge>
                     )}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="icon" onClick={() => openEditDependant(index)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDepDeleteIndex(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -927,14 +1030,123 @@ function InsuredPersonEditForm({ data, onChange }: { data: Record<string, any>; 
             <p>No dependants registered</p>
           </div>
         )}
+
+        {/* Dependant Add/Edit Dialog */}
+        <Dialog open={depDialogOpen} onOpenChange={setDepDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{depEditIndex !== null ? 'Edit Dependant' : 'Add Dependant'}</DialogTitle>
+              <DialogDescription>
+                {depEditIndex !== null ? 'Modify dependant details (in-memory only).' : 'Add a new dependant (in-memory only).'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-sm">First Name</Label>
+                <Input value={depForm.firstName || ''} onChange={(e) => setDepForm(p => ({ ...p, firstName: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Last Name</Label>
+                <Input value={depForm.lastName || ''} onChange={(e) => setDepForm(p => ({ ...p, lastName: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Date of Birth</Label>
+                <Input type="date" value={depForm.dateOfBirth?.split('T')[0] || ''} onChange={(e) => setDepForm(p => ({ ...p, dateOfBirth: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Gender</Label>
+                <Select value={depForm.gender || ''} onValueChange={(v) => setDepForm(p => ({ ...p, gender: v }))}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Male</SelectItem>
+                    <SelectItem value="F">Female</SelectItem>
+                    <SelectItem value="N">Not-Specified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Relationship</Label>
+                <Select value={depForm.relationship || ''} onValueChange={(v) => setDepForm(p => ({ ...p, relationship: v }))}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select">{getRelationName(depForm.relationship) || 'Select'}</SelectValue></SelectTrigger>
+                  <SelectContent>
+                    {relations?.map(r => (
+                      <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Address</Label>
+                <Input value={depForm.address1 || depForm.address || ''} onChange={(e) => setDepForm(p => ({ ...p, address1: e.target.value, address: e.target.value }))} className="h-9" />
+              </div>
+              <div className="flex items-center gap-2 pt-4">
+                <Checkbox checked={!!depForm.isSchoolChild} onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))} />
+                <Label className="text-sm">School Child</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-4">
+                <Checkbox checked={!!depForm.isInvalid} onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))} />
+                <Label className="text-sm">Invalid</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDepDialogOpen(false)}>Cancel</Button>
+              <Button onClick={saveDependant} disabled={!depForm.firstName || !depForm.lastName}>
+                {depEditIndex !== null ? 'Update' : 'Add'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dependant Delete Confirmation */}
+        <Dialog open={depDeleteIndex !== null} onOpenChange={(open) => { if (!open) setDepDeleteIndex(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-destructive" />
+                Delete Dependant
+              </DialogTitle>
+              <DialogDescription>
+                Remove this dependant from the list? This change is in-memory only and will not affect the database until the application is approved.
+              </DialogDescription>
+            </DialogHeader>
+            {depDeleteIndex !== null && dependants[depDeleteIndex] && (
+              <p className="font-medium py-2">{dependants[depDeleteIndex].firstName} {dependants[depDeleteIndex].lastName}</p>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDepDeleteIndex(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmDeleteDependant}>Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TabsContent>
 
       {/* Documents Tab */}
       <TabsContent value="documents" className="space-y-4">
         <ApplicationDocumentsTab 
           documents={data.documents} 
-          photoUrl={data.photoUrl} 
+          photoUrl={data.photoUrl}
+          onDelete={(index: number) => setDocDeleteIndex(index)}
+          showDelete
         />
+
+        {/* Document Delete Confirmation */}
+        <Dialog open={docDeleteIndex !== null} onOpenChange={(open) => { if (!open) setDocDeleteIndex(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-destructive" />
+                Remove Document
+              </DialogTitle>
+              <DialogDescription>
+                Remove this document from the list? This change is in-memory only and will not affect storage or the database.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDocDeleteIndex(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmDeleteDocument}>Remove</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TabsContent>
 
       {/* Remarks Tab */}

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2 } from 'lucide-react';
+import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,6 +13,8 @@ import { format, parseISO } from 'date-fns';
 interface ApplicationDocumentsTabProps {
   documents?: ExternalDocument[];
   photoUrl?: string | null;
+  onDelete?: (index: number) => void;
+  showDelete?: boolean;
 }
 
 /** Get the effective URL for a document (signedUrl takes priority) */
@@ -72,7 +74,7 @@ function formatDocDate(dateStr?: string): string {
   }
 }
 
-export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocumentsTabProps) {
+export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDelete }: ApplicationDocumentsTabProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
@@ -266,6 +268,22 @@ export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocu
                             </>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">No file available</span>
+                          )}
+                          {showDelete && onDelete && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Calculate the document-only index (excluding photo)
+                                const docOnlyIndex = photoUrl ? index - 1 : index;
+                                if (docOnlyIndex >= 0) onDelete(docOnlyIndex);
+                              }}
+                              className="gap-1.5 text-destructive hover:text-destructive"
+                              disabled={doc.id === '__photo__'}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </Button>
                           )}
                         </div>
                       </TableCell>
