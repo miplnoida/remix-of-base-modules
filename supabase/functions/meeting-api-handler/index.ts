@@ -649,6 +649,51 @@ Deno.serve(async (req) => {
             .eq('id', meeting.workflow_instance_id)
         }
 
+        // Trigger the same "Workflow-ScheduleMeeting" API that fires on a fresh schedule.
+        // Check action_config_id → workflow_action_configurations for requires_api_integration.
+        if (newMeeting.action_config_id) {
+          const { data: apiConfig } = await supabase
+            .from('workflow_action_configurations')
+            .select('requires_api_integration, api_config_id')
+            .eq('id', newMeeting.action_config_id)
+            .single()
+
+          if (apiConfig?.requires_api_integration && apiConfig?.api_config_id) {
+            console.log('Triggering Workflow-ScheduleMeeting API after reschedule for new meeting:', newMeetingRef)
+            await callExternalApi(supabase, newMeeting.id, apiConfig.api_config_id, 'RESCHEDULED', {
+              applicationReference: newMeeting.application_reference,
+              meetingReference: newMeetingRef,
+              meetingDate: body.newDate,
+              meetingTime: body.newTime,
+              officeAddress: newMeeting.office_address || meeting.office_address,
+              remarks: body.remarks
+            })
+          }
+        }
+
+        // Also send in-app notification to assigned person if configured
+        if ((newMeeting.assigned_user_id || meeting.assigned_user_id) && meeting.workflow_id) {
+          const assignedUser = newMeeting.assigned_user_id || meeting.assigned_user_id
+          const { data: actionConfig } = await supabase
+            .from('workflow_action_configurations')
+            .select('notify_assigned_person')
+            .eq('workflow_id', meeting.workflow_id)
+            .eq('step_id', meeting.step_id)
+            .single()
+
+          if (actionConfig?.notify_assigned_person) {
+            await supabase.from('in_app_notifications').insert({
+              user_id: assignedUser,
+              title: 'Meeting Rescheduled',
+              message: `Meeting for application ${meeting.application_reference} has been rescheduled to ${body.newDate} at ${body.newTime}. New reference: ${newMeetingRef}.`,
+              type: 'meeting',
+              priority: 'normal',
+              link: `/meetings/manage`,
+              metadata: { meeting_id: newMeeting.id, meeting_reference: newMeetingRef },
+            })
+          }
+        }
+
         return new Response(JSON.stringify({ 
           success: true, 
           message: 'Meeting rescheduled successfully',
