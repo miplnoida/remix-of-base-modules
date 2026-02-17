@@ -374,18 +374,10 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="font-medium mb-3">Father's Information</h3>
+                <h3 className="font-medium mb-3">Parent's Information</h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="Name" value={application.fatherName || [application.fatherFirstName, application.fatherLastName].filter(Boolean).join(' ')} />
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div>
-                <h3 className="font-medium mb-3">Mother's Information</h3>
-                <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="Name" value={application.motherName || [application.motherFirstName, application.motherLastName].filter(Boolean).join(' ')} />
+                  <InfoField label="Father's Name" value={application.fatherName || [application.fatherFirstName, application.fatherLastName].filter(Boolean).join(' ')} />
+                  <InfoField label="Mother's Name" value={application.motherName || [application.motherFirstName, application.motherLastName].filter(Boolean).join(' ')} />
                 </div>
               </div>
               
