@@ -22,6 +22,7 @@ export interface Meeting {
   meeting_date: string;
   meeting_time: string;
   contact_person?: string;
+  contact_person_name?: string;
   contact_email?: string;
   contact_phone?: string;
   office_address?: string;
