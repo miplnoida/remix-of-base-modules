@@ -30,42 +30,42 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   // Identity
   application_id:      { maxLength: 20,  type: 'varchar', label: 'Application ID' },
   ssn:                 { maxLength: 6,   type: 'varchar', label: 'SSN' },
-  title:               { maxLength: 6,   type: 'varchar', label: 'Title' },
-  first_name:          { maxLength: 25,  type: 'varchar', label: 'First Name' },
+  name_prefix:         { maxLength: 6,   type: 'varchar', label: 'Title' },
+  firstname:           { maxLength: 25,  type: 'varchar', label: 'First Name' },
   middle_name:         { maxLength: 25,  type: 'varchar', label: 'First Middle Name' },
   second_middle_name:  { maxLength: 25,  type: 'varchar', label: 'Second Middle Name' },
-  last_name:           { maxLength: 25,  type: 'varchar', label: 'Surname' },
-  suffix:              { maxLength: 6,   type: 'varchar', label: 'Suffix' },
-  maiden_name:         { maxLength: 25,  type: 'varchar', label: 'Maiden Name' },
+  surname:             { maxLength: 25,  type: 'varchar', label: 'Surname' },
+  name_suffix:         { maxLength: 6,   type: 'varchar', label: 'Suffix' },
+  previous_name:       { maxLength: 25,  type: 'varchar', label: 'Maiden Name' },
   alias:               { maxLength: 25,  type: 'varchar', label: 'Alias' },
-  gender:              { maxLength: 1,   type: 'varchar', label: 'Gender' },
+  sex:                 { maxLength: 1,   type: 'varchar', label: 'Gender' },
   marital_status:      { maxLength: 20,  type: 'varchar', label: 'Marital Status' },
 
   // Physical
-  height_feet:         { maxLength: 1,   type: 'smallint', min: 0, max: 8, label: 'Height (Feet)' },
-  height_inches:       { maxLength: 2,   type: 'smallint', min: 0, max: 11, label: 'Height (Inches)' },
+  heightfeet:          { maxLength: 1,   type: 'smallint', min: 0, max: 8, label: 'Height (Feet)' },
+  heightinches:        { maxLength: 2,   type: 'smallint', min: 0, max: 11, label: 'Height (Inches)' },
 
   // Origin
   birth_place:         { maxLength: 3,   type: 'varchar', label: 'Birth Place' },
   nationality:         { maxLength: 3,   type: 'varchar', label: 'Nationality' },
-  eye_color:           { maxLength: 3,   type: 'varchar', label: 'Eye Color' },
+  eyecolor:            { maxLength: 3,   type: 'varchar', label: 'Eye Color' },
 
   // Address
-  resident_address_1:  { maxLength: 30,  type: 'varchar', label: 'Resident Address 1' },
-  resident_address_2:  { maxLength: 30,  type: 'varchar', label: 'Resident Address 2' },
-  postal_district:     { maxLength: 3,   type: 'varchar', label: 'Postal District' },
+  resident_addr1:      { maxLength: 30,  type: 'varchar', label: 'Resident Address 1' },
+  resident_addr2:      { maxLength: 30,  type: 'varchar', label: 'Resident Address 2' },
+  district:            { maxLength: 3,   type: 'varchar', label: 'Postal District' },
   mail_addr1:          { maxLength: 30,  type: 'varchar', label: 'Mailing Address 1' },
   mail_addr2:          { maxLength: 30,  type: 'varchar', label: 'Mailing Address 2' },
 
   // Contact
-  email:               { maxLength: 40,  type: 'varchar', label: 'Email' },
+  email_addr:          { maxLength: 40,  type: 'varchar', label: 'Email' },
   telephone:           { maxLength: 15,  type: 'varchar', label: 'Telephone' },
   mobile:              { maxLength: 15,  type: 'varchar', label: 'Mobile' },
 
   // Employment
-  occupation:          { maxLength: 4,   type: 'varchar', label: 'Occupation' },
-  work_permit_status:  { maxLength: 1,   type: 'varchar', label: 'Work Permit' },
-  npf_status:          { maxLength: 1,   type: 'varchar', label: 'NPF Status' },
+  primary_occup:       { maxLength: 4,   type: 'varchar', label: 'Occupation' },
+  work_permit:         { maxLength: 1,   type: 'varchar', label: 'Work Permit' },
+  npf:                 { maxLength: 1,   type: 'varchar', label: 'NPF Status' },
   place_of_residence:  { maxLength: 30,  type: 'varchar', label: 'Place of Residence' },
   citizenship:         { maxLength: 30,  type: 'varchar', label: 'Citizenship' },
   employer_name:       { maxLength: 50,  type: 'varchar', label: 'Employer Name' },
@@ -74,7 +74,7 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   employer_town:       { maxLength: 50,  type: 'varchar', label: 'Employer Town' },
 
   // Verification codes
-  signature_on_file:   { maxLength: 1,   type: 'varchar', label: 'Signature on File' },
+  ip_signature:        { maxLength: 1,   type: 'varchar', label: 'Signature on File' },
   marital_doc_type:    { maxLength: 1,   type: 'varchar', label: 'Marital Doc Type' },
   birth_doc_type:      { maxLength: 1,   type: 'varchar', label: 'Birth Doc Type' },
   death_doc_type:      { maxLength: 1,   type: 'varchar', label: 'Death Doc Type' },
@@ -105,20 +105,12 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   ben_addr1:           { maxLength: 30,  type: 'varchar', label: 'Beneficiary Address 1' },
   ben_addr2:           { maxLength: 30,  type: 'varchar', label: 'Beneficiary Address 2' },
 
-  // Legacy columns (already constrained at DB level)
-  surname:             { maxLength: 25,  type: 'varchar', label: 'Surname (Legacy)' },
-  firstname:           { maxLength: 25,  type: 'varchar', label: 'First Name (Legacy)' },
-  previous_name:       { maxLength: 25,  type: 'varchar', label: 'Previous Name' },
-  name_prefix:         { maxLength: 6,   type: 'varchar', label: 'Name Prefix' },
-  name_suffix:         { maxLength: 6,   type: 'varchar', label: 'Name Suffix' },
+  // Additional fields
   entered_by:          { maxLength: 5,   type: 'varchar', label: 'Entered By' },
   userid:              { maxLength: 5,   type: 'varchar', label: 'User ID' },
   tran_code:           { maxLength: 3,   type: 'varchar', label: 'Transaction Code' },
-  email_addr:          { maxLength: 40,  type: 'varchar', label: 'Email Address (Legacy)' },
   deb_crd_amount:      { maxLength: 12,  type: 'numeric', precision: 10, scale: 2, label: 'Debit/Credit Amount' },
-  resident_addr1:      { maxLength: 30,  type: 'varchar', label: 'Resident Addr 1 (Legacy)' },
-  resident_addr2:      { maxLength: 30,  type: 'varchar', label: 'Resident Addr 2 (Legacy)' },
-  phone:               { maxLength: 10,  type: 'varchar', label: 'Phone (Legacy)' },
+  phone:               { maxLength: 10,  type: 'varchar', label: 'Phone' },
 };
 
 // ─── ip_depend ────────────────────────────────────────────────────────────────

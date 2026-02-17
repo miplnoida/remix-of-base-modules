@@ -39,15 +39,10 @@ interface ExternalApplication {
   application_id: string;
   ssn: string | null;
   firstname: string | null;
-  first_name: string | null;
   middle_name: string | null;
   surname: string | null;
-  last_name: string | null;
   dob: string | null;
-  date_of_birth: string | null;
   sex: string | null;
-  gender: string | null;
-  nationality_code: string | null;
   nationality: string | null;
   phone: string | null;
   telephone: string | null;
@@ -55,7 +50,7 @@ interface ExternalApplication {
   created_by: string | null;
   created_at: string;
   registration_date: string | null;
-  email?: string | null;
+  email_addr?: string | null;
   address?: string | null;
 }
 
@@ -185,7 +180,7 @@ const groupFields = (data: ApplicationDetails): Record<string, Record<string, an
   // Field categorization rules
   const fieldCategories: Record<string, string[]> = {
     'Applicant Details': ['application_id', 'ref_number', 'reference', 'ssn', 'social_security_number', 'unique_uuid', 'id'],
-    'Personal Information': ['firstname', 'first_name', 'middle_name', 'surname', 'last_name', 'full_name', 'name', 'dob', 'date_of_birth', 'birth_date', 'sex', 'gender', 'nationality', 'nationality_code', 'place_of_birth', 'marital_status'],
+    'Personal Information': ['firstname', 'middle_name', 'surname', 'full_name', 'name', 'dob', 'birth_date', 'sex', 'nationality', 'place_of_birth', 'marital_status'],
     'Contact Information': ['phone', 'telephone', 'mobile', 'cell', 'email', 'address', 'street', 'city', 'parish', 'country', 'postal', 'zip', 'fax'],
     'Employment Information': ['employer', 'occupation', 'job', 'work', 'employment', 'company', 'business', 'salary', 'wage', 'income'],
     'Relations': ['spouse', 'mother', 'father', 'parent', 'next_of_kin', 'emergency_contact', 'relation'],
@@ -291,15 +286,10 @@ export default function ExternalApplicationsScreen() {
         application_id: app.referenceNumber || app.reference_number || app.application_id || app.applicationId || app.reference || app.ref_number || `EXT-${index + 1}`,
         ssn: app.ssn || app.social_security_number || app.registrationNumber || null,
         firstname: app.firstName || app.firstname || app.first_name || null,
-        first_name: app.firstName || app.first_name || app.firstname || null,
         middle_name: app.middleName || app.middle_name || null,
         surname: app.lastName || app.surname || app.last_name || null,
-        last_name: app.lastName || app.last_name || app.surname || null,
         dob: app.dob || app.date_of_birth || app.dateOfBirth || null,
-        date_of_birth: app.date_of_birth || app.dob || app.dateOfBirth || null,
         sex: app.sex || app.gender || null,
-        gender: app.gender || app.sex || null,
-        nationality_code: app.nationality_code || app.nationalityCode || app.nationality || null,
         nationality: app.nationality || app.nationality_code || null,
         phone: app.phoneMobile || app.phone || app.telephone || app.phoneNumber || null,
         telephone: app.phoneMobile || app.telephone || app.phone || app.phoneNumber || null,
@@ -307,7 +297,7 @@ export default function ExternalApplicationsScreen() {
         created_by: app.created_by || app.createdBy || null,
         created_at: app.createdAt || app.created_at || new Date().toISOString(),
         registration_date: app.submittedAt || app.registration_date || app.registrationDate || null,
-        email: app.email || null,
+        email_addr: app.email || null,
         address: app.address || null,
       }));
 
@@ -387,15 +377,15 @@ export default function ExternalApplicationsScreen() {
 
   // Get full name from record
   const getFullName = (record: ExternalApplication): string => {
-    const firstName = record.firstname || record.first_name || '';
+    const firstName = record.firstname || '';
     const middleName = record.middle_name || '';
-    const lastName = record.surname || record.last_name || '';
+    const lastName = record.surname || '';
     return [firstName, middleName, lastName].filter(Boolean).join(' ') || '-';
   };
 
   // Get date of birth
   const getDateOfBirth = (record: ExternalApplication): string => {
-    const dob = record.dob || record.date_of_birth;
+    const dob = record.dob;
     if (!dob) return '-';
     try {
       return format(new Date(dob), DATE_DISPLAY_FORMAT);
@@ -406,7 +396,7 @@ export default function ExternalApplicationsScreen() {
 
   // Get gender display
   const getGenderDisplay = (record: ExternalApplication): string => {
-    const gender = record.sex || record.gender;
+    const gender = record.sex;
     return formatGenderDisplay(gender);
   };
 

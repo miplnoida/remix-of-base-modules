@@ -184,10 +184,10 @@ export const BasicDetailsTab: React.FC<BasicDetailsTabProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="birth_place_code">Birth Place</Label>
+            <Label htmlFor="birth_place">Birth Place</Label>
             <Select
-              value={formData.birth_place_code}
-              onValueChange={(value) => updateField('birth_place_code', value)}
+              value={formData.birth_place}
+              onValueChange={(value) => updateField('birth_place', value)}
               disabled={!isEditable || loadingCountries}
             >
               <SelectTrigger className="bg-background">
@@ -203,10 +203,10 @@ export const BasicDetailsTab: React.FC<BasicDetailsTabProps> = ({
             </Select>
           </div>
           <div>
-            <Label htmlFor="nationality_code">Nationality</Label>
+            <Label htmlFor="nationality">Nationality</Label>
             <Select
-              value={formData.nationality_code}
-              onValueChange={(value) => updateField('nationality_code', value)}
+              value={formData.nationality}
+              onValueChange={(value) => updateField('nationality', value)}
               disabled={!isEditable || loadingCountries}
             >
               <SelectTrigger className="bg-background">
