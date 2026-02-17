@@ -267,6 +267,7 @@ export function useRescheduleMeeting() {
       contactEmail,
       contactPhone,
       officeAddress,
+      releasePreviousSlot,
     }: { 
       meetingId: string; 
       newDate: string; 
@@ -279,6 +280,8 @@ export function useRescheduleMeeting() {
       contactEmail?: string;
       contactPhone?: string;
       officeAddress?: string;
+      /** Server-side slot release control. true = free the old slot, false = keep it blocked. */
+      releasePreviousSlot?: boolean;
     }) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -294,6 +297,8 @@ export function useRescheduleMeeting() {
           contactEmail,
           contactPhone,
           officeAddress,
+          // Explicit boolean — default to true (release) when not supplied
+          releasePreviousSlot: releasePreviousSlot !== false,
         }
       });
 

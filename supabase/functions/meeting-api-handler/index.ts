@@ -27,10 +27,24 @@ interface MeetingApiRequest {
   newTime?: string
   apiConfigId?: string
   applicationData?: Record<string, any>
-  // New fields for department-based scheduling
+  // Department-based scheduling
   officeCode?: string
   departmentId?: string
   assignedUserId?: string
+  /**
+   * releasePreviousSlot (reschedule_meeting only):
+   *   true  → The old appointmentDate/Time is freed — other meetings can be booked in that slot.
+   *   false → The old slot stays BLOCKED — the assigned person remains unavailable there.
+   *
+   * This is ALWAYS validated server-side. If omitted, defaults to true for
+   * auto-reschedule (start_meeting on future date) and must be explicit for
+   * manual reschedule_meeting calls.
+   *
+   * Implementation: When false, a phantom `slot_reservation` record is inserted into
+   * `meeting_slot_reservations` with the old date/time/assigned_user_id so that
+   * conflict-check queries still see it as occupied.
+   */
+  releasePreviousSlot?: boolean
   filters?: {
     status?: string
     dateFrom?: string
@@ -564,6 +578,14 @@ Deno.serve(async (req) => {
           throw new Error('Rescheduling remarks are required')
         }
 
+        // ── SERVER-SIDE VALIDATION: releasePreviousSlot must be a boolean ──
+        // If the caller omits it, we default to true (release). Any non-boolean
+        // value is coerced to boolean defensively.
+        const releasePreviousSlot: boolean =
+          body.releasePreviousSlot === false ? false : true
+
+        console.log(`reschedule_meeting: releasePreviousSlot=${releasePreviousSlot} meetingId=${body.meetingId}`)
+
         // Get current meeting details
         const { data: meeting, error: meetingError } = await supabase
           .from('meetings')
@@ -573,8 +595,14 @@ Deno.serve(async (req) => {
 
         if (meetingError) throw meetingError
 
+        // Capture old slot details BEFORE updating the record
+        const oldMeetingDate: string = meeting.meeting_date
+        const oldMeetingTime: string = meeting.meeting_time
+        const oldAssignedUserId: string | null = meeting.assigned_user_id
+        const oldContactPerson: string | null = meeting.contact_person
+
         // Update current meeting to Rescheduled status
-        await supabase
+        const { error: updateOldErr } = await supabase
           .from('meetings')
           .update({
             status: 'Rescheduled',
@@ -588,21 +616,79 @@ Deno.serve(async (req) => {
           })
           .eq('id', body.meetingId)
 
+        if (updateOldErr) throw updateOldErr
+
         // Add history for old meeting
-        await supabase.from('meeting_history').insert({
+        const { error: hist1Err } = await supabase.from('meeting_history').insert({
           meeting_id: body.meetingId,
           old_status: meeting.status,
           new_status: 'Rescheduled',
           action_taken: 'RESCHEDULED',
           outcome: 'Reschedule',
-          old_date: meeting.meeting_date,
-          old_time: meeting.meeting_time,
+          old_date: oldMeetingDate,
+          old_time: oldMeetingTime,
           new_date: body.newDate,
           new_time: body.newTime,
           remarks: body.remarks,
           performed_by: userId,
           performed_by_name: userName
         })
+
+        if (hist1Err) throw hist1Err
+
+        // ── SLOT RELEASE / RETAIN LOGIC ──────────────────────────────────────
+        // If releasePreviousSlot=false, we insert a phantom reservation so that
+        // the conflict-check RPC (check_meeting_overlap) still sees the old slot
+        // as occupied. If releasePreviousSlot=true we remove any existing
+        // reservation for that slot (clean release).
+        if (!releasePreviousSlot && oldAssignedUserId && oldMeetingDate && oldMeetingTime) {
+          // Insert a slot reservation to keep the old slot blocked
+          const { error: reserveErr } = await supabase
+            .from('meeting_slot_reservations')
+            .upsert({
+              assigned_user_id: oldAssignedUserId,
+              contact_person: oldContactPerson || null,
+              meeting_date: oldMeetingDate,
+              meeting_time: oldMeetingTime,
+              source_meeting_id: body.meetingId,
+              reserved_by: userId,
+              reason: `Slot retained after reschedule of meeting ${meeting.meeting_reference}. releasePreviousSlot=false.`,
+              is_active: true,
+            }, { onConflict: 'assigned_user_id,meeting_date,meeting_time' })
+
+          if (reserveErr) {
+            console.warn('meeting_slot_reservations upsert failed (non-fatal):', reserveErr.message)
+            // Non-fatal — log to audit but do not abort the reschedule
+            await supabase.from('system_audit_trail').insert({
+              action: 'slot_reservation_failed',
+              entity_type: 'meeting_slot_reservation',
+              entity_id: body.meetingId,
+              module: 'Meeting Reschedule',
+              user_name: userName || 'SYSTEM',
+              severity: 'warn',
+              payload_json: { error: reserveErr.message, old_date: oldMeetingDate, old_time: oldMeetingTime, assigned_user_id: oldAssignedUserId },
+              timestamp: new Date().toISOString(),
+            }).catch(() => {/* non-blocking */})
+          } else {
+            console.log(`reschedule_meeting: Slot reservation created for ${oldAssignedUserId} on ${oldMeetingDate} at ${oldMeetingTime}`)
+          }
+        } else if (releasePreviousSlot && oldAssignedUserId && oldMeetingDate && oldMeetingTime) {
+          // Remove any phantom reservation for this slot so it becomes bookable again
+          const { error: deleteReserveErr } = await supabase
+            .from('meeting_slot_reservations')
+            .delete()
+            .eq('assigned_user_id', oldAssignedUserId)
+            .eq('meeting_date', oldMeetingDate)
+            .eq('meeting_time', oldMeetingTime)
+            .eq('is_active', true)
+
+          if (deleteReserveErr) {
+            console.warn('meeting_slot_reservations delete failed (non-fatal):', deleteReserveErr.message)
+          } else {
+            console.log(`reschedule_meeting: Slot released for ${oldAssignedUserId} on ${oldMeetingDate} at ${oldMeetingTime}`)
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         // Generate new meeting reference
         const { data: refData } = await supabase.rpc('generate_meeting_reference')
@@ -634,7 +720,13 @@ Deno.serve(async (req) => {
             reschedule_count: (meeting.reschedule_count || 0) + 1,
             scheduled_by: userId,
             scheduled_by_name: userName,
-            created_by: userName?.substring(0, 10) || null
+            created_by: userName?.substring(0, 10) || null,
+            metadata: {
+              ...(meeting.metadata || {}),
+              release_previous_slot: releasePreviousSlot,
+              previous_slot_date: oldMeetingDate,
+              previous_slot_time: oldMeetingTime,
+            }
           })
           .select()
           .single()
@@ -642,16 +734,18 @@ Deno.serve(async (req) => {
         if (newMeetingError) throw newMeetingError
 
         // Add history for new meeting
-        await supabase.from('meeting_history').insert({
+        const { error: hist2Err } = await supabase.from('meeting_history').insert({
           meeting_id: newMeeting.id,
           new_status: 'Scheduled',
           action_taken: 'RESCHEDULED_FROM',
           new_date: body.newDate,
           new_time: body.newTime,
-          remarks: `Rescheduled from ${meeting.meeting_reference}`,
+          remarks: `Rescheduled from ${meeting.meeting_reference}. Previous slot ${releasePreviousSlot ? 'released' : 'retained (blocked)'}.`,
           performed_by: userId,
           performed_by_name: userName
         })
+
+        if (hist2Err) throw hist2Err
 
         // Update workflow instance metadata with new meeting reference
         if (meeting.workflow_instance_id) {
@@ -699,7 +793,8 @@ Deno.serve(async (req) => {
           success: true, 
           message: 'Meeting rescheduled successfully',
           new_meeting_id: newMeeting.id,
-          new_meeting_reference: newMeetingRef
+          new_meeting_reference: newMeetingRef,
+          release_previous_slot: releasePreviousSlot,
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
