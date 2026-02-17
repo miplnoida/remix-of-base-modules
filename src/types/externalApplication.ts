@@ -38,6 +38,10 @@ export interface ExternalApplicationDetail {
   firstName: string;
   middleName: string;
   middleName1?: string;
+  
+  // API alternate property names for NPF and Citizenship
+  npfMember?: boolean | string | null;
+  isCitizen?: boolean | string | null;
   lastName: string;
   suffix: string | null;
   maidenName: string;
