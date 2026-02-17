@@ -325,6 +325,7 @@ export const SOURCE_KEY_SUGGESTIONS: Record<string, string[]> = {
     'office_address',
     'remarks',
     'contact_person',
+    'contact_person_name',
     'status',
   ],
   WORKFLOW: [

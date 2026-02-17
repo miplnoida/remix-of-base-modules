@@ -176,7 +176,7 @@ export function RescheduleMeetingDialog({
             body: {
               action: 'execute', workflowId, workflowStepId: stepId, workflowInstanceId, taskId: null, actionCode: 'ScheduleMeeting',
               applicationData: { application_reference_no: applicationReference || '', application_reference_number: applicationReference || '', reference_number: applicationReference || '' },
-              meetingData: { meeting_reference_no: meetingReference, meeting_reference_number: meetingReference, meeting_date: dateStr, meeting_time: selectedTime, office_address: officeAddr, contact_person: selectedUser?.user_code || profile?.user_code || '', remarks: remarks.trim(), status: 'Rescheduled' },
+              meetingData: { meeting_reference_no: meetingReference, meeting_reference_number: meetingReference, meeting_date: dateStr, meeting_time: selectedTime, office_address: officeAddr, contact_person: selectedUser?.user_code || profile?.user_code || '', contact_person_name: selectedUser?.full_name || profile?.full_name || '', remarks: remarks.trim(), status: 'Rescheduled' },
               workflowContext: { action_code: 'ScheduleMeeting', instance_id: workflowInstanceId, step_id: stepId, source_module: 'meeting_reschedule', source_record_id: applicationReference || meetingId, user_remarks: remarks.trim() },
             },
           });
