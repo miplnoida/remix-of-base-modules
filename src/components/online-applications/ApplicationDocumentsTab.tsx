@@ -1,0 +1,370 @@
+import React, { useState, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, X } from 'lucide-react';
+import { ExternalDocument } from '@/types/externalApplication';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { format, parseISO } from 'date-fns';
+
+interface ApplicationDocumentsTabProps {
+  documents?: ExternalDocument[];
+  photoUrl?: string | null;
+}
+
+/** Determine file category from name or type */
+function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'other' {
+  const name = (doc.name || '').toLowerCase();
+  const type = (doc.type || '').toLowerCase();
+
+  if (type.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
+  if (
+    type.includes('image') ||
+    name.endsWith('.jpg') || name.endsWith('.jpeg') ||
+    name.endsWith('.png') || name.endsWith('.gif') ||
+    name.endsWith('.webp') || name.endsWith('.svg')
+  ) return 'image';
+  return 'other';
+}
+
+function getFileIcon(doc: ExternalDocument) {
+  const cat = getFileCategory(doc);
+  if (cat === 'pdf') return <FileText className="h-5 w-5 text-destructive" />;
+  if (cat === 'image') return <ImageIcon className="h-5 w-5 text-primary" />;
+  return <File className="h-5 w-5 text-muted-foreground" />;
+}
+
+/** Format a date string for display */
+function formatDocDate(dateStr?: string): string {
+  if (!dateStr) return '—';
+  try {
+    return format(parseISO(dateStr), 'MMM dd, yyyy');
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatFileSize(size?: string | number): string {
+  if (!size) return '—';
+  const bytes = typeof size === 'string' ? parseInt(size, 10) : size;
+  if (isNaN(bytes)) return size as string;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function ApplicationDocumentsTab({ documents, photoUrl }: ApplicationDocumentsTabProps) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
+  const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Build a combined list: photo first, then documents
+  const allDocs: ExternalDocument[] = [];
+  if (photoUrl) {
+    allDocs.push({
+      id: '__photo__',
+      name: 'Passport Photo',
+      type: 'image',
+      url: photoUrl,
+      uploadedAt: undefined,
+    });
+  }
+  if (documents && documents.length > 0) {
+    allDocs.push(...documents);
+  }
+
+  const totalCount = allDocs.length;
+
+  /** Stream a document through the secure edge function */
+  const getSecureUrl = useCallback(async (docUrl: string, action: 'stream' | 'download', fileName: string) => {
+    const { data, error } = await supabase.functions.invoke('document-proxy', {
+      method: 'POST',
+      body: { action, documentUrl: docUrl, fileName },
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to access document');
+    }
+    return data;
+  }, []);
+
+  /** Handle View click */
+  const handleView = useCallback(async (doc: ExternalDocument) => {
+    if (!doc.url) {
+      toast.error('No document URL available');
+      return;
+    }
+
+    const category = getFileCategory(doc);
+    const docId = doc.id || doc.name;
+    setLoadingDocId(docId);
+    setPreviewLoading(true);
+
+    try {
+      // For images and PDFs, stream through proxy and create blob URL
+      const response = await supabase.functions.invoke('document-proxy', {
+        method: 'POST',
+        body: { action: 'stream', documentUrl: doc.url, fileName: doc.name },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to load document');
+      }
+
+      // The response.data is the raw response when responseType is not set
+      // We need to fetch directly with auth
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const proxyResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: 'stream', documentUrl: doc.url, fileName: doc.name }),
+        }
+      );
+
+      if (!proxyResponse.ok) {
+        const errBody = await proxyResponse.json().catch(() => ({}));
+        throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
+      }
+
+      const blob = await proxyResponse.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      setPreviewDoc({ url: blobUrl, name: doc.name || 'Document', category });
+      setPreviewOpen(true);
+    } catch (err: any) {
+      console.error('Document view error:', err);
+      toast.error('Failed to load document', { description: err.message });
+    } finally {
+      setLoadingDocId(null);
+      setPreviewLoading(false);
+    }
+  }, []);
+
+  /** Handle Download click */
+  const handleDownload = useCallback(async (doc: ExternalDocument) => {
+    if (!doc.url) {
+      toast.error('No document URL available');
+      return;
+    }
+
+    const docId = doc.id || doc.name;
+    setLoadingDocId(docId);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const proxyResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: 'download', documentUrl: doc.url, fileName: doc.name }),
+        }
+      );
+
+      if (!proxyResponse.ok) {
+        const errBody = await proxyResponse.json().catch(() => ({}));
+        throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
+      }
+
+      const blob = await proxyResponse.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = doc.name || 'document';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup after short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      
+      toast.success('Download started', { description: doc.name });
+    } catch (err: any) {
+      console.error('Document download error:', err);
+      toast.error('Failed to download document', { description: err.message });
+    } finally {
+      setLoadingDocId(null);
+    }
+  }, []);
+
+  /** Cleanup blob URL on preview close */
+  const handleClosePreview = useCallback(() => {
+    if (previewDoc?.url) {
+      URL.revokeObjectURL(previewDoc.url);
+    }
+    setPreviewOpen(false);
+    setPreviewDoc(null);
+  }, [previewDoc]);
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Attached Documents
+            <Badge variant="secondary">{totalCount}</Badge>
+          </CardTitle>
+          <CardDescription>
+            Documents submitted with this application
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {totalCount > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Document Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Uploaded</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allDocs.map((doc, index) => {
+                  const docId = doc.id || `doc-${index}`;
+                  const isLoading = loadingDocId === docId || loadingDocId === doc.name;
+                  return (
+                    <TableRow key={docId}>
+                      <TableCell>{getFileIcon(doc)}</TableCell>
+                      <TableCell className="font-medium">{doc.name || `Document ${index + 1}`}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {doc.type || getFileCategory(doc).toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatFileSize(doc.fileSize)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatDocDate(doc.uploadedAt)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          {doc.url ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleView(doc)}
+                                disabled={isLoading}
+                                className="gap-1.5"
+                              >
+                                {isLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                                View
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownload(doc)}
+                                disabled={isLoading}
+                                className="gap-1.5"
+                              >
+                                <Download className="h-4 w-4" />
+                                Download
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">No file available</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">No documents attached</p>
+              <p className="text-sm mt-1">Documents will appear here when uploaded by the applicant</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Document Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={(open) => { if (!open) handleClosePreview(); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {previewDoc && getFileIcon({ name: previewDoc.name, type: previewDoc.category } as ExternalDocument)}
+              {previewDoc?.name || 'Document Preview'}
+            </DialogTitle>
+            <DialogDescription>
+              Secure document preview
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-auto">
+            {previewDoc?.category === 'pdf' && (
+              <iframe
+                src={previewDoc.url}
+                className="w-full h-[70vh] border rounded-lg"
+                title={previewDoc.name}
+              />
+            )}
+            {previewDoc?.category === 'image' && (
+              <div className="flex items-center justify-center p-4">
+                <img
+                  src={previewDoc.url}
+                  alt={previewDoc.name}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md"
+                />
+              </div>
+            )}
+            {previewDoc?.category === 'other' && (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <AlertTriangle className="h-12 w-12 mb-4 text-destructive" />
+                <p className="font-medium text-lg">Preview not available</p>
+                <p className="text-sm mt-1 mb-4">This file format cannot be previewed in the browser.</p>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    if (previewDoc.url) {
+                      const link = document.createElement('a');
+                      link.href = previewDoc.url;
+                      link.download = previewDoc.name;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Instead
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

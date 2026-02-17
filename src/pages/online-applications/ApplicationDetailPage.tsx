@@ -36,6 +36,7 @@ import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { useCountries, useDistricts, useRelations, useOccupations } from '@/hooks/useIPMasterLookups';
+import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
@@ -550,79 +551,10 @@ export default function ApplicationDetailPage() {
 
         {/* Documents Tab */}
         <TabsContent value="documents">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Attached Documents
-                <Badge variant="secondary">
-                  {(application.documents?.length || 0) + (application.photoUrl ? 1 : 0)}
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Documents submitted with this application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {application.photoUrl && (
-                  <div className="flex items-center gap-4 p-4 border rounded-lg">
-                    <FileText className="h-8 w-8 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-medium">Passport Photo</p>
-                      <p className="text-sm text-muted-foreground">Applicant photograph</p>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={application.photoUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
-                        <EyeIcon className="h-4 w-4" />
-                        View
-                      </a>
-                    </Button>
-                  </div>
-                )}
-                
-                {application.documents && application.documents.length > 0 && (
-                  application.documents.map((doc, index) => (
-                    <div key={doc.id || index} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div className="flex-1">
-                        <p className="font-medium">{doc.name || `Document ${index + 1}`}</p>
-                        <div className="flex gap-3 text-sm text-muted-foreground">
-                          {doc.type && <span>Type: {doc.type}</span>}
-                          {doc.fileSize && <span>Size: {doc.fileSize}</span>}
-                          {doc.uploadedAt && <span>Uploaded: {formatDateRaw(doc.uploadedAt)}</span>}
-                        </div>
-                      </div>
-                      {doc.url && (
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="gap-2">
-                              <EyeIcon className="h-4 w-4" />
-                              View
-                            </a>
-                          </Button>
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={doc.url} download className="gap-2">
-                              <Download className="h-4 w-4" />
-                              Download
-                            </a>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-                
-                {!application.photoUrl && (!application.documents || application.documents.length === 0) && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No documents attached</p>
-                    <p className="text-sm mt-1">Documents will appear here when uploaded by the applicant</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ApplicationDocumentsTab 
+            documents={application.documents} 
+            photoUrl={application.photoUrl} 
+          />
         </TabsContent>
 
         {/* Remarks Tab */}
