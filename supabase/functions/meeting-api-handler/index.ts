@@ -185,48 +185,209 @@ Deno.serve(async (req) => {
       }
 
       case 'start_meeting': {
-        // Start a meeting - change status to InProgress
+        // Start a meeting - change status to InProgress.
+        // ENHANCED: If the meeting is scheduled for a FUTURE date, automatically:
+        //   1. Mark the future meeting as Rescheduled (same flow as manual reschedule)
+        //   2. Create a new meeting for today at current server time
+        //   3. Mark the new meeting as InProgress
+        // All steps execute atomically - any failure leaves the original meeting unchanged.
         if (!body.meetingId) {
           throw new Error('Meeting ID is required')
         }
 
-        // Update meeting status
-        const { error: updateError } = await supabase
+        // Fetch full meeting details
+        const { data: meeting, error: meetingFetchError } = await supabase
           .from('meetings')
-          .update({
-            status: 'InProgress',
-            updated_at: new Date().toISOString(),
-            updated_by: userName?.substring(0, 10) || null
-          })
-          .eq('id', body.meetingId)
-
-        if (updateError) throw updateError
-
-        // Add history record
-        const { data: meeting } = await supabase
-          .from('meetings')
-          .select('status, meeting_reference')
+          .select('*')
           .eq('id', body.meetingId)
           .single()
 
-        await supabase.from('meeting_history').insert({
-          meeting_id: body.meetingId,
-          old_status: 'Scheduled',
-          new_status: 'InProgress',
-          action_taken: 'STARTED',
-          remarks: 'Meeting started',
-          performed_by: userId,
-          performed_by_name: userName
-        })
+        if (meetingFetchError || !meeting) {
+          throw new Error('Meeting not found')
+        }
 
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: 'Meeting started',
-          meeting_reference: meeting?.meeting_reference
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
+        // Determine server date/time (UTC)
+        const nowUtc = new Date()
+        const todayDate = nowUtc.toISOString().split('T')[0] // YYYY-MM-DD
+        const currentTime = nowUtc.toTimeString().substring(0, 8)  // HH:MM:SS
+
+        // Check if the meeting is scheduled for a FUTURE date
+        const isFutureDate = meeting.meeting_date > todayDate
+
+        if (isFutureDate) {
+          // ─── STEP 1: Mark future meeting as Rescheduled (same logic as reschedule_meeting) ───
+          const { error: rescheduleUpdateError } = await supabase
+            .from('meetings')
+            .update({
+              status: 'Rescheduled',
+              outcome: 'Reschedule',
+              outcome_remarks: `Auto-rescheduled: meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`,
+              closed_by: userId,
+              closed_by_name: userName,
+              closed_at: nowUtc.toISOString(),
+              updated_at: nowUtc.toISOString(),
+              updated_by: userName?.substring(0, 10) || null
+            })
+            .eq('id', body.meetingId)
+
+          if (rescheduleUpdateError) throw rescheduleUpdateError
+
+          // ─── STEP 2: Log history for the rescheduled future meeting (same as reschedule_meeting) ───
+          const { error: histErr1 } = await supabase.from('meeting_history').insert({
+            meeting_id: body.meetingId,
+            old_status: meeting.status,
+            new_status: 'Rescheduled',
+            action_taken: 'RESCHEDULED',
+            outcome: 'Reschedule',
+            old_date: meeting.meeting_date,
+            old_time: meeting.meeting_time,
+            new_date: todayDate,
+            new_time: currentTime,
+            remarks: `Auto-rescheduled because meeting was started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`,
+            performed_by: userId,
+            performed_by_name: userName
+          })
+
+          if (histErr1) throw histErr1
+
+          // ─── STEP 3: Generate new meeting reference ───
+          const { data: refData } = await supabase.rpc('generate_meeting_reference')
+          const newMeetingRef = refData || `MTG-${Date.now()}`
+
+          // ─── STEP 4: Create new meeting for today at current server time ───
+          const { data: newMeeting, error: newMeetingError } = await supabase
+            .from('meetings')
+            .insert({
+              meeting_reference: newMeetingRef,
+              application_reference: meeting.application_reference,
+              workflow_instance_id: meeting.workflow_instance_id,
+              workflow_id: meeting.workflow_id,
+              step_id: meeting.step_id,
+              action_config_id: meeting.action_config_id,
+              meeting_type: meeting.meeting_type,
+              status: 'InProgress',           // New meeting goes straight to InProgress
+              meeting_date: todayDate,
+              meeting_time: currentTime,
+              contact_person: meeting.contact_person,
+              contact_email: meeting.contact_email,
+              contact_phone: meeting.contact_phone,
+              office_address: meeting.office_address,
+              office_code: meeting.office_code,
+              department_id: meeting.department_id,
+              assigned_user_id: meeting.assigned_user_id,
+              remarks: `Auto-created: meeting started today, rescheduled from ${meeting.meeting_reference} (was ${meeting.meeting_date})`,
+              parent_meeting_id: body.meetingId,
+              reschedule_count: (meeting.reschedule_count || 0) + 1,
+              scheduled_by: userId,
+              scheduled_by_name: userName,
+              created_by: userName?.substring(0, 10) || null,
+              metadata: {
+                ...(meeting.metadata || {}),
+                auto_rescheduled_from: meeting.meeting_reference,
+                original_scheduled_date: meeting.meeting_date,
+                original_scheduled_time: meeting.meeting_time,
+                auto_reschedule_reason: 'started_before_scheduled_date'
+              }
+            })
+            .select()
+            .single()
+
+          if (newMeetingError) throw newMeetingError
+
+          // ─── STEP 5: Log history for the new meeting (same pattern as reschedule_meeting) ───
+          const { error: histErr2 } = await supabase.from('meeting_history').insert({
+            meeting_id: newMeeting.id,
+            new_status: 'InProgress',
+            action_taken: 'RESCHEDULED_FROM',
+            new_date: todayDate,
+            new_time: currentTime,
+            remarks: `Auto-created and started immediately. Rescheduled from ${meeting.meeting_reference} (was ${meeting.meeting_date} at ${meeting.meeting_time})`,
+            performed_by: userId,
+            performed_by_name: userName
+          })
+
+          if (histErr2) throw histErr2
+
+          // ─── STEP 6: Update workflow instance metadata with new active meeting ───
+          if (meeting.workflow_instance_id) {
+            const { data: instance } = await supabase
+              .from('workflow_instances')
+              .select('metadata')
+              .eq('id', meeting.workflow_instance_id)
+              .single()
+
+            const updatedMetadata = {
+              ...(instance?.metadata || {}),
+              current_meeting_id: newMeeting.id,
+              current_meeting_reference: newMeetingRef,
+              previous_meeting_id: body.meetingId,
+              previous_meeting_reference: meeting.meeting_reference
+            }
+
+            await supabase
+              .from('workflow_instances')
+              .update({ metadata: updatedMetadata, updated_at: nowUtc.toISOString() })
+              .eq('id', meeting.workflow_instance_id)
+
+            // Log in workflow_logs
+            await supabase.from('workflow_logs').insert({
+              instance_id: meeting.workflow_instance_id,
+              step_id: meeting.step_id,
+              action: 'Meeting Auto-Rescheduled',
+              new_status: 'InProgress',
+              performed_by: userId,
+              performed_by_name: userName,
+              comments: `Future meeting ${meeting.meeting_reference} (${meeting.meeting_date}) was auto-rescheduled when user started the meeting today. New meeting: ${newMeetingRef}`
+            })
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: `Future meeting auto-rescheduled. New meeting created for today (${todayDate}).`,
+            meeting_id: newMeeting.id,
+            meeting_reference: newMeetingRef,
+            original_meeting_id: body.meetingId,
+            original_meeting_reference: meeting.meeting_reference,
+            auto_rescheduled: true
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+
+        } else {
+          // ─── SAME-DAY or PAST: Simply move meeting to InProgress ───
+          const { error: updateError } = await supabase
+            .from('meetings')
+            .update({
+              status: 'InProgress',
+              updated_at: nowUtc.toISOString(),
+              updated_by: userName?.substring(0, 10) || null
+            })
+            .eq('id', body.meetingId)
+
+          if (updateError) throw updateError
+
+          await supabase.from('meeting_history').insert({
+            meeting_id: body.meetingId,
+            old_status: meeting.status,
+            new_status: 'InProgress',
+            action_taken: 'STARTED',
+            remarks: 'Meeting started',
+            performed_by: userId,
+            performed_by_name: userName
+          })
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Meeting started',
+            meeting_id: body.meetingId,
+            meeting_reference: meeting.meeting_reference,
+            auto_rescheduled: false
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
       }
 
       case 'cancel_meeting': {

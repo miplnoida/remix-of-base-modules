@@ -31,9 +31,10 @@ export function MeetingActionButtons({
 
   const handleStartMeeting = async () => {
     try {
-      await startMutation.mutateAsync({ meetingId: meeting.id });
-      // Navigate to the start meeting page
-      navigate(`/meetings/start/${meeting.id}`);
+      const result = await startMutation.mutateAsync({ meetingId: meeting.id });
+      // If a future meeting was auto-rescheduled, navigate to the NEW meeting id
+      const targetId = result?.meeting_id || meeting.id;
+      navigate(`/meetings/start/${targetId}`);
     } catch (error) {
       console.error('Failed to start meeting:', error);
     }

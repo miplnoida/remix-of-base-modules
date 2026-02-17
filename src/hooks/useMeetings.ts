@@ -187,12 +187,26 @@ export function useStartMeeting() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.message || 'Failed to start meeting');
       
-      return data;
+      return data as {
+        success: boolean;
+        message: string;
+        meeting_id: string;
+        meeting_reference: string;
+        original_meeting_id?: string;
+        original_meeting_reference?: string;
+        auto_rescheduled: boolean;
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
-      toast.success(data.message || 'Meeting started');
+      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+      if (data.auto_rescheduled) {
+        toast.success(data.message || 'Future meeting auto-rescheduled. Starting today\'s meeting now.');
+      } else {
+        toast.success(data.message || 'Meeting started');
+      }
     },
     onError: (error: Error) => {
       console.error('Start meeting error:', error);
