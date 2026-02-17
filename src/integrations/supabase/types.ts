@@ -6768,6 +6768,56 @@ export type Database = {
           },
         ]
       }
+      meeting_slot_reservations: {
+        Row: {
+          assigned_user_id: string
+          contact_person: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          meeting_date: string
+          meeting_time: string
+          reason: string | null
+          reserved_by: string | null
+          source_meeting_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meeting_date: string
+          meeting_time: string
+          reason?: string | null
+          reserved_by?: string | null
+          source_meeting_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meeting_date?: string
+          meeting_time?: string
+          reason?: string | null
+          reserved_by?: string | null
+          source_meeting_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_slot_reservations_source_meeting_id_fkey"
+            columns: ["source_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           action_config_id: string | null
@@ -11364,13 +11414,12 @@ export type Database = {
       check_meeting_overlap: {
         Args: {
           p_assigned_user_id: string
-          p_buffer_minutes: number
+          p_buffer_minutes?: number
           p_exclude_meeting_id?: string
           p_meeting_date: string
           p_meeting_start_time: string
         }
         Returns: {
-          conflicting_end_time: string
           conflicting_meeting_id: string
           conflicting_reference: string
           conflicting_start_time: string

@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { format, addDays, startOfWeek } from 'date-fns';
-import { Clock, Loader2, RefreshCw, User, Building2, AlertTriangle, Mail, Phone, MapPin } from 'lucide-react';
+import { Clock, Loader2, RefreshCw, User, Building2, AlertTriangle, Mail, Phone, MapPin, Info } from 'lucide-react';
 import { useRescheduleMeeting } from '@/hooks/useMeetings';
 import { useSystemSettingsContext } from '@/contexts/SystemSettingsContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
@@ -90,6 +91,8 @@ export function RescheduleMeetingDialog({
   const [overlapError, setOverlapError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Toggle: true = release the previously booked slot (default ON)
+  const [releasePreviousSlot, setReleasePreviousSlot] = useState(true);
 
   const bufferMinutes = parseInt(getSetting('meeting_buffer_minutes', '20'), 10);
   const nonWorkingDaysSetting = getSetting('non_working_days', '0,6');
@@ -192,6 +195,7 @@ export function RescheduleMeetingDialog({
         contactPerson: selectedUser?.user_code || profile?.user_code || '',
         contactEmail: selectedOfficeInfo?.email || '', contactPhone: (selectedOfficeInfo?.phone || '').replace(/[^+\d]/g, ''),
         officeAddress: officeAddr,
+        releasePreviousSlot,
       });
       onOpenChange(false);
       resetForm();
@@ -212,7 +216,7 @@ export function RescheduleMeetingDialog({
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to reschedule meeting'); }
   };
 
-  const resetForm = () => { setNewDate(undefined); setSelectedOffice(''); setSelectedDepartment(''); setSelectedUserId(''); setSelectedTime(''); setRemarks(''); setOverlapError(''); setError(null); };
+  const resetForm = () => { setNewDate(undefined); setSelectedOffice(''); setSelectedDepartment(''); setSelectedUserId(''); setSelectedTime(''); setRemarks(''); setOverlapError(''); setError(null); setReleasePreviousSlot(true); };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
@@ -421,7 +425,7 @@ export function RescheduleMeetingDialog({
                     </div>
                   )}
 
-                  {/* Reason for Rescheduling – always below both columns, always rendered when date selected */}
+                  {/* Reason for Rescheduling – always below both columns */}
                   {newDate && (
                     <div className="space-y-1.5">
                       <Label className="text-xs" htmlFor="rescheduleRemarks">
@@ -435,6 +439,39 @@ export function RescheduleMeetingDialog({
                         rows={3}
                         className="resize-none"
                       />
+                    </div>
+                  )}
+
+                  {/* Release Previous Slot Toggle – always visible once a date is selected */}
+                  {newDate && (
+                    <div className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30">
+                      <Switch
+                        id="releasePreviousSlot"
+                        checked={releasePreviousSlot}
+                        onCheckedChange={setReleasePreviousSlot}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div className="space-y-0.5 min-w-0">
+                        <Label htmlFor="releasePreviousSlot" className="text-xs font-semibold cursor-pointer">
+                          Release Previous Time Slot
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {releasePreviousSlot
+                            ? <>
+                                <span className="text-green-600 dark:text-green-400 font-medium">ON — </span>
+                                The original slot (<strong>{currentDate && formatDisplayDate(currentDate)}{currentTime && ` at ${to12Hour(currentTime)}`}</strong>) will be freed and available for other meetings.
+                              </>
+                            : <>
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">OFF — </span>
+                                The original slot (<strong>{currentDate && formatDisplayDate(currentDate)}{currentTime && ` at ${to12Hour(currentTime)}`}</strong>) will remain <em>blocked</em>. The meeting person stays unavailable during that time.
+                              </>
+                          }
+                        </p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+                          <Info className="h-3 w-3 shrink-0" />
+                          This is enforced server-side regardless of any client changes.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
