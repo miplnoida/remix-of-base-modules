@@ -442,38 +442,6 @@ export function RescheduleMeetingDialog({
                     </div>
                   )}
 
-                  {/* Release Previous Slot Toggle – always visible once a date is selected */}
-                  {newDate && (
-                    <div className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30">
-                      <Switch
-                        id="releasePreviousSlot"
-                        checked={releasePreviousSlot}
-                        onCheckedChange={setReleasePreviousSlot}
-                        className="mt-0.5 shrink-0"
-                      />
-                      <div className="space-y-0.5 min-w-0">
-                        <Label htmlFor="releasePreviousSlot" className="text-xs font-semibold cursor-pointer">
-                          Release Previous Time Slot
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          {releasePreviousSlot
-                            ? <>
-                                <span className="text-green-600 dark:text-green-400 font-medium">ON — </span>
-                                The original slot (<strong>{currentDate && formatDisplayDate(currentDate)}{currentTime && ` at ${to12Hour(currentTime)}`}</strong>) will be freed and available for other meetings.
-                              </>
-                            : <>
-                                <span className="text-amber-600 dark:text-amber-400 font-medium">OFF — </span>
-                                The original slot (<strong>{currentDate && formatDisplayDate(currentDate)}{currentTime && ` at ${to12Hour(currentTime)}`}</strong>) will remain <em>blocked</em>. The meeting person stays unavailable during that time.
-                              </>
-                          }
-                        </p>
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
-                          <Info className="h-3 w-3 shrink-0" />
-                          This is enforced server-side regardless of any client changes.
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -481,13 +449,36 @@ export function RescheduleMeetingDialog({
         )}
 
         {/* Fixed footer – always visible, never scrolls */}
-        <DialogFooter className="px-6 py-3 border-t shrink-0">
-          <Button type="button" variant="outline" size="sm" onClick={() => { resetForm(); onOpenChange(false); }}>Cancel</Button>
-          <Button type="button" size="sm" onClick={handleSubmit}
-            disabled={rescheduleMutation.isPending || !newDate || !selectedOffice || !selectedDepartment || !selectedUserId || !selectedTime || !!overlapError}>
-            {rescheduleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Reschedule Meeting
-          </Button>
+        <DialogFooter className="px-6 py-3 border-t shrink-0 flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Release Previous Slot Toggle – left-aligned in footer */}
+          <div className="flex items-center gap-2.5 flex-1">
+            <Switch
+              id="releasePreviousSlot"
+              checked={releasePreviousSlot}
+              onCheckedChange={setReleasePreviousSlot}
+              className="shrink-0"
+            />
+            <div className="min-w-0">
+              <Label htmlFor="releasePreviousSlot" className="text-xs font-semibold cursor-pointer block">
+                Release Previous Time Slot
+              </Label>
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                {releasePreviousSlot
+                  ? <><span className="text-green-600 dark:text-green-400 font-medium">ON</span> — original slot will be freed</>
+                  : <><span className="text-amber-600 dark:text-amber-400 font-medium">OFF</span> — original slot stays blocked</>
+                }
+              </p>
+            </div>
+          </div>
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button type="button" variant="outline" size="sm" onClick={() => { resetForm(); onOpenChange(false); }}>Cancel</Button>
+            <Button type="button" size="sm" onClick={handleSubmit}
+              disabled={rescheduleMutation.isPending || !newDate || !selectedOffice || !selectedDepartment || !selectedUserId || !selectedTime || !!overlapError}>
+              {rescheduleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reschedule Meeting
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
