@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
         // Determine server date/time (UTC)
         const nowUtc = new Date()
         const todayDate = nowUtc.toISOString().split('T')[0] // YYYY-MM-DD
-        const currentTime = nowUtc.toTimeString().substring(0, 8)  // HH:MM:SS
+        const currentTime = nowUtc.toTimeString().substring(0, 5)  // HH:MM
 
         // Check if the meeting is scheduled for a FUTURE date
         const isFutureDate = meeting.meeting_date > todayDate
