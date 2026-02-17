@@ -464,8 +464,8 @@ export function RescheduleMeetingDialog({
               </Label>
               <p className="text-[10px] text-muted-foreground leading-tight">
                 {releasePreviousSlot
-                  ? <><span className="text-green-600 dark:text-green-400 font-medium">ON</span> — original slot will be freed</>
-                  : <><span className="text-amber-600 dark:text-amber-400 font-medium">OFF</span> — original slot stays blocked</>
+                  ? <><span className="text-green-600 dark:text-green-400 font-medium">ON</span> — slot <span className="font-medium text-foreground">{currentDate && formatDisplayDate(currentDate)}{currentTime && ` at ${to12Hour(currentTime)}`}</span> will be freed</>
+                  : <><span className="text-amber-600 dark:text-amber-400 font-medium">OFF</span> — slot <span className="font-medium text-foreground">{currentDate && formatDisplayDate(currentDate)}{currentTime && ` at ${to12Hour(currentTime)}`}</span> stays blocked</>
                 }
               </p>
             </div>
