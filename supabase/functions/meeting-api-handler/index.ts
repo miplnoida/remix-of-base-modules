@@ -158,24 +158,26 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Check if API notification is configured
-        if (body.actionConfigId) {
-          const { data: config } = await supabase
-            .from('workflow_action_configurations')
-            .select('requires_api_integration, api_config_id')
-            .eq('id', body.actionConfigId)
-            .single()
-
-          if (config?.requires_api_integration && config?.api_config_id) {
-            await callExternalApi(supabase, data.meeting_id, config.api_config_id, 'SCHEDULED', {
-              applicationReference: body.applicationReference,
-              meetingReference: data.meeting_reference,
-              meetingDate: body.meetingDate,
-              meetingTime: body.meetingTime,
-              officeAddress: body.officeAddress,
-              remarks: body.remarks
-            })
-          }
+        // Trigger Workflow-ScheduleMeeting for initial scheduling.
+        // application_reference_no is resolved server-side from workflow_instance.metadata.
+        if (body.workflowId && body.stepId && body.workflowInstanceId) {
+          console.log('Initial schedule: invoking workflow-action-api ScheduleMeeting for meeting:', data.meeting_reference)
+          await triggerScheduleMeetingWorkflowApi(
+            supabase,
+            body.workflowId,
+            body.stepId,
+            body.workflowInstanceId,
+            {
+              meeting_reference_no:  data.meeting_reference,
+              meeting_date:          body.meetingDate,
+              meeting_time:          body.meetingTime,
+              office_address:        body.officeAddress || null,
+              contact_person_name:   null, // populated by DB trigger trg_set_meeting_contact_person_name
+              remarks:               body.remarks || null,
+            }
+          )
+        } else {
+          console.warn('Initial schedule: skipping Workflow-ScheduleMeeting — missing workflowId, stepId or workflowInstanceId')
         }
 
         return new Response(JSON.stringify(data), {
@@ -342,26 +344,21 @@ Deno.serve(async (req) => {
           }
 
           // ─── STEP 7: Trigger Workflow-ScheduleMeeting API via workflow-action-api ───
-          // The real config lives in workflow_step_action_api (not workflow_action_configurations).
-          // Delegate to the workflow-action-api edge function which knows how to resolve the
-          // body mappings, API key, and audit logging correctly.
+          // application_reference_no is resolved server-side from workflow_instance.metadata.
           if (newMeeting.workflow_id && newMeeting.step_id && newMeeting.workflow_instance_id) {
             console.log('Auto-reschedule: invoking workflow-action-api ScheduleMeeting for new meeting:', newMeetingRef)
             await triggerScheduleMeetingWorkflowApi(
+              supabase,
               newMeeting.workflow_id,
               newMeeting.step_id,
               newMeeting.workflow_instance_id,
               {
-                application_reference_number: newMeeting.application_reference,
-                reference_number: newMeeting.application_reference,
-              },
-              {
                 meeting_reference_no: newMeetingRef,
-                meeting_date: todayDate,
-                meeting_time: currentTime,
-                office_address: newMeeting.office_address || meeting.office_address,
-                contact_person_name: newMeeting.contact_person_name || meeting.contact_person_name,
-                remarks: `Auto-rescheduled: meeting started today before scheduled date ${meeting.meeting_date}`,
+                meeting_date:         todayDate,
+                meeting_time:         currentTime,
+                office_address:       newMeeting.office_address || meeting.office_address,
+                contact_person_name:  newMeeting.contact_person_name || meeting.contact_person_name,
+                remarks:              `Auto-rescheduled: meeting started today before scheduled date ${meeting.meeting_date}`,
               }
             )
           } else {
@@ -677,25 +674,21 @@ Deno.serve(async (req) => {
         }
 
         // Trigger Workflow-ScheduleMeeting via the workflow-action-api edge function.
-        // This is the ONLY correct path — workflow_action_configurations/workflow_api_configurations
-        // are empty; the real config is in workflow_step_action_api + workflow_step_action_api_body.
+        // application_reference_no is resolved server-side from workflow_instance.metadata.
         if (newMeeting.workflow_id && newMeeting.step_id && newMeeting.workflow_instance_id) {
           console.log('Manual reschedule: invoking workflow-action-api ScheduleMeeting for new meeting:', newMeetingRef)
           await triggerScheduleMeetingWorkflowApi(
+            supabase,
             newMeeting.workflow_id,
             newMeeting.step_id,
             newMeeting.workflow_instance_id,
             {
-              application_reference_number: newMeeting.application_reference,
-              reference_number: newMeeting.application_reference,
-            },
-            {
               meeting_reference_no: newMeetingRef,
-              meeting_date: body.newDate,
-              meeting_time: body.newTime,
-              office_address: newMeeting.office_address || meeting.office_address,
-              contact_person_name: newMeeting.contact_person_name || meeting.contact_person_name,
-              remarks: body.remarks,
+              meeting_date:         body.newDate,
+              meeting_time:         body.newTime,
+              office_address:       newMeeting.office_address || meeting.office_address,
+              contact_person_name:  newMeeting.contact_person_name || meeting.contact_person_name,
+              remarks:              body.remarks,
             }
           )
         } else {
@@ -1127,35 +1120,135 @@ Deno.serve(async (req) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Invoke the workflow-action-api edge function with action_code = 'ScheduleMeeting'.
-// This is the SINGLE correct path for triggering Workflow-ScheduleMeeting.
-// It resolves body mappings from workflow_step_action_api_body and calls the
-// external API (e.g. /appointments) using the API key from api_settings.
-// Used by BOTH manual reschedule and auto-reschedule (start_meeting future date).
+//
+// CONTRACT (from workflow_step_action_api_body):
+//   referenceNumber   ← applicationData.application_reference_no   (APPLICATION)
+//   appointmentId     ← meetingData.meeting_reference_no            (MEETING)
+//   appointmentDate   ← meetingData.meeting_date                    (MEETING)
+//   appointmentTime   ← meetingData.meeting_time                    (MEETING)
+//   appointmentOfficeAddress ← meetingData.office_address           (MEETING)
+//   appointmentPerson ← meetingData.contact_person_name             (MEETING)
+//   appointmentRemarks← meetingData.remarks                         (MEETING)
+//   updatedBy         ← systemData.logged_in_user                   (SYSTEM)
+//
+// application_reference_no is ALWAYS resolved server-side from
+// workflow_instances.metadata.reference_number — never trusted from the caller.
+//
+// Throws a structured error if:
+//   • reference_number cannot be resolved from workflow_instance.metadata
+//   • The workflow-action-api returns a non-2xx response
 // ─────────────────────────────────────────────────────────────────────────────
 async function triggerScheduleMeetingWorkflowApi(
+  supabase: any,
   workflowId: string,
   workflowStepId: string,
   workflowInstanceId: string,
-  applicationData: Record<string, any>,
   meetingData: Record<string, any>
 ): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+  // ── STEP A: Resolve application_reference_no from workflow_instance.metadata ──
+  // This is the canonical source of truth — never rely on caller-supplied values.
+  const { data: instance, error: instanceErr } = await supabase
+    .from('workflow_instances')
+    .select('metadata, source_module, source_record_id')
+    .eq('id', workflowInstanceId)
+    .single()
+
+  if (instanceErr || !instance) {
+    const msg = `Cannot resolve workflow instance ${workflowInstanceId}: ${instanceErr?.message || 'not found'}`
+    console.error('[triggerScheduleMeetingWorkflowApi] ' + msg)
+
+    // Audit the failure
+    await supabase.from('system_audit_trail').insert({
+      action: 'workflow_api_blocked',
+      entity_type: 'workflow_api_call',
+      entity_id: workflowInstanceId,
+      module: 'Workflow API',
+      user_name: 'SYSTEM',
+      severity: 'error',
+      payload_json: {
+        action_code: 'ScheduleMeeting',
+        reason: msg,
+        meeting_reference_no: meetingData.meeting_reference_no,
+        workflow_instance_id: workflowInstanceId,
+      },
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* non-blocking */ })
+
+    throw new Error(`Workflow-ScheduleMeeting blocked: ${msg}`)
+  }
+
+  // reference_number is stored in metadata for online-application-sourced workflows
+  const applicationRefNo: string | null =
+    instance.metadata?.reference_number ||
+    instance.metadata?.application_reference_no ||
+    instance.source_record_id ||
+    null
+
+  if (!applicationRefNo) {
+    const msg = `application_reference_no could not be resolved for workflow instance ${workflowInstanceId}. ` +
+      `metadata keys: ${Object.keys(instance.metadata || {}).join(', ')}`
+    console.error('[triggerScheduleMeetingWorkflowApi] ' + msg)
+
+    await supabase.from('system_audit_trail').insert({
+      action: 'workflow_api_blocked',
+      entity_type: 'workflow_api_call',
+      entity_id: workflowInstanceId,
+      module: 'Workflow API',
+      user_name: 'SYSTEM',
+      severity: 'error',
+      payload_json: {
+        action_code: 'ScheduleMeeting',
+        reason: 'Missing application_reference_no',
+        metadata: instance.metadata,
+        meeting_reference_no: meetingData.meeting_reference_no,
+        workflow_instance_id: workflowInstanceId,
+      },
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* non-blocking */ })
+
+    throw new Error(`Workflow-ScheduleMeeting blocked: reference-number is missing — ${msg}`)
+  }
+
+  console.log(`[triggerScheduleMeetingWorkflowApi] Resolved application_reference_no=${applicationRefNo} for instance ${workflowInstanceId}`)
+
+  // ── STEP B: Build the payload matching the workflow contract ──
   const payload = {
     action: 'execute',
     workflowId,
     workflowStepId,
     workflowInstanceId,
     actionCode: 'ScheduleMeeting',
-    applicationData,
-    meetingData,
+    // APPLICATION source — provides referenceNumber field
+    applicationData: {
+      application_reference_no: applicationRefNo,
+    },
+    // MEETING source — provides all appointment fields
+    meetingData: {
+      meeting_reference_no: meetingData.meeting_reference_no,
+      meeting_date:         meetingData.meeting_date,
+      meeting_time:         meetingData.meeting_time,
+      office_address:       meetingData.office_address || null,
+      contact_person_name:  meetingData.contact_person_name || null,
+      remarks:              meetingData.remarks || null,
+    },
     workflowContext: {
       action_code: 'ScheduleMeeting',
       instance_id: workflowInstanceId,
     }
   }
 
+  console.log('[triggerScheduleMeetingWorkflowApi] Payload:', JSON.stringify({
+    workflowId, workflowStepId, workflowInstanceId,
+    application_reference_no: applicationRefNo,
+    meeting_reference_no: meetingData.meeting_reference_no,
+    meeting_date: meetingData.meeting_date,
+    meeting_time: meetingData.meeting_time,
+  }))
+
+  // ── STEP C: Invoke workflow-action-api ──
   try {
     const resp = await fetch(`${supabaseUrl}/functions/v1/workflow-action-api`, {
       method: 'POST',
@@ -1169,15 +1262,12 @@ async function triggerScheduleMeetingWorkflowApi(
 
     const result = await resp.text()
     if (!resp.ok) {
-      // Non-2xx from workflow-action-api means the external call failed.
-      // Throw so the caller's transaction can detect this.
       throw new Error(`workflow-action-api returned ${resp.status}: ${result}`)
     }
-    console.log('workflow-action-api ScheduleMeeting response:', result)
+    console.log('[triggerScheduleMeetingWorkflowApi] Success. Response:', result)
   } catch (err) {
-    // Re-throw so callers can handle / roll-back as needed.
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('triggerScheduleMeetingWorkflowApi failed:', msg)
+    console.error('[triggerScheduleMeetingWorkflowApi] Failed:', msg)
     throw new Error(`Workflow-ScheduleMeeting API invocation failed: ${msg}`)
   }
 }
