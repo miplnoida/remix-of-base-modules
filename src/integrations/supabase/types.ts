@@ -8020,6 +8020,69 @@ export type Database = {
         }
         Relationships: []
       }
+      schema_change_approvals: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approver_identity: string | null
+          change_description: string
+          change_type: string
+          created_at: string
+          created_by: string | null
+          current_schema_snapshot: Json | null
+          data_loss_risk: string | null
+          environment: string
+          id: string
+          impacted_modules: string[] | null
+          migration_file_reference: string | null
+          notes: string | null
+          proposed_change: Json | null
+          risk_level: string
+          rollback_script: string | null
+          table_name: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approver_identity?: string | null
+          change_description: string
+          change_type: string
+          created_at?: string
+          created_by?: string | null
+          current_schema_snapshot?: Json | null
+          data_loss_risk?: string | null
+          environment?: string
+          id?: string
+          impacted_modules?: string[] | null
+          migration_file_reference?: string | null
+          notes?: string | null
+          proposed_change?: Json | null
+          risk_level: string
+          rollback_script?: string | null
+          table_name: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approver_identity?: string | null
+          change_description?: string
+          change_type?: string
+          created_at?: string
+          created_by?: string | null
+          current_schema_snapshot?: Json | null
+          data_loss_risk?: string | null
+          environment?: string
+          id?: string
+          impacted_modules?: string[] | null
+          migration_file_reference?: string | null
+          notes?: string | null
+          proposed_change?: Json | null
+          risk_level?: string
+          rollback_script?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       schema_migration_logs: {
         Row: {
           column_pair: string
