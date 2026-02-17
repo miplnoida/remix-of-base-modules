@@ -179,8 +179,10 @@ export interface ExternalApplicationDetail {
 export interface ExternalDependant {
   id: string;
   firstName: string;
+  middleName?: string | null;
   lastName: string;
   dateOfBirth: string;
+  dateOfDeath?: string | null;
   gender: string;
   relationship: string;
   address: string;

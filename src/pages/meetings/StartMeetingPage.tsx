@@ -564,7 +564,24 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
 
   const openEditDependant = (index: number) => {
     setDepEditIndex(index);
-    setDepForm({ ...dependants[index] });
+    const dep = dependants[index];
+    // Normalize API field names to form field names
+    setDepForm({
+      ...dep,
+      // address: API may send `address` or `address1`/`address2`
+      address1: dep.address1 ?? dep.address ?? '',
+      address2: dep.address2 ?? '',
+      // isSchoolChild: API sends `isInSchool` or `isSchoolChild`
+      isSchoolChild: dep.isSchoolChild ?? dep.isInSchool ?? false,
+      isInSchool: dep.isSchoolChild ?? dep.isInSchool ?? false,
+      // isInvalid: direct mapping
+      isInvalid: dep.isInvalid ?? false,
+      // middleName: may not exist in API response
+      middleName: dep.middleName ?? '',
+      // ssn + dateOfDeath
+      ssn: dep.ssn ?? '',
+      dateOfDeath: dep.dateOfDeath ?? '',
+    });
     setDepDialogOpen(true);
   };
 
