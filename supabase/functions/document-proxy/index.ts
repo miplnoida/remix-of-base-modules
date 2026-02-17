@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
     // Validate the URL is from the known external source
     const allowedOrigins = [
       'fiqyahojoouloswmnhcu.supabase.co',
+      'hekgiuycrjncxalcapfz.supabase.co',
     ]
     
     let parsedUrl: URL
