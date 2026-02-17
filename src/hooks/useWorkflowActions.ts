@@ -1190,6 +1190,7 @@ async function fetchMeetingData(instanceId: string): Promise<Record<string, any>
         office_address: data.office_address,
         remarks: data.remarks,
         contact_person: data.contact_person,
+        contact_person_name: data.contact_person_name,
         status: data.status,
         ...data,
       };
