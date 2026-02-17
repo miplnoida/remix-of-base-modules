@@ -696,12 +696,38 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
       {/* Personal Information Tab */}
       <TabsContent value="personal" className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
-          <EditableField label="Title" value={data.title} onChange={(v) => onChange('title', v)} />
+          {/* Title dropdown */}
+          <div className="space-y-2">
+            <Label className="text-sm">Title</Label>
+            <Select value={data.title || ''} onValueChange={(v) => onChange('title', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select title" />
+              </SelectTrigger>
+              <SelectContent>
+                {['Dr.', 'Miss.', 'Mr.', 'Mrs.', 'Ms.', 'Prof.', 'Rev.'].map(t => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <EditableField label="First Name" value={data.firstName} onChange={(v) => onChange('firstName', v)} />
           <EditableField label="First Middle Name" value={data.middleName1 || data.middleName} onChange={(v) => onChange('middleName1', v)} />
           <EditableField label="Second Middle Name" value={data.middleName2} onChange={(v) => onChange('middleName2', v)} />
           <EditableField label="Last Name" value={data.lastName} onChange={(v) => onChange('lastName', v)} />
-          <EditableField label="Suffix" value={data.suffix} onChange={(v) => onChange('suffix', v)} />
+          {/* Suffix dropdown */}
+          <div className="space-y-2">
+            <Label className="text-sm">Suffix</Label>
+            <Select value={data.suffix || ''} onValueChange={(v) => onChange('suffix', v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select suffix" />
+              </SelectTrigger>
+              <SelectContent>
+                {['I', 'II', 'III', 'Jr.', 'Sr.'].map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <EditableField label="Maiden Name" value={data.maidenName} onChange={(v) => onChange('maidenName', v)} />
           <EditableField label="Alias" value={data.alias} onChange={(v) => onChange('alias', v)} />
           <div className="space-y-2">
@@ -826,7 +852,13 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
               </SelectContent>
             </Select>
           </div>
-          <EditableField label="Residency Date" value={data.residencyDate} onChange={(v) => onChange('residencyDate', v)} type="date" />
+          {/* Only show Residency Date when Place of Birth differs from Place of Residency */}
+          {data.placeOfBirth && data.placeOfResidency && data.placeOfBirth !== data.placeOfResidency && (
+            <EditableField label="Residency Date" value={data.residencyDate} onChange={(v) => onChange('residencyDate', v)} type="date" />
+          )}
+          {(!data.placeOfBirth || !data.placeOfResidency) && (
+            <EditableField label="Residency Date" value={data.residencyDate} onChange={(v) => onChange('residencyDate', v)} type="date" />
+          )}
         </div>
         <Separator />
         <h4 className="font-medium">Mailing Address</h4>
