@@ -6780,6 +6780,7 @@ export type Database = {
           closed_by_name: string | null
           contact_email: string | null
           contact_person: string | null
+          contact_person_name: string | null
           contact_phone: string | null
           created_at: string | null
           created_by: string | null
@@ -6819,6 +6820,7 @@ export type Database = {
           closed_by_name?: string | null
           contact_email?: string | null
           contact_person?: string | null
+          contact_person_name?: string | null
           contact_phone?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -6858,6 +6860,7 @@ export type Database = {
           closed_by_name?: string | null
           contact_email?: string | null
           contact_person?: string | null
+          contact_person_name?: string | null
           contact_phone?: string | null
           created_at?: string | null
           created_by?: string | null
