@@ -7854,6 +7854,429 @@ export type Database = {
           },
         ]
       }
+      qa_ai_generation_log: {
+        Row: {
+          accepted_count: number
+          created_at: string
+          generated_count: number
+          id: string
+          knowledge_entry_id: string | null
+          model_used: string | null
+          module: string | null
+          prompt_used: string | null
+          raw_response: Json | null
+          rejected_count: number
+          triggered_by: string | null
+        }
+        Insert: {
+          accepted_count?: number
+          created_at?: string
+          generated_count?: number
+          id?: string
+          knowledge_entry_id?: string | null
+          model_used?: string | null
+          module?: string | null
+          prompt_used?: string | null
+          raw_response?: Json | null
+          rejected_count?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          accepted_count?: number
+          created_at?: string
+          generated_count?: number
+          id?: string
+          knowledge_entry_id?: string | null
+          model_used?: string | null
+          module?: string | null
+          prompt_used?: string | null
+          raw_response?: Json | null
+          rejected_count?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_ai_generation_log_knowledge_entry_id_fkey"
+            columns: ["knowledge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "qa_knowledge_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_execution_runs: {
+        Row: {
+          blocking_failures: number
+          change_reference: string | null
+          completed_at: string | null
+          created_at: string
+          deployment_blocked: boolean
+          error_count: number
+          execution_duration_ms: number | null
+          failed_count: number
+          id: string
+          modules_targeted: string[] | null
+          passed_count: number
+          release_version: string | null
+          run_name: string
+          run_type: string
+          skipped_count: number
+          started_at: string | null
+          status: string
+          summary_notes: string | null
+          total_tests: number
+          trigger_source: string
+          triggered_by: string | null
+          triggered_by_code: string | null
+        }
+        Insert: {
+          blocking_failures?: number
+          change_reference?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deployment_blocked?: boolean
+          error_count?: number
+          execution_duration_ms?: number | null
+          failed_count?: number
+          id?: string
+          modules_targeted?: string[] | null
+          passed_count?: number
+          release_version?: string | null
+          run_name: string
+          run_type?: string
+          skipped_count?: number
+          started_at?: string | null
+          status?: string
+          summary_notes?: string | null
+          total_tests?: number
+          trigger_source?: string
+          triggered_by?: string | null
+          triggered_by_code?: string | null
+        }
+        Update: {
+          blocking_failures?: number
+          change_reference?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deployment_blocked?: boolean
+          error_count?: number
+          execution_duration_ms?: number | null
+          failed_count?: number
+          id?: string
+          modules_targeted?: string[] | null
+          passed_count?: number
+          release_version?: string | null
+          run_name?: string
+          run_type?: string
+          skipped_count?: number
+          started_at?: string | null
+          status?: string
+          summary_notes?: string | null
+          total_tests?: number
+          trigger_source?: string
+          triggered_by?: string | null
+          triggered_by_code?: string | null
+        }
+        Relationships: []
+      }
+      qa_knowledge_entries: {
+        Row: {
+          api_endpoint: string | null
+          boundary_conditions: Json | null
+          created_at: string
+          created_by: string | null
+          created_by_code: string | null
+          db_table: string | null
+          description: string | null
+          expected_behavior: string | null
+          id: string
+          is_latest: boolean
+          module: string
+          negative_example: Json | null
+          parent_id: string | null
+          positive_example: Json | null
+          priority: string
+          rule_definition: Json
+          rule_type: string
+          screen_path: string | null
+          status: string
+          submodule: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          updated_by_code: string | null
+          version: number
+          workflow_step: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          boundary_conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          created_by_code?: string | null
+          db_table?: string | null
+          description?: string | null
+          expected_behavior?: string | null
+          id?: string
+          is_latest?: boolean
+          module: string
+          negative_example?: Json | null
+          parent_id?: string | null
+          positive_example?: Json | null
+          priority?: string
+          rule_definition?: Json
+          rule_type?: string
+          screen_path?: string | null
+          status?: string
+          submodule?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_code?: string | null
+          version?: number
+          workflow_step?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          boundary_conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          created_by_code?: string | null
+          db_table?: string | null
+          description?: string | null
+          expected_behavior?: string | null
+          id?: string
+          is_latest?: boolean
+          module?: string
+          negative_example?: Json | null
+          parent_id?: string | null
+          positive_example?: Json | null
+          priority?: string
+          rule_definition?: Json
+          rule_type?: string
+          screen_path?: string | null
+          status?: string
+          submodule?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_code?: string | null
+          version?: number
+          workflow_step?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_knowledge_entries_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "qa_knowledge_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_module_dependencies: {
+        Row: {
+          created_at: string
+          dependency_type: string
+          depends_on_module: string
+          description: string | null
+          id: string
+          source_module: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_type?: string
+          depends_on_module: string
+          description?: string | null
+          id?: string
+          source_module: string
+        }
+        Update: {
+          created_at?: string
+          dependency_type?: string
+          depends_on_module?: string
+          description?: string | null
+          id?: string
+          source_module?: string
+        }
+        Relationships: []
+      }
+      qa_pipeline_settings: {
+        Row: {
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string
+          setting_value: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type?: string
+          setting_value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string
+          setting_value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      qa_test_cases: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_code: string | null
+          description: string | null
+          expected_result: Json
+          generation_prompt: string | null
+          generation_source: string
+          id: string
+          is_mandatory: boolean
+          knowledge_entry_id: string | null
+          module: string
+          priority: string
+          status: string
+          submodule: string | null
+          tags: string[] | null
+          test_config: Json
+          test_type: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_code?: string | null
+          description?: string | null
+          expected_result?: Json
+          generation_prompt?: string | null
+          generation_source?: string
+          id?: string
+          is_mandatory?: boolean
+          knowledge_entry_id?: string | null
+          module: string
+          priority?: string
+          status?: string
+          submodule?: string | null
+          tags?: string[] | null
+          test_config?: Json
+          test_type?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_code?: string | null
+          description?: string | null
+          expected_result?: Json
+          generation_prompt?: string | null
+          generation_source?: string
+          id?: string
+          is_mandatory?: boolean
+          knowledge_entry_id?: string | null
+          module?: string
+          priority?: string
+          status?: string
+          submodule?: string | null
+          tags?: string[] | null
+          test_config?: Json
+          test_type?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_test_cases_knowledge_entry_id_fkey"
+            columns: ["knowledge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "qa_knowledge_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_test_results: {
+        Row: {
+          actual_outcome: Json | null
+          created_at: string
+          diff_details: Json | null
+          error_message: string | null
+          executed_at: string | null
+          execution_duration_ms: number | null
+          expected_outcome: Json | null
+          id: string
+          notes: string | null
+          request_payload: Json | null
+          run_id: string
+          stack_trace: string | null
+          status: string
+          test_case_id: string
+        }
+        Insert: {
+          actual_outcome?: Json | null
+          created_at?: string
+          diff_details?: Json | null
+          error_message?: string | null
+          executed_at?: string | null
+          execution_duration_ms?: number | null
+          expected_outcome?: Json | null
+          id?: string
+          notes?: string | null
+          request_payload?: Json | null
+          run_id: string
+          stack_trace?: string | null
+          status?: string
+          test_case_id: string
+        }
+        Update: {
+          actual_outcome?: Json | null
+          created_at?: string
+          diff_details?: Json | null
+          error_message?: string | null
+          executed_at?: string | null
+          execution_duration_ms?: number | null
+          expected_outcome?: Json | null
+          id?: string
+          notes?: string | null
+          request_payload?: Json | null
+          run_id?: string
+          stack_trace?: string | null
+          status?: string
+          test_case_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_test_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "qa_execution_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_test_results_test_case_id_fkey"
+            columns: ["test_case_id"]
+            isOneToOne: false
+            referencedRelation: "qa_test_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       remittance_schedule: {
         Row: {
           auto_generate_voucher: boolean | null
