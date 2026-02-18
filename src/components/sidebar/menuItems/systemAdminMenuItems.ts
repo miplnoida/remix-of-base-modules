@@ -125,6 +125,18 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration",
         subItems: [
           {
+            title: "Email Campaigns",
+            url: "/admin/email-campaigns",
+            icon: Bell,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Email Delivery Logs",
+            url: "/admin/email-logs",
+            icon: History,
+            requiresPermission: "system_administration"
+          },
+          {
             title: "Notification Log",
             url: "/admin/notifications/log",
             icon: History,
