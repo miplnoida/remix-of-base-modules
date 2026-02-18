@@ -145,18 +145,17 @@ export default function StartMeetingPage() {
 
     // Block conversion if preflight errors exist (IP meetings only)
     if (isIPMeeting && preflightErrors.length > 0) {
-      toast.error(`Cannot approve: ${preflightErrors[0].message}. Please resolve validation errors first.`, { duration: 6000 });
+      toast.error(
+        `Cannot approve: ${preflightErrors[0].message}. Please resolve validation errors first.`,
+        { duration: 6000 }
+      );
       return;
     }
-    
-    try {
-      await approveMutation.mutateAsync({
-        meetingId,
-        applicationData: hasChanges ? editedData : undefined,
-        remarks: approvalRemarks || undefined
-      });
 
-      // Convert the approved application to ip_master using the same path as IPRegistrationForm
+    try {
+      // ── For IP-Registration meetings: run atomic conversion FIRST ──────────
+      // If conversion fails the meeting approval is not called, preventing
+      // orphan "approved" meeting records with no corresponding IP record.
       if (meetingType === 'IP-Registration' && applicationData) {
         const dataForConversion = hasChanges
           ? { ...applicationData, ...editedData }
@@ -164,19 +163,30 @@ export default function StartMeetingPage() {
 
         const result = await convertToIP({
           applicationDetail: dataForConversion as ExternalApplicationDetail,
-          userId: user?.id || '',
-          userCode: userCode || '',
+          userId:   user?.id   || '',
+          userCode: userCode   || '',
           validRelationCodes,
           sourceRoute: `/meetings/start/${meetingId}`,
         });
 
-        if (result.success) {
-          toast.success(result.message || 'IP Registration created successfully');
-        } else if (result.message) {
-          toast.error(`IP conversion issue: ${result.message}`);
+        if (!result.success) {
+          // Toast already shown by the hook — do not proceed with meeting approval
+          return;
         }
+
+        const depNote = result.dependants_added && result.dependants_added > 0
+          ? ` ${result.dependants_added} dependant(s) linked automatically.`
+          : '';
+        toast.success((result.message || 'IP Registration created successfully.') + depNote, { duration: 8000 });
       }
-      
+
+      // ── Close the meeting as approved ──────────────────────────────────────
+      await approveMutation.mutateAsync({
+        meetingId,
+        applicationData: hasChanges ? editedData : undefined,
+        remarks: approvalRemarks || undefined,
+      });
+
       setApprovalDialogOpen(false);
       navigate('/meetings/manage');
     } catch (error) {
@@ -496,9 +506,9 @@ export default function StartMeetingPage() {
             <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleApprove} disabled={approveMutation.isPending}>
-              {approveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm Approval
+            <Button onClick={handleApprove} disabled={approveMutation.isPending || isConverting}>
+              {(approveMutation.isPending || isConverting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isConverting ? 'Creating IP Record…' : 'Confirm Approval'}
             </Button>
           </DialogFooter>
         </DialogContent>

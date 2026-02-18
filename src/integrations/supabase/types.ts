@@ -11521,6 +11521,75 @@ export type Database = {
         Args: { p_new_name?: string; p_source_workflow_id: string }
         Returns: string
       }
+      convert_application_atomic: {
+        Args: {
+          p_alias: string
+          p_application_date: string
+          p_application_id: string
+          p_ben_addr1: string
+          p_ben_addr2: string
+          p_beneficiary: string
+          p_birth_place: string
+          p_citizenship_flag: string
+          p_contact: string
+          p_contact_addr1: string
+          p_contact_addr2: string
+          p_contact_email: string
+          p_contact_mobile: string
+          p_contact_phone: string
+          p_contact_relation: string
+          p_created_by: string
+          p_date_married: string
+          p_date_of_residency: string
+          p_date_witnessed: string
+          p_dependants?: Json
+          p_district: string
+          p_dob: string
+          p_email_addr: string
+          p_employer_address: string
+          p_employer_name: string
+          p_employer_phone: string
+          p_employer_town: string
+          p_entered_by: string
+          p_eyecolor: string
+          p_father_name: string
+          p_firstname: string
+          p_heightfeet: number
+          p_heightinches: number
+          p_mail_addr1: string
+          p_mail_addr2: string
+          p_marital_status: string
+          p_middle_name: string
+          p_mother_name: string
+          p_name_prefix: string
+          p_name_suffix: string
+          p_nationality: string
+          p_npf: string
+          p_phone: string
+          p_phone_mobile: string
+          p_photo_location: string
+          p_place_of_residence: string
+          p_previous_name: string
+          p_primary_occup: string
+          p_remarks: string
+          p_resident_addr1: string
+          p_resident_addr2: string
+          p_second_middle_name: string
+          p_sex: string
+          p_spouse_addr1: string
+          p_spouse_addr2: string
+          p_spouse_dob: string
+          p_spouse_name: string
+          p_spouse_ssn: string
+          p_surname: string
+          p_temp_ssn: string
+          p_unique_uuid: string
+          p_witness_name: string
+          p_work_permit: string
+          p_work_permit_expiration: string
+        }
+        Returns: Json
+      }
       convert_application_to_ip: {
         Args: {
           p_address_line1?: string
