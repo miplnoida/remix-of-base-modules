@@ -948,23 +948,48 @@ Deno.serve(async (req) => {
             comments: `Application approved during meeting ${meeting.meeting_reference}`
           })
 
-          // Trigger API if configured
-          if (meeting.action_config_id) {
-            const { data: outcomeConfig } = await supabase
-              .from('workflow_action_outcomes')
-              .select('triggers_api, api_config_id')
-              .eq('action_config_id', meeting.action_config_id)
-              .eq('outcome_code', 'ClosedWithApproval')
-              .single()
-
-            if (outcomeConfig?.triggers_api && outcomeConfig?.api_config_id) {
-              await callExternalApi(supabase, body.meetingId, outcomeConfig.api_config_id, 'APPROVED', {
-                applicationReference: meeting.application_reference,
-                meetingReference: meeting.meeting_reference,
-                outcome: 'Approved',
-                remarks: body.remarks
-              })
-            }
+          // ── Trigger Approve external API via workflow-action-api ──────────────
+          // Uses workflow_step_action_api config (NOT the legacy workflow_action_outcomes).
+          // Non-blocking: a failure here must not roll back the meeting approval.
+          try {
+            await triggerActionWorkflowApi(
+              supabase,
+              meeting.workflow_id,
+              meeting.step_id,
+              meeting.workflow_instance_id,
+              'Approve',
+              {
+                reference_number:          meeting.application_reference,
+                application_reference_no:  meeting.application_reference,
+                referenceNumber:           meeting.application_reference,
+              },
+              {
+                meeting_reference_no: meeting.meeting_reference,
+                remarks:              body.remarks || null,
+              },
+              body.remarks || null,
+              userId,
+              userName
+            )
+          } catch (apiErr) {
+            // Non-blocking: log the failure but do not fail the approval
+            console.error('[close_meeting_approved] Approve workflow-action-api failed (non-blocking):', apiErr)
+            await supabase.from('system_audit_trail').insert({
+              action: 'workflow_api_failed',
+              entity_type: 'workflow_api_call',
+              entity_id: meeting.application_reference,
+              module: 'Workflow API',
+              user_id: userId,
+              user_name: userName || 'SYSTEM',
+              severity: 'warning',
+              payload_json: {
+                action_code: 'Approve',
+                workflow_instance_id: meeting.workflow_instance_id,
+                meeting_reference: meeting.meeting_reference,
+                error: apiErr instanceof Error ? apiErr.message : String(apiErr),
+              },
+              timestamp: new Date().toISOString(),
+            }).catch(() => { /* non-blocking */ })
           }
         }
 
@@ -1054,23 +1079,48 @@ Deno.serve(async (req) => {
             comments: body.remarks
           })
 
-          // Trigger API if configured
-          if (meeting.action_config_id) {
-            const { data: outcomeConfig } = await supabase
-              .from('workflow_action_outcomes')
-              .select('triggers_api, api_config_id')
-              .eq('action_config_id', meeting.action_config_id)
-              .eq('outcome_code', 'ClosedWithRejection')
-              .single()
-
-            if (outcomeConfig?.triggers_api && outcomeConfig?.api_config_id) {
-              await callExternalApi(supabase, body.meetingId, outcomeConfig.api_config_id, 'REJECTED', {
-                applicationReference: meeting.application_reference,
-                meetingReference: meeting.meeting_reference,
-                outcome: 'Rejected',
-                remarks: body.remarks
-              })
-            }
+          // ── Trigger Reject external API via workflow-action-api ───────────────
+          // Uses workflow_step_action_api config (NOT the legacy workflow_action_outcomes).
+          // Non-blocking: a failure here must not roll back the meeting rejection.
+          try {
+            await triggerActionWorkflowApi(
+              supabase,
+              meeting.workflow_id,
+              meeting.step_id,
+              meeting.workflow_instance_id,
+              'Reject',
+              {
+                reference_number:          meeting.application_reference,
+                application_reference_no:  meeting.application_reference,
+                referenceNumber:           meeting.application_reference,
+              },
+              {
+                meeting_reference_no: meeting.meeting_reference,
+                remarks:              body.remarks || null,
+              },
+              body.remarks || null,
+              userId,
+              userName
+            )
+          } catch (apiErr) {
+            // Non-blocking: log the failure but do not fail the rejection
+            console.error('[close_meeting_rejected] Reject workflow-action-api failed (non-blocking):', apiErr)
+            await supabase.from('system_audit_trail').insert({
+              action: 'workflow_api_failed',
+              entity_type: 'workflow_api_call',
+              entity_id: meeting.application_reference,
+              module: 'Workflow API',
+              user_id: userId,
+              user_name: userName || 'SYSTEM',
+              severity: 'warning',
+              payload_json: {
+                action_code: 'Reject',
+                workflow_instance_id: meeting.workflow_instance_id,
+                meeting_reference: meeting.meeting_reference,
+                error: apiErr instanceof Error ? apiErr.message : String(apiErr),
+              },
+              timestamp: new Date().toISOString(),
+            }).catch(() => { /* non-blocking */ })
           }
         }
 
@@ -1264,6 +1314,123 @@ Deno.serve(async (req) => {
     })
   }
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Generic helper: invoke workflow-action-api for Approve / Reject actions.
+//
+// CONTRACT (from workflow_step_action_api_body for Approve/Reject):
+//   URL placeholder {{referenceNumber}} → applicationData.referenceNumber
+//   status           ← STATIC (e.g. "Completed - SSN Issued" / "Rejected")
+//   registrationId   ← applicationData.application_reference_no  (APPLICATION)
+//
+// application_reference_no is ALWAYS resolved server-side from
+// workflow_instances.metadata.reference_number — never trusted from caller.
+//
+// Throws only on configuration/resolution errors; API HTTP failures are logged
+// and suppressed (non-blocking) by the caller.
+// ─────────────────────────────────────────────────────────────────────────────
+async function triggerActionWorkflowApi(
+  supabase: any,
+  workflowId: string | null,
+  workflowStepId: string | null,
+  workflowInstanceId: string | null,
+  actionCode: 'Approve' | 'Reject',
+  applicationData: Record<string, any>,
+  meetingData: Record<string, any>,
+  remarks: string | null,
+  userId: string | null,
+  userName: string | null
+): Promise<void> {
+  const supabaseUrl    = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  if (!workflowId || !workflowStepId || !workflowInstanceId) {
+    const msg = `triggerActionWorkflowApi(${actionCode}): missing workflowId/stepId/instanceId`
+    console.warn('[triggerActionWorkflowApi]', msg)
+    throw new Error(msg)
+  }
+
+  // ── STEP A: Resolve reference_number from workflow_instance.metadata ──
+  const { data: instance, error: instanceErr } = await supabase
+    .from('workflow_instances')
+    .select('metadata, source_record_id')
+    .eq('id', workflowInstanceId)
+    .single()
+
+  if (instanceErr || !instance) {
+    const msg = `Cannot resolve workflow instance ${workflowInstanceId}: ${instanceErr?.message || 'not found'}`
+    console.error('[triggerActionWorkflowApi]', msg)
+    throw new Error(msg)
+  }
+
+  // Canonical reference_number — server-side truth
+  const applicationRefNo: string =
+    instance.metadata?.reference_number ||
+    instance.metadata?.application_reference_no ||
+    instance.source_record_id ||
+    applicationData.application_reference_no ||
+    ''
+
+  console.log(`[triggerActionWorkflowApi] actionCode=${actionCode} applicationRefNo=${applicationRefNo} instanceId=${workflowInstanceId}`)
+
+  // ── STEP B: Build payload matching the workflow_step_action_api_body contract ──
+  // URL uses {{referenceNumber}}, body uses application_reference_no (APPLICATION source)
+  const payload = {
+    action: 'execute',
+    workflowId,
+    workflowStepId,
+    workflowInstanceId,
+    actionCode,
+    applicationData: {
+      // APPLICATION source fields
+      application_reference_no: applicationRefNo,
+      // URL placeholder resolution — the endpoint_url contains {{referenceNumber}}
+      referenceNumber:           applicationRefNo,
+      reference_number:          applicationRefNo,
+      ...applicationData,
+    },
+    meetingData: {
+      ...meetingData,
+    },
+    workflowContext: {
+      action_code:     actionCode,
+      instance_id:     workflowInstanceId,
+      user_remarks:    remarks || null,
+    },
+  }
+
+  console.log(`[triggerActionWorkflowApi] Invoking workflow-action-api. Payload keys:`, Object.keys(payload.applicationData))
+
+  // ── STEP C: Invoke workflow-action-api ──
+  const resp = await fetch(`${supabaseUrl}/functions/v1/workflow-action-api`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const resultText = await resp.text()
+  if (!resp.ok) {
+    throw new Error(`workflow-action-api returned HTTP ${resp.status}: ${resultText}`)
+  }
+
+  // Parse and log the result
+  let result: any = {}
+  try { result = JSON.parse(resultText) } catch { result = { raw: resultText } }
+
+  if (result.skipped) {
+    console.log(`[triggerActionWorkflowApi] ${actionCode} — no active API config found, skipped gracefully.`)
+  } else if (result.success) {
+    console.log(`[triggerActionWorkflowApi] ${actionCode} API call succeeded. HTTP status: ${result.httpStatus}`)
+  } else {
+    // The edge function executed but the external API returned an error — log but don't throw
+    // (workflow-action-api already wrote to workflow_api_execution_log and system_audit_trail)
+    console.warn(`[triggerActionWorkflowApi] ${actionCode} API call completed with non-success: ${result.errorMessage}`)
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Invoke the workflow-action-api edge function with action_code = 'ScheduleMeeting'.
