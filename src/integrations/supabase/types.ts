@@ -4537,6 +4537,63 @@ export type Database = {
           },
         ]
       }
+      ip_depend_staging: {
+        Row: {
+          application_ref: string
+          created_at: string
+          dep_ssn: string | null
+          depend_addr1: string | null
+          depend_addr2: string | null
+          dob: string | null
+          firstname: string | null
+          id: string
+          ip_master_id: string
+          notes: string | null
+          relation: string | null
+          relation_raw: string | null
+          school_child: string | null
+          sex: string | null
+          status: string
+          surname: string | null
+        }
+        Insert: {
+          application_ref: string
+          created_at?: string
+          dep_ssn?: string | null
+          depend_addr1?: string | null
+          depend_addr2?: string | null
+          dob?: string | null
+          firstname?: string | null
+          id?: string
+          ip_master_id: string
+          notes?: string | null
+          relation?: string | null
+          relation_raw?: string | null
+          school_child?: string | null
+          sex?: string | null
+          status?: string
+          surname?: string | null
+        }
+        Update: {
+          application_ref?: string
+          created_at?: string
+          dep_ssn?: string | null
+          depend_addr1?: string | null
+          depend_addr2?: string | null
+          dob?: string | null
+          firstname?: string | null
+          id?: string
+          ip_master_id?: string
+          notes?: string | null
+          relation?: string | null
+          relation_raw?: string | null
+          school_child?: string | null
+          sex?: string | null
+          status?: string
+          surname?: string | null
+        }
+        Relationships: []
+      }
       ip_documents: {
         Row: {
           document_name: string
@@ -11948,7 +12005,7 @@ export type Database = {
           p_phone?: string
           p_phone_mobile?: string
           p_postal_district?: string
-          p_reference_number: string
+          p_reference_number?: string
           p_remarks?: string
           p_second_middle_name?: string
           p_spouse_addr1?: string
