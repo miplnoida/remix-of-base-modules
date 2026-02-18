@@ -1,61 +1,45 @@
 
-# Public API Gateway Implementation Plan
+## Plan: Remove Stale Dependant Staging Warning from Validation RPC
 
-## Overview
+### Root Cause
 
-Production-grade public API gateway using backend functions connected to the same database. Provides an independent API layer for external applications while keeping the UI project unchanged.
+The `validate_application_for_conversion` database function contains a hardcoded warning block (lines 641–648 of migration `20260218012947`) that states dependants will be staged and require manual SSN linking. This warning was accurate under the old architecture but is now **factually wrong**.
 
----
+The conversion now uses `convert_application_atomic` which inserts all dependants directly into `ip_depend` within the same database transaction as `ip_master`, immediately after the permanent SSN is generated. No staging table is used. No manual action is required.
 
-## Status: Phase 1 — Master Data APIs
+### What Needs to Change
 
-### Phase 1 Endpoints (tb_ Master Tables)
+**1. Database: Update `validate_application_for_conversion` RPC**
 
-| Method | Path | Table | Description |
-|--------|------|-------|-------------|
-| GET | /api/v1/countries | tb_country | List all countries |
-| GET | /api/v1/districts | tb_district | List all districts |
-| GET | /api/v1/postal-districts | tb_postal_district | List postal districts |
-| GET | /api/v1/occupations | tb_occup | List occupations |
-| GET | /api/v1/industries | tb_indus | List industries |
-| GET | /api/v1/sectors | tb_sector | List sectors |
-| GET | /api/v1/relations | tb_relation | List relation types |
-| GET | /api/v1/dependent-relations | tb_dependent_relation | List dependent relation types |
-| GET | /api/v1/activities | tb_activity | List activity types |
-| GET | /api/v1/eye-colors | tb_eye_color | List eye colors |
-| GET | /api/v1/offices | tb_office | List offices |
-| GET | /api/v1/office-departments | tb_office_departments | List office departments |
-| GET | /api/v1/inspectors | tb_inspector | List inspectors |
-| GET | /api/v1/legal-statuses | tb_legal_status | List legal statuses |
-| GET | /api/v1/c3-statuses | tb_c3_status | List C3 statuses |
-| GET | /api/v1/ssc-rates | tb_ssc_rates | List SSC contribution rates |
-| GET | /api/v1/levy-slabs | tb_levy_slabs | List levy slabs |
-| GET | /api/v1/levy-slab-details | tb_levy_slab_details | List levy slab details |
-| GET | /api/v1/self-emp-rates | tb_self_emp_contrib_rate | Self-employed rates |
-| GET | /api/v1/vc-rates | tb_vc_contrib_rate | Voluntary contribution rates |
-| GET | /api/v1/penalties | tb_penalty | List penalty configs |
-| GET | /api/v1/health | — | Health check |
+Create a new migration that uses `CREATE OR REPLACE FUNCTION` to redefine `validate_application_for_conversion` with the stale staging warning block removed. The rest of the validation logic (missing fields, length checks, date checks, dependant name and DOB checks) remains unchanged and correct.
 
-### Phase 2 (Future) — Transactional APIs
+The block to remove is:
 
-- ip_master CRUD
-- ip_depend CRUD
-- ip_notes CRUD
+```sql
+-- THIS BLOCK MUST BE DELETED:
+IF p_dependants IS NOT NULL AND jsonb_array_length(p_dependants) > 0 THEN
+  v_warnings := v_warnings || jsonb_build_object(
+    'field', 'dependants',
+    'type', 'INFO',
+    'message', jsonb_array_length(p_dependants) || 
+      ' dependant(s) will be staged pending SSN assignment...'
+  );
+END IF;
+```
 
----
+Also update the relationship-not-found warning message (line 620–622) which says "Dependant will be staged for manual review" — this should instead say "relation code will be stored as null" to reflect the actual behavior in `useConvertToIPRegistration.ts` (`buildDependantsJson` sets `relationCode` to `null` when not found in `validRelationCodes`).
 
-## Architecture
+**2. No Frontend Changes Needed**
 
-Same as implemented: single `public-api` edge function with middleware chain (CORS → API Key → Rate Limit → Endpoint Auth → Execute → Log).
+The `ConversionValidationPanel` component correctly renders whatever warnings come back from the RPC. Once the stale warning is removed from the RPC, it will no longer appear on screen. No UI code changes are required.
 
-## Already Implemented
+### Technical Details
 
-- ✅ Database tables: `public_api_keys`, `public_api_access_logs`, `public_api_rate_limits`
-- ✅ Edge function: `manage-api-keys` (generate, list, revoke, update, usage)
-- ✅ Admin UI: `/admin/api-keys`
-- ✅ Health check endpoint
-- ✅ Full middleware chain (auth, rate limit, IP whitelist, endpoint auth, logging)
+**Migration**: `CREATE OR REPLACE FUNCTION public.validate_application_for_conversion(...)` — full function body republished with the two stale descriptions corrected:
 
-## Remaining
+- Remove the dependant staging INFO warning entirely.
+- Change the relationship warning message from "will be staged for manual review" to "will be stored as null in the system".
 
-- [ ] Add Phase 1 master data GET endpoints to `public-api` edge function
+**Scope of impact**: Only the validation pre-flight display. The actual conversion (`convert_application_atomic`) is unaffected and continues to work correctly as an atomic transaction.
+
+**Risk**: Zero — this is a warning message correction. No conversion logic, no data path, no transaction handling is touched.
