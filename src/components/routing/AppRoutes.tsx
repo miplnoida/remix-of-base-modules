@@ -325,6 +325,8 @@ import MyProfile from '@/pages/profile/MyProfile';
 // Notification Pages
 import NotificationCenter from '@/pages/notifications/NotificationCenter';
 import ProviderSettings from '@/pages/admin/notifications/ProviderSettings';
+import EmailCampaigns from '@/pages/admin/EmailCampaigns';
+import EmailLogs from '@/pages/admin/EmailLogs';
 
 // System Monitoring & Logs
 import TechnicalLogs from '@/pages/system-logs/TechnicalLogs';
@@ -935,6 +937,8 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications/templates" element={<ProtectedLayout><AdminNotificationTemplates /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
       <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
+      <Route path="/admin/email-campaigns" element={<ProtectedLayout><EmailCampaigns /></ProtectedLayout>} />
+      <Route path="/admin/email-logs" element={<ProtectedLayout><EmailLogs /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
       <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />

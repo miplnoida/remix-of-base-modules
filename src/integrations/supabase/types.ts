@@ -3427,6 +3427,75 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaigns: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          failed_count: number | null
+          from_email: string
+          from_name: string
+          html_body: string
+          id: string
+          metadata: Json | null
+          name: string
+          plain_body: string | null
+          recipient_emails: string[] | null
+          recipient_filter: string
+          sent_count: number | null
+          status: string
+          subject: string
+          total_recipients: number | null
+          triggered_at: string | null
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          failed_count?: number | null
+          from_email?: string
+          from_name?: string
+          html_body: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          plain_body?: string | null
+          recipient_emails?: string[] | null
+          recipient_filter?: string
+          sent_count?: number | null
+          status?: string
+          subject: string
+          total_recipients?: number | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          failed_count?: number | null
+          from_email?: string
+          from_name?: string
+          html_body?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          plain_body?: string | null
+          recipient_emails?: string[] | null
+          recipient_filter?: string
+          sent_count?: number | null
+          status?: string
+          subject?: string
+          total_recipients?: number | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       er_commence: {
         Row: {
           commence_seq_no: number
@@ -7243,14 +7312,18 @@ export type Database = {
       notification_logs: {
         Row: {
           body: string
+          campaign_id: string | null
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string | null
           failure_reason: string | null
           id: string
           ip_address: string | null
+          last_retry_at: string | null
           metadata: Json | null
           recipient_address: string
           recipient_user_id: string | null
+          resend_message_id: string | null
+          retry_count: number | null
           sent_at: string | null
           status: Database["public"]["Enums"]["notification_status"] | null
           subject: string | null
@@ -7261,14 +7334,18 @@ export type Database = {
         }
         Insert: {
           body: string
+          campaign_id?: string | null
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
           failure_reason?: string | null
           id?: string
           ip_address?: string | null
+          last_retry_at?: string | null
           metadata?: Json | null
           recipient_address: string
           recipient_user_id?: string | null
+          resend_message_id?: string | null
+          retry_count?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["notification_status"] | null
           subject?: string | null
@@ -7279,14 +7356,18 @@ export type Database = {
         }
         Update: {
           body?: string
+          campaign_id?: string | null
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
           failure_reason?: string | null
           id?: string
           ip_address?: string | null
+          last_retry_at?: string | null
           metadata?: Json | null
           recipient_address?: string
           recipient_user_id?: string | null
+          resend_message_id?: string | null
+          retry_count?: number | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["notification_status"] | null
           subject?: string | null
@@ -7296,6 +7377,13 @@ export type Database = {
           triggered_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_logs_template_id_fkey"
             columns: ["template_id"]

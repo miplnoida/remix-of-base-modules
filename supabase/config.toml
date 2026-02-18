@@ -1,5 +1,8 @@
 project_id = "pruvbfejdpodpalqafcu"
 
+[functions.send-email-campaign]
+verify_jwt = false
+
 [functions.qa-ai-generator]
 verify_jwt = false
 
