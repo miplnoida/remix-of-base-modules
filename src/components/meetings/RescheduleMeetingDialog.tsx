@@ -134,6 +134,16 @@ export function RescheduleMeetingDialog({
 
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
+  // Capture current time in minutes at render time
+  const nowTimeMinutes = useMemo(() => today.getHours() * 60 + today.getMinutes(), []);
+
+  // Returns true if a time slot string "HH:MM" is in the past relative to now, when today is selected
+  const isSlotInPast = (slot: string): boolean => {
+    const activeDateStr = newDate ? formatDateForStorage(newDate) : undefined;
+    if (!activeDateStr || activeDateStr !== todayStr) return false;
+    const [h, m] = slot.split(':').map(Number);
+    return h * 60 + m <= nowTimeMinutes;
+  };
 
   // Strict 4-week aligned days
   const calendarDays = useMemo(() => buildFourWeekDays(today, weekStartDay), [weekStartDay]);
@@ -164,6 +174,11 @@ export function RescheduleMeetingDialog({
   }, [rangeMeetings]);
 
   const handleTimeSelect = async (time: string) => {
+    // Guard: never allow selecting a past slot for today
+    if (isSlotInPast(time)) {
+      setOverlapError('Cannot select a time slot that is already in the past for today.');
+      return;
+    }
     setSelectedTime(time);
     setOverlapError('');
     if (!selectedUserId || !dateStr || !selectedOffice) return;
@@ -184,6 +199,13 @@ export function RescheduleMeetingDialog({
     if (!selectedTime) { setError('Please select a meeting time'); return; }
     if (!remarks.trim()) { setError('Please provide a reason for rescheduling'); return; }
     if (overlapError) { toast.error('Cannot reschedule: time conflict exists'); return; }
+    // Frontend guard: reject past time slots for today at submit time
+    if (isSlotInPast(selectedTime)) {
+      setError('The selected time has already passed. Please choose a future time slot.');
+      setSelectedTime('');
+      setOverlapError('');
+      return;
+    }
 
     const selectedUser = usersInDept.find((u) => u.id === selectedUserId);
     const officeAddr = selectedOfficeInfo ? [selectedOfficeInfo.description, selectedOfficeInfo.address1, selectedOfficeInfo.address2].filter(Boolean).join(', ') : '';
@@ -401,26 +423,39 @@ export function RescheduleMeetingDialog({
                           <span className="font-normal text-muted-foreground ml-1">({bufferMinutes}-min)</span>
                         </Label>
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 max-h-[180px] overflow-y-auto pr-0.5">
-                          {timeSlots.map((slot) => {
-                            const isOccupied = userMeetings.some((m: any) => {
-                              if (!m.meeting_time) return false;
-                              const meetingMin = parseInt(m.meeting_time.split(':')[0]) * 60 + parseInt(m.meeting_time.split(':')[1]);
-                              const meetingEndMin = m.meeting_end_time ? parseInt(m.meeting_end_time.split(':')[0]) * 60 + parseInt(m.meeting_end_time.split(':')[1]) : meetingMin + bufferMinutes;
-                              const slotMin = parseInt(slot.split(':')[0]) * 60 + parseInt(slot.split(':')[1]);
-                              const slotEndMin = slotMin + bufferMinutes;
-                              return slotMin < meetingEndMin && slotEndMin > meetingMin;
-                            });
-                            return (
-                              <Button key={slot} type="button" variant={selectedTime === slot ? 'default' : isOccupied ? 'ghost' : 'outline'} size="sm" disabled={isOccupied}
-                                onClick={() => handleTimeSelect(slot)}
-                                className={cn('text-xs h-7', isOccupied && 'opacity-40', selectedTime === slot && 'ring-2 ring-primary')}>
-                                {to12Hour(slot)}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                        {isValidating && <p className="text-[10px] text-muted-foreground">Validating...</p>}
-                        {overlapError && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{overlapError}</p>}
+                           {timeSlots.map((slot) => {
+                             const isPast = isSlotInPast(slot);
+                             const isOccupied = userMeetings.some((m: any) => {
+                               if (!m.meeting_time) return false;
+                               const meetingMin = parseInt(m.meeting_time.split(':')[0]) * 60 + parseInt(m.meeting_time.split(':')[1]);
+                               const meetingEndMin = m.meeting_end_time ? parseInt(m.meeting_end_time.split(':')[0]) * 60 + parseInt(m.meeting_end_time.split(':')[1]) : meetingMin + bufferMinutes;
+                               const slotMin = parseInt(slot.split(':')[0]) * 60 + parseInt(slot.split(':')[1]);
+                               const slotEndMin = slotMin + bufferMinutes;
+                               return slotMin < meetingEndMin && slotEndMin > meetingMin;
+                             });
+                             const isDisabledSlot = isOccupied || isPast;
+                             return (
+                               <Button key={slot} type="button"
+                                 variant={selectedTime === slot ? 'default' : isDisabledSlot ? 'ghost' : 'outline'}
+                                 size="sm" disabled={isDisabledSlot}
+                                 onClick={() => handleTimeSelect(slot)}
+                                 className={cn('text-xs h-7',
+                                   isDisabledSlot && 'opacity-40',
+                                   isPast && 'line-through',
+                                   selectedTime === slot && 'ring-2 ring-primary'
+                                 )}>
+                                 {to12Hour(slot)}
+                               </Button>
+                             );
+                           })}
+                         </div>
+                         {newDate && formatDateForStorage(newDate) === todayStr && (
+                           <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                             <Clock className="h-3 w-3" /> Past slots for today are disabled
+                           </p>
+                         )}
+                         {isValidating && <p className="text-[10px] text-muted-foreground">Validating...</p>}
+                         {overlapError && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{overlapError}</p>}
                       </div>
                     </div>
                   )}
