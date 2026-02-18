@@ -7,6 +7,7 @@ import { MapPin } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
 import { useDistricts } from '@/hooks/useIPMasterLookups';
 import { validatePhone, validateEmail, sanitizePhoneInput, getPhoneMaxLength, getEmailMaxLength } from '@/lib/contactValidation';
+import { IP_MASTER_FIELDS } from '@/lib/fieldLengths';
 
 interface AddressContactTabProps {
   formData: IPMasterFormData;
@@ -56,7 +57,7 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
                     id="resident_addr1"
                     value={formData.resident_addr1}
                     onChange={(e) => updateField('resident_addr1', e.target.value)}
-                    maxLength={30}
+                    maxLength={IP_MASTER_FIELDS.resident_addr1.maxLength}
                   />
                 </div>
                 <div>
@@ -65,7 +66,7 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
                     id="resident_addr2"
                     value={formData.resident_addr2}
                     onChange={(e) => updateField('resident_addr2', e.target.value)}
-                    maxLength={30}
+                    maxLength={IP_MASTER_FIELDS.resident_addr2.maxLength}
                   />
                 </div>
               </>
@@ -115,7 +116,7 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
                     id="mail_addr1"
                     value={formData.mail_addr1}
                     onChange={(e) => updateField('mail_addr1', e.target.value)}
-                    maxLength={30}
+                    maxLength={IP_MASTER_FIELDS.mail_addr1.maxLength}
                   />
                 </div>
                 <div>
@@ -124,7 +125,7 @@ export const AddressContactTab: React.FC<AddressContactTabProps> = ({
                     id="mail_addr2"
                     value={formData.mail_addr2}
                     onChange={(e) => updateField('mail_addr2', e.target.value)}
-                    maxLength={30}
+                    maxLength={IP_MASTER_FIELDS.mail_addr2.maxLength}
                   />
                 </div>
               </>

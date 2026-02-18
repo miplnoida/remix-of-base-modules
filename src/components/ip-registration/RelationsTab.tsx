@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, UserRound, Heart, Eye, Award } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
+import { IP_MASTER_FIELDS } from '@/lib/fieldLengths';
 
 interface RelationsTabProps {
   formData: IPMasterFormData;
@@ -75,11 +76,11 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
             <>
               <div>
                 <Label htmlFor="contact_addr1">Address Line 1</Label>
-                <Input id="contact_addr1" value={formData.contact_addr1} onChange={(e) => updateField('contact_addr1', e.target.value)} maxLength={30} />
+                <Input id="contact_addr1" value={formData.contact_addr1} onChange={(e) => updateField('contact_addr1', e.target.value)} maxLength={IP_MASTER_FIELDS.contact_addr1.maxLength} />
               </div>
               <div>
                 <Label htmlFor="contact_addr2">Address Line 2</Label>
-                <Input id="contact_addr2" value={formData.contact_addr2} onChange={(e) => updateField('contact_addr2', e.target.value)} maxLength={30} />
+                <Input id="contact_addr2" value={formData.contact_addr2} onChange={(e) => updateField('contact_addr2', e.target.value)} maxLength={IP_MASTER_FIELDS.contact_addr2.maxLength} />
               </div>
             </>
           ) : (
@@ -171,8 +172,8 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isEditable ? (
             <>
-              <div><Label htmlFor="spouse_addr1">Spouse Address Line 1</Label><Input id="spouse_addr1" value={formData.spouse_addr1} onChange={(e) => updateField('spouse_addr1', e.target.value)} maxLength={30} /></div>
-              <div><Label htmlFor="spouse_addr2">Spouse Address Line 2</Label><Input id="spouse_addr2" value={formData.spouse_addr2} onChange={(e) => updateField('spouse_addr2', e.target.value)} maxLength={30} /></div>
+              <div><Label htmlFor="spouse_addr1">Spouse Address Line 1</Label><Input id="spouse_addr1" value={formData.spouse_addr1} onChange={(e) => updateField('spouse_addr1', e.target.value)} maxLength={IP_MASTER_FIELDS.spouse_addr1.maxLength} /></div>
+              <div><Label htmlFor="spouse_addr2">Spouse Address Line 2</Label><Input id="spouse_addr2" value={formData.spouse_addr2} onChange={(e) => updateField('spouse_addr2', e.target.value)} maxLength={IP_MASTER_FIELDS.spouse_addr2.maxLength} /></div>
             </>
           ) : (
             <>
@@ -218,8 +219,8 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isEditable ? (
             <>
-              <div><Label htmlFor="ben_addr1">Beneficiary Address Line 1</Label><Input id="ben_addr1" value={formData.ben_addr1} onChange={(e) => updateField('ben_addr1', e.target.value)} maxLength={30} /></div>
-              <div><Label htmlFor="ben_addr2">Beneficiary Address Line 2</Label><Input id="ben_addr2" value={formData.ben_addr2} onChange={(e) => updateField('ben_addr2', e.target.value)} maxLength={30} /></div>
+              <div><Label htmlFor="ben_addr1">Beneficiary Address Line 1</Label><Input id="ben_addr1" value={formData.ben_addr1} onChange={(e) => updateField('ben_addr1', e.target.value)} maxLength={IP_MASTER_FIELDS.ben_addr1.maxLength} /></div>
+              <div><Label htmlFor="ben_addr2">Beneficiary Address Line 2</Label><Input id="ben_addr2" value={formData.ben_addr2} onChange={(e) => updateField('ben_addr2', e.target.value)} maxLength={IP_MASTER_FIELDS.ben_addr2.maxLength} /></div>
             </>
           ) : (
             <>
