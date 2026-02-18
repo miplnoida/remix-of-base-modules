@@ -71,8 +71,36 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
 }
 
 /**
+ * Fetch reference numbers of applications that have been approved AND converted
+ * by querying the local workflow_instances table (Supabase endpoint).
+ * Returns a Set of reference numbers to exclude from the listing.
+ */
+async function fetchApprovedConvertedRefs(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('workflow_instances')
+    .select('source_record_id')
+    .eq('source_module', 'insured-person-applications')
+    .eq('status', 'Approved');
+
+  if (error) {
+    console.error('[useInsuredPersonApplications] Failed to fetch approved refs:', error);
+    return new Set();
+  }
+
+  const refs = new Set<string>(
+    (data || [])
+      .map((r: { source_record_id: string | null }) => r.source_record_id)
+      .filter((ref): ref is string => !!ref)
+  );
+
+  console.log(`[useInsuredPersonApplications] Excluding ${refs.size} approved/converted applications from listing`);
+  return refs;
+}
+
+/**
  * Hook to fetch insured person applications from external API via edge function proxy
  * Data is fetched DIRECTLY from the external API on each request (no local caching/syncing)
+ * Applications that have been approved and converted are excluded via Supabase query.
  * Automatically binds workflow instances to each application
  */
 export function useInsuredPersonApplications(filters?: ApplicationFilters) {
@@ -93,13 +121,27 @@ export function useInsuredPersonApplications(filters?: ApplicationFilters) {
 
       console.log(`Fetching insured person applications via proxy, endpoint: ${endpoint}`);
 
-      const data = await callProxyApi('insured-person-applications', endpoint);
+      // Run both fetches in parallel — external API data + local approved refs
+      const [data, approvedRefs] = await Promise.all([
+        callProxyApi('insured-person-applications', endpoint),
+        fetchApprovedConvertedRefs(),
+      ]);
+
       const rawApplications = normalizeApiResponse<ExternalApplicationListItem>(data);
       
-      // Map external API format to internal format
-      const applications = rawApplications.map(mapListItemFromApi);
+      // Map external API format to internal format, then exclude approved+converted ones
+      const applications = rawApplications
+        .map(mapListItemFromApi)
+        .filter(app => {
+          const ref = app.referenceNumber || app.applicationId;
+          if (ref && approvedRefs.has(ref)) {
+            console.log(`[useInsuredPersonApplications] Excluding approved application: ${ref}`);
+            return false;
+          }
+          return true;
+        });
       
-      console.log(`Fetched ${applications.length} applications from external API`);
+      console.log(`Fetched ${rawApplications.length} applications from external API, showing ${applications.length} after excluding approved/converted`);
       return applications;
     },
     // Stale time of 30 seconds - data is considered fresh for 30 seconds
