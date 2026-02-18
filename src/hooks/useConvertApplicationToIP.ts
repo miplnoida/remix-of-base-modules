@@ -188,12 +188,23 @@ export function useConvertApplicationToIP() {
       queryClient.invalidateQueries({ queryKey: ['ip-records'] });
       queryClient.invalidateQueries({ queryKey: ['online-applications'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
-      toast.success(result.message || 'Application converted to IP record successfully');
+
+      const baseMsg = result.message || 'Application converted to IP record successfully';
+      const depNote = (result as any).dependants_note;
+      toast.success(baseMsg);
+      if (depNote) {
+        // Show a separate info toast about dependant staging
+        setTimeout(() => toast.info(depNote), 600);
+      }
     },
     onError: (error: Error) => {
       console.error('Application conversion error:', error);
       if (error.message.includes('DUPLICATE_CONVERSION')) {
         toast.error('This application has already been converted to an IP record.');
+      } else if (error.message.includes('MISSING_FIELD')) {
+        toast.error(`Validation failed: ${error.message}`);
+      } else if (error.message.includes('INSERT_FAILED')) {
+        toast.error(`Database error during conversion: ${error.message}`);
       } else {
         toast.error(`Conversion failed: ${error.message}`);
       }

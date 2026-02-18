@@ -263,6 +263,14 @@ export default function StartMeetingPage() {
         </div>
       </div>
 
+      {/* Conversion Validation Panel — only shown for IP-Registration meetings */}
+      {isIPMeeting && (
+        <ConversionValidationPanel
+          isLoading={validationLoading}
+          result={validationResult}
+        />
+      )}
+
       {/* Meeting Header Card */}
       <Card>
         <CardContent className="p-6">
@@ -318,18 +326,43 @@ export default function StartMeetingPage() {
               Refresh Data
             </Button>
 
-            {/* Approve Button */}
+            {/* Approve Button — blocked if IP-Registration and validation errors exist */}
             <Button
-              onClick={() => setApprovalDialogOpen(true)}
+              onClick={() => {
+                if (isIPMeeting && validationResult && validationResult.error_count > 0) {
+                  toast.error(
+                    `Cannot approve: ${validationResult.error_count} validation error${validationResult.error_count !== 1 ? 's' : ''} must be resolved first. See the validation panel above.`,
+                    { duration: 5000 }
+                  );
+                  return;
+                }
+                setApprovalDialogOpen(true);
+              }}
               className="gap-2"
-              disabled={approveMutation.isPending}
+              disabled={
+                approveMutation.isPending ||
+                (isIPMeeting && validationLoading) ||
+                (isIPMeeting && !!validationResult && validationResult.already_converted)
+              }
+              title={
+                isIPMeeting && validationResult && validationResult.error_count > 0
+                  ? `Blocked: ${validationResult.error_count} validation error(s) must be resolved`
+                  : undefined
+              }
             >
               {approveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : validationLoading && isIPMeeting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
               Approve Application
+              {isIPMeeting && validationResult && validationResult.error_count > 0 && (
+                <span className="ml-1 text-xs bg-destructive text-destructive-foreground rounded px-1">
+                  {validationResult.error_count} error{validationResult.error_count !== 1 ? 's' : ''}
+                </span>
+              )}
             </Button>
 
             {/* Reject Button */}
