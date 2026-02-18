@@ -32,12 +32,12 @@ import {
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { formatStatusDisplay, getStatusVariant } from '@/types/externalApplication';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
-import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
+import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { useCountries, useDistricts, useRelations, useOccupations } from '@/hooks/useIPMasterLookups';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
-import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
 import { ConversionValidationPanel } from '@/components/online-applications/ConversionValidationPanel';
 
 export default function ApplicationDetailPage() {
@@ -45,15 +45,26 @@ export default function ApplicationDetailPage() {
   const navigate = useNavigate();
   
   const { data: application, isLoading, error, refetch, isFetching } = useExternalApplicationDetail(referenceNumber);
-  const convertMutation = useConvertApplicationToIP();
+  const { convert: convertToIP, isConverting, conversionErrors } = useConvertToIPRegistration();
   const { user } = useSupabaseAuth();
-  const { data: validationResult, isLoading: validationLoading } = useValidateApplicationForConversion(referenceNumber, application);
+  const { userCode } = useUserCode();
 
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
   const { data: relations } = useRelations();
   const { data: occupations } = useOccupations();
+
+  // Build valid relation codes set for conversion
+  const validRelationCodes = React.useMemo(() => {
+    return new Set((relations || []).map((r: any) => String(r.code).toUpperCase()));
+  }, [relations]);
+
+  // Client-side preflight errors (shown in ValidationPanel without calling RPC)
+  const preflightErrors = React.useMemo(() => {
+    if (!application) return [];
+    return validateApplicationForConversion(application);
+  }, [application]);
 
   // Lookup helpers
   const getCountryName = (code: string | null | undefined): string | null => {
@@ -196,16 +207,22 @@ export default function ApplicationDetailPage() {
               // Auto-convert to IP record on approval
               if (endState === 'Approved' || endState === 'Completed') {
                 if (application) {
-                  try {
-                    await convertMutation.mutateAsync({
-                      applicationDetail: application,
-                      approvedBy: user?.id || '',
-                      sourceRoute: `/online-applications/insured-person/${referenceNumber}`,
-                    });
-                  } catch (convErr: any) {
-                    if (!convErr.message?.includes('DUPLICATE_CONVERSION')) {
-                      console.error('IP conversion after workflow approval:', convErr);
-                    }
+                  // Block if preflight errors exist
+                  if (preflightErrors.length > 0) {
+                    toast.error(`Cannot convert: ${preflightErrors[0].message}. Please resolve validation errors first.`);
+                    return;
+                  }
+                  const result = await convertToIP({
+                    applicationDetail: application,
+                    userId: user?.id || '',
+                    userCode: userCode || '',
+                    validRelationCodes,
+                    sourceRoute: `/online-applications/insured-person/${referenceNumber}`,
+                  });
+                  if (result.success) {
+                    toast.success(result.message || 'IP Registration created successfully');
+                  } else if (result.message && !result.message.includes('DUPLICATE')) {
+                    toast.error(result.message);
                   }
                 }
               }
@@ -214,8 +231,22 @@ export default function ApplicationDetailPage() {
         </div>
       </div>
 
-      {/* Conversion Validation Panel */}
-      <ConversionValidationPanel isLoading={validationLoading} result={validationResult} />
+      {/* Conversion Validation Panel — uses preflight client-side errors */}
+      <ConversionValidationPanel
+        isLoading={false}
+        result={
+          preflightErrors.length > 0
+            ? {
+                valid: false,
+                already_converted: false,
+                errors: preflightErrors.map(e => ({ field: e.field, type: 'MISSING' as const, message: e.message })),
+                warnings: [],
+                error_count: preflightErrors.length,
+                warning_count: 0,
+              }
+            : null
+        }
+      />
 
       {/* Summary Card */}
       <Card>

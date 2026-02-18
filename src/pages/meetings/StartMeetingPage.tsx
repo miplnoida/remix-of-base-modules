@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
@@ -51,8 +51,9 @@ import { ApplicationDocumentsTab } from '@/components/online-applications/Applic
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
-import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
+import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
 import { ConversionValidationPanel } from '@/components/online-applications/ConversionValidationPanel';
@@ -87,8 +88,9 @@ export default function StartMeetingPage() {
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
   const rejectMutation = useCloseMeetingWithRejection();
-  const convertMutation = useConvertApplicationToIP();
+  const { convert: convertToIP, isConverting } = useConvertToIPRegistration();
   const { user } = useSupabaseAuth();
+  const { userCode } = useUserCode();
 
   // Get application reference from meeting
   const applicationReference = meetingData?.meeting?.application_reference;
@@ -103,6 +105,18 @@ export default function StartMeetingPage() {
     isIPMeeting ? applicationReference : undefined,
     isIPMeeting ? applicationData : undefined
   );
+
+  // Build valid relation codes from the same lookups used in the page
+  const { data: relations } = useRelations();
+  const validRelationCodes = React.useMemo(() => {
+    return new Set((relations || []).map((r: any) => String(r.code).toUpperCase()));
+  }, [relations]);
+
+  // Client-side preflight errors (for IP meetings)
+  const preflightErrors = React.useMemo(() => {
+    if (!isIPMeeting || !applicationData) return [];
+    return validateApplicationForConversion(applicationData as ExternalApplicationDetail);
+  }, [isIPMeeting, applicationData]);
 
   // Initialize edited data when application loads
   useEffect(() => {
@@ -128,6 +142,12 @@ export default function StartMeetingPage() {
 
   const handleApprove = async () => {
     if (!meetingId) return;
+
+    // Block conversion if preflight errors exist (IP meetings only)
+    if (isIPMeeting && preflightErrors.length > 0) {
+      toast.error(`Cannot approve: ${preflightErrors[0].message}. Please resolve validation errors first.`, { duration: 6000 });
+      return;
+    }
     
     try {
       await approveMutation.mutateAsync({
@@ -136,21 +156,24 @@ export default function StartMeetingPage() {
         remarks: approvalRemarks || undefined
       });
 
-      // Convert the approved application to ip_master record
+      // Convert the approved application to ip_master using the same path as IPRegistrationForm
       if (meetingType === 'IP-Registration' && applicationData) {
-        try {
-          const dataForConversion = hasChanges ? { ...applicationData, ...editedData } : applicationData;
-          await convertMutation.mutateAsync({
-            applicationDetail: dataForConversion as ExternalApplicationDetail,
-            approvedBy: user?.id || '',
-            sourceRoute: `/meetings/start/${meetingId}`,
-          });
-        } catch (convErr: any) {
-          console.error('IP conversion after approval:', convErr);
-          // Don't block navigation - approval already succeeded
-          if (!convErr.message?.includes('DUPLICATE_CONVERSION')) {
-            toast.warning('Application approved but IP record conversion needs attention.');
-          }
+        const dataForConversion = hasChanges
+          ? { ...applicationData, ...editedData }
+          : applicationData;
+
+        const result = await convertToIP({
+          applicationDetail: dataForConversion as ExternalApplicationDetail,
+          userId: user?.id || '',
+          userCode: userCode || '',
+          validRelationCodes,
+          sourceRoute: `/meetings/start/${meetingId}`,
+        });
+
+        if (result.success) {
+          toast.success(result.message || 'IP Registration created successfully');
+        } else if (result.message) {
+          toast.error(`IP conversion issue: ${result.message}`);
         }
       }
       
@@ -326,12 +349,12 @@ export default function StartMeetingPage() {
               Refresh Data
             </Button>
 
-            {/* Approve Button — blocked if IP-Registration and validation errors exist */}
+            {/* Approve Button — blocked if IP-Registration and preflight errors exist */}
             <Button
               onClick={() => {
-                if (isIPMeeting && validationResult && validationResult.error_count > 0) {
+                if (isIPMeeting && preflightErrors.length > 0) {
                   toast.error(
-                    `Cannot approve: ${validationResult.error_count} validation error${validationResult.error_count !== 1 ? 's' : ''} must be resolved first. See the validation panel above.`,
+                    `Cannot approve: ${preflightErrors.length} validation error${preflightErrors.length !== 1 ? 's' : ''} must be resolved first. See the validation panel above.`,
                     { duration: 5000 }
                   );
                   return;
@@ -341,26 +364,25 @@ export default function StartMeetingPage() {
               className="gap-2"
               disabled={
                 approveMutation.isPending ||
+                isConverting ||
                 (isIPMeeting && validationLoading) ||
                 (isIPMeeting && !!validationResult && validationResult.already_converted)
               }
               title={
-                isIPMeeting && validationResult && validationResult.error_count > 0
-                  ? `Blocked: ${validationResult.error_count} validation error(s) must be resolved`
+                isIPMeeting && preflightErrors.length > 0
+                  ? `Blocked: ${preflightErrors.length} validation error(s) must be resolved`
                   : undefined
               }
             >
-              {approveMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : validationLoading && isIPMeeting ? (
+              {approveMutation.isPending || isConverting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
               Approve Application
-              {isIPMeeting && validationResult && validationResult.error_count > 0 && (
+              {isIPMeeting && preflightErrors.length > 0 && (
                 <span className="ml-1 text-xs bg-destructive text-destructive-foreground rounded px-1">
-                  {validationResult.error_count} error{validationResult.error_count !== 1 ? 's' : ''}
+                  {preflightErrors.length} error{preflightErrors.length !== 1 ? 's' : ''}
                 </span>
               )}
             </Button>
