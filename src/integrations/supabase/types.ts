@@ -7992,6 +7992,122 @@ export type Database = {
           },
         ]
       }
+      qa_change_requests: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          before_snapshot: Json | null
+          change_type: string
+          created_at: string
+          id: string
+          module: string | null
+          proposed_changes: Json
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          requested_by_code: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_code: string | null
+          status: Database["public"]["Enums"]["qa_change_status"]
+          target_id: string | null
+          target_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          before_snapshot?: Json | null
+          change_type: string
+          created_at?: string
+          id?: string
+          module?: string | null
+          proposed_changes?: Json
+          reason: string
+          requested_at?: string
+          requested_by?: string | null
+          requested_by_code?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_code?: string | null
+          status?: Database["public"]["Enums"]["qa_change_status"]
+          target_id?: string | null
+          target_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          before_snapshot?: Json | null
+          change_type?: string
+          created_at?: string
+          id?: string
+          module?: string | null
+          proposed_changes?: Json
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          requested_by_code?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_code?: string | null
+          status?: Database["public"]["Enums"]["qa_change_status"]
+          target_id?: string | null
+          target_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qa_enforcement_log: {
+        Row: {
+          action: string
+          attempted_at: string
+          attempted_by: string | null
+          change_request_id: string | null
+          detail: string | null
+          id: string
+          target_id: string
+          target_type: string
+          was_approved: boolean
+        }
+        Insert: {
+          action: string
+          attempted_at?: string
+          attempted_by?: string | null
+          change_request_id?: string | null
+          detail?: string | null
+          id?: string
+          target_id: string
+          target_type: string
+          was_approved?: boolean
+        }
+        Update: {
+          action?: string
+          attempted_at?: string
+          attempted_by?: string | null
+          change_request_id?: string | null
+          detail?: string | null
+          id?: string
+          target_id?: string
+          target_type?: string
+          was_approved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_enforcement_log_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "qa_change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qa_execution_runs: {
         Row: {
           blocking_failures: number
@@ -11900,6 +12016,15 @@ export type Database = {
         }
         Returns: string
       }
+      apply_qa_change_request: {
+        Args: {
+          p_notes?: string
+          p_request_id: string
+          p_reviewer_code: string
+          p_reviewer_id: string
+        }
+        Returns: Json
+      }
       apply_workflow_field_updates: {
         Args: {
           p_action_id: string
@@ -12493,6 +12618,15 @@ export type Database = {
         Args: { p_c3_id: string; p_reason?: string; p_user_id?: string }
         Returns: Json
       }
+      reject_qa_change_request: {
+        Args: {
+          p_notes?: string
+          p_request_id: string
+          p_reviewer_code: string
+          p_reviewer_id: string
+        }
+        Returns: Json
+      }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
@@ -12785,6 +12919,7 @@ export type Database = {
       payment_plan_status: "active" | "completed" | "broken" | "escalated"
       penalty_status: "Pending" | "Paid" | "Overdue" | "Waived"
       priority_level: "Low" | "Medium" | "High" | "Urgent"
+      qa_change_status: "pending" | "approved" | "rejected" | "withdrawn"
       service_status: "Not Served" | "Served" | "Service Failed"
       settlement_status: "Proposed" | "Accepted" | "Rejected" | "Completed"
       task_status: "Open" | "In Progress" | "Completed" | "Deferred"
@@ -13126,6 +13261,7 @@ export const Constants = {
       payment_plan_status: ["active", "completed", "broken", "escalated"],
       penalty_status: ["Pending", "Paid", "Overdue", "Waived"],
       priority_level: ["Low", "Medium", "High", "Urgent"],
+      qa_change_status: ["pending", "approved", "rejected", "withdrawn"],
       service_status: ["Not Served", "Served", "Service Failed"],
       settlement_status: ["Proposed", "Accepted", "Rejected", "Completed"],
       task_status: ["Open", "In Progress", "Completed", "Deferred"],

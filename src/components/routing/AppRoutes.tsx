@@ -289,6 +289,7 @@ import DoctorApplications from '@/pages/online-applications/DoctorApplications';
 // QA Framework
 import QADashboard from '@/pages/admin/qa/QADashboard';
 import KnowledgeRepository from '@/pages/admin/qa/KnowledgeRepository';
+import QAChangeRequests from '@/pages/admin/qa/QAChangeRequests';
 import DoctorApplicationDetailPage from '@/pages/online-applications/DoctorApplicationDetailPage';
 
 // IP Registration Module
@@ -1405,6 +1406,7 @@ export const AppRoutes = () => {
       {/* QA Framework */}
       <Route path="/admin/qa" element={<ProtectedLayout><QADashboard /></ProtectedLayout>} />
       <Route path="/admin/qa/knowledge" element={<ProtectedLayout><KnowledgeRepository /></ProtectedLayout>} />
+      <Route path="/admin/qa/change-requests" element={<ProtectedLayout><QAChangeRequests /></ProtectedLayout>} />
       {/* IP Registration Module - Primary route */}
       <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
       <Route path="/ip-registration/new" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
