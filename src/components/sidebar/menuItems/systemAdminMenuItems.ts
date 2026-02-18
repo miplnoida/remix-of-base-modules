@@ -30,7 +30,9 @@ import {
   Monitor,
   AlertCircle,
   Activity,
-  Fingerprint
+  Fingerprint,
+  FlaskConical,
+  BookOpen
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
@@ -272,6 +274,25 @@ export const systemAdminMenuItems = [
             title: "Workflow Logs",
             url: "/system-logs/workflows",
             icon: GitBranch,
+            requiresPermission: "system_administration"
+          }
+        ]
+      },
+      {
+        title: "Quality Assurance",
+        icon: FlaskConical,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "QA Dashboard",
+            url: "/admin/qa",
+            icon: BarChart3,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Knowledge Repository",
+            url: "/admin/qa/knowledge",
+            icon: BookOpen,
             requiresPermission: "system_administration"
           }
         ]

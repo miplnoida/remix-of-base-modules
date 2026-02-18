@@ -1,5 +1,11 @@
 project_id = "pruvbfejdpodpalqafcu"
 
+[functions.qa-ai-generator]
+verify_jwt = false
+
+[functions.qa-test-runner]
+verify_jwt = false
+
 [functions.workflow-notify-approvers]
 verify_jwt = false
 

@@ -285,6 +285,10 @@ import ApplicationDetailPage from '@/pages/online-applications/ApplicationDetail
 import EmployerApplications from '@/pages/online-applications/EmployerApplications';
 import EmployerApplicationDetailPage from '@/pages/online-applications/EmployerApplicationDetailPage';
 import DoctorApplications from '@/pages/online-applications/DoctorApplications';
+
+// QA Framework
+import QADashboard from '@/pages/admin/qa/QADashboard';
+import KnowledgeRepository from '@/pages/admin/qa/KnowledgeRepository';
 import DoctorApplicationDetailPage from '@/pages/online-applications/DoctorApplicationDetailPage';
 
 // IP Registration Module
@@ -1393,6 +1397,10 @@ export const AppRoutes = () => {
       <Route path="/online-applications/employer/:applicationId" element={<ProtectedLayout><EmployerApplicationDetailPage /></ProtectedLayout>} />
       <Route path="/online-applications/doctor" element={<ProtectedLayout><DoctorApplications /></ProtectedLayout>} />
       <Route path="/online-applications/doctor/:applicationId" element={<ProtectedLayout><DoctorApplicationDetailPage /></ProtectedLayout>} />
+
+      {/* QA Framework */}
+      <Route path="/admin/qa" element={<ProtectedLayout><QADashboard /></ProtectedLayout>} />
+      <Route path="/admin/qa/knowledge" element={<ProtectedLayout><KnowledgeRepository /></ProtectedLayout>} />
       {/* IP Registration Module - Primary route */}
       <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
       <Route path="/ip-registration/new" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
