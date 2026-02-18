@@ -146,6 +146,8 @@ export function ScheduleMeetingDialog({
   useEffect(() => { if (usersInDept.length > 0 && !usersInDept.find(u => u.id === selectedUserId)) setSelectedUserId(usersInDept[0].id); }, [usersInDept, selectedUserId]);
 
   const today = new Date();
+  // Capture current HH:MM at render time – re-evaluated every time the component renders
+  const nowTimeMinutes = useMemo(() => today.getHours() * 60 + today.getMinutes(), []);
 
   // Build strict 4-week aligned calendar
   const { paddingCount, days: calendarDays } = useMemo(() => buildFourWeekDays(today, weekStartDay), [weekStartDay]);
@@ -174,7 +176,20 @@ export function ScheduleMeetingDialog({
     return map;
   }, [rangeMeetings]);
 
+  // Returns true if a time slot string "HH:MM" is in the past relative to now, when today is selected
+  const isSlotInPast = (slot: string): boolean => {
+    if (!meetingDate) return false;
+    if (format(meetingDate, 'yyyy-MM-dd') !== todayStr) return false;
+    const [h, m] = slot.split(':').map(Number);
+    return h * 60 + m <= nowTimeMinutes;
+  };
+
   const handleTimeSelect = async (time: string) => {
+    // Guard: never allow selecting a past slot for today
+    if (isSlotInPast(time)) {
+      setOverlapError('Cannot select a time slot that is already in the past for today.');
+      return;
+    }
     setSelectedTime(time);
     setOverlapError('');
     if (!selectedUserId || !dateStr || !selectedOffice) return;
@@ -191,6 +206,13 @@ export function ScheduleMeetingDialog({
   const handleSubmit = async () => {
     if (!meetingDate || !selectedOffice || !selectedDepartment || !selectedUserId || !selectedTime) { toast.error('Please fill in all required fields'); return; }
     if (overlapError) { toast.error('Cannot schedule: time conflict exists'); return; }
+    // Frontend guard: reject past time slots for today at submit time
+    if (isSlotInPast(selectedTime)) {
+      toast.error('The selected time has already passed. Please choose a future time slot.');
+      setSelectedTime('');
+      setOverlapError('');
+      return;
+    }
     const selectedUser = usersInDept.find((u) => u.id === selectedUserId);
     const officeAddr = selectedOfficeInfo ? [selectedOfficeInfo.description, selectedOfficeInfo.address1, selectedOfficeInfo.address2].filter(Boolean).join(', ') : defaultAddress;
     const formData: ScheduleMeetingFormData = {
@@ -406,25 +428,38 @@ export function ScheduleMeetingDialog({
                           Select Time <span className="text-destructive">*</span>
                           <span className="font-normal text-muted-foreground ml-1">({bufferMinutes}-min)</span>
                         </Label>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 max-h-[180px] overflow-y-auto pr-0.5">
-                          {timeSlots.map((slot) => {
-                            const isOccupied = userMeetings.some((m: any) => {
-                              if (!m.meeting_time) return false;
-                              const meetingMin = parseInt(m.meeting_time.split(':')[0]) * 60 + parseInt(m.meeting_time.split(':')[1]);
-                              const meetingEndMin = m.meeting_end_time ? parseInt(m.meeting_end_time.split(':')[0]) * 60 + parseInt(m.meeting_end_time.split(':')[1]) : meetingMin + bufferMinutes;
-                              const slotMin = parseInt(slot.split(':')[0]) * 60 + parseInt(slot.split(':')[1]);
-                              const slotEndMin = slotMin + bufferMinutes;
-                              return slotMin < meetingEndMin && slotEndMin > meetingMin;
-                            });
-                            return (
-                              <Button key={slot} type="button" variant={selectedTime === slot ? 'default' : isOccupied ? 'ghost' : 'outline'} size="sm" disabled={isOccupied}
-                                onClick={() => handleTimeSelect(slot)}
-                                className={cn('text-xs h-7', isOccupied && 'opacity-40', selectedTime === slot && 'ring-2 ring-primary')}>
-                                {to12Hour(slot)}
-                              </Button>
-                            );
-                          })}
-                        </div>
+                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 max-h-[180px] overflow-y-auto pr-0.5">
+                           {timeSlots.map((slot) => {
+                             const isPast = isSlotInPast(slot);
+                             const isOccupied = userMeetings.some((m: any) => {
+                               if (!m.meeting_time) return false;
+                               const meetingMin = parseInt(m.meeting_time.split(':')[0]) * 60 + parseInt(m.meeting_time.split(':')[1]);
+                               const meetingEndMin = m.meeting_end_time ? parseInt(m.meeting_end_time.split(':')[0]) * 60 + parseInt(m.meeting_end_time.split(':')[1]) : meetingMin + bufferMinutes;
+                               const slotMin = parseInt(slot.split(':')[0]) * 60 + parseInt(slot.split(':')[1]);
+                               const slotEndMin = slotMin + bufferMinutes;
+                               return slotMin < meetingEndMin && slotEndMin > meetingMin;
+                             });
+                             const isDisabledSlot = isOccupied || isPast;
+                             return (
+                               <Button key={slot} type="button"
+                                 variant={selectedTime === slot ? 'default' : isDisabledSlot ? 'ghost' : 'outline'}
+                                 size="sm" disabled={isDisabledSlot}
+                                 onClick={() => handleTimeSelect(slot)}
+                                 className={cn('text-xs h-7',
+                                   isDisabledSlot && 'opacity-40',
+                                   isPast && 'line-through',
+                                   selectedTime === slot && 'ring-2 ring-primary'
+                                 )}>
+                                 {to12Hour(slot)}
+                               </Button>
+                             );
+                           })}
+                         </div>
+                         {meetingDate && format(meetingDate, 'yyyy-MM-dd') === todayStr && (
+                           <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                             <Clock className="h-3 w-3" /> Past slots for today are disabled
+                           </p>
+                         )}
                         {isValidating && <p className="text-[10px] text-muted-foreground">Validating...</p>}
                         {overlapError && <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{overlapError}</p>}
                       </div>
