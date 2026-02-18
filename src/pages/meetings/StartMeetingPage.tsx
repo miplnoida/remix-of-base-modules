@@ -54,6 +54,8 @@ import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meeti
 import { useConvertApplicationToIP } from '@/hooks/useConvertApplicationToIP';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
+import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
+import { ConversionValidationPanel } from '@/components/online-applications/ConversionValidationPanel';
 import type { MeetingType } from '@/types/meetings';
 import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
 
@@ -94,6 +96,13 @@ export default function StartMeetingPage() {
   
   // Fetch application data based on meeting type
   const { data: applicationData, isLoading: appLoading, refetch: refetchApplication, isFetching: appFetching } = useExternalApplicationDetail(applicationReference);
+
+  // Validate application for conversion (only for IP-Registration meetings)
+  const isIPMeeting = meetingType === 'IP-Registration';
+  const { data: validationResult, isLoading: validationLoading } = useValidateApplicationForConversion(
+    isIPMeeting ? applicationReference : undefined,
+    isIPMeeting ? applicationData : undefined
+  );
 
   // Initialize edited data when application loads
   useEffect(() => {

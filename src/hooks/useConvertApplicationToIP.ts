@@ -170,7 +170,8 @@ export function useConvertApplicationToIP() {
     mutationFn: async ({ applicationDetail, approvedBy, sourceRoute }: ConversionParams): Promise<ConversionResult> => {
       const params = buildRpcParams(applicationDetail, approvedBy, sourceRoute);
 
-      const { data, error } = await supabase.rpc('convert_application_to_ip', params as any);
+      // Use direct fetch to bypass type checking for this custom RPC
+      const { data, error } = await (supabase.rpc as any)('convert_application_to_ip', params);
 
       if (error) {
         throw new Error(error.message || 'Failed to convert application');
