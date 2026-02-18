@@ -114,33 +114,41 @@ function ProviderForm({ form, onChange, isEditing }: ProviderFormProps) {
         <div className="space-y-2">
           <Label className="text-sm font-semibold">Provider Type *</Label>
           <div className="grid grid-cols-2 gap-3">
-            {(["smtp", "resend"] as EmailProviderType[]).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => onChange({ ...form, email_provider_type: type, config: {} })}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all text-left",
-                  form.email_provider_type === type
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                {type === "smtp" ? (
-                  <Server className={cn("h-6 w-6", form.email_provider_type === type ? "text-primary" : "text-muted-foreground")} />
-                ) : (
-                  <Zap className={cn("h-6 w-6", form.email_provider_type === type ? "text-primary" : "text-muted-foreground")} />
-                )}
-                <div>
-                  <p className={cn("font-semibold text-sm", form.email_provider_type === type ? "text-primary" : "text-foreground")}>
-                    {type === "smtp" ? "SMTP" : "Resend"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {type === "smtp" ? "Custom mail server" : "API-based delivery"}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {(["smtp", "resend"] as EmailProviderType[]).map((type) => {
+              const isSelected = form.email_provider_type === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => onChange({ ...form, email_provider_type: type, config: {} })}
+                  className={cn(
+                    "relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all text-center focus:outline-none",
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground shadow-md"
+                      : "border-border bg-background hover:border-primary/60 hover:bg-muted/50 text-foreground"
+                  )}
+                >
+                  {isSelected && (
+                    <span className="absolute top-2 right-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+                    </span>
+                  )}
+                  {type === "smtp" ? (
+                    <Server className={cn("h-6 w-6", isSelected ? "text-primary-foreground" : "text-muted-foreground")} />
+                  ) : (
+                    <Zap className={cn("h-6 w-6", isSelected ? "text-primary-foreground" : "text-muted-foreground")} />
+                  )}
+                  <div>
+                    <p className={cn("font-semibold text-sm", isSelected ? "text-primary-foreground" : "text-foreground")}>
+                      {type === "smtp" ? "SMTP" : "Resend"}
+                    </p>
+                    <p className={cn("text-xs", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                      {type === "smtp" ? "Custom mail server" : "API-based delivery"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
