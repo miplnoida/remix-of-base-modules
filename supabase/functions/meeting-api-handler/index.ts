@@ -245,19 +245,27 @@ Deno.serve(async (req) => {
         // Determine server date/time (UTC)
         const nowUtc = new Date()
         const todayDate = nowUtc.toISOString().split('T')[0] // YYYY-MM-DD
-        const currentTime = nowUtc.toTimeString().substring(0, 5)  // HH:MM
+        const currentTimeHHMM = `${nowUtc.getUTCHours().toString().padStart(2, '0')}:${nowUtc.getUTCMinutes().toString().padStart(2, '0')}` // HH:MM UTC
 
-        // Check if the meeting is scheduled for a FUTURE date
+        // Check if the meeting is scheduled for a FUTURE date OR same day but at a future time
+        // e.g. meeting at 14:00, user clicks Start at 10:00 → needs auto-reschedule to now
         const isFutureDate = meeting.meeting_date > todayDate
+        const isSameDayFutureTime = meeting.meeting_date === todayDate && meeting.meeting_time.substring(0, 5) > currentTimeHHMM
+        const needsAutoReschedule = isFutureDate || isSameDayFutureTime
 
-        if (isFutureDate) {
+        // The "current time" to stamp on the new meeting is UTC HH:MM
+        const currentTime = currentTimeHHMM
+
+        if (needsAutoReschedule) {
           // ─── STEP 1: Mark future meeting as Rescheduled (same logic as reschedule_meeting) ───
           const { error: rescheduleUpdateError } = await supabase
             .from('meetings')
             .update({
               status: 'Rescheduled',
               outcome: 'Reschedule',
-              outcome_remarks: `Auto-rescheduled: meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`,
+              outcome_remarks: isFutureDate
+                ? `Auto-rescheduled: meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`
+                : `Auto-rescheduled: meeting started at ${currentTimeHHMM} UTC before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
               closed_by: userId,
               closed_by_name: userName,
               closed_at: nowUtc.toISOString(),
@@ -279,7 +287,9 @@ Deno.serve(async (req) => {
             old_time: meeting.meeting_time,
             new_date: todayDate,
             new_time: currentTime,
-            remarks: `Auto-rescheduled because meeting was started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`,
+            remarks: isFutureDate
+              ? `Auto-rescheduled because meeting was started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`
+              : `Auto-rescheduled because meeting was started at ${currentTimeHHMM} UTC before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
             performed_by: userId,
             performed_by_name: userName
           })
@@ -311,7 +321,9 @@ Deno.serve(async (req) => {
               office_code: meeting.office_code,
               department_id: meeting.department_id,
               assigned_user_id: meeting.assigned_user_id,
-              remarks: `Auto-created: meeting started today, rescheduled from ${meeting.meeting_reference} (was ${meeting.meeting_date})`,
+              remarks: isFutureDate
+                ? `Auto-created: meeting started today (${todayDate}), rescheduled from ${meeting.meeting_reference} (was ${meeting.meeting_date})`
+                : `Auto-created: meeting started early at ${currentTimeHHMM} UTC, rescheduled from ${meeting.meeting_reference} (was scheduled at ${meeting.meeting_time.substring(0, 5)})`,
               parent_meeting_id: body.meetingId,
               reschedule_count: (meeting.reschedule_count || 0) + 1,
               scheduled_by: userId,
