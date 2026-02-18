@@ -8,25 +8,26 @@ const corsHeaders = {
 };
 
 interface CampaignRequest {
-  /** existing campaign id to send, OR compose inline */
   campaign_id?: string;
-  /** inline compose fields */
   name?: string;
   subject?: string;
   html_body?: string;
   plain_body?: string;
   from_name?: string;
   from_email?: string;
-  /** 'all' | 'active' | 'custom' */
   recipient_filter?: string;
-  /** used when recipient_filter === 'custom' */
   recipient_emails?: string[];
-  /** retry a failed notification_log */
   retry_log_id?: string;
 }
 
+interface ResendResult {
+  id?: string;
+  error?: string;
+  statusCode?: number;
+}
+
 const RESEND_API = "https://api.resend.com/emails";
-const BATCH_SIZE = 50; // Resend batch limit
+const BATCH_SIZE = 50;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
@@ -42,7 +43,10 @@ async function sendViaResend(
   plain: string | undefined,
   fromName: string,
   fromEmail: string
-): Promise<{ id: string } | null> {
+): Promise<ResendResult> {
+  let lastError = "";
+  let lastStatus = 0;
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const res = await fetch(RESEND_API, {
@@ -60,25 +64,97 @@ async function sendViaResend(
         }),
       });
 
+      lastStatus = res.status;
+
       if (res.ok) {
-        return await res.json();
+        const data = await res.json();
+        return { id: data.id };
       }
 
       const errBody = await res.text();
-      console.error(`Resend attempt ${attempt} failed (${res.status}):`, errBody);
+      let parsedError = errBody;
+      try {
+        const parsed = JSON.parse(errBody);
+        parsedError = parsed.message || parsed.error || errBody;
+      } catch (_) {}
 
+      lastError = `[HTTP ${res.status}] ${parsedError}`;
+      console.error(`Resend attempt ${attempt} failed (${res.status}):`, parsedError);
+
+      // Retryable: rate-limit or server errors
       if (res.status === 429 || res.status >= 500) {
         await sleep(RETRY_DELAY_MS * attempt);
         continue;
       }
-      // 4xx non-rate-limit → don't retry
-      return null;
-    } catch (err) {
-      console.error(`Resend attempt ${attempt} threw:`, err);
+
+      // 4xx non-retryable (e.g. unverified domain, invalid email, bad API key)
+      return { error: lastError, statusCode: res.status };
+    } catch (err: any) {
+      lastError = err?.message || String(err);
+      console.error(`Resend attempt ${attempt} threw:`, lastError);
       await sleep(RETRY_DELAY_MS * attempt);
     }
   }
-  return null;
+
+  return { error: lastError || "All retry attempts exhausted", statusCode: lastStatus };
+}
+
+/** Write to system_error_logs - non-blocking */
+async function logSystemError(
+  supabase: any,
+  errorMessage: string,
+  errorType: string,
+  module: string,
+  entityId?: string,
+  stackTrace?: string,
+  correlationId?: string,
+  sessionId?: string,
+) {
+  try {
+    await supabase.from("system_error_logs").insert({
+      error_type: errorType,
+      error_message: errorMessage,
+      stack_trace: stackTrace || null,
+      module,
+      entity_type: "email_campaign",
+      entity_id: entityId || null,
+      severity: "error",
+      correlation_id: correlationId || null,
+      session_id: sessionId || null,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Failed to write system_error_logs:", e);
+  }
+}
+
+/** Write to system_technical_logs - non-blocking */
+async function logTechnical(
+  supabase: any,
+  apiName: string,
+  module: string,
+  status: "success" | "failed",
+  executionMs: number,
+  entityId?: string,
+  errorDetail?: string,
+  correlationId?: string,
+) {
+  try {
+    await supabase.from("system_technical_logs").insert({
+      api_name: apiName,
+      module,
+      entity_type: "email_campaign",
+      entity_id: entityId || null,
+      execution_time_ms: executionMs,
+      status,
+      severity: status === "failed" ? "error" : "info",
+      stack_trace: errorDetail || null,
+      correlation_id: correlationId || null,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Failed to write system_technical_logs:", e);
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -95,8 +171,13 @@ const handler = async (req: Request): Promise<Response> => {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
   if (!resendApiKey) {
+    const errMsg = "RESEND_API_KEY secret is not configured in the backend environment.";
+    console.error(errMsg);
+    // Still create supabase client with service key to log
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    await logSystemError(supabase, errMsg, "ConfigurationError", "EmailCampaign", undefined, undefined, correlationId);
     return new Response(
-      JSON.stringify({ success: false, error: "RESEND_API_KEY not configured" }),
+      JSON.stringify({ success: false, error: errMsg }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
@@ -108,6 +189,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ── RETRY SINGLE FAILED LOG ──────────────────────────────────────────────
     if (body.retry_log_id) {
+      const retryStart = performance.now();
       const { data: log, error: logErr } = await supabase
         .from("notification_logs")
         .select("*")
@@ -115,6 +197,8 @@ const handler = async (req: Request): Promise<Response> => {
         .single();
 
       if (logErr || !log) {
+        const errMsg = `Retry failed: notification log ${body.retry_log_id} not found`;
+        await logSystemError(supabase, errMsg, "NotFoundError", "EmailCampaign", body.retry_log_id, undefined, correlationId);
         return new Response(
           JSON.stringify({ success: false, error: "Log not found" }),
           { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -136,22 +220,28 @@ const handler = async (req: Request): Promise<Response> => {
         "noreply@notifications.ssbm.gov.kn"
       );
 
-      if (result) {
+      const retryMs = Math.round(performance.now() - retryStart);
+
+      if (result.id) {
         await supabase
           .from("notification_logs")
           .update({ status: "sent", resend_message_id: result.id, sent_at: new Date().toISOString(), failure_reason: null })
           .eq("id", log.id);
+        await logTechnical(supabase, "resend_retry_email", "EmailCampaign", "success", retryMs, log.id, undefined, correlationId);
         return new Response(
           JSON.stringify({ success: true, resend_id: result.id }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       } else {
+        const errMsg = result.error || "All retry attempts exhausted";
         await supabase
           .from("notification_logs")
-          .update({ status: "failed", failure_reason: "All retry attempts exhausted" })
+          .update({ status: "failed", failure_reason: errMsg })
           .eq("id", log.id);
+        await logSystemError(supabase, errMsg, "ResendDeliveryError", "EmailCampaign", log.id, undefined, correlationId);
+        await logTechnical(supabase, "resend_retry_email", "EmailCampaign", "failed", retryMs, log.id, errMsg, correlationId);
         return new Response(
-          JSON.stringify({ success: false, error: "Delivery failed after retries" }),
+          JSON.stringify({ success: false, error: errMsg }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
@@ -174,19 +264,18 @@ const handler = async (req: Request): Promise<Response> => {
         .select("*")
         .eq("id", body.campaign_id)
         .single();
-      if (error || !camp) throw new Error("Campaign not found");
+      if (error || !camp) throw new Error("Campaign not found: " + (error?.message || body.campaign_id));
 
-      campaignId   = camp.id;
-      name         = camp.name;
-      subject      = camp.subject;
-      htmlBody     = camp.html_body;
-      plainBody    = camp.plain_body;
-      fromName     = camp.from_name;
-      fromEmail    = camp.from_email;
+      campaignId      = camp.id;
+      name            = camp.name;
+      subject         = camp.subject;
+      htmlBody        = camp.html_body;
+      plainBody       = camp.plain_body;
+      fromName        = camp.from_name;
+      fromEmail       = camp.from_email;
       recipientFilter = camp.recipient_filter;
-      customEmails = camp.recipient_emails;
+      customEmails    = camp.recipient_emails;
     } else {
-      // Create campaign record on-the-fly
       name            = body.name || "Manual Campaign";
       subject         = body.subject || "(no subject)";
       htmlBody        = body.html_body || "<p>(no content)</p>";
@@ -239,17 +328,18 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (recipients.length === 0) {
+      const errMsg = "No recipients found matching the selected filter.";
       await supabase
         .from("email_campaigns")
-        .update({ status: "failed", error_message: "No recipients found", completed_at: new Date().toISOString() })
+        .update({ status: "failed", error_message: errMsg, completed_at: new Date().toISOString() })
         .eq("id", campaignId);
+      await logSystemError(supabase, errMsg, "NoRecipientsError", "EmailCampaign", campaignId, undefined, correlationId);
       return new Response(
-        JSON.stringify({ success: false, error: "No recipients found" }),
+        JSON.stringify({ success: false, error: errMsg }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Update total_recipients
     await supabase
       .from("email_campaigns")
       .update({ total_recipients: recipients.length })
@@ -258,11 +348,13 @@ const handler = async (req: Request): Promise<Response> => {
     // ── SEND IN BATCHES ──────────────────────────────────────────────────────
     let sentCount = 0;
     let failedCount = 0;
+    const failedRecipients: { email: string; reason: string }[] = [];
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batch = recipients.slice(i, i + BATCH_SIZE);
 
       for (const recipient of batch) {
+        const perStart = performance.now();
         const result = await sendViaResend(
           resendApiKey,
           recipient.email,
@@ -272,34 +364,63 @@ const handler = async (req: Request): Promise<Response> => {
           fromName,
           fromEmail
         );
+        const perMs = Math.round(performance.now() - perStart);
+
+        const isSuccess = !!result.id;
+        const failureReason = result.error || null;
 
         const logEntry = {
           channel: "email" as const,
           recipient_address: recipient.email,
           subject,
           body: htmlBody,
-          status: result ? "sent" : "failed",
-          sent_at: result ? new Date().toISOString() : null,
-          failure_reason: result ? null : "Delivery failed after retries",
+          status: isSuccess ? "sent" : "failed",
+          sent_at: isSuccess ? new Date().toISOString() : null,
+          failure_reason: failureReason,
           trigger_source: "email_campaign",
-          resend_message_id: result?.id ?? null,
+          resend_message_id: result.id ?? null,
           campaign_id: campaignId,
-          metadata: { campaign_name: name, from_name: fromName, from_email: fromEmail },
+          metadata: {
+            campaign_name: name,
+            from_name: fromName,
+            from_email: fromEmail,
+            http_status: result.statusCode,
+            execution_ms: perMs,
+          },
         };
 
         await supabase.from("notification_logs").insert(logEntry);
 
-        if (result) sentCount++;
-        else failedCount++;
+        if (isSuccess) {
+          sentCount++;
+          await logTechnical(supabase, "resend_send_email", "EmailCampaign", "success", perMs, campaignId, undefined, correlationId);
+        } else {
+          failedCount++;
+          failedRecipients.push({ email: recipient.email, reason: failureReason || "Unknown" });
+
+          // Log each failure individually to system_error_logs
+          await logSystemError(
+            supabase,
+            `Email delivery failed to ${recipient.email}: ${failureReason}`,
+            "ResendDeliveryError",
+            "EmailCampaign",
+            campaignId,
+            `HTTP ${result.statusCode} - ${failureReason}`,
+            correlationId,
+          );
+          await logTechnical(supabase, "resend_send_email", "EmailCampaign", "failed", perMs, campaignId, failureReason || undefined, correlationId);
+        }
       }
 
-      // Small pause between batches to respect rate limits
       if (i + BATCH_SIZE < recipients.length) {
         await sleep(500);
       }
     }
 
-    const finalStatus = failedCount === 0 ? "completed" : sentCount === 0 ? "failed" : "completed";
+    const finalStatus = sentCount === 0 ? "failed" : "completed";
+    const campaignError = failedCount > 0
+      ? `${failedCount} of ${recipients.length} emails failed. First error: ${failedRecipients[0]?.reason}`
+      : null;
 
     await supabase
       .from("email_campaigns")
@@ -308,27 +429,49 @@ const handler = async (req: Request): Promise<Response> => {
         sent_count: sentCount,
         failed_count: failedCount,
         completed_at: new Date().toISOString(),
+        error_message: campaignError,
       })
       .eq("id", campaignId);
 
     const executionMs = Math.round(performance.now() - startTime);
+
+    // Log overall campaign technical entry
+    await logTechnical(
+      supabase,
+      "email_campaign_run",
+      "EmailCampaign",
+      finalStatus === "completed" ? "success" : "failed",
+      executionMs,
+      campaignId,
+      campaignError || undefined,
+      correlationId,
+    );
+
     console.log(`Campaign ${campaignId} done. Sent: ${sentCount}, Failed: ${failedCount}, Time: ${executionMs}ms`);
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: finalStatus === "completed",
         campaign_id: campaignId,
         total_recipients: recipients.length,
         sent_count: sentCount,
         failed_count: failedCount,
+        failed_details: failedRecipients,
         execution_ms: executionMs,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
-    console.error("Campaign error:", error);
+    const executionMs = Math.round(performance.now() - startTime);
+    const errMsg = error?.message || String(error);
+    console.error("Campaign fatal error:", errMsg);
+
+    // Write fatal error to monitoring
+    await logSystemError(supabase, errMsg, "CampaignFatalError", "EmailCampaign", undefined, error?.stack, correlationId);
+    await logTechnical(supabase, "email_campaign_run", "EmailCampaign", "failed", executionMs, undefined, errMsg, correlationId);
+
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: errMsg }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
