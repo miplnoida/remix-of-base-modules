@@ -372,10 +372,11 @@ Deno.serve(async (req) => {
               previous_meeting_reference: meeting.meeting_reference
             }
 
-            await supabase
+            const { error: wiMetaErr1 } = await supabase
               .from('workflow_instances')
-              .update({ metadata: updatedMetadata, updated_at: nowUtc.toISOString() })
+              .update({ metadata: updatedMetadata })
               .eq('id', meeting.workflow_instance_id)
+            if (wiMetaErr1) console.error('[start_meeting] workflow_instances metadata update failed:', wiMetaErr1)
 
             // Log in workflow_logs
             await supabase.from('workflow_logs').insert({
@@ -813,10 +814,11 @@ Deno.serve(async (req) => {
             current_meeting_reference: newMeetingRef
           }
 
-          await supabase
+          const { error: wiMetaErr2 } = await supabase
             .from('workflow_instances')
-            .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+            .update({ metadata: updatedMetadata })
             .eq('id', meeting.workflow_instance_id)
+          if (wiMetaErr2) console.error('[reschedule_meeting] workflow_instances metadata update failed:', wiMetaErr2)
         }
 
         // Trigger Workflow-ScheduleMeeting via the workflow-action-api edge function.
@@ -918,14 +920,31 @@ Deno.serve(async (req) => {
 
         // Complete the workflow instance
         if (meeting.workflow_instance_id) {
-          await supabase
+          const { error: wiApproveErr } = await supabase
             .from('workflow_instances')
             .update({
               status: 'Approved',
               completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
             })
             .eq('id', meeting.workflow_instance_id)
+
+          if (wiApproveErr) {
+            console.error('[close_meeting_approved] CRITICAL: workflow_instances status update to Approved FAILED:', wiApproveErr)
+            await supabase.from('system_audit_trail').insert({
+              action: 'workflow_state_transition_failed',
+              entity_type: 'workflow_instance',
+              entity_id: meeting.workflow_instance_id,
+              module: 'Workflow Approval',
+              user_id: userId,
+              user_name: userName || 'SYSTEM',
+              severity: 'error',
+              payload_json: { target_status: 'Approved', error: wiApproveErr.message, meeting_id: body.meetingId },
+              timestamp: new Date().toISOString(),
+            }).catch(() => {})
+            // Still continue — log clearly but do not throw, meeting is already closed
+          } else {
+            console.log('[close_meeting_approved] workflow_instances status successfully set to Approved for instance:', meeting.workflow_instance_id)
+          }
 
           // Complete any pending tasks
           await supabase
@@ -1049,14 +1068,30 @@ Deno.serve(async (req) => {
 
         // Complete the workflow instance as rejected
         if (meeting.workflow_instance_id) {
-          await supabase
+          const { error: wiRejectErr } = await supabase
             .from('workflow_instances')
             .update({
               status: 'Rejected',
               completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
             })
             .eq('id', meeting.workflow_instance_id)
+
+          if (wiRejectErr) {
+            console.error('[close_meeting_rejected] CRITICAL: workflow_instances status update to Rejected FAILED:', wiRejectErr)
+            await supabase.from('system_audit_trail').insert({
+              action: 'workflow_state_transition_failed',
+              entity_type: 'workflow_instance',
+              entity_id: meeting.workflow_instance_id,
+              module: 'Workflow Rejection',
+              user_id: userId,
+              user_name: userName || 'SYSTEM',
+              severity: 'error',
+              payload_json: { target_status: 'Rejected', error: wiRejectErr.message, meeting_id: body.meetingId },
+              timestamp: new Date().toISOString(),
+            }).catch(() => {})
+          } else {
+            console.log('[close_meeting_rejected] workflow_instances status successfully set to Rejected for instance:', meeting.workflow_instance_id)
+          }
 
           // Complete any pending tasks
           await supabase
