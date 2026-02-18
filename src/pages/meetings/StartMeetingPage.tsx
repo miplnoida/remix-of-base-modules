@@ -143,10 +143,20 @@ export default function StartMeetingPage() {
   const handleApprove = async () => {
     if (!meetingId) return;
 
-    // Block conversion if preflight errors exist (IP meetings only)
+    // Block conversion if client-side preflight errors exist (IP meetings only)
     if (isIPMeeting && preflightErrors.length > 0) {
       toast.error(
         `Cannot approve: ${preflightErrors[0].message}. Please resolve validation errors first.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
+    // Block conversion if server-side validation returned errors
+    if (isIPMeeting && validationResult && validationResult.error_count > 0) {
+      const firstError = validationResult.errors[0];
+      toast.error(
+        `Cannot approve: ${firstError?.message || `${validationResult.error_count} validation error(s) must be resolved`}. See the validation panel above.`,
         { duration: 6000 }
       );
       return;
@@ -359,43 +369,58 @@ export default function StartMeetingPage() {
               Refresh Data
             </Button>
 
-            {/* Approve Button — blocked if IP-Registration and preflight errors exist */}
-            <Button
-              onClick={() => {
-                if (isIPMeeting && preflightErrors.length > 0) {
-                  toast.error(
-                    `Cannot approve: ${preflightErrors.length} validation error${preflightErrors.length !== 1 ? 's' : ''} must be resolved first. See the validation panel above.`,
-                    { duration: 5000 }
-                  );
-                  return;
-                }
-                setApprovalDialogOpen(true);
-              }}
-              className="gap-2"
-              disabled={
-                approveMutation.isPending ||
-                isConverting ||
-                (isIPMeeting && validationLoading) ||
-                (isIPMeeting && !!validationResult && validationResult.already_converted)
-              }
-              title={
-                isIPMeeting && preflightErrors.length > 0
-                  ? `Blocked: ${preflightErrors.length} validation error(s) must be resolved`
-                  : undefined
-              }
-            >
-              {approveMutation.isPending || isConverting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              Approve Application
-              {isIPMeeting && preflightErrors.length > 0 && (
-                <span className="ml-1 text-xs bg-destructive text-destructive-foreground rounded px-1">
-                  {preflightErrors.length} error{preflightErrors.length !== 1 ? 's' : ''}
-                </span>
-              )}
-            </Button>
+            {/* Approve Button — blocked if IP-Registration and any validation errors exist */}
+            {(() => {
+              const serverErrorCount = isIPMeeting ? (validationResult?.error_count ?? 0) : 0;
+              const clientErrorCount = isIPMeeting ? preflightErrors.length : 0;
+              const totalErrors = serverErrorCount + clientErrorCount;
+              const isBlocked = isIPMeeting && totalErrors > 0;
+              const isAlreadyConverted = isIPMeeting && !!validationResult && validationResult.already_converted;
+
+              return (
+                <Button
+                  onClick={() => {
+                    if (isIPMeeting && (clientErrorCount > 0 || serverErrorCount > 0)) {
+                      const msg = serverErrorCount > 0
+                        ? validationResult!.errors[0]?.message
+                        : `${clientErrorCount} validation error(s) must be resolved`;
+                      toast.error(
+                        `Cannot approve: ${msg}. See the validation panel above.`,
+                        { duration: 5000 }
+                      );
+                      return;
+                    }
+                    setApprovalDialogOpen(true);
+                  }}
+                  className="gap-2"
+                  disabled={
+                    approveMutation.isPending ||
+                    isConverting ||
+                    (isIPMeeting && validationLoading) ||
+                    isAlreadyConverted
+                  }
+                  title={
+                    isBlocked
+                      ? `Blocked: ${totalErrors} validation error(s) must be resolved`
+                      : isAlreadyConverted
+                      ? 'Already converted to IP record'
+                      : undefined
+                  }
+                >
+                  {approveMutation.isPending || isConverting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  Approve Application
+                  {isBlocked && (
+                    <span className="ml-1 text-xs bg-destructive text-destructive-foreground rounded px-1">
+                      {totalErrors} error{totalErrors !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </Button>
+              );
+            })()}
 
             {/* Reject Button */}
             <Button
