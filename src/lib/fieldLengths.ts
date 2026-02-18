@@ -50,12 +50,12 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   nationality:         { maxLength: 3,   type: 'varchar', label: 'Nationality' },
   eyecolor:            { maxLength: 3,   type: 'varchar', label: 'Eye Color' },
 
-  // Address
-  resident_addr1:      { maxLength: 30,  type: 'varchar', label: 'Resident Address 1' },
-  resident_addr2:      { maxLength: 30,  type: 'varchar', label: 'Resident Address 2' },
+  // Address (min 50 chars per schema — altered 2026-02-18)
+  resident_addr1:      { maxLength: 50,  type: 'varchar', label: 'Resident Address 1' },
+  resident_addr2:      { maxLength: 50,  type: 'varchar', label: 'Resident Address 2' },
   district:            { maxLength: 3,   type: 'varchar', label: 'Postal District' },
-  mail_addr1:          { maxLength: 30,  type: 'varchar', label: 'Mailing Address 1' },
-  mail_addr2:          { maxLength: 30,  type: 'varchar', label: 'Mailing Address 2' },
+  mail_addr1:          { maxLength: 50,  type: 'varchar', label: 'Mailing Address 1' },
+  mail_addr2:          { maxLength: 50,  type: 'varchar', label: 'Mailing Address 2' },
 
   // Contact
   email_addr:          { maxLength: 40,  type: 'varchar', label: 'Email' },
@@ -87,8 +87,8 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   // Relations - Contact
   contact:             { maxLength: 35,  type: 'varchar', label: 'Contact Name' },
   contact_relation:    { maxLength: 20,  type: 'varchar', label: 'Contact Relation' },
-  contact_addr1:       { maxLength: 30,  type: 'varchar', label: 'Contact Address 1' },
-  contact_addr2:       { maxLength: 30,  type: 'varchar', label: 'Contact Address 2' },
+  contact_addr1:       { maxLength: 50,  type: 'varchar', label: 'Contact Address 1' },
+  contact_addr2:       { maxLength: 50,  type: 'varchar', label: 'Contact Address 2' },
   contact_phone:       { maxLength: 10,  type: 'varchar', label: 'Contact Phone' },
   contact_mobile:      { maxLength: 10,  type: 'varchar', label: 'Contact Mobile' },
   contact_email:       { maxLength: 40,  type: 'varchar', label: 'Contact Email' },
@@ -97,13 +97,13 @@ export const IP_MASTER_FIELDS: Record<string, FieldDef> = {
   father_name:         { maxLength: 35,  type: 'varchar', label: "Father's Name" },
   mother_name:         { maxLength: 35,  type: 'varchar', label: "Mother's Name" },
   spouse_name:         { maxLength: 35,  type: 'varchar', label: 'Spouse Name' },
-  spouse_addr1:        { maxLength: 30,  type: 'varchar', label: 'Spouse Address 1' },
-  spouse_addr2:        { maxLength: 30,  type: 'varchar', label: 'Spouse Address 2' },
+  spouse_addr1:        { maxLength: 50,  type: 'varchar', label: 'Spouse Address 1' },
+  spouse_addr2:        { maxLength: 50,  type: 'varchar', label: 'Spouse Address 2' },
   spouse_ssn:          { maxLength: 6,   type: 'varchar', label: 'Spouse SSN' },
   witness_name:        { maxLength: 35,  type: 'varchar', label: 'Witness Name' },
   beneficiary:         { maxLength: 35,  type: 'varchar', label: 'Beneficiary' },
-  ben_addr1:           { maxLength: 30,  type: 'varchar', label: 'Beneficiary Address 1' },
-  ben_addr2:           { maxLength: 30,  type: 'varchar', label: 'Beneficiary Address 2' },
+  ben_addr1:           { maxLength: 50,  type: 'varchar', label: 'Beneficiary Address 1' },
+  ben_addr2:           { maxLength: 50,  type: 'varchar', label: 'Beneficiary Address 2' },
 
   // Additional fields
   entered_by:          { maxLength: 5,   type: 'varchar', label: 'Entered By' },
