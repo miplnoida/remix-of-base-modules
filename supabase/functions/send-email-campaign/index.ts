@@ -18,23 +18,31 @@ interface CampaignRequest {
   recipient_filter?: string;
   recipient_emails?: string[];
   retry_log_id?: string;
+  force_provider_id?: string; // for test sends against a specific provider
 }
 
-interface ResendResult {
+interface SendResult {
   id?: string;
   error?: string;
   statusCode?: number;
 }
 
-const RESEND_API = "https://api.resend.com/emails";
-const BATCH_SIZE = 50;
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1000;
+// ── Provider config resolved from DB ─────────────────────────────────────────
+interface ProviderConfig {
+  type: "smtp" | "resend";
+  config: Record<string, any>;
+}
+
+const RESEND_API   = "https://api.resend.com/emails";
+const BATCH_SIZE   = 50;
+const MAX_RETRIES  = 3;
+const RETRY_DELAY  = 1000;
 
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// ── Resend delivery ────────────────────────────────────────────────────────────
 async function sendViaResend(
   apiKey: string,
   to: string,
@@ -43,7 +51,7 @@ async function sendViaResend(
   plain: string | undefined,
   fromName: string,
   fromEmail: string
-): Promise<ResendResult> {
+): Promise<SendResult> {
   let lastError = "";
   let lastStatus = 0;
 
@@ -83,23 +91,119 @@ async function sendViaResend(
 
       // Retryable: rate-limit or server errors
       if (res.status === 429 || res.status >= 500) {
-        await sleep(RETRY_DELAY_MS * attempt);
+        await sleep(RETRY_DELAY * attempt);
         continue;
       }
 
-      // 4xx non-retryable (e.g. unverified domain, invalid email, bad API key)
+      // 4xx non-retryable
       return { error: lastError, statusCode: res.status };
     } catch (err: any) {
       lastError = err?.message || String(err);
       console.error(`Resend attempt ${attempt} threw:`, lastError);
-      await sleep(RETRY_DELAY_MS * attempt);
+      await sleep(RETRY_DELAY * attempt);
     }
   }
 
   return { error: lastError || "All retry attempts exhausted", statusCode: lastStatus };
 }
 
-/** Write to system_error_logs - non-blocking */
+// ── SMTP delivery ──────────────────────────────────────────────────────────────
+async function sendViaSMTP(
+  cfg: Record<string, any>,
+  to: string,
+  subject: string,
+  html: string,
+  _plain: string | undefined,
+  fromName: string,
+  fromEmail: string
+): Promise<SendResult> {
+  // Deno's std SMTP library
+  try {
+    const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+
+    const client = new SMTPClient({
+      connection: {
+        hostname: cfg.smtp_host,
+        port: Number(cfg.smtp_port) || 587,
+        tls: !!cfg.smtp_secure,
+        auth: {
+          username: cfg.smtp_user,
+          password: cfg.smtp_password,
+        },
+      },
+    });
+
+    await client.send({
+      from: `${fromName} <${fromEmail}>`,
+      to,
+      subject,
+      html,
+    });
+
+    await client.close();
+    return { id: `smtp-${Date.now()}` };
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    console.error("SMTP send error:", msg);
+    return { error: `[SMTP] ${msg}` };
+  }
+}
+
+// ── Resolve active email provider ──────────────────────────────────────────────
+async function resolveProvider(
+  supabase: any,
+  forceProviderId?: string
+): Promise<{ provider: ProviderConfig; providerId: string; fromName: string; fromEmail: string } | null> {
+  let query = supabase
+    .from("notification_providers")
+    .select("id, email_provider_type, config")
+    .eq("channel", "email");
+
+  if (forceProviderId) {
+    query = query.eq("id", forceProviderId);
+  } else {
+    query = query.eq("is_default", true).eq("is_active", true);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error || !data) {
+    console.error("No active email provider found:", error?.message);
+    return null;
+  }
+
+  const cfg = data.config || {};
+  return {
+    provider:   { type: data.email_provider_type || "resend", config: cfg },
+    providerId: data.id,
+    fromName:   cfg.from_name  || "SSBM Notifications",
+    fromEmail:  cfg.from_email || "noreply@notifications.ssbm.gov.kn",
+  };
+}
+
+// ── Dispatch via resolved provider ─────────────────────────────────────────────
+async function dispatchEmail(
+  provider: ProviderConfig,
+  to: string,
+  subject: string,
+  html: string,
+  plain: string | undefined,
+  fromName: string,
+  fromEmail: string,
+  fallbackResendKey?: string
+): Promise<SendResult> {
+  if (provider.type === "smtp") {
+    return sendViaSMTP(provider.config, to, subject, html, plain, fromName, fromEmail);
+  }
+
+  // Resend: prefer API key stored in provider config, fall back to env secret
+  const apiKey = provider.config?.api_key || fallbackResendKey;
+  if (!apiKey) {
+    return { error: "Resend API key is not configured in the active provider" };
+  }
+  return sendViaResend(apiKey, to, subject, html, plain, fromName, fromEmail);
+}
+
+// ── Logging helpers ────────────────────────────────────────────────────────────
 async function logSystemError(
   supabase: any,
   errorMessage: string,
@@ -112,23 +216,22 @@ async function logSystemError(
 ) {
   try {
     await supabase.from("system_error_logs").insert({
-      error_type: errorType,
+      error_type:    errorType,
       error_message: errorMessage,
-      stack_trace: stackTrace || null,
+      stack_trace:   stackTrace || null,
       module,
-      entity_type: "email_campaign",
-      entity_id: entityId || null,
-      severity: "error",
+      entity_type:   "email_campaign",
+      entity_id:     entityId || null,
+      severity:      "error",
       correlation_id: correlationId || null,
-      session_id: sessionId || null,
-      timestamp: new Date().toISOString(),
+      session_id:    sessionId || null,
+      timestamp:     new Date().toISOString(),
     });
   } catch (e) {
     console.error("Failed to write system_error_logs:", e);
   }
 }
 
-/** Write to system_technical_logs - non-blocking */
 async function logTechnical(
   supabase: any,
   apiName: string,
@@ -141,53 +244,41 @@ async function logTechnical(
 ) {
   try {
     await supabase.from("system_technical_logs").insert({
-      api_name: apiName,
+      api_name:         apiName,
       module,
-      entity_type: "email_campaign",
-      entity_id: entityId || null,
+      entity_type:      "email_campaign",
+      entity_id:        entityId || null,
       execution_time_ms: executionMs,
       status,
-      severity: status === "failed" ? "error" : "info",
-      stack_trace: errorDetail || null,
-      correlation_id: correlationId || null,
-      timestamp: new Date().toISOString(),
+      severity:         status === "failed" ? "error" : "info",
+      stack_trace:      errorDetail || null,
+      correlation_id:   correlationId || null,
+      timestamp:        new Date().toISOString(),
     });
   } catch (e) {
     console.error("Failed to write system_technical_logs:", e);
   }
 }
 
+// ── Main handler ───────────────────────────────────────────────────────────────
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const correlationId =
-    req.headers.get("x-correlation-id") || crypto.randomUUID();
-  const startTime = performance.now();
+  const correlationId = req.headers.get("x-correlation-id") || crypto.randomUUID();
+  const startTime     = performance.now();
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseUrl        = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
-  if (!resendApiKey) {
-    const errMsg = "RESEND_API_KEY secret is not configured in the backend environment.";
-    console.error(errMsg);
-    // Still create supabase client with service key to log
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    await logSystemError(supabase, errMsg, "ConfigurationError", "EmailCampaign", undefined, undefined, correlationId);
-    return new Response(
-      JSON.stringify({ success: false, error: errMsg }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  }
+  const fallbackResendKey  = Deno.env.get("RESEND_API_KEY");
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const body: CampaignRequest = await req.json();
 
-    // ── RETRY SINGLE FAILED LOG ──────────────────────────────────────────────
+    // ── RETRY SINGLE FAILED LOG ────────────────────────────────────────────────
     if (body.retry_log_id) {
       const retryStart = performance.now();
       const { data: log, error: logErr } = await supabase
@@ -205,19 +296,31 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Resolve provider
+      const resolved = await resolveProvider(supabase);
+      if (!resolved) {
+        const errMsg = "No active email provider configured. Retry aborted.";
+        await logSystemError(supabase, errMsg, "ConfigurationError", "EmailCampaign", log.id, undefined, correlationId);
+        return new Response(
+          JSON.stringify({ success: false, error: errMsg }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       await supabase
         .from("notification_logs")
         .update({ status: "sending", retry_count: (log.retry_count || 0) + 1, last_retry_at: new Date().toISOString() })
         .eq("id", log.id);
 
-      const result = await sendViaResend(
-        resendApiKey,
+      const result = await dispatchEmail(
+        resolved.provider,
         log.recipient_address,
         log.subject || "(no subject)",
         log.body,
         undefined,
-        "SSBM Notifications",
-        "noreply@notifications.ssbm.gov.kn"
+        resolved.fromName,
+        resolved.fromEmail,
+        fallbackResendKey
       );
 
       const retryMs = Math.round(performance.now() - retryStart);
@@ -227,9 +330,9 @@ const handler = async (req: Request): Promise<Response> => {
           .from("notification_logs")
           .update({ status: "sent", resend_message_id: result.id, sent_at: new Date().toISOString(), failure_reason: null })
           .eq("id", log.id);
-        await logTechnical(supabase, "resend_retry_email", "EmailCampaign", "success", retryMs, log.id, undefined, correlationId);
+        await logTechnical(supabase, "email_retry", "EmailCampaign", "success", retryMs, log.id, undefined, correlationId);
         return new Response(
-          JSON.stringify({ success: true, resend_id: result.id }),
+          JSON.stringify({ success: true, message_id: result.id }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       } else {
@@ -238,8 +341,8 @@ const handler = async (req: Request): Promise<Response> => {
           .from("notification_logs")
           .update({ status: "failed", failure_reason: errMsg })
           .eq("id", log.id);
-        await logSystemError(supabase, errMsg, "ResendDeliveryError", "EmailCampaign", log.id, undefined, correlationId);
-        await logTechnical(supabase, "resend_retry_email", "EmailCampaign", "failed", retryMs, log.id, errMsg, correlationId);
+        await logSystemError(supabase, errMsg, "DeliveryError", "EmailCampaign", log.id, undefined, correlationId);
+        await logTechnical(supabase, "email_retry", "EmailCampaign", "failed", retryMs, log.id, errMsg, correlationId);
         return new Response(
           JSON.stringify({ success: false, error: errMsg }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -247,14 +350,31 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // ── RESOLVE CAMPAIGN ─────────────────────────────────────────────────────
+    // ── RESOLVE ACTIVE EMAIL PROVIDER ─────────────────────────────────────────
+    const resolved = await resolveProvider(supabase, body.force_provider_id);
+
+    if (!resolved) {
+      const errMsg = body.force_provider_id
+        ? `Provider ${body.force_provider_id} not found.`
+        : "No active email provider is configured. Go to Email Providers settings and set one as Active.";
+      console.error(errMsg);
+      await logSystemError(supabase, errMsg, "ConfigurationError", "EmailCampaign", undefined, undefined, correlationId);
+      return new Response(
+        JSON.stringify({ success: false, error: errMsg }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Using email provider: ${resolved.provider.type} (id: ${resolved.providerId})`);
+
+    // ── RESOLVE CAMPAIGN ───────────────────────────────────────────────────────
     let campaignId: string;
     let name: string;
     let subject: string;
     let htmlBody: string;
     let plainBody: string | undefined;
-    let fromName: string;
-    let fromEmail: string;
+    let fromName:        string = resolved.fromName;
+    let fromEmail:       string = resolved.fromEmail;
     let recipientFilter: string;
     let customEmails: string[] | undefined;
 
@@ -271,17 +391,18 @@ const handler = async (req: Request): Promise<Response> => {
       subject         = camp.subject;
       htmlBody        = camp.html_body;
       plainBody       = camp.plain_body;
-      fromName        = camp.from_name;
-      fromEmail       = camp.from_email;
+      // Campaign from_name/from_email override provider defaults if set
+      fromName        = camp.from_name  || fromName;
+      fromEmail       = camp.from_email || fromEmail;
       recipientFilter = camp.recipient_filter;
       customEmails    = camp.recipient_emails;
     } else {
-      name            = body.name || "Manual Campaign";
+      name            = body.name  || "Manual Campaign";
       subject         = body.subject || "(no subject)";
       htmlBody        = body.html_body || "<p>(no content)</p>";
       plainBody       = body.plain_body;
-      fromName        = body.from_name || "SSBM Notifications";
-      fromEmail       = body.from_email || "noreply@notifications.ssbm.gov.kn";
+      fromName        = body.from_name  || fromName;
+      fromEmail       = body.from_email || fromEmail;
       recipientFilter = body.recipient_filter || "all";
       customEmails    = body.recipient_emails;
 
@@ -301,13 +422,12 @@ const handler = async (req: Request): Promise<Response> => {
       campaignId = newCamp.id;
     }
 
-    // Mark campaign as sending
     await supabase
       .from("email_campaigns")
       .update({ status: "sending", triggered_at: new Date().toISOString() })
       .eq("id", campaignId);
 
-    // ── RESOLVE RECIPIENTS ───────────────────────────────────────────────────
+    // ── RESOLVE RECIPIENTS ─────────────────────────────────────────────────────
     let recipients: { email: string; name: string }[] = [];
 
     if (recipientFilter === "custom" && customEmails?.length) {
@@ -345,8 +465,8 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ total_recipients: recipients.length })
       .eq("id", campaignId);
 
-    // ── SEND IN BATCHES ──────────────────────────────────────────────────────
-    let sentCount = 0;
+    // ── SEND IN BATCHES ────────────────────────────────────────────────────────
+    let sentCount   = 0;
     let failedCount = 0;
     const failedRecipients: { email: string; reason: string }[] = [];
 
@@ -355,37 +475,39 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const recipient of batch) {
         const perStart = performance.now();
-        const result = await sendViaResend(
-          resendApiKey,
+        const result   = await dispatchEmail(
+          resolved.provider,
           recipient.email,
           subject,
           htmlBody,
           plainBody,
           fromName,
-          fromEmail
+          fromEmail,
+          fallbackResendKey
         );
-        const perMs = Math.round(performance.now() - perStart);
-
-        const isSuccess = !!result.id;
-        const failureReason = result.error || null;
+        const perMs      = Math.round(performance.now() - perStart);
+        const isSuccess  = !!result.id;
+        const failReason = result.error || null;
 
         const logEntry = {
-          channel: "email" as const,
+          channel:           "email" as const,
           recipient_address: recipient.email,
           subject,
-          body: htmlBody,
-          status: isSuccess ? "sent" : "failed",
-          sent_at: isSuccess ? new Date().toISOString() : null,
-          failure_reason: failureReason,
-          trigger_source: "email_campaign",
+          body:              htmlBody,
+          status:            isSuccess ? "sent" : "failed",
+          sent_at:           isSuccess ? new Date().toISOString() : null,
+          failure_reason:    failReason,
+          trigger_source:    "email_campaign",
           resend_message_id: result.id ?? null,
-          campaign_id: campaignId,
+          campaign_id:       campaignId,
           metadata: {
-            campaign_name: name,
-            from_name: fromName,
-            from_email: fromEmail,
-            http_status: result.statusCode,
-            execution_ms: perMs,
+            campaign_name:  name,
+            from_name:      fromName,
+            from_email:     fromEmail,
+            provider_type:  resolved.provider.type,
+            provider_id:    resolved.providerId,
+            http_status:    result.statusCode,
+            execution_ms:   perMs,
           },
         };
 
@@ -393,22 +515,20 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (isSuccess) {
           sentCount++;
-          await logTechnical(supabase, "resend_send_email", "EmailCampaign", "success", perMs, campaignId, undefined, correlationId);
+          await logTechnical(supabase, `${resolved.provider.type}_send_email`, "EmailCampaign", "success", perMs, campaignId, undefined, correlationId);
         } else {
           failedCount++;
-          failedRecipients.push({ email: recipient.email, reason: failureReason || "Unknown" });
-
-          // Log each failure individually to system_error_logs
+          failedRecipients.push({ email: recipient.email, reason: failReason || "Unknown" });
           await logSystemError(
             supabase,
-            `Email delivery failed to ${recipient.email}: ${failureReason}`,
-            "ResendDeliveryError",
+            `Email delivery failed to ${recipient.email}: ${failReason}`,
+            "DeliveryError",
             "EmailCampaign",
             campaignId,
-            `HTTP ${result.statusCode} - ${failureReason}`,
+            `HTTP ${result.statusCode} - ${failReason}`,
             correlationId,
           );
-          await logTechnical(supabase, "resend_send_email", "EmailCampaign", "failed", perMs, campaignId, failureReason || undefined, correlationId);
+          await logTechnical(supabase, `${resolved.provider.type}_send_email`, "EmailCampaign", "failed", perMs, campaignId, failReason || undefined, correlationId);
         }
       }
 
@@ -417,7 +537,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    const finalStatus = sentCount === 0 ? "failed" : "completed";
+    const finalStatus   = sentCount === 0 ? "failed" : "completed";
     const campaignError = failedCount > 0
       ? `${failedCount} of ${recipients.length} emails failed. First error: ${failedRecipients[0]?.reason}`
       : null;
@@ -425,17 +545,16 @@ const handler = async (req: Request): Promise<Response> => {
     await supabase
       .from("email_campaigns")
       .update({
-        status: finalStatus,
-        sent_count: sentCount,
-        failed_count: failedCount,
-        completed_at: new Date().toISOString(),
+        status:        finalStatus,
+        sent_count:    sentCount,
+        failed_count:  failedCount,
+        completed_at:  new Date().toISOString(),
         error_message: campaignError,
       })
       .eq("id", campaignId);
 
     const executionMs = Math.round(performance.now() - startTime);
 
-    // Log overall campaign technical entry
     await logTechnical(
       supabase,
       "email_campaign_run",
@@ -447,26 +566,27 @@ const handler = async (req: Request): Promise<Response> => {
       correlationId,
     );
 
-    console.log(`Campaign ${campaignId} done. Sent: ${sentCount}, Failed: ${failedCount}, Time: ${executionMs}ms`);
+    console.log(`Campaign ${campaignId} done via ${resolved.provider.type}. Sent: ${sentCount}, Failed: ${failedCount}, Time: ${executionMs}ms`);
 
     return new Response(
       JSON.stringify({
-        success: finalStatus === "completed",
-        campaign_id: campaignId,
+        success:          finalStatus === "completed",
+        campaign_id:      campaignId,
+        provider_type:    resolved.provider.type,
+        provider_id:      resolved.providerId,
         total_recipients: recipients.length,
-        sent_count: sentCount,
-        failed_count: failedCount,
-        failed_details: failedRecipients,
-        execution_ms: executionMs,
+        sent_count:       sentCount,
+        failed_count:     failedCount,
+        failed_details:   failedRecipients,
+        execution_ms:     executionMs,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
     const executionMs = Math.round(performance.now() - startTime);
-    const errMsg = error?.message || String(error);
+    const errMsg      = error?.message || String(error);
     console.error("Campaign fatal error:", errMsg);
 
-    // Write fatal error to monitoring
     await logSystemError(supabase, errMsg, "CampaignFatalError", "EmailCampaign", undefined, error?.stack, correlationId);
     await logTechnical(supabase, "email_campaign_run", "EmailCampaign", "failed", executionMs, undefined, errMsg, correlationId);
 

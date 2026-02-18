@@ -3496,6 +3496,47 @@ export type Database = {
         }
         Relationships: []
       }
+      email_provider_test_logs: {
+        Row: {
+          error_message: string | null
+          id: string
+          provider_id: string
+          response_data: Json | null
+          status: string
+          test_to: string
+          tested_at: string | null
+          tested_by: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          provider_id: string
+          response_data?: Json | null
+          status?: string
+          test_to: string
+          tested_at?: string | null
+          tested_by?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          provider_id?: string
+          response_data?: Json | null
+          status?: string
+          test_to?: string
+          tested_at?: string | null
+          tested_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_provider_test_logs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "notification_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       er_commence: {
         Row: {
           commence_seq_no: number
@@ -7398,8 +7439,13 @@ export type Database = {
           channel: Database["public"]["Enums"]["notification_channel"]
           config: Json
           created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_name: string | null
+          email_provider_type: string | null
           id: string
           is_active: boolean | null
+          is_default: boolean | null
           provider_name: string
           updated_at: string | null
           updated_by: string | null
@@ -7408,8 +7454,13 @@ export type Database = {
           channel: Database["public"]["Enums"]["notification_channel"]
           config?: Json
           created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string | null
+          email_provider_type?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
           provider_name: string
           updated_at?: string | null
           updated_by?: string | null
@@ -7418,8 +7469,13 @@ export type Database = {
           channel?: Database["public"]["Enums"]["notification_channel"]
           config?: Json
           created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string | null
+          email_provider_type?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
           provider_name?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -12650,6 +12706,10 @@ export type Database = {
           p_workflow_instance_id: string
         }
         Returns: Json
+      }
+      set_email_provider_default: {
+        Args: { provider_id: string }
+        Returns: undefined
       }
       submit_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }
