@@ -11909,6 +11909,59 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_application_for_conversion: {
+        Args: {
+          p_address_line1?: string
+          p_address_line2?: string
+          p_alias?: string
+          p_ben_addr1?: string
+          p_ben_addr2?: string
+          p_beneficiary_name?: string
+          p_birth_place?: string
+          p_contact_addr1?: string
+          p_contact_addr2?: string
+          p_contact_email?: string
+          p_contact_mobile?: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_contact_relation?: string
+          p_date_of_birth?: string
+          p_dependants?: Json
+          p_email?: string
+          p_employer_address?: string
+          p_employer_name?: string
+          p_employer_phone?: string
+          p_employer_town?: string
+          p_eye_color?: string
+          p_father_name?: string
+          p_first_name?: string
+          p_gender?: string
+          p_last_name?: string
+          p_maiden_name?: string
+          p_mailing_addr1?: string
+          p_mailing_addr2?: string
+          p_marital_status?: string
+          p_middle_name?: string
+          p_mother_name?: string
+          p_nationality?: string
+          p_occupation?: string
+          p_phone?: string
+          p_phone_mobile?: string
+          p_postal_district?: string
+          p_reference_number: string
+          p_remarks?: string
+          p_second_middle_name?: string
+          p_spouse_addr1?: string
+          p_spouse_addr2?: string
+          p_spouse_dob?: string
+          p_spouse_name?: string
+          p_spouse_ssn?: string
+          p_suffix?: string
+          p_title?: string
+          p_witness_name?: string
+        }
+        Returns: Json
+      }
       validate_meeting_office_hours: {
         Args: {
           p_buffer_minutes?: number

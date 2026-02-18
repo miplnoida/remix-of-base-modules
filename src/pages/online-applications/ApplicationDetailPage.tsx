@@ -37,6 +37,8 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { useCountries, useDistricts, useRelations, useOccupations } from '@/hooks/useIPMasterLookups';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
+import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
+import { ConversionValidationPanel } from '@/components/online-applications/ConversionValidationPanel';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
@@ -45,6 +47,7 @@ export default function ApplicationDetailPage() {
   const { data: application, isLoading, error, refetch, isFetching } = useExternalApplicationDetail(referenceNumber);
   const convertMutation = useConvertApplicationToIP();
   const { user } = useSupabaseAuth();
+  const { data: validationResult, isLoading: validationLoading } = useValidateApplicationForConversion(referenceNumber, application);
 
   // Master table lookups
   const { data: countries } = useCountries();
@@ -210,6 +213,9 @@ export default function ApplicationDetailPage() {
           />
         </div>
       </div>
+
+      {/* Conversion Validation Panel */}
+      <ConversionValidationPanel isLoading={validationLoading} result={validationResult} />
 
       {/* Summary Card */}
       <Card>
