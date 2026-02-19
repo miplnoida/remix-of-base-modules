@@ -95,10 +95,16 @@ export function useTurnstile() {
         sitekey: TURNSTILE_SITE_KEY,
         size: 'invisible',
         callback: (tkn: string) => {
+          // Clear safety timeout
+          const ref = containerRef as React.MutableRefObject<HTMLDivElement | null> & { _timeoutId?: ReturnType<typeof setTimeout> };
+          if (ref._timeoutId) { clearTimeout(ref._timeoutId); ref._timeoutId = undefined; }
           setToken(tkn);
           setError(null);
         },
         'error-callback': () => {
+          // Clear safety timeout
+          const ref = containerRef as React.MutableRefObject<HTMLDivElement | null> & { _timeoutId?: ReturnType<typeof setTimeout> };
+          if (ref._timeoutId) { clearTimeout(ref._timeoutId); ref._timeoutId = undefined; }
           setError('Verification failed. Please try again.');
           setToken(null);
         },
@@ -125,10 +131,35 @@ export function useTurnstile() {
     }
 
     try {
+      // Reset first, then execute after a short delay to avoid "already executing" state
       if (widgetIdRef.current) {
         window.turnstile!.reset(widgetIdRef.current);
       }
-      window.turnstile!.execute(containerRef.current);
+
+      // Slight delay after reset to allow widget to return to idle state
+      setTimeout(() => {
+        try {
+          if (widgetIdRef.current) {
+            window.turnstile!.execute(widgetIdRef.current);
+          } else if (containerRef.current) {
+            window.turnstile!.execute(containerRef.current);
+          } else {
+            setError('turnstile-unavailable');
+          }
+        } catch (err) {
+          console.warn('[Turnstile] Execute (delayed) failed:', err);
+          setError('turnstile-unavailable');
+        }
+      }, 100);
+
+      // Safety timeout: if turnstile doesn't respond in 8s, unblock login
+      const timeoutId = setTimeout(() => {
+        setError('turnstile-unavailable');
+        console.warn('[Turnstile] Timed out waiting for response — proceeding without verification');
+      }, 8000);
+
+      // Store timeout ID so we can clear it if token/error arrives
+      (containerRef as React.MutableRefObject<HTMLDivElement | null> & { _timeoutId?: ReturnType<typeof setTimeout> })._timeoutId = timeoutId;
     } catch (err) {
       console.warn('[Turnstile] Execute failed:', err);
       setError('turnstile-unavailable');
