@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ExternalApplicationDetail } from '@/types/externalApplication';
+import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
 
 // ─── Field-length helpers matching ip_master / ip_depend schemas ─────────────
 
@@ -290,10 +291,44 @@ export function useConvertToIPRegistration() {
         throw new Error(result?.message || 'Atomic conversion returned failure without a message');
       }
 
-      // ── Step 6: Invalidate caches ─────────────────────────────────────────
+      // ── Step 6: Trigger workflow (same pipeline as manual submission) ────
+      const recordName = `${app.firstName || ''} ${app.lastName || ''}`.trim();
+      let workflowInstanceId: string | null = null;
+      
+      if (result.ssn && result.unique_uuid) {
+        workflowInstanceId = await triggerIPRegistrationWorkflow({
+          uniqueUuid: result.unique_uuid,
+          ssn: result.ssn,
+          recordName,
+          userId,
+        });
+        
+        if (workflowInstanceId) {
+          console.log(`[useConvertToIPRegistration] Workflow instance created: ${workflowInstanceId}`);
+        } else {
+          console.warn('[useConvertToIPRegistration] No workflow was triggered (check trigger config)');
+        }
+      }
+
+      // ── Step 7: Log audit entry for conversion ────────────────────────────
+      await supabase.from('ip_audit_log').insert({
+        table_name: 'ip_master',
+        record_id: result.ip_master_id || null,
+        unique_uuid: result.unique_uuid ?? uniqueUuid,
+        action: 'CONVERSION',
+        changed_by: userId,
+        old_value: null,
+        new_value: 'P',
+        field_name: 'status',
+      }).then(({ error }) => {
+        if (error) console.error('[useConvertToIPRegistration] Audit log insert failed:', error);
+      });
+
+      // ── Step 8: Invalidate caches ─────────────────────────────────────────
       queryClient.invalidateQueries({ queryKey: ['ip-records'] });
       queryClient.invalidateQueries({ queryKey: ['ip_master'] });
       queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
 
       return {
         success: true,
