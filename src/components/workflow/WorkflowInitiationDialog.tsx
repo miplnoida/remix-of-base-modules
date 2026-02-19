@@ -47,8 +47,8 @@ export function WorkflowInitiationDialog({
           <AlertDialogDescription asChild>
             <div className="space-y-4 text-sm">
               <p>
-                The application for <strong>{recordName}</strong> has been converted
-                successfully. A workflow is eligible to be initiated for this registration.
+                A workflow is eligible to be initiated for the application{' '}
+                <strong>{recordName}</strong>.
               </p>
 
               <div className="rounded-md border bg-muted/50 p-3 space-y-2">
