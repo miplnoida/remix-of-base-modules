@@ -3496,6 +3496,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_layout_components: {
+        Row: {
+          component_type: string
+          created_at: string
+          created_by: string | null
+          display_name: string
+          html_content: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+          version_no: number
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          html_content: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          html_content?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Relationships: []
+      }
       email_provider_test_logs: {
         Row: {
           error_message: string | null
@@ -7482,51 +7521,169 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_template_audit_logs: {
+        Row: {
+          action: string
+          details: Json | null
+          field_name: string | null
+          id: string
+          ip_address: string | null
+          new_value: string | null
+          old_value: string | null
+          performed_at: string
+          performed_by: string | null
+          template_id: string | null
+          template_name: string | null
+        }
+        Insert: {
+          action: string
+          details?: Json | null
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          action?: string
+          details?: Json | null
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_template_audit_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_template_versions: {
+        Row: {
+          body: string | null
+          change_summary: string | null
+          changed_at: string
+          changed_by: string | null
+          html_body: string | null
+          id: string
+          name: string
+          placeholders: Json | null
+          subject: string | null
+          template_id: string
+          version_no: number
+        }
+        Insert: {
+          body?: string | null
+          change_summary?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          html_body?: string | null
+          id?: string
+          name: string
+          placeholders?: Json | null
+          subject?: string | null
+          template_id: string
+          version_no: number
+        }
+        Update: {
+          body?: string | null
+          change_summary?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          html_body?: string | null
+          id?: string
+          name?: string
+          placeholders?: Json | null
+          subject?: string | null
+          template_id?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_templates: {
         Row: {
           body: string
+          category: string | null
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string | null
           created_by: string | null
+          description: string | null
+          html_body: string | null
           id: string
           is_enabled: boolean | null
           module_id: string | null
           name: string
           placeholders: Json | null
           subject: string | null
+          template_code: string | null
           title: string | null
+          trigger_event: string | null
           updated_at: string | null
           updated_by: string | null
+          version_no: number
         }
         Insert: {
           body: string
+          category?: string | null
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
+          html_body?: string | null
           id?: string
           is_enabled?: boolean | null
           module_id?: string | null
           name: string
           placeholders?: Json | null
           subject?: string | null
+          template_code?: string | null
           title?: string | null
+          trigger_event?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
           body?: string
+          category?: string | null
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
+          html_body?: string | null
           id?: string
           is_enabled?: boolean | null
           module_id?: string | null
           name?: string
           placeholders?: Json | null
           subject?: string | null
+          template_code?: string | null
           title?: string | null
+          trigger_event?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -12682,6 +12839,10 @@ export type Database = {
           p_reviewer_id: string
         }
         Returns: Json
+      }
+      render_email_template: {
+        Args: { p_template_id: string; p_variables?: Json }
+        Returns: string
       }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }

@@ -13,6 +13,7 @@ import {
   Play,
   ListTodo,
   BarChart3,
+  Mail,
   ClipboardCheck,
   Layers,
   Lock,
@@ -146,6 +147,12 @@ export const systemAdminMenuItems = [
             title: "Templates",
             url: "/admin/notifications/templates",
             icon: FileText,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Email Templates",
+            url: "/admin/notifications/email-templates",
+            icon: Mail,
             requiresPermission: "system_administration"
           },
           {
