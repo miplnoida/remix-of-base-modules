@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ExternalApplicationDetail } from '@/types/externalApplication';
-import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
 
 // ─── Field-length helpers matching ip_master / ip_depend schemas ─────────────
 
@@ -291,24 +290,10 @@ export function useConvertToIPRegistration() {
         throw new Error(result?.message || 'Atomic conversion returned failure without a message');
       }
 
-      // ── Step 6: Trigger workflow (same pipeline as manual submission) ────
-      const recordName = `${app.firstName || ''} ${app.lastName || ''}`.trim();
-      let workflowInstanceId: string | null = null;
-      
-      if (result.ssn && result.unique_uuid) {
-        workflowInstanceId = await triggerIPRegistrationWorkflow({
-          uniqueUuid: result.unique_uuid,
-          ssn: result.ssn,
-          recordName,
-          userId,
-        });
-        
-        if (workflowInstanceId) {
-          console.log(`[useConvertToIPRegistration] Workflow instance created: ${workflowInstanceId}`);
-        } else {
-          console.warn('[useConvertToIPRegistration] No workflow was triggered (check trigger config)');
-        }
-      }
+      // ── Step 6: Workflow is NO LONGER auto-triggered ──────────────────
+      // The caller is responsible for checking workflow eligibility and
+      // showing a confirmation dialog before initiating a workflow.
+      // See workflowEligibilityService.ts and WorkflowInitiationDialog.
 
       // ── Step 7: Log audit entry for conversion ────────────────────────────
       await supabase.from('ip_audit_log').insert({
