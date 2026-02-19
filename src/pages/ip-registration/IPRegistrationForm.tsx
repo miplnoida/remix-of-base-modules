@@ -28,6 +28,8 @@ import { VCEligibilityModal } from '@/components/ip-registration/VCEligibilityMo
 import { IPStatusChangeDialog } from '@/components/ip-registration/IPStatusChangeDialog';
 import { SelfEmployDetailsTab, WagesCategoryTab, BusinessLocationsTab, ContributionHistoryTab, SEPStatusPanel } from '@/components/ip/sep';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
+import { useWorkflowInitialization } from '@/hooks/useWorkflowInitialization';
+import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 
 export interface IPFormData {
   id?: string;
@@ -701,6 +703,16 @@ export default function IPRegistrationForm() {
   const isEditable = !isViewMode && (formData.status === 'Z' || formData.status === 'D');
   const canApprove = formData.status === 'P' && formData.created_by !== user?.id;
 
+  // Conditional workflow initialization on page load
+  const workflowInit = useWorkflowInitialization({
+    uniqueUuid: formData.unique_uuid,
+    status: formData.status,
+    ssn: formData.ssn || undefined,
+    recordName: `${formData.firstname || ''} ${formData.surname || ''}`.trim(),
+    userId: user?.id,
+    skip: isNewMode || isNewRecord,
+  });
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       {/* Success Animation for Tab Transitions */}
@@ -1163,6 +1175,18 @@ export default function IPRegistrationForm() {
         onStatusChanged={fetchData}
       />
       {/* Approve/Reject dialogs removed - now handled by WorkflowActionButtons component */}
+
+      {/* Workflow Initiation Confirmation Dialog */}
+      <WorkflowInitiationDialog
+        open={workflowInit.showDialog}
+        onOpenChange={(open) => { if (!open) workflowInit.declineWorkflow(); }}
+        eligibility={workflowInit.eligibility}
+        applicationStatus={formData.status}
+        recordName={`${formData.firstname || ''} ${formData.surname || ''}`.trim()}
+        onConfirm={workflowInit.confirmWorkflow}
+        onDecline={workflowInit.declineWorkflow}
+        isInitiating={workflowInit.isInitiating}
+      />
     </div>
   );
 }
