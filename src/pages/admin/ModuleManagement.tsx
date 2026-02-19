@@ -53,7 +53,8 @@ const getIcon = (iconName: string | null) => {
 
 interface ModuleTreeItemProps {
   module: AppModule;
-  children: AppModule[];
+  allModules: AppModule[];
+  childModulesMap: Map<string, AppModule[]>;
   level: number;
   onEdit: (module: AppModule) => void;
   onDelete: (id: string) => void;
@@ -68,7 +69,8 @@ interface ModuleTreeItemProps {
 
 const ModuleTreeItem = ({
   module,
-  children,
+  allModules,
+  childModulesMap,
   level,
   onEdit,
   onDelete,
@@ -79,6 +81,7 @@ const ModuleTreeItem = ({
   toggleExpand,
   can,
 }: ModuleTreeItemProps) => {
+  const children = childModulesMap.get(module.id) || [];
   const hasChildren = children.length > 0;
   const isExpanded = expandedModules.has(module.id);
   const Icon = getIcon(module.icon);
@@ -87,8 +90,7 @@ const ModuleTreeItem = ({
     <div className="border-b last:border-b-0">
       <div
         className={cn(
-          "flex items-center gap-2 py-3 px-4 hover:bg-muted/50 transition-colors",
-          level > 0 && "pl-8"
+          "flex items-center gap-2 py-3 px-4 hover:bg-muted/50 transition-colors"
         )}
         style={{ paddingLeft: level * 24 + 16 }}
       >
@@ -113,9 +115,14 @@ const ModuleTreeItem = ({
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{module.display_name}</span>
             <span className="text-xs text-muted-foreground">({module.name})</span>
+            {level > 0 && (
+              <Badge variant="outline" className="text-xs py-0 px-1">
+                L{level + 1}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{module.route || "No route"}</span>
+            <span>{module.route || "No route (container)"}</span>
             <span>•</span>
             <span>Order: {module.sort_order}</span>
           </div>
@@ -192,14 +199,15 @@ const ModuleTreeItem = ({
         </div>
       )}
 
-      {/* Children */}
+      {/* Children — rendered recursively at any depth */}
       {isExpanded && hasChildren && (
         <div>
           {children.map((child) => (
             <ModuleTreeItem
               key={child.id}
               module={child}
-              children={[]}
+              allModules={allModules}
+              childModulesMap={childModulesMap}
               level={level + 1}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -251,35 +259,40 @@ const ModuleManagementContent = () => {
   const createAction = useCreateModuleAction();
   const deleteAction = useDeleteModuleAction();
 
-  // Build tree structure
-  const { parentModules, childModulesMap, filteredParentModules } = useMemo(() => {
+  // Build tree structure — supports unlimited depth
+  const { parentModules, childModulesMap, filteredParentModules, allModuleIds } = useMemo(() => {
     const parents = modules
       .filter((m) => !m.parent_id)
       .sort((a, b) => a.sort_order - b.sort_order);
-    
+
+    // Map every module id -> its direct children (covers ALL levels)
     const childMap = new Map<string, AppModule[]>();
     modules.forEach((m) => {
       if (m.parent_id) {
-        const children = childMap.get(m.parent_id) || [];
-        children.push(m);
-        childMap.set(m.parent_id, children.sort((a, b) => a.sort_order - b.sort_order));
+        const existing = childMap.get(m.parent_id) || [];
+        existing.push(m);
+        childMap.set(m.parent_id, existing.sort((a, b) => a.sort_order - b.sort_order));
       }
     });
 
-    const filtered = parents.filter((module) =>
-      module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (childMap.get(module.id) || []).some(
-        (child) =>
-          child.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          child.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
+    // Recursively check if a module or any descendant matches the query
+    const matchesQuery = (module: AppModule, query: string): boolean => {
+      const q = query.toLowerCase();
+      if (!q) return true;
+      if (
+        module.display_name.toLowerCase().includes(q) ||
+        module.name.toLowerCase().includes(q)
+      ) return true;
+      return (childMap.get(module.id) || []).some((child) => matchesQuery(child, query));
+    };
+
+    const filtered = parents.filter((m) => matchesQuery(m, searchQuery));
 
     return {
       parentModules: parents,
       childModulesMap: childMap,
       filteredParentModules: filtered,
+      allModuleIds: modules.map((m) => m.id),
     };
   }, [modules, searchQuery]);
 
@@ -396,7 +409,7 @@ const ModuleManagementContent = () => {
             <CardTitle className="text-sm font-medium">Enabled</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-700 dark:text-green-400">
               {modules.filter((m) => m.is_enabled).length}
             </div>
           </CardContent>
@@ -406,7 +419,7 @@ const ModuleManagementContent = () => {
             <CardTitle className="text-sm font-medium">Disabled</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
+            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">
               {modules.filter((m) => !m.is_enabled).length}
             </div>
           </CardContent>
@@ -443,7 +456,8 @@ const ModuleManagementContent = () => {
                 if (expandedModules.size > 0) {
                   setExpandedModules(new Set());
                 } else {
-                  setExpandedModules(new Set(parentModules.map((m) => m.id)));
+                  // Expand every module that has children at any level
+                  setExpandedModules(new Set(allModuleIds));
                 }
               }}
             >
@@ -464,7 +478,8 @@ const ModuleManagementContent = () => {
                 <ModuleTreeItem
                   key={module.id}
                   module={module}
-                  children={childModulesMap.get(module.id) || []}
+                  allModules={modules}
+                  childModulesMap={childModulesMap}
                   level={0}
                   onEdit={handleOpenModuleDialog}
                   onDelete={(id) => deleteModule.mutate(id)}
@@ -569,13 +584,30 @@ const ModuleManagementContent = () => {
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="None (top level)" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover">
+                    <SelectContent className="bg-popover max-h-64 overflow-y-auto">
                       <SelectItem value="none">None (top level)</SelectItem>
                       {modules
-                        .filter((m) => m.id !== selectedModule?.id && !m.route && m.is_enabled)
+                        .filter((m) => {
+                          // Cannot select self or own descendants as parent
+                          if (m.id === selectedModule?.id) return false;
+                          // Must be enabled
+                          if (!m.is_enabled) return false;
+                          // Cannot select a descendant of the current module (prevents circular refs)
+                          const isDescendant = (parentId: string): boolean => {
+                            const children = childModulesMap.get(parentId) || [];
+                            return children.some(
+                              (c) => c.id === m.id || isDescendant(c.id)
+                            );
+                          };
+                          if (selectedModule && isDescendant(selectedModule.id)) return false;
+                          return true;
+                        })
                         .sort((a, b) => a.display_name.localeCompare(b.display_name))
                         .map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.display_name}
+                            {m.route ? ` (${m.route})` : " [container]"}
+                          </SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
