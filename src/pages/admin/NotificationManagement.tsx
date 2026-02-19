@@ -25,7 +25,7 @@ const CHANNELS = [
 ] as const;
 
 const NotificationManagement = () => {
-  const [activeTab, setActiveTab] = useState("templates");
+  const [activeTab, setActiveTab] = useState("logs");
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -169,7 +169,6 @@ const NotificationManagement = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="logs">Notification Logs</TabsTrigger>
         </TabsList>
 
