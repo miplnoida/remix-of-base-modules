@@ -126,7 +126,32 @@ export function useIPRegistrationSubmit() {
       throw new Error(formatDbError(error));
     }
 
-    return data as IPSubmitData;
+    if (!data) return null;
+
+    // Map DB column names to IPSubmitData field names
+    const raw = data as Record<string, unknown>;
+    return {
+      unique_uuid: raw.unique_uuid as string,
+      application_id: raw.application_id as string | undefined,
+      first_name: (raw.firstname as string) || null,
+      middle_name: (raw.middle_name as string) || null,
+      last_name: (raw.surname as string) || null,
+      gender: (raw.sex as string) || null,
+      date_of_birth: (raw.dob as string) || null,
+      marital_status: (raw.marital_status as string) || null,
+      date_married: (raw.date_married as string) || null,
+      nationality: (raw.nationality as string) || null,
+      birth_place: (raw.birth_place as string) || null,
+      title: (raw.name_prefix as string) || null,
+      citizenship: (raw.citizenship as string) || null,
+      place_of_residence: (raw.place_of_residence as string) || null,
+      work_permit_status: (raw.work_permit as string) || null,
+      work_permit_expiry: (raw.work_permit_expiration as string) || null,
+      birth_doc_type: (raw.birth_doc_type as string) || null,
+      name_doc_type: (raw.name_doc_type as string) || null,
+      status: (raw.status as string) || undefined,
+      id: (raw.id as string) || undefined,
+    } as IPSubmitData;
   };
 
   /**
