@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
 
 const formatDbError = (err: unknown): string => {
   if (!err) return 'Unknown error';
@@ -101,30 +102,6 @@ export const validateIPRegistrationForSubmit = (data: IPSubmitData): ValidationE
   return errors;
 };
 
-interface WorkflowTrigger {
-  id: string;
-  workflow_id: string;
-  action_name: string;
-  is_active: boolean;
-}
-
-interface WorkflowDefinition {
-  id: string;
-  name: string;
-  default_sla_hours: number | null;
-}
-
-interface WorkflowStep {
-  id: string;
-  step_name: string;
-  step_number: number;
-  sla_hours: number | null;
-  approver_type?: string | null;
-  approver_role_ids?: string[] | null;
-  approver_designation_ids?: string[] | null;
-  approver_user_ids?: string[] | null;
-}
-
 /**
  * Hook providing unified IP Registration submission functionality.
  * This is the SINGLE SOURCE OF TRUTH for submitting IP registrations.
@@ -150,201 +127,6 @@ export function useIPRegistrationSubmit() {
     }
 
     return data as IPSubmitData;
-  };
-
-  /**
-   * Triggers workflow for the submitted IP registration.
-   * Returns the workflow instance ID if a workflow was triggered.
-   */
-  const triggerWorkflow = async (
-    uniqueUuid: string,
-    ssn: string,
-    recordName: string,
-    userId?: string
-  ): Promise<string | null> => {
-    try {
-      // Look up workflow trigger for insured_person_registration + submit
-      const { data: triggers, error: triggerError } = await supabase
-        .from('workflow_triggers')
-        .select('id, workflow_id, action_name, is_active')
-        .eq('action_name', 'submit')
-        .eq('is_active', true)
-        .eq('module_id', '305eaff7-8446-47e0-a7ac-186da08b91ee');
-
-      if (triggerError || !triggers || triggers.length === 0) {
-        console.log('No workflow trigger configured for IP registration submit');
-        return null;
-      }
-
-      const trigger = triggers[0] as WorkflowTrigger;
-
-      // Get workflow
-      const { data: workflow, error: workflowError } = await supabase
-        .from('workflow_definitions')
-        .select('id, name, default_sla_hours')
-        .eq('id', trigger.workflow_id)
-        .single();
-
-      if (workflowError || !workflow) {
-        console.log('Workflow not found');
-        return null;
-      }
-
-      const workflowDef = workflow as WorkflowDefinition;
-
-      // Get workflow steps - include all approver fields for proper assignment
-      const { data: steps, error: stepsError } = await supabase
-        .from('workflow_steps')
-        .select('id, step_name, step_number, sla_hours, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
-        .eq('workflow_id', workflowDef.id)
-        .order('step_number', { ascending: true });
-
-      if (stepsError || !steps || steps.length === 0) {
-        console.log('Workflow has no steps configured');
-        return null;
-      }
-
-      const workflowSteps = steps as WorkflowStep[];
-
-      // Get user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', userId)
-        .single();
-
-      const firstStep = workflowSteps[0];
-      const dueAt = new Date();
-      dueAt.setHours(dueAt.getHours() + (workflowDef.default_sla_hours || 24));
-
-      // Create workflow instance
-      const { data: instance, error: instanceError } = await supabase
-        .from('workflow_instances')
-        .insert({
-          workflow_id: workflowDef.id,
-          workflow_name: workflowDef.name,
-          source_module: 'insured_person_registration',
-          source_record_id: uniqueUuid,
-          source_record_name: recordName,
-          current_step_id: firstStep.id,
-          status: 'InProgress',
-          started_by: userId,
-          started_by_name: profile?.full_name || 'System',
-          due_at: dueAt.toISOString(),
-          metadata: {
-            ssn,
-            applicant_name: recordName,
-          }
-        })
-        .select('id')
-        .single();
-
-      if (instanceError || !instance) {
-        console.error('Error creating workflow instance:', instanceError);
-        return null;
-      }
-
-      // Create first task - assignment based on approver_type
-      const taskDueAt = new Date();
-      taskDueAt.setHours(taskDueAt.getHours() + (firstStep.sla_hours || 24));
-
-      // Determine task assignment based on approver_type
-      const taskAssignment: {
-        assigned_role?: string | null;
-        assigned_designation?: string | null;
-        assigned_to?: string | null;
-      } = {};
-
-      const approverType = (firstStep as any).approver_type || 'role';
-      
-      if (approverType === 'role' && (firstStep as any).approver_role_ids && (firstStep as any).approver_role_ids.length > 0) {
-        // For role-based assignment, we need to get the role name from the first role ID
-        // But since tasks can be assigned to multiple roles, we'll leave assigned_role null
-        // and let permission check use approver_role_ids from the step
-        // However, for backward compatibility, we can set a role name if there's only one role
-        const roleIds = (firstStep as any).approver_role_ids as string[];
-        if (roleIds.length === 1) {
-          // Get role name for single role assignment
-          const { data: roleData } = await supabase
-            .from('roles')
-            .select('role_name')
-            .eq('id', roleIds[0])
-            .single();
-          
-          if (roleData) {
-            taskAssignment.assigned_role = roleData.role_name;
-          }
-        }
-        // If multiple roles, assigned_role stays null - permission check will use approver_role_ids
-      } else if (approverType === 'designation' && (firstStep as any).approver_designation_ids && (firstStep as any).approver_designation_ids.length > 0) {
-        // For designation-based, use first designation ID
-        const designationIds = (firstStep as any).approver_designation_ids as string[];
-        if (designationIds.length === 1) {
-          taskAssignment.assigned_designation = designationIds[0];
-        }
-      } else if ((approverType === 'user' || approverType === 'specific_users') && (firstStep as any).approver_user_ids && (firstStep as any).approver_user_ids.length > 0) {
-        // For user-based, assign to first user (or could create multiple tasks for parallel approval)
-        const userIds = (firstStep as any).approver_user_ids as string[];
-        if (userIds.length === 1) {
-          taskAssignment.assigned_to = userIds[0];
-        }
-        // For multiple users with parallel_approval, you might want to create multiple tasks
-        // For now, we'll assign to first user
-      }
-
-      const { data: taskData } = await supabase
-        .from('workflow_tasks')
-        .insert({
-          instance_id: instance.id,
-          step_id: firstStep.id,
-          step_name: firstStep.step_name,
-          assigned_role: taskAssignment.assigned_role || null,
-          assigned_designation: taskAssignment.assigned_designation || null,
-          assigned_to: taskAssignment.assigned_to || null,
-          status: 'Pending',
-          due_at: taskDueAt.toISOString(),
-        })
-        .select('id')
-        .single();
-
-      // Log workflow start
-      await supabase
-        .from('workflow_logs')
-        .insert({
-          instance_id: instance.id,
-          step_id: firstStep.id,
-          step_name: firstStep.step_name,
-          action: 'workflow_started',
-          performed_by: userId,
-          performed_by_name: profile?.full_name || 'System',
-          details: `Workflow started for IP Registration: ${recordName}`,
-        });
-
-      // Notify approvers via edge function
-      if (taskData?.id) {
-        try {
-          await supabase.functions.invoke('workflow-notify-approvers', {
-            body: {
-              instance_id: instance.id,
-              step_id: firstStep.id,
-              task_id: taskData.id,
-              workflow_name: workflowDef.name,
-              source_record_name: recordName,
-              source_module: 'insured_person_registration',
-            },
-          });
-          console.log('Approvers notified successfully');
-        } catch (notifyError) {
-          console.error('Failed to notify approvers (non-critical):', notifyError);
-          // Don't fail the workflow creation if notification fails
-        }
-      }
-
-      return instance.id;
-    } catch (error) {
-      console.error('Error triggering workflow:', error);
-      return null;
-    }
   };
 
   /**
@@ -420,9 +202,14 @@ export function useIPRegistrationSubmit() {
         throw new Error('Submission succeeded but SSN was not returned');
       }
 
-      // Step 6: Trigger workflow (if configured)
+      // Step 6: Trigger workflow (if configured) — uses shared service
       const recordName = `${recordData.first_name || ''} ${recordData.last_name || ''}`.trim();
-      const workflowInstanceId = await triggerWorkflow(uniqueUuid, ssnData, recordName, userId);
+      const workflowInstanceId = await triggerIPRegistrationWorkflow({
+        uniqueUuid,
+        ssn: ssnData,
+        recordName,
+        userId,
+      });
 
       // Step 7: Log audit entry
       if (recordData.id) {
