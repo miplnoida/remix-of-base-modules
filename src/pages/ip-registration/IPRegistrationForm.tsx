@@ -115,6 +115,31 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+// Normalize title values from DB (e.g. 'Mr.' -> 'Mr') to match dropdown options
+const normalizeTitleValue = (val: string | null | undefined): string => {
+  if (!val) return '';
+  const stripped = val.replace(/\.$/, '').trim(); // Remove trailing period
+  const titleMap: Record<string, string> = {
+    'mr': 'Mr', 'mrs': 'Mrs', 'ms': 'Ms', 'miss': 'Miss',
+    'dr': 'Dr', 'hon': 'Hon', 'rev': 'Rev', 'prof': 'Prof',
+  };
+  return titleMap[stripped.toLowerCase()] || stripped;
+};
+
+// Normalize marital status from DB codes to label values used by dropdowns
+const normalizeMaritalStatus = (val: string | null | undefined): string => {
+  if (!val) return '';
+  const codeMap: Record<string, string> = {
+    'S': 'Single', 'M': 'Married', 'D': 'Divorced',
+    'W': 'Widowed', 'P': 'Separated', 'C': 'Common Law', 'U': 'Unknown',
+  };
+  // If it's a single-char code, map it; otherwise return as-is (already a label)
+  if (val.length === 1 && codeMap[val.toUpperCase()]) {
+    return codeMap[val.toUpperCase()];
+  }
+  return val;
+};
+
 const tabSteps = [
   { id: 'basic', label: 'Basic Details', icon: User },
   { id: 'address', label: 'Address & Contact', icon: User },
@@ -250,7 +275,7 @@ export default function IPRegistrationForm() {
         unique_uuid: recordData.unique_uuid,
         application_id: recordData.application_id,
         ssn: currentSsn,
-        name_prefix: recordData.name_prefix,
+        name_prefix: normalizeTitleValue(recordData.name_prefix),
         firstname: recordData.firstname,
         middle_name: recordData.middle_name,
         second_middle_name: recordData.second_middle_name,
@@ -260,7 +285,7 @@ export default function IPRegistrationForm() {
         alias: recordData.alias,
         sex: recordData.sex,
         dob: recordData.dob,
-        marital_status: recordData.marital_status,
+        marital_status: normalizeMaritalStatus(recordData.marital_status),
         date_married: recordData.date_married,
         heightfeet: recordData.heightfeet,
         heightinches: recordData.heightinches,
