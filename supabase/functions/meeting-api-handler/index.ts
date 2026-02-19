@@ -114,23 +114,17 @@ Deno.serve(async (req) => {
 
     switch (body.action) {
       case 'schedule': {
-        // ── SERVER-SIDE VALIDATION: Reject past datetime for today ──
+        // ── SERVER-SIDE VALIDATION: Reject past DATE only ──
+        // Note: same-day time checks are NOT done server-side because the server
+        // runs in UTC while clients may be in a different timezone (e.g. UTC-4 for St. Kitts).
+        // The frontend already enforces same-day past-time slot blocking using local browser time.
         const nowForSchedule = new Date()
         const todayForSchedule = nowForSchedule.toISOString().split('T')[0]
-        if (body.meetingDate && body.meetingTime) {
+        if (body.meetingDate) {
           if (body.meetingDate < todayForSchedule) {
             return new Response(JSON.stringify({ success: false, message: 'Cannot schedule a meeting in the past. Please select a future date.' }), {
               status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             })
-          }
-          if (body.meetingDate === todayForSchedule) {
-            const nowHHMM = `${nowForSchedule.getUTCHours().toString().padStart(2, '0')}:${nowForSchedule.getUTCMinutes().toString().padStart(2, '0')}`
-            const slotTime = body.meetingTime.substring(0, 5)
-            if (slotTime <= nowHHMM) {
-              return new Response(JSON.stringify({ success: false, message: `Cannot schedule a meeting at ${slotTime} — this time has already passed (current server time: ${nowHHMM} UTC). Please select a future time slot.` }), {
-                status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              })
-            }
           }
         }
 
@@ -611,23 +605,17 @@ Deno.serve(async (req) => {
           throw new Error('Rescheduling remarks are required')
         }
 
-        // ── SERVER-SIDE VALIDATION: Reject past datetime for today ──
+        // ── SERVER-SIDE VALIDATION: Reject past DATE only ──
+        // Note: same-day time checks are NOT done server-side because the server
+        // runs in UTC while clients may be in a different timezone (e.g. UTC-4 for St. Kitts).
+        // The frontend already enforces same-day past-time slot blocking using local browser time.
         const nowForReschedule = new Date()
         const todayForReschedule = nowForReschedule.toISOString().split('T')[0]
-        if (body.newDate && body.newTime) {
+        if (body.newDate) {
           if (body.newDate < todayForReschedule) {
             return new Response(JSON.stringify({ success: false, message: 'Cannot reschedule a meeting to a past date. Please select a future date.' }), {
               status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             })
-          }
-          if (body.newDate === todayForReschedule) {
-            const nowHHMM = `${nowForReschedule.getUTCHours().toString().padStart(2, '0')}:${nowForReschedule.getUTCMinutes().toString().padStart(2, '0')}`
-            const slotTime = body.newTime.substring(0, 5)
-            if (slotTime <= nowHHMM) {
-              return new Response(JSON.stringify({ success: false, message: `Cannot reschedule to ${slotTime} — this time has already passed (current server time: ${nowHHMM} UTC). Please select a future time slot.` }), {
-                status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              })
-            }
           }
         }
 
