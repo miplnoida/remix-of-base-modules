@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,15 +40,25 @@ import { toast } from 'sonner';
 import { useCountries, useDistricts, useRelations, useOccupations } from '@/hooks/useIPMasterLookups';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 import { ConversionValidationPanel } from '@/components/online-applications/ConversionValidationPanel';
+import { checkWorkflowEligibility, type WorkflowEligibilityResult } from '@/services/workflowEligibilityService';
+import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
+import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const { data: application, isLoading, error, refetch, isFetching } = useExternalApplicationDetail(referenceNumber);
   const { convert: convertToIP, isConverting, conversionErrors } = useConvertToIPRegistration();
   const { user } = useSupabaseAuth();
   const { userCode } = useUserCode();
+
+  // Workflow initiation state
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowEligibility, setWorkflowEligibility] = useState<WorkflowEligibilityResult | null>(null);
+  const [pendingConversionResult, setPendingConversionResult] = useState<{ ssn: string; unique_uuid: string; recordName: string } | null>(null);
+  const [isInitiatingWorkflow, setIsInitiatingWorkflow] = useState(false);
 
   // Master table lookups
   const { data: countries } = useCountries();
@@ -204,10 +215,9 @@ export default function ApplicationDetailPage() {
             onActionComplete={async (action, endState) => {
               toast.success(`Action "${action}" completed successfully`);
               refetch();
-              // Auto-convert to IP record on approval
+              // Convert to IP record on approval, then check workflow eligibility
               if (endState === 'Approved' || endState === 'Completed') {
                 if (application) {
-                  // Block if preflight errors exist
                   if (preflightErrors.length > 0) {
                     toast.error(`Cannot convert: ${preflightErrors[0].message}. Please resolve validation errors first.`);
                     return;
@@ -221,6 +231,23 @@ export default function ApplicationDetailPage() {
                   });
                   if (result.success) {
                     toast.success(result.message || 'IP Registration created successfully');
+                    
+                    // Check workflow eligibility dynamically
+                    if (result.ssn && result.unique_uuid) {
+                      const recordName = `${application.firstName || ''} ${application.lastName || ''}`.trim();
+                      const eligibility = await checkWorkflowEligibility({
+                        sourceRecordId: result.unique_uuid,
+                      });
+                      
+                      if (eligibility.eligible) {
+                        // Show confirmation dialog instead of auto-triggering
+                        setWorkflowEligibility(eligibility);
+                        setPendingConversionResult({ ssn: result.ssn, unique_uuid: result.unique_uuid, recordName });
+                        setWorkflowDialogOpen(true);
+                      } else {
+                        console.log(`[ApplicationDetailPage] Workflow not eligible: ${eligibility.reason}`);
+                      }
+                    }
                   } else if (result.message && !result.message.includes('DUPLICATE')) {
                     toast.error(result.message);
                   }
@@ -619,6 +646,44 @@ export default function ApplicationDetailPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Workflow Initiation Confirmation Dialog */}
+      <WorkflowInitiationDialog
+        open={workflowDialogOpen}
+        onOpenChange={setWorkflowDialogOpen}
+        eligibility={workflowEligibility}
+        applicationStatus="Pending (P)"
+        recordName={pendingConversionResult?.recordName || ''}
+        isInitiating={isInitiatingWorkflow}
+        onConfirm={async () => {
+          if (!pendingConversionResult) return;
+          setIsInitiatingWorkflow(true);
+          try {
+            const wfId = await triggerIPRegistrationWorkflow({
+              uniqueUuid: pendingConversionResult.unique_uuid,
+              ssn: pendingConversionResult.ssn,
+              recordName: pendingConversionResult.recordName,
+              userId: user?.id,
+            });
+            if (wfId) {
+              toast.success('Workflow instance initiated successfully.');
+              queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+            } else {
+              toast.error('Failed to initiate workflow instance.');
+            }
+          } catch (err) {
+            toast.error(`Workflow initiation error: ${err instanceof Error ? err.message : String(err)}`);
+          } finally {
+            setIsInitiatingWorkflow(false);
+            setWorkflowDialogOpen(false);
+            setPendingConversionResult(null);
+          }
+        }}
+        onDecline={() => {
+          setWorkflowDialogOpen(false);
+          setPendingConversionResult(null);
+          toast.info('Workflow initiation declined. You can initiate it later from the registration view.');
+        }}
+      />
     </div>
   );
 }

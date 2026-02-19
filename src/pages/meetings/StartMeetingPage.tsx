@@ -58,6 +58,9 @@ import { toast } from 'sonner';
 import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
 import { ConversionValidationPanel } from '@/components/online-applications/ConversionValidationPanel';
 import type { MeetingType } from '@/types/meetings';
+import { checkWorkflowEligibility, type WorkflowEligibilityResult } from '@/services/workflowEligibilityService';
+import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
+import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
@@ -84,6 +87,12 @@ export default function StartMeetingPage() {
   const [rejectRemarks, setRejectRemarks] = useState('');
   const [approvalRemarks, setApprovalRemarks] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  
+  // Workflow initiation state
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowEligibility, setWorkflowEligibility] = useState<WorkflowEligibilityResult | null>(null);
+  const [pendingConversionResult, setPendingConversionResult] = useState<{ ssn: string; unique_uuid: string; recordName: string } | null>(null);
+  const [isInitiatingWorkflow, setIsInitiatingWorkflow] = useState(false);
   
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
@@ -164,8 +173,6 @@ export default function StartMeetingPage() {
 
     try {
       // ── For IP-Registration meetings: run atomic conversion FIRST ──────────
-      // If conversion fails the meeting approval is not called, preventing
-      // orphan "approved" meeting records with no corresponding IP record.
       if (meetingType === 'IP-Registration' && applicationData) {
         const dataForConversion = hasChanges
           ? { ...applicationData, ...editedData }
@@ -180,7 +187,6 @@ export default function StartMeetingPage() {
         });
 
         if (!result.success) {
-          // Toast already shown by the hook — do not proceed with meeting approval
           return;
         }
 
@@ -188,6 +194,19 @@ export default function StartMeetingPage() {
           ? ` ${result.dependants_added} dependant(s) linked automatically.`
           : '';
         toast.success((result.message || 'IP Registration created successfully.') + depNote, { duration: 8000 });
+
+        // Check workflow eligibility — show dialog after meeting closure
+        if (result.ssn && result.unique_uuid) {
+          const recordName = `${(dataForConversion as any).firstName || ''} ${(dataForConversion as any).lastName || ''}`.trim();
+          const eligibility = await checkWorkflowEligibility({
+            sourceRecordId: result.unique_uuid,
+          });
+          if (eligibility.eligible) {
+            setPendingConversionResult({ ssn: result.ssn, unique_uuid: result.unique_uuid, recordName });
+            setWorkflowEligibility(eligibility);
+            // We'll show the dialog after meeting closure below
+          }
+        }
       }
 
       // ── Close the meeting as approved ──────────────────────────────────────
@@ -198,7 +217,13 @@ export default function StartMeetingPage() {
       });
 
       setApprovalDialogOpen(false);
-      navigate('/meetings/manage');
+      
+      // If workflow is eligible, show dialog before navigating
+      if (workflowEligibility?.eligible && pendingConversionResult) {
+        setWorkflowDialogOpen(true);
+      } else {
+        navigate('/meetings/manage');
+      }
     } catch (error) {
       console.error('Approval failed:', error);
     }
@@ -603,6 +628,46 @@ export default function StartMeetingPage() {
           onSuccess={handleActionComplete}
         />
       )}
+
+      {/* Workflow Initiation Confirmation Dialog */}
+      <WorkflowInitiationDialog
+        open={workflowDialogOpen}
+        onOpenChange={setWorkflowDialogOpen}
+        eligibility={workflowEligibility}
+        applicationStatus="Pending (P)"
+        recordName={pendingConversionResult?.recordName || ''}
+        isInitiating={isInitiatingWorkflow}
+        onConfirm={async () => {
+          if (!pendingConversionResult) return;
+          setIsInitiatingWorkflow(true);
+          try {
+            const wfId = await triggerIPRegistrationWorkflow({
+              uniqueUuid: pendingConversionResult.unique_uuid,
+              ssn: pendingConversionResult.ssn,
+              recordName: pendingConversionResult.recordName,
+              userId: user?.id,
+            });
+            if (wfId) {
+              toast.success('Workflow instance initiated successfully.');
+            } else {
+              toast.error('Failed to initiate workflow instance.');
+            }
+          } catch (err) {
+            toast.error(`Workflow initiation error: ${err instanceof Error ? err.message : String(err)}`);
+          } finally {
+            setIsInitiatingWorkflow(false);
+            setWorkflowDialogOpen(false);
+            setPendingConversionResult(null);
+            navigate('/meetings/manage');
+          }
+        }}
+        onDecline={() => {
+          setWorkflowDialogOpen(false);
+          setPendingConversionResult(null);
+          toast.info('Workflow initiation declined. You can initiate it later from the registration view.');
+          navigate('/meetings/manage');
+        }}
+      />
     </div>
   );
 }
