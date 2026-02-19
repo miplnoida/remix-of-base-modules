@@ -84,16 +84,21 @@ function useBaseUrl() {
   return useQuery({
     queryKey: ['public-api-base-url'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'public_api_base_url')
-        .single();
-      if (data) return data.setting_value;
+      try {
+        const { data, error } = await supabase
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'public_api_base_url')
+          .maybeSingle();
+        if (!error && data?.setting_value) return data.setting_value;
+      } catch {
+        // ignore – fall back to env var
+      }
       const url = import.meta.env.VITE_SUPABASE_URL;
       return url ? `${url}/functions/v1/public-api` : '';
     },
     staleTime: 10 * 60 * 1000,
+    retry: false,
   });
 }
 
