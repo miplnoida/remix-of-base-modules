@@ -15,6 +15,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   checkWorkflowEligibility,
   type WorkflowEligibilityResult,
@@ -79,6 +80,7 @@ export function useWorkflowInitialization({
   const [workflowConfigured, setWorkflowConfigured] = useState(false);
   const [existingInstanceFound, setExistingInstanceFound] = useState(false);
   const hasCheckedRef = useRef(false);
+  const queryClient = useQueryClient();
 
   const runEligibilityCheck = useCallback(async () => {
     if (!uniqueUuid || !status || skip) return;
@@ -180,6 +182,9 @@ export function useWorkflowInitialization({
         setExistingInstanceFound(true);
         toast.success(`Workflow "${eligibility.workflowName}" initiated successfully`);
         console.log(`[useWorkflowInitialization] Workflow instance created: ${instanceId}`);
+
+        // Invalidate workflow-actions query so WorkflowActionButtons re-fetches
+        queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
 
         // Audit log
         await supabase.from('ip_audit_log').insert({
