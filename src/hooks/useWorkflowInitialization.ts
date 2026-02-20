@@ -107,10 +107,13 @@ export function useWorkflowInitialization({
         if (status === 'Z') {
           // Draft: just log that a workflow is configured for submit
           console.log(`[useWorkflowInitialization] Draft record — workflow binding found: "${result.workflowName}". Will be triggered on submit.`);
-        } else {
-          // Non-draft without active workflow → show confirmation dialog
-          console.log(`[useWorkflowInitialization] Non-draft record (status=${status}) eligible for workflow "${result.workflowName}". Showing confirmation dialog.`);
+        } else if (status === 'P') {
+          // Pending only: show confirmation dialog for workflow binding
+          console.log(`[useWorkflowInitialization] Pending record (status=P) eligible for workflow "${result.workflowName}". Showing confirmation dialog.`);
           setShowDialog(true);
+        } else {
+          // Any other status (V, A, R, C, etc.): do NOT show workflow popup
+          console.log(`[useWorkflowInitialization] Record status="${status}" is not eligible for workflow binding popup. Only status "P" triggers it.`);
         }
       } else {
         // Not eligible — could be no binding, or existing active instance
