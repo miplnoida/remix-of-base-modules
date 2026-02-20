@@ -189,6 +189,16 @@ export default function IPRegistrationForm() {
 
   // Initialize SEP hook with the person's SSN
   const selfEmployed = useSelfEmployed(formData?.ssn && !formData.ssn.startsWith('T') ? formData.ssn : null);
+
+  // Conditional workflow initialization on page load (must be called before early returns)
+  const workflowInit = useWorkflowInitialization({
+    uniqueUuid: formData?.unique_uuid,
+    status: formData?.status,
+    ssn: formData?.ssn || undefined,
+    recordName: `${formData?.firstname || ''} ${formData?.surname || ''}`.trim(),
+    userId: user?.id,
+    skip: isNewMode || isNewRecord || loading || !formData,
+  });
   
   // Determine if person is already registered as self-employed (has activities from DB) or in registration mode
   const isSelfEmployed = selfEmployed.activities.length > 0;
@@ -703,15 +713,7 @@ export default function IPRegistrationForm() {
   const isEditable = !isViewMode && (formData.status === 'Z' || formData.status === 'D');
   const canApprove = formData.status === 'P' && formData.created_by !== user?.id;
 
-  // Conditional workflow initialization on page load
-  const workflowInit = useWorkflowInitialization({
-    uniqueUuid: formData.unique_uuid,
-    status: formData.status,
-    ssn: formData.ssn || undefined,
-    recordName: `${formData.firstname || ''} ${formData.surname || ''}`.trim(),
-    userId: user?.id,
-    skip: isNewMode || isNewRecord,
-  });
+  // workflowInit is now called above early returns (hooks must be unconditional)
 
   return (
     <div className="container mx-auto p-4 space-y-6">
