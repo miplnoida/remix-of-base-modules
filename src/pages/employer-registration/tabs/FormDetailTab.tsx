@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Stepper, StepperStep } from '@/components/ui/stepper';
-import { validatePhone, validateEmail, validateContactFields } from '@/lib/contactValidation';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import SuccessAnimation from '@/components/shared/SuccessAnimation';
 import EntityOverviewStep from './EntityOverviewStep';
@@ -9,6 +8,7 @@ import BackgroundInfoStep from './BackgroundInfoStep';
 import ContactReachStep from './ContactReachStep';
 import TechFinanceStep from './TechFinanceStep';
 import { toast } from 'sonner';
+import { validateERMasterStep } from '@/validations/employerValidationSchema';
 
 interface FormDetailTabProps {
   formData: ERMasterFormData;
@@ -24,61 +24,6 @@ const FORM_STEPS = [
   { id: 'contact', title: 'Contact & Reach' },
   { id: 'tech', title: 'Tech & Finance Overview' },
 ];
-
-// Validation for each step
-const validateStep = (step: number, formData: ERMasterFormData): Record<string, string> => {
-  const errors: Record<string, string> = {};
-
-  switch (step) {
-    case 0: // Entity Overview
-      if (!formData.name?.trim()) {
-        errors.name = 'Employer name is required';
-      }
-      // Email validation using global utility
-      const emailResult = validateEmail(formData.email, 'email', 'Email address', true);
-      if (!emailResult.valid && emailResult.error) {
-        errors.email = emailResult.error;
-      }
-      if (!formData.hq_addr1?.trim()) {
-        errors.hq_addr1 = 'HQ Address 1 is required';
-      }
-      if (!formData.maddr1?.trim()) {
-        errors.maddr1 = 'Mailing Address 1 is required';
-      }
-      break;
-    case 1: // Background Info
-      // No required fields
-      break;
-    case 2: { // Contact & Reach
-      // Phone validation using global utility
-      const contactErrors = validateContactFields([
-        { value: formData.phone, fieldName: 'phone', label: 'Contact telephone', type: 'phone', required: true },
-        { value: formData.mobile, fieldName: 'mobile', label: 'Mobile number', type: 'phone' },
-        { value: formData.fax, fieldName: 'fax', label: 'Fax number', type: 'phone' },
-      ]);
-      Object.assign(errors, contactErrors);
-
-      if (!formData.village_code || formData.village_code === '000') {
-        errors.village_code = 'Village is required';
-      }
-      if (!formData.activity_type?.trim()) {
-        errors.activity_type = 'Activity type is required';
-      }
-      if (!formData.inspector_code || formData.inspector_code === 'UNK') {
-        errors.inspector_code = 'Inspector code is required';
-      }
-      if (!formData.application_date) {
-        errors.application_date = 'Application date is required';
-      }
-      break;
-    }
-    case 3: // Tech & Finance
-      // No required fields
-      break;
-  }
-
-  return errors;
-};
 
 export default function FormDetailTab({ formData, onChange, onSave, isViewMode, isSaving }: FormDetailTabProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -114,8 +59,8 @@ export default function FormDetailTab({ formData, onChange, onSave, isViewMode, 
   }, [completedSteps, isViewMode]);
 
   const handleSaveAndContinue = useCallback(async () => {
-    // Validate current step
-    const stepErrors = validateStep(currentStep, formData);
+    // Validate current step using centralized schema
+    const stepErrors = validateERMasterStep(currentStep, formData);
     
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);

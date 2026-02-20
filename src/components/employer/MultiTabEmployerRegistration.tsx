@@ -24,40 +24,40 @@ import { ErrorDialog, SuccessDialog } from '../ui/feedback';
 
 const employerSchema = z.object({
   // General Information
-  name: z.string().min(1, "Name is required"),
-  tradeName: z.string().optional(),
+  name: z.string().min(1, "Name is required").max(40, "Max 40 characters"),
+  tradeName: z.string().max(40, "Max 40 characters").optional(),
   addressType: z.enum(["mailing", "hq"]),
-  mailingAddress: z.string().optional(),
+  mailingAddress: z.string().max(25, "Max 25 characters").optional(),
   mailingPostalCode: z.string().optional(),
-  hqAddress: z.string().optional(),
+  hqAddress: z.string().max(25, "Max 25 characters").optional(),
   hqPostalCode: z.string().optional(),
   previousOwners: z.array(z.object({
-    name: z.string(),
-    address: z.string()
+    name: z.string().max(40, "Max 40 characters"),
+    address: z.string().max(25, "Max 25 characters")
   })).optional(),
   
   // Contact Information
-  telephone: z.string().min(1, "Telephone is required").regex(/^\+?\d+$/, "Telephone must contain only digits").max(15, "Telephone exceeds max length"),
-  fax: z.string().optional().refine(v => !v || /^\+?\d*$/.test(v), "Fax must contain only digits"),
-  email: z.string().email("Invalid email format").min(1, "Email is required").max(40, "Email exceeds max length of 40"),
+  telephone: z.string().min(1, "Telephone is required").regex(/^\+?\d+$/, "Only digits allowed").max(10, "Max 10 characters"),
+  fax: z.string().max(10, "Max 10 characters").optional().refine(v => !v || /^\+?\d*$/.test(v), "Only digits allowed"),
+  email: z.string().email("Invalid email format").min(1, "Email is required").max(40, "Max 40 characters"),
   
   // Organizational Information
-  parentRegNo: z.string().optional(),
-  officeCode: z.string().optional(),
-  ownershipCode: z.string().optional(),
-  sectorCode: z.string().optional(),
-  industrialCode: z.string().optional(),
+  parentRegNo: z.string().max(6, "Max 6 characters").optional(),
+  officeCode: z.string().max(3, "Max 3 characters").optional(),
+  ownershipCode: z.string().max(3, "Max 3 characters").optional(),
+  sectorCode: z.string().max(1, "Max 1 character").optional(),
+  industrialCode: z.string().max(4, "Max 4 characters").optional(),
   
   // Acquisition / Incorporation
   acquiredCompany: z.boolean().default(false),
   acquisitionDate: z.date().optional(),
   incorporatedDate: z.date().optional(),
-  acquiredCode: z.string().optional(),
+  acquiredCode: z.string().max(1, "Max 1 character").optional(),
   
   // Location Information
-  village: z.string().optional(),
-  activityType: z.string().optional(),
-  inspectorCode: z.string().optional(),
+  village: z.string().max(3, "Max 3 characters").optional(),
+  activityType: z.string().max(50, "Max 50 characters").optional(),
+  inspectorCode: z.string().max(3, "Max 3 characters").optional(),
   
   // Dates & Employees
   applicationDate: z.date().optional(),
@@ -70,14 +70,14 @@ const employerSchema = z.object({
   
   // Technical Information
   computerPayroll: z.boolean().default(false),
-  makeModel: z.string().optional(),
+  makeModel: z.string().max(30, "Max 30 characters").optional(),
   
   // Transaction Details
   dateOfEntry: z.date().optional(),
   registrationDate: z.date().optional(),
-  enteredBy: z.string().optional(),
+  enteredBy: z.string().max(5, "Max 5 characters").optional(),
   dateModified: z.date().optional(),
-  userId: z.string().optional(),
+  userId: z.string().max(5, "Max 5 characters").optional(),
 });
 
 type EmployerFormData = z.infer<typeof employerSchema>;
@@ -306,7 +306,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>Name *</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter name" />
+                          <Input {...field} placeholder="Enter name" maxLength={40} />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -320,7 +320,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>Trade Name</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter trade name" />
+                         <Input {...field} placeholder="Enter trade name" maxLength={40} />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -334,7 +334,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>E-Mail Address</FormLabel>
                        <FormControl>
-                         <Input {...field} type="email" placeholder="Enter e-mail address" />
+                         <Input {...field} type="email" placeholder="Enter e-mail address" maxLength={40} />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -348,7 +348,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>HQ Address *</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter HQ address name" />
+                         <Input {...field} placeholder="Enter HQ address name" maxLength={25} />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -362,7 +362,7 @@ export const MultiTabEmployerRegistration = () => {
                      <FormItem>
                        <FormLabel>Mailing Address *</FormLabel>
                        <FormControl>
-                         <Input {...field} placeholder="Enter mailing Address" />
+                         <Input {...field} placeholder="Enter mailing Address" maxLength={25} />
                        </FormControl>
                        <FormMessage />
                      </FormItem>
@@ -422,7 +422,7 @@ export const MultiTabEmployerRegistration = () => {
                            <FormItem>
                        <FormLabel>Parent Reg. No.</FormLabel>
                              <FormControl>
-                         <Input {...field} placeholder="Enter reg. no." />
+                         <Input {...field} placeholder="Enter reg. no." maxLength={6} />
                              </FormControl>
                              <FormMessage />
                            </FormItem>
@@ -436,7 +436,7 @@ export const MultiTabEmployerRegistration = () => {
                            <FormItem>
                        <FormLabel>Office Code</FormLabel>
                              <FormControl>
-                               <Input {...field} placeholder="Enter office code" />
+                               <Input {...field} placeholder="Enter office code" maxLength={3} />
                              </FormControl>
                              <FormMessage />
                            </FormItem>
@@ -450,7 +450,7 @@ export const MultiTabEmployerRegistration = () => {
                        <FormItem>
                        <FormLabel>Ownership Code</FormLabel>
                          <FormControl>
-                         <Input {...field} placeholder="Enter ownership code" />
+                         <Input {...field} placeholder="Enter ownership code" maxLength={3} />
                          </FormControl>
                          <FormMessage />
                        </FormItem>
@@ -464,7 +464,7 @@ export const MultiTabEmployerRegistration = () => {
                        <FormItem>
                        <FormLabel>Sector Code</FormLabel>
                          <FormControl>
-                         <Input {...field} placeholder="Enter sector code" />
+                         <Input {...field} placeholder="Enter sector code" maxLength={1} />
                          </FormControl>
                          <FormMessage />
                        </FormItem>
@@ -529,7 +529,7 @@ export const MultiTabEmployerRegistration = () => {
                          <FormItem>
                            <FormLabel>Previous Owner Name</FormLabel>
                            <FormControl>
-                             <Input {...field} />
+                              <Input {...field} maxLength={40} />
                            </FormControl>
                            <FormMessage />
                          </FormItem>
@@ -543,7 +543,7 @@ export const MultiTabEmployerRegistration = () => {
                          <FormItem>
                            <FormLabel>Previous Owner Address</FormLabel>
                            <FormControl>
-                             <Input {...field} />
+                              <Input {...field} maxLength={25} />
                            </FormControl>
                            <FormMessage />
                          </FormItem>

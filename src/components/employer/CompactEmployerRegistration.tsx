@@ -20,11 +20,11 @@ import { toast } from 'sonner';
 
 const compactEmployerSchema = z.object({
   // Left Column - Core Employer Information
-  employerFullName: z.string().min(1, 'Employer full name is required'),
-  businessTradeName: z.string().min(1, 'Business/Trade name is required'),
-  phoneNumber: z.string().min(1, 'Phone number is required').regex(/^\+?\d+$/, 'Phone must contain only digits').max(15, 'Phone exceeds max length'),
-  businessLocation: z.string().min(1, 'Business location is required'),
-  additionalLocations: z.array(z.string()).optional(),
+  employerFullName: z.string().min(1, 'Employer full name is required').max(40, 'Max 40 characters'),
+  businessTradeName: z.string().min(1, 'Business/Trade name is required').max(40, 'Max 40 characters'),
+  phoneNumber: z.string().min(1, 'Phone number is required').regex(/^\+?\d+$/, 'Only digits allowed').max(10, 'Max 10 characters'),
+  businessLocation: z.string().min(1, 'Business location is required').max(25, 'Max 25 characters'),
+  additionalLocations: z.array(z.string().max(25, 'Max 25 characters')).optional(),
   businessType: z.string().min(1, 'Business type is required'),
   legalStatus: z.string().min(1, 'Legal status is required'),
   businessCommencementDate: z.date({ required_error: 'Business commencement date is required' }),
@@ -33,19 +33,19 @@ const compactEmployerSchema = z.object({
   // Right Column - Additional Information
   firstWagePaidDate: z.date({ required_error: 'Date wages were first paid is required' }),
   numberOfEmployees: z.number().min(0, 'Number of employees must be 0 or greater'),
-  businessActivities: z.string().min(1, 'Business activities description is required'),
-  mailingAddress: z.string().min(1, 'Mailing address is required'),
-  emailAddress: z.string().email('Invalid email address').max(75, 'Email exceeds max length'),
+  businessActivities: z.string().min(1, 'Business activities description is required').max(50, 'Max 50 characters'),
+  mailingAddress: z.string().min(1, 'Mailing address is required').max(25, 'Max 25 characters'),
+  emailAddress: z.string().email('Invalid email address').max(40, 'Max 40 characters'),
 
   // Business Acquisition (Conditional)
   businessAcquired: z.enum(['yes', 'no']),
-  previousBusinessName: z.string().optional(),
-  previousBusinessAddress: z.string().optional(),
+  previousBusinessName: z.string().max(40, 'Max 40 characters').optional(),
+  previousBusinessAddress: z.string().max(25, 'Max 25 characters').optional(),
   acquisitionDate: z.date().optional(),
 
   // Payroll System
   payrollDigital: z.enum(['yes', 'no']),
-  payrollSystemDescription: z.string().optional(),
+  payrollSystemDescription: z.string().max(30, 'Max 30 characters').optional(),
 
   // Documents and Declaration
   businessRegistrationCert: z.any().optional(),
@@ -164,6 +164,7 @@ export function CompactEmployerRegistration() {
                     id="employerFullName"
                     {...register('employerFullName')}
                     placeholder="Enter full name of employer"
+                    maxLength={40}
                   />
                   {errors.employerFullName && (
                     <p className="text-sm text-destructive">{errors.employerFullName.message}</p>
@@ -177,6 +178,7 @@ export function CompactEmployerRegistration() {
                     id="businessTradeName"
                     {...register('businessTradeName')}
                     placeholder="Enter official business or trade name"
+                    maxLength={40}
                   />
                   {errors.businessTradeName && (
                     <p className="text-sm text-destructive">{errors.businessTradeName.message}</p>
@@ -190,6 +192,7 @@ export function CompactEmployerRegistration() {
                     id="phoneNumber"
                     {...register('phoneNumber')}
                     placeholder="Enter contact phone number"
+                    maxLength={10}
                   />
                   {errors.phoneNumber && (
                     <p className="text-sm text-destructive">{errors.phoneNumber.message}</p>
@@ -203,6 +206,7 @@ export function CompactEmployerRegistration() {
                     id="businessLocation"
                     {...register('businessLocation')}
                     placeholder="Enter primary business location"
+                    maxLength={25}
                   />
                   {errors.businessLocation && (
                     <p className="text-sm text-destructive">{errors.businessLocation.message}</p>
@@ -380,6 +384,7 @@ export function CompactEmployerRegistration() {
                     type="email"
                     {...register('emailAddress')}
                     placeholder="Enter email address"
+                    maxLength={40}
                   />
                   {errors.emailAddress && (
                     <p className="text-sm text-destructive">{errors.emailAddress.message}</p>

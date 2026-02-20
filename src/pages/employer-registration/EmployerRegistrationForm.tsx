@@ -44,7 +44,9 @@ export default function EmployerRegistrationForm() {
   const [showOwnerDialog, setShowOwnerDialog] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   const [ownerForm, setOwnerForm] = useState({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
+  const [ownerErrors, setOwnerErrors] = useState<Record<string, string>>({});
   const [locationForm, setLocationForm] = useState({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '' });
+  const [locationErrors, setLocationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (action === 'submit') setShowSubmitConfirm(true);
@@ -104,14 +106,30 @@ export default function EmployerRegistrationForm() {
   };
 
   const handleAddOwner = async () => {
-    if (!ownerForm.name.trim()) { toast.error('Owner name is required'); return; }
+    const errors: Record<string, string> = {};
+    if (!ownerForm.name.trim()) errors.name = 'Owner name is required';
+    if (ownerForm.name.length > 40) errors.name = 'Max 40 characters';
+    if (ownerForm.title.length > 25) errors.title = 'Max 25 characters';
+    if (ownerForm.phone && (ownerForm.phone.length > 10 || !/^\+?\d*$/.test(ownerForm.phone))) errors.phone = 'Max 10 digits';
+    if (ownerForm.mobile && (ownerForm.mobile.length > 10 || !/^\+?\d*$/.test(ownerForm.mobile))) errors.mobile = 'Max 10 digits';
+    if (ownerForm.email && (ownerForm.email.length > 30 || (ownerForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerForm.email)))) errors.email = 'Invalid email (max 30 chars)';
+    if (ownerForm.ssn && (ownerForm.ssn.length > 6 || !/^\d*$/.test(ownerForm.ssn))) errors.ssn = 'Max 6 digits only';
+    if (Object.keys(errors).length > 0) { setOwnerErrors(errors); return; }
+    setOwnerErrors({});
     await addOwner(ownerForm);
     setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
     setShowOwnerDialog(false);
   };
 
   const handleAddLocation = async () => {
-    if (!locationForm.trade_name.trim()) { toast.error('Trade name is required'); return; }
+    const errors: Record<string, string> = {};
+    if (!locationForm.trade_name.trim()) errors.trade_name = 'Trade name is required';
+    if (locationForm.trade_name.length > 40) errors.trade_name = 'Max 40 characters';
+    if (locationForm.loc_addr1.length > 25) errors.loc_addr1 = 'Max 25 characters';
+    if (locationForm.loc_addr2.length > 25) errors.loc_addr2 = 'Max 25 characters';
+    if (locationForm.activity_type.length > 50) errors.activity_type = 'Max 50 characters';
+    if (Object.keys(errors).length > 0) { setLocationErrors(errors); return; }
+    setLocationErrors({});
     await addLocation(locationForm);
     setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '' });
     setShowLocationDialog(false);
@@ -352,29 +370,70 @@ export default function EmployerRegistrationForm() {
       </AlertDialog>
 
       {/* Add Owner Dialog */}
-      <Dialog open={showOwnerDialog} onOpenChange={setShowOwnerDialog}>
+      <Dialog open={showOwnerDialog} onOpenChange={(open) => { setShowOwnerDialog(open); if (!open) setOwnerErrors({}); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Owner</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div><Label>Name *</Label><Input value={ownerForm.name} onChange={e => setOwnerForm({ ...ownerForm, name: e.target.value })} /></div>
-            <div><Label>Title</Label><Input value={ownerForm.title} onChange={e => setOwnerForm({ ...ownerForm, title: e.target.value })} /></div>
-            <div><Label>Phone</Label><Input value={ownerForm.phone} onChange={e => setOwnerForm({ ...ownerForm, phone: e.target.value })} /></div>
-            <div><Label>Email</Label><Input value={ownerForm.email} onChange={e => setOwnerForm({ ...ownerForm, email: e.target.value })} /></div>
-            <div><Label>SSN</Label><Input value={ownerForm.ssn} onChange={e => setOwnerForm({ ...ownerForm, ssn: e.target.value })} /></div>
+            <div>
+              <Label className={ownerErrors.name ? 'text-destructive' : ''}>Name * <span className="text-xs text-muted-foreground">(max 40)</span></Label>
+              <Input value={ownerForm.name} onChange={e => { setOwnerForm({ ...ownerForm, name: e.target.value }); setOwnerErrors(prev => ({ ...prev, name: '' })); }} maxLength={40} className={ownerErrors.name ? 'border-destructive' : ''} />
+              {ownerErrors.name && <p className="text-xs text-destructive mt-1">{ownerErrors.name}</p>}
+            </div>
+            <div>
+              <Label className={ownerErrors.title ? 'text-destructive' : ''}>Title <span className="text-xs text-muted-foreground">(max 25)</span></Label>
+              <Input value={ownerForm.title} onChange={e => { setOwnerForm({ ...ownerForm, title: e.target.value }); setOwnerErrors(prev => ({ ...prev, title: '' })); }} maxLength={25} className={ownerErrors.title ? 'border-destructive' : ''} />
+              {ownerErrors.title && <p className="text-xs text-destructive mt-1">{ownerErrors.title}</p>}
+            </div>
+            <div>
+              <Label className={ownerErrors.phone ? 'text-destructive' : ''}>Phone <span className="text-xs text-muted-foreground">(max 10 digits)</span></Label>
+              <Input value={ownerForm.phone} onChange={e => { const v = e.target.value.replace(/[^\d+]/g, ''); setOwnerForm({ ...ownerForm, phone: v }); setOwnerErrors(prev => ({ ...prev, phone: '' })); }} maxLength={10} className={ownerErrors.phone ? 'border-destructive' : ''} />
+              {ownerErrors.phone && <p className="text-xs text-destructive mt-1">{ownerErrors.phone}</p>}
+            </div>
+            <div>
+              <Label className={ownerErrors.mobile ? 'text-destructive' : ''}>Mobile <span className="text-xs text-muted-foreground">(max 10 digits)</span></Label>
+              <Input value={ownerForm.mobile} onChange={e => { const v = e.target.value.replace(/[^\d+]/g, ''); setOwnerForm({ ...ownerForm, mobile: v }); setOwnerErrors(prev => ({ ...prev, mobile: '' })); }} maxLength={10} className={ownerErrors.mobile ? 'border-destructive' : ''} />
+              {ownerErrors.mobile && <p className="text-xs text-destructive mt-1">{ownerErrors.mobile}</p>}
+            </div>
+            <div>
+              <Label className={ownerErrors.email ? 'text-destructive' : ''}>Email <span className="text-xs text-muted-foreground">(max 30)</span></Label>
+              <Input value={ownerForm.email} onChange={e => { setOwnerForm({ ...ownerForm, email: e.target.value }); setOwnerErrors(prev => ({ ...prev, email: '' })); }} maxLength={30} className={ownerErrors.email ? 'border-destructive' : ''} />
+              {ownerErrors.email && <p className="text-xs text-destructive mt-1">{ownerErrors.email}</p>}
+            </div>
+            <div>
+              <Label className={ownerErrors.ssn ? 'text-destructive' : ''}>SSN <span className="text-xs text-muted-foreground">(max 6 digits)</span></Label>
+              <Input value={ownerForm.ssn} onChange={e => { const v = e.target.value.replace(/\D/g, ''); setOwnerForm({ ...ownerForm, ssn: v }); setOwnerErrors(prev => ({ ...prev, ssn: '' })); }} maxLength={6} className={ownerErrors.ssn ? 'border-destructive' : ''} />
+              {ownerErrors.ssn && <p className="text-xs text-destructive mt-1">{ownerErrors.ssn}</p>}
+            </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowOwnerDialog(false)}>Cancel</Button><Button onClick={handleAddOwner}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Add Location Dialog */}
-      <Dialog open={showLocationDialog} onOpenChange={setShowLocationDialog}>
+      <Dialog open={showLocationDialog} onOpenChange={(open) => { setShowLocationDialog(open); if (!open) setLocationErrors({}); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Location</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div><Label>Trade Name *</Label><Input value={locationForm.trade_name} onChange={e => setLocationForm({ ...locationForm, trade_name: e.target.value })} /></div>
-            <div><Label>Address 1</Label><Input value={locationForm.loc_addr1} onChange={e => setLocationForm({ ...locationForm, loc_addr1: e.target.value })} /></div>
-            <div><Label>Address 2</Label><Input value={locationForm.loc_addr2} onChange={e => setLocationForm({ ...locationForm, loc_addr2: e.target.value })} /></div>
-            <div><Label>Activity Type</Label><Input value={locationForm.activity_type} onChange={e => setLocationForm({ ...locationForm, activity_type: e.target.value })} /></div>
+            <div>
+              <Label className={locationErrors.trade_name ? 'text-destructive' : ''}>Trade Name * <span className="text-xs text-muted-foreground">(max 40)</span></Label>
+              <Input value={locationForm.trade_name} onChange={e => { setLocationForm({ ...locationForm, trade_name: e.target.value }); setLocationErrors(prev => ({ ...prev, trade_name: '' })); }} maxLength={40} className={locationErrors.trade_name ? 'border-destructive' : ''} />
+              {locationErrors.trade_name && <p className="text-xs text-destructive mt-1">{locationErrors.trade_name}</p>}
+            </div>
+            <div>
+              <Label className={locationErrors.loc_addr1 ? 'text-destructive' : ''}>Address 1 <span className="text-xs text-muted-foreground">(max 25)</span></Label>
+              <Input value={locationForm.loc_addr1} onChange={e => { setLocationForm({ ...locationForm, loc_addr1: e.target.value }); setLocationErrors(prev => ({ ...prev, loc_addr1: '' })); }} maxLength={25} className={locationErrors.loc_addr1 ? 'border-destructive' : ''} />
+              {locationErrors.loc_addr1 && <p className="text-xs text-destructive mt-1">{locationErrors.loc_addr1}</p>}
+            </div>
+            <div>
+              <Label className={locationErrors.loc_addr2 ? 'text-destructive' : ''}>Address 2 <span className="text-xs text-muted-foreground">(max 25)</span></Label>
+              <Input value={locationForm.loc_addr2} onChange={e => { setLocationForm({ ...locationForm, loc_addr2: e.target.value }); setLocationErrors(prev => ({ ...prev, loc_addr2: '' })); }} maxLength={25} className={locationErrors.loc_addr2 ? 'border-destructive' : ''} />
+              {locationErrors.loc_addr2 && <p className="text-xs text-destructive mt-1">{locationErrors.loc_addr2}</p>}
+            </div>
+            <div>
+              <Label className={locationErrors.activity_type ? 'text-destructive' : ''}>Activity Type <span className="text-xs text-muted-foreground">(max 50)</span></Label>
+              <Input value={locationForm.activity_type} onChange={e => { setLocationForm({ ...locationForm, activity_type: e.target.value }); setLocationErrors(prev => ({ ...prev, activity_type: '' })); }} maxLength={50} className={locationErrors.activity_type ? 'border-destructive' : ''} />
+              {locationErrors.activity_type && <p className="text-xs text-destructive mt-1">{locationErrors.activity_type}</p>}
+            </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowLocationDialog(false)}>Cancel</Button><Button onClick={handleAddLocation}>Add</Button></DialogFooter>
         </DialogContent>
