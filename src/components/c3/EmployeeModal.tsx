@@ -400,9 +400,9 @@ export default function EmployeeModal({
     </AlertDialog>
 
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto p-0" style={{ width: '65vw', maxWidth: '65vw', minWidth: '1000px' }}>
+      <DialogContent className="max-h-[90vh] overflow-hidden p-0 flex flex-col" style={{ width: '65vw', maxWidth: '65vw', minWidth: '1000px' }}>
         {/* Enhanced Header */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4 border-b border-border/50">
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4 border-b border-border/50 flex-shrink-0">
           <DialogHeader className="space-y-1">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center">
@@ -418,7 +418,7 @@ export default function EmployeeModal({
           </DialogHeader>
         </div>
 
-        <div className="px-6 pb-6 pt-5 space-y-6">
+        <div className="px-6 pb-6 pt-5 space-y-6 overflow-y-auto flex-1 min-h-0">
           {/* Section: Employee Information */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -676,10 +676,13 @@ export default function EmployeeModal({
             </div>
           </div>
 
-          {/* Verified Toggle */}
-          {!isViewMode && (
-            <>
-              <Separator className="bg-border/50" />
+        </div>
+
+        {/* Fixed Footer with Verified + Actions */}
+        <div className="border-t border-border/50 bg-muted/20 px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            {/* Verified Toggle - left side */}
+            {!isViewMode ? (
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -697,24 +700,23 @@ export default function EmployeeModal({
                   <p className="text-xs text-muted-foreground">Mark this employee record as verified</p>
                 </div>
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose} className="gap-2">
-              <X className="h-4 w-4" />
-              Cancel
-            </Button>
-            {!isViewMode && (
-              <Button onClick={handleSave} disabled={!ssnValidated} className="gap-2 min-w-[140px]">
-                <Save className="h-4 w-4" />
-                Save Employee
-              </Button>
+            ) : (
+              <div />
             )}
-          </DialogFooter>
+            {/* Action buttons - right side */}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onClose} className="gap-2">
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+              {!isViewMode && (
+                <Button onClick={handleSave} disabled={!ssnValidated} className="gap-2 min-w-[140px]">
+                  <Save className="h-4 w-4" />
+                  Save Employee
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
