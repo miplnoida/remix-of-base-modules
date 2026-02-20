@@ -214,10 +214,9 @@ export default function IPRegistrationForm() {
   // Handle cancellation of SEP registration - go back to view mode
   const handleSepRegistrationCancel = useCallback(() => {
     setSepRegistrationMode(false);
+    setActiveMainTab('register');
     if (formData) {
       navigate(`/ip-registration/view/${formData.unique_uuid}`);
-    } else {
-      setActiveMainTab('register');
     }
   }, [formData, navigate]);
   
