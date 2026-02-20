@@ -44,6 +44,7 @@ export default function TechFinanceStep({ formData, onChange, isViewMode, errors
               disabled={isViewMode || !hasComputerPayroll}
               placeholder={hasComputerPayroll ? "Enter Make/Model" : "Enable Computer Payroll To Enter Make/Model"}
               className={!hasComputerPayroll ? 'bg-muted' : ''}
+              maxLength={30}
             />
           </div>
         </div>
