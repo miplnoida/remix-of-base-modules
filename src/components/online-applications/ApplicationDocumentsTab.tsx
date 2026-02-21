@@ -120,7 +120,10 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
       throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
     }
 
-    return proxyResponse.blob();
+    // Get the content-type from the response to ensure blob has correct MIME type
+    const contentType = proxyResponse.headers.get('content-type') || 'application/octet-stream';
+    const arrayBuffer = await proxyResponse.arrayBuffer();
+    return new Blob([arrayBuffer], { type: contentType });
   }, []);
 
   /** Handle View click */
@@ -315,11 +318,18 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-auto">
             {previewDoc?.category === 'pdf' && (
-              <iframe
-                src={previewDoc.url}
+              <object
+                data={previewDoc.url}
+                type="application/pdf"
                 className="w-full h-[70vh] border rounded-lg"
                 title={previewDoc.name}
-              />
+              >
+                <iframe
+                  src={previewDoc.url}
+                  className="w-full h-[70vh] border rounded-lg"
+                  title={previewDoc.name}
+                />
+              </object>
             )}
             {previewDoc?.category === 'image' && (
               <div className="flex items-center justify-center p-4">
