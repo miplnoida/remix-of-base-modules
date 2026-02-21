@@ -4582,8 +4582,12 @@ export type Database = {
           signed_url: string | null
           source_document_id: string | null
           ssn: string
+          transfer_attempted_at: string | null
           transfer_attempts: number
           transfer_error: string | null
+          transfer_http_status: number | null
+          transfer_request_id: string | null
+          transfer_response_snippet: string | null
           transfer_status: string
           transferred_at: string | null
           transferred_by: string | null
@@ -4605,8 +4609,12 @@ export type Database = {
           signed_url?: string | null
           source_document_id?: string | null
           ssn: string
+          transfer_attempted_at?: string | null
           transfer_attempts?: number
           transfer_error?: string | null
+          transfer_http_status?: number | null
+          transfer_request_id?: string | null
+          transfer_response_snippet?: string | null
           transfer_status?: string
           transferred_at?: string | null
           transferred_by?: string | null
@@ -4628,8 +4636,12 @@ export type Database = {
           signed_url?: string | null
           source_document_id?: string | null
           ssn?: string
+          transfer_attempted_at?: string | null
           transfer_attempts?: number
           transfer_error?: string | null
+          transfer_http_status?: number | null
+          transfer_request_id?: string | null
+          transfer_response_snippet?: string | null
           transfer_status?: string
           transferred_at?: string | null
           transferred_by?: string | null
