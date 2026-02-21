@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { applyBusinessObjectFieldUpdates } from '@/hooks/useBusinessObjectRoot';
+import { getCorrelationId } from '@/services/correlationIdService';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
 export type EndState = 'Approved' | 'Rejected' | null;
@@ -1387,7 +1388,8 @@ async function updateSourceRecordStatus(
           transferUserCode = profile?.user_code || 'SYSTEM';
         }
 
-        // Fire DMS transfer asynchronously (non-blocking to approval flow)
+        // Fire DMS transfer with correlation tracking (non-blocking to approval flow)
+        const dmsCorrelationId = getCorrelationId();
         try {
           const { data: dmsResult, error: dmsError } = await supabase.functions.invoke('dms-transfer', {
             body: {
@@ -1395,19 +1397,34 @@ async function updateSourceRecordStatus(
               userCode: transferUserCode,
               userId: userId || '',
               ipMasterUniqueUuid: sourceRecordId,
+              correlationId: dmsCorrelationId,
             },
           });
 
           if (dmsError) {
             console.error('[DMS Transfer] Edge function invocation error:', dmsError);
+            toast.error('DMS Transfer Error', {
+              description: `Document transfer failed: ${dmsError.message || 'Unknown error'}. Check audit logs for details.`,
+            });
           } else if (dmsResult?.failCount > 0) {
             console.warn(`[DMS Transfer] Partial success: ${dmsResult.successCount} transferred, ${dmsResult.failCount} failed`);
+            toast.warning('DMS Transfer Partial', {
+              description: `${dmsResult.successCount} document(s) transferred, ${dmsResult.failCount} failed. Check audit logs (correlation: ${dmsResult.correlationId}).`,
+            });
           } else {
             console.log(`[DMS Transfer] All ${dmsResult?.successCount || 0} documents transferred successfully`);
+            if (dmsResult?.successCount > 0) {
+              toast.success('DMS Transfer Complete', {
+                description: `${dmsResult.successCount} document(s) transferred successfully.`,
+              });
+            }
           }
         } catch (dmsErr) {
           // DMS transfer failure must NOT block the approval
           console.error('[DMS Transfer] Unexpected error (non-blocking):', dmsErr);
+          toast.error('DMS Transfer Error', {
+            description: 'Unexpected error during document transfer. Check audit logs for details.',
+          });
         }
       }
     }
