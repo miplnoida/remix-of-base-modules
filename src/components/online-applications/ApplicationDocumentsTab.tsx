@@ -142,8 +142,16 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     try {
       const blob = await fetchDocBlob(docUrl, name, 'stream');
       const blobUrl = URL.createObjectURL(blob);
-      setPreviewDoc({ url: blobUrl, name, category });
-      setPreviewOpen(true);
+
+      if (category === 'pdf') {
+        // Open PDF in a new browser tab — embedded viewers block PDF plugins
+        window.open(blobUrl, '_blank');
+        // Revoke after a delay to allow the tab to load
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } else {
+        setPreviewDoc({ url: blobUrl, name, category });
+        setPreviewOpen(true);
+      }
     } catch (err: any) {
       console.error('Document view error:', err);
       toast.error('Failed to load document', { description: err.message });
