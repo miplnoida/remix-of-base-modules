@@ -4570,6 +4570,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          dms_document_id: string | null
           document_name: string | null
           document_type: string | null
           file_name: string | null
@@ -4581,12 +4582,18 @@ export type Database = {
           signed_url: string | null
           source_document_id: string | null
           ssn: string
+          transfer_attempts: number
+          transfer_error: string | null
+          transfer_status: string
+          transferred_at: string | null
+          transferred_by: string | null
           uploaded_at: string | null
           url: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          dms_document_id?: string | null
           document_name?: string | null
           document_type?: string | null
           file_name?: string | null
@@ -4598,12 +4605,18 @@ export type Database = {
           signed_url?: string | null
           source_document_id?: string | null
           ssn: string
+          transfer_attempts?: number
+          transfer_error?: string | null
+          transfer_status?: string
+          transferred_at?: string | null
+          transferred_by?: string | null
           uploaded_at?: string | null
           url?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          dms_document_id?: string | null
           document_name?: string | null
           document_type?: string | null
           file_name?: string | null
@@ -4615,6 +4628,11 @@ export type Database = {
           signed_url?: string | null
           source_document_id?: string | null
           ssn?: string
+          transfer_attempts?: number
+          transfer_error?: string | null
+          transfer_status?: string
+          transferred_at?: string | null
+          transferred_by?: string | null
           uploaded_at?: string | null
           url?: string | null
         }
