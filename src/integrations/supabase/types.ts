@@ -12840,7 +12840,7 @@ export type Database = {
       initiate_ip_registration_workflow: {
         Args: {
           p_record_name: string
-          p_source_label?: string
+          p_source_context?: string
           p_ssn: string
           p_unique_uuid: string
           p_user_code?: string
