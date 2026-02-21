@@ -226,33 +226,33 @@ export function useConvertToIPRegistration() {
           p_heightfeet:            app.heightFeet   ?? null,
           p_heightinches:          app.heightInches ?? null,
           p_eyecolor:              trim(app.eyeColor, 10),
-          p_resident_addr1:        trim(app.resAddr1 || app.addressLine1, 30),
-          p_resident_addr2:        trim(app.resAddr2 || app.addressLine2, 30),
+          p_resident_addr1:        trim(app.resAddr1 || app.addressLine1, 50),
+          p_resident_addr2:        trim(app.resAddr2 || app.addressLine2, 50),
           p_district:              trim(app.resDistrict || app.postalDistrict, 3),
-          p_mail_addr1:            trim(app.mailingAddr1, 30),
-          p_mail_addr2:            trim(app.mailingAddr2, 30),
+          p_mail_addr1:            trim(app.mailingAddr1, 50),
+          p_mail_addr2:            trim(app.mailingAddr2, 50),
           p_email_addr:            trim(app.email, 40),
           p_phone:                 digits(app.phoneHome, 15),
           p_phone_mobile:          digits(app.phoneMobile, 15),
           p_contact:               trim(app.contactName, 35),
           p_contact_relation:      trim(app.contactRelation, 20),
-          p_contact_addr1:         trim(app.contactAddress1 || app.contactAddress, 30),
-          p_contact_addr2:         trim(app.contactAddress2, 30),
+          p_contact_addr1:         trim(app.contactAddress1 || app.contactAddress, 50),
+          p_contact_addr2:         trim(app.contactAddress2, 50),
           p_contact_phone:         digits(app.contactPhone, 10),
           p_contact_mobile:        digits(app.contactMobile, 10),
           p_contact_email:         trim(app.contactEmail, 40),
           p_father_name:           trim(fatherName, 35),
           p_mother_name:           trim(motherName, 35),
           p_spouse_name:           trim(spouseName, 35),
-          p_spouse_addr1:          trim((app as any).spouseAddressLine1 || (app as any).spouseAddress1, 30),
-          p_spouse_addr2:          trim((app as any).spouseAddressLine2 || (app as any).spouseAddress2, 30),
+          p_spouse_addr1:          trim((app as any).spouseAddressLine1 || (app as any).spouseAddress1, 50),
+          p_spouse_addr2:          trim((app as any).spouseAddressLine2 || (app as any).spouseAddress2, 50),
           p_spouse_ssn:            trim(app.spouseSSN, 6),
           p_spouse_dob:            safeDate((app.spouseDOB || app.spouseDateOfBirth) ?? undefined),
           p_witness_name:          trim(app.witnessName, 35),
           p_date_witnessed:        safeDate(app.witnessDate ?? undefined),
           p_beneficiary:           trim(app.beneficiaryName, 35),
-          p_ben_addr1:             trim(app.beneficiaryAddress, 30),
-          p_ben_addr2:             trim(app.beneficiaryAddress1, 30),
+          p_ben_addr1:             trim(app.beneficiaryAddress, 50),
+          p_ben_addr2:             trim(app.beneficiaryAddress1, 50),
           p_primary_occup:         trim((app.occupationCode || app.occupation || ''), 4),
           p_work_permit:           app.hasWorkPermit ? 'Y' : 'N',
           p_work_permit_expiration: safeDate(app.workPermitExpiry ?? undefined),
@@ -269,7 +269,21 @@ export function useConvertToIPRegistration() {
           p_created_by:            userId || null,
           p_photo_location:        trim(app.photoUrl, 255),
           p_remarks:               app.remarks || null,
+          p_application_ref_number: app.referenceNumber || null,
           p_dependants:            dependantsJson,
+          p_documents:             (app.documents || []).map(doc => ({
+            id:           doc.id || null,
+            name:         doc.name || doc.fileName || null,
+            fileName:     doc.fileName || doc.name || null,
+            documentType: doc.documentType || doc.type || null,
+            type:         doc.type || doc.documentType || null,
+            filePath:     doc.filePath || null,
+            url:          doc.url || null,
+            signedUrl:    doc.signedUrl || null,
+            mimeType:     doc.mimeType || null,
+            fileSize:     doc.fileSize ? String(doc.fileSize) : null,
+            uploadedAt:   doc.uploadedAt || null,
+          })),
         }
       );
 
@@ -283,6 +297,8 @@ export function useConvertToIPRegistration() {
         ip_master_id?: string;
         unique_uuid?: string;
         dependants_added?: number;
+        documents_added?: number;
+        application_reference_number?: string;
         message?: string;
       };
 
