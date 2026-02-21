@@ -500,31 +500,26 @@ export default function EmployeeModal({
 
           <Separator className="bg-border/40" />
 
-          {/* Row 2: Wages Entry - compact */}
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <DollarSign className="h-3.5 w-3.5 text-primary" />
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Wages & Salary Entry</h3>
-              <span className="text-[10px] text-muted-foreground ml-1">— weeks worked, holiday & bonus pay</span>
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {weekLabels.map((label, index) => {
-                const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
-                const isFieldEnabled = isWeekFieldEnabled(index);
-                const isSpecialColumn = index >= 5;
-                
-                return (
-                  <div key={index} className="flex flex-col space-y-1">
-                    <span className={`text-[10px] font-semibold text-center py-0.5 rounded-t ${
-                      isSpecialColumn 
-                        ? 'bg-accent/60 text-accent-foreground' 
-                        : 'bg-muted/60 text-muted-foreground'
+          {/* Row 2 & 3: Wages + Calculations side by side */}
+          <div className="flex-1 min-h-0 grid grid-cols-5 gap-3">
+            {/* Left: Wages Entry - vertical layout */}
+            <div className="col-span-2 flex flex-col">
+              <div className="flex items-center gap-1.5 mb-2">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Wages & Salary Entry</h3>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-muted/10 p-2.5 flex-1 space-y-1">
+                {weekLabels.map((label, index) => {
+                  const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
+                  const isFieldEnabled = isWeekFieldEnabled(index);
+                  const isSpecialRow = index >= 5;
+                  
+                  return (
+                    <div key={index} className={`flex items-center gap-2 rounded-md px-2 py-1 ${
+                      isSpecialRow ? 'bg-accent/30' : index % 2 === 0 ? 'bg-muted/30' : ''
                     }`}>
-                      {label}
-                    </span>
-                    <div className="flex items-center gap-0">
                       <div
-                        className={`h-8 w-7 min-w-[1.75rem] border rounded-l-md flex items-center justify-center transition-colors ${
+                        className={`h-6 w-6 min-w-[1.5rem] border rounded flex items-center justify-center transition-colors ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted/30'
                         } ${
                           localEmployee.days?.[index]
@@ -537,138 +532,140 @@ export default function EmployeeModal({
                           <Check className="h-3 w-3 text-primary-foreground" />
                         )}
                       </div>
+                      <span className={`text-[11px] font-medium w-24 ${isSpecialRow ? 'text-accent-foreground' : 'text-muted-foreground'}`}>
+                        {label}
+                      </span>
                       <Input
                         type="text"
                         inputMode="decimal"
                         value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className="h-8 text-right rounded-l-none min-w-0 border border-l-0 border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
+                        className="h-7 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Separator className="bg-border/40" />
-
-          {/* Row 3: Calculation Summary - side-by-side dense layout */}
-          <div className="flex-1 min-h-0">
-            <div className="flex items-center gap-1.5 mb-2">
-              <CalendarDays className="h-3.5 w-3.5 text-primary" />
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Calculation Summary</h3>
-              {isLoadingConfig && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Loading...
-                </div>
-              )}
-              {config && (
-                <div className="flex items-center gap-1.5 ml-auto">
-                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">SS: {(config.employeeSSRate * 100).toFixed(1)}%</Badge>
-                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Levy: {(config.employerLevyRate * 100).toFixed(1)}%</Badge>
-                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Sev: {(config.employerSeveranceRate * 100).toFixed(1)}%</Badge>
-                </div>
-              )}
-            </div>
-            
-            {configError && (
-              <Alert variant="destructive" className="mb-2 py-2">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <AlertDescription className="text-xs">{configError}</AlertDescription>
-              </Alert>
-            )}
-            
-            {/* All summaries in a single dense row */}
-            <div className="grid grid-cols-4 gap-2">
-              {/* Total & Taxable Wages */}
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Wages</p>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Total (incl. Bonus)</p>
-                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
-                  </div>
-                  <div className="pt-1.5 border-t border-border/40">
-                    <p className="text-[10px] text-muted-foreground">Taxable (excl. Bonus)</p>
-                    <p className="text-base font-semibold text-foreground leading-tight">{formatCurrency(payrollCalc.taxableWages)}</p>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Employee Contributions */}
-              <div className="rounded-lg border border-border/60 p-3">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employee</p>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</p>
-                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeSS)}</p>
-                  </div>
-                  <div className="pt-1.5 border-t border-border/40">
-                    <p className="text-[10px] text-muted-foreground">
-                      Levy ({payrollCalc.usedMonthlyLevyLogic ? 'monthly' : 'weekly'}
-                      {(() => {
-                        const bonusAmount = localEmployee.weeklyWages[5] || 0;
-                        if (bonusAmount > 0) {
-                          if (config.bonusExemptFromLevy) return ' | exempt';
-                          else if (config.bonusLevyRate > 0) return ' | +bonus';
-                        }
-                        return '';
-                      })()})
-                    </p>
-                    <p className="text-base font-semibold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeLevy)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Employer Contributions - split into 2 columns */}
-              <div className="col-span-2 rounded-lg border border-border/60 p-3">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer</p>
-                </div>
-                <div className="grid grid-cols-4 gap-3">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</p>
-                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSS)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</p>
-                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerEIB)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</p>
-                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerLevy)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Severance ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</p>
-                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSeverance)}</p>
-                  </div>
-                </div>
-                {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
-                  <div className="mt-2 pt-2 border-t border-border/40 space-y-0.5">
-                    {payrollCalc.isAgeExemptSS && (
-                      <p className="text-[10px] text-amber-600 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                        SS exempt — age under {config?.minAgeSS || 16} or over {config?.maxAgeSS || 62}
-                      </p>
-                    )}
-                    {payrollCalc.isAgeExemptLevy && (
-                      <p className="text-[10px] text-amber-600 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                        Levy exempt — age under {config?.minAgeLevy || 16} or over {config?.maxAgeLevy || 62}
-                      </p>
-                    )}
+            {/* Right: Calculation Summary */}
+            <div className="col-span-3 flex flex-col">
+              <div className="flex items-center gap-1.5 mb-2">
+                <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Calculation Summary</h3>
+                {isLoadingConfig && (
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading...
                   </div>
                 )}
+                {config && (
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">SS: {(config.employeeSSRate * 100).toFixed(1)}%</Badge>
+                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Levy: {(config.employerLevyRate * 100).toFixed(1)}%</Badge>
+                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Sev: {(config.employerSeveranceRate * 100).toFixed(1)}%</Badge>
+                  </div>
+                )}
+              </div>
+              
+              {configError && (
+                <Alert variant="destructive" className="mb-2 py-2">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertDescription className="text-xs">{configError}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="grid grid-cols-3 gap-2 flex-1">
+                {/* Total & Taxable Wages */}
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Wages</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Total (incl. Bonus)</p>
+                      <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
+                    </div>
+                    <div className="pt-1.5 border-t border-border/40">
+                      <p className="text-[10px] text-muted-foreground">Taxable (excl. Bonus)</p>
+                      <p className="text-base font-semibold text-foreground leading-tight">{formatCurrency(payrollCalc.taxableWages)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employee Contributions */}
+                <div className="rounded-lg border border-border/60 p-3 flex flex-col justify-between">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employee</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</p>
+                      <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeSS)}</p>
+                    </div>
+                    <div className="pt-1.5 border-t border-border/40">
+                      <p className="text-[10px] text-muted-foreground">
+                        Levy ({payrollCalc.usedMonthlyLevyLogic ? 'monthly' : 'weekly'}
+                        {(() => {
+                          const bonusAmount = localEmployee.weeklyWages[5] || 0;
+                          if (bonusAmount > 0) {
+                            if (config.bonusExemptFromLevy) return ' | exempt';
+                            else if (config.bonusLevyRate > 0) return ' | +bonus';
+                          }
+                          return '';
+                        })()})
+                      </p>
+                      <p className="text-base font-semibold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeLevy)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employer Contributions */}
+                <div className="rounded-lg border border-border/60 p-3 flex flex-col justify-between">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</p>
+                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSS)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</p>
+                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerEIB)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</p>
+                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerLevy)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Sev. ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</p>
+                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSeverance)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
+                    <div className="mt-2 pt-2 border-t border-border/40 space-y-0.5">
+                      {payrollCalc.isAgeExemptSS && (
+                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                          SS exempt
+                        </p>
+                      )}
+                      {payrollCalc.isAgeExemptLevy && (
+                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                          Levy exempt
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
