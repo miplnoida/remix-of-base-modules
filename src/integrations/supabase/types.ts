@@ -4566,6 +4566,68 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_application_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_name: string | null
+          document_type: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          signed_url: string | null
+          source_document_id: string | null
+          ssn: string
+          uploaded_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_name?: string | null
+          document_type?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          signed_url?: string | null
+          source_document_id?: string | null
+          ssn: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_name?: string | null
+          document_type?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          signed_url?: string | null
+          source_document_id?: string | null
+          ssn?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ip_application_documents_ssn"
+            columns: ["ssn"]
+            isOneToOne: false
+            referencedRelation: "ip_master"
+            referencedColumns: ["ssn"]
+          },
+        ]
+      }
       ip_audit_log: {
         Row: {
           action: string
@@ -12375,6 +12437,7 @@ export type Database = {
           p_alias: string
           p_application_date: string
           p_application_id: string
+          p_application_ref_number?: string
           p_ben_addr1: string
           p_ben_addr2: string
           p_beneficiary: string
@@ -12394,6 +12457,7 @@ export type Database = {
           p_dependants?: Json
           p_district: string
           p_dob: string
+          p_documents?: Json
           p_email_addr: string
           p_employer_address: string
           p_employer_name: string
