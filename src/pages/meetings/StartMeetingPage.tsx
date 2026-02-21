@@ -195,8 +195,11 @@ export default function StartMeetingPage() {
           : '';
         toast.success((result.message || 'IP Registration created successfully.') + depNote, { duration: 8000 });
 
-        // Check workflow eligibility — show dialog after meeting closure
-        if (result.ssn && result.unique_uuid) {
+        // Workflow is now auto-initiated server-side during conversion.
+        if (result.workflow_instance_id) {
+          toast.success('Workflow instance initiated automatically.');
+        } else if (result.ssn && result.unique_uuid) {
+          // No workflow auto-initiated — check eligibility for manual dialog
           const recordName = `${(dataForConversion as any).firstName || ''} ${(dataForConversion as any).lastName || ''}`.trim();
           const eligibility = await checkWorkflowEligibility({
             sourceRecordId: result.unique_uuid,
@@ -204,7 +207,6 @@ export default function StartMeetingPage() {
           if (eligibility.eligible) {
             setPendingConversionResult({ ssn: result.ssn, unique_uuid: result.unique_uuid, recordName });
             setWorkflowEligibility(eligibility);
-            // We'll show the dialog after meeting closure below
           }
         }
       }

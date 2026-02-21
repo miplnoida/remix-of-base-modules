@@ -57,6 +57,7 @@ export interface ConversionResult {
   unique_uuid?: string;
   application_id?: string;
   dependants_added?: number;
+  workflow_instance_id?: string;
   errors?: ConversionValidationError[];
   message?: string;
 }
@@ -299,6 +300,7 @@ export function useConvertToIPRegistration() {
         dependants_added?: number;
         documents_added?: number;
         application_reference_number?: string;
+        workflow_instance_id?: string;
         message?: string;
       };
 
@@ -306,10 +308,14 @@ export function useConvertToIPRegistration() {
         throw new Error(result?.message || 'Atomic conversion returned failure without a message');
       }
 
-      // ── Step 6: Workflow is NO LONGER auto-triggered ──────────────────
-      // The caller is responsible for checking workflow eligibility and
-      // showing a confirmation dialog before initiating a workflow.
-      // See workflowEligibilityService.ts and WorkflowInitiationDialog.
+      // ── Step 6: Workflow is now auto-initiated server-side ────────────
+      // The convert_application_atomic RPC calls initiate_ip_registration_workflow
+      // within the same transaction. The workflow_instance_id is returned in the result.
+      if (result.workflow_instance_id) {
+        console.log(`[useConvertToIPRegistration] Workflow auto-initiated: ${result.workflow_instance_id}`);
+      } else {
+        console.log('[useConvertToIPRegistration] No workflow configured or initiation skipped');
+      }
 
       // ── Step 7: Log audit entry for conversion ────────────────────────────
       await supabase.from('ip_audit_log').insert({
@@ -337,6 +343,7 @@ export function useConvertToIPRegistration() {
         unique_uuid: result.unique_uuid ?? uniqueUuid,
         application_id: applicationId,
         dependants_added: result.dependants_added ?? 0,
+        workflow_instance_id: result.workflow_instance_id || undefined,
         message: result.message,
       };
 

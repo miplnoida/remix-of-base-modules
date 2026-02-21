@@ -12825,6 +12825,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      initiate_ip_registration_workflow: {
+        Args: {
+          p_record_name: string
+          p_source_label?: string
+          p_ssn: string
+          p_unique_uuid: string
+          p_user_code?: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
       insert_ip_employer_if_not_consecutive_duplicate: {
         Args: {
           p_employer_id: string
