@@ -400,28 +400,28 @@ export default function EmployeeModal({
     </AlertDialog>
 
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[92vh] overflow-hidden p-0 flex flex-col" style={{ width: '80vw', maxWidth: '80vw', minWidth: '1100px' }}>
-        {/* Compact Header */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-5 py-3 border-b border-border/50 flex-shrink-0">
+      <DialogContent className="max-h-[90vh] overflow-hidden p-0 flex flex-col w-[95vw] max-w-[900px] sm:rounded-xl">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-2.5 border-b border-border/50 flex-shrink-0">
           <DialogHeader className="space-y-0">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
-                <User className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center">
+                <User className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-base font-semibold tracking-tight">{modalTitle}</DialogTitle>
-                <DialogDescription className="text-[11px] text-muted-foreground mt-0">
-                  {isViewMode ? 'Viewing employee contribution details' : 'Enter employee details and wage information for the contribution period'}
+                <DialogTitle className="text-sm font-semibold tracking-tight">{modalTitle}</DialogTitle>
+                <DialogDescription className="text-[10px] text-muted-foreground mt-0">
+                  {isViewMode ? 'Viewing employee contribution details' : 'Enter employee details and wage information'}
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
         </div>
 
-        {/* Main Content - dense, no scroll */}
-        <div className="px-4 py-2 flex-1 min-h-0 flex flex-col gap-2">
-          {/* Employee Info + Pay Period - single compact row */}
-          <div className="grid grid-cols-5 gap-2 items-end">
+        {/* Scrollable Content */}
+        <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+          {/* Employee Info Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
             <div className="space-y-0.5">
               <Label htmlFor="ssn" className="text-[10px] font-medium text-muted-foreground">SSN <span className="text-destructive">*</span></Label>
               <div className="relative">
@@ -443,7 +443,7 @@ export default function EmployeeModal({
               </div>
               {ssnError && <p className="text-[10px] text-destructive leading-tight">{ssnError}</p>}
             </div>
-            <div className="col-span-2 space-y-0.5">
+            <div className="space-y-0.5">
               <Label htmlFor="employeeName" className="text-[10px] font-medium text-muted-foreground">Employee Name</Label>
               <Input id="employeeName" value={localEmployee.name} readOnly disabled className="h-7 text-xs bg-muted/50 font-medium" placeholder="Auto-populated" />
             </div>
@@ -465,10 +465,10 @@ export default function EmployeeModal({
             </div>
           </div>
 
-          {/* Wages + Calculations side by side - fills remaining space */}
-          <div className="flex-1 min-h-0 grid grid-cols-5 gap-2">
+          {/* Wages + Calculations */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Left: Wages Entry */}
-            <div className="col-span-2 flex flex-col">
+            <div className="flex flex-col">
               <div className="flex items-center gap-1 mb-1">
                 <DollarSign className="h-3 w-3 text-primary" />
                 <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Wages & Salary</h3>
@@ -507,7 +507,7 @@ export default function EmployeeModal({
             </div>
 
             {/* Right: Calculation Summary */}
-            <div className="col-span-3 flex flex-col">
+            <div className="flex flex-col">
               <div className="flex items-center gap-1 mb-1">
                 <CalendarDays className="h-3 w-3 text-primary" />
                 <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Calculations</h3>
@@ -618,7 +618,7 @@ export default function EmployeeModal({
         </div>
 
         {/* Fixed Footer with Verified + Actions */}
-        <div className="border-t border-border/50 bg-muted/20 px-5 py-2.5 flex-shrink-0">
+        <div className="border-t border-border/50 bg-muted/20 px-4 py-2.5 flex-shrink-0">
           <div className="flex items-center justify-between">
             {/* Verified Toggle - left side */}
             {!isViewMode ? (
