@@ -6,13 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculations';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { Separator } from '@/components/ui/separator';
+
 import { Badge } from '@/components/ui/badge';
 
 export interface EmployeeData {
@@ -418,129 +418,85 @@ export default function EmployeeModal({
           </DialogHeader>
         </div>
 
-        {/* Main Content - no scroll, dense layout */}
-        <div className="px-5 py-3 flex-1 min-h-0 flex flex-col gap-3">
-          {/* Row 1: Employee Information - inline */}
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <BadgeCheck className="h-3.5 w-3.5 text-primary" />
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Employee Information</h3>
+        {/* Main Content - dense, no scroll */}
+        <div className="px-4 py-2 flex-1 min-h-0 flex flex-col gap-2">
+          {/* Employee Info + Pay Period - single compact row */}
+          <div className="grid grid-cols-5 gap-2 items-end">
+            <div className="space-y-0.5">
+              <Label htmlFor="ssn" className="text-[10px] font-medium text-muted-foreground">SSN <span className="text-destructive">*</span></Label>
+              <div className="relative">
+                <Input
+                  id="ssn"
+                  value={localEmployee.ssn}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    handleChange('ssn', value);
+                  }}
+                  onBlur={handleSSNBlur}
+                  placeholder="6-digit SSN"
+                  maxLength={6}
+                  disabled={isViewMode || !!employee}
+                  className={`h-7 text-xs ${ssnError ? 'border-destructive focus-visible:ring-destructive' : ssnValidated ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
+                />
+                {isValidating && <Loader2 className="absolute right-2 top-1.5 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                {ssnValidated && !isValidating && <Check className="absolute right-2 top-1.5 h-3.5 w-3.5 text-green-500" />}
+              </div>
+              {ssnError && <p className="text-[10px] text-destructive leading-tight">{ssnError}</p>}
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="ssn" className="text-[11px] font-medium text-muted-foreground">SSN <span className="text-destructive">*</span></Label>
-                <div className="relative">
-                  <Input
-                    id="ssn"
-                    value={localEmployee.ssn}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      handleChange('ssn', value);
-                    }}
-                    onBlur={handleSSNBlur}
-                    placeholder="6-digit SSN"
-                    maxLength={6}
-                    disabled={isViewMode || !!employee}
-                    className={`h-8 text-sm ${ssnError ? 'border-destructive focus-visible:ring-destructive' : ssnValidated ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
-                  />
-                  {isValidating && (
-                    <Loader2 className="absolute right-2.5 top-2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                  )}
-                  {ssnValidated && !isValidating && (
-                    <Check className="absolute right-2.5 top-2 h-3.5 w-3.5 text-green-500" />
-                  )}
-                </div>
-                {ssnError && <p className="text-[11px] text-destructive">{ssnError}</p>}
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="employeeName" className="text-[11px] font-medium text-muted-foreground">Employee Name</Label>
-                <Input
-                  id="employeeName"
-                  value={localEmployee.name}
-                  readOnly
-                  disabled
-                  className="h-8 text-sm bg-muted/50 font-medium"
-                  placeholder="Auto-populated"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="termStartDate" className="text-[11px] font-medium text-muted-foreground">Term Start Date</Label>
-                <Input
-                  id="termStartDate"
-                  type="date"
-                  value={periodTermStartDate}
-                  readOnly
-                  disabled
-                  className="h-8 text-sm bg-muted/50"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="payPeriod" className="text-[11px] font-medium text-muted-foreground">Pay Period</Label>
-                <Select 
-                  value={localEmployee.payPeriod || 'Monthly'} 
-                  onValueChange={(value) => handleChange('payPeriod', value)}
-                  disabled={isViewMode}
-                >
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Select Pay Period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="2 Monthly">2 Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="col-span-2 space-y-0.5">
+              <Label htmlFor="employeeName" className="text-[10px] font-medium text-muted-foreground">Employee Name</Label>
+              <Input id="employeeName" value={localEmployee.name} readOnly disabled className="h-7 text-xs bg-muted/50 font-medium" placeholder="Auto-populated" />
+            </div>
+            <div className="space-y-0.5">
+              <Label htmlFor="termStartDate" className="text-[10px] font-medium text-muted-foreground">Term Start</Label>
+              <Input id="termStartDate" type="date" value={periodTermStartDate} readOnly disabled className="h-7 text-xs bg-muted/50" />
+            </div>
+            <div className="space-y-0.5">
+              <Label htmlFor="payPeriod" className="text-[10px] font-medium text-muted-foreground">Pay Period</Label>
+              <Select value={localEmployee.payPeriod || 'Monthly'} onValueChange={(value) => handleChange('payPeriod', value)} disabled={isViewMode}>
+                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="2 Monthly">2 Monthly</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <Separator className="bg-border/40" />
-
-          {/* Row 2 & 3: Wages + Calculations side by side */}
-          <div className="flex-1 min-h-0 grid grid-cols-5 gap-3">
-            {/* Left: Wages Entry - vertical layout */}
+          {/* Wages + Calculations side by side - fills remaining space */}
+          <div className="flex-1 min-h-0 grid grid-cols-5 gap-2">
+            {/* Left: Wages Entry */}
             <div className="col-span-2 flex flex-col">
-              <div className="flex items-center gap-1.5 mb-2">
-                <DollarSign className="h-3.5 w-3.5 text-primary" />
-                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Wages & Salary Entry</h3>
+              <div className="flex items-center gap-1 mb-1">
+                <DollarSign className="h-3 w-3 text-primary" />
+                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Wages & Salary</h3>
               </div>
-              <div className="rounded-lg border border-border/60 bg-muted/10 p-2.5 flex-1 space-y-1">
+              <div className="rounded-md border border-border/60 bg-muted/10 p-1.5 flex-1 flex flex-col justify-between">
                 {weekLabels.map((label, index) => {
                   const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
                   const isFieldEnabled = isWeekFieldEnabled(index);
                   const isSpecialRow = index >= 5;
-                  
                   return (
-                    <div key={index} className={`flex items-center gap-2 rounded-md px-2 py-1 ${
+                    <div key={index} className={`flex items-center gap-1.5 rounded px-1.5 py-[3px] ${
                       isSpecialRow ? 'bg-accent/30' : index % 2 === 0 ? 'bg-muted/30' : ''
                     }`}>
                       <div
-                        className={`h-6 w-6 min-w-[1.5rem] border rounded flex items-center justify-center transition-colors ${
+                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors ${
                           !isCheckboxEnabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted/30'
-                        } ${
-                          localEmployee.days?.[index]
-                            ? 'bg-primary border-primary shadow-sm'
-                            : 'bg-background border-input'
-                        }`}
+                        } ${localEmployee.days?.[index] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'}`}
                         onClick={() => isCheckboxEnabled && handleWeekToggle(index)}
                       >
-                        {localEmployee.days?.[index] && (
-                          <Check className="h-3 w-3 text-primary-foreground" />
-                        )}
+                        {localEmployee.days?.[index] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                       </div>
-                      <span className={`text-[11px] font-medium w-24 ${isSpecialRow ? 'text-accent-foreground' : 'text-muted-foreground'}`}>
-                        {label}
-                      </span>
+                      <span className={`text-[10px] font-medium w-20 ${isSpecialRow ? 'text-accent-foreground' : 'text-muted-foreground'}`}>{label}</span>
                       <Input
                         type="text"
                         inputMode="decimal"
                         value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className="h-7 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
+                        className="h-6 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-[11px]"
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
@@ -552,62 +508,56 @@ export default function EmployeeModal({
 
             {/* Right: Calculation Summary */}
             <div className="col-span-3 flex flex-col">
-              <div className="flex items-center gap-1.5 mb-2">
-                <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Calculation Summary</h3>
+              <div className="flex items-center gap-1 mb-1">
+                <CalendarDays className="h-3 w-3 text-primary" />
+                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Calculations</h3>
                 {isLoadingConfig && (
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Loading...
+                  <div className="flex items-center gap-1 text-[9px] text-muted-foreground ml-auto">
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
                   </div>
                 )}
                 {config && (
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">SS: {(config.employeeSSRate * 100).toFixed(1)}%</Badge>
-                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Levy: {(config.employerLevyRate * 100).toFixed(1)}%</Badge>
-                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Sev: {(config.employerSeveranceRate * 100).toFixed(1)}%</Badge>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Badge variant="outline" className="text-[9px] font-normal h-4 px-1">SS:{(config.employeeSSRate * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline" className="text-[9px] font-normal h-4 px-1">Levy:{(config.employerLevyRate * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline" className="text-[9px] font-normal h-4 px-1">Sev:{(config.employerSeveranceRate * 100).toFixed(0)}%</Badge>
                   </div>
                 )}
               </div>
               
               {configError && (
-                <Alert variant="destructive" className="mb-2 py-2">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <AlertDescription className="text-xs">{configError}</AlertDescription>
+                <Alert variant="destructive" className="mb-1 py-1">
+                  <AlertCircle className="h-3 w-3" />
+                  <AlertDescription className="text-[10px]">{configError}</AlertDescription>
                 </Alert>
               )}
               
-              <div className="grid grid-cols-3 gap-2 flex-1">
-                {/* Total & Taxable Wages */}
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-3 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Wages</p>
+              <div className="rounded-md border border-border/60 p-2 flex-1 flex flex-col justify-between">
+                {/* Wages summary row */}
+                <div className="grid grid-cols-2 gap-2 pb-1.5 border-b border-border/40">
+                  <div>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total Wages (incl. Bonus)</p>
+                    <p className="text-base font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground">Total (incl. Bonus)</p>
-                      <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
-                    </div>
-                    <div className="pt-1.5 border-t border-border/40">
-                      <p className="text-[10px] text-muted-foreground">Taxable (excl. Bonus)</p>
-                      <p className="text-base font-semibold text-foreground leading-tight">{formatCurrency(payrollCalc.taxableWages)}</p>
-                    </div>
+                  <div>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Taxable (excl. Bonus)</p>
+                    <p className="text-base font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.taxableWages)}</p>
                   </div>
                 </div>
 
                 {/* Employee Contributions */}
-                <div className="rounded-lg border border-border/60 p-3 flex flex-col justify-between">
-                  <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="py-1.5 border-b border-border/40">
+                  <div className="flex items-center gap-1 mb-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employee</p>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Employee Contributions</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</p>
-                      <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeSS)}</p>
+                      <p className="text-[9px] text-muted-foreground">Social Security ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</p>
+                      <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeSS)}</p>
                     </div>
-                    <div className="pt-1.5 border-t border-border/40">
-                      <p className="text-[10px] text-muted-foreground">
+                    <div>
+                      <p className="text-[9px] text-muted-foreground">
                         Levy ({payrollCalc.usedMonthlyLevyLogic ? 'monthly' : 'weekly'}
                         {(() => {
                           const bonusAmount = localEmployee.weeklyWages[5] || 0;
@@ -618,49 +568,45 @@ export default function EmployeeModal({
                           return '';
                         })()})
                       </p>
-                      <p className="text-base font-semibold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeLevy)}</p>
+                      <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeLevy)}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Employer Contributions */}
-                <div className="rounded-lg border border-border/60 p-3 flex flex-col justify-between">
-                  <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="pt-1.5">
+                  <div className="flex items-center gap-1 mb-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer</p>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Contributions</p>
                   </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</p>
-                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSS)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</p>
-                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerEIB)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</p>
-                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerLevy)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Sev. ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</p>
-                        <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSeverance)}</p>
-                      </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <p className="text-[9px] text-muted-foreground">SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</p>
+                      <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSS)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</p>
+                      <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerEIB)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground">Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</p>
+                      <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerLevy)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-muted-foreground">Sev. ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</p>
+                      <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSeverance)}</p>
                     </div>
                   </div>
                   {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
-                    <div className="mt-2 pt-2 border-t border-border/40 space-y-0.5">
+                    <div className="mt-1 pt-1 border-t border-border/40 flex gap-2">
                       {payrollCalc.isAgeExemptSS && (
-                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                          SS exempt
+                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5">
+                          <AlertCircle className="h-2.5 w-2.5 flex-shrink-0" /> SS exempt
                         </p>
                       )}
                       {payrollCalc.isAgeExemptLevy && (
-                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                          Levy exempt
+                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5">
+                          <AlertCircle className="h-2.5 w-2.5 flex-shrink-0" /> Levy exempt
                         </p>
                       )}
                     </div>
