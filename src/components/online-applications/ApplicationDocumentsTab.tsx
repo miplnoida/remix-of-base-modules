@@ -126,6 +126,16 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     return new Blob([arrayBuffer], { type: contentType });
   }, []);
 
+  /** Convert blob to base64 data URL */
+  const blobToDataUrl = useCallback((blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }, []);
+
   /** Handle View click */
   const handleView = useCallback(async (doc: ExternalDocument, index: number) => {
     const docUrl = getDocUrl(doc);
@@ -141,14 +151,13 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
 
     try {
       const blob = await fetchDocBlob(docUrl, name, 'stream');
-      const blobUrl = URL.createObjectURL(blob);
 
       if (category === 'pdf') {
-        // Open PDF in a new browser tab — embedded viewers block PDF plugins
-        window.open(blobUrl, '_blank');
-        // Revoke after a delay to allow the tab to load
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        // Convert to data URL and open in new tab — blob URLs don't work cross-origin
+        const dataUrl = await blobToDataUrl(blob);
+        window.open(dataUrl, '_blank');
       } else {
+        const blobUrl = URL.createObjectURL(blob);
         setPreviewDoc({ url: blobUrl, name, category });
         setPreviewOpen(true);
       }
@@ -158,7 +167,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     } finally {
       setLoadingDocId(null);
     }
-  }, [fetchDocBlob]);
+  }, [fetchDocBlob, blobToDataUrl]);
 
   /** Handle Download click */
   const handleDownload = useCallback(async (doc: ExternalDocument, index: number) => {
