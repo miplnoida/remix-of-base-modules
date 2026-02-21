@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.public-api-execute]
 verify_jwt = false
+
+[functions.dms-transfer]
+verify_jwt = false

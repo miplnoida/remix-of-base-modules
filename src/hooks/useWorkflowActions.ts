@@ -1365,6 +1365,52 @@ async function updateSourceRecordStatus(
       new_value: newStatus,
       field_name: 'status',
     });
+
+    // ── DMS Document Transfer: trigger only when status becomes "V" ──
+    if (newStatus === 'V') {
+      // Fetch the SSN and user_code for the DMS transfer
+      const { data: ipRec } = await supabase
+        .from('ip_master')
+        .select('ssn')
+        .eq('unique_uuid', sourceRecordId)
+        .single();
+
+      if (ipRec?.ssn) {
+        // Get user_code from profiles
+        let transferUserCode = 'SYSTEM';
+        if (userId) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_code')
+            .eq('id', userId)
+            .single();
+          transferUserCode = profile?.user_code || 'SYSTEM';
+        }
+
+        // Fire DMS transfer asynchronously (non-blocking to approval flow)
+        try {
+          const { data: dmsResult, error: dmsError } = await supabase.functions.invoke('dms-transfer', {
+            body: {
+              ssn: ipRec.ssn,
+              userCode: transferUserCode,
+              userId: userId || '',
+              ipMasterUniqueUuid: sourceRecordId,
+            },
+          });
+
+          if (dmsError) {
+            console.error('[DMS Transfer] Edge function invocation error:', dmsError);
+          } else if (dmsResult?.failCount > 0) {
+            console.warn(`[DMS Transfer] Partial success: ${dmsResult.successCount} transferred, ${dmsResult.failCount} failed`);
+          } else {
+            console.log(`[DMS Transfer] All ${dmsResult?.successCount || 0} documents transferred successfully`);
+          }
+        } catch (dmsErr) {
+          // DMS transfer failure must NOT block the approval
+          console.error('[DMS Transfer] Unexpected error (non-blocking):', dmsErr);
+        }
+      }
+    }
   }
   // Add other module handlers as needed
 }
