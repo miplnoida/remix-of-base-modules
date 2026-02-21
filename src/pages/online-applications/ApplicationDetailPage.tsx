@@ -232,15 +232,20 @@ export default function ApplicationDetailPage() {
                   if (result.success) {
                     toast.success(result.message || 'IP Registration created successfully');
                     
-                    // Check workflow eligibility dynamically
-                    if (result.ssn && result.unique_uuid) {
+                    // Workflow is now auto-initiated server-side during conversion.
+                    // If workflow_instance_id is returned, it was already created atomically.
+                    if (result.workflow_instance_id) {
+                      toast.success('Workflow instance initiated automatically.');
+                      queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+                    } else if (result.ssn && result.unique_uuid) {
+                      // No workflow was auto-initiated (no config found).
+                      // Check eligibility in case user wants to manually initiate later.
                       const recordName = `${application.firstName || ''} ${application.lastName || ''}`.trim();
                       const eligibility = await checkWorkflowEligibility({
                         sourceRecordId: result.unique_uuid,
                       });
                       
                       if (eligibility.eligible) {
-                        // Show confirmation dialog instead of auto-triggering
                         setWorkflowEligibility(eligibility);
                         setPendingConversionResult({ ssn: result.ssn, unique_uuid: result.unique_uuid, recordName });
                         setWorkflowDialogOpen(true);
