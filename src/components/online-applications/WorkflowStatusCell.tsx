@@ -79,12 +79,21 @@ export function WorkflowStatusCell({ status, isLoading, fallbackStatus }: Workfl
   // If there's a meeting, show status badge with date/time underneath
   if (status.hasMeeting) {
     return (
-      <Badge 
-        variant={getBadgeVariant(status.displayStatusVariant)}
-        className={cn(getBadgeClasses(status.displayStatusVariant))}
-      >
-        {status.displayStatus}
-      </Badge>
+      <div className="flex flex-col items-start gap-0.5">
+        <Badge 
+          variant={getBadgeVariant(status.displayStatusVariant)}
+          className={cn(getBadgeClasses(status.displayStatusVariant))}
+        >
+          {status.displayStatus}
+        </Badge>
+        {(status.meetingDate || status.meetingTime) && (
+          <span className="text-[10px] text-muted-foreground leading-tight pl-0.5">
+            {status.meetingDate && formatDisplayDate(status.meetingDate)}
+            {status.meetingDate && status.meetingTime && ' · '}
+            {status.meetingTime}
+          </span>
+        )}
+      </div>
     );
   }
 

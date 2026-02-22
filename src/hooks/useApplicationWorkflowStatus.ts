@@ -164,7 +164,7 @@ async function fetchWorkflowStatuses(
               }
             }
             
-            displayStatus = `Meeting Scheduled – ${formattedDate}${timeStr}`;
+            displayStatus = `Meeting Scheduled`;
           } catch (e) {
             displayStatus = 'Meeting Scheduled';
           }
