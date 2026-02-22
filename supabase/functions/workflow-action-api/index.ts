@@ -136,19 +136,21 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     let userId: string | null = null
     let userCode: string | null = null
+    let userFullName: string | null = null
 
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '')
       const { data: { user } } = await supabase.auth.getUser(token)
       if (user) {
         userId = user.id
-        // Get user code for audit
+        // Get user code and full name for audit
         const { data: profile } = await supabase
           .from('profiles')
           .select('user_code, full_name')
           .eq('id', user.id)
           .single()
         userCode = profile?.user_code || profile?.full_name || user.email
+        userFullName = profile?.full_name || user.email || null
       }
     }
 
@@ -258,6 +260,7 @@ Deno.serve(async (req) => {
         // Build system data
         const systemData = {
           logged_in_user: userCode || userId,
+          logged_in_username: userFullName || userCode || userId,
           current_timestamp: new Date().toISOString(),
           current_date: new Date().toISOString().split('T')[0],
           current_time: new Date().toISOString().split('T')[1].substring(0, 8),
