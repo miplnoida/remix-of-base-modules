@@ -376,7 +376,7 @@ export function RescheduleMeetingDialog({
                             onClick={() => { if (!isDisabled) { setNewDate(day); setSelectedTime(''); setOverlapError(''); } }}
                             className={cn(
                               'relative p-2 rounded text-center transition-colors',
-                              isSelected ? 'bg-gray-700 text-white font-bold' : '',
+                              isSelected ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary' : '',
                               isToday && !isSelected ? 'bg-gray-200 dark:bg-gray-600' : '',
                               isDisabled ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed' : '',
                               !isSelected && !isToday && !isDisabled ? 'hover:bg-accent' : ''
@@ -388,7 +388,7 @@ export function RescheduleMeetingDialog({
                               {dayMeetings.length > 0 && (
                                 <span className={cn(
                                   'inline-flex items-center justify-center rounded-full text-[9px] font-bold h-3.5 min-w-3.5 px-0.5',
-                                  isSelected ? 'bg-white text-gray-700' : 'bg-destructive text-destructive-foreground'
+                                  isSelected ? 'bg-primary-foreground text-primary' : 'bg-destructive text-destructive-foreground'
                                 )}>
                                   {dayMeetings.length}
                                 </span>
