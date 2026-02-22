@@ -356,7 +356,7 @@ export default function WorkflowForm() {
         assigned_designation: null,
         action_type: 'Review',
         sla_hours: 24,
-        is_final_step: false,
+        is_final_step: steps.length === 0, // auto-mark as final if it's the only step
         isOpen: true,
         approver_type: 'role',
         approver_role_ids: [],
@@ -527,6 +527,10 @@ export default function WorkflowForm() {
     if (steps.length === 0) {
       toast({ title: 'Error', description: 'At least one step is required', variant: 'destructive' });
       return false;
+    }
+    // Auto-mark single step as final
+    if (steps.length === 1 && !steps[0].is_final_step) {
+      steps[0].is_final_step = true;
     }
     const finalSteps = steps.filter(s => s.is_final_step);
     if (finalSteps.length !== 1) {
