@@ -39,6 +39,14 @@ export interface EmployeeData {
   periodGross?: number;
 }
 
+export interface PenaltyFinesData {
+  levyPenalty: number;
+  severancePenalty: number;
+  ssFines: number;
+  daysLate: number;
+  totalLateCharges: number;
+}
+
 interface EmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -47,6 +55,7 @@ interface EmployeeModalProps {
   isViewMode?: boolean;
   periodYear: number;
   periodMonth: number;
+  penaltyData?: PenaltyFinesData;
 }
 
 const weekLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Bonus Pay', 'Holiday Pay'];
@@ -58,7 +67,8 @@ export default function EmployeeModal({
   onSave,
   isViewMode = false,
   periodYear,
-  periodMonth
+  periodMonth,
+  penaltyData
 }: EmployeeModalProps) {
   const { validateEmployee, isValidating } = useEmployerValidation();
   const { config, isLoading: isLoadingConfig, error: configError, calculate } = useC3EmployeeCalculation(periodYear, periodMonth);
@@ -534,14 +544,10 @@ export default function EmployeeModal({
               
               <div className="rounded-md border border-border/60 p-2 flex-1 flex flex-col justify-between">
                 {/* Wages summary row */}
-                <div className="grid grid-cols-2 gap-2 pb-1.5 border-b border-border/40">
+                <div className="grid grid-cols-1 gap-2 pb-1.5 border-b border-border/40">
                   <div>
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total Wages (incl. Bonus)</p>
                     <p className="text-base font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Taxable (excl. Bonus)</p>
-                    <p className="text-base font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.taxableWages)}</p>
                   </div>
                 </div>
 
@@ -615,6 +621,56 @@ export default function EmployeeModal({
               </div>
             </div>
           </div>
+
+          {/* Penalties & Fines Section */}
+          {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0 || penaltyData.daysLate > 0) && (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1 mb-1">
+                <AlertCircle className="h-3 w-3 text-destructive" />
+                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Penalties & Fines</h3>
+                {penaltyData.daysLate > 0 && (
+                  <Badge variant="destructive" className="text-[9px] h-4 px-1 ml-auto">{penaltyData.daysLate} days late</Badge>
+                )}
+              </div>
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Levy Penalty</p>
+                    <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.levyPenalty)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Severance Penalty</p>
+                    <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.severancePenalty)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">SS Fine</p>
+                    <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.ssFines)}</p>
+                  </div>
+                </div>
+                {penaltyData.totalLateCharges > 0 && (
+                  <div className="mt-1.5 pt-1.5 border-t border-destructive/20">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total Late Charges</p>
+                      <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData.totalLateCharges)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state for no penalties */}
+          {penaltyData && penaltyData.levyPenalty === 0 && penaltyData.severancePenalty === 0 && penaltyData.ssFines === 0 && (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1 mb-1">
+                <ShieldCheck className="h-3 w-3 text-green-600" />
+                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Penalties & Fines</h3>
+              </div>
+              <div className="rounded-md border border-border/60 bg-muted/10 p-2 text-center">
+                <p className="text-[10px] text-muted-foreground">No penalties or fines applicable</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Fixed Footer with Verified + Actions */}

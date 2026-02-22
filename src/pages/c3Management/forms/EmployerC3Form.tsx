@@ -13,7 +13,7 @@ import { useC3Submit } from "@/hooks/useC3Submit";
 import { useToast } from "@/hooks/use-toast";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import ReceivedBySelect from "@/components/c3/ReceivedBySelect";
-import EmployeeModal, { EmployeeData } from "@/components/c3/EmployeeModal";
+import EmployeeModal, { EmployeeData, PenaltyFinesData } from "@/components/c3/EmployeeModal";
 import { formatPeriodForStorage, formatPeriodDisplay } from "@/utils/weekCalculations";
 import { formatCurrency, calculateAge } from "@/utils/sknPayrollCalculations";
 import { useC3ServerCalculations, C3CalculationTotals, C3CalculationConfig } from "@/hooks/useC3ServerCalculations";
@@ -857,6 +857,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         isViewMode={isModalViewMode}
         periodYear={periodYear}
         periodMonth={periodMonth}
+        penaltyData={{
+          levyPenalty: overall.levyPenalty,
+          severancePenalty: overall.severancePenalty,
+          ssFines: overall.fines,
+          daysLate: overall.daysLate,
+          totalLateCharges: overall.totalLateCharges
+        }}
       />
     </div>
   );
