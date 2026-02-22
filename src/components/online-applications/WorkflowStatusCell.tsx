@@ -1,9 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { ApplicationWorkflowStatus } from '@/hooks/useApplicationWorkflowStatus';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import { cn } from '@/lib/utils';
 
 interface WorkflowStatusCellProps {
@@ -59,8 +58,6 @@ function getBadgeClasses(variant: ApplicationWorkflowStatus['displayStatusVarian
  * Shows workflow-driven status with clickable meeting status when applicable
  */
 export function WorkflowStatusCell({ status, isLoading, fallbackStatus }: WorkflowStatusCellProps) {
-  const navigate = useNavigate();
-
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
@@ -79,29 +76,24 @@ export function WorkflowStatusCell({ status, isLoading, fallbackStatus }: Workfl
     );
   }
 
-  const handleMeetingClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (status.meetingId) {
-      navigate(`/meetings/manage/${status.meetingId}`);
-    }
-  };
-
-  // If there's a meeting and it's clickable
-  if (status.hasMeeting && status.isMeetingClickable) {
+  // If there's a meeting, show status badge with date/time underneath
+  if (status.hasMeeting) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn(
-          'h-auto py-1 px-2 text-xs font-semibold',
-          'gap-1.5',
-          getBadgeClasses(status.displayStatusVariant)
+      <div className="flex flex-col items-start gap-0.5">
+        <Badge 
+          variant={getBadgeVariant(status.displayStatusVariant)}
+          className={cn(getBadgeClasses(status.displayStatusVariant))}
+        >
+          {status.displayStatus}
+        </Badge>
+        {(status.meetingDate || status.meetingTime) && (
+          <span className="text-[10px] text-muted-foreground leading-tight pl-0.5">
+            {status.meetingDate && formatDisplayDate(status.meetingDate)}
+            {status.meetingDate && status.meetingTime && ' · '}
+            {status.meetingTime}
+          </span>
         )}
-        onClick={handleMeetingClick}
-      >
-        <Calendar className="h-3 w-3" />
-        <span className="truncate max-w-[180px]">{status.displayStatus}</span>
-      </Button>
+      </div>
     );
   }
 
