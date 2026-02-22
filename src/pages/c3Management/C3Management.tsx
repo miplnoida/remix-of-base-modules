@@ -1233,27 +1233,31 @@ export default function C3Management() {
             data={currentRecords}
             columns={[
               { key: 'payerId', label: 'Payer ID', minWidth: '100px' },
+              { key: 'payerName', label: 'Payer Name', minWidth: '150px' },
               { key: 'scheduleNo', label: 'Schedule No.', minWidth: '120px' },
               { key: 'period', label: 'Period', minWidth: '100px' },
-              { key: 'dateReceived', label: 'Date Received', minWidth: '120px' },
-              { key: 'enteredBy', label: 'Entered By', minWidth: '120px' },
-              { key: 'verifiedBy', label: 'Verified By', minWidth: '120px', render: (value) => value || "-" },
-              { key: 'dateEntered', label: 'Date Entered', minWidth: '120px' },
-              { key: 'dateVerified', label: 'Date Verified', minWidth: '120px', render: (value) => value || "-" },
               { 
                 key: 'status', 
                 label: 'Status', 
                 minWidth: '100px',
                 render: (status) => getStatusBadge(status)
               },
-              { key: 'type', label: 'Type', minWidth: '120px' },
-              { key: 'payerName', label: 'Payer Name', minWidth: '150px' },
               { 
                 key: 'amount', 
                 label: 'Amount', 
                 minWidth: '120px',
-                render: (amount) => `$${(amount || 0).toLocaleString()}`
+                render: (amount) => (
+                  <span className="font-semibold tabular-nums">
+                    ${(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                )
               },
+              { key: 'dateReceived', label: 'Date Received', minWidth: '120px' },
+              { key: 'enteredBy', label: 'Entered By', minWidth: '120px' },
+              { key: 'verifiedBy', label: 'Verified By', minWidth: '120px', render: (value) => value || <span className="text-muted-foreground">—</span> },
+              { key: 'dateEntered', label: 'Date Entered', minWidth: '120px' },
+              { key: 'dateVerified', label: 'Date Verified', minWidth: '120px', render: (value) => value || <span className="text-muted-foreground">—</span> },
+              { key: 'type', label: 'Type', minWidth: '120px' },
               { key: 'cnc3ReportedReceivedBy', label: 'CNC3 Received By', minWidth: '140px' },
               { key: 'cnc3ReportedModifiedDate', label: 'CNC3 Modified Date', minWidth: '140px' },
               { key: 'cnc3ReportedModifiedBy', label: 'CNC3 Modified By', minWidth: '140px' },
@@ -1267,7 +1271,6 @@ export default function C3Management() {
                   
                   return (
                     <div className="flex items-center gap-1 flex-nowrap">
-                      {/* View button */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -1279,7 +1282,6 @@ export default function C3Management() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {/* Edit button */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -1291,7 +1293,6 @@ export default function C3Management() {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      {/* Submit button for Draft records */}
                       {isDraft && (
                         <Button
                           size="sm"
@@ -1311,8 +1312,6 @@ export default function C3Management() {
                           Submit
                         </Button>
                       )}
-                      
-                      {/* Workflow action buttons for submitted records */}
                       {!isDraft && record.id && (
                         <WorkflowActionButtonsCompact
                           sourceModule={sourceModule}
