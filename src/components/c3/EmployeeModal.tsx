@@ -392,20 +392,37 @@ export default function EmployeeModal({
     </AlertDialog>
 
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[92vh] overflow-hidden p-0 flex flex-col w-[96vw] max-w-[920px] sm:rounded-xl shadow-2xl">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] px-5 py-3.5 flex-shrink-0">
+      <DialogContent className="max-h-[92vh] overflow-hidden p-0 flex flex-col w-[96vw] max-w-[960px] sm:rounded-xl shadow-2xl border-0">
+        {/* Header - high contrast solid background */}
+        <div className="bg-primary px-5 py-4 flex-shrink-0 rounded-t-xl">
           <DialogHeader className="space-y-0">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                <User className="h-4.5 w-4.5 text-white" />
+              <div className="h-10 w-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
+                <User className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div>
-                <DialogTitle className="text-base font-bold text-white tracking-tight">{modalTitle}</DialogTitle>
-                <DialogDescription className="text-xs text-white/70 mt-0.5">
+              <div className="flex-1">
+                <DialogTitle className="text-lg font-bold text-primary-foreground tracking-tight">{modalTitle}</DialogTitle>
+                <DialogDescription className="text-sm text-primary-foreground/70 mt-0.5">
                   {isViewMode ? 'Viewing employee contribution details' : 'Enter employee details and wage information'}
                 </DialogDescription>
               </div>
+              {/* Rate badges in header - highly visible */}
+              {config && (
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 text-xs font-bold px-2.5 py-1 hover:bg-primary-foreground/30">
+                    SS {(config.employeeSSRate * 100).toFixed(0)}%
+                  </Badge>
+                  <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 text-xs font-bold px-2.5 py-1 hover:bg-primary-foreground/30">
+                    Levy {(config.employerLevyRate * 100).toFixed(0)}%
+                  </Badge>
+                  <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 text-xs font-bold px-2.5 py-1 hover:bg-primary-foreground/30">
+                    Sev {(config.employerSeveranceRate * 100).toFixed(0)}%
+                  </Badge>
+                </div>
+              )}
+              {isLoadingConfig && (
+                <Loader2 className="h-4 w-4 animate-spin text-primary-foreground/60" />
+              )}
             </div>
           </DialogHeader>
         </div>
@@ -475,38 +492,45 @@ export default function EmployeeModal({
                   const isFieldEnabled = isWeekFieldEnabled(index);
                   const isBonus = index === 5;
                   const isHoliday = index === 6;
-                  const isSpecialRow = isBonus || isHoliday;
+                  const isChecked = localEmployee.days?.[index] ?? false;
                   
                   return (
-                    <div key={index} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${
-                      isSpecialRow 
-                        ? isBonus ? 'bg-blue-50 dark:bg-blue-950/30' : 'bg-orange-50 dark:bg-orange-950/30'
-                        : index % 2 === 0 ? 'bg-muted/30' : ''
+                    <div key={index} className={`flex items-center gap-2 rounded-md px-2 py-2 transition-colors ${
+                      isBonus 
+                        ? isChecked ? 'bg-blue-100 dark:bg-blue-950/50 ring-1 ring-blue-300 dark:ring-blue-700' : 'bg-blue-50/60 dark:bg-blue-950/20'
+                        : isHoliday 
+                        ? isChecked ? 'bg-orange-100 dark:bg-orange-950/50 ring-1 ring-orange-300 dark:ring-orange-700' : 'bg-orange-50/60 dark:bg-orange-950/20'
+                        : isChecked ? 'bg-primary/10 ring-1 ring-primary/30' : index % 2 === 0 ? 'bg-muted/30' : ''
                     }`}>
+                      {/* Custom Checkbox - larger and more prominent */}
                       <div
-                        className={`h-5 w-5 min-w-[1.25rem] border-2 rounded flex items-center justify-center transition-all ${
-                          !isCheckboxEnabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer hover:shadow-sm'
-                        } ${localEmployee.days?.[index] 
-                          ? 'bg-primary border-primary shadow-sm' 
-                          : 'bg-background border-muted-foreground/30'
+                        className={`h-6 w-6 min-w-[1.5rem] border-2 rounded-md flex items-center justify-center transition-all ${
+                          !isCheckboxEnabled ? 'cursor-not-allowed opacity-30 border-muted-foreground/20' : 'cursor-pointer hover:shadow-md'
+                        } ${isChecked
+                          ? isBonus ? 'bg-blue-600 border-blue-600 shadow-sm shadow-blue-200 dark:shadow-blue-900'
+                          : isHoliday ? 'bg-orange-500 border-orange-500 shadow-sm shadow-orange-200 dark:shadow-orange-900'
+                          : 'bg-primary border-primary shadow-sm shadow-primary/20'
+                          : 'bg-background border-muted-foreground/40 hover:border-primary/60'
                         }`}
                         onClick={() => isCheckboxEnabled && handleWeekToggle(index)}
                       >
-                        {localEmployee.days?.[index] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                        {isChecked && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
                       </div>
-                      <span className="text-xs font-medium text-foreground min-w-[70px]">{label}</span>
+                      <span className={`text-xs min-w-[70px] ${isChecked ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>{label}</span>
                       {isBonus && (
-                        <Badge className="bg-blue-500 text-white text-[9px] px-1.5 py-0 h-4 font-semibold">BONUS</Badge>
+                        <Badge className={`text-[9px] px-1.5 py-0 h-4.5 font-bold border-0 ${isChecked ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-700 dark:bg-blue-900 dark:text-blue-300'}`}>BONUS</Badge>
                       )}
                       {isHoliday && (
-                        <Badge className="bg-orange-500 text-white text-[9px] px-1.5 py-0 h-4 font-semibold">HOLIDAY</Badge>
+                        <Badge className={`text-[9px] px-1.5 py-0 h-4.5 font-bold border-0 ${isChecked ? 'bg-orange-500 text-white' : 'bg-orange-200 text-orange-700 dark:bg-orange-900 dark:text-orange-300'}`}>HOLIDAY</Badge>
                       )}
                       <Input
                         type="text"
                         inputMode="decimal"
                         value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className="h-7 text-right min-w-0 flex-1 ml-auto max-w-[120px] border border-input font-mono text-xs"
+                        className={`h-8 text-right min-w-0 flex-1 ml-auto max-w-[120px] font-mono text-xs ${
+                          isChecked ? 'border-primary/40 bg-background font-semibold' : 'border-input'
+                        }`}
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
@@ -521,16 +545,6 @@ export default function EmployeeModal({
               <div className="flex items-center gap-1.5 mb-2">
                 <Calculator className="h-3.5 w-3.5 text-primary" />
                 <h3 className="text-[11px] font-bold text-foreground uppercase tracking-wider">Calculations</h3>
-                {isLoadingConfig && (
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />
-                )}
-                {config && (
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Badge variant="outline" className="text-[9px] font-semibold h-5 px-1.5 border-primary/30 text-primary">SS·{(config.employeeSSRate * 100).toFixed(0)}%</Badge>
-                    <Badge variant="outline" className="text-[9px] font-semibold h-5 px-1.5 border-primary/30 text-primary">Levy·{(config.employerLevyRate * 100).toFixed(0)}%</Badge>
-                    <Badge variant="outline" className="text-[9px] font-semibold h-5 px-1.5 border-primary/30 text-primary">Sev·{(config.employerSeveranceRate * 100).toFixed(0)}%</Badge>
-                  </div>
-                )}
               </div>
               
               {configError && (
@@ -551,7 +565,7 @@ export default function EmployeeModal({
                 <div className="mb-3">
                   <div className="flex items-center gap-1.5 mb-2">
                     <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Employee Contributions</p>
+                    <p className="text-[10px] font-bold text-foreground uppercase tracking-wider">Employee Contributions</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md border border-border/40 px-2.5 py-1.5">
@@ -564,8 +578,8 @@ export default function EmployeeModal({
                         {(() => {
                           const bonusAmount = localEmployee.weeklyWages[5] || 0;
                           if (bonusAmount > 0) {
-                            if (config.bonusExemptFromLevy) return ' | exempt';
-                            else if (config.bonusLevyRate > 0) return ' | +bonus';
+                            if (config?.bonusExemptFromLevy) return ' | exempt';
+                            else if (config?.bonusLevyRate && config.bonusLevyRate > 0) return ' | +bonus';
                           }
                           return '';
                         })()})
@@ -579,7 +593,7 @@ export default function EmployeeModal({
                 <div className="mb-3">
                   <div className="flex items-center gap-1.5 mb-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Employer Contributions</p>
+                    <p className="text-[10px] font-bold text-foreground uppercase tracking-wider">Employer Contributions</p>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     <div className="rounded-md border border-border/40 px-2 py-1.5">
@@ -615,31 +629,37 @@ export default function EmployeeModal({
                   )}
                 </div>
 
-                {/* Penalties & Fines */}
+                {/* Penalties & Fines - dynamic from server calculation */}
                 <div className="mb-3">
                   <div className="flex items-center gap-1.5 mb-2">
                     <div className="h-2 w-2 rounded-full bg-destructive" />
                     <p className="text-[10px] font-bold text-destructive uppercase tracking-wider">Penalties & Fines</p>
                     {penaltyData && penaltyData.daysLate > 0 && (
-                      <Badge variant="destructive" className="text-[9px] h-5 px-1.5 ml-auto font-semibold gap-1">
+                      <Badge variant="destructive" className="text-[9px] h-5 px-2 ml-auto font-bold gap-1">
                         <AlertCircle className="h-2.5 w-2.5" />
                         {penaltyData.daysLate} days late
                       </Badge>
                     )}
                   </div>
                   {hasPenalties ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Levy Penalty</p>
-                        <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.levyPenalty)}</p>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Levy Penalty</p>
+                          <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.levyPenalty)}</p>
+                        </div>
+                        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sev. Penalty</p>
+                          <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.severancePenalty)}</p>
+                        </div>
+                        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">SS Fine</p>
+                          <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.ssFines)}</p>
+                        </div>
                       </div>
-                      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Severance Penalty</p>
-                        <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.severancePenalty)}</p>
-                      </div>
-                      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5">
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">SS Fine</p>
-                        <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.ssFines)}</p>
+                      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-destructive uppercase tracking-wider">Total Late Charges</p>
+                        <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData!.totalLateCharges)}</p>
                       </div>
                     </div>
                   ) : (
