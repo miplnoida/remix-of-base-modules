@@ -410,17 +410,17 @@ export default function EmployeeModal({
     </AlertDialog>
 
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-hidden p-0 flex flex-col w-[95vw] max-w-[900px] sm:rounded-xl">
+      <DialogContent className="max-h-[94vh] overflow-hidden p-0 flex flex-col w-[96vw] max-w-[1080px] sm:rounded-xl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-2.5 border-b border-border/50 flex-shrink-0">
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-5 py-3 border-b border-border/50 flex-shrink-0">
           <DialogHeader className="space-y-0">
-            <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center">
-                <User className="h-3.5 w-3.5 text-primary" />
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-md bg-primary/15 flex items-center justify-center">
+                <User className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-sm font-semibold tracking-tight">{modalTitle}</DialogTitle>
-                <DialogDescription className="text-[10px] text-muted-foreground mt-0">
+                <DialogTitle className="text-base font-semibold tracking-tight">{modalTitle}</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0">
                   {isViewMode ? 'Viewing employee contribution details' : 'Enter employee details and wage information'}
                 </DialogDescription>
               </div>
@@ -429,11 +429,11 @@ export default function EmployeeModal({
         </div>
 
         {/* Scrollable Content */}
-        <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+        <div className="px-5 py-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
           {/* Employee Info Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
-            <div className="space-y-0.5">
-              <Label htmlFor="ssn" className="text-[10px] font-medium text-muted-foreground">SSN <span className="text-destructive">*</span></Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+            <div className="space-y-1">
+              <Label htmlFor="ssn" className="text-xs font-medium text-muted-foreground">SSN <span className="text-destructive">*</span></Label>
               <div className="relative">
                 <Input
                   id="ssn"
@@ -446,25 +446,25 @@ export default function EmployeeModal({
                   placeholder="6-digit SSN"
                   maxLength={6}
                   disabled={isViewMode || !!employee}
-                  className={`h-7 text-xs ${ssnError ? 'border-destructive focus-visible:ring-destructive' : ssnValidated ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
+                  className={`h-9 text-sm ${ssnError ? 'border-destructive focus-visible:ring-destructive' : ssnValidated ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
                 />
-                {isValidating && <Loader2 className="absolute right-2 top-1.5 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-                {ssnValidated && !isValidating && <Check className="absolute right-2 top-1.5 h-3.5 w-3.5 text-green-500" />}
+                {isValidating && <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                {ssnValidated && !isValidating && <Check className="absolute right-2 top-2 h-4 w-4 text-green-500" />}
               </div>
-              {ssnError && <p className="text-[10px] text-destructive leading-tight">{ssnError}</p>}
+              {ssnError && <p className="text-xs text-destructive leading-tight">{ssnError}</p>}
             </div>
-            <div className="space-y-0.5">
-              <Label htmlFor="employeeName" className="text-[10px] font-medium text-muted-foreground">Employee Name</Label>
-              <Input id="employeeName" value={localEmployee.name} readOnly disabled className="h-7 text-xs bg-muted/50 font-medium" placeholder="Auto-populated" />
+            <div className="space-y-1">
+              <Label htmlFor="employeeName" className="text-xs font-medium text-muted-foreground">Employee Name</Label>
+              <Input id="employeeName" value={localEmployee.name} readOnly disabled className="h-9 text-sm bg-muted/50 font-medium" placeholder="Auto-populated" />
             </div>
-            <div className="space-y-0.5">
-              <Label htmlFor="termStartDate" className="text-[10px] font-medium text-muted-foreground">Term Start</Label>
-              <Input id="termStartDate" type="date" value={periodTermStartDate} readOnly disabled className="h-7 text-xs bg-muted/50" />
+            <div className="space-y-1">
+              <Label htmlFor="termStartDate" className="text-xs font-medium text-muted-foreground">Term Start</Label>
+              <Input id="termStartDate" type="date" value={periodTermStartDate} readOnly disabled className="h-9 text-sm bg-muted/50" />
             </div>
-            <div className="space-y-0.5">
-              <Label htmlFor="payPeriod" className="text-[10px] font-medium text-muted-foreground">Pay Period</Label>
+            <div className="space-y-1">
+              <Label htmlFor="payPeriod" className="text-xs font-medium text-muted-foreground">Pay Period</Label>
               <Select value={localEmployee.payPeriod || 'Monthly'} onValueChange={(value) => handleChange('payPeriod', value)} disabled={isViewMode}>
-                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Weekly">Weekly</SelectItem>
                   <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
@@ -476,20 +476,20 @@ export default function EmployeeModal({
           </div>
 
           {/* Wages + Calculations */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left: Wages Entry */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-1 mb-1">
-                <DollarSign className="h-3 w-3 text-primary" />
-                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Wages & Salary</h3>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Wages & Salary</h3>
               </div>
-              <div className="rounded-md border border-border/60 bg-muted/10 p-1.5 flex-1 flex flex-col justify-between">
+              <div className="rounded-md border border-border/60 bg-muted/10 p-2 flex-1 flex flex-col justify-between">
                 {weekLabels.map((label, index) => {
                   const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
                   const isFieldEnabled = isWeekFieldEnabled(index);
                   const isSpecialRow = index >= 5;
                   return (
-                    <div key={index} className={`flex items-center gap-1.5 rounded px-1.5 py-[3px] ${
+                    <div key={index} className={`flex items-center gap-2 rounded px-2 py-1 ${
                       isSpecialRow ? 'bg-accent/30' : index % 2 === 0 ? 'bg-muted/30' : ''
                     }`}>
                       <div
@@ -500,13 +500,13 @@ export default function EmployeeModal({
                       >
                         {localEmployee.days?.[index] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                       </div>
-                      <span className={`text-[10px] font-medium w-20 ${isSpecialRow ? 'text-accent-foreground' : 'text-muted-foreground'}`}>{label}</span>
+                      <span className={`text-xs font-medium w-24 ${isSpecialRow ? 'text-accent-foreground' : 'text-muted-foreground'}`}>{label}</span>
                       <Input
                         type="text"
                         inputMode="decimal"
                         value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
                         onChange={(e) => handleWageChange(index, e.target.value)}
-                        className="h-6 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-[11px]"
+                        className="h-7 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
                         placeholder="0.00"
                         disabled={!isFieldEnabled || isViewMode}
                       />
@@ -518,52 +518,53 @@ export default function EmployeeModal({
 
             {/* Right: Calculation Summary */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-1 mb-1">
-                <CalendarDays className="h-3 w-3 text-primary" />
-                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Calculations</h3>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Calculations</h3>
                 {isLoadingConfig && (
-                  <div className="flex items-center gap-1 text-[9px] text-muted-foreground ml-auto">
-                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   </div>
                 )}
                 {config && (
                   <div className="flex items-center gap-1 ml-auto">
-                    <Badge variant="outline" className="text-[9px] font-normal h-4 px-1">SS:{(config.employeeSSRate * 100).toFixed(0)}%</Badge>
-                    <Badge variant="outline" className="text-[9px] font-normal h-4 px-1">Levy:{(config.employerLevyRate * 100).toFixed(0)}%</Badge>
-                    <Badge variant="outline" className="text-[9px] font-normal h-4 px-1">Sev:{(config.employerSeveranceRate * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">SS:{(config.employeeSSRate * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Levy:{(config.employerLevyRate * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Sev:{(config.employerSeveranceRate * 100).toFixed(0)}%</Badge>
                   </div>
                 )}
               </div>
               
               {configError && (
-                <Alert variant="destructive" className="mb-1 py-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <AlertDescription className="text-[10px]">{configError}</AlertDescription>
+                <Alert variant="destructive" className="mb-1.5 py-1.5">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertDescription className="text-xs">{configError}</AlertDescription>
                 </Alert>
               )}
               
-              <div className="rounded-md border border-border/60 p-2 flex-1 flex flex-col justify-between">
+              <div className="rounded-md border border-border/60 p-3 flex-1 flex flex-col justify-between">
                 {/* Wages summary row */}
-                <div className="grid grid-cols-1 gap-2 pb-1.5 border-b border-border/40">
+                <div className="grid grid-cols-1 gap-2 pb-2 border-b border-border/40">
                   <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total Wages (incl. Bonus)</p>
-                    <p className="text-base font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Wages (incl. Bonus)</p>
+                    <p className="text-lg font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.totalWages)}</p>
                   </div>
                 </div>
 
                 {/* Employee Contributions */}
-                <div className="py-1.5 border-b border-border/40">
-                  <div className="flex items-center gap-1 mb-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Employee Contributions</p>
+                <div className="py-2 border-b border-border/40">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employee Contributions</p>
+                    <span className="ml-auto text-xs font-bold text-foreground">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[9px] text-muted-foreground">Social Security ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</p>
+                      <p className="text-[10px] text-muted-foreground">Social Security ({config ? `${(config.employeeSSRate * 100).toFixed(0)}%` : '5%'})</p>
                       <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeSS)}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground">
                         Levy ({payrollCalc.usedMonthlyLevyLogic ? 'monthly' : 'weekly'}
                         {(() => {
                           const bonusAmount = localEmployee.weeklyWages[5] || 0;
@@ -580,39 +581,40 @@ export default function EmployeeModal({
                 </div>
 
                 {/* Employer Contributions */}
-                <div className="pt-1.5 border-b border-border/40 pb-1.5">
-                  <div className="flex items-center gap-1 mb-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Contributions</p>
+                <div className="py-2 border-b border-border/40">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Contributions</p>
+                    <span className="ml-auto text-xs font-bold text-foreground">{formatCurrency(payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance)}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     <div>
-                      <p className="text-[9px] text-muted-foreground">SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</p>
+                      <p className="text-[10px] text-muted-foreground">SS ({config ? `${(config.employerSSRate * 100).toFixed(0)}%` : '5%'})</p>
                       <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSS)}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</p>
+                      <p className="text-[10px] text-muted-foreground">EIB ({config ? `${(config.employerEIBRate * 100).toFixed(0)}%` : '1%'})</p>
                       <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerEIB)}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-muted-foreground">Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</p>
+                      <p className="text-[10px] text-muted-foreground">Levy ({config ? `${(config.employerLevyRate * 100).toFixed(0)}%` : '3%'})</p>
                       <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerLevy)}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-muted-foreground">Sev. ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</p>
+                      <p className="text-[10px] text-muted-foreground">Sev. ({config ? `${(config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'})</p>
                       <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employerSeverance)}</p>
                     </div>
                   </div>
                   {(payrollCalc.isAgeExemptSS || payrollCalc.isAgeExemptLevy) && (
-                    <div className="mt-1 pt-1 border-t border-border/40 flex gap-2">
+                    <div className="mt-1.5 pt-1.5 border-t border-border/40 flex gap-3">
                       {payrollCalc.isAgeExemptSS && (
-                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5">
-                          <AlertCircle className="h-2.5 w-2.5 flex-shrink-0" /> SS exempt
+                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" /> SS exempt
                         </p>
                       )}
                       {payrollCalc.isAgeExemptLevy && (
-                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5">
-                          <AlertCircle className="h-2.5 w-2.5 flex-shrink-0" /> Levy exempt
+                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" /> Levy exempt
                         </p>
                       )}
                     </div>
@@ -620,35 +622,38 @@ export default function EmployeeModal({
                 </div>
 
                 {/* Penalties & Fines */}
-                <div className="pt-1.5">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="pt-2">
+                  <div className="flex items-center gap-1.5 mb-1.5">
                     {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) ? (
-                      <div className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                      <div className="h-2 w-2 rounded-full bg-destructive" />
                     ) : (
-                      <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
                     )}
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Penalties & Fines</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Penalties & Fines</p>
+                    {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) && (
+                      <span className="ml-auto text-xs font-bold text-destructive">{formatCurrency((penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0))}</span>
+                    )}
                     {penaltyData && penaltyData.daysLate > 0 && (
-                      <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-auto">{penaltyData.daysLate}d late</Badge>
+                      <Badge variant="destructive" className="text-[9px] h-4 px-1.5 ml-1">{penaltyData.daysLate}d late</Badge>
                     )}
                   </div>
                   {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) ? (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Levy Penalty</p>
+                        <p className="text-[10px] text-muted-foreground">Levy Penalty</p>
                         <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.levyPenalty)}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Sev. Penalty</p>
+                        <p className="text-[10px] text-muted-foreground">Sev. Penalty</p>
                         <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.severancePenalty)}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">SS Fine</p>
+                        <p className="text-[10px] text-muted-foreground">SS Fine</p>
                         <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.ssFines)}</p>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground">No penalties or fines applicable</p>
+                    <p className="text-xs text-muted-foreground">No penalties or fines applicable</p>
                   )}
                 </div>
               </div>
@@ -657,50 +662,58 @@ export default function EmployeeModal({
         </div>
 
         {/* Net Pay Footer */}
-        <div className="border-t border-border/50 bg-primary/5 px-4 py-2 flex-shrink-0">
+        <div className="border-t border-border/50 bg-primary/5 px-5 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <DollarSign className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Net Pay</span>
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net Pay</span>
             </div>
-            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-              <span>Employee: <strong className="text-foreground">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</strong></span>
-              <span>+</span>
-              <span>Employer: <strong className="text-foreground">{formatCurrency(payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance)}</strong></span>
-              <span>+</span>
-              <span>Penalties: <strong className="text-foreground">{formatCurrency((penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0))}</strong></span>
-              <span>=</span>
-              <span className="text-sm font-bold text-primary">
-                {formatCurrency(
-                  payrollCalc.employeeSS + payrollCalc.employeeLevy +
-                  payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance +
-                  (penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0)
-                )}
-              </span>
+            <div className="text-lg font-bold text-primary">
+              {formatCurrency(
+                payrollCalc.employeeSS + payrollCalc.employeeLevy +
+                payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance +
+                (penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0)
+              )}
             </div>
+          </div>
+          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground justify-end">
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
+              Employee: <strong className="text-foreground">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</strong>
+            </span>
+            <span className="text-muted-foreground/60">+</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
+              Employer: <strong className="text-foreground">{formatCurrency(payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance)}</strong>
+            </span>
+            <span className="text-muted-foreground/60">+</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-destructive inline-block" />
+              Penalties: <strong className="text-foreground">{formatCurrency((penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0))}</strong>
+            </span>
           </div>
         </div>
 
         {/* Fixed Footer with Verified + Actions */}
-        <div className="border-t border-border/50 bg-muted/20 px-4 py-2.5 flex-shrink-0">
+        <div className="border-t border-border/50 bg-muted/20 px-5 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             {/* Verified Toggle - left side */}
             {!isViewMode ? (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => handleChange('isVerified', !localEmployee.isVerified)}
-                  className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${
+                  className={`h-9 w-9 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localEmployee.isVerified 
                       ? 'bg-green-600 border-green-600 shadow-sm shadow-green-600/20' 
                       : 'bg-background border-input hover:border-green-400'
                   }`}
                 >
-                  {localEmployee.isVerified && <ShieldCheck className="h-3.5 w-3.5 text-white" />}
+                  {localEmployee.isVerified && <ShieldCheck className="h-4 w-4 text-white" />}
                 </button>
                 <div>
-                  <Label className="text-xs font-medium">Verified</Label>
-                  <p className="text-[10px] text-muted-foreground">Mark as verified</p>
+                  <Label className="text-sm font-medium">Verified</Label>
+                  <p className="text-xs text-muted-foreground">Mark as verified</p>
                 </div>
               </div>
             ) : (
@@ -708,13 +721,13 @@ export default function EmployeeModal({
             )}
             {/* Action buttons - right side */}
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={onClose} className="gap-1.5 h-8 text-xs">
-                <X className="h-3.5 w-3.5" />
+              <Button variant="outline" onClick={onClose} className="gap-1.5 h-9 text-sm">
+                <X className="h-4 w-4" />
                 Cancel
               </Button>
               {!isViewMode && (
-                <Button onClick={handleSave} disabled={!ssnValidated} className="gap-1.5 h-8 text-xs min-w-[120px]">
-                  <Save className="h-3.5 w-3.5" />
+                <Button onClick={handleSave} disabled={!ssnValidated} className="gap-1.5 h-9 text-sm min-w-[130px]">
+                  <Save className="h-4 w-4" />
                   Save Employee
                 </Button>
               )}
