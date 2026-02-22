@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useSystemSettings, SystemSetting } from '@/hooks/useSystemSettings';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 interface SystemSettingsContextType {
   settings: SystemSetting[];
@@ -12,6 +13,7 @@ const SystemSettingsContext = createContext<SystemSettingsContextType | undefine
 
 export const SystemSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { data: settings = [], isLoading, refetch } = useSystemSettings();
+  const { profile, user } = useSupabaseAuth();
   
   // Create a map for quick lookups
   const settingsMap = React.useMemo(() => {
@@ -21,8 +23,12 @@ export const SystemSettingsProvider: React.FC<{ children: ReactNode }> = ({ chil
   }, [settings]);
   
   const getSetting = React.useCallback((key: string, fallback: string = ''): string => {
+    // Provide logged_in_username as a virtual system value
+    if (key === 'logged_in_username') {
+      return profile?.full_name || user?.email || fallback;
+    }
     return settingsMap.get(key) || fallback;
-  }, [settingsMap]);
+  }, [settingsMap, profile, user]);
   
   return (
     <SystemSettingsContext.Provider value={{ 
