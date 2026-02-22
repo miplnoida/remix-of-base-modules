@@ -580,7 +580,7 @@ export default function EmployeeModal({
                 </div>
 
                 {/* Employer Contributions */}
-                <div className="pt-1.5">
+                <div className="pt-1.5 border-b border-border/40 pb-1.5">
                   <div className="flex items-center gap-1 mb-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Contributions</p>
@@ -618,59 +618,67 @@ export default function EmployeeModal({
                     </div>
                   )}
                 </div>
+
+                {/* Penalties & Fines */}
+                <div className="pt-1.5">
+                  <div className="flex items-center gap-1 mb-1">
+                    {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) ? (
+                      <div className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                    ) : (
+                      <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                    )}
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Penalties & Fines</p>
+                    {penaltyData && penaltyData.daysLate > 0 && (
+                      <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-auto">{penaltyData.daysLate}d late</Badge>
+                    )}
+                  </div>
+                  {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Levy Penalty</p>
+                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.levyPenalty)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Sev. Penalty</p>
+                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.severancePenalty)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">SS Fine</p>
+                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.ssFines)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground">No penalties or fines applicable</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Penalties & Fines Section */}
-          {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0 || penaltyData.daysLate > 0) && (
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1 mb-1">
-                <AlertCircle className="h-3 w-3 text-destructive" />
-                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Penalties & Fines</h3>
-                {penaltyData.daysLate > 0 && (
-                  <Badge variant="destructive" className="text-[9px] h-4 px-1 ml-auto">{penaltyData.daysLate} days late</Badge>
-                )}
-              </div>
-              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Levy Penalty</p>
-                    <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.levyPenalty)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Severance Penalty</p>
-                    <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.severancePenalty)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">SS Fine</p>
-                    <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.ssFines)}</p>
-                  </div>
-                </div>
-                {penaltyData.totalLateCharges > 0 && (
-                  <div className="mt-1.5 pt-1.5 border-t border-destructive/20">
-                    <div className="flex justify-between items-center">
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total Late Charges</p>
-                      <p className="text-sm font-bold text-destructive">{formatCurrency(penaltyData.totalLateCharges)}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+        {/* Net Pay Footer */}
+        <div className="border-t border-border/50 bg-primary/5 px-4 py-2 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <DollarSign className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Net Pay</span>
             </div>
-          )}
-
-          {/* Empty state for no penalties */}
-          {penaltyData && penaltyData.levyPenalty === 0 && penaltyData.severancePenalty === 0 && penaltyData.ssFines === 0 && (
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1 mb-1">
-                <ShieldCheck className="h-3 w-3 text-green-600" />
-                <h3 className="text-[10px] font-semibold text-foreground uppercase tracking-wide">Penalties & Fines</h3>
-              </div>
-              <div className="rounded-md border border-border/60 bg-muted/10 p-2 text-center">
-                <p className="text-[10px] text-muted-foreground">No penalties or fines applicable</p>
-              </div>
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <span>Employee: <strong className="text-foreground">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</strong></span>
+              <span>+</span>
+              <span>Employer: <strong className="text-foreground">{formatCurrency(payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance)}</strong></span>
+              <span>+</span>
+              <span>Penalties: <strong className="text-foreground">{formatCurrency((penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0))}</strong></span>
+              <span>=</span>
+              <span className="text-sm font-bold text-primary">
+                {formatCurrency(
+                  payrollCalc.employeeSS + payrollCalc.employeeLevy +
+                  payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance +
+                  (penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0)
+                )}
+              </span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Fixed Footer with Verified + Actions */}
