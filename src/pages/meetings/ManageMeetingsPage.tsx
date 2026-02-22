@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useProfileNameByUserCode } from '@/hooks/useProfileByUserCode';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
-import { useMeetings, useTodaysMeetings } from '@/hooks/useMeetings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useMeetings } from '@/hooks/useMeetings';
+import { useApplicationNames } from '@/hooks/useApplicationNames';
 import { MeetingDetailView } from '@/components/meetings/MeetingDetailView';
 import type { Meeting, MeetingStatus, MeetingType, MeetingFilters } from '@/types/meetings';
 import { 
@@ -45,16 +47,23 @@ const meetingTypeLabels: Record<MeetingType, string> = {
   'General': 'General'
 };
 
+/** Statuses that mean the meeting group is "done" */
+const CLOSED_STATUSES: MeetingStatus[] = ['Closed', 'Cancelled', 'Rejected'];
+
+/** Statuses that mean this individual meeting row is de-emphasised (rescheduled / superseded) */
+const DEEMPHASIZED_STATUSES: MeetingStatus[] = ['Rescheduled', 'Cancelled'];
+
 function ContactPersonName({ userCode }: { userCode: string }) {
   const { data: name } = useProfileNameByUserCode(userCode);
   return <>{name || userCode}</>;
 }
 
-function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
+function MeetingRow({ meeting, onView, onResume, showAppRef = false, deemphasize = false }: {
   meeting: Meeting;
   onView: (id: string) => void;
   onResume: (id: string) => void;
   showAppRef?: boolean;
+  deemphasize?: boolean;
 }) {
   const formatTime = (time: string) => {
     try {
@@ -69,45 +78,47 @@ function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
 
   return (
     <div
-      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+      className={`flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer ${deemphasize ? 'opacity-60' : ''}`}
       onClick={() => onView(meeting.id)}
     >
       <div className="flex items-start gap-4">
-        <div className="text-center min-w-[60px]">
-          <p className="text-2xl font-bold">
+        <div className={`text-center min-w-[60px] ${deemphasize ? 'scale-90' : ''}`}>
+          <p className={`font-bold ${deemphasize ? 'text-lg' : 'text-2xl'}`}>
             {format(parseDateSafe(meeting.meeting_date), 'd')}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className={`text-muted-foreground ${deemphasize ? 'text-[10px]' : 'text-xs'}`}>
             {format(parseDateSafe(meeting.meeting_date), 'MMM')}
           </p>
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium">{meeting.meeting_reference}</span>
-            <Badge className={statusColors[meeting.status]} variant="secondary">
+            <span className={`font-medium ${deemphasize ? 'text-xs' : 'text-sm'}`}>{meeting.meeting_reference}</span>
+            <Badge className={`${statusColors[meeting.status]} ${deemphasize ? 'text-[10px] px-1.5 py-0' : ''}`} variant="secondary">
               {meeting.status}
             </Badge>
-            <Badge variant="outline" className="text-xs">
-              {meetingTypeLabels[meeting.meeting_type]}
-            </Badge>
+            {!deemphasize && (
+              <Badge variant="outline" className="text-xs">
+                {meetingTypeLabels[meeting.meeting_type]}
+              </Badge>
+            )}
           </div>
           {showAppRef && (
-            <p className="text-sm text-muted-foreground">
+            <p className={`text-muted-foreground ${deemphasize ? 'text-[10px]' : 'text-sm'}`}>
               Application: {meeting.application_reference}
             </p>
           )}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className={`flex items-center gap-4 text-muted-foreground ${deemphasize ? 'text-[10px]' : 'text-xs'}`}>
             <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+              <Clock className={deemphasize ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
               {formatTime(meeting.meeting_time)}
             </span>
-            {meeting.contact_person && (
+            {meeting.contact_person && !deemphasize && (
               <span className="flex items-center gap-1">
                 <User className="h-3 w-3" />
                 <ContactPersonName userCode={meeting.contact_person} />
               </span>
             )}
-            {meeting.workflow_definitions?.name && (
+            {meeting.workflow_definitions?.name && !deemphasize && (
               <span className="flex items-center gap-1">
                 <Building2 className="h-3 w-3" />
                 {meeting.workflow_definitions.name}
@@ -138,6 +149,24 @@ function MeetingRow({ meeting, onView, onResume, showAppRef = false }: {
   );
 }
 
+/** Determine the "active" meeting date for a group — uses the latest Scheduled/InProgress meeting date */
+function getActiveDate(meetings: Meeting[]): string {
+  // First try to find an active meeting (Scheduled or InProgress)
+  const active = meetings
+    .filter(m => m.status === 'Scheduled' || m.status === 'InProgress')
+    .sort((a, b) => b.meeting_date.localeCompare(a.meeting_date));
+  if (active.length) return active[0].meeting_date;
+  // Fallback to the latest meeting date in the group
+  return meetings.reduce((max, m) => m.meeting_date > max ? m.meeting_date : max, '');
+}
+
+/** Check if a group is fully closed/done */
+function isGroupClosed(meetings: Meeting[]): boolean {
+  // A group is closed if the latest (by reschedule_count) meeting has a closed status
+  const latest = [...meetings].sort((a, b) => (b.reschedule_count || 0) - (a.reschedule_count || 0))[0];
+  return latest ? CLOSED_STATUSES.includes(latest.status) : false;
+}
+
 export default function ManageMeetingsPage() {
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
@@ -148,6 +177,7 @@ export default function ManageMeetingsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
 
   const isAllDates = !filters.dateFrom && !filters.dateTo;
 
@@ -156,6 +186,14 @@ export default function ManageMeetingsPage() {
     applicationReference: searchTerm || undefined,
     meetingReference: searchTerm || undefined
   });
+
+  // Collect unique application references for name lookup
+  const appRefs = useMemo(() => {
+    if (!meetings) return [];
+    return [...new Set(meetings.map(m => m.application_reference))];
+  }, [meetings]);
+
+  const { data: appNames } = useApplicationNames(appRefs);
 
   // Sort meetings by date and time
   const sortedMeetings = useMemo(() => {
@@ -167,22 +205,39 @@ export default function ManageMeetingsPage() {
     });
   }, [meetings]);
 
-  // Group meetings by application reference when in "All Dates" mode
-  const groupedMeetings = useMemo(() => {
-    if (!sortedMeetings.length || !isAllDates) return null;
+  // Group meetings by application reference
+  const { activeGroups, closedGroups } = useMemo(() => {
+    if (!sortedMeetings.length) return { activeGroups: [], closedGroups: [] };
+    
     const groups: Record<string, Meeting[]> = {};
     for (const m of sortedMeetings) {
       const key = m.application_reference;
       if (!groups[key]) groups[key] = [];
       groups[key].push(m);
     }
-    // Sort groups by most recent meeting date desc
-    return Object.entries(groups).sort((a, b) => {
-      const latestA = a[1].reduce((max, m) => m.meeting_date > max ? m.meeting_date : max, '');
-      const latestB = b[1].reduce((max, m) => m.meeting_date > max ? m.meeting_date : max, '');
-      return latestB.localeCompare(latestA);
-    });
-  }, [sortedMeetings, isAllDates]);
+
+    const allGroups = Object.entries(groups);
+    const active: [string, Meeting[]][] = [];
+    const closed: [string, Meeting[]][] = [];
+
+    for (const group of allGroups) {
+      if (isGroupClosed(group[1])) {
+        closed.push(group);
+      } else {
+        active.push(group);
+      }
+    }
+
+    // Sort both by active date descending
+    const sortFn = (a: [string, Meeting[]], b: [string, Meeting[]]) => {
+      return getActiveDate(b[1]).localeCompare(getActiveDate(a[1]));
+    };
+
+    active.sort(sortFn);
+    closed.sort(sortFn);
+
+    return { activeGroups: active, closedGroups: closed };
+  }, [sortedMeetings]);
 
   const handleFilterChange = (key: keyof MeetingFilters, value: string | undefined) => {
     setFilters(prev => ({
@@ -234,6 +289,75 @@ export default function ManageMeetingsPage() {
     setDetailDialogOpen(true);
   };
 
+  const renderGroupedList = (groups: [string, Meeting[]][], isClosed: boolean) => {
+    if (!groups.length) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No {isClosed ? 'closed' : 'active'} meetings found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {groups.map(([appRef, groupMeetings]) => {
+          const activeDate = getActiveDate(groupMeetings);
+          const applicantName = appNames?.[appRef];
+          const groupIsClosed = isClosed;
+
+          return (
+            <div
+              key={appRef}
+              className={`border rounded-lg overflow-hidden ${groupIsClosed ? 'opacity-70 border-muted' : ''}`}
+            >
+              {/* Group Header */}
+              <div className={`px-4 py-3 flex items-center justify-between border-b ${groupIsClosed ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                <div className="flex items-center gap-3">
+                  <Layers className={`h-4 w-4 ${groupIsClosed ? 'text-muted-foreground/60' : 'text-muted-foreground'}`} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-semibold ${groupIsClosed ? 'text-sm text-muted-foreground' : 'text-sm'}`}>
+                        {appRef}
+                      </span>
+                      {applicantName && (
+                        <>
+                          <span className="text-muted-foreground">—</span>
+                          <span className={`font-medium ${groupIsClosed ? 'text-sm text-muted-foreground' : 'text-sm text-foreground'}`}>
+                            {applicantName}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  <span>{formatDisplayDate(activeDate)}</span>
+                </div>
+              </div>
+
+              {/* Meeting Rows */}
+              <div className={`divide-y ${groupIsClosed ? 'bg-muted/10' : ''}`}>
+                {groupMeetings.map((meeting) => {
+                  const isDeemphasized = DEEMPHASIZED_STATUSES.includes(meeting.status);
+                  return (
+                    <MeetingRow
+                      key={meeting.id}
+                      meeting={meeting}
+                      onView={openMeetingDetail}
+                      onResume={(id) => navigate(`/meetings/start/${id}`)}
+                      deemphasize={isDeemphasized}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -385,33 +509,32 @@ export default function ManageMeetingsPage() {
               <p>No meetings found</p>
               <p className="text-sm">Try adjusting your filters</p>
             </div>
-          ) : isAllDates && groupedMeetings ? (
-            /* Grouped by application reference */
-            <div className="space-y-6">
-              {groupedMeetings.map(([appRef, groupMeetings]) => (
-                <div key={appRef} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted/50 px-4 py-2.5 flex items-center gap-2 border-b">
-                    <Layers className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-sm">{appRef}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {groupMeetings.length} meeting{groupMeetings.length > 1 ? 's' : ''}
-                    </Badge>
-                  </div>
-                  <div className="divide-y">
-                    {groupMeetings.map((meeting) => (
-                      <MeetingRow
-                        key={meeting.id}
-                        meeting={meeting}
-                        onView={openMeetingDetail}
-                        onResume={(id) => navigate(`/meetings/start/${id}`)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+          ) : isAllDates ? (
+            /* Tabbed grouped view */
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="active">
+                  Active / Scheduled
+                  {activeGroups.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">{activeGroups.length}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="closed">
+                  Closed / Done
+                  {closedGroups.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">{closedGroups.length}</Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="active">
+                {renderGroupedList(activeGroups, false)}
+              </TabsContent>
+              <TabsContent value="closed">
+                {renderGroupedList(closedGroups, true)}
+              </TabsContent>
+            </Tabs>
           ) : (
-            /* Flat list */
+            /* Flat list for date-filtered views */
             <div className="space-y-3">
               {sortedMeetings.map((meeting) => (
                 <MeetingRow
@@ -420,6 +543,7 @@ export default function ManageMeetingsPage() {
                   onView={openMeetingDetail}
                   onResume={(id) => navigate(`/meetings/start/${id}`)}
                   showAppRef
+                  deemphasize={DEEMPHASIZED_STATUSES.includes(meeting.status)}
                 />
               ))}
             </div>
