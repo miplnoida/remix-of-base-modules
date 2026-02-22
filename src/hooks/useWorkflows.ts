@@ -387,21 +387,29 @@ export function useSaveWorkflowSteps() {
         .map((s) => s.id)
         .filter((id) => !incomingStepIds.has(id));
 
-      // Delete only steps removed by admin (and only if not referenced)
+      // Delete only steps removed by admin; skip any referenced by existing instances
+      const skippedStepNames: string[] = [];
       if (stepIdsToDelete.length > 0) {
-        const { error: deleteStepsError } = await supabase
-          .from('workflow_steps')
-          .delete()
-          .in('id', stepIdsToDelete);
+        for (const stepId of stepIdsToDelete) {
+          const { error: deleteStepError } = await supabase
+            .from('workflow_steps')
+            .delete()
+            .eq('id', stepId);
 
-        if (deleteStepsError) {
-          // FK violation: step is referenced by existing workflow instances/tasks
-          if ((deleteStepsError as any).code === '23503') {
-            throw new Error(
-              'Cannot delete one or more steps because they are referenced by existing workflow instances. You can still edit step details, but removing steps that have been used is not allowed.'
-            );
+          if (deleteStepError) {
+            if ((deleteStepError as any).code === '23503') {
+              // FK violation — step is in use, skip it gracefully
+              // Fetch step name for user-friendly warning
+              const { data: stepInfo } = await supabase
+                .from('workflow_steps')
+                .select('step_name')
+                .eq('id', stepId)
+                .single();
+              skippedStepNames.push(stepInfo?.step_name || stepId);
+              continue;
+            }
+            throw deleteStepError;
           }
-          throw deleteStepsError;
         }
       }
 
@@ -567,11 +575,19 @@ export function useSaveWorkflowSteps() {
         }
       }
 
-      return true;
+      return { skippedStepNames };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['workflow-with-steps', variables.workflowId] });
-      toast({ title: 'Success', description: 'Workflow steps saved successfully' });
+      if (result.skippedStepNames.length > 0) {
+        toast({
+          title: 'Saved with warnings',
+          description: `Steps saved successfully. The following steps could not be removed because they are referenced by existing workflow instances: ${result.skippedStepNames.join(', ')}. You can still edit their details.`,
+          variant: 'default',
+        });
+      } else {
+        toast({ title: 'Success', description: 'Workflow steps saved successfully' });
+      }
     },
     onError: (error: Error, variables) => {
       // Log to system error logs with full context
