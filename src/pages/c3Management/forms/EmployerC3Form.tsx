@@ -697,55 +697,69 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
           </Card>
 
           {/* Calculation Summary */}
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-lg font-bold">Calculation Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Row 1: Bifurcated totals */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Total Wages + Employee Levy + SS</Label>
-                  <div className="text-xl">
+          <Card className="border-primary/20 overflow-hidden">
+            <div className="bg-primary/5 px-6 py-4 border-b border-primary/10">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-primary" />
+                Calculation Summary
+                {isCalculating && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </CardTitle>
+            </div>
+            <CardContent className="pt-5">
+              {/* Row 1: Main contribution totals as cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                <div className="rounded-lg border bg-card p-4 shadow-sm">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Wages + Employee Levy + SS</Label>
+                  <div className="text-2xl font-bold mt-1 tabular-nums">
                     {formatMoney(overall.totalWagesPlusEmployeeLevyPlusSS)}
-                    <span className="text-sm text-muted-foreground ml-1">
-                      ({formatMoney(overall.periodGross)}+{formatMoney(overall.employeeLevy)}+{formatMoney(overall.employeeSS)})
-                    </span>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatMoney(overall.periodGross)} + {formatMoney(overall.employeeLevy)} + {formatMoney(overall.employeeSS)}
+                  </p>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">
+                <div className="rounded-lg border bg-card p-4 shadow-sm">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Employer's {calculationResult?.config ? `${(calculationResult.config.employerLevyRate * 100).toFixed(0)}%` : '3%'} Levy + SS
                   </Label>
-                  <div className="text-xl">
+                  <div className="text-2xl font-bold mt-1 tabular-nums">
                     {formatMoney(overall.employersThreePercentLevyPlusSS)}
-                    <span className="text-sm text-muted-foreground ml-1">
-                      ({formatMoney(overall.employerLevy)}+{formatMoney(overall.employerSS)})
-                    </span>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatMoney(overall.employerLevy)} + {formatMoney(overall.employerSS)}
+                  </p>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">
-                    Employer's {calculationResult?.config ? `${(calculationResult.config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'} Severance Pay
+                <div className="rounded-lg border bg-card p-4 shadow-sm">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Employer's {calculationResult?.config ? `${(calculationResult.config.employerSeveranceRate * 100).toFixed(0)}%` : '1%'} Severance
                   </Label>
-                  <div className="text-xl">{formatMoney(overall.employersOnePercentSeverancePay)}</div>
+                  <div className="text-2xl font-bold mt-1 tabular-nums">{formatMoney(overall.employersOnePercentSeverancePay)}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Levy Penalty</Label>
-                  <div className="text-xl text-destructive">{formatMoney(overall.levyPenalty)}</div>
+              {/* Row 2: Penalties with conditional styling */}
+              {(overall.levyPenalty > 0 || overall.severancePenalty > 0 || overall.fines > 0) ? (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                  <Label className="text-xs font-medium text-destructive uppercase tracking-wider mb-3 block">Penalties & Fines</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-sm text-muted-foreground">Levy Penalty</span>
+                      <div className="text-xl font-semibold text-destructive tabular-nums">{formatMoney(overall.levyPenalty)}</div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Severance Penalty</span>
+                      <div className="text-xl font-semibold text-destructive tabular-nums">{formatMoney(overall.severancePenalty)}</div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Fine on Social Security</span>
+                      <div className="text-xl font-semibold text-destructive tabular-nums">{formatMoney(overall.fines)}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Severance Penalty</Label>
-                  <div className="text-xl text-destructive">{formatMoney(overall.severancePenalty)}</div>
+              ) : (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center">
+                  <span className="text-sm text-green-700 font-medium">✓ No penalties or fines applicable</span>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Fine on Social Security</Label>
-                  <div className="text-xl text-destructive">{formatMoney(overall.fines)}</div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </>
@@ -767,79 +781,83 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       )}
 
       {/* Totals and Details Section */}
-      <Card className="py-6">
-        <CardContent className="mb-5">
+      <Card>
+        <CardContent className="pt-6 pb-6">
           <div className="grid grid-cols-12 gap-6">
             {/* Totals Section */}
-            <div className="col-span-4">
-              <h3 className="text-lg font-bold mb-4">Totals</h3>
-              <div className="bg-green-50 rounded-lg p-4 border border-green-200 h-full">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">
-                      Social Security Contribution due for the month
-                    </Label>
-                    <div className="text-base font-semibold text-muted-foreground">
-                      {formatMoney(overall.employeeSS + overall.employerSS + overall.fines)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      (Employee SS + Employer SS + SS Fine)
-                    </p>
+            <div className="col-span-12 lg:col-span-4">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <div className="h-5 w-1 bg-primary rounded-full" />
+                Totals
+              </h3>
+              <div className="space-y-4">
+                <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+                  <Label className="text-sm font-medium">
+                    Social Security Contribution due for the month
+                  </Label>
+                  <div className="text-xl font-bold mt-1 tabular-nums">
+                    {formatMoney(overall.employeeSS + overall.employerSS + overall.fines)}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Employee SS + Employer SS + SS Fine
+                  </p>
+                </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">
-                      Total due to Accountant General
-                    </Label>
-                    <div className="text-base font-semibold text-muted-foreground">
-                      {formatMoney(
-                        overall.employeeLevy + 
-                        overall.employerLevy + 
-                        overall.employerSeverance + 
-                        overall.levyPenalty + 
-                        overall.severancePenalty
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      (Employee Levy + Employer Levy + Severance + Levy Penalty + Severance Penalty)
-                    </p>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                  <Label className="text-sm font-medium">
+                    Total due to Accountant General
+                  </Label>
+                  <div className="text-xl font-bold mt-1 tabular-nums">
+                    {formatMoney(
+                      overall.employeeLevy + 
+                      overall.employerLevy + 
+                      overall.employerSeverance + 
+                      overall.levyPenalty + 
+                      overall.severancePenalty
+                    )}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Levy + Severance + Penalties
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Details Section */}
-            <div className="col-span-8">
-              <h3 className="text-lg font-bold mb-4">Details</h3>
-              <div className="bg-muted rounded-lg p-4 border-2 border-muted-foreground/20 h-full">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Date Entered</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.dateEntered || '-'}</div>
+            <div className="col-span-12 lg:col-span-8">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <div className="h-5 w-1 bg-primary rounded-full" />
+                Details
+              </h3>
+              <div className="rounded-lg bg-muted/50 border p-4 h-[calc(100%-2.5rem)]">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Entered</Label>
+                    <div className="text-sm font-medium">{initialData?.dateEntered || '—'}</div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Date Modified</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.cnc3ReportedModifiedDate || '-'}</div>
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Modified</Label>
+                    <div className="text-sm font-medium">{initialData?.cnc3ReportedModifiedDate || '—'}</div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Date Verified</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.dateVerified || '-'}</div>
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Verified</Label>
+                    <div className="text-sm font-medium">{initialData?.dateVerified || '—'}</div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Received By</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.cnc3ReportedReceivedBy || '-'}</div>
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Received By</Label>
+                    <div className="text-sm font-medium">{initialData?.cnc3ReportedReceivedBy || '—'}</div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Entered By</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.enteredBy || '-'}</div>
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entered By</Label>
+                    <div className="text-sm font-medium">{initialData?.enteredBy || '—'}</div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Verified By</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.verifiedBy || '-'}</div>
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Verified By</Label>
+                    <div className="text-sm font-medium">{initialData?.verifiedBy || '—'}</div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Modified By</Label>
-                    <div className="text-sm text-muted-foreground">{initialData?.cnc3ReportedModifiedBy || '-'}</div>
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Modified By</Label>
+                    <div className="text-sm font-medium">{initialData?.cnc3ReportedModifiedBy || '—'}</div>
                   </div>
                 </div>
               </div>
