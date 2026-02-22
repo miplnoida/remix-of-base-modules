@@ -413,6 +413,18 @@ export function useSaveWorkflowSteps() {
         }
       }
 
+      // Clear step_number on all existing steps to avoid unique constraint violations during reorder
+      const existingStepIdsToKeep = steps.map(s => s.id).filter(Boolean) as string[];
+      if (existingStepIdsToKeep.length > 0) {
+        for (let i = 0; i < existingStepIdsToKeep.length; i++) {
+          const { error: clearError } = await supabase
+            .from('workflow_steps')
+            .update({ step_number: -(i + 1000) } as any)
+            .eq('id', existingStepIdsToKeep[i]);
+          if (clearError) throw clearError;
+        }
+      }
+
       // Upsert / insert steps, then sync actions + notifications per step
       for (const step of steps) {
         let stepId = step.id;
@@ -427,7 +439,6 @@ export function useSaveWorkflowSteps() {
           action_type: step.action_type,
           sla_hours: step.sla_hours,
           is_final_step: step.is_final_step,
-          // New approver fields
           approver_type: (step as any).approver_type || 'role',
           approver_role_ids: (step as any).approver_role_ids || null,
           approver_designation_ids: (step as any).approver_designation_ids || null,
