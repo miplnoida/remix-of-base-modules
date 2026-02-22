@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculation
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-
 import { Badge } from '@/components/ui/badge';
 
 export interface EmployeeData {
@@ -30,7 +29,6 @@ export interface EmployeeData {
   termStartDate?: string;
   payPeriod?: string;
   dateOfBirth?: string;
-  // Calculation results
   employeeSS?: number;
   employeeLevy?: number;
   employerSS?: number;
@@ -55,6 +53,7 @@ interface EmployeeModalProps {
   isViewMode?: boolean;
   periodYear: number;
   periodMonth: number;
+  receivedDate?: string;
   penaltyData?: PenaltyFinesData;
 }
 
@@ -68,6 +67,7 @@ export default function EmployeeModal({
   isViewMode = false,
   periodYear,
   periodMonth,
+  receivedDate,
   penaltyData
 }: EmployeeModalProps) {
   const { validateEmployee, isValidating } = useEmployerValidation();
@@ -96,6 +96,17 @@ export default function EmployeeModal({
   const [showPayPeriodConfirm, setShowPayPeriodConfirm] = useState(false);
   const [defaultPayPeriodFetched, setDefaultPayPeriodFetched] = useState(false);
 
+  // Server-side recalculated penalty data for Edit mode
+  const [livePenalty, setLivePenalty] = useState<PenaltyFinesData | null>(null);
+  const [isPenaltyCalculating, setIsPenaltyCalculating] = useState(false);
+  const penaltyDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // The effective penalty data: use live recalculated in Edit mode, otherwise prop
+  const effectivePenalty = useMemo(() => {
+    if (!isViewMode && livePenalty) return livePenalty;
+    return penaltyData || { levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, totalLateCharges: 0 };
+  }, [isViewMode, livePenalty, penaltyData]);
+
   // Auto-calculate Term Start Date as the first date of the selected Period month
   const periodTermStartDate = useMemo(() => {
     const monthStr = String(periodMonth + 1).padStart(2, '0');
@@ -108,7 +119,6 @@ export default function EmployeeModal({
   const mondayCount = getMondayCount(safePeriodYear, safePeriodMonth);
   const enabledWeekCheckboxes = [true, true, true, true, mondayCount >= 5];
 
-  // Calculate enabled textboxes based on pay period
   const enabledTextboxes = getEnabledWeekTextboxes(
     localEmployee.payPeriod || 'Monthly',
     safePeriodYear,
@@ -125,6 +135,67 @@ export default function EmployeeModal({
       termStartDate: localEmployee.termStartDate || ''
     });
   }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth, calculate]);
+
+  // Debounced server-side penalty recalculation when wages change in Edit mode
+  useEffect(() => {
+    if (isViewMode || !isOpen) return;
+    // Only recalculate if we have wages and a received date
+    const hasWages = localEmployee.weeklyWages.some(w => w > 0);
+    if (!hasWages || !receivedDate) {
+      setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, totalLateCharges: 0 });
+      return;
+    }
+
+    if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
+
+    penaltyDebounceRef.current = setTimeout(async () => {
+      setIsPenaltyCalculating(true);
+      try {
+        const employeeData = [{
+          ssn: localEmployee.ssn || '000000',
+          name: localEmployee.name || 'Employee',
+          week1: localEmployee.weeklyWages[0] || 0,
+          week2: localEmployee.weeklyWages[1] || 0,
+          week3: localEmployee.weeklyWages[2] || 0,
+          week4: localEmployee.weeklyWages[3] || 0,
+          week5: localEmployee.weeklyWages[4] || 0,
+          bonus: localEmployee.weeklyWages[5] || 0,
+          holiday: localEmployee.weeklyWages[6] || 0,
+          payPeriod: localEmployee.payPeriod || 'Monthly',
+          termStartDate: localEmployee.termStartDate || periodTermStartDate,
+          dateOfBirth: localEmployee.dateOfBirth || null
+        }];
+
+        const { data, error } = await supabase.rpc('calculate_c3_contributions', {
+          p_period_year: periodYear,
+          p_period_month: periodMonth,
+          p_received_date: receivedDate,
+          p_employee_data: employeeData
+        });
+
+        if (!error && data) {
+          const result = typeof data === 'string' ? JSON.parse(data) : data;
+          if (result.success && result.totals) {
+            setLivePenalty({
+              levyPenalty: result.totals.levyPenalty || 0,
+              severancePenalty: result.totals.severancePenalty || 0,
+              ssFines: result.totals.ssFine || 0,
+              daysLate: result.totals.daysLate || 0,
+              totalLateCharges: result.totals.totalLateCharges || 0
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Penalty recalculation error:', err);
+      } finally {
+        setIsPenaltyCalculating(false);
+      }
+    }, 600);
+
+    return () => {
+      if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
+    };
+  }, [isViewMode, isOpen, localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate]);
 
   // Reset form when employee changes
   useEffect(() => {
@@ -144,6 +215,7 @@ export default function EmployeeModal({
       setSsnValidated(true);
       setSsnError('');
       setWageInputValues(safeWages.map(w => w === 0 ? '' : String(w)));
+      setLivePenalty(null);
     } else {
       setLocalEmployee({
         ssn: '',
@@ -165,6 +237,7 @@ export default function EmployeeModal({
       setSsnError('');
       setDefaultPayPeriodFetched(false);
       setWageInputValues(['', '', '', '', '', '', '']);
+      setLivePenalty(null);
     }
   }, [employee, isOpen, periodTermStartDate]);
 
@@ -207,7 +280,6 @@ export default function EmployeeModal({
     if (isViewMode) return;
     const newDays = [...(localEmployee.days || [false, false, false, false, false, false, false])];
     const newWages = [...(localEmployee.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
-    // Auto-check weeks 0-4 based on enabled textboxes
     for (let i = 0; i < 5; i++) {
       if (enabledTextboxes[i] && enabledWeekCheckboxes[i]) {
         newDays[i] = true;
@@ -221,7 +293,6 @@ export default function EmployeeModal({
       days: newDays,
       weeklyWages: newWages
     }));
-    // Only react to payPeriod changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localEmployee.payPeriod]);
 
@@ -247,7 +318,6 @@ export default function EmployeeModal({
   const handleChange = (field: keyof EmployeeData, value: any) => {
     if (isViewMode) return;
 
-    // Reset validation when SSN changes
     if (field === 'ssn') {
       setLocalEmployee(prev => ({ ...prev, [field]: value }));
       setSsnValidated(false);
@@ -255,9 +325,7 @@ export default function EmployeeModal({
       return;
     }
 
-    // Handle Pay Period change with confirmation
     if (field === 'payPeriod' && value !== localEmployee.payPeriod) {
-      // Check if there are any wages entered
       const hasWages = localEmployee.weeklyWages.some(w => w > 0);
       if (hasWages) {
         setPendingPayPeriod(value);
@@ -271,7 +339,6 @@ export default function EmployeeModal({
 
   const handlePayPeriodConfirm = () => {
     if (pendingPayPeriod) {
-      // Reset the form wages and update pay period
       setLocalEmployee(prev => ({
         ...prev,
         payPeriod: pendingPayPeriod,
@@ -310,7 +377,6 @@ export default function EmployeeModal({
     }));
   };
 
-  // Track raw string values for wage inputs to allow decimal entry
   const [wageInputValues, setWageInputValues] = React.useState<string[]>(
     localEmployee.weeklyWages.map(w => w === 0 ? '' : String(w))
   );
@@ -318,27 +384,21 @@ export default function EmployeeModal({
   const handleWageChange = (index: number, value: string) => {
     if (isViewMode) return;
     
-    // Allow decimal input: numeric(10,2) - max 8 integer digits + 2 decimal places
     const cleanValue = value.replace(/[^0-9.]/g, '');
-    
-    // Prevent multiple decimal points
     const parts = cleanValue.split('.');
     if (parts.length > 2) return;
     
     const integerPart = parts[0] || '';
     const decimalPart = parts[1] || '';
-    
-    // Validate: max 8 integer digits, max 2 decimal places
     if (integerPart.length > 8) return;
     if (decimalPart.length > 2) return;
     
-    // Store raw string for display (preserves trailing dot/zeros while typing)
     const newInputValues = [...wageInputValues];
     newInputValues[index] = cleanValue;
     setWageInputValues(newInputValues);
     
     const numValue = parseFloat(cleanValue) || 0;
-    if (numValue < 0) return; // Validate non-negative
+    if (numValue < 0) return;
     
     const newWages = [...localEmployee.weeklyWages];
     newWages[index] = numValue;
@@ -354,7 +414,6 @@ export default function EmployeeModal({
       return;
     }
     
-    // Include calculation results in saved data
     const savedEmployee: EmployeeData = {
       ...localEmployee,
       totalWages: payrollCalc.totalWages,
@@ -373,26 +432,24 @@ export default function EmployeeModal({
   };
 
   const isWeekFieldEnabled = (index: number) => {
-    // Week 1-5 (indices 0-4): based on pay period and week checkbox
     if (index < 5) {
       return localEmployee.days?.[index] && enabledTextboxes?.[index];
     }
-    // Bonus Pay (index 5): enabled only if checkbox is checked
-    if (index === 5) {
-      return localEmployee.days?.[5] ?? false;
-    }
-    // Holiday Pay (index 6): enabled only if checkbox is checked
-    if (index === 6) {
-      return localEmployee.days?.[6] ?? false;
-    }
+    if (index === 5) return localEmployee.days?.[5] ?? false;
+    if (index === 6) return localEmployee.days?.[6] ?? false;
     return false;
   };
+
+  // Computed totals
+  const employeeTotal = payrollCalc.employeeSS + payrollCalc.employeeLevy;
+  const employerTotal = payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance;
+  const penaltiesTotal = (effectivePenalty.levyPenalty || 0) + (effectivePenalty.severancePenalty || 0) + (effectivePenalty.ssFines || 0);
+  const netPay = employeeTotal + employerTotal + penaltiesTotal;
 
   const modalTitle = isViewMode ? 'View Employee' : (employee ? 'Edit Employee' : 'Add New Employee');
 
   return (
     <>
-    {/* Pay Period Change Confirmation Dialog */}
     <AlertDialog open={showPayPeriodConfirm} onOpenChange={setShowPayPeriodConfirm}>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -551,12 +608,11 @@ export default function EmployeeModal({
                   </div>
                 </div>
 
-                {/* Employee Contributions */}
+                {/* Employee Contributions - no section total on right */}
                 <div className="py-2 border-b border-border/40">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <div className="h-2 w-2 rounded-full bg-blue-500" />
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employee Contributions</p>
-                    <span className="ml-auto text-xs font-bold text-foreground">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -580,12 +636,11 @@ export default function EmployeeModal({
                   </div>
                 </div>
 
-                {/* Employer Contributions */}
+                {/* Employer Contributions - no section total on right */}
                 <div className="py-2 border-b border-border/40">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <div className="h-2 w-2 rounded-full bg-emerald-500" />
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Employer Contributions</p>
-                    <span className="ml-auto text-xs font-bold text-foreground">{formatCurrency(payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance)}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     <div>
@@ -621,35 +676,35 @@ export default function EmployeeModal({
                   )}
                 </div>
 
-                {/* Penalties & Fines */}
+                {/* Penalties & Fines - no section total on right */}
                 <div className="pt-2">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) ? (
+                    {penaltiesTotal > 0 ? (
                       <div className="h-2 w-2 rounded-full bg-destructive" />
                     ) : (
                       <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
                     )}
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Penalties & Fines</p>
-                    {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) && (
-                      <span className="ml-auto text-xs font-bold text-destructive">{formatCurrency((penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0))}</span>
+                    {isPenaltyCalculating && (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />
                     )}
-                    {penaltyData && penaltyData.daysLate > 0 && (
-                      <Badge variant="destructive" className="text-[9px] h-4 px-1.5 ml-1">{penaltyData.daysLate}d late</Badge>
+                    {effectivePenalty.daysLate > 0 && (
+                      <Badge variant="destructive" className="text-[9px] h-4 px-1.5 ml-1">{effectivePenalty.daysLate}d late</Badge>
                     )}
                   </div>
-                  {penaltyData && (penaltyData.levyPenalty > 0 || penaltyData.severancePenalty > 0 || penaltyData.ssFines > 0) ? (
+                  {penaltiesTotal > 0 ? (
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <p className="text-[10px] text-muted-foreground">Levy Penalty</p>
-                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.levyPenalty)}</p>
+                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(effectivePenalty.levyPenalty)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Sev. Penalty</p>
-                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.severancePenalty)}</p>
+                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(effectivePenalty.severancePenalty)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">SS Fine</p>
-                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(penaltyData.ssFines)}</p>
+                        <p className="text-sm font-bold text-destructive leading-tight">{formatCurrency(effectivePenalty.ssFines)}</p>
                       </div>
                     </div>
                   ) : (
@@ -669,27 +724,23 @@ export default function EmployeeModal({
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net Pay</span>
             </div>
             <div className="text-lg font-bold text-primary">
-              {formatCurrency(
-                payrollCalc.employeeSS + payrollCalc.employeeLevy +
-                payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance +
-                (penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0)
-              )}
+              {formatCurrency(netPay)}
             </div>
           </div>
           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground justify-end">
             <span className="inline-flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
-              Employee: <strong className="text-foreground">{formatCurrency(payrollCalc.employeeSS + payrollCalc.employeeLevy)}</strong>
+              Employee: <strong className="text-foreground">{formatCurrency(employeeTotal)}</strong>
             </span>
             <span className="text-muted-foreground/60">+</span>
             <span className="inline-flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-              Employer: <strong className="text-foreground">{formatCurrency(payrollCalc.employerSS + payrollCalc.employerEIB + payrollCalc.employerLevy + payrollCalc.employerSeverance)}</strong>
+              Employer: <strong className="text-foreground">{formatCurrency(employerTotal)}</strong>
             </span>
             <span className="text-muted-foreground/60">+</span>
             <span className="inline-flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-destructive inline-block" />
-              Penalties: <strong className="text-foreground">{formatCurrency((penaltyData?.levyPenalty || 0) + (penaltyData?.severancePenalty || 0) + (penaltyData?.ssFines || 0))}</strong>
+              Penalties: <strong className="text-foreground">{formatCurrency(penaltiesTotal)}</strong>
             </span>
           </div>
         </div>
@@ -697,7 +748,6 @@ export default function EmployeeModal({
         {/* Fixed Footer with Verified + Actions */}
         <div className="border-t border-border/50 bg-muted/20 px-5 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            {/* Verified Toggle - left side */}
             {!isViewMode ? (
               <div className="flex items-center gap-3">
                 <button
@@ -719,7 +769,6 @@ export default function EmployeeModal({
             ) : (
               <div />
             )}
-            {/* Action buttons - right side */}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={onClose} className="gap-1.5 h-9 text-sm">
                 <X className="h-4 w-4" />

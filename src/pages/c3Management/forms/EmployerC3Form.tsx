@@ -857,6 +857,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         isViewMode={isModalViewMode}
         periodYear={periodYear}
         periodMonth={periodMonth}
+        receivedDate={formData.dateReceived}
         penaltyData={{
           levyPenalty: overall.levyPenalty,
           severancePenalty: overall.severancePenalty,
