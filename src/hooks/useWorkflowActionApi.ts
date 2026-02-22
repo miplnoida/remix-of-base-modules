@@ -339,6 +339,7 @@ export const SOURCE_KEY_SUGGESTIONS: Record<string, string[]> = {
   ],
   SYSTEM: [
     'logged_in_user',
+    'logged_in_username',
     'current_timestamp',
     'current_date',
     'current_time',
