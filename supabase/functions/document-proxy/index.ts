@@ -109,18 +109,22 @@ Deno.serve(async (req) => {
 
       if (!fetchResponse.ok) {
         // Log the failure
-        const adminClient = createClient(supabaseUrl, supabaseServiceKey)
-        await adminClient.from('api_logs').insert({
-          api_name: 'document-proxy',
-          endpoint_url: documentUrl,
-          http_method: 'GET',
-          response_status: fetchResponse.status,
-          is_success: false,
-          error_message: `Failed to fetch document: ${fetchResponse.statusText}`,
-          duration_ms: 0,
-          module: 'document-proxy',
-          user_id: userId,
-        }).catch(() => {})
+        try {
+          const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+          await adminClient.from('api_logs').insert({
+            api_name: 'document-proxy',
+            endpoint_url: documentUrl,
+            http_method: 'GET',
+            response_status: fetchResponse.status,
+            is_success: false,
+            error_message: `Failed to fetch document: ${fetchResponse.statusText}`,
+            duration_ms: 0,
+            module: 'document-proxy',
+            user_id: userId,
+          })
+        } catch (_logErr) {
+          console.error('Failed to log to api_logs:', _logErr)
+        }
 
         return new Response(
           JSON.stringify({ 
