@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { formatDisplayDate, formatDateForStorage } from '@/lib/dateFormat';
-import { CalendarIcon, Clock, Loader2, User, Building2, AlertTriangle, Mail, Phone, MapPin } from 'lucide-react';
+import { CalendarIcon, Check, Clock, Loader2, User, Building2, AlertTriangle, Mail, Phone, MapPin } from 'lucide-react';
 import { useScheduleMeeting } from '@/hooks/useMeetings';
 import { useSystemSettingsContext } from '@/contexts/SystemSettingsContext';
 import type { MeetingType, ScheduleMeetingFormData } from '@/types/meetings';
@@ -317,11 +317,18 @@ export function ScheduleMeetingDialog({
                           <Label key={u.id} htmlFor={`user-${u.id}`} className={cn(
                             'flex items-center gap-2.5 p-2 border rounded-lg cursor-pointer transition-colors text-sm',
                             selectedUserId === u.id
-                              ? 'border-primary bg-muted'
+                              ? 'border-green-500 bg-green-50 dark:bg-green-950/30 ring-1 ring-green-500/30'
                               : 'border-border hover:border-primary/50'
                           )}>
-                            <RadioGroupItem value={u.id} id={`user-${u.id}`} />
-                            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><User className="h-3.5 w-3.5 text-primary" /></div>
+                            <RadioGroupItem value={u.id} id={`user-${u.id}`} className="sr-only" />
+                            <div className={cn(
+                              "h-7 w-7 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                              selectedUserId === u.id
+                                ? "bg-green-500 text-white"
+                                : "bg-primary/10"
+                            )}>
+                              {selectedUserId === u.id ? <Check className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5 text-primary" />}
+                            </div>
                             <div className="min-w-0">
                               <p className="font-medium text-xs truncate">{u.full_name || u.email}</p>
                               {u.employee_code && <p className="text-[10px] text-muted-foreground">{u.employee_code}</p>}
