@@ -361,7 +361,24 @@ export function useProcessReviewAction() {
               .eq('id', task.step_id)
               .single();
             
-            if (currentStep && !currentStep.is_final_step) {
+            if (currentStep && currentStep.is_final_step) {
+              // Final step — complete the workflow
+              await supabase
+                .from('workflow_instances')
+                .update({
+                  status: 'Completed',
+                  completed_at: new Date().toISOString(),
+                })
+                .eq('id', task.instance_id);
+
+              // Update source application status if applicable
+              if (task.workflow_instance?.source_module === 'sample_application' && task.workflow_instance?.source_record_id) {
+                await supabase
+                  .from('sample_applications')
+                  .update({ status: resultStatus || 'Approved' })
+                  .eq('id', task.workflow_instance.source_record_id);
+              }
+            } else if (currentStep) {
               const { data: nextStep } = await supabase
                 .from('workflow_steps')
                 .select('*')
