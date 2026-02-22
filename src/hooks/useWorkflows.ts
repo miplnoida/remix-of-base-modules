@@ -413,14 +413,23 @@ export function useSaveWorkflowSteps() {
         }
       }
 
-      // Clear step_number on all existing steps to avoid unique constraint violations during reorder
+      // Clear step_number on ALL remaining steps (kept + skipped) to avoid unique constraint violations during reorder
       const existingStepIdsToKeep = steps.map(s => s.id).filter(Boolean) as string[];
-      if (existingStepIdsToKeep.length > 0) {
-        for (let i = 0; i < existingStepIdsToKeep.length; i++) {
+
+      // Also collect IDs of skipped (FK-referenced) steps that still exist in the DB
+      const { data: remainingDbSteps } = await supabase
+        .from('workflow_steps')
+        .select('id')
+        .eq('workflow_id', workflowId);
+
+      const allRemainingIds = (remainingDbSteps || []).map(s => s.id);
+
+      if (allRemainingIds.length > 0) {
+        for (let i = 0; i < allRemainingIds.length; i++) {
           const { error: clearError } = await supabase
             .from('workflow_steps')
             .update({ step_number: -(i + 1000) } as any)
-            .eq('id', existingStepIdsToKeep[i]);
+            .eq('id', allRemainingIds[i]);
           if (clearError) throw clearError;
         }
       }
