@@ -51,6 +51,52 @@ const getIcon = (iconName: string | null) => {
   return Icon || LucideIcons.Circle;
 };
 
+// Auto-suggest icon based on module name keywords
+const ICON_KEYWORD_MAP: [string[], string][] = [
+  [['user', 'person', 'people', 'profile', 'account', 'member'], 'Users'],
+  [['setting', 'config', 'preference'], 'Settings'],
+  [['dashboard', 'home', 'overview'], 'LayoutDashboard'],
+  [['report', 'analytics', 'chart', 'statistic'], 'BarChart3'],
+  [['calendar', 'schedule', 'meeting', 'appointment', 'event'], 'CalendarDays'],
+  [['mail', 'email', 'notification', 'message', 'inbox'], 'Mail'],
+  [['file', 'document', 'upload', 'attachment'], 'FileText'],
+  [['security', 'lock', 'password', 'auth', 'permission'], 'Shield'],
+  [['payment', 'billing', 'invoice', 'finance', 'money', 'wage', 'contribution'], 'CreditCard'],
+  [['employer', 'company', 'organization', 'business'], 'Building2'],
+  [['legal', 'law', 'case', 'court', 'enforcement'], 'Scale'],
+  [['search', 'find', 'lookup', 'directory'], 'Search'],
+  [['workflow', 'process', 'pipeline', 'automation'], 'GitBranch'],
+  [['admin', 'manage', 'management', 'system'], 'Settings2'],
+  [['module', 'component', 'block'], 'Boxes'],
+  [['role', 'access', 'privilege'], 'KeyRound'],
+  [['doctor', 'medical', 'health', 'hospital', 'clinic'], 'Stethoscope'],
+  [['claim', 'benefit', 'insurance', 'eligibility'], 'ClipboardCheck'],
+  [['id', 'card', 'badge', 'identity'], 'BadgeCheck'],
+  [['zone', 'area', 'region', 'location', 'map'], 'MapPin'],
+  [['audit', 'compliance', 'inspect'], 'ClipboardList'],
+  [['register', 'registration', 'signup', 'enroll'], 'UserPlus'],
+  [['approval', 'approve', 'review', 'verify'], 'CheckCircle'],
+  [['log', 'history', 'activity', 'trail'], 'ScrollText'],
+  [['department', 'division', 'unit', 'office'], 'Landmark'],
+  [['data', 'database', 'table', 'record'], 'Database'],
+  [['api', 'integration', 'connect', 'webhook'], 'Plug'],
+  [['template', 'form', 'input', 'entry'], 'FormInput'],
+  [['notice', 'alert', 'warning', 'announce'], 'Bell'],
+  [['waiver', 'exemption', 'exception'], 'ShieldOff'],
+  [['scouting', 'field', 'outdoor'], 'Compass'],
+];
+
+function suggestIconFromName(name: string): string {
+  if (!name) return '';
+  const lower = name.toLowerCase();
+  for (const [keywords, icon] of ICON_KEYWORD_MAP) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      return icon;
+    }
+  }
+  return '';
+}
+
 interface ModuleTreeItemProps {
   module: AppModule;
   allModules: AppModule[];
@@ -530,7 +576,18 @@ const ModuleManagementContent = () => {
                   <Input
                     id="display_name"
                     value={moduleForm.display_name}
-                    onChange={(e) => setModuleForm({ ...moduleForm, display_name: e.target.value })}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      const updates: Partial<typeof moduleForm> = { display_name: newName };
+                      // Auto-suggest icon only when creating a new module and icon hasn't been manually set or is still auto-suggested
+                      if (!selectedModule) {
+                        const suggested = suggestIconFromName(newName);
+                        if (suggested) {
+                          updates.icon = suggested;
+                        }
+                      }
+                      setModuleForm(prev => ({ ...prev, ...updates }));
+                    }}
                     placeholder="User Management"
                     className="h-9"
                   />
