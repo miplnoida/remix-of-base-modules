@@ -578,8 +578,8 @@ Deno.serve(async (req) => {
     let dmsResponseJson: any = null
     let dmsHttpStatus: number | null = null
 
-    const DMS_TIMEOUT_MS = 120000 // 2 minutes
-    const MAX_DMS_RETRIES = 1
+    const DMS_TIMEOUT_MS = 150000 // 2.5 minutes (exceeds DMS API's internal 100s HttpClient.Timeout)
+    const MAX_DMS_RETRIES = 2
 
     try {
       let lastFetchErr: unknown = null
@@ -598,14 +598,26 @@ Deno.serve(async (req) => {
             body: retryFormData,
             signal: AbortSignal.timeout(DMS_TIMEOUT_MS),
           })
+
+          // Check if DMS API returned its own timeout error (HTTP 400 with HttpClient.Timeout message)
+          if (dmsResponse.status === 400) {
+            const peekText = await dmsResponse.clone().text()
+            const isDmsTimeout = peekText.includes('HttpClient.Timeout') || peekText.includes('request was canceled')
+            if (isDmsTimeout && attempt < MAX_DMS_RETRIES) {
+              console.warn(`DMS API internal timeout on attempt ${attempt + 1}, retrying in 5s...`)
+              await new Promise(r => setTimeout(r, 5000))
+              continue // retry
+            }
+          }
+
           lastFetchErr = null
           break // success – exit retry loop
         } catch (fetchErr) {
           lastFetchErr = fetchErr
           const isTimeout = fetchErr instanceof Error && fetchErr.message.includes('timed out')
           if (!isTimeout || attempt >= MAX_DMS_RETRIES) break // only retry timeouts
-          // Wait 2s before retry
-          await new Promise(r => setTimeout(r, 2000))
+          console.warn(`Fetch timeout on attempt ${attempt + 1}, retrying in 3s...`)
+          await new Promise(r => setTimeout(r, 3000))
         }
       }
       if (lastFetchErr) throw lastFetchErr
