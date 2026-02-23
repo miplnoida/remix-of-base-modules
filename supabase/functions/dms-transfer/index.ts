@@ -35,6 +35,31 @@ function safeSnippet(text: string, maxLen = 1000): string {
   return text.length > maxLen ? text.substring(0, maxLen) + '...[truncated]' : text
 }
 
+/** Safely extract a readable message from any error-like object (incl. Supabase StorageError) */
+function extractErrorMessage(err: unknown): string {
+  if (!err) return 'unknown error'
+  if (typeof err === 'string') return err
+  if (typeof err === 'object') {
+    let serialized = ''
+    try { serialized = JSON.stringify(err) } catch { /* ignore */ }
+    if (serialized && serialized !== '{}') {
+      try {
+        const parsed = JSON.parse(serialized)
+        if (parsed.__isStorageError || parsed.name?.includes('Storage')) {
+          return `${parsed.name || 'StorageError'}${parsed.statusCode ? ` (status ${parsed.statusCode})` : ''}: ${parsed.message || serialized}`
+        }
+      } catch { /* ignore */ }
+    }
+    if (err instanceof Error) return err.message || String(err)
+    const obj = err as Record<string, unknown>
+    if (obj.message && typeof obj.message === 'string') return obj.message
+    if (obj.error && typeof obj.error === 'string') return obj.error
+    if (serialized && serialized !== '{}') return serialized
+    return String(err)
+  }
+  return String(err)
+}
+
 // Sanitize headers for logging - remove sensitive values
 function sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
   const safe: Record<string, string> = {}
@@ -237,7 +262,7 @@ Deno.serve(async (req) => {
         // Use file_path with Supabase Storage SDK (service role key = no expiry issues)
         // Signed URLs expire quickly so we must NOT rely on them for server-side transfers
         const storagePath = doc.file_path
-        const storageBucket = 'applicant-documents'
+        const storageBucket = 'ip-documents'
         const downloadStart = Date.now()
         let fileBlob: Blob
         let downloadStatus: number = 0
@@ -253,6 +278,7 @@ Deno.serve(async (req) => {
               .from(storageBucket)
               .download(storagePath)
 
+            const storageErrorMsg = storageError ? extractErrorMessage(storageError) : null
             downloadStatus = storageError ? 400 : 200
 
             // Log download attempt
@@ -264,17 +290,17 @@ Deno.serve(async (req) => {
               responseStatus: downloadStatus,
               durationMs: Date.now() - downloadStart,
               isSuccess: !storageError,
-              errorMessage: storageError ? storageError.message : null,
+              errorMessage: storageErrorMsg,
               module: 'DMS Transfer',
               entityType: 'ip_application_documents',
               entityId: doc.id,
               requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name, method: 'supabase_storage_download' },
-              responseBody: storageError ? { error: storageError.message } : { size: storageData?.size },
+              responseBody: storageError ? { error: storageErrorMsg, error_raw: JSON.stringify(storageError) } : { size: storageData?.size },
             })
 
             if (storageError || !storageData) {
               throw new DmsTransferError(
-                `Failed to download from storage: ${storageError?.message || 'no data'} (path: ${storagePath})`,
+                `Failed to download from storage: ${storageErrorMsg || 'no data returned'} (path: ${storagePath})`,
                 'FileDownloadError', downloadStatus, null
               )
             }
@@ -702,10 +728,9 @@ async function logAudit(supabase: any, p: LogAuditParams) {
       user_id: p.userId || null,
       user_name: p.userCode || 'SYSTEM',
       severity: p.action.includes('failed') || p.action.includes('error') ? 'error' : 'info',
-      description: p.description || null,
       before_value: p.beforeValue || null,
       after_value: p.afterValue || null,
-      payload_json: p.payload || null,
+      payload_json: { ...(p.payload || {}), ...(p.description ? { description: p.description } : {}) },
       timestamp: new Date().toISOString(),
     })
   } catch (e) {
