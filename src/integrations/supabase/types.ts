@@ -4355,7 +4355,12 @@ export type Database = {
           id: string
           is_read: boolean | null
           link: string | null
+          metadata: Json | null
+          module: string | null
+          notification_type: string | null
+          priority: string | null
           read_at: string | null
+          related_record_id: string | null
           title: string
           user_id: string
         }
@@ -4365,7 +4370,12 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           link?: string | null
+          metadata?: Json | null
+          module?: string | null
+          notification_type?: string | null
+          priority?: string | null
           read_at?: string | null
+          related_record_id?: string | null
           title: string
           user_id: string
         }
@@ -4375,7 +4385,12 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           link?: string | null
+          metadata?: Json | null
+          module?: string | null
+          notification_type?: string | null
+          priority?: string | null
           read_at?: string | null
+          related_record_id?: string | null
           title?: string
           user_id?: string
         }

@@ -417,7 +417,7 @@ function MeetingCard({
 }) {
   const navigate = useNavigate();
   const config = STATUS_CONFIG[meeting.status] || STATUS_CONFIG.Scheduled;
-  const applicantName = meeting.metadata?.applicantName || meeting.metadata?.applicant_name || null;
+  const applicantName = meeting.applicant_name || meeting.metadata?.applicantName || meeting.metadata?.applicant_name || null;
   const attendeeName = meeting.contact_person_name || meeting.metadata?.contact_person_name || null;
 
   const startMutation = useStartMeeting();

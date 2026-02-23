@@ -25,6 +25,8 @@ export interface CalendarMeeting {
   remarks: string | null;
   outcome_remarks: string | null;
   metadata: any;
+  // Enriched from workflow_instances join
+  applicant_name: string | null;
   // Additional fields for admin view
   assigned_user_id: string | null;
   scheduled_by: string | null;
@@ -56,7 +58,7 @@ export function useMeetingCalendar(currentMonth: Date) {
       try {
         let query = supabase
           .from('meetings')
-          .select('id, meeting_reference, application_reference, meeting_type, status, outcome, meeting_date, meeting_time, meeting_end_time, contact_person_name, office_address, remarks, outcome_remarks, metadata, assigned_user_id, scheduled_by, scheduled_by_name, workflow_id, workflow_instance_id, step_id')
+          .select('id, meeting_reference, application_reference, meeting_type, status, outcome, meeting_date, meeting_time, meeting_end_time, contact_person_name, office_address, remarks, outcome_remarks, metadata, assigned_user_id, scheduled_by, scheduled_by_name, workflow_id, workflow_instance_id, step_id, workflow_instance:workflow_instances!meetings_workflow_instance_id_fkey(metadata)')
           .gte('meeting_date', monthStart)
           .lte('meeting_date', monthEnd)
           .order('meeting_date', { ascending: true })
@@ -81,7 +83,18 @@ export function useMeetingCalendar(currentMonth: Date) {
           severity: 'info',
         });
 
-        return (data || []) as CalendarMeeting[];
+        // Enrich meetings with applicant name from workflow_instance metadata
+        const enriched = (data || []).map((m: any) => {
+          const wiMeta = m.workflow_instance?.metadata;
+          const applicantName = wiMeta?.applicant_name || wiMeta?.applicantName || wiMeta?.fullName || null;
+          return {
+            ...m,
+            applicant_name: applicantName,
+            workflow_instance: undefined, // remove join data from final shape
+          };
+        });
+
+        return enriched as CalendarMeeting[];
       } catch (err: any) {
         const duration = Math.round(performance.now() - startTime);
         logTechnical({

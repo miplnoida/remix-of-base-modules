@@ -96,11 +96,14 @@ export function useScheduleMeeting() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['today-meeting-count'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
       queryClient.invalidateQueries({ queryKey: ['my-workflow-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
       queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['in-app-notifications'] });
       toast.success(`Meeting scheduled successfully. Reference: ${data.meeting_reference}`);
     },
     onError: (error: Error) => {
