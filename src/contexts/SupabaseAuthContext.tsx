@@ -300,7 +300,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Initialize auth state
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         // Ignore events during intentional logout
         if (isLoggingOutRef.current && event === 'SIGNED_OUT') {
           return;
@@ -316,46 +316,59 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (event === 'TOKEN_REFRESHED' && currentSession) {
-          // Token refreshed successfully - update activity, re-schedule next refresh
           lastActivityRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
           console.info('Auth token refreshed successfully');
         }
 
         if (currentSession?.user) {
+          // Fetch profile/roles then mark loading done — prevents "Redirecting" hang
+          const userId = currentSession.user.id;
           setTimeout(async () => {
-            const profileData = await fetchProfile(currentSession.user.id);
-            const rolesData = await fetchRoles(currentSession.user.id);
+            const profileData = await fetchProfile(userId);
+            const rolesData = await fetchRoles(userId);
             setProfile(profileData);
             setRoles(rolesData);
+            setIsLoading(false);
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
+          setIsLoading(false);
+        } else {
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+    // INITIAL load — fetch profile before setting loading false
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-      if (currentSession) {
-        sessionStartRef.current = Date.now();
-        lastActivityRef.current = Date.now();
-        scheduleTokenRefresh(currentSession);
-        loadSessionPolicy();
+        if (currentSession) {
+          sessionStartRef.current = Date.now();
+          lastActivityRef.current = Date.now();
+          scheduleTokenRefresh(currentSession);
+          loadSessionPolicy();
+        }
+
+        if (currentSession?.user) {
+          const [profileData, rolesData] = await Promise.all([
+            fetchProfile(currentSession.user.id),
+            fetchRoles(currentSession.user.id),
+          ]);
+          setProfile(profileData);
+          setRoles(rolesData);
+        }
+      } finally {
+        setIsLoading(false);
       }
-      
-      if (currentSession?.user) {
-        fetchProfile(currentSession.user.id).then(setProfile);
-        fetchRoles(currentSession.user.id).then(setRoles);
-      }
-      
-      setIsLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     return () => {
       subscription.unsubscribe();
