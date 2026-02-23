@@ -325,108 +325,130 @@ Deno.serve(async (req) => {
       .eq('id', doc.id)
 
     // === STEP 1: Download the file ===
+    // Files may reside on an external Supabase project. Try multiple strategies:
+    // 1. Construct a public URL from the signed_url (most reliable for external storage)
+    // 2. Try the signed_url directly (may be expired)
+    // 3. Fall back to local storage download
     const storagePath = doc.file_path
-    const storageBucket = 'ip-documents'
     const downloadStart = Date.now()
-    let fileBlob: Blob
+    let fileBlob: Blob | null = null
     let downloadSource = ''
 
+    // Helper: build public URL from a signed URL by replacing /object/sign/ with /object/public/ and stripping token
+    function buildPublicUrl(signedUrl: string): string | null {
+      try {
+        const url = new URL(signedUrl)
+        if (url.pathname.includes('/object/sign/')) {
+          url.pathname = url.pathname.replace('/object/sign/', '/object/public/')
+          url.search = '' // remove token
+          return url.toString()
+        }
+      } catch { /* ignore */ }
+      return null
+    }
+
+    // Helper: attempt fetch from a URL, return blob or null
+    async function tryFetchUrl(url: string, method: string): Promise<Blob | null> {
+      try {
+        downloadSource = url.substring(0, 500)
+        const resp = await fetch(url, { signal: AbortSignal.timeout(30000) })
+        const dlMs = Date.now() - downloadStart
+
+        await logApiCall(supabase, {
+          correlationId, userId: authenticatedUserId, userCode,
+          apiName: 'dms_single_file_download',
+          endpointUrl: downloadSource,
+          httpMethod: 'GET',
+          responseStatus: resp.status,
+          durationMs: dlMs,
+          isSuccess: resp.ok,
+          errorMessage: resp.ok ? null : `HTTP ${resp.status} ${resp.statusText}`,
+          module: 'DMS Transfer (Single)',
+          entityType: 'ip_application_documents',
+          entityId: doc.id,
+          requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name, method },
+          responseBody: resp.ok
+            ? { content_length: resp.headers.get('content-length') }
+            : { status: resp.status, statusText: resp.statusText },
+        })
+
+        if (resp.ok) return await resp.blob()
+        // Consume body to avoid leak
+        await resp.text()
+        return null
+      } catch (e) {
+        console.error(`[DMS-Single] Fetch failed (${method}):`, e)
+        return null
+      }
+    }
+
     try {
-      if (storagePath) {
+      // Strategy 1: Build public URL from signed_url
+      if (!fileBlob && doc.signed_url) {
+        const publicUrl = buildPublicUrl(doc.signed_url)
+        if (publicUrl) {
+          fileBlob = await tryFetchUrl(publicUrl, 'public_url_from_signed')
+        }
+      }
+
+      // Strategy 2: Try the signed_url directly (may still be valid)
+      if (!fileBlob && doc.signed_url) {
+        fileBlob = await tryFetchUrl(doc.signed_url, 'signed_url_direct')
+      }
+
+      // Strategy 3: Try the url field
+      if (!fileBlob && doc.url) {
+        fileBlob = await tryFetchUrl(doc.url, 'url_direct')
+      }
+
+      // Strategy 4: Try local Supabase Storage
+      if (!fileBlob && storagePath) {
+        const storageBucket = 'ip-documents'
         downloadSource = `storage://${storageBucket}/${storagePath}`
         const { data: storageData, error: storageError } = await supabase
           .storage
           .from(storageBucket)
           .download(storagePath)
 
-        const downloadMs = Date.now() - downloadStart
+        const dlMs = Date.now() - downloadStart
         const storageErrorMsg = storageError ? extractErrorMessage(storageError) : null
 
-        // Log the download attempt
         await logApiCall(supabase, {
           correlationId, userId: authenticatedUserId, userCode,
           apiName: 'dms_single_file_download',
           endpointUrl: downloadSource,
           httpMethod: 'GET',
           responseStatus: storageError ? 400 : 200,
-          durationMs: downloadMs,
+          durationMs: dlMs,
           isSuccess: !storageError && !!storageData,
           errorMessage: storageErrorMsg,
           module: 'DMS Transfer (Single)',
           entityType: 'ip_application_documents',
           entityId: doc.id,
-          requestPayload: {
-            ssn, document_id: doc.id,
-            document_name: doc.document_name,
-            file_path: storagePath,
-            method: 'supabase_storage_download',
-          },
+          requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name, file_path: storagePath, method: 'local_storage_download' },
           responseBody: storageError
-            ? { error: storageErrorMsg, error_raw: JSON.stringify(storageError) }
+            ? { error: storageErrorMsg }
             : { size: storageData?.size },
         })
 
-        if (storageError || !storageData) {
-          throw new DmsTransferError(
-            `Failed to download from storage: ${storageErrorMsg} (path: ${storagePath})`,
-            'FileDownloadError', 400, null
-          )
+        if (!storageError && storageData) {
+          fileBlob = storageData
         }
+      }
 
-        fileBlob = storageData
-      } else {
-        // Fallback: try signed_url or url
-        const fileUrl = doc.signed_url || doc.url
-        if (!fileUrl) {
-          await logError(supabase, {
-            correlationId, userId: authenticatedUserId, userCode, ssn,
-            errorType: 'ValidationError',
-            errorMessage: 'No file_path, signed_url, or url available for download',
-            module: 'DMS Transfer (Single)',
-            entityType: 'ip_application_documents',
-            entityId: doc.id,
-            payload: { document_name: doc.document_name, file_path: doc.file_path },
-          })
-          throw new DmsTransferError(
-            'No file_path, signed_url, or url available',
-            'NoFileUrl', null, null
-          )
-        }
-
-        downloadSource = fileUrl.substring(0, 500)
-        const fileResponse = await fetch(fileUrl, { signal: AbortSignal.timeout(30000) })
-        const downloadMs = Date.now() - downloadStart
-
-        await logApiCall(supabase, {
-          correlationId, userId: authenticatedUserId, userCode,
-          apiName: 'dms_single_file_download',
-          endpointUrl: downloadSource,
-          httpMethod: 'GET',
-          responseStatus: fileResponse.status,
-          durationMs: downloadMs,
-          isSuccess: fileResponse.ok,
-          errorMessage: fileResponse.ok ? null : `HTTP ${fileResponse.status} ${fileResponse.statusText}`,
+      // No strategy worked
+      if (!fileBlob) {
+        const errMsg = `All download strategies failed for document ${doc.id}. file_path=${storagePath}, has_signed_url=${!!doc.signed_url}, has_url=${!!doc.url}`
+        await logError(supabase, {
+          correlationId, userId: authenticatedUserId, userCode, ssn,
+          errorType: 'FileDownloadError',
+          errorMessage: errMsg,
           module: 'DMS Transfer (Single)',
           entityType: 'ip_application_documents',
           entityId: doc.id,
-          requestPayload: {
-            ssn, document_id: doc.id,
-            document_name: doc.document_name,
-            method: 'signed_url_fallback',
-          },
-          responseBody: fileResponse.ok
-            ? { content_length: fileResponse.headers.get('content-length') }
-            : { status: fileResponse.status, statusText: fileResponse.statusText },
+          payload: { file_path: storagePath, signed_url: doc.signed_url?.substring(0, 200), url: doc.url?.substring(0, 200) },
         })
-
-        if (!fileResponse.ok) {
-          throw new DmsTransferError(
-            `Failed to download file: HTTP ${fileResponse.status} from ${downloadSource.substring(0, 200)}`,
-            'FileDownloadError', fileResponse.status, null
-          )
-        }
-
-        fileBlob = await fileResponse.blob()
+        throw new DmsTransferError(errMsg, 'FileDownloadError', null, null)
       }
 
       if (fileBlob.size === 0) {
