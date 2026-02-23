@@ -461,7 +461,7 @@ export default function StartMeetingPage() {
               ) : (
                 <XCircle className="h-4 w-4" />
               )}
-              Reject Application
+              Reject
             </Button>
 
             {/* Reschedule Button */}
