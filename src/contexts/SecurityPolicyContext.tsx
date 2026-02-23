@@ -93,7 +93,7 @@ function matchRoutePattern(path: string, pattern: string): boolean {
 export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, isAdmin, isLoading: authLoading, profile } = useSupabaseAuth();
+  const { user, isAuthenticated, isAdmin, isLoading: authLoading, roles, profile } = useSupabaseAuth();
   const queryClient = useQueryClient();
   const [isCheckingRoute, setIsCheckingRoute] = useState(false);
   const [lastDeniedRoute, setLastDeniedRoute] = useState<string | null>(null);
@@ -116,7 +116,7 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
   const isLocked = lockdownState?.is_locked ?? false;
 
   // 2. Fetch route security rules
-  const { data: routeRules = [] } = useQuery({
+  const { data: routeRules = [], isLoading: rulesLoading } = useQuery({
     queryKey: ['route-security-config'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -132,13 +132,17 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
     staleTime: 5 * 60_000,
   });
 
+  // Determine if security context is ready to evaluate routes
+  // Must wait for: auth loaded, route rules loaded, and roles populated (if authenticated)
+  const isSecurityReady = !authLoading && !rulesLoading && (!isAuthenticated || roles.length > 0 || !user);
+
   // 3. Route change enforcement
   const checkRouteAccess = useCallback(async (path: string) => {
     // Skip for public routes
     if (isPublicRoute(path)) return;
     
-    // Skip while auth is loading
-    if (authLoading) return;
+    // Skip while auth or rules are still loading
+    if (!isSecurityReady) return;
     
     // Skip duplicate checks
     if (lastCheckedPath.current === path) return;
@@ -250,12 +254,14 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
     } finally {
       setIsCheckingRoute(false);
     }
-  }, [authLoading, isAuthenticated, isAdmin, isLocked, routeRules, user, profile, navigate]);
+  }, [isSecurityReady, isAuthenticated, isAdmin, isLocked, routeRules, user, profile, roles, navigate]);
 
-  // Trigger check on route change
+  // Trigger check on route change — but only when security context is ready
   useEffect(() => {
-    checkRouteAccess(location.pathname);
-  }, [location.pathname, checkRouteAccess]);
+    if (isSecurityReady) {
+      checkRouteAccess(location.pathname);
+    }
+  }, [location.pathname, isSecurityReady, checkRouteAccess]);
 
   // Reset lastCheckedPath when user changes
   useEffect(() => {
