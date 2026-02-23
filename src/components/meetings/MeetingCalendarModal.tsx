@@ -544,7 +544,7 @@ function MeetingCard({
                     <button
                       onClick={() => setRescheduleOpen(true)}
                       className="p-1.5 rounded-md hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition-colors"
-                      aria-label="Reschedule meeting"
+                      aria-label="Schedule next meeting"
                     >
                       <RefreshCw className="h-4 w-4" />
                     </button>

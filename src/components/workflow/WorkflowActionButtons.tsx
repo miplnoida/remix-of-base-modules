@@ -305,7 +305,7 @@ export function WorkflowActionButtons({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedAction?.action_type === 'Approve' && 
-                'This will mark the application as verified and complete this workflow step.'}
+                'This will accept the application and complete this workflow step.'}
               {selectedAction?.action_type === 'Reject' && 
                 'This will reject the application. Please provide a reason below.'}
               {selectedAction?.action_type === 'send_back' && 

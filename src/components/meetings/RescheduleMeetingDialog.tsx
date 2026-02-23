@@ -235,7 +235,7 @@ export function RescheduleMeetingDialog({
         } catch (err) { console.error('[RescheduleMeetingDialog] Workflow API error (non-blocking):', err); }
       }
       if (onSuccess) onSuccess();
-    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to reschedule meeting'); }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to schedule next meeting'); }
   };
 
   const resetForm = () => { setNewDate(undefined); setSelectedOffice(''); setSelectedDepartment(''); setSelectedUserId(''); setSelectedTime(''); setRemarks(''); setOverlapError(''); setError(null); setReleasePreviousSlot(true); };
@@ -247,7 +247,7 @@ export function RescheduleMeetingDialog({
         <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-primary" />
-            Reschedule Meeting
+            Schedule Next Meeting
           </DialogTitle>
           <DialogDescription className="flex items-center gap-4 text-xs">
             <span>Meeting: <strong>{meetingReference}</strong></span>
@@ -518,7 +518,7 @@ export function RescheduleMeetingDialog({
             <Button type="button" size="sm" onClick={handleSubmit}
               disabled={rescheduleMutation.isPending || !newDate || !selectedOffice || !selectedDepartment || !selectedUserId || !selectedTime || !!overlapError}>
               {rescheduleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Reschedule Meeting
+              Schedule Next Meeting
             </Button>
           </div>
         </DialogFooter>
