@@ -381,7 +381,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                 )}
 
                 {selectedMeetings.map(meeting => (
-                  <MeetingCard key={meeting.id} meeting={meeting} isAdmin={isAdmin} onActionComplete={() => {}} />
+                  <MeetingCard key={meeting.id} meeting={meeting} isAdmin={isAdmin} onActionComplete={() => {}} onCloseModal={() => onOpenChange(false)} />
                 ))}
               </div>
             </div>
@@ -411,10 +411,12 @@ function MeetingCard({
   meeting,
   isAdmin,
   onActionComplete,
+  onCloseModal,
 }: {
   meeting: CalendarMeeting;
   isAdmin: boolean;
   onActionComplete: () => void;
+  onCloseModal: () => void;
 }) {
   const navigate = useNavigate();
   const config = STATUS_CONFIG[meeting.status] || STATUS_CONFIG.Scheduled;
@@ -507,7 +509,7 @@ function MeetingCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => navigate(`/meetings/start/${meeting.id}`)}
+                      onClick={() => { onCloseModal(); navigate(`/meetings/start/${meeting.id}`); }}
                       className="p-1.5 rounded-md hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors"
                       aria-label="Go to meeting"
                     >
