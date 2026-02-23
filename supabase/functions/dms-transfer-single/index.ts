@@ -552,7 +552,10 @@ Deno.serve(async (req) => {
     const dmsHeaders: Record<string, string> = {}
     if (dmsApiKey) dmsHeaders['x-api-key'] = dmsApiKey
 
-    const dmsEndpoint = `${dmsBaseUrl.replace(/\/+$/, '')}/api/Dms/files`
+    // DMS_API_BASE_URL may already include the full path (e.g. https://host/api/Dms/files)
+    const dmsEndpoint = dmsBaseUrl.replace(/\/+$/, '').endsWith('/api/Dms/files')
+      ? dmsBaseUrl.replace(/\/+$/, '')
+      : `${dmsBaseUrl.replace(/\/+$/, '')}/api/Dms/files`
 
     // Audit: DMS upload attempt
     await logAudit(supabase, {
