@@ -189,6 +189,13 @@ Deno.serve(async (req) => {
   const dmsApiKey = Deno.env.get('DMS_API_KEY')
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  // External Supabase project client for downloading applicant documents
+  const externalAnonKey = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')
+  const externalSupabaseUrl = 'https://hekgiuycrjncxalcapfz.supabase.co'
+  const externalSupabase = externalAnonKey
+    ? createClient(externalSupabaseUrl, externalAnonKey)
+    : null
+
   // Authenticate caller
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -383,6 +390,39 @@ Deno.serve(async (req) => {
     }
 
     try {
+      // Strategy 0: Use external Supabase client to download from the external project's storage
+      if (!fileBlob && externalSupabase && storagePath) {
+        const extBucket = 'applicant-documents'
+        downloadSource = `external-storage://${extBucket}/${storagePath}`
+        const { data: extData, error: extError } = await externalSupabase
+          .storage
+          .from(extBucket)
+          .download(storagePath)
+
+        const dlMs = Date.now() - downloadStart
+        const extErrorMsg = extError ? extractErrorMessage(extError) : null
+
+        await logApiCall(supabase, {
+          correlationId, userId: authenticatedUserId, userCode,
+          apiName: 'dms_single_file_download',
+          endpointUrl: downloadSource,
+          httpMethod: 'GET',
+          responseStatus: extError ? 400 : 200,
+          durationMs: dlMs,
+          isSuccess: !extError && !!extData,
+          errorMessage: extErrorMsg,
+          module: 'DMS Transfer (Single)',
+          entityType: 'ip_application_documents',
+          entityId: doc.id,
+          requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name, file_path: storagePath, method: 'external_supabase_client' },
+          responseBody: extError ? { error: extErrorMsg } : { size: extData?.size },
+        })
+
+        if (!extError && extData) {
+          fileBlob = extData
+        }
+      }
+
       // Strategy 1: Build public URL from signed_url
       if (!fileBlob && doc.signed_url) {
         const publicUrl = buildPublicUrl(doc.signed_url)
