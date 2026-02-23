@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Settings, User, LogOut, Palette } from "lucide-react";
+import { Settings, User, LogOut, Palette, CalendarDays } from "lucide-react";
 import { SocialSecurityIcon } from "@/components/icons/SocialSecurityIcon";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { InAppNotificationBell } from "@/components/notifications/InAppNotificationBell";
+import { MeetingCalendarModal } from "@/components/meetings/MeetingCalendarModal";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -23,6 +25,7 @@ export const Header = () => {
   const { user, profile, logout } = useSupabaseAuth();
   const { currentTheme, setTheme, themes } = useTheme();
   const navigate = useNavigate();
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -60,6 +63,20 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Meeting Calendar */}
+        {user && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCalendarOpen(true)}
+            className="relative text-muted-foreground hover:text-foreground"
+            title="My Meeting Calendar"
+          >
+            <CalendarDays className="h-5 w-5" />
+          </Button>
+        )}
+        <MeetingCalendarModal open={calendarOpen} onOpenChange={setCalendarOpen} />
+
         {/* Notifications */}
         <InAppNotificationBell />
 
