@@ -578,13 +578,37 @@ Deno.serve(async (req) => {
     let dmsResponseJson: any = null
     let dmsHttpStatus: number | null = null
 
+    const DMS_TIMEOUT_MS = 120000 // 2 minutes
+    const MAX_DMS_RETRIES = 1
+
     try {
-      dmsResponse = await fetch(dmsEndpoint, {
-        method: 'POST',
-        headers: dmsHeaders,
-        body: formData,
-        signal: AbortSignal.timeout(60000),
-      })
+      let lastFetchErr: unknown = null
+      for (let attempt = 0; attempt <= MAX_DMS_RETRIES; attempt++) {
+        try {
+          // Rebuild FormData for retry (body is consumed after first attempt)
+          const retryFormData = new FormData()
+          retryFormData.append('File', new File([fileBlob], fileName, { type: downloadedContentType }))
+          retryFormData.append('CategoryId', 'PPIP')
+          retryFormData.append('UserName', userCode)
+          retryFormData.append('EntryFields', entryFields)
+
+          dmsResponse = await fetch(dmsEndpoint, {
+            method: 'POST',
+            headers: dmsHeaders,
+            body: retryFormData,
+            signal: AbortSignal.timeout(DMS_TIMEOUT_MS),
+          })
+          lastFetchErr = null
+          break // success – exit retry loop
+        } catch (fetchErr) {
+          lastFetchErr = fetchErr
+          const isTimeout = fetchErr instanceof Error && fetchErr.message.includes('timed out')
+          if (!isTimeout || attempt >= MAX_DMS_RETRIES) break // only retry timeouts
+          // Wait 2s before retry
+          await new Promise(r => setTimeout(r, 2000))
+        }
+      }
+      if (lastFetchErr) throw lastFetchErr
       dmsHttpStatus = dmsResponse.status
       dmsResponseText = await dmsResponse.text()
 
