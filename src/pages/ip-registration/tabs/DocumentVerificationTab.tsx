@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { IPFormData } from '../IPRegistrationForm';
-import { Upload, File, Trash2, Download, FileText, Eye, Image as ImageIcon, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, File, Trash2, Download, FileText, Eye, Image as ImageIcon, AlertTriangle, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface DocumentVerificationTabProps {
   formData: IPFormData;
@@ -100,6 +101,8 @@ function getTransferBadge(status: string) {
 
 export default function DocumentVerificationTab({ formData, onChange, onSave, errors, isEditable, clearError }: DocumentVerificationTabProps) {
   const { user } = useAuth();
+  const { userCode } = useUserCode();
+  const queryClient = useQueryClient();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,6 +111,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
+  const [transferringDocId, setTransferringDocId] = useState<string | null>(null);
   
   // Fetch verification types from tb_verify
   const { data: verifyTypes, isLoading: verifyLoading } = useVerifyTypes();
@@ -347,6 +351,45 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     setPreviewDoc(null);
   }, [previewDoc]);
 
+  const handleTransferToDms = useCallback(async (doc: AppDoc) => {
+    if (!ssn || !userCode) {
+      toast.error('Cannot transfer', { description: 'User code or SSN not available' });
+      return;
+    }
+    setTransferringDocId(doc.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dms-transfer-single`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ documentId: doc.id, ssn, userCode }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || `HTTP ${response.status}`);
+      }
+
+      toast.success('Document transferred to DMS', { description: doc.document_name || doc.file_name || 'Document' });
+      queryClient.invalidateQueries({ queryKey: ['ip-application-documents', ssn] });
+    } catch (err: any) {
+      console.error('DMS transfer error:', err);
+      toast.error('DMS transfer failed', { description: err.message });
+    } finally {
+      setTransferringDocId(null);
+    }
+  }, [ssn, userCode, queryClient]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Document Verification</h2>
@@ -498,7 +541,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                           {getTransferBadge(doc.transfer_status)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-2 justify-end flex-wrap">
                             {hasUrl ? (
                               <>
                                 <Button
@@ -528,6 +571,22 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                               </>
                             ) : (
                               <span className="text-xs text-muted-foreground italic">No file available</span>
+                            )}
+                            {doc.transfer_status !== 'Transferred' && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleTransferToDms(doc)}
+                                disabled={transferringDocId === doc.id}
+                                className="gap-1.5"
+                              >
+                                {transferringDocId === doc.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4" />
+                                )}
+                                {transferringDocId === doc.id ? 'Transferring…' : 'Transfer to DMS'}
+                              </Button>
                             )}
                           </div>
                         </TableCell>
