@@ -182,6 +182,11 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
       const matchedRule = routeRules.find(rule => matchRoutePattern(path, rule.route_pattern));
 
       if (matchedRule) {
+        // Dashboard route: any authenticated user can access (no module permission check)
+        if (matchedRule.module_name === 'dashboard' && !matchedRule.admin_only && !matchedRule.is_settings_route) {
+          // Authenticated user accessing dashboard — always allowed
+          return;
+        }
         // Settings routes: admin only
         if (matchedRule.is_settings_route && !isAdmin) {
           setLastDeniedRoute(path);
