@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea removed - using native overflow-y-auto for reliable scroll
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
@@ -151,7 +151,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-[96vw] p-0 gap-0 overflow-hidden rounded-xl border-border shadow-xl flex flex-col" style={{ maxHeight: '92vh' }}>
+      <DialogContent className="max-w-5xl w-[96vw] p-0 gap-0 overflow-hidden rounded-xl border-border shadow-xl flex flex-col" style={{ height: '85vh', maxHeight: '85vh' }}>
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-card shrink-0">
           <div className="flex items-center justify-between">
@@ -205,9 +205,9 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
         </div>
 
         {/* Main Body */}
-        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-          {/* Calendar Grid */}
-          <div className="flex-1 p-5 min-w-0 flex flex-col shrink-0">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+          {/* Calendar Grid - fixed, never grows */}
+          <div className="md:flex-1 p-5 min-w-0 flex flex-col flex-none">
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-4">
               <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8 rounded-lg" aria-label="Previous month">
@@ -267,7 +267,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                           'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
                           !isCurrentMonth && 'bg-muted/20',
                           isSun && isCurrentMonth && 'bg-destructive/[0.03]',
-                          isSelected && 'bg-muted/60 ring-2 ring-inset ring-primary/60',
+                          isSelected && '!bg-[hsl(var(--muted))] ring-2 ring-inset ring-primary/60',
                           isTodayDate && !isSelected && 'bg-primary/5'
                         )}
                       >
@@ -339,7 +339,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
           </div>
 
           {/* Detail Side Panel */}
-          <div className="w-full md:w-[340px] border-t md:border-t-0 md:border-l border-border bg-muted/10 flex flex-col min-h-0 overflow-hidden">
+          <div className="w-full md:w-[340px] border-t md:border-t-0 md:border-l border-border bg-muted/10 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
             {/* Panel Header */}
             <div className="px-5 py-4 border-b border-border bg-card shrink-0">
               <h4 className="text-sm font-semibold text-foreground">
@@ -355,7 +355,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
             </div>
 
             {/* Panel Content - scrollable with fixed max height */}
-            <ScrollArea className="flex-1" style={{ maxHeight: 'calc(92vh - 220px)' }}>
+            <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
               <div className="p-4 space-y-3">
                 {!selectedDate && (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -383,7 +383,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                   <MeetingCard key={meeting.id} meeting={meeting} isAdmin={isAdmin} onActionComplete={() => {}} />
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
       </DialogContent>
