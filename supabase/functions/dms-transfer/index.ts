@@ -308,7 +308,39 @@ Deno.serve(async (req) => {
         }
 
         // === STEP 2: Build DMS request ===
-        const fileName = doc.file_name || doc.document_name || 'document'
+        // Derive content type from download response or stored value
+        const downloadedContentType = fileBlob.type || doc.mime_type || 'application/octet-stream'
+
+        // Derive filename: prefer stored name, fallback to SSN + doc ID + extension from content-type/URL
+        let fileName = doc.file_name || doc.document_name || ''
+        if (!fileName) {
+          // Try to extract extension from content type
+          const extMap: Record<string, string> = {
+            'application/pdf': '.pdf',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp',
+            'application/msword': '.doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/vnd.ms-excel': '.xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+            'text/plain': '.txt',
+            'application/zip': '.zip',
+          }
+          let ext = extMap[downloadedContentType] || ''
+          if (!ext && fileUrl) {
+            // Try to extract extension from URL path
+            try {
+              const urlPath = new URL(fileUrl).pathname
+              const urlExt = urlPath.match(/\.[a-zA-Z0-9]{1,10}$/)?.[0]
+              if (urlExt) ext = urlExt
+            } catch { /* ignore URL parse errors */ }
+          }
+          if (!ext) ext = '.bin'
+          fileName = `${ssn}_${doc.id.substring(0, 8)}${ext}`
+        }
+
         const referenceId = doc.source_document_id || doc.id
         const entryFields = JSON.stringify({
           Document_Type: doc.document_type || 'General',
@@ -319,7 +351,7 @@ Deno.serve(async (req) => {
         })
 
         const formData = new FormData()
-        formData.append('File', new File([fileBlob], fileName, { type: doc.mime_type || 'application/octet-stream' }))
+        formData.append('File', new File([fileBlob], fileName, { type: downloadedContentType }))
         formData.append('CategoryId', 'PPIP')
         formData.append('UserName', userCode)
         formData.append('EntryFields', entryFields)
