@@ -164,25 +164,23 @@ Deno.serve(async (req) => {
             .eq('id', data.meeting_id)
         }
 
-        // Send in-app notification to assigned person if configured
-        if (body.assignedUserId && body.workflowId) {
-          const { data: actionConfig } = await supabase
-            .from('workflow_action_configurations')
-            .select('notify_assigned_person')
-            .eq('workflow_id', body.workflowId)
-            .eq('step_id', body.stepId)
-            .single()
-
-          if (actionConfig?.notify_assigned_person) {
+        // Always send in-app notification to assigned person when a meeting is scheduled
+        if (body.assignedUserId) {
+          try {
             await supabase.from('in_app_notifications').insert({
               user_id: body.assignedUserId,
               title: 'New Meeting Scheduled',
-              message: `A meeting has been scheduled for application ${body.applicationReference} on ${body.meetingDate} at ${body.meetingTime}.`,
-              type: 'meeting',
-              priority: 'normal',
+              body: `Meeting ${data.meeting_reference} scheduled for ${body.meetingDate} at ${body.meetingTime}. Application: ${body.applicationReference}`,
               link: `/meetings/manage`,
-              metadata: { meeting_id: data.meeting_id, meeting_reference: data.meeting_reference },
+              notification_type: 'meeting',
+              priority: 'normal',
+              module: 'meetings',
+              related_record_id: data.meeting_id,
+              metadata: { meeting_id: data.meeting_id, meeting_reference: data.meeting_reference, application_reference: body.applicationReference },
             })
+            console.log('Meeting notification sent to user:', body.assignedUserId)
+          } catch (notifErr) {
+            console.error('Failed to send meeting notification:', notifErr)
           }
         }
 

@@ -7,6 +7,7 @@ import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { InAppNotificationBell } from "@/components/notifications/InAppNotificationBell";
 import { MeetingCalendarModal } from "@/components/meetings/MeetingCalendarModal";
+import { useTodayMeetingCount } from "@/hooks/useTodayMeetingCount";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ export const Header = () => {
   const { currentTheme, setTheme, themes } = useTheme();
   const navigate = useNavigate();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const todayMeetingCount = useTodayMeetingCount();
 
   const handleLogout = async () => {
     await logout();
@@ -73,6 +75,11 @@ export const Header = () => {
             title="My Meeting Calendar"
           >
             <CalendarDays className="h-5 w-5" />
+            {todayMeetingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1 leading-none">
+                {todayMeetingCount > 9 ? '9+' : todayMeetingCount}
+              </span>
+            )}
           </Button>
         )}
         <MeetingCalendarModal open={calendarOpen} onOpenChange={setCalendarOpen} />
