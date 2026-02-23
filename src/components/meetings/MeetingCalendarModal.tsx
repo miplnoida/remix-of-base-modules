@@ -40,6 +40,7 @@ import {
   XCircle,
   Loader2,
   User,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMeetingCalendar, CalendarMeeting } from '@/hooks/useMeetingCalendar';
@@ -499,6 +500,25 @@ function MeetingCard({
             <span className="text-border">•</span>
             <span className="truncate">{meeting.application_reference}</span>
           </div>
+
+          {meeting.status === 'InProgress' && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navigate(`/meetings/start/${meeting.id}`)}
+                      className="p-1.5 rounded-md hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors"
+                      aria-label="Go to meeting"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top"><p className="text-xs">Go to Meeting</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
 
           {isActionable && (
             <div className="flex items-center gap-1.5 shrink-0">
