@@ -138,6 +138,7 @@ const MASTER_TABLE_MAP: Record<string, { table: string; label: string; orderBy?:
   "deduction-tax-details": { table: "tb_deductions_tax_table_details", label: "Deduction Tax Details" },
   "marital-statuses": { table: "tb_marital", label: "Marital Statuses", orderBy: "code", searchCol: "description" },
   "villages": { table: "tb_villages", label: "Villages", orderBy: "description", searchCol: "description" },
+  "verification-documents": { table: "tb_verify", label: "Verification Documents", orderBy: "code", searchCol: "description" },
 };
 
 // ── Generic Master Data Handler ──
