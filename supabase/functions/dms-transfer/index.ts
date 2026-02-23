@@ -233,63 +233,107 @@ Deno.serve(async (req) => {
           payload: { ssn, transfer_request_id: transferRequestId, attempt: (doc.transfer_attempts || 0) + 1 },
         })
 
-        // === STEP 1: Download the file ===
-        const fileUrl = doc.signed_url || doc.url || doc.file_path
-        if (!fileUrl) {
-          throw new DmsTransferError(
-            'No file URL available (signed_url, url, and file_path are all null)',
-            'NoFileUrl', null, null
-          )
-        }
-
+        // === STEP 1: Download the file from Supabase Storage using service role ===
+        // Use file_path with Supabase Storage SDK (service role key = no expiry issues)
+        // Signed URLs expire quickly so we must NOT rely on them for server-side transfers
+        const storagePath = doc.file_path
+        const storageBucket = 'applicant-documents'
         const downloadStart = Date.now()
         let fileBlob: Blob
-        let downloadStatus: number
+        let downloadStatus: number = 0
         let downloadContentLength: string | null = null
+        let downloadSource: string = ''
 
         try {
-          const fileResponse = await fetch(fileUrl, {
-            signal: AbortSignal.timeout(30000),
-          })
-          downloadStatus = fileResponse.status
-          downloadContentLength = fileResponse.headers.get('content-length')
+          if (storagePath) {
+            // Primary method: Supabase Storage download via service role (never expires)
+            downloadSource = `storage://${storageBucket}/${storagePath}`
+            const { data: storageData, error: storageError } = await supabase
+              .storage
+              .from(storageBucket)
+              .download(storagePath)
 
-          // Log download attempt to api_logs
-          await logApiCall(supabase, {
-            correlationId, userId, userCode,
-            apiName: 'dms_file_download',
-            endpointUrl: fileUrl.substring(0, 500),
-            httpMethod: 'GET',
-            responseStatus: downloadStatus,
-            durationMs: Date.now() - downloadStart,
-            isSuccess: fileResponse.ok,
-            errorMessage: fileResponse.ok ? null : `HTTP ${downloadStatus}`,
-            module: 'DMS Transfer',
-            entityType: 'ip_application_documents',
-            entityId: doc.id,
-            requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name },
-            responseBody: fileResponse.ok ? { content_length: downloadContentLength } : { status: downloadStatus, statusText: fileResponse.statusText },
-          })
+            downloadStatus = storageError ? 400 : 200
 
-          if (!fileResponse.ok) {
-            throw new DmsTransferError(
-              `Failed to download file: HTTP ${downloadStatus} from ${fileUrl.substring(0, 200)}`,
-              'FileDownloadError', downloadStatus, null
-            )
+            // Log download attempt
+            await logApiCall(supabase, {
+              correlationId, userId, userCode,
+              apiName: 'dms_file_download',
+              endpointUrl: downloadSource,
+              httpMethod: 'GET',
+              responseStatus: downloadStatus,
+              durationMs: Date.now() - downloadStart,
+              isSuccess: !storageError,
+              errorMessage: storageError ? storageError.message : null,
+              module: 'DMS Transfer',
+              entityType: 'ip_application_documents',
+              entityId: doc.id,
+              requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name, method: 'supabase_storage_download' },
+              responseBody: storageError ? { error: storageError.message } : { size: storageData?.size },
+            })
+
+            if (storageError || !storageData) {
+              throw new DmsTransferError(
+                `Failed to download from storage: ${storageError?.message || 'no data'} (path: ${storagePath})`,
+                'FileDownloadError', downloadStatus, null
+              )
+            }
+
+            fileBlob = storageData
+            downloadContentLength = String(fileBlob.size)
+          } else {
+            // Fallback: try signed_url or url (may be expired but worth trying)
+            const fileUrl = doc.signed_url || doc.url
+            if (!fileUrl) {
+              throw new DmsTransferError(
+                'No file_path, signed_url, or url available for download',
+                'NoFileUrl', null, null
+              )
+            }
+
+            downloadSource = fileUrl.substring(0, 500)
+            const fileResponse = await fetch(fileUrl, {
+              signal: AbortSignal.timeout(30000),
+            })
+            downloadStatus = fileResponse.status
+            downloadContentLength = fileResponse.headers.get('content-length')
+
+            await logApiCall(supabase, {
+              correlationId, userId, userCode,
+              apiName: 'dms_file_download',
+              endpointUrl: downloadSource,
+              httpMethod: 'GET',
+              responseStatus: downloadStatus,
+              durationMs: Date.now() - downloadStart,
+              isSuccess: fileResponse.ok,
+              errorMessage: fileResponse.ok ? null : `HTTP ${downloadStatus}`,
+              module: 'DMS Transfer',
+              entityType: 'ip_application_documents',
+              entityId: doc.id,
+              requestPayload: { ssn, document_id: doc.id, document_name: doc.document_name, method: 'signed_url_fallback' },
+              responseBody: fileResponse.ok ? { content_length: downloadContentLength } : { status: downloadStatus, statusText: fileResponse.statusText },
+            })
+
+            if (!fileResponse.ok) {
+              throw new DmsTransferError(
+                `Failed to download file: HTTP ${downloadStatus} from ${downloadSource.substring(0, 200)}`,
+                'FileDownloadError', downloadStatus, null
+              )
+            }
+
+            fileBlob = await fileResponse.blob()
           }
 
-          fileBlob = await fileResponse.blob()
           if (fileBlob.size === 0) {
             throw new DmsTransferError('Downloaded file is empty (0 bytes)', 'EmptyFile', downloadStatus, null)
           }
         } catch (dlErr) {
           if (dlErr instanceof DmsTransferError) throw dlErr
-          // Network/timeout error during download
           const errMsg = dlErr instanceof Error ? dlErr.message : String(dlErr)
           await logApiCall(supabase, {
             correlationId, userId, userCode,
             apiName: 'dms_file_download',
-            endpointUrl: fileUrl.substring(0, 500),
+            endpointUrl: downloadSource || 'unknown',
             httpMethod: 'GET',
             responseStatus: null,
             durationMs: Date.now() - downloadStart,
