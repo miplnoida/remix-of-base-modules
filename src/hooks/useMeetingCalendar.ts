@@ -1,12 +1,13 @@
 /**
  * useMeetingCalendar - Fetches meetings for a given month for the logged-in user
- * with realtime subscription and traceability logging.
+ * (or all users if admin) with realtime subscription and traceability logging.
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useSystemLogger } from './useSystemLogger';
+import { useIsAdmin } from './useNavigationMenu';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 export interface CalendarMeeting {
@@ -24,17 +25,26 @@ export interface CalendarMeeting {
   remarks: string | null;
   outcome_remarks: string | null;
   metadata: any;
+  // Additional fields for admin view
+  assigned_user_id: string | null;
+  scheduled_by: string | null;
+  scheduled_by_name: string | null;
+  // Workflow fields needed by MeetingActionButtons
+  workflow_id: string | null;
+  workflow_instance_id: string | null;
+  step_id: string | null;
 }
 
 export function useMeetingCalendar(currentMonth: Date) {
   const { user } = useSupabaseAuth();
+  const isAdmin = useIsAdmin();
   const queryClient = useQueryClient();
   const { logTechnical, logError, startNewCorrelation } = useSystemLogger();
 
   const monthStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
-  const queryKey = ['meeting-calendar', user?.id, monthStart, monthEnd];
+  const queryKey = ['meeting-calendar', user?.id, isAdmin, monthStart, monthEnd];
 
   const { data: meetings = [], isLoading, error } = useQuery({
     queryKey,
@@ -44,15 +54,20 @@ export function useMeetingCalendar(currentMonth: Date) {
       const startTime = performance.now();
 
       try {
-        // Fetch meetings where user is assigned OR scheduled_by
-        const { data, error: fetchError } = await supabase
+        let query = supabase
           .from('meetings')
-          .select('id, meeting_reference, application_reference, meeting_type, status, outcome, meeting_date, meeting_time, meeting_end_time, contact_person_name, office_address, remarks, outcome_remarks, metadata')
-          .or(`assigned_user_id.eq.${user.id},scheduled_by.eq.${user.id}`)
+          .select('id, meeting_reference, application_reference, meeting_type, status, outcome, meeting_date, meeting_time, meeting_end_time, contact_person_name, office_address, remarks, outcome_remarks, metadata, assigned_user_id, scheduled_by, scheduled_by_name, workflow_id, workflow_instance_id, step_id')
           .gte('meeting_date', monthStart)
           .lte('meeting_date', monthEnd)
           .order('meeting_date', { ascending: true })
           .order('meeting_time', { ascending: true });
+
+        // Non-admin: only own meetings. Admin: all meetings.
+        if (!isAdmin) {
+          query = query.or(`assigned_user_id.eq.${user.id},scheduled_by.eq.${user.id}`);
+        }
+
+        const { data, error: fetchError } = await query;
 
         if (fetchError) throw fetchError;
 
@@ -121,5 +136,5 @@ export function useMeetingCalendar(currentMonth: Date) {
     return map;
   }, [meetings]);
 
-  return { meetings, meetingsByDate, isLoading, error };
+  return { meetings, meetingsByDate, isLoading, error, isAdmin };
 }

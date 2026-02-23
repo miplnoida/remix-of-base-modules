@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -24,10 +25,17 @@ import {
   CalendarDays,
   Filter,
   X,
+  Play,
+  RefreshCw,
+  XCircle,
+  Loader2,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMeetingCalendar, CalendarMeeting } from '@/hooks/useMeetingCalendar';
-import { formatDisplayDate } from '@/lib/dateFormat';
+import { useStartMeeting } from '@/hooks/useMeetings';
+import { CancelMeetingDialog } from './CancelMeetingDialog';
+import { RescheduleMeetingDialog } from './RescheduleMeetingDialog';
 import {
   format,
   startOfMonth,
@@ -82,14 +90,15 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string 
 };
 
 const FILTER_STATUSES = ['Scheduled', 'InProgress', 'Rescheduled', 'Closed', 'Cancelled'];
-
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FIXED_WEEKS = 5;
+const FIXED_CELLS = FIXED_WEEKS * 7;
 
 export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModalProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const { meetingsByDate, isLoading, error } = useMeetingCalendar(currentMonth);
+  const { meetingsByDate, isLoading, error, isAdmin } = useMeetingCalendar(currentMonth);
 
   const prevMonth = () => setCurrentMonth(m => subMonths(m, 1));
   const nextMonth = () => setCurrentMonth(m => addMonths(m, 1));
@@ -103,20 +112,15 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
   };
-
   const clearFilters = () => setActiveFilters([]);
 
-  // Build calendar grid
+  // Build calendar grid - always exactly FIXED_CELLS (35 = 5 weeks)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
     const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     const days: Date[] = [];
-    let day = calStart;
-    while (day <= calEnd) {
-      days.push(day);
-      day = addDays(day, 1);
+    for (let i = 0; i < FIXED_CELLS; i++) {
+      days.push(addDays(calStart, i));
     }
     return days;
   }, [currentMonth]);
@@ -135,22 +139,21 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
   const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
   const selectedMeetings = selectedDateStr ? (filteredMeetingsByDate[selectedDateStr] || []) : [];
 
-  // Total meeting count for month
   const totalMonthMeetings = useMemo(() => {
     return Object.values(filteredMeetingsByDate).reduce((sum, arr) => sum + arr.length, 0);
   }, [filteredMeetingsByDate]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[92vh] p-0 gap-0 overflow-hidden rounded-xl border-border shadow-xl">
+      <DialogContent className="max-w-4xl w-[95vw] p-0 gap-0 overflow-hidden rounded-xl border-border shadow-xl flex flex-col" style={{ maxHeight: '92vh' }}>
         {/* Header */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-card">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-card shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2.5 text-lg font-semibold text-foreground">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-government-600 text-white">
                 <CalendarDays className="h-4 w-4" />
               </div>
-              My Meeting Calendar
+              {isAdmin ? 'All Meetings Calendar' : 'My Meeting Calendar'}
             </DialogTitle>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium tabular-nums">{totalMonthMeetings}</span>
@@ -160,7 +163,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
         </DialogHeader>
 
         {/* Filter Bar */}
-        <div className="px-6 py-3 border-b border-border bg-muted/30 flex items-center gap-2 flex-wrap">
+        <div className="px-6 py-3 border-b border-border bg-muted/30 flex items-center gap-2 flex-wrap shrink-0">
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           <span className="text-xs text-muted-foreground font-medium mr-1">Filter:</span>
           {FILTER_STATUSES.map(status => {
@@ -195,41 +198,24 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
           )}
         </div>
 
-        {/* Main Body */}
+        {/* Main Body - flex row, takes remaining space */}
         <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-          {/* Calendar Grid */}
-          <div className="flex-1 p-5 min-w-0 overflow-y-auto">
+          {/* Calendar Grid - fixed height, no overflow */}
+          <div className="flex-1 p-5 min-w-0 flex flex-col shrink-0">
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={prevMonth}
-                className="h-8 w-8 rounded-lg"
-                aria-label="Previous month"
-              >
+              <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8 rounded-lg" aria-label="Previous month">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-3">
                 <h3 className="text-base font-semibold text-foreground tracking-tight">
                   {format(currentMonth, 'MMMM yyyy')}
                 </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7 px-3 rounded-md font-medium"
-                  onClick={goToToday}
-                >
+                <Button variant="outline" size="sm" className="text-xs h-7 px-3 rounded-md font-medium" onClick={goToToday}>
                   Today
                 </Button>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={nextMonth}
-                className="h-8 w-8 rounded-lg"
-                aria-label="Next month"
-              >
+              <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8 rounded-lg" aria-label="Next month">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -249,12 +235,12 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
               ))}
             </div>
 
-            {/* Day Cells */}
+            {/* Day Cells - fixed 5 rows */}
             {isLoading ? (
               <CalendarSkeleton />
             ) : (
               <TooltipProvider delayDuration={300}>
-                <div className="grid grid-cols-7 border border-border rounded-lg overflow-hidden">
+                <div className="grid grid-cols-7 grid-rows-5 border border-border rounded-lg overflow-hidden">
                   {calendarDays.map((day, idx) => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const dayMeetings = filteredMeetingsByDate[dateStr] || [];
@@ -271,11 +257,11 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                         aria-label={`${format(day, 'MMMM d, yyyy')}${hasMeetings ? `, ${dayMeetings.length} meeting${dayMeetings.length > 1 ? 's' : ''}` : ''}`}
                         aria-selected={!!isSelected}
                         className={cn(
-                          'relative flex flex-col items-center justify-start p-1.5 min-h-[56px] text-sm transition-all duration-150 border-b border-r border-border/50 bg-card',
+                          'relative flex flex-col items-center justify-start p-1.5 h-[52px] text-sm transition-all duration-150 border-b border-r border-border/50 bg-card',
                           'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
                           !isCurrentMonth && 'bg-muted/20',
                           isSun && isCurrentMonth && 'bg-destructive/[0.03]',
-                          isSelected && 'bg-primary/8 ring-2 ring-inset ring-primary shadow-sm',
+                          isSelected && 'bg-primary/10 ring-2 ring-inset ring-primary',
                           isTodayDate && !isSelected && 'bg-primary/5'
                         )}
                       >
@@ -286,7 +272,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                             isCurrentMonth && !isTodayDate && !isSelected && 'text-foreground',
                             isSun && isCurrentMonth && !isTodayDate && !isSelected && 'text-destructive/50',
                             isTodayDate && 'bg-primary text-primary-foreground font-bold',
-                            isSelected && !isTodayDate && 'font-semibold text-primary'
+                            isSelected && !isTodayDate && 'bg-primary text-primary-foreground font-semibold'
                           )}
                         >
                           {format(day, 'd')}
@@ -295,12 +281,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                           <div className="flex gap-[3px] mt-0.5 flex-wrap justify-center max-w-full">
                             {dayMeetings.slice(0, 3).map((m, i) => {
                               const cfg = STATUS_CONFIG[m.status] || STATUS_CONFIG.Scheduled;
-                              return (
-                                <span
-                                  key={i}
-                                  className={cn('w-[6px] h-[6px] rounded-full', cfg.dot)}
-                                />
-                              );
+                              return <span key={i} className={cn('w-[6px] h-[6px] rounded-full', cfg.dot)} />;
                             })}
                             {dayMeetings.length > 3 && (
                               <span className="text-[8px] font-semibold text-muted-foreground leading-none mt-px">
@@ -312,15 +293,11 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                       </button>
                     );
 
-                    // Wrap cells with meetings in a tooltip
                     if (hasMeetings && isCurrentMonth) {
                       return (
                         <Tooltip key={idx}>
                           <TooltipTrigger asChild>{cell}</TooltipTrigger>
-                          <TooltipContent
-                            side="bottom"
-                            className="max-w-[220px] p-2.5"
-                          >
+                          <TooltipContent side="bottom" className="max-w-[220px] p-2.5">
                             <p className="text-xs font-semibold mb-1.5">
                               {format(day, 'EEE, MMM d')} · {dayMeetings.length} meeting{dayMeetings.length > 1 ? 's' : ''}
                             </p>
@@ -355,14 +332,12 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
             )}
           </div>
 
-          {/* Detail Side Panel */}
-          <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-border bg-muted/10 flex flex-col min-h-0">
-            {/* Panel Header */}
-            <div className="px-5 py-4 border-b border-border bg-card">
+          {/* Detail Side Panel - scrollable independently */}
+          <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-border bg-muted/10 flex flex-col min-h-0 overflow-hidden">
+            {/* Panel Header - fixed */}
+            <div className="px-5 py-4 border-b border-border bg-card shrink-0">
               <h4 className="text-sm font-semibold text-foreground">
-                {selectedDate
-                  ? format(selectedDate, 'EEEE, MMMM d')
-                  : 'Meeting Details'}
+                {selectedDate ? format(selectedDate, 'EEEE, MMMM d') : 'Meeting Details'}
               </h4>
               {selectedDate && (
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -373,8 +348,8 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
               )}
             </div>
 
-            {/* Panel Content */}
-            <ScrollArea className="flex-1 max-h-[400px] md:max-h-none">
+            {/* Panel Content - scrollable */}
+            <ScrollArea className="flex-1">
               <div className="p-4 space-y-3">
                 {!selectedDate && (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -399,7 +374,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                 )}
 
                 {selectedMeetings.map(meeting => (
-                  <MeetingCard key={meeting.id} meeting={meeting} />
+                  <MeetingCard key={meeting.id} meeting={meeting} isAdmin={isAdmin} onActionComplete={() => {}} />
                 ))}
               </div>
             </ScrollArea>
@@ -413,9 +388,9 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
 /* ---------- Skeleton Loader ---------- */
 function CalendarSkeleton() {
   return (
-    <div className="grid grid-cols-7 gap-px border border-border rounded-lg overflow-hidden">
-      {Array.from({ length: 35 }).map((_, i) => (
-        <div key={i} className="min-h-[56px] p-2 bg-card border-b border-r border-border/50">
+    <div className="grid grid-cols-7 grid-rows-5 gap-px border border-border rounded-lg overflow-hidden">
+      {Array.from({ length: FIXED_CELLS }).map((_, i) => (
+        <div key={i} className="h-[52px] p-2 bg-card border-b border-r border-border/50">
           <Skeleton className="w-5 h-5 rounded-full mx-auto" />
           {i % 4 === 0 && <Skeleton className="w-8 h-1.5 rounded-full mx-auto mt-2" />}
         </div>
@@ -424,62 +399,169 @@ function CalendarSkeleton() {
   );
 }
 
-/* ---------- Meeting Card ---------- */
-function MeetingCard({ meeting }: { meeting: CalendarMeeting }) {
+/* ---------- Meeting Card with Actions ---------- */
+function MeetingCard({
+  meeting,
+  isAdmin,
+  onActionComplete,
+}: {
+  meeting: CalendarMeeting;
+  isAdmin: boolean;
+  onActionComplete: () => void;
+}) {
+  const navigate = useNavigate();
   const config = STATUS_CONFIG[meeting.status] || STATUS_CONFIG.Scheduled;
   const applicantName = meeting.metadata?.applicantName || meeting.metadata?.applicant_name || null;
+  const attendeeName = meeting.contact_person_name || meeting.metadata?.contact_person_name || null;
+
+  const startMutation = useStartMeeting();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+
+  const isActionable = meeting.status === 'Scheduled';
+
+  const handleStart = async () => {
+    try {
+      const result = await startMutation.mutateAsync({ meetingId: meeting.id });
+      const targetId = result?.meeting_id || meeting.id;
+      navigate(`/meetings/start/${targetId}`);
+    } catch (err) {
+      console.error('Failed to start meeting:', err);
+    }
+  };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3.5 space-y-2.5 shadow-sm hover:shadow-md transition-shadow duration-200">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground truncate leading-tight">
-            {meeting.meeting_reference}
-          </p>
-          {applicantName && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{applicantName}</p>
+    <>
+      <div className="rounded-lg border border-border bg-card p-3.5 space-y-2.5 shadow-sm hover:shadow-md transition-shadow duration-200">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate leading-tight">
+              {meeting.meeting_reference}
+            </p>
+            {applicantName && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <span className="font-medium">Applicant:</span> {applicantName}
+              </p>
+            )}
+            {isAdmin && attendeeName && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                <User className="h-3 w-3 shrink-0" />
+                <span className="font-medium">Attendee:</span> {attendeeName}
+              </p>
+            )}
+          </div>
+          <Badge
+            variant="outline"
+            className={cn('text-[10px] shrink-0 border font-semibold px-2 py-0.5', config.badge)}
+          >
+            {config.label}
+          </Badge>
+        </div>
+
+        {/* Details */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5 text-government-500 shrink-0" />
+            <span className="font-medium">
+              {meeting.meeting_time?.slice(0, 5)}
+              {meeting.meeting_end_time && ` – ${meeting.meeting_end_time.slice(0, 5)}`}
+            </span>
+          </div>
+
+          {meeting.office_address && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 text-government-500 shrink-0" />
+              <span className="truncate">{meeting.office_address}</span>
+            </div>
+          )}
+
+          {meeting.remarks && (
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <FileText className="h-3.5 w-3.5 text-government-500 shrink-0 mt-0.5" />
+              <span className="line-clamp-2">{meeting.remarks}</span>
+            </div>
           )}
         </div>
-        <Badge
-          variant="outline"
-          className={cn('text-[10px] shrink-0 border font-semibold px-2 py-0.5', config.badge)}
-        >
-          {config.label}
-        </Badge>
-      </div>
 
-      {/* Details */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="h-3.5 w-3.5 text-government-500 shrink-0" />
-          <span className="font-medium">
-            {meeting.meeting_time?.slice(0, 5)}
-            {meeting.meeting_end_time && ` – ${meeting.meeting_end_time.slice(0, 5)}`}
-          </span>
+        {/* Footer + Actions */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+            <span className="font-medium shrink-0">{meeting.meeting_type}</span>
+            <span className="text-border">•</span>
+            <span className="truncate">{meeting.application_reference}</span>
+          </div>
+
+          {/* Action Icons for Scheduled meetings */}
+          {isActionable && (
+            <div className="flex items-center gap-1 shrink-0">
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleStart}
+                      disabled={startMutation.isPending}
+                      className="p-1 rounded hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
+                      aria-label="Start meeting"
+                    >
+                      {startMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top"><p className="text-xs">Start</p></TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setRescheduleOpen(true)}
+                      className="p-1 rounded hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition-colors"
+                      aria-label="Reschedule meeting"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top"><p className="text-xs">Reschedule</p></TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setCancelOpen(true)}
+                      className="p-1 rounded hover:bg-red-50 text-destructive hover:text-red-700 transition-colors"
+                      aria-label="Cancel meeting"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top"><p className="text-xs">Cancel</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
-
-        {meeting.office_address && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 text-government-500 shrink-0" />
-            <span className="truncate">{meeting.office_address}</span>
-          </div>
-        )}
-
-        {meeting.remarks && (
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <FileText className="h-3.5 w-3.5 text-government-500 shrink-0 mt-0.5" />
-            <span className="line-clamp-2">{meeting.remarks}</span>
-          </div>
-        )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-2 border-t border-border">
-        <span className="font-medium">{meeting.meeting_type}</span>
-        <span className="text-border">•</span>
-        <span className="truncate">{meeting.application_reference}</span>
-      </div>
-    </div>
+      {/* Reuse existing dialogs */}
+      <CancelMeetingDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        meetingId={meeting.id}
+        meetingReference={meeting.meeting_reference}
+        onSuccess={onActionComplete}
+      />
+      <RescheduleMeetingDialog
+        open={rescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        meetingId={meeting.id}
+        meetingReference={meeting.meeting_reference}
+        currentDate={meeting.meeting_date}
+        currentTime={meeting.meeting_time}
+        workflowId={meeting.workflow_id}
+        workflowInstanceId={meeting.workflow_instance_id}
+        stepId={meeting.step_id}
+        applicationReference={meeting.application_reference}
+        onSuccess={onActionComplete}
+      />
+    </>
   );
 }
