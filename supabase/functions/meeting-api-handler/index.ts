@@ -249,15 +249,15 @@ Deno.serve(async (req) => {
         const currentTime = currentTimeHHMM
 
         if (needsAutoReschedule) {
-          // ─── STEP 1: Mark future meeting as Rescheduled (same logic as reschedule_meeting) ───
+          // ─── STEP 1: Mark future meeting as Closed with NextSchedule outcome ───
           const { error: rescheduleUpdateError } = await supabase
             .from('meetings')
             .update({
-              status: 'Rescheduled',
-              outcome: 'Reschedule',
+              status: 'Closed',
+              outcome: 'NextSchedule',
               outcome_remarks: isFutureDate
-                ? `Auto-rescheduled: meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`
-                : `Auto-rescheduled: meeting started at ${currentTimeHHMM} UTC before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
+                ? `Closed: next meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`
+                : `Closed: next meeting started at ${currentTimeHHMM} UTC before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
               closed_by: userId,
               closed_by_name: userName,
               closed_at: nowUtc.toISOString(),
@@ -268,20 +268,20 @@ Deno.serve(async (req) => {
 
           if (rescheduleUpdateError) throw rescheduleUpdateError
 
-          // ─── STEP 2: Log history for the rescheduled future meeting (same as reschedule_meeting) ───
+          // ─── STEP 2: Log history for the closed previous meeting ───
           const { error: histErr1 } = await supabase.from('meeting_history').insert({
             meeting_id: body.meetingId,
             old_status: meeting.status,
-            new_status: 'Rescheduled',
-            action_taken: 'RESCHEDULED',
-            outcome: 'Reschedule',
+            new_status: 'Closed',
+            action_taken: 'CLOSED_NEXT_SCHEDULED',
+            outcome: 'NextSchedule',
             old_date: meeting.meeting_date,
             old_time: meeting.meeting_time,
             new_date: todayDate,
             new_time: currentTime,
             remarks: isFutureDate
-              ? `Auto-rescheduled because meeting was started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`
-              : `Auto-rescheduled because meeting was started at ${currentTimeHHMM} UTC before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
+              ? `Closed because next meeting was started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`
+              : `Closed because next meeting was started at ${currentTimeHHMM} UTC before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
             performed_by: userId,
             performed_by_name: userName
           })
@@ -314,8 +314,8 @@ Deno.serve(async (req) => {
               department_id: meeting.department_id,
               assigned_user_id: meeting.assigned_user_id,
               remarks: isFutureDate
-                ? `Auto-created: meeting started today (${todayDate}), rescheduled from ${meeting.meeting_reference} (was ${meeting.meeting_date})`
-                : `Auto-created: meeting started early at ${currentTimeHHMM} UTC, rescheduled from ${meeting.meeting_reference} (was scheduled at ${meeting.meeting_time.substring(0, 5)})`,
+                ? `Auto-created: meeting started today (${todayDate}), next meeting from ${meeting.meeting_reference} (was ${meeting.meeting_date})`
+                : `Auto-created: meeting started early at ${currentTimeHHMM} UTC, next meeting from ${meeting.meeting_reference} (was scheduled at ${meeting.meeting_time.substring(0, 5)})`,
               parent_meeting_id: body.meetingId,
               reschedule_count: (meeting.reschedule_count || 0) + 1,
               scheduled_by: userId,
@@ -323,10 +323,10 @@ Deno.serve(async (req) => {
               created_by: userName?.substring(0, 10) || null,
               metadata: {
                 ...(meeting.metadata || {}),
-                auto_rescheduled_from: meeting.meeting_reference,
+                auto_next_scheduled_from: meeting.meeting_reference,
                 original_scheduled_date: meeting.meeting_date,
                 original_scheduled_time: meeting.meeting_time,
-                auto_reschedule_reason: 'started_before_scheduled_date'
+                auto_next_schedule_reason: 'started_before_scheduled_date'
               }
             })
             .select()
@@ -334,14 +334,14 @@ Deno.serve(async (req) => {
 
           if (newMeetingError) throw newMeetingError
 
-          // ─── STEP 5: Log history for the new meeting (same pattern as reschedule_meeting) ───
+          // ─── STEP 5: Log history for the new meeting ───
           const { error: histErr2 } = await supabase.from('meeting_history').insert({
             meeting_id: newMeeting.id,
             new_status: 'InProgress',
-            action_taken: 'RESCHEDULED_FROM',
+            action_taken: 'NEXT_SCHEDULED_FROM',
             new_date: todayDate,
             new_time: currentTime,
-            remarks: `Auto-created and started immediately. Rescheduled from ${meeting.meeting_reference} (was ${meeting.meeting_date} at ${meeting.meeting_time})`,
+            remarks: `Auto-created and started immediately. Next meeting from ${meeting.meeting_reference} (was ${meeting.meeting_date} at ${meeting.meeting_time})`,
             performed_by: userId,
             performed_by_name: userName
           })
@@ -600,7 +600,7 @@ Deno.serve(async (req) => {
           throw new Error('New date and time are required')
         }
         if (!body.remarks) {
-          throw new Error('Rescheduling remarks are required')
+          throw new Error('Scheduling remarks are required')
         }
 
         // ── SERVER-SIDE VALIDATION: Reject past DATE only ──
@@ -640,12 +640,12 @@ Deno.serve(async (req) => {
         const oldAssignedUserId: string | null = meeting.assigned_user_id
         const oldContactPerson: string | null = meeting.contact_person
 
-        // Update current meeting to Rescheduled status
+        // Update current meeting to Closed status with NextSchedule outcome
         const { error: updateOldErr } = await supabase
           .from('meetings')
           .update({
-            status: 'Rescheduled',
-            outcome: 'Reschedule',
+            status: 'Closed',
+            outcome: 'NextSchedule',
             outcome_remarks: body.remarks,
             closed_by: userId,
             closed_by_name: userName,
@@ -661,9 +661,9 @@ Deno.serve(async (req) => {
         const { error: hist1Err } = await supabase.from('meeting_history').insert({
           meeting_id: body.meetingId,
           old_status: meeting.status,
-          new_status: 'Rescheduled',
-          action_taken: 'RESCHEDULED',
-          outcome: 'Reschedule',
+          new_status: 'Closed',
+          action_taken: 'CLOSED_NEXT_SCHEDULED',
+          outcome: 'NextSchedule',
           old_date: oldMeetingDate,
           old_time: oldMeetingTime,
           new_date: body.newDate,
@@ -691,7 +691,7 @@ Deno.serve(async (req) => {
               meeting_time: oldMeetingTime,
               source_meeting_id: body.meetingId,
               reserved_by: userId,
-              reason: `Slot retained after reschedule of meeting ${meeting.meeting_reference}. releasePreviousSlot=false.`,
+              reason: `Slot retained after scheduling next meeting from ${meeting.meeting_reference}. releasePreviousSlot=false.`,
               is_active: true,
             }, { onConflict: 'assigned_user_id,meeting_date,meeting_time' })
 
@@ -776,10 +776,10 @@ Deno.serve(async (req) => {
         const { error: hist2Err } = await supabase.from('meeting_history').insert({
           meeting_id: newMeeting.id,
           new_status: 'Scheduled',
-          action_taken: 'RESCHEDULED_FROM',
+          action_taken: 'NEXT_SCHEDULED_FROM',
           new_date: body.newDate,
           new_time: body.newTime,
-          remarks: `Rescheduled from ${meeting.meeting_reference}. Previous slot ${releasePreviousSlot ? 'released' : 'retained (blocked)'}.`,
+          remarks: `Next meeting scheduled from ${meeting.meeting_reference}. Previous slot ${releasePreviousSlot ? 'released' : 'retained (blocked)'}.`,
           performed_by: userId,
           performed_by_name: userName
         })
@@ -831,7 +831,7 @@ Deno.serve(async (req) => {
 
         return new Response(JSON.stringify({ 
           success: true, 
-          message: 'Meeting rescheduled successfully',
+          message: 'Next meeting scheduled successfully',
           new_meeting_id: newMeeting.id,
           new_meeting_reference: newMeetingRef,
           release_previous_slot: releasePreviousSlot,
