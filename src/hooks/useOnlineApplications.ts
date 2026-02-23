@@ -197,10 +197,10 @@ export function useApproveApplication() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['online-applications', 'insured-person'] });
-      toast.success('Application approved successfully');
+      toast.success('Application accepted successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to approve application: ${error.message}`);
+      toast.error(`Failed to accept application: ${error.message}`);
     },
   });
 }

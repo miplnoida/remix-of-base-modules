@@ -306,7 +306,7 @@ export function useRescheduleMeeting() {
       });
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.message || 'Failed to reschedule meeting');
+      if (!data?.success) throw new Error(data?.message || 'Failed to schedule next meeting');
       
       return data;
     },
@@ -320,8 +320,8 @@ export function useRescheduleMeeting() {
       toast.success(data.message || `Meeting rescheduled. New reference: ${data.new_meeting_reference}`);
     },
     onError: (error: Error) => {
-      console.error('Reschedule meeting error:', error);
-      toast.error(error.message || 'Failed to reschedule meeting');
+      console.error('Schedule next meeting error:', error);
+      toast.error(error.message || 'Failed to schedule next meeting');
     }
   });
 }
@@ -350,7 +350,7 @@ export function useCloseMeetingWithApproval() {
       });
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.message || 'Failed to approve application');
+      if (!data?.success) throw new Error(data?.message || 'Failed to accept application');
       
       return data;
     },
@@ -361,11 +361,11 @@ export function useCloseMeetingWithApproval() {
       queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
       queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
       queryClient.invalidateQueries({ queryKey: ['online-applications'] });
-      toast.success(data.message || 'Application approved successfully');
+      toast.success(data.message || 'Application accepted successfully');
     },
     onError: (error: Error) => {
-      console.error('Close meeting approved error:', error);
-      toast.error(error.message || 'Failed to approve application');
+      console.error('Close meeting accepted error:', error);
+      toast.error(error.message || 'Failed to accept application');
     }
   });
 }

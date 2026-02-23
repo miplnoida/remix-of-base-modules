@@ -227,7 +227,7 @@ export default function StartMeetingPage() {
         navigate('/meetings/manage');
       }
     } catch (error) {
-      console.error('Approval failed:', error);
+      console.error('Acceptance failed:', error);
     }
   };
 
@@ -439,7 +439,7 @@ export default function StartMeetingPage() {
                   ) : (
                     <CheckCircle className="h-4 w-4" />
                   )}
-                  Approve Application
+                  Accept
                   {isBlocked && (
                     <span className="ml-1 text-xs bg-destructive text-destructive-foreground rounded px-1">
                       {totalErrors} error{totalErrors !== 1 ? 's' : ''}
@@ -471,7 +471,7 @@ export default function StartMeetingPage() {
               className="gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Reschedule Meeting
+              Schedule Next Meeting
             </Button>
 
             {/* Cancel Meeting Button */}
@@ -489,7 +489,7 @@ export default function StartMeetingPage() {
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                You have unsaved changes. These will be saved when you approve the application.
+                You have unsaved changes. These will be saved when you accept the application.
               </AlertDescription>
             </Alert>
           )}
@@ -531,16 +531,16 @@ export default function StartMeetingPage() {
         </CardContent>
       </Card>
 
-      {/* Approval Confirmation Dialog */}
+      {/* Acceptance Confirmation Dialog */}
       <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              Confirm Approval
+              Confirm Acceptance
             </DialogTitle>
             <DialogDescription>
-              This will approve the application and complete the meeting.
+              This will accept the application and complete the meeting.
               {hasChanges && ' All edits will be saved.'}
             </DialogDescription>
           </DialogHeader>
@@ -550,7 +550,7 @@ export default function StartMeetingPage() {
               id="approvalRemarks"
               value={approvalRemarks}
               onChange={(e) => setApprovalRemarks(e.target.value)}
-              placeholder="Add any approval notes..."
+              placeholder="Add any acceptance notes..."
               rows={3}
             />
           </div>
@@ -560,7 +560,7 @@ export default function StartMeetingPage() {
             </Button>
             <Button onClick={handleApprove} disabled={approveMutation.isPending || isConverting}>
               {(approveMutation.isPending || isConverting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isConverting ? 'Creating IP Record…' : 'Confirm Approval'}
+              {isConverting ? 'Creating IP Record…' : 'Confirm Acceptance'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1432,7 +1432,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
                 Delete Dependant
               </DialogTitle>
               <DialogDescription>
-                Remove this dependant from the list? This change is in-memory only and will not affect the database until the application is approved.
+                Remove this dependant from the list? This change is in-memory only and will not affect the database until the application is accepted.
               </DialogDescription>
             </DialogHeader>
             {depDeleteIndex !== null && dependants[depDeleteIndex] && (
