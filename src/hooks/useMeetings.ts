@@ -317,7 +317,7 @@ export function useRescheduleMeeting() {
       queryClient.invalidateQueries({ queryKey: ['online-applications'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
       queryClient.invalidateQueries({ queryKey: ['related-meetings'] });
-      toast.success(data.message || `Meeting rescheduled. New reference: ${data.new_meeting_reference}`);
+      toast.success(data.message || `Next meeting scheduled. New reference: ${data.new_meeting_reference}`);
     },
     onError: (error: Error) => {
       console.error('Schedule next meeting error:', error);
