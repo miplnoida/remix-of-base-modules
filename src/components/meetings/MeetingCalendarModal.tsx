@@ -6,6 +6,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,9 +49,7 @@ import { RescheduleMeetingDialog } from './RescheduleMeetingDialog';
 import {
   format,
   startOfMonth,
-  endOfMonth,
   startOfWeek,
-  endOfWeek,
   addDays,
   addMonths,
   subMonths,
@@ -114,7 +122,6 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
   };
   const clearFilters = () => setActiveFilters([]);
 
-  // Build calendar grid - always exactly FIXED_CELLS (35 = 5 weeks)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -125,7 +132,6 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
     return days;
   }, [currentMonth]);
 
-  // Filter meetings by active status filters
   const filteredMeetingsByDate = useMemo(() => {
     if (activeFilters.length === 0) return meetingsByDate;
     const filtered: Record<string, CalendarMeeting[]> = {};
@@ -145,7 +151,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] p-0 gap-0 overflow-hidden rounded-xl border-border shadow-xl flex flex-col" style={{ maxHeight: '92vh' }}>
+      <DialogContent className="max-w-5xl w-[96vw] p-0 gap-0 overflow-hidden rounded-xl border-border shadow-xl flex flex-col" style={{ maxHeight: '92vh' }}>
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-card shrink-0">
           <div className="flex items-center justify-between">
@@ -198,9 +204,9 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
           )}
         </div>
 
-        {/* Main Body - flex row, takes remaining space */}
+        {/* Main Body */}
         <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-          {/* Calendar Grid - fixed height, no overflow */}
+          {/* Calendar Grid */}
           <div className="flex-1 p-5 min-w-0 flex flex-col shrink-0">
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-4">
@@ -235,7 +241,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
               ))}
             </div>
 
-            {/* Day Cells - fixed 5 rows */}
+            {/* Day Cells */}
             {isLoading ? (
               <CalendarSkeleton />
             ) : (
@@ -261,7 +267,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                           'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
                           !isCurrentMonth && 'bg-muted/20',
                           isSun && isCurrentMonth && 'bg-destructive/[0.03]',
-                          isSelected && 'bg-primary/10 ring-2 ring-inset ring-primary',
+                          isSelected && 'bg-muted/60 ring-2 ring-inset ring-primary/60',
                           isTodayDate && !isSelected && 'bg-primary/5'
                         )}
                       >
@@ -272,7 +278,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
                             isCurrentMonth && !isTodayDate && !isSelected && 'text-foreground',
                             isSun && isCurrentMonth && !isTodayDate && !isSelected && 'text-destructive/50',
                             isTodayDate && 'bg-primary text-primary-foreground font-bold',
-                            isSelected && !isTodayDate && 'bg-primary text-primary-foreground font-semibold'
+                            isSelected && !isTodayDate && 'font-bold text-foreground'
                           )}
                         >
                           {format(day, 'd')}
@@ -332,9 +338,9 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
             )}
           </div>
 
-          {/* Detail Side Panel - scrollable independently */}
-          <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-border bg-muted/10 flex flex-col min-h-0 overflow-hidden">
-            {/* Panel Header - fixed */}
+          {/* Detail Side Panel */}
+          <div className="w-full md:w-[340px] border-t md:border-t-0 md:border-l border-border bg-muted/10 flex flex-col min-h-0 overflow-hidden">
+            {/* Panel Header */}
             <div className="px-5 py-4 border-b border-border bg-card shrink-0">
               <h4 className="text-sm font-semibold text-foreground">
                 {selectedDate ? format(selectedDate, 'EEEE, MMMM d') : 'Meeting Details'}
@@ -348,8 +354,8 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
               )}
             </div>
 
-            {/* Panel Content - scrollable */}
-            <ScrollArea className="flex-1">
+            {/* Panel Content - scrollable with fixed max height */}
+            <ScrollArea className="flex-1" style={{ maxHeight: 'calc(92vh - 220px)' }}>
               <div className="p-4 space-y-3">
                 {!selectedDate && (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -399,7 +405,7 @@ function CalendarSkeleton() {
   );
 }
 
-/* ---------- Meeting Card with Actions ---------- */
+/* ---------- Meeting Card with Confirmation Actions ---------- */
 function MeetingCard({
   meeting,
   isAdmin,
@@ -417,10 +423,12 @@ function MeetingCard({
   const startMutation = useStartMeeting();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [startConfirmOpen, setStartConfirmOpen] = useState(false);
 
   const isActionable = meeting.status === 'Scheduled';
 
-  const handleStart = async () => {
+  const handleStartConfirmed = async () => {
+    setStartConfirmOpen(false);
     try {
       const result = await startMutation.mutateAsync({ meetingId: meeting.id });
       const targetId = result?.meeting_id || meeting.id;
@@ -432,15 +440,15 @@ function MeetingCard({
 
   return (
     <>
-      <div className="rounded-lg border border-border bg-card p-3.5 space-y-2.5 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow duration-200">
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate leading-tight">
+            <p className="text-[15px] font-semibold text-foreground truncate leading-tight">
               {meeting.meeting_reference}
             </p>
             {applicantName && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
+              <p className="text-xs text-muted-foreground truncate mt-1">
                 <span className="font-medium">Applicant:</span> {applicantName}
               </p>
             )}
@@ -453,16 +461,16 @@ function MeetingCard({
           </div>
           <Badge
             variant="outline"
-            className={cn('text-[10px] shrink-0 border font-semibold px-2 py-0.5', config.badge)}
+            className={cn('text-[11px] shrink-0 border font-semibold px-2.5 py-0.5', config.badge)}
           >
             {config.label}
           </Badge>
         </div>
 
         {/* Details */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5 text-government-500 shrink-0" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+            <Clock className="h-4 w-4 text-government-500 shrink-0" />
             <span className="font-medium">
               {meeting.meeting_time?.slice(0, 5)}
               {meeting.meeting_end_time && ` – ${meeting.meeting_end_time.slice(0, 5)}`}
@@ -470,41 +478,40 @@ function MeetingCard({
           </div>
 
           {meeting.office_address && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 text-government-500 shrink-0" />
+            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <MapPin className="h-4 w-4 text-government-500 shrink-0" />
               <span className="truncate">{meeting.office_address}</span>
             </div>
           )}
 
           {meeting.remarks && (
-            <div className="flex items-start gap-2 text-xs text-muted-foreground">
-              <FileText className="h-3.5 w-3.5 text-government-500 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 text-[13px] text-muted-foreground">
+              <FileText className="h-4 w-4 text-government-500 shrink-0 mt-0.5" />
               <span className="line-clamp-2">{meeting.remarks}</span>
             </div>
           )}
         </div>
 
         {/* Footer + Actions */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+        <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground min-w-0">
             <span className="font-medium shrink-0">{meeting.meeting_type}</span>
             <span className="text-border">•</span>
             <span className="truncate">{meeting.application_reference}</span>
           </div>
 
-          {/* Action Icons for Scheduled meetings */}
           {isActionable && (
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={handleStart}
+                      onClick={() => setStartConfirmOpen(true)}
                       disabled={startMutation.isPending}
-                      className="p-1 rounded hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-md hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
                       aria-label="Start meeting"
                     >
-                      {startMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                      {startMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top"><p className="text-xs">Start</p></TooltipContent>
@@ -514,10 +521,10 @@ function MeetingCard({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setRescheduleOpen(true)}
-                      className="p-1 rounded hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition-colors"
+                      className="p-1.5 rounded-md hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition-colors"
                       aria-label="Reschedule meeting"
                     >
-                      <RefreshCw className="h-3.5 w-3.5" />
+                      <RefreshCw className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top"><p className="text-xs">Reschedule</p></TooltipContent>
@@ -527,10 +534,10 @@ function MeetingCard({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCancelOpen(true)}
-                      className="p-1 rounded hover:bg-red-50 text-destructive hover:text-red-700 transition-colors"
+                      className="p-1.5 rounded-md hover:bg-red-50 text-destructive hover:text-red-700 transition-colors"
                       aria-label="Cancel meeting"
                     >
-                      <XCircle className="h-3.5 w-3.5" />
+                      <XCircle className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top"><p className="text-xs">Cancel</p></TooltipContent>
@@ -541,7 +548,38 @@ function MeetingCard({
         </div>
       </div>
 
-      {/* Reuse existing dialogs */}
+      {/* Start Meeting Confirmation */}
+      <AlertDialog open={startConfirmOpen} onOpenChange={setStartConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Play className="h-5 w-5 text-emerald-600" />
+              Start Meeting
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Are you sure you want to start this meeting?</p>
+                <div className="rounded-md bg-muted/50 p-3 space-y-1 text-xs">
+                  <p><span className="font-medium text-foreground">Meeting:</span> {meeting.meeting_reference}</p>
+                  <p><span className="font-medium text-foreground">Date:</span> {meeting.meeting_date}</p>
+                  <p><span className="font-medium text-foreground">Time:</span> {meeting.meeting_time?.slice(0, 5)}</p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleStartConfirmed}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Start Meeting
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Meeting Dialog (existing) */}
       <CancelMeetingDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
@@ -549,6 +587,7 @@ function MeetingCard({
         meetingReference={meeting.meeting_reference}
         onSuccess={onActionComplete}
       />
+      {/* Reschedule Meeting Dialog (existing) */}
       <RescheduleMeetingDialog
         open={rescheduleOpen}
         onOpenChange={setRescheduleOpen}
