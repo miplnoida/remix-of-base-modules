@@ -219,7 +219,10 @@ Deno.serve(async (req) => {
     }
 
     const results: DocumentTransferResult[] = []
-    const dmsEndpoint = `${dmsBaseUrl.replace(/\/+$/, '')}/api/Dms/files`
+    // DMS_API_BASE_URL may already include the full path (e.g. https://host/api/Dms/files)
+    const dmsEndpoint = dmsBaseUrl.replace(/\/+$/, '').endsWith('/api/Dms/files')
+      ? dmsBaseUrl.replace(/\/+$/, '')
+      : `${dmsBaseUrl.replace(/\/+$/, '')}/api/Dms/files`
 
     for (const doc of documents) {
       const transferRequestId = generateRequestId()
