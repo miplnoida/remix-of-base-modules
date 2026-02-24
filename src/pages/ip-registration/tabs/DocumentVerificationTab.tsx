@@ -49,6 +49,7 @@ interface AppDoc {
   document_name: string | null;
   document_type: string | null;
   file_name: string | null;
+  file_path: string | null;
   file_size: number | null;
   mime_type: string | null;
   url: string | null;
@@ -83,7 +84,15 @@ const ACCEPTED_MIME_TYPES = [
 
 // --- Helpers ---
 function getAppDocUrl(doc: AppDoc): string | undefined {
-  return doc.signed_url || doc.url || undefined;
+  // Priority: signed_url > url > storage public URL from file_path
+  if (doc.signed_url) return doc.signed_url;
+  if (doc.url) return doc.url;
+  if (doc.file_path) {
+    // Generate public URL from Supabase storage
+    const { data } = supabase.storage.from('ip-documents').getPublicUrl(doc.file_path);
+    return data?.publicUrl || undefined;
+  }
+  return undefined;
 }
 function getAppDocName(doc: AppDoc, index: number): string {
   return doc.document_name || doc.file_name || `Document ${index + 1}`;
@@ -149,7 +158,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       if (!ssn) return [];
       const { data, error } = await supabase
         .from('ip_application_documents')
-        .select('id, document_name, document_type, file_name, file_size, mime_type, url, signed_url, uploaded_at, transfer_status, dms_document_id')
+        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, transfer_status, dms_document_id')
         .eq('ssn', ssn)
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
@@ -521,8 +530,33 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     clearError?.(field);
   }, [onChange, clearError]);
 
-  // --- Application document proxy handlers ---
+  // --- Application document handlers ---
+  // Check if a URL points to local Supabase storage (ip-documents bucket)
+  const isLocalStorageUrl = useCallback((url: string) => {
+    return url.includes('/storage/v1/object/public/ip-documents/') || url.includes('/storage/v1/object/ip-documents/');
+  }, []);
+
+  // Extract file_path from a local storage URL
+  const extractFilePath = useCallback((url: string) => {
+    const marker = '/storage/v1/object/public/ip-documents/';
+    const idx = url.indexOf(marker);
+    if (idx >= 0) return decodeURIComponent(url.substring(idx + marker.length));
+    return null;
+  }, []);
+
+  // Fetch blob: use direct storage download for local files, proxy for external
   const fetchDocBlob = useCallback(async (docUrl: string, fileName: string, action: 'stream' | 'download') => {
+    // For local storage files, download directly via Supabase SDK
+    if (isLocalStorageUrl(docUrl)) {
+      const filePath = extractFilePath(docUrl);
+      if (filePath) {
+        const { data, error } = await supabase.storage.from('ip-documents').download(filePath);
+        if (error) throw new Error(`Storage download failed: ${error.message}`);
+        return data;
+      }
+    }
+
+    // Fallback: use document-proxy for external URLs
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     const proxyResponse = await fetch(
@@ -544,7 +578,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     const contentType = proxyResponse.headers.get('content-type') || 'application/octet-stream';
     const arrayBuffer = await proxyResponse.arrayBuffer();
     return new Blob([arrayBuffer], { type: contentType });
-  }, []);
+  }, [isLocalStorageUrl, extractFilePath]);
 
   const blobToDataUrl = useCallback((blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
