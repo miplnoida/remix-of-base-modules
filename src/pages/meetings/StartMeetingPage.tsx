@@ -48,6 +48,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
+import { MeetingDocumentVerificationTab } from '@/components/meetings/MeetingDocumentVerificationTab';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
@@ -519,6 +520,8 @@ export default function StartMeetingPage() {
               data={editedData}
               onChange={handleFieldChange}
               onDataChange={(newData) => { setEditedData(newData); setHasChanges(true); }}
+              meetingId={meetingId}
+              applicationReference={applicationReference}
             />
           ) : (
             <Alert>
@@ -680,11 +683,13 @@ interface ApplicationEditFormProps {
   data: Record<string, any>;
   onChange: (field: string, value: any) => void;
   onDataChange: (newData: Record<string, any>) => void;
+  meetingId?: string;
+  applicationReference?: string;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
-    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} />;
+    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
   }
   
   if (meetingType === 'Employer-Registration') {
@@ -704,7 +709,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange }: Appl
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
@@ -1448,12 +1453,30 @@ function InsuredPersonEditForm({ data, onChange, onDataChange }: { data: Record<
 
       {/* Documents Tab */}
       <TabsContent value="documents" className="space-y-4">
-        <ApplicationDocumentsTab 
-          documents={data.documents} 
-          photoUrl={data.photoUrl}
-          onDelete={(index: number) => setDocDeleteIndex(index)}
-          showDelete
-        />
+        {/* Full Document Verification (same as IP Registration) */}
+        {meetingId && applicationReference ? (
+          <MeetingDocumentVerificationTab
+            applicationData={data}
+            meetingId={meetingId}
+            applicationReference={applicationReference}
+            isEditable={true}
+          />
+        ) : (
+          <ApplicationDocumentsTab 
+            documents={data.documents} 
+            photoUrl={data.photoUrl}
+            onDelete={(index: number) => setDocDeleteIndex(index)}
+            showDelete
+          />
+        )}
+
+        {/* Application-submitted documents (read-only view) */}
+        {data.documents && data.documents.length > 0 && meetingId && applicationReference && (
+          <ApplicationDocumentsTab 
+            documents={data.documents} 
+            photoUrl={data.photoUrl}
+          />
+        )}
 
         {/* Document Delete Confirmation */}
         <Dialog open={docDeleteIndex !== null} onOpenChange={(open) => { if (!open) setDocDeleteIndex(null); }}>
