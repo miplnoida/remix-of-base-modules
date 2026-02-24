@@ -534,11 +534,10 @@ export function useUpdateUserProfile() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['user-profiles'] });
-      toast.success('User updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['user-profile', variables.id] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
 }
 

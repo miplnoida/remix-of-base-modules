@@ -13,15 +13,16 @@ import { useDesignations } from "@/hooks/useDesignations";
 const UserEdit = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
-  const { data: user, isLoading } = useUserProfile(userId || '');
+  const { data: user, isLoading, isError } = useUserProfile(userId || '');
   const updateUser = useUpdateUserProfile();
   const { data: offices = [] } = useTbOffices();
   const { data: designations = [] } = useDesignations();
   
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>("");
-  const { data: departments = [] } = useDepartments(selectedOfficeId);
+  const { data: departments = [] } = useDepartments(selectedOfficeId || undefined);
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isFormReady, setIsFormReady] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     first_name: "",
@@ -39,21 +40,23 @@ const UserEdit = () => {
 
   useEffect(() => {
     if (user) {
+      const officeCode = user.office_code || "";
       setFormData({
         title: user.title || "",
-        first_name: user.first_name || "",
+        first_name: (user as any).first_name || "",
         middle_name: user.middle_name || "",
-        last_name: user.last_name || "",
+        last_name: (user as any).last_name || "",
         full_name: user.full_name || "",
         phone: user.phone || "",
         gender: user.gender || "",
         date_of_birth: user.date_of_birth || "",
         employee_code: user.employee_code || "",
-        office_code: user.office_code || "",
+        office_code: officeCode,
         department_id: user.department_id || "",
         designation_id: (user as any).designation_id || "",
       });
-      setSelectedOfficeId(user.office_code || "");
+      setSelectedOfficeId(officeCode);
+      setIsFormReady(true);
     }
   }, [user]);
 
@@ -97,8 +100,20 @@ const UserEdit = () => {
     return <div className="flex items-center justify-center h-64">Loading user...</div>;
   }
 
-  if (!user) {
-    return <div className="flex items-center justify-center h-64">User not found</div>;
+  if (isError || !user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-muted-foreground">User not found or failed to load.</p>
+        <Button variant="outline" onClick={() => navigate('/admin/users')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Users
+        </Button>
+      </div>
+    );
+  }
+
+  if (!isFormReady) {
+    return <div className="flex items-center justify-center h-64">Preparing form...</div>;
   }
 
   return (
@@ -127,7 +142,7 @@ const UserEdit = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
-                <Select value={formData.title} onValueChange={(v) => setFormData({...formData, title: v})}>
+                <Select value={formData.title || undefined} onValueChange={(v) => setFormData({...formData, title: v})}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Mr">Mr</SelectItem>
@@ -169,7 +184,7 @@ const UserEdit = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender *</Label>
-                <Select value={formData.gender} onValueChange={(v) => { setFormData({...formData, gender: v}); clearError('gender'); }}>
+                <Select value={formData.gender || undefined} onValueChange={(v) => { setFormData({...formData, gender: v}); clearError('gender'); }}>
                   <SelectTrigger className={errors.gender ? "border-destructive focus-visible:ring-destructive" : ""}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="M">Male</SelectItem>
@@ -199,7 +214,7 @@ const UserEdit = () => {
               <div className="space-y-2">
                 <Label htmlFor="office_id">Office Location *</Label>
                 <Select 
-                  value={formData.office_code} 
+                  value={formData.office_code || undefined} 
                   onValueChange={(v) => {
                     setFormData({...formData, office_code: v, department_id: ""});
                     setSelectedOfficeId(v);
@@ -218,7 +233,7 @@ const UserEdit = () => {
               <div className="space-y-2">
                 <Label htmlFor="department_id">Department *</Label>
                 <Select 
-                  value={formData.department_id} 
+                  value={formData.department_id || undefined} 
                   onValueChange={(v) => { setFormData({...formData, department_id: v}); clearError('department_id'); }}
                   disabled={!selectedOfficeId}
                 >
@@ -236,7 +251,7 @@ const UserEdit = () => {
             {/* Designation */}
             <div className="space-y-2">
               <Label htmlFor="designation_id">Designation</Label>
-              <Select value={formData.designation_id} onValueChange={(v) => setFormData({...formData, designation_id: v})}>
+              <Select value={formData.designation_id || undefined} onValueChange={(v) => setFormData({...formData, designation_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
                 <SelectContent>
                   {designations.filter(d => d.is_active).map(designation => (
