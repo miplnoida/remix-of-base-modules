@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Users, Search, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Users, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { useInsuredPersonApplications, useApproveApplication, useRejectApplication, InsuredPersonApplication } from '@/hooks/useOnlineApplications';
@@ -26,8 +26,9 @@ import { WorkflowStatusCell } from '@/components/online-applications/WorkflowSta
 export default function InsuredPersonApplications() {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [nameFilter, setNameFilter] = useState('');
+  const [refFilter, setRefFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('Pending');
   
   // Action dialog state
   const [actionDialog, setActionDialog] = useState<{
@@ -45,9 +46,7 @@ export default function InsuredPersonApplications() {
     isFetching,
     refresh,
     dataUpdatedAt 
-  } = useInsuredPersonApplications({ 
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = useInsuredPersonApplications();
 
   const approveApplication = useApproveApplication();
   const rejectApplication = useRejectApplication();
@@ -60,19 +59,43 @@ export default function InsuredPersonApplications() {
     return <Badge variant={getStatusVariant(status)}>{formatStatusDisplay(status)}</Badge>;
   };
 
-  // Filter applications client-side for search
-  const filteredApplications = (applications || []).filter(app => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      app.referenceNumber?.toLowerCase().includes(searchLower) ||
-      app.firstName?.toLowerCase().includes(searchLower) ||
-      app.lastName?.toLowerCase().includes(searchLower) ||
-      app.fullName?.toLowerCase().includes(searchLower) ||
-      app.email?.toLowerCase().includes(searchLower) ||
-      app.phone?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Apply filters based on business rules
+  const filteredApplications = useMemo(() => {
+    return (applications || []).filter(app => {
+      // Status filter logic
+      const appStatus = (app.status || '').toLowerCase();
+      if (statusFilter === 'Pending') {
+        // Exclude Closed, Completed, Approved, Rejected
+        const excludedStatuses = ['closed', 'completed', 'approved', 'rejected'];
+        if (excludedStatuses.includes(appStatus)) return false;
+      } else if (statusFilter === 'Closed') {
+        // Include only Closed, Completed, Approved
+        const closedStatuses = ['closed', 'completed', 'approved'];
+        if (!closedStatuses.includes(appStatus)) return false;
+      } else if (statusFilter === 'Rejected') {
+        if (appStatus !== 'rejected') return false;
+      }
+      // 'all' → no status restriction
+
+      // Name filter (partial, case-insensitive)
+      if (nameFilter.trim()) {
+        const search = nameFilter.trim().toLowerCase();
+        const nameMatch =
+          app.fullName?.toLowerCase().includes(search) ||
+          app.firstName?.toLowerCase().includes(search) ||
+          app.lastName?.toLowerCase().includes(search);
+        if (!nameMatch) return false;
+      }
+
+      // Reference Number filter (partial, case-insensitive)
+      if (refFilter.trim()) {
+        const search = refFilter.trim().toLowerCase();
+        if (!app.referenceNumber?.toLowerCase().includes(search)) return false;
+      }
+
+      return true;
+    });
+  }, [applications, statusFilter, nameFilter, refFilter]);
 
   // Get reference numbers for workflow status lookup
   const referenceNumbers = useMemo(() => 
@@ -98,7 +121,7 @@ export default function InsuredPersonApplications() {
   // Reset pagination when filters change
   useEffect(() => {
     resetPagination();
-  }, [searchTerm, statusFilter]);
+  }, [nameFilter, refFilter, statusFilter]);
 
   const handleApprove = (application: InsuredPersonApplication) => {
     setActionDialog({ open: true, type: 'approve', application });
@@ -217,30 +240,53 @@ export default function InsuredPersonApplications() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by Reference No, Name, Email, or Phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Active</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-                <SelectItem value="UnderReview">Under Review</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Name</Label>
+              <Input
+                placeholder="Search by name..."
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Reference Number</Label>
+              <Input
+                placeholder="Search by reference no..."
+                value={refFilter}
+                onChange={(e) => setRefFilter(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  setNameFilter('');
+                  setRefFilter('');
+                  setStatusFilter('Pending');
+                }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reset
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -390,7 +436,7 @@ export default function InsuredPersonApplications() {
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No applications found</p>
               <p className="text-sm mt-1">
-                {searchTerm || statusFilter !== 'all' 
+                {nameFilter || refFilter || statusFilter !== 'all'
                   ? 'Try adjusting your search or filter criteria'
                   : 'No applications have been submitted yet'}
               </p>
