@@ -136,7 +136,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     });
   }, []);
 
-  /** Handle View click */
+  /** Handle View click — open signedUrl directly in a new tab */
   const handleView = useCallback(async (doc: ExternalDocument, index: number) => {
     const docUrl = getDocUrl(doc);
     if (!docUrl) {
@@ -145,29 +145,28 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     }
 
     const category = getFileCategory(doc);
-    const docId = doc.id || `doc-${index}`;
     const name = getDocName(doc, index);
-    setLoadingDocId(docId);
 
-    try {
-      const blob = await fetchDocBlob(docUrl, name, 'stream');
-
-      if (category === 'pdf') {
-        // Convert to data URL and open in new tab — blob URLs don't work cross-origin
-        const dataUrl = await blobToDataUrl(blob);
-        window.open(dataUrl, '_blank');
-      } else {
+    if (category === 'image') {
+      // For images, show in preview modal via proxy
+      const docId = doc.id || `doc-${index}`;
+      setLoadingDocId(docId);
+      try {
+        const blob = await fetchDocBlob(docUrl, name, 'stream');
         const blobUrl = URL.createObjectURL(blob);
         setPreviewDoc({ url: blobUrl, name, category });
         setPreviewOpen(true);
+      } catch (err: any) {
+        console.error('Document view error:', err);
+        toast.error('Failed to load document', { description: err.message });
+      } finally {
+        setLoadingDocId(null);
       }
-    } catch (err: any) {
-      console.error('Document view error:', err);
-      toast.error('Failed to load document', { description: err.message });
-    } finally {
-      setLoadingDocId(null);
+    } else {
+      // For PDFs and other files, open the signedUrl directly in a new tab
+      window.open(docUrl, '_blank');
     }
-  }, [fetchDocBlob, blobToDataUrl]);
+  }, [fetchDocBlob]);
 
   /** Handle Download click */
   const handleDownload = useCallback(async (doc: ExternalDocument, index: number) => {
