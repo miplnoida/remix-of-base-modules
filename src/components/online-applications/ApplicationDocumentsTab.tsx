@@ -33,7 +33,7 @@ function getDocType(doc: ExternalDocument): string {
 }
 
 /** Determine file category from name, type, or mimeType */
-function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'other' {
+function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'word' | 'other' {
   const name = (doc.fileName || doc.name || '').toLowerCase();
   const type = (doc.documentType || doc.type || '').toLowerCase();
   const mime = (doc.mimeType || '').toLowerCase();
@@ -46,6 +46,10 @@ function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'other' {
     name.endsWith('.png') || name.endsWith('.gif') ||
     name.endsWith('.webp') || name.endsWith('.svg')
   ) return 'image';
+  if (
+    mime.includes('word') || mime.includes('document') ||
+    name.endsWith('.doc') || name.endsWith('.docx')
+  ) return 'word';
   return 'other';
 }
 
@@ -76,7 +80,7 @@ function formatDocDate(dateStr?: string): string {
 
 export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDelete }: ApplicationDocumentsTabProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'word' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   // Build a combined list: photo first, then documents
@@ -151,13 +155,15 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
 
     try {
       const blob = await fetchDocBlob(docUrl, name, 'stream');
+      const blobUrl = URL.createObjectURL(blob);
 
-      if (category === 'pdf') {
-        // Convert to data URL and open in new tab — blob URLs don't work cross-origin
-        const dataUrl = await blobToDataUrl(blob);
-        window.open(dataUrl, '_blank');
-      } else {
-        const blobUrl = URL.createObjectURL(blob);
+      if (category === 'pdf' || category === 'image') {
+        // Open PDFs and images directly in a new tab using blob URL
+        window.open(blobUrl, '_blank');
+        // Revoke after a delay to allow the tab to load
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } else if (category === 'word' || category === 'other') {
+        // Word docs and other types: show preview dialog with fallback
         setPreviewDoc({ url: blobUrl, name, category });
         setPreviewOpen(true);
       }
@@ -357,11 +363,15 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                 />
               </div>
             )}
-            {previewDoc?.category === 'other' && (
+            {(previewDoc?.category === 'word' || previewDoc?.category === 'other') && (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <AlertTriangle className="h-12 w-12 mb-4 text-destructive" />
                 <p className="font-medium text-lg">Preview not available</p>
-                <p className="text-sm mt-1 mb-4">This file format cannot be previewed in the browser.</p>
+                <p className="text-sm mt-1 mb-4">
+                  {previewDoc?.category === 'word'
+                    ? 'Word documents cannot be previewed in the browser. Please download the file to view it.'
+                    : 'This file format cannot be previewed in the browser.'}
+                </p>
                 <Button
                   variant="default"
                   onClick={() => {
