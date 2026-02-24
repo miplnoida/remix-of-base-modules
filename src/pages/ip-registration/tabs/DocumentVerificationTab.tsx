@@ -342,11 +342,22 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       // Check supportive document requirement — skip if already satisfied by mandatory
       const selectedCode = (formData as any)[cat.formField];
       if (selectedCode && CODES_REQUIRING_SUPPORTIVE.includes(selectedCode) && !supportiveSelections[cat.id]) {
-        errs[`${cat.id}_supportive`] = `A supportive ID document is required when using ${verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode}`;
+        // Check if the supportive requirement is auto-satisfied by a matching mandatory upload
+        // Look for ANY mandatory category (other than this one) that uses a supportive-eligible doc code AND has uploads
+        const isSatisfiedByAnyMandatory = SUPPORTIVE_DOC_CODES.some(supCode => {
+          const matchingMandatory = verificationCategories.find(
+            other => other.id !== cat.id && (formData as any)[other.formField] === supCode
+          );
+          if (!matchingMandatory) return false;
+          return documents.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0;
+        });
+        if (!isSatisfiedByAnyMandatory) {
+          errs[`${cat.id}_supportive`] = `A supportive ID document is required when using ${verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode}`;
+        }
       }
     });
     return errs;
-  }, [formData, verificationCategories, supportiveSelections, verifyTypes]);
+  }, [formData, verificationCategories, supportiveSelections, verifyTypes, documents]);
 
   const canProceedToUpload = Object.keys(selectionErrors).length === 0 &&
     verificationCategories.filter(c => c.isMandatory).every(c => !!(formData as any)[c.formField]);
