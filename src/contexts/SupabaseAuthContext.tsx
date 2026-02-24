@@ -381,11 +381,25 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Login function with lockout check
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }> => {
     try {
+      // Resolve the actual auth email (handles profile/auth email mismatches)
+      let loginEmail = email;
+      try {
+        const { data: resolveData } = await supabase.functions.invoke('resolve-auth-email', {
+          body: { email },
+        });
+        if (resolveData?.auth_email) {
+          loginEmail = resolveData.auth_email;
+        }
+      } catch (resolveErr) {
+        console.warn('Email resolution failed, using provided email:', resolveErr);
+      }
+
       const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
-        .eq('email', email)
-        .single();
+        .or(`email.eq.${email},email.eq.${loginEmail}`)
+        .limit(1)
+        .maybeSingle();
 
       if (existingProfile) {
         if (!existingProfile.is_active) {
@@ -402,7 +416,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
 

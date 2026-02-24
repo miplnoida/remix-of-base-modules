@@ -111,106 +111,25 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Find the Supabase auth user ID from the user_identity_map
-    const { data: identityMap, error: mapError } = await supabaseAdmin
-      .from("user_identity_map")
-      .select("supabase_auth_id, identity_user_id")
-      .eq("identity_user_id", identity_user_id)
+    // The identity_user_id from profiles table IS the Supabase auth user ID
+    // Verify the user exists in profiles
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .eq("id", identity_user_id)
       .single();
 
-    if (mapError || !identityMap) {
-      // If no mapping found, try to find by looking at profiles table directly
-      const { data: profile, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .select("id, email")
-        .eq("id", identity_user_id)
-        .single();
-
-      if (profileError || !profile) {
-        return new Response(
-          JSON.stringify({ error: "User not found in identity map or profiles" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // The identity_user_id is actually the Supabase auth user ID
-      const supabaseAuthUserId = identity_user_id;
-
-      // Update the password using admin API
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-        supabaseAuthUserId,
-        { password: new_password }
-      );
-
-      if (updateError) {
-        await logToSystem(supabaseAdmin, 'system_error_logs', {
-          api_name: 'admin-update-password',
-          module: 'UserManagement',
-          error_type: 'PasswordUpdateError',
-          error_message: updateError.message,
-          severity: 'error',
-          user_id: callingUser.id,
-          payload_json: { target_user_id: identity_user_id },
-        }, correlationId);
-
-        return new Response(
-          JSON.stringify({ error: updateError.message }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Update the profiles table to track password change
-      await supabaseAdmin
-        .from("profiles")
-        .update({
-          last_password_change: new Date().toISOString(),
-          force_password_change: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", supabaseAuthUserId);
-
-      const executionTime = Math.round(performance.now() - startTime);
-
-      // Log the successful password update
-      await logToSystem(supabaseAdmin, 'system_audit_trail', {
-        action: 'update',
-        entity_type: 'user_password',
-        entity_id: supabaseAuthUserId,
-        module: 'UserManagement',
-        user_name: callingUser.email,
-        user_id: callingUser.id,
-        description: `Password updated for user ${profile.email}`,
-      }, correlationId);
-
-      await logToSystem(supabaseAdmin, 'system_technical_logs', {
-        api_name: 'admin-update-password',
-        module: 'UserManagement',
-        severity: 'info',
-        status: 'success',
-        execution_time_ms: executionTime,
-        user_id: callingUser.id,
-        entity_type: 'user',
-        entity_id: supabaseAuthUserId,
-      }, correlationId);
-
+    if (profileError || !profile) {
       return new Response(
-        JSON.stringify({ success: true, message: "Password updated successfully" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "User not found in profiles" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // We have a mapping, use the supabase_auth_id
-    const supabaseAuthUserId = identityMap.supabase_auth_id;
-
-    if (!supabaseAuthUserId) {
-      return new Response(
-        JSON.stringify({ error: "No Supabase auth ID found for this user. User may need to be migrated." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const supabaseAuthUserId = identity_user_id;
 
     // Update the password using admin API
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+    const { data: updatedUser, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       supabaseAuthUserId,
       { password: new_password }
     );
@@ -223,7 +142,7 @@ Deno.serve(async (req: Request) => {
         error_message: updateError.message,
         severity: 'error',
         user_id: callingUser.id,
-        payload_json: { target_user_id: identity_user_id, supabase_auth_id: supabaseAuthUserId },
+        payload_json: { target_user_id: identity_user_id },
       }, correlationId);
 
       return new Response(
@@ -232,24 +151,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Update the AspNetUsers table to track password change
-    await supabaseAdmin
-      .from("AspNetUsers")
-      .update({
-        last_password_change: new Date().toISOString(),
-        force_password_change: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("Id", identity_user_id);
+    // Sync the profile email with auth email if they differ
+    // This ensures the user can always login with the email shown in their profile
+    const authEmail = updatedUser?.user?.email;
+    const profileUpdateData: Record<string, unknown> = {
+      last_password_change: new Date().toISOString(),
+      force_password_change: false,
+      updated_at: new Date().toISOString(),
+    };
 
-    // Also update profiles if exists
+    if (authEmail && authEmail !== profile.email) {
+      profileUpdateData.email = authEmail;
+      console.log(`Syncing profile email from "${profile.email}" to auth email "${authEmail}" for user ${supabaseAuthUserId}`);
+    }
+
     await supabaseAdmin
       .from("profiles")
-      .update({
-        last_password_change: new Date().toISOString(),
-        force_password_change: false,
-        updated_at: new Date().toISOString(),
-      })
+      .update(profileUpdateData)
       .eq("id", supabaseAuthUserId);
 
     const executionTime = Math.round(performance.now() - startTime);
@@ -258,11 +176,11 @@ Deno.serve(async (req: Request) => {
     await logToSystem(supabaseAdmin, 'system_audit_trail', {
       action: 'update',
       entity_type: 'user_password',
-      entity_id: identity_user_id,
+      entity_id: supabaseAuthUserId,
       module: 'UserManagement',
       user_name: callingUser.email,
       user_id: callingUser.id,
-      description: `Password updated for user ID ${identity_user_id}`,
+      description: `Password updated for user ${authEmail || profile.email}`,
     }, correlationId);
 
     await logToSystem(supabaseAdmin, 'system_technical_logs', {
@@ -273,7 +191,7 @@ Deno.serve(async (req: Request) => {
       execution_time_ms: executionTime,
       user_id: callingUser.id,
       entity_type: 'user',
-      entity_id: identity_user_id,
+      entity_id: supabaseAuthUserId,
     }, correlationId);
 
     return new Response(
