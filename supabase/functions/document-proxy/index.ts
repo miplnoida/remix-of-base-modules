@@ -110,6 +110,32 @@ Deno.serve(async (req) => {
       let fileBlob: ArrayBuffer | null = null
       let contentType = 'application/octet-stream'
 
+      // Helper: infer MIME type from file extension
+      const inferMimeType = (urlOrPath: string): string => {
+        const ext = urlOrPath.split(/[?#]/)[0].split('.').pop()?.toLowerCase()
+        const mimeMap: Record<string, string> = {
+          pdf: 'application/pdf',
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          png: 'image/png',
+          gif: 'image/gif',
+          webp: 'image/webp',
+          svg: 'image/svg+xml',
+          doc: 'application/msword',
+          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          xls: 'application/vnd.ms-excel',
+          xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          ppt: 'application/vnd.ms-powerpoint',
+          pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          txt: 'text/plain',
+          csv: 'text/csv',
+          mp3: 'audio/mpeg',
+          mp4: 'video/mp4',
+          zip: 'application/zip',
+        }
+        return ext ? (mimeMap[ext] || 'application/octet-stream') : 'application/octet-stream'
+      }
+
       // Try to extract bucket/path from external Supabase storage URL and download via SDK
       const externalStorageMatch = documentUrl.match(
         /https:\/\/([^/]+)\.supabase\.co\/storage\/v1\/object\/(?:sign|public)\/([^/?]+)\/(.+?)(?:\?|$)/
@@ -129,7 +155,10 @@ Deno.serve(async (req) => {
           // Fall through to direct fetch as fallback
         } else {
           fileBlob = await fileData.arrayBuffer()
-          contentType = fileData.type || 'application/octet-stream'
+          // Use blob type if present, otherwise infer from file path
+          contentType = (fileData.type && fileData.type !== 'application/octet-stream')
+            ? fileData.type
+            : inferMimeType(filePath)
         }
       }
 
@@ -164,8 +193,12 @@ Deno.serve(async (req) => {
           )
         }
 
-        contentType = fetchResponse.headers.get('content-type') || 'application/octet-stream'
+        const fetchContentType = fetchResponse.headers.get('content-type') || ''
         fileBlob = await fetchResponse.arrayBuffer()
+        // Use fetch content-type if meaningful, otherwise infer from URL
+        contentType = (fetchContentType && fetchContentType !== 'application/octet-stream')
+          ? fetchContentType
+          : inferMimeType(documentUrl)
       }
       
       const responseHeaders: Record<string, string> = {
