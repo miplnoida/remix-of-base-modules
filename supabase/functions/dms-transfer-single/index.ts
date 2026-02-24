@@ -185,9 +185,31 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const dmsBaseUrl = Deno.env.get('DMS_API_BASE_URL')
-  const dmsApiKey = Deno.env.get('DMS_API_KEY')
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // Fetch DMS config from api_settings table (setting_key = 'dms_service')
+  let dmsBaseUrl: string | null = Deno.env.get('DMS_API_BASE_URL') || null
+  let dmsApiKey: string | null = Deno.env.get('DMS_API_KEY') || null
+  let dmsHeaderName: string = 'x-api-key' // default fallback
+
+  try {
+    const { data: dmsConfig, error: dmsConfigError } = await supabase
+      .from('api_settings')
+      .select('base_url, api_key, header_name, is_active')
+      .eq('setting_key', 'dms_service')
+      .single()
+
+    if (!dmsConfigError && dmsConfig && dmsConfig.is_active) {
+      if (dmsConfig.base_url) dmsBaseUrl = dmsConfig.base_url
+      if (dmsConfig.api_key) dmsApiKey = dmsConfig.api_key
+      if (dmsConfig.header_name) dmsHeaderName = dmsConfig.header_name
+      console.log('[DMS-Single] Using api_settings config: header=' + dmsHeaderName)
+    } else {
+      console.log('[DMS-Single] api_settings dms_service not found or inactive, falling back to env vars')
+    }
+  } catch (e) {
+    console.error('[DMS-Single] Failed to fetch api_settings, using env vars:', e)
+  }
 
   // External Supabase project client for downloading applicant documents
   const externalAnonKey = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')
@@ -550,7 +572,7 @@ Deno.serve(async (req) => {
     formData.append('EntryFields', entryFields)
 
     const dmsHeaders: Record<string, string> = {}
-    if (dmsApiKey) dmsHeaders['x-api-key'] = dmsApiKey
+    if (dmsApiKey) dmsHeaders[dmsHeaderName] = dmsApiKey
 
     // DMS_API_BASE_URL may already include the full path (e.g. https://host/api/Dms/files)
     const dmsEndpoint = dmsBaseUrl.replace(/\/+$/, '').endsWith('/api/Dms/files')
