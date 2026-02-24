@@ -4857,11 +4857,14 @@ export type Database = {
           file_path: string
           file_size: number | null
           id: string
+          is_supportive: boolean | null
           is_temp: boolean | null
           mime_type: string | null
+          supportive_doc_type: string | null
           unique_uuid: string
           uploaded_at: string | null
           uploaded_by: string | null
+          verification_category: string | null
         }
         Insert: {
           document_name: string
@@ -4869,11 +4872,14 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
+          is_supportive?: boolean | null
           is_temp?: boolean | null
           mime_type?: string | null
+          supportive_doc_type?: string | null
           unique_uuid: string
           uploaded_at?: string | null
           uploaded_by?: string | null
+          verification_category?: string | null
         }
         Update: {
           document_name?: string
@@ -4881,11 +4887,14 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
+          is_supportive?: boolean | null
           is_temp?: boolean | null
           mime_type?: string | null
+          supportive_doc_type?: string | null
           unique_uuid?: string
           uploaded_at?: string | null
           uploaded_by?: string | null
+          verification_category?: string | null
         }
         Relationships: []
       }
