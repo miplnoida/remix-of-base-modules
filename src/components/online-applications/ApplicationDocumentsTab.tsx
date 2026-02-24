@@ -126,15 +126,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     return new Blob([arrayBuffer], { type: contentType });
   }, []);
 
-  /** Convert blob to base64 data URL */
-  const blobToDataUrl = useCallback((blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }, []);
 
   /** Handle View click for image preview only */
   const handleView = useCallback(async (doc: ExternalDocument, index: number) => {
@@ -240,7 +231,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   const isLoading = loadingDocId === docId;
                   const hasUrl = !!getDocUrl(doc);
                   const isImage = getFileCategory(doc) === 'image';
-                  const docUrl = getDocUrl(doc);
                   return (
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
@@ -260,7 +250,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                         <div className="flex gap-2 justify-end">
                           {hasUrl ? (
                             <>
-                              {isImage ? (
+                              {isImage && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -274,13 +264,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                                     <Eye className="h-4 w-4" />
                                   )}
                                   View
-                                </Button>
-                              ) : (
-                                <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                                  <a href={docUrl!} target="_blank" rel="noopener noreferrer">
-                                    <Eye className="h-4 w-4" />
-                                    View
-                                  </a>
                                 </Button>
                               )}
                               <Button
