@@ -27,22 +27,29 @@ Deno.serve(async (req) => {
       )
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } },
-    })
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  })
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+  const token = authHeader.replace('Bearer ', '')
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
+  if (claimsError || !claimsData?.claims) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
 
-    const userId = claimsData.claims.sub
+  const userId = claimsData.claims.sub
+
+  // External Supabase client for downloading from external storage
+  const externalAnonKey = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')
+  const externalSupabaseUrl = 'https://hekgiuycrjncxalcapfz.supabase.co'
+  const externalSupabase = externalAnonKey
+    ? createClient(externalSupabaseUrl, externalAnonKey)
+    : null
 
     // Parse request
     const body = await req.json()
@@ -99,44 +106,67 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'stream' || action === 'download') {
-      // Fetch the document from the external source
-      const fetchResponse = await fetch(documentUrl, {
-        headers: {
-          // If the external URL needs auth, add it here
-          // For public bucket URLs, no auth needed
-        },
-      })
+      let fetchResponse: Response | null = null
+      let fileBlob: ArrayBuffer | null = null
+      let contentType = 'application/octet-stream'
 
-      if (!fetchResponse.ok) {
-        // Log the failure
-        try {
-          const adminClient = createClient(supabaseUrl, supabaseServiceKey)
-          await adminClient.from('api_logs').insert({
-            api_name: 'document-proxy',
-            endpoint_url: documentUrl,
-            http_method: 'GET',
-            response_status: fetchResponse.status,
-            is_success: false,
-            error_message: `Failed to fetch document: ${fetchResponse.statusText}`,
-            duration_ms: 0,
-            module: 'document-proxy',
-            user_id: userId,
-          })
-        } catch (_logErr) {
-          console.error('Failed to log to api_logs:', _logErr)
+      // Try to extract bucket/path from external Supabase storage URL and download via SDK
+      const externalStorageMatch = documentUrl.match(
+        /https:\/\/([^/]+)\.supabase\.co\/storage\/v1\/object\/(?:sign|public)\/([^/?]+)\/(.+?)(?:\?|$)/
+      )
+
+      if (externalStorageMatch && externalSupabase) {
+        const bucket = externalStorageMatch[2]
+        const filePath = decodeURIComponent(externalStorageMatch[3])
+        console.log(`[document-proxy] Downloading via SDK: bucket=${bucket}, path=${filePath}`)
+
+        const { data: fileData, error: downloadError } = await externalSupabase.storage
+          .from(bucket)
+          .download(filePath)
+
+        if (downloadError || !fileData) {
+          console.error('[document-proxy] SDK download failed:', downloadError?.message)
+          // Fall through to direct fetch as fallback
+        } else {
+          fileBlob = await fileData.arrayBuffer()
+          contentType = fileData.type || 'application/octet-stream'
         }
-
-        return new Response(
-          JSON.stringify({ 
-            error: 'Document not found or inaccessible',
-            details: `External storage returned ${fetchResponse.status}`,
-          }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
       }
 
-      const contentType = fetchResponse.headers.get('content-type') || 'application/octet-stream'
-      const fileBlob = await fetchResponse.arrayBuffer()
+      // Fallback: direct fetch (works for public URLs or non-expired signed URLs)
+      if (!fileBlob) {
+        fetchResponse = await fetch(documentUrl)
+
+        if (!fetchResponse.ok) {
+          try {
+            const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+            await adminClient.from('api_logs').insert({
+              api_name: 'document-proxy',
+              endpoint_url: documentUrl,
+              http_method: 'GET',
+              response_status: fetchResponse.status,
+              is_success: false,
+              error_message: `Failed to fetch document: ${fetchResponse.statusText}`,
+              duration_ms: 0,
+              module: 'document-proxy',
+              user_id: userId,
+            })
+          } catch (_logErr) {
+            console.error('Failed to log to api_logs:', _logErr)
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              error: 'Document not found or inaccessible',
+              details: `External storage returned ${fetchResponse.status}`,
+            }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        contentType = fetchResponse.headers.get('content-type') || 'application/octet-stream'
+        fileBlob = await fetchResponse.arrayBuffer()
+      }
       
       const responseHeaders: Record<string, string> = {
         ...corsHeaders,
