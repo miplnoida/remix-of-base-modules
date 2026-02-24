@@ -377,8 +377,17 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           .upload(fileName, file);
         if (uploadError) throw uploadError;
 
-        setUploadProgress(prev => ({ ...prev, [uploadKey]: 70 }));
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 60 }));
 
+        // Get public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('ip-documents')
+          .getPublicUrl(fileName);
+        const publicUrl = urlData?.publicUrl || '';
+
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 75 }));
+
+        // Insert into ip_documents (verification tracking)
         const { error: dbError } = await supabase
           .from('ip_documents')
           .insert({
@@ -396,11 +405,45 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           });
         if (dbError) throw dbError;
 
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 90 }));
+
+        // Also insert into ip_application_documents (SSN-based, for DMS transfer)
+        if (ssn) {
+          const { error: appDocError } = await supabase
+            .from('ip_application_documents')
+            .insert({
+              ssn,
+              document_name: slot.docDescription,
+              document_type: slot.isSupportive ? 'supportive' : 'mandatory',
+              file_name: file.name,
+              file_path: fileName,
+              url: publicUrl,
+              mime_type: file.type,
+              file_size: file.size,
+              created_by: user?.id,
+              transfer_status: 'Pending',
+              metadata: {
+                verification_category: slot.categoryId,
+                is_supportive: slot.isSupportive,
+                supportive_doc_type: slot.isSupportive ? slot.docCode : null,
+                unique_uuid: formData.unique_uuid,
+              },
+            });
+          if (appDocError) {
+            console.error('Error inserting into ip_application_documents:', appDocError);
+            // Non-blocking: doc is already in ip_documents, log but don't fail
+          }
+        }
+
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 100 }));
         toast.success(`"${file.name}" uploaded successfully`, {
           icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
         });
         fetchDocuments();
+        // Refresh application documents query
+        if (ssn) {
+          queryClient.invalidateQueries({ queryKey: ['ip-application-documents', ssn] });
+        }
       } catch (error) {
         console.error('Upload error:', error);
         toast.error(`Failed to upload "${file.name}"`);
@@ -424,6 +467,17 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       await supabase.storage.from('ip-documents').remove([doc.file_path]);
       const { error } = await supabase.from('ip_documents').delete().eq('id', doc.id);
       if (error) throw error;
+
+      // Also remove matching record from ip_application_documents by file_path
+      if (ssn) {
+        await supabase
+          .from('ip_application_documents')
+          .delete()
+          .eq('ssn', ssn)
+          .eq('file_path', doc.file_path);
+        queryClient.invalidateQueries({ queryKey: ['ip-application-documents', ssn] });
+      }
+
       toast.success('Document deleted');
       fetchDocuments();
     } catch (error) {
