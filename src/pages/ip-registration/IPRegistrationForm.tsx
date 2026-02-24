@@ -1007,7 +1007,16 @@ export default function IPRegistrationForm() {
                 )}
                 {/* Save button on last tab */}
                 {isEditable && activeTab === 'documents' && (
-                  <Button onClick={() => saveToDatabase(formData)}>
+                  <Button onClick={async () => {
+                    const saved = await saveToDatabase(formData);
+                    if (saved !== false) {
+                      if (!completedTabs.includes('documents')) {
+                        setCompletedTabs(prev => [...prev, 'documents']);
+                      }
+                      setPendingTabChange('__main_dependent__');
+                      setShowStepSuccess(true);
+                    }
+                  }}>
                     Save
                   </Button>
                 )}
