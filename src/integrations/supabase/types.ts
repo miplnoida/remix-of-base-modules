@@ -12416,6 +12416,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_dms_transfer_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_ip_duplicates: {
         Args: {
           p_dob: string

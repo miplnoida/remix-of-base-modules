@@ -276,7 +276,47 @@ Deno.serve(async (req) => {
       })
     }
 
-    // === Fetch the document ===
+    // === Application status validation (server-side business rule enforcement) ===
+    const blockedStatuses = ['Z', 'D', 'P', 'R'] // Draft, Draft, Pending, Rejected
+    const { data: ipRecord, error: ipError } = await supabase
+      .from('ip_master')
+      .select('status')
+      .eq('ssn', ssn)
+      .single()
+
+    if (ipError || !ipRecord) {
+      await logError(supabase, {
+        correlationId, userId: authenticatedUserId, userCode, ssn,
+        errorType: 'ValidationError',
+        errorMessage: `IP master record not found for SSN: ${ssn}`,
+        module: 'DMS Transfer (Single)',
+      })
+      return new Response(JSON.stringify({
+        error: 'Application record not found',
+        reason_code: 'no_record',
+      }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (blockedStatuses.includes(ipRecord.status)) {
+      await logAudit(supabase, {
+        correlationId, userId: authenticatedUserId, userCode,
+        action: 'dms_transfer_blocked_by_status',
+        entityType: 'ip_master',
+        entityId: ssn,
+        description: `DMS transfer blocked: application status "${ipRecord.status}" is not eligible`,
+        payload: { ssn, status: ipRecord.status, blocked_statuses: blockedStatuses },
+      })
+      return new Response(JSON.stringify({
+        error: 'DMS transfer not allowed for current application status',
+        reason_code: 'status_blocked',
+        application_status: ipRecord.status,
+      }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { data: doc, error: docError } = await supabase
       .from('ip_application_documents')
       .select('*')

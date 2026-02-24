@@ -159,6 +159,20 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     staleTime: 60000,
   });
 
+  // Backend-driven DMS transfer eligibility check
+  const { data: dmsEligibility } = useQuery({
+    queryKey: ['dms-transfer-eligibility', ssn],
+    queryFn: async () => {
+      if (!ssn) return { can_transfer_to_dms: false };
+      const { data, error } = await supabase.rpc('check_dms_transfer_eligibility', { p_ssn: ssn });
+      if (error) throw error;
+      return data as { can_transfer_to_dms: boolean; reason: string; message: string; application_status: string | null; pending_document_count: number };
+    },
+    enabled: !!ssn,
+    staleTime: 30000,
+  });
+  const canTransferToDms = dmsEligibility?.can_transfer_to_dms === true;
+
   // --- Dynamic verification categories based on form data ---
   const verificationCategories = useMemo((): VerificationCategory[] => {
     const categories: VerificationCategory[] = [];
@@ -620,6 +634,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       if (!response.ok || result.error) throw new Error(result.error || `HTTP ${response.status}`);
       toast.success('Document transferred to DMS', { description: doc.document_name || doc.file_name || 'Document' });
       queryClient.invalidateQueries({ queryKey: ['ip-application-documents', ssn] });
+      queryClient.invalidateQueries({ queryKey: ['dms-transfer-eligibility', ssn] });
     } catch (err: any) {
       console.error('DMS transfer error:', err);
       toast.error('DMS transfer failed', { description: err.message });
@@ -1067,7 +1082,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                               ) : (
                                 <span className="text-xs text-muted-foreground italic">No file available</span>
                               )}
-                              {doc.transfer_status !== 'Transferred' && (
+                              {canTransferToDms && doc.transfer_status !== 'Transferred' && (
                                 <Button variant="default" size="sm" onClick={() => handleTransferToDms(doc)} disabled={transferringDocId === doc.id} className="gap-1.5">
                                   {transferringDocId === doc.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                                   {transferringDocId === doc.id ? 'Transferring…' : 'Transfer to DMS'}
