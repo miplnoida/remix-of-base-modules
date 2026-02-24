@@ -136,7 +136,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     });
   }, []);
 
-  /** Handle View click — open signedUrl directly in a new tab */
+  /** Handle View click for image preview only */
   const handleView = useCallback(async (doc: ExternalDocument, index: number) => {
     const docUrl = getDocUrl(doc);
     if (!docUrl) {
@@ -145,26 +145,24 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     }
 
     const category = getFileCategory(doc);
-    const name = getDocName(doc, index);
+    if (category !== 'image') {
+      return;
+    }
 
-    if (category === 'image') {
-      // For images, show in preview modal via proxy
-      const docId = doc.id || `doc-${index}`;
-      setLoadingDocId(docId);
-      try {
-        const blob = await fetchDocBlob(docUrl, name, 'stream');
-        const blobUrl = URL.createObjectURL(blob);
-        setPreviewDoc({ url: blobUrl, name, category });
-        setPreviewOpen(true);
-      } catch (err: any) {
-        console.error('Document view error:', err);
-        toast.error('Failed to load document', { description: err.message });
-      } finally {
-        setLoadingDocId(null);
-      }
-    } else {
-      // For PDFs and other files, open the signedUrl directly in a new tab
-      window.open(docUrl, '_blank');
+    const docId = doc.id || `doc-${index}`;
+    const name = getDocName(doc, index);
+    setLoadingDocId(docId);
+
+    try {
+      const blob = await fetchDocBlob(docUrl, name, 'stream');
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewDoc({ url: blobUrl, name, category });
+      setPreviewOpen(true);
+    } catch (err: any) {
+      console.error('Document view error:', err);
+      toast.error('Failed to load document', { description: err.message });
+    } finally {
+      setLoadingDocId(null);
     }
   }, [fetchDocBlob]);
 
@@ -241,6 +239,8 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   const docId = doc.id || `doc-${index}`;
                   const isLoading = loadingDocId === docId;
                   const hasUrl = !!getDocUrl(doc);
+                  const isImage = getFileCategory(doc) === 'image';
+                  const docUrl = getDocUrl(doc);
                   return (
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
@@ -260,20 +260,29 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                         <div className="flex gap-2 justify-end">
                           {hasUrl ? (
                             <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleView(doc, index)}
-                                disabled={isLoading}
-                                className="gap-1.5"
-                              >
-                                {isLoading ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                                View
-                              </Button>
+                              {isImage ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleView(doc, index)}
+                                  disabled={isLoading}
+                                  className="gap-1.5"
+                                >
+                                  {isLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                  View
+                                </Button>
+                              ) : (
+                                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                                  <a href={docUrl!} target="_blank" rel="noopener noreferrer">
+                                    <Eye className="h-4 w-4" />
+                                    View
+                                  </a>
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
