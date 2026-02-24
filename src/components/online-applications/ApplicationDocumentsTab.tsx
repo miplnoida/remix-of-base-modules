@@ -154,16 +154,43 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     setLoadingDocId(docId);
 
     try {
+      // Download to temp memory first, then open
       const blob = await fetchDocBlob(docUrl, name, 'stream');
-      const blobUrl = URL.createObjectURL(blob);
 
       if (category === 'pdf' || category === 'image') {
-        // Open PDFs and images directly in a new tab using blob URL
-        window.open(blobUrl, '_blank');
-        // Revoke after a delay to allow the tab to load
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        // Create blob URL and open in a new tab with an embedded document
+        const blobUrl = URL.createObjectURL(blob);
+        const newTab = window.open('', '_blank');
+        if (newTab) {
+          // Write an HTML shell that embeds the blob content
+          if (category === 'pdf') {
+            newTab.document.write(`
+              <!DOCTYPE html>
+              <html><head><title>${name}</title></head>
+              <body style="margin:0;height:100vh;">
+                <embed src="${blobUrl}" type="application/pdf" width="100%" height="100%" style="position:absolute;top:0;left:0;right:0;bottom:0;" />
+              </body></html>
+            `);
+          } else {
+            // Images
+            newTab.document.write(`
+              <!DOCTYPE html>
+              <html><head><title>${name}</title></head>
+              <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a;">
+                <img src="${blobUrl}" alt="${name}" style="max-width:100%;max-height:100vh;object-fit:contain;" />
+              </body></html>
+            `);
+          }
+          newTab.document.close();
+          // Revoke after the tab has had time to render
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+        } else {
+          // Popup blocked – fall back to direct open
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        }
       } else if (category === 'word' || category === 'other') {
-        // Word docs and other types: show preview dialog with fallback
+        const blobUrl = URL.createObjectURL(blob);
         setPreviewDoc({ url: blobUrl, name, category });
         setPreviewOpen(true);
       }
