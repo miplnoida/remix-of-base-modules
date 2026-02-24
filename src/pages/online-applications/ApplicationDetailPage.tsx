@@ -214,6 +214,16 @@ export default function ApplicationDetailPage() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
+          {activeMeeting?.status === 'InProgress' && (
+            <Button
+              variant="default"
+              className="gap-2"
+              onClick={() => navigate(`/meetings/start/${activeMeeting.id}`)}
+            >
+              <Calendar className="h-4 w-4" />
+              Go to Meeting
+            </Button>
+          )}
           {activeMeeting && (
             <MeetingActionButtons
               meeting={activeMeeting}
