@@ -59,23 +59,37 @@ export default function InsuredPersonApplications() {
     return <Badge variant={getStatusVariant(status)}>{formatStatusDisplay(status)}</Badge>;
   };
 
+  // Get reference numbers for workflow status lookup
+  const referenceNumbers = useMemo(() => 
+    (applications || []).map(app => app.referenceNumber || app.applicationId).filter((ref): ref is string => !!ref),
+    [applications]
+  );
+
+  // Fetch workflow statuses for all applications
+  const { 
+    data: workflowStatusMap, 
+    isLoading: isLoadingWorkflowStatus 
+  } = useApplicationWorkflowStatus(referenceNumbers, 'insured-person', !isLoading && !error);
+
   // Apply filters based on business rules
+  // Use workflow status (displayed in grid) for filtering when available, fallback to app.status
   const filteredApplications = useMemo(() => {
     return (applications || []).filter(app => {
-      // Status filter logic
-      const appStatus = (app.status || '').toLowerCase();
+      // Determine the effective status: prefer workflow status over raw API status
+      const ref = app.referenceNumber || app.applicationId;
+      const workflowInfo = workflowStatusMap?.[ref];
+      const effectiveStatus = (workflowInfo?.workflowStatus || app.status || '').toLowerCase();
+
+      // Status filter logic (case-insensitive)
       if (statusFilter === 'Pending') {
-        // Exclude Closed, Completed, Approved, Rejected
         const excludedStatuses = ['closed', 'completed', 'approved', 'rejected'];
-        if (excludedStatuses.includes(appStatus)) return false;
+        if (excludedStatuses.includes(effectiveStatus)) return false;
       } else if (statusFilter === 'Closed') {
-        // Include only Closed, Completed, Approved
         const closedStatuses = ['closed', 'completed', 'approved'];
-        if (!closedStatuses.includes(appStatus)) return false;
+        if (!closedStatuses.includes(effectiveStatus)) return false;
       } else if (statusFilter === 'Rejected') {
-        if (appStatus !== 'rejected') return false;
+        if (effectiveStatus !== 'rejected') return false;
       }
-      // 'all' → no status restriction
 
       // Name filter (partial, case-insensitive)
       if (nameFilter.trim()) {
@@ -95,19 +109,7 @@ export default function InsuredPersonApplications() {
 
       return true;
     });
-  }, [applications, statusFilter, nameFilter, refFilter]);
-
-  // Get reference numbers for workflow status lookup
-  const referenceNumbers = useMemo(() => 
-    (applications || []).map(app => app.referenceNumber || app.applicationId).filter((ref): ref is string => !!ref),
-    [applications]
-  );
-
-  // Fetch workflow statuses for all applications
-  const { 
-    data: workflowStatusMap, 
-    isLoading: isLoadingWorkflowStatus 
-  } = useApplicationWorkflowStatus(referenceNumbers, 'insured-person', !isLoading && !error);
+  }, [applications, statusFilter, nameFilter, refFilter, workflowStatusMap]);
 
   // Sorting
   const { sortedData, sortConfig, handleSort } = useTableSort(filteredApplications, {
