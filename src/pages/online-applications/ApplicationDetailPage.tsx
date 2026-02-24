@@ -43,6 +43,8 @@ import { ConversionValidationPanel } from '@/components/online-applications/Conv
 import { checkWorkflowEligibility, type WorkflowEligibilityResult } from '@/services/workflowEligibilityService';
 import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
 import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
+import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
+import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
@@ -59,6 +61,9 @@ export default function ApplicationDetailPage() {
   const [workflowEligibility, setWorkflowEligibility] = useState<WorkflowEligibilityResult | null>(null);
   const [pendingConversionResult, setPendingConversionResult] = useState<{ ssn: string; unique_uuid: string; recordName: string } | null>(null);
   const [isInitiatingWorkflow, setIsInitiatingWorkflow] = useState(false);
+
+  // Meeting for this application
+  const { meeting: activeMeeting, invalidate: invalidateMeeting } = useApplicationMeeting(referenceNumber);
 
   // Master table lookups
   const { data: countries } = useCountries();
@@ -209,6 +214,15 @@ export default function ApplicationDetailPage() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
+          {activeMeeting && (
+            <MeetingActionButtons
+              meeting={activeMeeting}
+              onActionComplete={() => {
+                invalidateMeeting();
+                refetch();
+              }}
+            />
+          )}
           <WorkflowActionButtons
             sourceModule="online-insured-person-applications"
             sourceRecordId={referenceNumber || null}
