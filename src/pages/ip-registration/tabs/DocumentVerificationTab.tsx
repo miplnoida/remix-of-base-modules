@@ -240,50 +240,83 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       isSupportive: boolean;
       docCode: string;
       docDescription: string;
+      satisfiedByMandatory?: boolean; // auto-satisfied by a mandatory upload of same type
+      satisfiedByCategoryId?: string; // which mandatory category satisfies it
     }> = [];
+
+    // First pass: collect all mandatory (non-supportive) slots
+    const mandatorySlots: Array<{ categoryId: string; docCode: string; docDescription: string }> = [];
 
     verificationCategories.forEach(cat => {
       const selectedCode = (formData as any)[cat.formField];
       if (!selectedCode) return;
 
       const verifyItem = verifyTypes.find(v => v.code === selectedCode);
+      const desc = verifyItem?.description || selectedCode;
+      mandatorySlots.push({ categoryId: cat.id, docCode: selectedCode, docDescription: desc });
+
       slots.push({
         key: `${cat.id}_main`,
-        label: `${cat.label} — ${verifyItem?.description || selectedCode}`,
+        label: `${cat.label} — ${desc}`,
         categoryId: cat.id,
         isSupportive: false,
         docCode: selectedCode,
-        docDescription: verifyItem?.description || selectedCode,
+        docDescription: desc,
       });
+    });
 
-      // If main doc requires supportive
-      if (CODES_REQUIRING_SUPPORTIVE.includes(selectedCode)) {
-        const supportiveCode = supportiveSelections[cat.id];
-        if (supportiveCode) {
-          const supportiveItem = verifyTypes.find(v => v.code === supportiveCode);
-          slots.push({
-            key: `${cat.id}_supportive`,
-            label: `Supportive: ${supportiveItem?.description || supportiveCode} (for ${cat.label})`,
-            categoryId: cat.id,
-            isSupportive: true,
-            docCode: supportiveCode,
-            docDescription: supportiveItem?.description || supportiveCode,
-          });
-        }
-      }
+    // Second pass: add supportive slots, checking if already satisfied by a mandatory upload
+    verificationCategories.forEach(cat => {
+      const selectedCode = (formData as any)[cat.formField];
+      if (!selectedCode || !CODES_REQUIRING_SUPPORTIVE.includes(selectedCode)) return;
+
+      const supportiveCode = supportiveSelections[cat.id];
+      if (!supportiveCode) return;
+
+      const supportiveItem = verifyTypes.find(v => v.code === supportiveCode);
+      const supportiveDesc = supportiveItem?.description || supportiveCode;
+
+      // Check if ANY mandatory slot has the same doc code AND has uploaded documents
+      const matchingMandatory = mandatorySlots.find(
+        m => m.docCode === supportiveCode && m.categoryId !== cat.id
+      );
+      const mandatoryDocsForMatch = matchingMandatory
+        ? documents.filter(d => d.verification_category === matchingMandatory.categoryId && !d.is_supportive)
+        : [];
+      const isSatisfied = mandatoryDocsForMatch.length > 0;
+
+      slots.push({
+        key: `${cat.id}_supportive`,
+        label: `Supportive: ${supportiveDesc} (for ${cat.label})`,
+        categoryId: cat.id,
+        isSupportive: true,
+        docCode: supportiveCode,
+        docDescription: supportiveDesc,
+        satisfiedByMandatory: isSatisfied,
+        satisfiedByCategoryId: isSatisfied ? matchingMandatory!.categoryId : undefined,
+      });
     });
 
     return slots;
-  }, [formData, verificationCategories, verifyTypes, supportiveSelections]);
+  }, [formData, verificationCategories, verifyTypes, supportiveSelections, documents]);
 
   // Validation: can we proceed to upload?
+  // Helper: check if a supportive requirement is satisfied by a mandatory upload of same doc type
+  const isSupportiveSatisfiedByMandatory = useCallback((catId: string, supportiveCode: string): boolean => {
+    const matchingMandatory = verificationCategories.find(
+      other => other.id !== catId && (formData as any)[other.formField] === supportiveCode
+    );
+    if (!matchingMandatory) return false;
+    return documents.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0;
+  }, [verificationCategories, formData, documents]);
+
   const selectionErrors = useMemo(() => {
     const errs: Record<string, string> = {};
     verificationCategories.forEach(cat => {
       if (cat.isMandatory && !(formData as any)[cat.formField]) {
         errs[cat.formField] = `${cat.label} is required`;
       }
-      // Check supportive document requirement
+      // Check supportive document requirement — skip if already satisfied by mandatory
       const selectedCode = (formData as any)[cat.formField];
       if (selectedCode && CODES_REQUIRING_SUPPORTIVE.includes(selectedCode) && !supportiveSelections[cat.id]) {
         errs[`${cat.id}_supportive`] = `A supportive ID document is required when using ${verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode}`;
@@ -541,8 +574,14 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     }
   }, [ssn, userCode, queryClient]);
 
-  // Get documents for a specific upload slot
+  // Get documents for a specific upload slot (or its satisfying mandatory docs)
   const getDocsForSlot = (slot: typeof uploadSlots[0]) => {
+    // If this supportive slot is satisfied by a mandatory upload, show those docs instead
+    if (slot.satisfiedByMandatory && slot.satisfiedByCategoryId) {
+      return documents.filter(d =>
+        d.verification_category === slot.satisfiedByCategoryId && !d.is_supportive
+      );
+    }
     return documents.filter(d =>
       d.verification_category === slot.categoryId &&
       (slot.isSupportive ? d.is_supportive === true : !d.is_supportive)
@@ -653,36 +692,62 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                       {hasError && <p className="text-xs text-destructive">{hasError}</p>}
 
                       {/* Supportive document requirement */}
-                      {needsSupportive && (
-                        <div className="mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                              Supportive ID document required
-                            </span>
+                      {needsSupportive && (() => {
+                        // Check if selected supportive doc is already satisfied by a mandatory upload
+                        const supportiveCode = supportiveSelections[cat.id];
+                        const matchingMandatory = supportiveCode
+                          ? verificationCategories.find(other =>
+                              other.id !== cat.id && (formData as any)[other.formField] === supportiveCode
+                            )
+                          : null;
+                        const isSatisfied = matchingMandatory
+                          ? documents.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0
+                          : false;
+
+                        return (
+                          <div className={`mt-2 p-3 rounded-md border space-y-2 ${isSatisfied ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-700' : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'}`}>
+                            <div className="flex items-center gap-2">
+                              {isSatisfied ? (
+                                <>
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                    Supportive document satisfied via mandatory upload
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                                    Supportive ID document required
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {!isSatisfied && (
+                              <p className="text-xs text-amber-600 dark:text-amber-500">
+                                {verifyTypes.find(v => v.code === selectedCode)?.description} requires an Identification Card or Identification Letter as supporting evidence.
+                              </p>
+                            )}
+                            <Select
+                              value={supportiveSelections[cat.id] || undefined}
+                              onValueChange={(v) => setSupportiveSelections(prev => ({ ...prev, [cat.id]: v }))}
+                              disabled={!isEditable}
+                            >
+                              <SelectTrigger className={`bg-background ${supportiveError && !isSatisfied ? 'border-destructive' : ''}`}>
+                                <SelectValue placeholder="Select Supportive Document" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {supportiveDocOptions.map(v => (
+                                  <SelectItem key={v.code} value={v.code}>
+                                    {v.description || v.code}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {supportiveError && !isSatisfied && <p className="text-xs text-destructive">{supportiveError}</p>}
                           </div>
-                          <p className="text-xs text-amber-600 dark:text-amber-500">
-                            {verifyTypes.find(v => v.code === selectedCode)?.description} requires an Identification Card or Identification Letter as supporting evidence.
-                          </p>
-                          <Select
-                            value={supportiveSelections[cat.id] || undefined}
-                            onValueChange={(v) => setSupportiveSelections(prev => ({ ...prev, [cat.id]: v }))}
-                            disabled={!isEditable}
-                          >
-                            <SelectTrigger className={`bg-background ${supportiveError ? 'border-destructive' : ''}`}>
-                              <SelectValue placeholder="Select Supportive Document" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {supportiveDocOptions.map(v => (
-                                <SelectItem key={v.code} value={v.code}>
-                                  {v.description || v.code}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {supportiveError && <p className="text-xs text-destructive">{supportiveError}</p>}
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Show uploaded docs count for this category */}
                       {documents.filter(d => d.verification_category === cat.id).length > 0 && (
@@ -745,18 +810,23 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                 const isUploading = uploading[slot.key];
 
                 return (
-                  <Card key={slot.key} className={slot.isSupportive ? 'border-amber-200 dark:border-amber-800 ml-6' : ''}>
+                  <Card key={slot.key} className={`${slot.isSupportive ? 'ml-6' : ''} ${slot.satisfiedByMandatory ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20' : slot.isSupportive ? 'border-amber-200 dark:border-amber-800' : ''}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          {slot.isSupportive && (
+                          {slot.satisfiedByMandatory ? (
+                            <Badge variant="outline" className="text-xs border-emerald-400 text-emerald-700 dark:text-emerald-400 gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Satisfied via Mandatory
+                            </Badge>
+                          ) : slot.isSupportive ? (
                             <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 dark:text-amber-400">
                               Supportive
                             </Badge>
-                          )}
+                          ) : null}
                           <span className="font-medium text-sm">{slot.label}</span>
                         </div>
-                        {isEditable && (
+                        {isEditable && !slot.satisfiedByMandatory && (
                           <label className="cursor-pointer">
                             <Input
                               type="file"
@@ -779,6 +849,16 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                           </label>
                         )}
                       </div>
+
+                      {/* Satisfied by mandatory message */}
+                      {slot.satisfiedByMandatory && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-emerald-100/50 dark:bg-emerald-900/20 mb-2">
+                          <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                            This requirement is already satisfied by the mandatory document upload of the same type. No additional upload needed.
+                          </p>
+                        </div>
+                      )}
 
                       {/* Upload progress */}
                       {Object.entries(uploadProgress)
@@ -809,7 +889,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadDocument(doc)}>
                                   <Download className="h-3.5 w-3.5" />
                                 </Button>
-                                {isEditable && (
+                                {isEditable && !slot.satisfiedByMandatory && (
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc)}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
