@@ -22,9 +22,11 @@ The edge function infers MIME types from file extensions when the storage SDK or
 - **Download (action: 'download')**: Returns `Content-Disposition: attachment; filename="..."` 
 
 ## Frontend Viewing Strategy
-- **PDF & Images**: Fetched as blob via proxy → `URL.createObjectURL(blob)` → opened in new tab via `window.open()`
+- **PDF**: Fetched as blob via proxy → `URL.createObjectURL(blob)` → new tab opened with `window.open('', '_blank')` → PDF embedded via `<embed>` tag written into the tab's document. This "download to temp memory then render" approach avoids browser restrictions on direct blob URL navigation.
+- **Images**: Same blob-to-temp-memory approach → rendered via `<img>` tag in the new tab's document.
 - **Word docs & other unsupported types**: Show a preview dialog with "Preview not available" message and "Download Instead" button
 - Data URLs are NOT used (size limits cause blank tabs for large files)
+- Direct `window.open(blobUrl)` is NOT used as primary method (browsers may block or fail to render blob URLs opened directly)
 
 ## File Categories
 - `pdf`: `.pdf` files
