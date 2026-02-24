@@ -33,7 +33,7 @@ function getDocType(doc: ExternalDocument): string {
 }
 
 /** Determine file category from name, type, or mimeType */
-function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'word' | 'other' {
+function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'other' {
   const name = (doc.fileName || doc.name || '').toLowerCase();
   const type = (doc.documentType || doc.type || '').toLowerCase();
   const mime = (doc.mimeType || '').toLowerCase();
@@ -46,10 +46,6 @@ function getFileCategory(doc: ExternalDocument): 'pdf' | 'image' | 'word' | 'oth
     name.endsWith('.png') || name.endsWith('.gif') ||
     name.endsWith('.webp') || name.endsWith('.svg')
   ) return 'image';
-  if (
-    mime.includes('word') || mime.includes('document') ||
-    name.endsWith('.doc') || name.endsWith('.docx')
-  ) return 'word';
   return 'other';
 }
 
@@ -80,7 +76,7 @@ function formatDocDate(dateStr?: string): string {
 
 export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDelete }: ApplicationDocumentsTabProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'word' | 'other' } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   // Build a combined list: photo first, then documents
@@ -154,42 +150,13 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     setLoadingDocId(docId);
 
     try {
-      // Download to temp memory first, then open
       const blob = await fetchDocBlob(docUrl, name, 'stream');
 
-      if (category === 'pdf' || category === 'image') {
-        // Create blob URL and open in a new tab with an embedded document
-        const blobUrl = URL.createObjectURL(blob);
-        const newTab = window.open('', '_blank');
-        if (newTab) {
-          // Write an HTML shell that embeds the blob content
-          if (category === 'pdf') {
-            newTab.document.write(`
-              <!DOCTYPE html>
-              <html><head><title>${name}</title></head>
-              <body style="margin:0;height:100vh;">
-                <embed src="${blobUrl}" type="application/pdf" width="100%" height="100%" style="position:absolute;top:0;left:0;right:0;bottom:0;" />
-              </body></html>
-            `);
-          } else {
-            // Images
-            newTab.document.write(`
-              <!DOCTYPE html>
-              <html><head><title>${name}</title></head>
-              <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a;">
-                <img src="${blobUrl}" alt="${name}" style="max-width:100%;max-height:100vh;object-fit:contain;" />
-              </body></html>
-            `);
-          }
-          newTab.document.close();
-          // Revoke after the tab has had time to render
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
-        } else {
-          // Popup blocked – fall back to direct open
-          window.open(blobUrl, '_blank');
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        }
-      } else if (category === 'word' || category === 'other') {
+      if (category === 'pdf') {
+        // Convert to data URL and open in new tab — blob URLs don't work cross-origin
+        const dataUrl = await blobToDataUrl(blob);
+        window.open(dataUrl, '_blank');
+      } else {
         const blobUrl = URL.createObjectURL(blob);
         setPreviewDoc({ url: blobUrl, name, category });
         setPreviewOpen(true);
@@ -390,15 +357,11 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                 />
               </div>
             )}
-            {(previewDoc?.category === 'word' || previewDoc?.category === 'other') && (
+            {previewDoc?.category === 'other' && (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <AlertTriangle className="h-12 w-12 mb-4 text-destructive" />
                 <p className="font-medium text-lg">Preview not available</p>
-                <p className="text-sm mt-1 mb-4">
-                  {previewDoc?.category === 'word'
-                    ? 'Word documents cannot be previewed in the browser. Please download the file to view it.'
-                    : 'This file format cannot be previewed in the browser.'}
-                </p>
+                <p className="text-sm mt-1 mb-4">This file format cannot be previewed in the browser.</p>
                 <Button
                   variant="default"
                   onClick={() => {
