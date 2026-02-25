@@ -40,18 +40,9 @@ function getRawDocType(doc: ExternalDocument): string {
   return doc.verificationType || doc.documentType || doc.type || getFileCategory(doc).toUpperCase();
 }
 
-/** Get document-type text for info tooltip (documentType-first, never verificationType) */
+/** Get documentType value for info tooltip */
 function getDocumentTypeLabel(doc: ExternalDocument): string {
-  const runtimeDoc = doc as ExternalDocument & {
-    documentDescription?: string;
-    documentCode?: string;
-  };
-
-  const typeCode = doc.documentType || runtimeDoc.documentCode || doc.type || '';
-  const description = runtimeDoc.documentDescription;
-
-  if (description && typeCode) return `${description} (${typeCode})`;
-  return description || typeCode || '';
+  return doc.documentType || '';
 }
 
 /** Determine file category from name, type, or mimeType */
