@@ -458,7 +458,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
             file_size: file.size,
             created_by: user?.id,
             transfer_status: 'Pending',
-            verification_type: slot.docCode || slot.categoryId || null,
+            verification_type: ({ birth: 'birth_status', name: 'name_status', marital: 'marital_status', death: 'death_status' } as Record<string, string>)[slot.categoryId] || null,
             metadata: {
               verification_category: slot.categoryId,
               is_supportive: slot.isSupportive,
