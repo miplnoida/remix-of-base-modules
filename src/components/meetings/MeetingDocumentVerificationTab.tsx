@@ -236,7 +236,7 @@ export function MeetingDocumentVerificationTab({
     return categories;
   }, [isMarried, hasDeathInfo]);
 
-  // Auto-select logic
+  // Auto-select logic: from category autoSelectCode (married/death)
   useEffect(() => {
     verificationCategories.forEach(cat => {
       if (cat.autoSelectCode && !verifySelections[cat.fieldKey]) {
@@ -244,6 +244,41 @@ export function MeetingDocumentVerificationTab({
       }
     });
   }, [verificationCategories]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-select from external API documents: map verificationType → fieldKey, documentType → code
+  useEffect(() => {
+    const apiDocs = applicationData?.documents;
+    if (!apiDocs || !Array.isArray(apiDocs) || apiDocs.length === 0) return;
+
+    const verTypeToFieldKey: Record<string, string> = {
+      birth_status: 'birth_doc_type',
+      name_status: 'name_doc_type',
+      marital_status: 'marital_doc_type',
+      death_status: 'death_doc_type',
+    };
+
+    const autoSelects: Record<string, string> = {};
+    for (const doc of apiDocs) {
+      const vt = doc.verificationType as string | undefined;
+      const dt = doc.documentType as string | undefined;
+      if (vt && dt && verTypeToFieldKey[vt]) {
+        autoSelects[verTypeToFieldKey[vt]] = dt;
+      }
+    }
+
+    if (Object.keys(autoSelects).length > 0) {
+      setVerifySelections(prev => {
+        const next = { ...prev };
+        for (const [fieldKey, code] of Object.entries(autoSelects)) {
+          // Only set if not already selected by user
+          if (!next[fieldKey]) {
+            next[fieldKey] = code;
+          }
+        }
+        return next;
+      });
+    }
+  }, [applicationData?.documents]);
 
   // Check if selected code requires supportive
   const getRequiresSupportive = useCallback((categoryId: string): boolean => {
