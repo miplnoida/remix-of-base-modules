@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
+import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -132,6 +133,7 @@ function getTransferBadge(status: string) {
 export default function DocumentVerificationTab({ formData, onChange, onSave, errors, isEditable, clearError }: DocumentVerificationTabProps) {
   const { user } = useAuth();
   const { userCode } = useUserCode();
+  const { resolveDocType } = useDocumentTypeResolver();
   const queryClient = useQueryClient();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
@@ -1043,7 +1045,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{doc.document_name}</p>
-                            <p className="text-xs text-muted-foreground">{doc.document_type} • {formatSize(doc.file_size)}</p>
+                            <p className="text-xs text-muted-foreground">{resolveDocType(doc.document_type)} • {formatSize(doc.file_size)}</p>
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
@@ -1106,7 +1108,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                           <TableCell>{getAppDocFileIcon(doc)}</TableCell>
                           <TableCell className="font-medium">{getAppDocName(doc, index)}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="text-xs">{doc.document_type || 'Unknown'}</Badge>
+                            <Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type)}</Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatSize(doc.file_size)}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatDocDate(doc.uploaded_at)}</TableCell>
