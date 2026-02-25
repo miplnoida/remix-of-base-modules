@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, Trash2, Info } from 'lucide-react';
 import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +38,11 @@ function getDocName(doc: ExternalDocument, index: number): string {
 /** Get raw type code for a document (before tb_verify resolution) */
 function getRawDocType(doc: ExternalDocument): string {
   return doc.verificationType || doc.documentType || doc.type || getFileCategory(doc).toUpperCase();
+}
+
+/** Get document type (not verification type) for info badge */
+function getDocumentType(doc: ExternalDocument): string {
+  return doc.documentType || doc.type || '';
 }
 
 /** Determine file category from name, type, or mimeType */
@@ -293,16 +298,21 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   const statusVal = matchedAppDoc ? getStatusValue(matchedAppDoc.id) : undefined;
                   const statusLabel = matchedAppDoc ? getStatusLabel(matchedAppDoc.verification_type) : '';
 
+                  const docTypeCode = getDocumentType(doc);
                   return (
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2 flex-nowrap">
                           <span className="truncate">{getDocName(doc, index)}</span>
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5 cursor-help" title={resolveDocType(getRawDocType(doc))}>
-                            <Info className="h-2.5 w-2.5" />
-                            {resolveDocType(getRawDocType(doc))}
-                          </Badge>
+                          {docTypeCode && (
+                            <span
+                              className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/10 text-primary cursor-help shrink-0"
+                              title={resolveDocType(docTypeCode)}
+                            >
+                              <Info className="h-3 w-3" />
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
