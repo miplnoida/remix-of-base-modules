@@ -1467,6 +1467,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             photoUrl={data.photoUrl}
             onDelete={(index: number) => setDocDeleteIndex(index)}
             showDelete
+            ssn={applicationReference}
           />
         )}
 
@@ -1475,6 +1476,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <ApplicationDocumentsTab 
             documents={data.documents} 
             photoUrl={data.photoUrl}
+            ssn={applicationReference}
           />
         )}
 

@@ -4,18 +4,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
+import { useDocumentStatusDropdown } from '@/hooks/useDocumentStatusDropdown';
+import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
+import { useQuery } from '@tanstack/react-query';
 
 interface ApplicationDocumentsTabProps {
   documents?: ExternalDocument[];
   photoUrl?: string | null;
   onDelete?: (index: number) => void;
   showDelete?: boolean;
+  /** SSN to fetch ip_application_documents and enable status dropdowns */
+  ssn?: string | null;
 }
 
 /** Get the effective URL for a document (signedUrl takes priority) */
@@ -75,11 +81,57 @@ function formatDocDate(dateStr?: string): string {
   }
 }
 
-export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDelete }: ApplicationDocumentsTabProps) {
+interface AppDocRow {
+  id: string;
+  document_name: string | null;
+  document_type: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  uploaded_at: string | null;
+  verification_type: string | null;
+  birth_status: string | null;
+  name_status: string | null;
+  marital_status: string | null;
+  death_status: string | null;
+}
+
+export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDelete, ssn }: ApplicationDocumentsTabProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
   const { resolveDocType } = useDocumentTypeResolver();
+  const { data: verifyTypes = [] } = useVerifyTypes();
+
+  // Fetch ip_application_documents from Supabase when SSN is provided
+  const { data: appDocs = [] } = useQuery({
+    queryKey: ['ip-application-documents', ssn],
+    queryFn: async () => {
+      if (!ssn) return [];
+      const { data, error } = await supabase
+        .from('ip_application_documents')
+        .select('id, document_name, document_type, file_name, file_size, uploaded_at, verification_type, birth_status, name_status, marital_status, death_status')
+        .eq('ssn', ssn)
+        .order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as AppDocRow[];
+    },
+    enabled: !!ssn,
+    staleTime: 60000,
+  });
+
+  // Status dropdown hook for ip_application_documents
+  const { getStatusValue, hasStatusDropdown, handleStatusChange, getStatusLabel, isSaving } = useDocumentStatusDropdown(appDocs);
+
+  // Build a map: for each ExternalDocument, find matching ip_application_documents row
+  const getMatchingAppDoc = useCallback((doc: ExternalDocument): AppDocRow | undefined => {
+    if (!appDocs.length) return undefined;
+    // Match by file name or document name
+    const fileName = doc.fileName || doc.name || '';
+    return appDocs.find(ad =>
+      (ad.file_name && ad.file_name === fileName) ||
+      (ad.document_name && ad.document_name === fileName)
+    );
+  }, [appDocs]);
 
   // Build a combined list: photo first, then documents
   const allDocs: ExternalDocument[] = [];
@@ -122,7 +174,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
       throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
     }
 
-    // Get the content-type from the response to ensure blob has correct MIME type
     const contentType = proxyResponse.headers.get('content-type') || 'application/octet-stream';
     const arrayBuffer = await proxyResponse.arrayBuffer();
     return new Blob([arrayBuffer], { type: contentType });
@@ -222,6 +273,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   <TableHead className="w-10"></TableHead>
                   <TableHead>Document Name</TableHead>
                   <TableHead>Type</TableHead>
+                  {ssn && <TableHead>Verification Status</TableHead>}
                   <TableHead>Size</TableHead>
                   <TableHead>Uploaded</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -233,6 +285,13 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   const isLoading = loadingDocId === docId;
                   const hasUrl = !!getDocUrl(doc);
                   const isImage = getFileCategory(doc) === 'image';
+
+                  // Find matching ip_application_documents record for status dropdown
+                  const matchedAppDoc = ssn ? getMatchingAppDoc(doc) : undefined;
+                  const showDropdown = matchedAppDoc ? hasStatusDropdown(matchedAppDoc) : false;
+                  const statusVal = matchedAppDoc ? getStatusValue(matchedAppDoc.id) : undefined;
+                  const statusLabel = matchedAppDoc ? getStatusLabel(matchedAppDoc.verification_type) : '';
+
                   return (
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
@@ -242,6 +301,30 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                           {resolveDocType(getRawDocType(doc))}
                         </Badge>
                       </TableCell>
+                      {ssn && (
+                        <TableCell>
+                          {showDropdown && matchedAppDoc ? (
+                            <Select
+                              value={statusVal || undefined}
+                              onValueChange={(v) => handleStatusChange(matchedAppDoc.id, matchedAppDoc.verification_type!, v)}
+                              disabled={isSaving[matchedAppDoc.id]}
+                            >
+                              <SelectTrigger className="h-8 w-[180px] text-xs">
+                                <SelectValue placeholder={`Select ${statusLabel}`} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {verifyTypes.map(v => (
+                                  <SelectItem key={v.code} value={v.code}>
+                                    {v.description || v.code}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-muted-foreground text-sm">
                         {formatFileSize(doc.fileSize)}
                       </TableCell>
@@ -287,7 +370,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Calculate the document-only index (excluding photo)
                                 const docOnlyIndex = photoUrl ? index - 1 : index;
                                 if (docOnlyIndex >= 0) onDelete(docOnlyIndex);
                               }}

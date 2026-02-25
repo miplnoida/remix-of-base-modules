@@ -23,6 +23,7 @@ import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useDocumentStatusDropdown } from '@/hooks/useDocumentStatusDropdown';
 
 interface DocumentVerificationTabProps {
   formData: IPFormData;
@@ -58,6 +59,11 @@ interface AppDoc {
   uploaded_at: string | null;
   transfer_status: string;
   dms_document_id: string | null;
+  verification_type: string | null;
+  birth_status: string | null;
+  name_status: string | null;
+  marital_status: string | null;
+  death_status: string | null;
 }
 
 // Verification category definitions
@@ -160,7 +166,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       if (!ssn) return [];
       const { data, error } = await supabase
         .from('ip_application_documents')
-        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, transfer_status, dms_document_id, verification_type')
+        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, transfer_status, dms_document_id, verification_type, birth_status, name_status, marital_status, death_status')
         .eq('ssn', ssn)
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
@@ -169,6 +175,9 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     enabled: !!ssn,
     staleTime: 60000,
   });
+
+  // Per-document status dropdown management
+  const { getStatusValue, hasStatusDropdown, handleStatusChange, getStatusLabel, isSaving } = useDocumentStatusDropdown(appDocs);
 
   // Backend-driven DMS transfer eligibility check
   const { data: dmsEligibility } = useQuery({
@@ -1094,6 +1103,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                       <TableHead className="w-10"></TableHead>
                       <TableHead>Document Name</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Verification Status</TableHead>
                       <TableHead>Size</TableHead>
                       <TableHead>Uploaded</TableHead>
                       <TableHead>Transfer Status</TableHead>
@@ -1104,12 +1114,37 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                     {appDocs.map((doc, index) => {
                       const isLoading = loadingDocId === doc.id;
                       const hasUrl = !!getAppDocUrl(doc);
+                      const showDropdown = hasStatusDropdown(doc);
+                      const statusVal = getStatusValue(doc.id);
+                      const statusLabel = getStatusLabel(doc.verification_type);
                       return (
                         <TableRow key={doc.id}>
                           <TableCell>{getAppDocFileIcon(doc)}</TableCell>
                           <TableCell className="font-medium">{getAppDocName(doc, index)}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type)}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {showDropdown ? (
+                              <Select
+                                value={statusVal || undefined}
+                                onValueChange={(v) => handleStatusChange(doc.id, doc.verification_type!, v)}
+                                disabled={isSaving[doc.id]}
+                              >
+                                <SelectTrigger className="h-8 w-[180px] text-xs">
+                                  <SelectValue placeholder={`Select ${statusLabel}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {verifyTypes.map(v => (
+                                    <SelectItem key={v.code} value={v.code}>
+                                      {v.description || v.code}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatSize(doc.file_size)}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatDocDate(doc.uploaded_at)}</TableCell>
