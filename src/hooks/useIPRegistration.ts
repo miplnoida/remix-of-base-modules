@@ -522,10 +522,10 @@ export const useIPRegistration = ({ ssn, mode }: UseIPRegistrationOptions) => {
       // Validate: if marital_status is Married, check for Marriage Certificate document
       if (formData.marital_status === 'M') {
         const { data: docs } = await supabase
-          .from('ip_documents' as any)
+          .from('ip_application_documents')
           .select('id')
           .eq('ssn', formData.ssn)
-          .eq('document_type', 'Marriage Certificate');
+          .eq('document_name', 'Marriage Certificate');
         
         if (!docs || (docs as any[]).length === 0) {
           toast({

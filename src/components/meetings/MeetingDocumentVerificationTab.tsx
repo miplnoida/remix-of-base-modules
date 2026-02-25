@@ -285,18 +285,30 @@ export function MeetingDocumentVerificationTab({
   const fetchDocuments = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('ip_documents')
-        .select('*')
-        .eq('unique_uuid', storageKey)
+        .from('ip_application_documents')
+        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, verification_category, is_supportive, supportive_doc_type, verification_type, metadata')
+        .or(`application_reference_number.eq.${applicationReference},ssn.eq.${applicationReference}`)
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
-      setDocuments((data || []) as UploadedDocument[]);
+      // Map to UploadedDocument interface
+      const mapped = (data || []).map((d: any) => ({
+        id: d.id,
+        document_type: d.document_name || d.document_type || '',
+        document_name: d.file_name || d.document_name || '',
+        file_path: d.file_path || '',
+        file_size: d.file_size || 0,
+        uploaded_at: d.uploaded_at || '',
+        verification_category: d.verification_category || d.metadata?.verification_category || null,
+        supportive_doc_type: d.supportive_doc_type || d.metadata?.supportive_doc_type || null,
+        is_supportive: d.is_supportive ?? d.metadata?.is_supportive ?? false,
+      }));
+      setDocuments(mapped);
     } catch (error) {
       console.error('Error fetching documents:', error);
     } finally {
       setLoading(false);
     }
-  }, [storageKey]);
+  }, [applicationReference]);
 
   useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
 
@@ -340,31 +352,12 @@ export function MeetingDocumentVerificationTab({
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 75 }));
 
-        // Insert into ip_documents (verification tracking)
+        // Insert into ip_application_documents (single source of truth)
         const { error: dbError } = await supabase
-          .from('ip_documents')
-          .insert({
-            unique_uuid: storageKey,
-            document_type: slot.docDescription,
-            document_name: file.name,
-            file_path: fileName,
-            file_size: file.size,
-            mime_type: file.type,
-            uploaded_by: user?.id,
-            is_temp: true,
-            verification_category: slot.categoryId,
-            supportive_doc_type: slot.isSupportive ? slot.docCode : null,
-            is_supportive: slot.isSupportive,
-          });
-        if (dbError) throw dbError;
-
-        setUploadProgress(prev => ({ ...prev, [uploadKey]: 90 }));
-
-        // Also insert into ip_application_documents (linked to application reference)
-        const { error: appDocError } = await supabase
           .from('ip_application_documents')
           .insert({
-            ssn: applicationReference, // Use application reference as linking key
+            ssn: applicationReference,
+            application_reference_number: applicationReference,
             document_name: slot.docDescription,
             document_type: slot.isSupportive ? 'supportive' : 'mandatory',
             file_name: file.name,
@@ -373,19 +366,18 @@ export function MeetingDocumentVerificationTab({
             mime_type: file.type,
             file_size: file.size,
             created_by: user?.id,
+            uploaded_by: user?.id,
             transfer_status: 'Pending',
             verification_type: ({ birth: 'birth_status', name: 'name_status', marital: 'marital_status', death: 'death_status' } as Record<string, string>)[slot.categoryId] || null,
+            verification_category: slot.categoryId,
+            is_supportive: slot.isSupportive,
+            supportive_doc_type: slot.isSupportive ? slot.docCode : null,
             metadata: {
-              verification_category: slot.categoryId,
-              is_supportive: slot.isSupportive,
-              supportive_doc_type: slot.isSupportive ? slot.docCode : null,
               meeting_id: meetingId,
               application_reference: applicationReference,
             },
           });
-        if (appDocError) {
-          console.error('Error inserting into ip_application_documents:', appDocError);
-        }
+        if (dbError) throw dbError;
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 100 }));
         toast.success(`"${file.name}" uploaded successfully`, {
@@ -412,17 +404,13 @@ export function MeetingDocumentVerificationTab({
 
   const handleDeleteDocument = async (doc: UploadedDocument) => {
     try {
-      await supabase.storage.from('ip-documents').remove([doc.file_path]);
-      const { error } = await supabase.from('ip_documents').delete().eq('id', doc.id);
+      if (doc.file_path) {
+        await supabase.storage.from('ip-documents').remove([doc.file_path]);
+      }
+      const { error } = await supabase.from('ip_application_documents').delete().eq('id', doc.id);
       if (error) throw error;
 
-      // Also remove from ip_application_documents
-      await supabase
-        .from('ip_application_documents')
-        .delete()
-        .eq('file_path', doc.file_path);
       queryClient.invalidateQueries({ queryKey: ['ip-application-documents', applicationReference] });
-
       toast.success('Document deleted');
       fetchDocuments();
     } catch (error) {
