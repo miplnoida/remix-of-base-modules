@@ -7224,6 +7224,77 @@ export type Database = {
           },
         ]
       }
+      meeting_uploaded_documents: {
+        Row: {
+          application_reference: string
+          created_at: string
+          document_name: string | null
+          document_type: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_supportive: boolean | null
+          meeting_id: string
+          metadata: Json | null
+          mime_type: string | null
+          storage_url: string
+          supportive_doc_type: string | null
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_code: string | null
+          verification_category: string | null
+        }
+        Insert: {
+          application_reference: string
+          created_at?: string
+          document_name?: string | null
+          document_type?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_supportive?: boolean | null
+          meeting_id: string
+          metadata?: Json | null
+          mime_type?: string | null
+          storage_url: string
+          supportive_doc_type?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_code?: string | null
+          verification_category?: string | null
+        }
+        Update: {
+          application_reference?: string
+          created_at?: string
+          document_name?: string | null
+          document_type?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_supportive?: boolean | null
+          meeting_id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          storage_url?: string
+          supportive_doc_type?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_code?: string | null
+          verification_category?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_uploaded_documents_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           action_config_id: string | null

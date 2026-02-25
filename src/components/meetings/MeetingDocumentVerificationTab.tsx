@@ -36,7 +36,8 @@ interface MeetingDocumentVerificationTabProps {
   isEditable: boolean;
 }
 
-interface UploadedDocument {
+/** Unified document shape used by the UI — merges external API docs + platform uploads */
+interface UnifiedDocument {
   id: string;
   document_type: string;
   document_name: string;
@@ -46,6 +47,10 @@ interface UploadedDocument {
   verification_category?: string | null;
   supportive_doc_type?: string | null;
   is_supportive?: boolean;
+  /** 'external' = from API, 'platform' = uploaded on this platform */
+  source: 'external' | 'platform';
+  /** Storage URL (for platform) or signed/public URL (for external) */
+  url?: string;
 }
 
 interface VerificationCategory {
@@ -82,6 +87,75 @@ function formatDocDate(dateStr?: string | null): string {
   try { return format(parseISO(dateStr), 'MMM dd, yyyy'); } catch { return dateStr; }
 }
 
+/**
+ * Map external API document objects to UnifiedDocument shape.
+ * External docs may have varying key names.
+ */
+function mapExternalDocs(apiDocs: any[]): UnifiedDocument[] {
+  if (!apiDocs || !Array.isArray(apiDocs)) return [];
+  return apiDocs.map((d, idx) => ({
+    id: d.id || `ext-${idx}`,
+    document_type: d.documentType || d.type || d.verificationType || d.document_type || '',
+    document_name: d.fileName || d.name || d.file_name || d.document_name || 'Unknown',
+    file_path: d.filePath || d.file_path || '',
+    file_size: typeof d.fileSize === 'number' ? d.fileSize : (parseInt(d.fileSize, 10) || 0),
+    uploaded_at: d.uploadedAt || d.uploaded_at || '',
+    verification_category: null,
+    supportive_doc_type: null,
+    is_supportive: false,
+    source: 'external' as const,
+    url: d.signedUrl || d.url || d.filePath || '',
+  }));
+}
+
+/**
+ * Map platform-uploaded rows from meeting_uploaded_documents to UnifiedDocument shape.
+ */
+function mapPlatformDocs(rows: any[]): UnifiedDocument[] {
+  if (!rows || !Array.isArray(rows)) return [];
+  return rows.map(d => ({
+    id: d.id,
+    document_type: d.document_type || d.document_name || '',
+    document_name: d.file_name || d.document_name || '',
+    file_path: d.file_path || '',
+    file_size: d.file_size || 0,
+    uploaded_at: d.created_at || '',
+    verification_category: d.verification_category || null,
+    supportive_doc_type: d.supportive_doc_type || null,
+    is_supportive: d.is_supportive ?? false,
+    source: 'platform' as const,
+    url: d.storage_url || '',
+  }));
+}
+
+/**
+ * Merge external + platform docs, deduplicating by URL or file_path.
+ */
+function mergeDocuments(externalDocs: UnifiedDocument[], platformDocs: UnifiedDocument[]): UnifiedDocument[] {
+  const seen = new Set<string>();
+  const result: UnifiedDocument[] = [];
+
+  // External docs first
+  for (const doc of externalDocs) {
+    const key = doc.url || doc.file_path || doc.id;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      result.push(doc);
+    }
+  }
+
+  // Platform docs — skip if already present from external
+  for (const doc of platformDocs) {
+    const key = doc.url || doc.file_path || doc.id;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      result.push(doc);
+    }
+  }
+
+  return result;
+}
+
 export function MeetingDocumentVerificationTab({
   applicationData,
   meetingId,
@@ -93,10 +167,10 @@ export function MeetingDocumentVerificationTab({
   const { resolveDocType } = useDocumentTypeResolver();
   const queryClient = useQueryClient();
 
-  // Local verification selections (since there's no formData onChange in meeting context)
+  // Local verification selections
   const [verifySelections, setVerifySelections] = useState<Record<string, string>>({});
   const [supportiveSelections, setSupportiveSelections] = useState<Record<string, string>>({});
-  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
+  const [documents, setDocuments] = useState<UnifiedDocument[]>([]);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -108,14 +182,10 @@ export function MeetingDocumentVerificationTab({
 
   const { data: verifyTypes = [], isLoading: verifyLoading } = useVerifyTypes();
 
-  // Use meeting-specific storage key for documents
-  const storageKey = `meeting_${meetingId}`;
-
   // --- Derive marital status and death info from application data ---
   const maritalStatus = applicationData?.maritalStatus || '';
   const isMarried = ['Married', 'M', 'Common Law', 'C'].includes(maritalStatus);
 
-  // Check for date of death in dependants or application data
   const hasDeathInfo = useMemo(() => {
     const deps = applicationData?.dependants || [];
     return deps.some((d: any) => !!d.dateOfDeath);
@@ -125,7 +195,6 @@ export function MeetingDocumentVerificationTab({
   const verificationCategories = useMemo((): VerificationCategory[] => {
     const categories: VerificationCategory[] = [];
 
-    // Birth Status Verification - always mandatory
     categories.push({
       id: 'birth',
       label: 'Birth Status Verification',
@@ -134,7 +203,6 @@ export function MeetingDocumentVerificationTab({
       tooltip: 'Select the document that verifies the applicant\'s birth. Birth Certificate or Baptism Certificate require an additional supportive ID document.',
     });
 
-    // Name Status Verification - always mandatory
     categories.push({
       id: 'name',
       label: 'Name Status Verification',
@@ -143,7 +211,6 @@ export function MeetingDocumentVerificationTab({
       tooltip: 'Select the document that verifies the applicant\'s legal name. Required for all registrations.',
     });
 
-    // Marital Status Verification - mandatory if married/common law
     categories.push({
       id: 'marital',
       label: 'Marital Status Verification',
@@ -155,7 +222,6 @@ export function MeetingDocumentVerificationTab({
       autoSelectCode: isMarried ? 'M' : undefined,
     });
 
-    // Death Status Verification - mandatory if death info present
     categories.push({
       id: 'death',
       label: 'Death Status Verification',
@@ -281,34 +347,35 @@ export function MeetingDocumentVerificationTab({
   const canProceedToUpload = Object.keys(selectionErrors).length === 0 &&
     verificationCategories.filter(c => c.isMandatory).every(c => !!verifySelections[c.fieldKey]);
 
-  // --- Document fetching ---
+  // --- Document fetching: merge external API docs + platform-uploaded docs ---
   const fetchDocuments = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('ip_application_documents')
-        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, verification_category, is_supportive, supportive_doc_type, verification_type, metadata')
-        .or(`application_reference_number.eq.${applicationReference},ssn.eq.${applicationReference}`)
-        .order('uploaded_at', { ascending: false });
-      if (error) throw error;
-      // Map to UploadedDocument interface
-      const mapped = (data || []).map((d: any) => ({
-        id: d.id,
-        document_type: d.document_name || d.document_type || '',
-        document_name: d.file_name || d.document_name || '',
-        file_path: d.file_path || '',
-        file_size: d.file_size || 0,
-        uploaded_at: d.uploaded_at || '',
-        verification_category: d.verification_category || d.metadata?.verification_category || null,
-        supportive_doc_type: d.supportive_doc_type || d.metadata?.supportive_doc_type || null,
-        is_supportive: d.is_supportive ?? d.metadata?.is_supportive ?? false,
-      }));
-      setDocuments(mapped);
+      // 1. External API documents from applicationData
+      const externalDocs = mapExternalDocs(applicationData?.documents || []);
+
+      // 2. Platform-uploaded documents from meeting_uploaded_documents
+      const { data: platformRows, error } = await supabase
+        .from('meeting_uploaded_documents')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .eq('application_reference', applicationReference)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching platform documents:', error);
+      }
+
+      const platformDocs = mapPlatformDocs(platformRows || []);
+
+      // 3. Merge & deduplicate
+      const merged = mergeDocuments(externalDocs, platformDocs);
+      setDocuments(merged);
     } catch (error) {
       console.error('Error fetching documents:', error);
     } finally {
       setLoading(false);
     }
-  }, [applicationReference]);
+  }, [applicationData?.documents, meetingId, applicationReference]);
 
   useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
 
@@ -352,29 +419,28 @@ export function MeetingDocumentVerificationTab({
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 75 }));
 
-        // Insert into ip_application_documents (single source of truth)
+        // Insert into meeting_uploaded_documents (platform persistence)
         const { error: dbError } = await supabase
-          .from('ip_application_documents')
+          .from('meeting_uploaded_documents')
           .insert({
-            ssn: applicationReference,
-            application_reference_number: applicationReference,
-            document_name: slot.docDescription,
+            meeting_id: meetingId,
+            application_reference: applicationReference,
             document_type: slot.isSupportive ? 'supportive' : 'mandatory',
+            document_name: slot.docDescription,
             file_name: file.name,
             file_path: fileName,
-            url: publicUrl,
-            mime_type: file.type,
             file_size: file.size,
-            created_by: user?.id,
-            uploaded_by: user?.id,
-            transfer_status: 'Pending',
-            verification_type: ({ birth: 'birth_status', name: 'name_status', marital: 'marital_status', death: 'death_status' } as Record<string, string>)[slot.categoryId] || null,
+            mime_type: file.type,
+            storage_url: publicUrl,
             verification_category: slot.categoryId,
             is_supportive: slot.isSupportive,
             supportive_doc_type: slot.isSupportive ? slot.docCode : null,
+            uploaded_by: user?.id,
+            uploaded_by_code: userCode || null,
             metadata: {
               meeting_id: meetingId,
               application_reference: applicationReference,
+              verification_type: ({ birth: 'birth_status', name: 'name_status', marital: 'marital_status', death: 'death_status' } as Record<string, string>)[slot.categoryId] || null,
             },
           });
         if (dbError) throw dbError;
@@ -383,8 +449,10 @@ export function MeetingDocumentVerificationTab({
         toast.success(`"${file.name}" uploaded successfully`, {
           icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
         });
+
+        // Re-fetch to rebuild merged list
         fetchDocuments();
-        queryClient.invalidateQueries({ queryKey: ['ip-application-documents', applicationReference] });
+        queryClient.invalidateQueries({ queryKey: ['meeting-uploaded-documents', meetingId] });
       } catch (error) {
         console.error('Upload error:', error);
         toast.error(`Failed to upload "${file.name}"`);
@@ -402,15 +470,20 @@ export function MeetingDocumentVerificationTab({
     e.target.value = '';
   };
 
-  const handleDeleteDocument = async (doc: UploadedDocument) => {
+  const handleDeleteDocument = async (doc: UnifiedDocument) => {
+    // Only allow deleting platform-uploaded documents
+    if (doc.source === 'external') {
+      toast.error('External API documents cannot be deleted from this screen');
+      return;
+    }
     try {
       if (doc.file_path) {
         await supabase.storage.from('ip-documents').remove([doc.file_path]);
       }
-      const { error } = await supabase.from('ip_application_documents').delete().eq('id', doc.id);
+      const { error } = await supabase.from('meeting_uploaded_documents').delete().eq('id', doc.id);
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ['ip-application-documents', applicationReference] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-uploaded-documents', meetingId] });
       toast.success('Document deleted');
       fetchDocuments();
     } catch (error) {
@@ -419,42 +492,63 @@ export function MeetingDocumentVerificationTab({
     }
   };
 
-  const handleDownloadDocument = async (doc: UploadedDocument) => {
+  const handleDownloadDocument = async (doc: UnifiedDocument) => {
     try {
-      const { data, error } = await supabase.storage.from('ip-documents').download(doc.file_path);
-      if (error) throw error;
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = doc.document_name;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (doc.source === 'platform' && doc.file_path) {
+        // Platform doc — download from storage
+        const { data, error } = await supabase.storage.from('ip-documents').download(doc.file_path);
+        if (error) throw error;
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.document_name;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (doc.url) {
+        // External doc — open URL directly
+        window.open(doc.url, '_blank');
+      }
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download document');
     }
   };
 
-  const handleViewDocument = async (doc: UploadedDocument) => {
+  const handleViewDocument = async (doc: UnifiedDocument) => {
     try {
-      const { data, error } = await supabase.storage.from('ip-documents').download(doc.file_path);
-      if (error) throw error;
-      const blobUrl = URL.createObjectURL(data);
-      const ext = doc.document_name.toLowerCase();
-      const category: 'pdf' | 'image' | 'other' =
-        ext.endsWith('.pdf') || data.type.includes('pdf') ? 'pdf' :
-        data.type.includes('image') ? 'image' : 'other';
+      if (doc.source === 'platform' && doc.file_path) {
+        const { data, error } = await supabase.storage.from('ip-documents').download(doc.file_path);
+        if (error) throw error;
+        const blobUrl = URL.createObjectURL(data);
+        const ext = doc.document_name.toLowerCase();
+        const category: 'pdf' | 'image' | 'other' =
+          ext.endsWith('.pdf') || data.type.includes('pdf') ? 'pdf' :
+          data.type.includes('image') ? 'image' : 'other';
 
-      if (category === 'pdf') {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          window.open(reader.result as string, '_blank');
-          URL.revokeObjectURL(blobUrl);
-        };
-        reader.readAsDataURL(data);
-      } else {
-        setPreviewDoc({ url: blobUrl, name: doc.document_name, category });
-        setPreviewOpen(true);
+        if (category === 'pdf') {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            window.open(reader.result as string, '_blank');
+            URL.revokeObjectURL(blobUrl);
+          };
+          reader.readAsDataURL(data);
+        } else {
+          setPreviewDoc({ url: blobUrl, name: doc.document_name, category });
+          setPreviewOpen(true);
+        }
+      } else if (doc.url) {
+        // External doc — use document-proxy or direct URL
+        const ext = (doc.document_name || doc.url).toLowerCase();
+        const category: 'pdf' | 'image' | 'other' =
+          ext.includes('.pdf') ? 'pdf' :
+          ext.includes('.jpg') || ext.includes('.jpeg') || ext.includes('.png') ? 'image' : 'other';
+        
+        if (category === 'other') {
+          window.open(doc.url, '_blank');
+        } else {
+          setPreviewDoc({ url: doc.url, name: doc.document_name, category });
+          setPreviewOpen(true);
+        }
       }
     } catch (error) {
       console.error('View error:', error);
@@ -463,7 +557,7 @@ export function MeetingDocumentVerificationTab({
   };
 
   const handleClosePreview = useCallback(() => {
-    if (previewDoc?.url) URL.revokeObjectURL(previewDoc.url);
+    if (previewDoc?.url && previewDoc.url.startsWith('blob:')) URL.revokeObjectURL(previewDoc.url);
     setPreviewOpen(false);
     setPreviewDoc(null);
   }, [previewDoc]);
@@ -772,7 +866,12 @@ export function MeetingDocumentVerificationTab({
                                 <File className="h-4 w-4 text-muted-foreground shrink-0" />
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium truncate">{doc.document_name}</p>
-                                  <p className="text-xs text-muted-foreground">{formatSize(doc.file_size)}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs text-muted-foreground">{formatSize(doc.file_size)}</p>
+                                    {doc.source === 'external' && (
+                                      <Badge variant="outline" className="text-[10px] px-1 py-0">External</Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex gap-1 shrink-0">
@@ -782,7 +881,7 @@ export function MeetingDocumentVerificationTab({
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadDocument(doc)} title="Download">
                                   <Download className="h-3.5 w-3.5" />
                                 </Button>
-                                {isEditable && !slot.satisfiedByMandatory && (
+                                {isEditable && !slot.satisfiedByMandatory && doc.source === 'platform' && (
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc)} title="Delete">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -808,15 +907,50 @@ export function MeetingDocumentVerificationTab({
               )}
             </div>
 
-            {/* Legacy documents without category */}
-            {documents.filter(d => !d.verification_category).length > 0 && (
+            {/* External API documents without a verification category (shown as "Previously Available") */}
+            {documents.filter(d => !d.verification_category && d.source === 'external').length > 0 && (
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Application Documents (from External API)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {documents.filter(d => !d.verification_category && d.source === 'external').map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.document_name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground">{resolveDocType(doc.document_type)} • {formatSize(doc.file_size)}</p>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">External</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewDocument(doc)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadDocument(doc)}>
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Legacy platform docs without category */}
+            {documents.filter(d => !d.verification_category && d.source === 'platform').length > 0 && (
               <Card className="mt-4">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Previously Uploaded Documents</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {documents.filter(d => !d.verification_category).map(doc => (
+                    {documents.filter(d => !d.verification_category && d.source === 'platform').map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                         <div className="flex items-center gap-2 min-w-0">
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
