@@ -137,12 +137,25 @@ function mapPlatformDocs(rows: any[]): UnifiedDocument[] {
 }
 
 function mergeDocuments(externalDocs: UnifiedDocument[], platformDocs: UnifiedDocument[]): UnifiedDocument[] {
+  // Determine which verification categories have active platform replacements
+  const platformReplacedCategories = new Set<string>();
+  for (const doc of platformDocs) {
+    if (doc.is_active && doc.verification_category && !doc.is_supportive) {
+      platformReplacedCategories.add(doc.verification_category);
+    }
+  }
+
   const seen = new Set<string>();
   const result: UnifiedDocument[] = [];
 
+  // Add external docs, but skip categories that have active platform replacements
   for (const doc of externalDocs) {
     const key = doc.url || doc.file_path || doc.id;
     if (key && !seen.has(key)) {
+      // If this external doc's category has been replaced by a platform doc, exclude it
+      if (doc.verification_category && platformReplacedCategories.has(doc.verification_category)) {
+        continue;
+      }
       seen.add(key);
       result.push(doc);
     }
@@ -264,17 +277,25 @@ export function MeetingDocumentVerificationTab({
     return map;
   }, [applicationData?.documents]);
 
-  // Auto-select from external API documents first
+  // Track platform-derived overrides (set after fetching documents)
+  const [platformOverrides, setPlatformOverrides] = useState<Record<string, string>>({});
+
+  // Auto-select from external API documents first, but platform overrides win
   useEffect(() => {
-    if (Object.keys(apiDocFieldKeys).length === 0) return;
+    if (Object.keys(apiDocFieldKeys).length === 0 && Object.keys(platformOverrides).length === 0) return;
     setVerifySelections(prev => {
       const next = { ...prev };
+      // Set from external API first
       for (const [fieldKey, code] of Object.entries(apiDocFieldKeys)) {
+        next[fieldKey] = code;
+      }
+      // Then override with platform replacement doc_codes (platform wins)
+      for (const [fieldKey, code] of Object.entries(platformOverrides)) {
         next[fieldKey] = code;
       }
       return next;
     });
-  }, [apiDocFieldKeys]);
+  }, [apiDocFieldKeys, platformOverrides]);
 
   // Auto-select from category autoSelectCode — only if no API doc exists
   useEffect(() => {
@@ -543,6 +564,24 @@ export function MeetingDocumentVerificationTab({
       const platformDocs = mapPlatformDocs(platformRows || []);
       const merged = mergeDocuments(externalDocs, platformDocs);
       setDocuments(merged);
+
+      // Derive dropdown overrides from active platform replacement docs
+      const categoryFieldKeyMap: Record<string, string> = {
+        birth: 'birth_doc_type',
+        name: 'name_doc_type',
+        marital: 'marital_doc_type',
+        death: 'death_doc_type',
+      };
+      const overrides: Record<string, string> = {};
+      for (const doc of platformDocs) {
+        if (doc.is_active && doc.verification_category && !doc.is_supportive && doc.doc_code) {
+          const fieldKey = categoryFieldKeyMap[doc.verification_category];
+          if (fieldKey) {
+            overrides[fieldKey] = doc.doc_code;
+          }
+        }
+      }
+      setPlatformOverrides(overrides);
 
       // Clear pending re-upload flags if active docs now exist
       setPendingReupload(prev => {
@@ -843,10 +882,13 @@ export function MeetingDocumentVerificationTab({
                             {cat.tooltip}
                           </TooltipContent>
                         </Tooltip>
-                        {cat.autoSelectCode && !apiDocFieldKeys[cat.fieldKey] && !hasPendingReupload && (
+                        {cat.autoSelectCode && !apiDocFieldKeys[cat.fieldKey] && !platformOverrides[cat.fieldKey] && !hasPendingReupload && (
                           <Badge variant="secondary" className="text-xs ml-auto">Auto-selected</Badge>
                         )}
-                        {apiDocFieldKeys[cat.fieldKey] && !hasPendingReupload && (
+                        {platformOverrides[cat.fieldKey] && !hasPendingReupload && (
+                          <Badge variant="outline" className="text-xs ml-auto border-blue-400 text-blue-700 dark:text-blue-400">Replaced</Badge>
+                        )}
+                        {apiDocFieldKeys[cat.fieldKey] && !platformOverrides[cat.fieldKey] && !hasPendingReupload && (
                           <Badge variant="outline" className="text-xs ml-auto border-emerald-400 text-emerald-700 dark:text-emerald-400">From Document</Badge>
                         )}
                         {hasPendingReupload && (
