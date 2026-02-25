@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { FileText, Download, Eye, Image as ImageIcon, File, AlertTriangle, Loader2, Trash2, Info } from 'lucide-react';
 import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -253,7 +254,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
   }, [previewDoc]);
 
   return (
-    <>
+    <TooltipProvider>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -295,7 +296,23 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   return (
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
-                      <TableCell className="font-medium">{getDocName(doc, index)}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {getDocName(doc, index)}
+                          {getRawDocType(doc) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary cursor-help shrink-0">
+                                  <Info className="h-2.5 w-2.5" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {resolveDocType(getRawDocType(doc))}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
                           {resolveDocType(getRawDocType(doc))}
@@ -459,6 +476,6 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }
