@@ -694,7 +694,7 @@ interface ApplicationEditFormProps {
   onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories, onReplacedDocCategoriesChange }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
     return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} />;
   }
@@ -716,7 +716,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories, onReplacedDocCategoriesChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
