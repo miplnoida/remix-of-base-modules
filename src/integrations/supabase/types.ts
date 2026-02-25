@@ -1805,6 +1805,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_exempt: boolean
+          last_published_at: string | null
           modified_by: string | null
           modified_on: string | null
           period_month: number
@@ -1817,6 +1818,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_exempt?: boolean
+          last_published_at?: string | null
           modified_by?: string | null
           modified_on?: string | null
           period_month: number
@@ -1829,6 +1831,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_exempt?: boolean
+          last_published_at?: string | null
           modified_by?: string | null
           modified_on?: string | null
           period_month?: number
@@ -2112,6 +2115,7 @@ export type Database = {
           end_date: string | null
           id: string
           is_active: boolean | null
+          last_published_at: string | null
           modified_by: string | null
           modified_on: string | null
           start_date: string
@@ -2123,6 +2127,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_active?: boolean | null
+          last_published_at?: string | null
           modified_by?: string | null
           modified_on?: string | null
           start_date: string
@@ -2134,9 +2139,58 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_active?: boolean | null
+          last_published_at?: string | null
           modified_by?: string | null
           modified_on?: string | null
           start_date?: string
+        }
+        Relationships: []
+      }
+      c3_config_sync_log: {
+        Row: {
+          bonus_exemptions_count: number
+          config_periods_count: number
+          created_at: string
+          error_message: string | null
+          id: string
+          levy_slabs_count: number
+          payload: Json
+          payload_hash: string
+          published_at: string
+          published_by: string | null
+          response_data: Json | null
+          status: string
+          sync_version: string
+        }
+        Insert: {
+          bonus_exemptions_count?: number
+          config_periods_count?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          levy_slabs_count?: number
+          payload: Json
+          payload_hash: string
+          published_at?: string
+          published_by?: string | null
+          response_data?: Json | null
+          status?: string
+          sync_version?: string
+        }
+        Update: {
+          bonus_exemptions_count?: number
+          config_periods_count?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          levy_slabs_count?: number
+          payload?: Json
+          payload_hash?: string
+          published_at?: string
+          published_by?: string | null
+          response_data?: Json | null
+          status?: string
+          sync_version?: string
         }
         Relationships: []
       }
@@ -10085,6 +10139,7 @@ export type Database = {
           end_date: string
           id: string
           is_active: boolean | null
+          last_published_at: string | null
           modified_by: string | null
           modified_on: string | null
           start_date: string
@@ -10095,6 +10150,7 @@ export type Database = {
           end_date: string
           id?: string
           is_active?: boolean | null
+          last_published_at?: string | null
           modified_by?: string | null
           modified_on?: string | null
           start_date: string
@@ -10105,6 +10161,7 @@ export type Database = {
           end_date?: string
           id?: string
           is_active?: boolean | null
+          last_published_at?: string | null
           modified_by?: string | null
           modified_on?: string | null
           start_date?: string
