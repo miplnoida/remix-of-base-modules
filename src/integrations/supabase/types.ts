@@ -7228,16 +7228,20 @@ export type Database = {
         Row: {
           application_reference: string
           created_at: string
+          doc_code: string | null
           document_name: string | null
           document_type: string | null
           file_name: string
           file_path: string
           file_size: number | null
           id: string
+          is_active: boolean
           is_supportive: boolean | null
           meeting_id: string
           metadata: Json | null
           mime_type: string | null
+          replaced_at: string | null
+          replaced_by: string | null
           storage_url: string
           supportive_doc_type: string | null
           updated_at: string
@@ -7248,16 +7252,20 @@ export type Database = {
         Insert: {
           application_reference: string
           created_at?: string
+          doc_code?: string | null
           document_name?: string | null
           document_type?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_supportive?: boolean | null
           meeting_id: string
           metadata?: Json | null
           mime_type?: string | null
+          replaced_at?: string | null
+          replaced_by?: string | null
           storage_url: string
           supportive_doc_type?: string | null
           updated_at?: string
@@ -7268,16 +7276,20 @@ export type Database = {
         Update: {
           application_reference?: string
           created_at?: string
+          doc_code?: string | null
           document_name?: string | null
           document_type?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_supportive?: boolean | null
           meeting_id?: string
           metadata?: Json | null
           mime_type?: string | null
+          replaced_at?: string | null
+          replaced_by?: string | null
           storage_url?: string
           supportive_doc_type?: string | null
           updated_at?: string
@@ -7291,6 +7303,13 @@ export type Database = {
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_uploaded_documents_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "meeting_uploaded_documents"
             referencedColumns: ["id"]
           },
         ]
