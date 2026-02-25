@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,7 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   Upload, File, Trash2, Download, FileText, Eye, Image as ImageIcon,
   AlertTriangle, Loader2, CheckCircle2, Info, ChevronRight, ChevronLeft,
-  ShieldCheck, FileCheck, X
+  ShieldCheck, FileCheck, X, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,17 +26,12 @@ import { useUserCode } from '@/hooks/useUserCode';
 // --- Interfaces ---
 
 interface MeetingDocumentVerificationTabProps {
-  /** Application data from external API */
   applicationData: Record<string, any>;
-  /** Meeting ID for folder hierarchy */
   meetingId: string;
-  /** Application reference number */
   applicationReference: string;
-  /** Whether user can edit/upload */
   isEditable: boolean;
 }
 
-/** Unified document shape used by the UI — merges external API docs + platform uploads */
 interface UnifiedDocument {
   id: string;
   document_type: string;
@@ -47,10 +42,10 @@ interface UnifiedDocument {
   verification_category?: string | null;
   supportive_doc_type?: string | null;
   is_supportive?: boolean;
-  /** 'external' = from API, 'platform' = uploaded on this platform */
   source: 'external' | 'platform';
-  /** Storage URL (for platform) or signed/public URL (for external) */
   url?: string;
+  doc_code?: string | null;
+  is_active?: boolean;
 }
 
 interface VerificationCategory {
@@ -75,6 +70,13 @@ const ACCEPTED_MIME_TYPES = [
   'image/tiff'
 ];
 
+const CATEGORY_TO_VERIFY_TYPE: Record<string, string> = {
+  birth: 'birth_status',
+  name: 'name_status',
+  marital: 'marital_status',
+  death: 'death_status',
+};
+
 // --- Helpers ---
 function formatSize(size?: number | null): string {
   if (size === undefined || size === null) return '—';
@@ -87,11 +89,6 @@ function formatDocDate(dateStr?: string | null): string {
   try { return format(parseISO(dateStr), 'MMM dd, yyyy'); } catch { return dateStr; }
 }
 
-/**
- * Map external API document objects to UnifiedDocument shape.
- * External docs may have varying key names.
- */
-/** Map verificationType to internal category id used by upload slots */
 const VERIFY_TYPE_TO_CATEGORY: Record<string, string> = {
   birth_status: 'birth',
   name_status: 'name',
@@ -113,12 +110,11 @@ function mapExternalDocs(apiDocs: any[]): UnifiedDocument[] {
     is_supportive: false,
     source: 'external' as const,
     url: d.signedUrl || d.url || d.filePath || '',
+    doc_code: d.documentType || null,
+    is_active: true,
   }));
 }
 
-/**
- * Map platform-uploaded rows from meeting_uploaded_documents to UnifiedDocument shape.
- */
 function mapPlatformDocs(rows: any[]): UnifiedDocument[] {
   if (!rows || !Array.isArray(rows)) return [];
   return rows.map(d => ({
@@ -133,17 +129,15 @@ function mapPlatformDocs(rows: any[]): UnifiedDocument[] {
     is_supportive: d.is_supportive ?? false,
     source: 'platform' as const,
     url: d.storage_url || '',
+    doc_code: d.doc_code || null,
+    is_active: d.is_active ?? true,
   }));
 }
 
-/**
- * Merge external + platform docs, deduplicating by URL or file_path.
- */
 function mergeDocuments(externalDocs: UnifiedDocument[], platformDocs: UnifiedDocument[]): UnifiedDocument[] {
   const seen = new Set<string>();
   const result: UnifiedDocument[] = [];
 
-  // External docs first
   for (const doc of externalDocs) {
     const key = doc.url || doc.file_path || doc.id;
     if (key && !seen.has(key)) {
@@ -152,7 +146,6 @@ function mergeDocuments(externalDocs: UnifiedDocument[], platformDocs: UnifiedDo
     }
   }
 
-  // Platform docs — skip if already present from external
   for (const doc of platformDocs) {
     const key = doc.url || doc.file_path || doc.id;
     if (key && !seen.has(key)) {
@@ -175,7 +168,6 @@ export function MeetingDocumentVerificationTab({
   const { resolveDocType } = useDocumentTypeResolver();
   const queryClient = useQueryClient();
 
-  // Local verification selections
   const [verifySelections, setVerifySelections] = useState<Record<string, string>>({});
   const [supportiveSelections, setSupportiveSelections] = useState<Record<string, string>>({});
   const [documents, setDocuments] = useState<UnifiedDocument[]>([]);
@@ -184,13 +176,17 @@ export function MeetingDocumentVerificationTab({
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState<'selection' | 'upload'>('selection');
 
+  // Track previous selections to detect user-initiated changes
+  const prevSelectionsRef = useRef<Record<string, string>>({});
+  // Track categories where doc type was changed and re-upload is needed
+  const [pendingReupload, setPendingReupload] = useState<Record<string, string>>({});
+
   // Preview state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
 
   const { data: verifyTypes = [], isLoading: verifyLoading } = useVerifyTypes();
 
-  // --- Derive marital status and death info from application data ---
   const maritalStatus = applicationData?.maritalStatus || '';
   const isMarried = ['Married', 'M', 'Common Law', 'C'].includes(maritalStatus);
 
@@ -199,7 +195,6 @@ export function MeetingDocumentVerificationTab({
     return deps.some((d: any) => !!d.dateOfDeath);
   }, [applicationData?.dependants]);
 
-  // --- Dynamic verification categories ---
   const verificationCategories = useMemo((): VerificationCategory[] => {
     const categories: VerificationCategory[] = [];
 
@@ -244,8 +239,7 @@ export function MeetingDocumentVerificationTab({
     return categories;
   }, [isMarried, hasDeathInfo]);
 
-  // Build a set of fieldKeys that have real uploaded documents from the API.
-  // These take absolute priority over autoSelectCode defaults.
+  // Build API doc field keys from external documents
   const apiDocFieldKeys = useMemo(() => {
     const verTypeToFieldKey: Record<string, string> = {
       birth_status: 'birth_doc_type',
@@ -267,20 +261,19 @@ export function MeetingDocumentVerificationTab({
     return map;
   }, [applicationData?.documents]);
 
-  // Auto-select from external API documents first (real uploaded data wins)
+  // Auto-select from external API documents first
   useEffect(() => {
     if (Object.keys(apiDocFieldKeys).length === 0) return;
     setVerifySelections(prev => {
       const next = { ...prev };
       for (const [fieldKey, code] of Object.entries(apiDocFieldKeys)) {
-        // Always override with real uploaded document type
         next[fieldKey] = code;
       }
       return next;
     });
   }, [apiDocFieldKeys]);
 
-  // Auto-select logic: from category autoSelectCode (married/death) — only if no API doc exists
+  // Auto-select from category autoSelectCode — only if no API doc exists
   useEffect(() => {
     verificationCategories.forEach(cat => {
       if (cat.autoSelectCode && !apiDocFieldKeys[cat.fieldKey] && !verifySelections[cat.fieldKey]) {
@@ -289,13 +282,85 @@ export function MeetingDocumentVerificationTab({
     });
   }, [verificationCategories, apiDocFieldKeys]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Check if selected code requires supportive
+  // Sync prevSelectionsRef after initial load stabilizes
+  useEffect(() => {
+    const keys = Object.keys(verifySelections);
+    if (keys.length > 0 && Object.keys(prevSelectionsRef.current).length === 0) {
+      prevSelectionsRef.current = { ...verifySelections };
+    }
+  }, [verifySelections]);
+
+  // Only show active documents everywhere
+  const activeDocuments = useMemo(() => documents.filter(d => d.is_active !== false), [documents]);
+
   const getRequiresSupportive = useCallback((categoryId: string): boolean => {
     const cat = verificationCategories.find(c => c.id === categoryId);
     if (!cat) return false;
     const selectedCode = verifySelections[cat.fieldKey];
     return !!selectedCode && CODES_REQUIRING_SUPPORTIVE.includes(selectedCode);
   }, [verifySelections, verificationCategories]);
+
+  // --- Deactivate old documents when dropdown changes ---
+  const deactivateDocsForCategory = useCallback(async (categoryId: string, isSupportive: boolean) => {
+    // Deactivate platform docs in DB
+    try {
+      const { error } = await supabase
+        .from('meeting_uploaded_documents')
+        .update({
+          is_active: false,
+          replaced_at: new Date().toISOString(),
+        } as any)
+        .eq('meeting_id', meetingId)
+        .eq('application_reference', applicationReference)
+        .eq('verification_category', categoryId)
+        .eq('is_supportive', isSupportive)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Failed to deactivate documents:', error);
+      }
+    } catch (err) {
+      console.error('Error deactivating documents:', err);
+    }
+  }, [meetingId, applicationReference]);
+
+  // Handle dropdown change — deactivate old docs and mark re-upload needed
+  const handleVerificationChange = useCallback(async (cat: VerificationCategory, newCode: string) => {
+    const oldCode = verifySelections[cat.fieldKey];
+
+    // Update selection
+    setVerifySelections(prev => ({ ...prev, [cat.fieldKey]: newCode }));
+
+    // Clear supportive selection if new code doesn't need it
+    if (!CODES_REQUIRING_SUPPORTIVE.includes(newCode)) {
+      setSupportiveSelections(prev => {
+        const n = { ...prev };
+        delete n[cat.id];
+        return n;
+      });
+    }
+
+    // If code actually changed from a previous value, deactivate old docs
+    if (oldCode && oldCode !== newCode) {
+      // Deactivate main docs for this category
+      await deactivateDocsForCategory(cat.id, false);
+      // Also deactivate supportive docs since the requirement changed
+      await deactivateDocsForCategory(cat.id, true);
+
+      // Mark this category as needing re-upload
+      setPendingReupload(prev => ({ ...prev, [cat.id]: newCode }));
+
+      // Re-fetch documents to reflect deactivation
+      fetchDocuments();
+
+      const verifyItem = verifyTypes.find(v => v.code === newCode);
+      toast.info(`Document type changed to ${verifyItem?.description || newCode}`, {
+        description: `Previous document has been deactivated. Please upload a new ${verifyItem?.description || newCode} in the Upload Documents section.`,
+      });
+    }
+
+    prevSelectionsRef.current[cat.fieldKey] = newCode;
+  }, [verifySelections, deactivateDocsForCategory, verifyTypes]);
 
   // Upload slots computation
   const uploadSlots = useMemo(() => {
@@ -308,6 +373,7 @@ export function MeetingDocumentVerificationTab({
       docDescription: string;
       satisfiedByMandatory?: boolean;
       satisfiedByCategoryId?: string;
+      needsReupload?: boolean;
     }> = [];
 
     const mandatorySlots: Array<{ categoryId: string; docCode: string; docDescription: string }> = [];
@@ -320,6 +386,12 @@ export function MeetingDocumentVerificationTab({
       const desc = verifyItem?.description || selectedCode;
       mandatorySlots.push({ categoryId: cat.id, docCode: selectedCode, docDescription: desc });
 
+      // Check if this category has pending re-upload (changed doc type, no active docs with new code)
+      const hasActiveDocForNewCode = activeDocuments.some(
+        d => d.verification_category === cat.id && !d.is_supportive && (d.doc_code === selectedCode || d.document_type === selectedCode)
+      );
+      const needsReupload = !!pendingReupload[cat.id] && !hasActiveDocForNewCode;
+
       slots.push({
         key: `${cat.id}_main`,
         label: `${cat.label} — ${desc}`,
@@ -327,6 +399,7 @@ export function MeetingDocumentVerificationTab({
         isSupportive: false,
         docCode: selectedCode,
         docDescription: desc,
+        needsReupload,
       });
     });
 
@@ -345,7 +418,7 @@ export function MeetingDocumentVerificationTab({
         m => m.docCode === supportiveCode && m.categoryId !== cat.id
       );
       const mandatoryDocsForMatch = matchingMandatory
-        ? documents.filter(d => d.verification_category === matchingMandatory.categoryId && !d.is_supportive)
+        ? activeDocuments.filter(d => d.verification_category === matchingMandatory.categoryId && !d.is_supportive)
         : [];
       const isSatisfied = mandatoryDocsForMatch.length > 0;
 
@@ -362,7 +435,7 @@ export function MeetingDocumentVerificationTab({
     });
 
     return slots;
-  }, [verifySelections, verificationCategories, verifyTypes, supportiveSelections, documents]);
+  }, [verifySelections, verificationCategories, verifyTypes, supportiveSelections, activeDocuments, pendingReupload]);
 
   // Validation errors
   const selectionErrors = useMemo(() => {
@@ -378,7 +451,7 @@ export function MeetingDocumentVerificationTab({
             other => other.id !== cat.id && verifySelections[other.fieldKey] === supCode
           );
           if (!matchingMandatory) return false;
-          return documents.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0;
+          return activeDocuments.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0;
         });
         if (!isSatisfiedByAnyMandatory) {
           errs[`${cat.id}_supportive`] = `A supportive ID document is required when using ${verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode}`;
@@ -386,18 +459,61 @@ export function MeetingDocumentVerificationTab({
       }
     });
     return errs;
-  }, [verifySelections, verificationCategories, supportiveSelections, verifyTypes, documents]);
+  }, [verifySelections, verificationCategories, supportiveSelections, verifyTypes, activeDocuments]);
+
+  // Upload validation: check that active docs exist for each mandatory selection
+  const uploadErrors = useMemo(() => {
+    const errs: Record<string, string> = {};
+    verificationCategories.forEach(cat => {
+      const selectedCode = verifySelections[cat.fieldKey];
+      if (!selectedCode) return;
+      if (!cat.isMandatory && !selectedCode) return;
+
+      // Check for active primary doc for this category
+      const hasActivePrimaryDoc = activeDocuments.some(
+        d => d.verification_category === cat.id && !d.is_supportive
+      );
+      if (!hasActivePrimaryDoc && selectedCode) {
+        const desc = verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode;
+        errs[`${cat.id}_main`] = `Upload required: ${desc}`;
+      }
+
+      // Check supportive requirement
+      if (CODES_REQUIRING_SUPPORTIVE.includes(selectedCode)) {
+        const supportiveCode = supportiveSelections[cat.id];
+        if (supportiveCode) {
+          // Check if satisfied by mandatory
+          const matchingMandatory = verificationCategories.find(
+            other => other.id !== cat.id && verifySelections[other.fieldKey] === supportiveCode
+          );
+          const mandatoryDocs = matchingMandatory
+            ? activeDocuments.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive)
+            : [];
+          const isSatisfied = mandatoryDocs.length > 0;
+
+          if (!isSatisfied) {
+            const hasActiveSupportiveDoc = activeDocuments.some(
+              d => d.verification_category === cat.id && d.is_supportive
+            );
+            if (!hasActiveSupportiveDoc) {
+              const supDesc = verifyTypes.find(v => v.code === supportiveCode)?.description || supportiveCode;
+              errs[`${cat.id}_supportive`] = `Upload required: ${supDesc} (supportive)`;
+            }
+          }
+        }
+      }
+    });
+    return errs;
+  }, [verifySelections, verificationCategories, supportiveSelections, verifyTypes, activeDocuments]);
 
   const canProceedToUpload = Object.keys(selectionErrors).length === 0 &&
     verificationCategories.filter(c => c.isMandatory).every(c => !!verifySelections[c.fieldKey]);
 
-  // --- Document fetching: merge external API docs + platform-uploaded docs ---
+  // --- Document fetching ---
   const fetchDocuments = useCallback(async () => {
     try {
-      // 1. External API documents from applicationData
       const externalDocs = mapExternalDocs(applicationData?.documents || []);
 
-      // 2. Platform-uploaded documents from meeting_uploaded_documents
       const { data: platformRows, error } = await supabase
         .from('meeting_uploaded_documents')
         .select('*')
@@ -410,10 +526,21 @@ export function MeetingDocumentVerificationTab({
       }
 
       const platformDocs = mapPlatformDocs(platformRows || []);
-
-      // 3. Merge & deduplicate
       const merged = mergeDocuments(externalDocs, platformDocs);
       setDocuments(merged);
+
+      // Clear pending re-upload flags if active docs now exist
+      setPendingReupload(prev => {
+        const next = { ...prev };
+        for (const [catId, code] of Object.entries(prev)) {
+          const hasActive = merged.some(
+            d => d.verification_category === catId && !d.is_supportive && d.is_active !== false &&
+              (d.doc_code === code || d.document_type === code)
+          );
+          if (hasActive) delete next[catId];
+        }
+        return next;
+      });
     } catch (error) {
       console.error('Error fetching documents:', error);
     } finally {
@@ -443,6 +570,9 @@ export function MeetingDocumentVerificationTab({
       setUploadProgress(prev => ({ ...prev, [uploadKey]: 10 }));
 
       try {
+        // First, deactivate any existing active docs for this slot to enforce single active primary
+        await deactivateDocsForCategory(slot.categoryId, slot.isSupportive);
+
         const fileExt = file.name.split('.').pop();
         const fileName = `meeting_${meetingId}/${slot.categoryId}_${slot.isSupportive ? 'supportive_' : ''}${Date.now()}.${fileExt}`;
 
@@ -455,7 +585,6 @@ export function MeetingDocumentVerificationTab({
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 60 }));
 
-        // Get public URL
         const { data: urlData } = supabase.storage
           .from('ip-documents')
           .getPublicUrl(fileName);
@@ -463,7 +592,6 @@ export function MeetingDocumentVerificationTab({
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 75 }));
 
-        // Insert into meeting_uploaded_documents (platform persistence)
         const { error: dbError } = await supabase
           .from('meeting_uploaded_documents')
           .insert({
@@ -479,12 +607,15 @@ export function MeetingDocumentVerificationTab({
             verification_category: slot.categoryId,
             is_supportive: slot.isSupportive,
             supportive_doc_type: slot.isSupportive ? slot.docCode : null,
+            doc_code: slot.docCode,
+            is_active: true,
             uploaded_by: user?.id,
             uploaded_by_code: userCode || null,
             metadata: {
               meeting_id: meetingId,
               application_reference: applicationReference,
-              verification_type: ({ birth: 'birth_status', name: 'name_status', marital: 'marital_status', death: 'death_status' } as Record<string, string>)[slot.categoryId] || null,
+              verification_type: CATEGORY_TO_VERIFY_TYPE[slot.categoryId] || null,
+              doc_code: slot.docCode,
             },
           });
         if (dbError) throw dbError;
@@ -494,7 +625,13 @@ export function MeetingDocumentVerificationTab({
           icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
         });
 
-        // Re-fetch to rebuild merged list
+        // Clear pending re-upload for this category
+        setPendingReupload(prev => {
+          const next = { ...prev };
+          delete next[slot.categoryId];
+          return next;
+        });
+
         fetchDocuments();
         queryClient.invalidateQueries({ queryKey: ['meeting-uploaded-documents', meetingId] });
       } catch (error) {
@@ -515,7 +652,6 @@ export function MeetingDocumentVerificationTab({
   };
 
   const handleDeleteDocument = async (doc: UnifiedDocument) => {
-    // Only allow deleting platform-uploaded documents
     if (doc.source === 'external') {
       toast.error('External API documents cannot be deleted from this screen');
       return;
@@ -539,7 +675,6 @@ export function MeetingDocumentVerificationTab({
   const handleDownloadDocument = async (doc: UnifiedDocument) => {
     try {
       if (doc.source === 'platform' && doc.file_path) {
-        // Platform doc — download from storage
         const { data, error } = await supabase.storage.from('ip-documents').download(doc.file_path);
         if (error) throw error;
         const url = URL.createObjectURL(data);
@@ -549,7 +684,6 @@ export function MeetingDocumentVerificationTab({
         a.click();
         URL.revokeObjectURL(url);
       } else if (doc.url) {
-        // External doc — open URL directly
         window.open(doc.url, '_blank');
       }
     } catch (error) {
@@ -581,7 +715,6 @@ export function MeetingDocumentVerificationTab({
           setPreviewOpen(true);
         }
       } else if (doc.url) {
-        // External doc — use document-proxy or direct URL
         const ext = (doc.document_name || doc.url).toLowerCase();
         const category: 'pdf' | 'image' | 'other' =
           ext.includes('.pdf') ? 'pdf' :
@@ -606,14 +739,13 @@ export function MeetingDocumentVerificationTab({
     setPreviewDoc(null);
   }, [previewDoc]);
 
-  // Get documents for a specific upload slot
   const getDocsForSlot = (slot: typeof uploadSlots[0]) => {
     if (slot.satisfiedByMandatory && slot.satisfiedByCategoryId) {
-      return documents.filter(d =>
+      return activeDocuments.filter(d =>
         d.verification_category === slot.satisfiedByCategoryId && !d.is_supportive
       );
     }
-    return documents.filter(d =>
+    return activeDocuments.filter(d =>
       d.verification_category === slot.categoryId &&
       (slot.isSupportive ? d.is_supportive === true : !d.is_supportive)
     );
@@ -663,6 +795,7 @@ export function MeetingDocumentVerificationTab({
             </div>
             <p className="text-sm text-muted-foreground">
               Choose the document you will provide for each verification type. Fields marked with <span className="text-destructive font-medium">*</span> are mandatory.
+              Changing a selection will deactivate previously uploaded documents for that verification.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -671,9 +804,10 @@ export function MeetingDocumentVerificationTab({
                 const needsSupportive = selectedCode && CODES_REQUIRING_SUPPORTIVE.includes(selectedCode);
                 const hasError = selectionErrors[cat.fieldKey];
                 const supportiveError = selectionErrors[`${cat.id}_supportive`];
+                const hasPendingReupload = !!pendingReupload[cat.id];
 
                 return (
-                  <Card key={cat.id} className={`border ${cat.isMandatory ? 'border-primary/30' : ''} ${hasError ? 'border-destructive' : ''}`}>
+                  <Card key={cat.id} className={`border ${cat.isMandatory ? 'border-primary/30' : ''} ${hasError ? 'border-destructive' : ''} ${hasPendingReupload ? 'border-amber-400' : ''}`}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center gap-2">
                         <Label htmlFor={cat.fieldKey} className="font-medium text-sm">
@@ -688,26 +822,23 @@ export function MeetingDocumentVerificationTab({
                             {cat.tooltip}
                           </TooltipContent>
                         </Tooltip>
-                        {cat.autoSelectCode && !apiDocFieldKeys[cat.fieldKey] && (
+                        {cat.autoSelectCode && !apiDocFieldKeys[cat.fieldKey] && !hasPendingReupload && (
                           <Badge variant="secondary" className="text-xs ml-auto">Auto-selected</Badge>
                         )}
-                        {apiDocFieldKeys[cat.fieldKey] && (
+                        {apiDocFieldKeys[cat.fieldKey] && !hasPendingReupload && (
                           <Badge variant="outline" className="text-xs ml-auto border-emerald-400 text-emerald-700 dark:text-emerald-400">From Document</Badge>
+                        )}
+                        {hasPendingReupload && (
+                          <Badge variant="outline" className="text-xs ml-auto border-amber-400 text-amber-700 dark:text-amber-400 gap-1">
+                            <RefreshCw className="h-3 w-3" />
+                            Re-upload needed
+                          </Badge>
                         )}
                       </div>
 
                       <Select
                         value={selectedCode || undefined}
-                        onValueChange={(v) => {
-                          setVerifySelections(prev => ({ ...prev, [cat.fieldKey]: v }));
-                          if (!CODES_REQUIRING_SUPPORTIVE.includes(v)) {
-                            setSupportiveSelections(prev => {
-                              const n = { ...prev };
-                              delete n[cat.id];
-                              return n;
-                            });
-                          }
-                        }}
+                        onValueChange={(v) => handleVerificationChange(cat, v)}
                         disabled={!isEditable || verifyLoading}
                       >
                         <SelectTrigger className={hasError ? 'border-destructive' : ''}>
@@ -723,6 +854,18 @@ export function MeetingDocumentVerificationTab({
                       </Select>
                       {hasError && <p className="text-xs text-destructive">{hasError}</p>}
 
+                      {/* Re-upload warning */}
+                      {hasPendingReupload && (
+                        <div className="p-2.5 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                              Previous document deactivated. Upload a new {verifyTypes.find(v => v.code === pendingReupload[cat.id])?.description || pendingReupload[cat.id]} in the Upload Documents section.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Supportive document requirement */}
                       {needsSupportive && (() => {
                         const supportiveCode = supportiveSelections[cat.id];
@@ -732,7 +875,7 @@ export function MeetingDocumentVerificationTab({
                             )
                           : null;
                         const isSatisfied = matchingMandatory
-                          ? documents.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0
+                          ? activeDocuments.filter(d => d.verification_category === matchingMandatory.id && !d.is_supportive).length > 0
                           : false;
 
                         return (
@@ -781,11 +924,11 @@ export function MeetingDocumentVerificationTab({
                       })()}
 
                       {/* Show uploaded docs count */}
-                      {documents.filter(d => d.verification_category === cat.id).length > 0 && (
+                      {activeDocuments.filter(d => d.verification_category === cat.id).length > 0 && (
                         <div className="flex items-center gap-1.5 mt-1">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                           <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                            {documents.filter(d => d.verification_category === cat.id).length} file(s) uploaded
+                            {activeDocuments.filter(d => d.verification_category === cat.id).length} active file(s)
                           </span>
                         </div>
                       )}
@@ -835,13 +978,33 @@ export function MeetingDocumentVerificationTab({
               Upload files for each selected document. Accepted formats: PDF, JPG, PNG, DOC, TIFF. Max 10MB per file.
             </p>
 
+            {/* Upload errors summary */}
+            {Object.keys(uploadErrors).length > 0 && (
+              <div className="p-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                    {Object.keys(uploadErrors).length} document(s) still need to be uploaded
+                  </span>
+                </div>
+                <ul className="space-y-0.5">
+                  {Object.values(uploadErrors).map((msg, i) => (
+                    <li key={i} className="text-xs text-amber-600 dark:text-amber-500 flex items-start gap-1">
+                      <span className="mt-0.5">•</span> {msg}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="space-y-4">
               {uploadSlots.map(slot => {
                 const slotDocs = getDocsForSlot(slot);
                 const isUploading = uploading[slot.key];
+                const slotUploadError = uploadErrors[slot.key];
 
                 return (
-                  <Card key={slot.key} className={`${slot.isSupportive ? 'ml-6' : ''} ${slot.satisfiedByMandatory ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20' : slot.isSupportive ? 'border-amber-200 dark:border-amber-800' : ''}`}>
+                  <Card key={slot.key} className={`${slot.isSupportive ? 'ml-6' : ''} ${slot.satisfiedByMandatory ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20' : slot.isSupportive ? 'border-amber-200 dark:border-amber-800' : ''} ${slot.needsReupload ? 'border-amber-400 dark:border-amber-600' : ''}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -849,6 +1012,11 @@ export function MeetingDocumentVerificationTab({
                             <Badge variant="outline" className="text-xs border-emerald-400 text-emerald-700 dark:text-emerald-400 gap-1">
                               <CheckCircle2 className="h-3 w-3" />
                               Satisfied via Mandatory
+                            </Badge>
+                          ) : slot.needsReupload ? (
+                            <Badge variant="outline" className="text-xs border-amber-400 text-amber-700 dark:text-amber-400 gap-1">
+                              <RefreshCw className="h-3 w-3" />
+                              Re-upload Required
                             </Badge>
                           ) : slot.isSupportive ? (
                             <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 dark:text-amber-400">
@@ -887,6 +1055,16 @@ export function MeetingDocumentVerificationTab({
                           <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <p className="text-xs text-emerald-700 dark:text-emerald-400">
                             This requirement is already satisfied by the mandatory document upload of the same type. No additional upload needed.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Re-upload needed message */}
+                      {slot.needsReupload && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 mb-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <p className="text-xs text-amber-700 dark:text-amber-400">
+                            The document type was changed. The previous document has been deactivated. Please upload a new <strong>{slot.docDescription}</strong>.
                           </p>
                         </div>
                       )}
@@ -952,7 +1130,12 @@ export function MeetingDocumentVerificationTab({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground italic">No files uploaded yet</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground italic">No files uploaded yet</p>
+                          {slotUploadError && (
+                            <Badge variant="destructive" className="text-[10px]">Required</Badge>
+                          )}
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -968,15 +1151,15 @@ export function MeetingDocumentVerificationTab({
               )}
             </div>
 
-            {/* External API documents without a verification category (shown as "Previously Available") */}
-            {documents.filter(d => !d.verification_category && d.source === 'external').length > 0 && (
+            {/* External API documents without a verification category */}
+            {activeDocuments.filter(d => !d.verification_category && d.source === 'external').length > 0 && (
               <Card className="mt-4">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Application Documents (from External API)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {documents.filter(d => !d.verification_category && d.source === 'external').map(doc => (
+                    {activeDocuments.filter(d => !d.verification_category && d.source === 'external').map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                         <div className="flex items-center gap-2 min-w-0">
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1018,14 +1201,14 @@ export function MeetingDocumentVerificationTab({
             )}
 
             {/* Legacy platform docs without category */}
-            {documents.filter(d => !d.verification_category && d.source === 'platform').length > 0 && (
+            {activeDocuments.filter(d => !d.verification_category && d.source === 'platform').length > 0 && (
               <Card className="mt-4">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Previously Uploaded Documents</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {documents.filter(d => !d.verification_category && d.source === 'platform').map(doc => (
+                    {activeDocuments.filter(d => !d.verification_category && d.source === 'platform').map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                         <div className="flex items-center gap-2 min-w-0">
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
