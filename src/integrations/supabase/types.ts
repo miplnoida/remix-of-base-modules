@@ -4637,6 +4637,7 @@ export type Database = {
       }
       ip_application_documents: {
         Row: {
+          application_reference_number: string | null
           birth_status: string | null
           created_at: string
           created_by: string | null
@@ -4648,6 +4649,7 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          is_supportive: boolean | null
           marital_status: string | null
           metadata: Json | null
           mime_type: string | null
@@ -4655,6 +4657,7 @@ export type Database = {
           signed_url: string | null
           source_document_id: string | null
           ssn: string
+          supportive_doc_type: string | null
           transfer_attempted_at: string | null
           transfer_attempts: number
           transfer_error: string | null
@@ -4665,10 +4668,13 @@ export type Database = {
           transferred_at: string | null
           transferred_by: string | null
           uploaded_at: string | null
+          uploaded_by: string | null
           url: string | null
+          verification_category: string | null
           verification_type: string | null
         }
         Insert: {
+          application_reference_number?: string | null
           birth_status?: string | null
           created_at?: string
           created_by?: string | null
@@ -4680,6 +4686,7 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_supportive?: boolean | null
           marital_status?: string | null
           metadata?: Json | null
           mime_type?: string | null
@@ -4687,6 +4694,7 @@ export type Database = {
           signed_url?: string | null
           source_document_id?: string | null
           ssn: string
+          supportive_doc_type?: string | null
           transfer_attempted_at?: string | null
           transfer_attempts?: number
           transfer_error?: string | null
@@ -4697,10 +4705,13 @@ export type Database = {
           transferred_at?: string | null
           transferred_by?: string | null
           uploaded_at?: string | null
+          uploaded_by?: string | null
           url?: string | null
+          verification_category?: string | null
           verification_type?: string | null
         }
         Update: {
+          application_reference_number?: string | null
           birth_status?: string | null
           created_at?: string
           created_by?: string | null
@@ -4712,6 +4723,7 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_supportive?: boolean | null
           marital_status?: string | null
           metadata?: Json | null
           mime_type?: string | null
@@ -4719,6 +4731,7 @@ export type Database = {
           signed_url?: string | null
           source_document_id?: string | null
           ssn?: string
+          supportive_doc_type?: string | null
           transfer_attempted_at?: string | null
           transfer_attempts?: number
           transfer_error?: string | null
@@ -4729,7 +4742,9 @@ export type Database = {
           transferred_at?: string | null
           transferred_by?: string | null
           uploaded_at?: string | null
+          uploaded_by?: string | null
           url?: string | null
+          verification_category?: string | null
           verification_type?: string | null
         }
         Relationships: [
@@ -12564,7 +12579,7 @@ export type Database = {
           p_alias: string
           p_application_date: string
           p_application_id: string
-          p_application_ref_number?: string
+          p_application_ref_number: string
           p_ben_addr1: string
           p_ben_addr2: string
           p_beneficiary: string
@@ -12596,6 +12611,7 @@ export type Database = {
           p_firstname: string
           p_heightfeet: number
           p_heightinches: number
+          p_ip_signature: string
           p_mail_addr1: string
           p_mail_addr2: string
           p_marital_status: string

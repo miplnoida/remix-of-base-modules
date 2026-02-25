@@ -43,11 +43,21 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
     if (!formData.ssn) return;
     try {
       const { data, error } = await supabase
-        .from('ip_documents' as any)
-        .select('*')
+        .from('ip_application_documents')
+        .select('id, document_name, document_type, file_name, file_path, file_size, uploaded_at')
         .eq('ssn', formData.ssn)
         .order('uploaded_at', { ascending: false });
-      if (!error) setDocuments((data as any[]) || []);
+      if (!error) {
+        const mapped = (data || []).map((d: any) => ({
+          id: d.id,
+          document_type: d.document_name || d.document_type || '',
+          document_name: d.file_name || d.document_name || '',
+          file_path: d.file_path || '',
+          file_size: d.file_size || 0,
+          uploaded_at: d.uploaded_at || '',
+        }));
+        setDocuments(mapped);
+      }
     } catch (e) { /* ignore */ }
   }, [formData.ssn]);
 
@@ -62,15 +72,16 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
       const fileName = `${formData.ssn}/${documentType}_${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('ip-documents').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { error: dbError } = await supabase.from('ip_documents').insert({
+      const { error: dbError } = await supabase.from('ip_application_documents').insert({
         ssn: formData.ssn,
-        document_type: documentType,
-        document_name: file.name,
+        document_name: documentType,
+        document_type: 'mandatory',
+        file_name: file.name,
         file_path: fileName,
         file_size: file.size,
         mime_type: file.type,
-        is_temp: true,
-      } as any);
+        transfer_status: 'Pending',
+      });
       if (dbError) throw dbError;
       toast({ title: 'Document uploaded successfully' });
       fetchDocuments();
@@ -83,8 +94,10 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
 
   const handleDeleteDocument = async (doc: UploadedDocument) => {
     try {
-      await supabase.storage.from('ip-documents').remove([doc.file_path]);
-      await supabase.from('ip_documents').delete().eq('id', doc.id);
+      if (doc.file_path) {
+        await supabase.storage.from('ip-documents').remove([doc.file_path]);
+      }
+      await supabase.from('ip_application_documents').delete().eq('id', doc.id);
       toast({ title: 'Document deleted' });
       fetchDocuments();
     } catch (error: any) {
