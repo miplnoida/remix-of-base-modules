@@ -30,6 +30,8 @@ interface MeetingDocumentVerificationTabProps {
   meetingId: string;
   applicationReference: string;
   isEditable: boolean;
+  /** Callback reporting verification categories that have active platform replacements */
+  onReplacedCategoriesChange?: (replacedCategories: Set<string>) => void;
 }
 
 interface UnifiedDocument {
@@ -162,6 +164,7 @@ export function MeetingDocumentVerificationTab({
   meetingId,
   applicationReference,
   isEditable,
+  onReplacedCategoriesChange,
 }: MeetingDocumentVerificationTabProps) {
   const { user } = useAuth();
   const { userCode } = useUserCode();
@@ -292,6 +295,18 @@ export function MeetingDocumentVerificationTab({
 
   // Only show active documents everywhere
   const activeDocuments = useMemo(() => documents.filter(d => d.is_active !== false), [documents]);
+
+  // Report which verification categories have platform replacements to parent
+  useEffect(() => {
+    if (!onReplacedCategoriesChange) return;
+    const platformCategories = new Set<string>();
+    for (const doc of activeDocuments) {
+      if (doc.source === 'platform' && doc.verification_category) {
+        platformCategories.add(doc.verification_category);
+      }
+    }
+    onReplacedCategoriesChange(platformCategories);
+  }, [activeDocuments, onReplacedCategoriesChange]);
 
   const getRequiresSupportive = useCallback((categoryId: string): boolean => {
     const cat = verificationCategories.find(c => c.id === categoryId);
