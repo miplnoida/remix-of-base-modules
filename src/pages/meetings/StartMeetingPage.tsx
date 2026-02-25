@@ -94,6 +94,9 @@ export default function StartMeetingPage() {
   const [workflowEligibility, setWorkflowEligibility] = useState<WorkflowEligibilityResult | null>(null);
   const [pendingConversionResult, setPendingConversionResult] = useState<{ ssn: string; unique_uuid: string; recordName: string } | null>(null);
   const [isInitiatingWorkflow, setIsInitiatingWorkflow] = useState(false);
+
+  // Track which verification categories have been replaced by platform uploads
+  const [replacedDocCategories, setReplacedDocCategories] = useState<Set<string>>(new Set());
   
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
@@ -522,6 +525,8 @@ export default function StartMeetingPage() {
               onDataChange={(newData) => { setEditedData(newData); setHasChanges(true); }}
               meetingId={meetingId}
               applicationReference={applicationReference}
+              replacedDocCategories={replacedDocCategories}
+              onReplacedDocCategoriesChange={setReplacedDocCategories}
             />
           ) : (
             <Alert>
@@ -685,11 +690,13 @@ interface ApplicationEditFormProps {
   onDataChange: (newData: Record<string, any>) => void;
   meetingId?: string;
   applicationReference?: string;
+  replacedDocCategories?: Set<string>;
+  onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories, onReplacedDocCategoriesChange }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
-    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
+    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} />;
   }
   
   if (meetingType === 'Employer-Registration') {
@@ -709,7 +716,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories, onReplacedDocCategoriesChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
@@ -1460,6 +1467,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             meetingId={meetingId}
             applicationReference={applicationReference}
             isEditable={true}
+            onReplacedCategoriesChange={onReplacedDocCategoriesChange}
           />
         ) : (
           <ApplicationDocumentsTab 
@@ -1471,14 +1479,30 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           />
         )}
 
-        {/* Application-submitted documents (read-only view) */}
-        {data.documents && data.documents.length > 0 && meetingId && applicationReference && (
-          <ApplicationDocumentsTab 
-            documents={data.documents} 
-            photoUrl={data.photoUrl}
-            ssn={applicationReference}
-          />
-        )}
+        {/* Application-submitted documents (read-only view), filtered to exclude replaced docs */}
+        {data.documents && data.documents.length > 0 && meetingId && applicationReference && (() => {
+          const VERIFY_TYPE_TO_CATEGORY: Record<string, string> = {
+            birth_status: 'birth',
+            name_status: 'name',
+            marital_status: 'marital',
+            death_status: 'death',
+          };
+          const filteredDocs = data.documents.filter((doc: any) => {
+            const vt = doc.verificationType as string | undefined;
+            if (!vt) return true;
+            const category = VERIFY_TYPE_TO_CATEGORY[vt];
+            if (!category) return true;
+            return !replacedDocCategories?.has(category);
+          });
+          if (filteredDocs.length === 0) return null;
+          return (
+            <ApplicationDocumentsTab 
+              documents={filteredDocs} 
+              photoUrl={data.photoUrl}
+              ssn={applicationReference}
+            />
+          );
+        })()}
 
         {/* Document Delete Confirmation */}
         <Dialog open={docDeleteIndex !== null} onOpenChange={(open) => { if (!open) setDocDeleteIndex(null); }}>
