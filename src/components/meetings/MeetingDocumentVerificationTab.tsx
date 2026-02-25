@@ -374,6 +374,7 @@ export function MeetingDocumentVerificationTab({
             file_size: file.size,
             created_by: user?.id,
             transfer_status: 'Pending',
+            verification_type: slot.docCode || slot.categoryId || null,
             metadata: {
               verification_category: slot.categoryId,
               is_supportive: slot.isSupportive,

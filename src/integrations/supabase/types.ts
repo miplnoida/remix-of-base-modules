@@ -4608,6 +4608,7 @@ export type Database = {
           transferred_by: string | null
           uploaded_at: string | null
           url: string | null
+          verification_type: string | null
         }
         Insert: {
           created_at?: string
@@ -4635,6 +4636,7 @@ export type Database = {
           transferred_by?: string | null
           uploaded_at?: string | null
           url?: string | null
+          verification_type?: string | null
         }
         Update: {
           created_at?: string
@@ -4662,6 +4664,7 @@ export type Database = {
           transferred_by?: string | null
           uploaded_at?: string | null
           url?: string | null
+          verification_type?: string | null
         }
         Relationships: [
           {
