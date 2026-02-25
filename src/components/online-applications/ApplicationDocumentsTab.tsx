@@ -30,7 +30,7 @@ function getDocName(doc: ExternalDocument, index: number): string {
 
 /** Get raw type code for a document (before tb_verify resolution) */
 function getRawDocType(doc: ExternalDocument): string {
-  return doc.documentType || doc.type || getFileCategory(doc).toUpperCase();
+  return doc.verificationType || doc.documentType || doc.type || getFileCategory(doc).toUpperCase();
 }
 
 /** Determine file category from name, type, or mimeType */

@@ -202,6 +202,7 @@ export interface ExternalDocument {
   fileName?: string;
   documentType?: string;
   type?: string;
+  verificationType?: string;
   filePath?: string;
   url?: string;
   signedUrl?: string;

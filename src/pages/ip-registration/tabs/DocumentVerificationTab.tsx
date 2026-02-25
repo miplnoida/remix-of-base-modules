@@ -160,7 +160,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       if (!ssn) return [];
       const { data, error } = await supabase
         .from('ip_application_documents')
-        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, transfer_status, dms_document_id')
+        .select('id, document_name, document_type, file_name, file_path, file_size, mime_type, url, signed_url, uploaded_at, transfer_status, dms_document_id, verification_type')
         .eq('ssn', ssn)
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
@@ -450,20 +450,21 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
             .insert({
               ssn,
               document_name: slot.docDescription,
-              document_type: slot.isSupportive ? 'supportive' : 'mandatory',
-              file_name: file.name,
-              file_path: fileName,
-              url: publicUrl,
-              mime_type: file.type,
-              file_size: file.size,
-              created_by: user?.id,
-              transfer_status: 'Pending',
-              metadata: {
-                verification_category: slot.categoryId,
-                is_supportive: slot.isSupportive,
-                supportive_doc_type: slot.isSupportive ? slot.docCode : null,
-                unique_uuid: formData.unique_uuid,
-              },
+            document_type: slot.isSupportive ? 'supportive' : 'mandatory',
+            file_name: file.name,
+            file_path: fileName,
+            url: publicUrl,
+            mime_type: file.type,
+            file_size: file.size,
+            created_by: user?.id,
+            transfer_status: 'Pending',
+            verification_type: slot.docCode || slot.categoryId || null,
+            metadata: {
+              verification_category: slot.categoryId,
+              is_supportive: slot.isSupportive,
+              supportive_doc_type: slot.isSupportive ? slot.docCode : null,
+              unique_uuid: formData.unique_uuid,
+            },
             });
           if (appDocError) {
             console.error('Error inserting into ip_application_documents:', appDocError);
