@@ -865,7 +865,21 @@ export function MeetingDocumentVerificationTab({
                               <div className="flex items-center gap-2 min-w-0">
                                 <File className="h-4 w-4 text-muted-foreground shrink-0" />
                                 <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{doc.document_name}</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium truncate">{doc.document_name}</p>
+                                    {doc.document_type && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary cursor-help shrink-0">
+                                            <Info className="h-2.5 w-2.5" />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="text-xs">
+                                          {resolveDocType(doc.document_type)}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-2">
                                     <p className="text-xs text-muted-foreground">{formatSize(doc.file_size)}</p>
                                     {doc.source === 'external' && (
@@ -920,9 +934,23 @@ export function MeetingDocumentVerificationTab({
                         <div className="flex items-center gap-2 min-w-0">
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{doc.document_name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium truncate">{doc.document_name}</p>
+                              {doc.document_type && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary cursor-help shrink-0">
+                                      <Info className="h-2.5 w-2.5" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    {resolveDocType(doc.document_type)}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2">
-                              <p className="text-xs text-muted-foreground">{resolveDocType(doc.document_type)} • {formatSize(doc.file_size)}</p>
+                              <p className="text-xs text-muted-foreground">{formatSize(doc.file_size)}</p>
                               <Badge variant="outline" className="text-[10px] px-1 py-0">External</Badge>
                             </div>
                           </div>
@@ -955,8 +983,22 @@ export function MeetingDocumentVerificationTab({
                         <div className="flex items-center gap-2 min-w-0">
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{doc.document_name}</p>
-                            <p className="text-xs text-muted-foreground">{resolveDocType(doc.document_type)} • {formatSize(doc.file_size)}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium truncate">{doc.document_name}</p>
+                              {doc.document_type && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary cursor-help shrink-0">
+                                      <Info className="h-2.5 w-2.5" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    {resolveDocType(doc.document_type)}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{formatSize(doc.file_size)}</p>
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
