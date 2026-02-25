@@ -745,10 +745,16 @@ export function MeetingDocumentVerificationTab({
         d.verification_category === slot.satisfiedByCategoryId && !d.is_supportive
       );
     }
-    return activeDocuments.filter(d =>
+    const categoryDocs = activeDocuments.filter(d =>
       d.verification_category === slot.categoryId &&
       (slot.isSupportive ? d.is_supportive === true : !d.is_supportive)
     );
+    // If platform docs exist for this slot, hide external API docs (platform replaces external)
+    const hasPlatformDoc = categoryDocs.some(d => d.source === 'platform');
+    if (hasPlatformDoc) {
+      return categoryDocs.filter(d => d.source === 'platform');
+    }
+    return categoryDocs;
   };
 
   const supportiveDocOptions = verifyTypes.filter(v => SUPPORTIVE_DOC_CODES.includes(v.code));
