@@ -646,7 +646,8 @@ export default function ApplicationDetailPage() {
         <TabsContent value="documents">
           <ApplicationDocumentsTab 
             documents={application.documents} 
-            photoUrl={application.photoUrl} 
+            photoUrl={application.photoUrl}
+            ssn={referenceNumber}
           />
         </TabsContent>
 

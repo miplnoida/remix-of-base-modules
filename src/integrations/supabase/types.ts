@@ -4583,8 +4583,10 @@ export type Database = {
       }
       ip_application_documents: {
         Row: {
+          birth_status: string | null
           created_at: string
           created_by: string | null
+          death_status: string | null
           dms_document_id: string | null
           document_name: string | null
           document_type: string | null
@@ -4592,8 +4594,10 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          marital_status: string | null
           metadata: Json | null
           mime_type: string | null
+          name_status: string | null
           signed_url: string | null
           source_document_id: string | null
           ssn: string
@@ -4611,8 +4615,10 @@ export type Database = {
           verification_type: string | null
         }
         Insert: {
+          birth_status?: string | null
           created_at?: string
           created_by?: string | null
+          death_status?: string | null
           dms_document_id?: string | null
           document_name?: string | null
           document_type?: string | null
@@ -4620,8 +4626,10 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          marital_status?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          name_status?: string | null
           signed_url?: string | null
           source_document_id?: string | null
           ssn: string
@@ -4639,8 +4647,10 @@ export type Database = {
           verification_type?: string | null
         }
         Update: {
+          birth_status?: string | null
           created_at?: string
           created_by?: string | null
+          death_status?: string | null
           dms_document_id?: string | null
           document_name?: string | null
           document_type?: string | null
@@ -4648,8 +4658,10 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          marital_status?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          name_status?: string | null
           signed_url?: string | null
           source_document_id?: string | null
           ssn?: string
