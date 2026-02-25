@@ -9,6 +9,7 @@ import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 
 interface ApplicationDocumentsTabProps {
   documents?: ExternalDocument[];
@@ -27,8 +28,8 @@ function getDocName(doc: ExternalDocument, index: number): string {
   return doc.fileName || doc.name || `Document ${index + 1}`;
 }
 
-/** Get display type for a document */
-function getDocType(doc: ExternalDocument): string {
+/** Get raw type code for a document (before tb_verify resolution) */
+function getRawDocType(doc: ExternalDocument): string {
   return doc.documentType || doc.type || getFileCategory(doc).toUpperCase();
 }
 
@@ -78,6 +79,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
+  const { resolveDocType } = useDocumentTypeResolver();
 
   // Build a combined list: photo first, then documents
   const allDocs: ExternalDocument[] = [];
@@ -237,7 +239,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                       <TableCell className="font-medium">{getDocName(doc, index)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {getDocType(doc)}
+                          {resolveDocType(getRawDocType(doc))}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">

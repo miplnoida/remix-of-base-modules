@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
+import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -89,6 +90,7 @@ export function MeetingDocumentVerificationTab({
 }: MeetingDocumentVerificationTabProps) {
   const { user } = useAuth();
   const { userCode } = useUserCode();
+  const { resolveDocType } = useDocumentTypeResolver();
   const queryClient = useQueryClient();
 
   // Local verification selections (since there's no formData onChange in meeting context)
@@ -831,7 +833,7 @@ export function MeetingDocumentVerificationTab({
                           <File className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{doc.document_name}</p>
-                            <p className="text-xs text-muted-foreground">{doc.document_type} • {formatSize(doc.file_size)}</p>
+                            <p className="text-xs text-muted-foreground">{resolveDocType(doc.document_type)} • {formatSize(doc.file_size)}</p>
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
