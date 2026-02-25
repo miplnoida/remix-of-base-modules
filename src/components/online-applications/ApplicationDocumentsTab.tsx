@@ -297,20 +297,12 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                     <TableRow key={docId}>
                       <TableCell>{getFileIcon(doc)}</TableCell>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-1.5">
-                          {getDocName(doc, index)}
-                          {getRawDocType(doc) && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary cursor-help shrink-0">
-                                  <Info className="h-2.5 w-2.5" />
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {resolveDocType(getRawDocType(doc))}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                        <div className="flex items-center gap-2 flex-nowrap">
+                          <span className="truncate">{getDocName(doc, index)}</span>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 gap-0.5 cursor-help" title={resolveDocType(getRawDocType(doc))}>
+                            <Info className="h-2.5 w-2.5" />
+                            {resolveDocType(getRawDocType(doc))}
+                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell>
