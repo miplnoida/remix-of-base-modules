@@ -1023,12 +1023,12 @@ export default function C3Management() {
 
   return (
     <>
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-2 p-4 h-[calc(100vh-64px)] overflow-hidden">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage C3</h1>
-          <p className="text-muted-foreground">Manage and view C3 contribution records</p>
+          <h1 className="text-2xl font-bold tracking-tight">Manage C3</h1>
+          <p className="text-xs text-muted-foreground">Manage and view C3 contribution records</p>
         </div>
         <div className="flex gap-2">
           {/* <DropdownMenu>
@@ -1070,11 +1070,11 @@ export default function C3Management() {
       <Card>
         <Collapsible open={isQueryExpanded} onOpenChange={setIsQueryExpanded}>
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-2 px-4">
+                <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Query By</CardTitle>
-                  <CardDescription>Filter and search C3 records</CardDescription>
+                  <CardTitle className="text-sm">Query By</CardTitle>
+                  <CardDescription className="text-xs">Filter and search C3 records</CardDescription>
                 </div>
                 {isQueryExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </div>
@@ -1082,7 +1082,7 @@ export default function C3Management() {
           </CollapsibleTrigger>
           
           <CollapsibleContent>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 pt-2 pb-3 px-4">
               {/* Filter Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -1206,7 +1206,7 @@ export default function C3Management() {
     
 
       {/* C3 Data Table */}
-      <div>
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {loading ? (
           <Card>
             <CardContent className="p-6">
