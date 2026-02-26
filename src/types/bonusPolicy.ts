@@ -26,6 +26,7 @@ export interface BonusPolicyDefault {
   contrib_employee: boolean;
   contrib_employer: boolean;
   contrib_eir: boolean;
+  contrib_severance: boolean;
   is_active: boolean;
   created_by: string | null;
   created_on: string;
@@ -54,6 +55,7 @@ export interface BonusPolicyException {
   contrib_employee: boolean | null;
   contrib_employer: boolean | null;
   contrib_eir: boolean | null;
+  contrib_severance: boolean | null;
   is_active: boolean;
   description: string | null;
   created_by: string | null;
