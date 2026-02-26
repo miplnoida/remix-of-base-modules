@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Loader2, Info, Save, Check, Plus, Edit, Trash2, X, AlertTriangle } from 'lucide-react';
 import { useBonusPolicyDefaults, useCreateBonusPolicyDefault, useUpdateBonusPolicyDefault, useDeleteBonusPolicyDefault, checkDateOverlap } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
-import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import MonthYearPicker from '@/components/c3/MonthYearPicker';
 import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { BonusPolicyDefault, BonusDistribution, CalculationMethod } from '@/types/bonusPolicy';
 import { DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
@@ -154,8 +154,8 @@ export function BonusPolicyDefaultTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date From</TableHead>
-                  <TableHead>Date To</TableHead>
+                  <TableHead>From (Month-Year)</TableHead>
+                  <TableHead>To (Month-Year)</TableHead>
                   <TableHead>Calculation</TableHead>
                   <TableHead>Levy</TableHead>
                   <TableHead>Severance</TableHead>
@@ -166,8 +166,8 @@ export function BonusPolicyDefaultTab() {
               <TableBody>
                 {policies.map(p => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{formatDisplayDate(p.date_from)}</TableCell>
-                    <TableCell>{p.date_to ? formatDisplayDate(p.date_to) : <span className="text-muted-foreground italic">Open-ended</span>}</TableCell>
+                    <TableCell className="font-medium">{(() => { const d = parseDateSafe(p.date_from); return d ? `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}` : p.date_from; })()}</TableCell>
+                    <TableCell>{p.date_to ? (() => { const d = parseDateSafe(p.date_to); return d ? `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}` : p.date_to; })() : <span className="text-muted-foreground italic">Open-ended</span>}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">{p.calculation_method}</Badge>
                     </TableCell>
@@ -223,23 +223,22 @@ export function BonusPolicyDefaultTab() {
             )}
 
             {/* Validity Period */}
-            <SectionLabel>Validity Period</SectionLabel>
+            <SectionLabel>Validity Period (Month-Year)</SectionLabel>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Date From <span className="text-destructive">*</span></Label>
-                <DatePickerWithDropdowns
-                  date={form.date_from ? parseDateSafe(form.date_from) : undefined}
-                  onSelect={d => setField('date_from', d ? formatDateForStorage(d) : '')}
-                  placeholder="Select start date"
+                <Label>From <span className="text-destructive">*</span></Label>
+                <MonthYearPicker
+                  value={form.date_from ? (() => { const d = parseDateSafe(form.date_from); return d ? { year: d.getFullYear(), month: d.getMonth() } : undefined; })() : undefined}
+                  onChange={({ year, month }) => setField('date_from', `${year}-${String(month + 1).padStart(2, '0')}-01`)}
+                  placeholder="Select start month"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Date To <span className="text-xs text-muted-foreground">(optional, leave empty for open-ended)</span></Label>
-                <DatePickerWithDropdowns
-                  date={form.date_to ? parseDateSafe(form.date_to) : undefined}
-                  onSelect={d => setField('date_to', d ? formatDateForStorage(d) : null)}
+                <Label>To <span className="text-xs text-muted-foreground">(optional, leave empty for open-ended)</span></Label>
+                <MonthYearPicker
+                  value={form.date_to ? (() => { const d = parseDateSafe(form.date_to); return d ? { year: d.getFullYear(), month: d.getMonth() } : undefined; })() : undefined}
+                  onChange={({ year, month }) => setField('date_to', `${year}-${String(month + 1).padStart(2, '0')}-01`)}
                   placeholder="Open-ended"
-                  minDate={form.date_from ? parseDateSafe(form.date_from) : undefined}
                 />
               </div>
             </div>
@@ -311,7 +310,7 @@ export function BonusPolicyDefaultTab() {
             <div className="border rounded-lg divide-y">
               <ContribRow label="Employee Contribution" checked={!!form.contrib_employee} onChange={v => setField('contrib_employee', v)} />
               <ContribRow label="Employer Contribution" checked={!!form.contrib_employer} onChange={v => setField('contrib_employer', v)} />
-              <ContribRow label="EIR (Employer Insurance Rate)" checked={!!form.contrib_eir} onChange={v => setField('contrib_eir', v)} />
+              <ContribRow label="EIB (Employee Injury Benefit)" checked={!!form.contrib_eir} onChange={v => setField('contrib_eir', v)} />
             </div>
 
             {/* Footer */}
