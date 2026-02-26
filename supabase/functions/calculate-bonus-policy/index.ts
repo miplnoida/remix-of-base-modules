@@ -20,6 +20,7 @@ interface BonusPolicy {
   contrib_employee: boolean;
   contrib_employer: boolean;
   contrib_eir: boolean;
+  contrib_severance: boolean;
   is_active: boolean;
   date_from: string;
   date_to: string | null;
@@ -134,6 +135,7 @@ Deno.serve(async (req) => {
           contrib_employee: exc.contrib_employee ?? false,
           contrib_employer: exc.contrib_employer ?? false,
           contrib_eir: exc.contrib_eir ?? false,
+          contrib_severance: exc.contrib_severance ?? false,
           is_active: exc.is_active,
           date_from: exc.date_from,
           date_to: exc.date_to,
@@ -168,6 +170,7 @@ Deno.serve(async (req) => {
           contrib_employee: def.contrib_employee,
           contrib_employer: def.contrib_employer,
           contrib_eir: def.contrib_eir,
+          contrib_severance: def.contrib_severance ?? false,
           is_active: def.is_active,
           date_from: def.date_from,
           date_to: def.date_to,
@@ -229,6 +232,7 @@ Deno.serve(async (req) => {
     const contribEmployee = bonusEligible && (policy?.contrib_employee ?? false);
     const contribEmployer = bonusEligible && (policy?.contrib_employer ?? false);
     const contribEIB = bonusEligible && (policy?.contrib_eir ?? false);
+    const contribSeverance = bonusEligible && (policy?.contrib_severance ?? false);
 
     // --- Employee SS ---
     const employeeSSRate = Number(cfg.employee_ss_rate) || 0.05;
@@ -404,7 +408,7 @@ Deno.serve(async (req) => {
 
     // Employer Severance
     let severanceBase = taxableWages;
-    if (includeBonusInSeverance) severanceBase += bonus;
+    if (includeBonusInSeverance || contribSeverance) severanceBase += bonus;
     const employerSeverance = round2(employerSeveranceRate * severanceBase);
 
     const result = {

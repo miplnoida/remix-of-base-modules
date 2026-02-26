@@ -1848,6 +1848,7 @@ export type Database = {
           contrib_eir: boolean
           contrib_employee: boolean
           contrib_employer: boolean
+          contrib_severance: boolean
           created_by: string | null
           created_on: string
           date_from: string
@@ -1870,6 +1871,7 @@ export type Database = {
           contrib_eir?: boolean
           contrib_employee?: boolean
           contrib_employer?: boolean
+          contrib_severance?: boolean
           created_by?: string | null
           created_on?: string
           date_from?: string
@@ -1892,6 +1894,7 @@ export type Database = {
           contrib_eir?: boolean
           contrib_employee?: boolean
           contrib_employer?: boolean
+          contrib_severance?: boolean
           created_by?: string | null
           created_on?: string
           date_from?: string
@@ -1917,6 +1920,7 @@ export type Database = {
           contrib_eir: boolean | null
           contrib_employee: boolean | null
           contrib_employer: boolean | null
+          contrib_severance: boolean | null
           created_by: string | null
           created_on: string
           date_from: string
@@ -1945,6 +1949,7 @@ export type Database = {
           contrib_eir?: boolean | null
           contrib_employee?: boolean | null
           contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
           created_by?: string | null
           created_on?: string
           date_from?: string
@@ -1973,6 +1978,7 @@ export type Database = {
           contrib_eir?: boolean | null
           contrib_employee?: boolean | null
           contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
           created_by?: string | null
           created_on?: string
           date_from?: string

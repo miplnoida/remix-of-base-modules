@@ -37,6 +37,7 @@ const EMPTY_EXCEPTION: Omit<BonusPolicyException, 'id' | 'created_on' | 'modifie
   contrib_employee: true,
   contrib_employer: true,
   contrib_eir: false,
+  contrib_severance: false,
   is_active: true,
   description: null,
   created_by: null,
@@ -357,6 +358,7 @@ export function BonusPolicyExceptionsTab() {
                   <ContribRow label="Employee Contribution" checked={!!form.contrib_employee} onChange={v => setField('contrib_employee', v)} />
                   <ContribRow label="Employer Contribution" checked={!!form.contrib_employer} onChange={v => setField('contrib_employer', v)} />
                   <ContribRow label="EIB (Employee Injury Benefit)" checked={!!form.contrib_eir} onChange={v => setField('contrib_eir', v)} />
+                  <ContribRow label="Severance Payment" checked={!!form.contrib_severance} onChange={v => setField('contrib_severance', v)} />
                 </div>
               </div>
             )}
