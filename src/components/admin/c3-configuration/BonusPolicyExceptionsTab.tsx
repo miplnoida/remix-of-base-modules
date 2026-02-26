@@ -306,7 +306,6 @@ export function BonusPolicyExceptionsTab() {
                 <OverrideSectionLabel>Bonus Applicability in C3</OverrideSectionLabel>
                 <div className="space-y-3">
                   <ToggleRow label="Include Bonus in Levy" hint="Bonus amount added to levy base calculation" checked={!!form.include_in_levy} onChange={v => setField('include_in_levy', v)} />
-                  <ToggleRow label="Include Bonus in Severance" hint="Bonus amount added to severance base calculation" checked={!!form.include_in_severance} onChange={v => setField('include_in_severance', v)} />
                 </div>
 
                 <OverrideSectionLabel>Bonus Calculation Method</OverrideSectionLabel>
