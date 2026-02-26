@@ -269,29 +269,6 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
                </div>
              </div>
 
-             {/* Bonus Levy Configuration */}
-             <div className="border-t pt-4">
-               <h4 className="font-medium mb-3">Bonus Levy Configuration</h4>
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                   <Label>Bonus Levy Rate (%)</Label>
-                   <Input
-                     type="number"
-                     step="0.01"
-                     value={formatRateForDisplay(formData.bonus_levy_rate)}
-                     onChange={(e) => handleRateChange('bonus_levy_rate', e.target.value)}
-                     min={0}
-                     max={100}
-                   />
-                   <p className="text-xs text-muted-foreground">Rate applied to bonus amounts for levy calculation</p>
-                 </div>
-                 <div className="space-y-2 flex items-end">
-                   <p className="text-xs text-muted-foreground pb-2">
-                     Note: Per-period bonus exemptions are configured in the "Bonus Exemptions" tab.
-                   </p>
-                 </div>
-               </div>
-             </div>
           </TabsContent>
 
           {/* Severance */}
@@ -391,54 +368,6 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
               </div>
             </div>
 
-            <h4 className="font-medium mt-4">Interest Rates</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>SS Principal (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.interest_rate_ss_principal)}
-                  onChange={(e) => handleRateChange('interest_rate_ss_principal', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Levy Principal (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.interest_rate_levy_principal)}
-                  onChange={(e) => handleRateChange('interest_rate_levy_principal', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Severance Principal (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.interest_rate_severance_principal)}
-                  onChange={(e) => handleRateChange('interest_rate_severance_principal', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Penalties Interest (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.interest_rate_penalties)}
-                  onChange={(e) => handleRateChange('interest_rate_penalties', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Fines Interest (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.interest_rate_fines)}
-                  onChange={(e) => handleRateChange('interest_rate_fines', e.target.value)}
-                />
-              </div>
-            </div>
           </TabsContent>
         </Tabs>
 

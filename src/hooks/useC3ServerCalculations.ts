@@ -15,8 +15,6 @@ export interface C3CalculationConfig {
   maxAgeSS: number;
   minAgeLevy: number;
   maxAgeLevy: number;
-  bonusExemptFromLevy: boolean;
-  bonusLevyRate: number;
   employeeSSRate: number;
   employeeSSMaxWage: number;
   employerSSRate: number;
@@ -200,8 +198,6 @@ export function useC3Config() {
           maxAgeSS: configData.max_age_ss,
           minAgeLevy: configData.min_age_levy,
           maxAgeLevy: configData.max_age_levy,
-          bonusExemptFromLevy: configData.bonus_exempt_from_levy,
-          bonusLevyRate: configData.bonus_levy_rate,
           employeeSSRate: configData.employee_ss_rate,
           employeeSSMaxWage: configData.employee_ss_max_wage,
           employerSSRate: configData.employer_ss_rate,

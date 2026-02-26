@@ -1911,96 +1911,6 @@ export type Database = {
         }
         Relationships: []
       }
-      c3_bonus_policy_exceptions: {
-        Row: {
-          calc_flat_enabled: boolean | null
-          calc_flat_percentage: number | null
-          calc_slab_enabled: boolean | null
-          calculation_method: string | null
-          contrib_eir: boolean | null
-          contrib_employee: boolean | null
-          contrib_employer: boolean | null
-          contrib_severance: boolean | null
-          created_by: string | null
-          created_on: string
-          date_from: string
-          date_to: string | null
-          description: string | null
-          distribution: Json | null
-          exception_month: number
-          exception_type: string
-          id: string
-          include_in_levy: boolean | null
-          include_in_severance: boolean | null
-          is_active: boolean
-          max_bonus_amount: number | null
-          min_bonus_amount: number | null
-          modified_by: string | null
-          modified_on: string
-          override_default: boolean
-          year_from: number
-          year_to: number | null
-        }
-        Insert: {
-          calc_flat_enabled?: boolean | null
-          calc_flat_percentage?: number | null
-          calc_slab_enabled?: boolean | null
-          calculation_method?: string | null
-          contrib_eir?: boolean | null
-          contrib_employee?: boolean | null
-          contrib_employer?: boolean | null
-          contrib_severance?: boolean | null
-          created_by?: string | null
-          created_on?: string
-          date_from?: string
-          date_to?: string | null
-          description?: string | null
-          distribution?: Json | null
-          exception_month: number
-          exception_type?: string
-          id?: string
-          include_in_levy?: boolean | null
-          include_in_severance?: boolean | null
-          is_active?: boolean
-          max_bonus_amount?: number | null
-          min_bonus_amount?: number | null
-          modified_by?: string | null
-          modified_on?: string
-          override_default?: boolean
-          year_from: number
-          year_to?: number | null
-        }
-        Update: {
-          calc_flat_enabled?: boolean | null
-          calc_flat_percentage?: number | null
-          calc_slab_enabled?: boolean | null
-          calculation_method?: string | null
-          contrib_eir?: boolean | null
-          contrib_employee?: boolean | null
-          contrib_employer?: boolean | null
-          contrib_severance?: boolean | null
-          created_by?: string | null
-          created_on?: string
-          date_from?: string
-          date_to?: string | null
-          description?: string | null
-          distribution?: Json | null
-          exception_month?: number
-          exception_type?: string
-          id?: string
-          include_in_levy?: boolean | null
-          include_in_severance?: boolean | null
-          is_active?: boolean
-          max_bonus_amount?: number | null
-          min_bonus_amount?: number | null
-          modified_by?: string | null
-          modified_on?: string
-          override_default?: boolean
-          year_from?: number
-          year_to?: number | null
-        }
-        Relationships: []
-      }
       c3_calculation_config: {
         Row: {
           category: string
@@ -2145,8 +2055,6 @@ export type Database = {
       }
       c3_config_details: {
         Row: {
-          bonus_exempt_from_levy: boolean | null
-          bonus_levy_rate: number | null
           config_period_id: string
           created_by: string | null
           created_on: string | null
@@ -2158,11 +2066,6 @@ export type Database = {
           employer_ss_max_wage: number | null
           employer_ss_rate: number | null
           id: string
-          interest_rate_fines: number | null
-          interest_rate_levy_principal: number | null
-          interest_rate_penalties: number | null
-          interest_rate_severance_principal: number | null
-          interest_rate_ss_principal: number | null
           levy_monthly_threshold: number | null
           levy_penalty_initial_rate: number | null
           levy_penalty_subsequent_rate: number | null
@@ -2181,8 +2084,6 @@ export type Database = {
           submission_due_day: number | null
         }
         Insert: {
-          bonus_exempt_from_levy?: boolean | null
-          bonus_levy_rate?: number | null
           config_period_id: string
           created_by?: string | null
           created_on?: string | null
@@ -2194,11 +2095,6 @@ export type Database = {
           employer_ss_max_wage?: number | null
           employer_ss_rate?: number | null
           id?: string
-          interest_rate_fines?: number | null
-          interest_rate_levy_principal?: number | null
-          interest_rate_penalties?: number | null
-          interest_rate_severance_principal?: number | null
-          interest_rate_ss_principal?: number | null
           levy_monthly_threshold?: number | null
           levy_penalty_initial_rate?: number | null
           levy_penalty_subsequent_rate?: number | null
@@ -2217,8 +2113,6 @@ export type Database = {
           submission_due_day?: number | null
         }
         Update: {
-          bonus_exempt_from_levy?: boolean | null
-          bonus_levy_rate?: number | null
           config_period_id?: string
           created_by?: string | null
           created_on?: string | null
@@ -2230,11 +2124,6 @@ export type Database = {
           employer_ss_max_wage?: number | null
           employer_ss_rate?: number | null
           id?: string
-          interest_rate_fines?: number | null
-          interest_rate_levy_principal?: number | null
-          interest_rate_penalties?: number | null
-          interest_rate_severance_principal?: number | null
-          interest_rate_ss_principal?: number | null
           levy_monthly_threshold?: number | null
           levy_penalty_initial_rate?: number | null
           levy_penalty_subsequent_rate?: number | null
