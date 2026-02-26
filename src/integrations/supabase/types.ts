@@ -5142,6 +5142,7 @@ export type Database = {
           surname: string
           telephone: string | null
           temp_card_date: string | null
+          temp_ssn: string | null
           termination_code: string | null
           termination_date: string | null
           tran_code: string | null
@@ -5252,6 +5253,7 @@ export type Database = {
           surname: string
           telephone?: string | null
           temp_card_date?: string | null
+          temp_ssn?: string | null
           termination_code?: string | null
           termination_date?: string | null
           tran_code?: string | null
@@ -5362,6 +5364,7 @@ export type Database = {
           surname?: string
           telephone?: string | null
           temp_card_date?: string | null
+          temp_ssn?: string | null
           termination_code?: string | null
           termination_date?: string | null
           tran_code?: string | null
