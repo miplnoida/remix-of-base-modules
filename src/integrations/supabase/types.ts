@@ -1850,6 +1850,8 @@ export type Database = {
           contrib_employer: boolean
           created_by: string | null
           created_on: string
+          date_from: string
+          date_to: string | null
           distribution: Json
           id: string
           include_in_levy: boolean
@@ -1870,6 +1872,8 @@ export type Database = {
           contrib_employer?: boolean
           created_by?: string | null
           created_on?: string
+          date_from?: string
+          date_to?: string | null
           distribution?: Json
           id?: string
           include_in_levy?: boolean
@@ -1890,6 +1894,8 @@ export type Database = {
           contrib_employer?: boolean
           created_by?: string | null
           created_on?: string
+          date_from?: string
+          date_to?: string | null
           distribution?: Json
           id?: string
           include_in_levy?: boolean
@@ -1913,6 +1919,8 @@ export type Database = {
           contrib_employer: boolean | null
           created_by: string | null
           created_on: string
+          date_from: string
+          date_to: string | null
           description: string | null
           distribution: Json | null
           exception_month: number
@@ -1939,6 +1947,8 @@ export type Database = {
           contrib_employer?: boolean | null
           created_by?: string | null
           created_on?: string
+          date_from?: string
+          date_to?: string | null
           description?: string | null
           distribution?: Json | null
           exception_month: number
@@ -1965,6 +1975,8 @@ export type Database = {
           contrib_employer?: boolean | null
           created_by?: string | null
           created_on?: string
+          date_from?: string
+          date_to?: string | null
           description?: string | null
           distribution?: Json | null
           exception_month?: number

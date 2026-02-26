@@ -8,14 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check, AlertTriangle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useBonusPolicyExceptions, useCreateBonusPolicyException, useUpdateBonusPolicyException, useDeleteBonusPolicyException } from '@/hooks/useBonusPolicy';
+import { useBonusPolicyExceptions, useCreateBonusPolicyException, useUpdateBonusPolicyException, useDeleteBonusPolicyException, checkDateOverlap } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
+import DatePickerWithDropdowns from '@/components/shared/DatePickerWithDropdowns';
+import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { BonusPolicyException, BonusDistribution, ExceptionType, CalculationMethod } from '@/types/bonusPolicy';
 import { MONTH_NAMES, DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
 
 const EMPTY_EXCEPTION: Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'> = {
+  date_from: formatDateForStorage(new Date()),
+  date_to: null,
   exception_type: 'onetime',
   exception_month: 1,
   year_from: new Date().getFullYear(),
@@ -51,11 +55,13 @@ export function BonusPolicyExceptionsTab() {
   const [form, setForm] = useState<typeof EMPTY_EXCEPTION>({ ...EMPTY_EXCEPTION });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [cappingEnabled, setCappingEnabled] = useState(false);
+  const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
 
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...EMPTY_EXCEPTION });
     setCappingEnabled(false);
+    setOverlapWarning(null);
     setShowForm(true);
   };
 
@@ -64,10 +70,30 @@ export function BonusPolicyExceptionsTab() {
     const { id, created_on, modified_on, ...rest } = exc;
     setForm(rest as typeof EMPTY_EXCEPTION);
     setCappingEnabled(exc.min_bonus_amount != null || exc.max_bonus_amount != null);
+    setOverlapWarning(null);
     setShowForm(true);
   };
 
   const handleSave = async () => {
+    if (!form.date_from) {
+      setOverlapWarning('Date From is required.');
+      return;
+    }
+    if (form.date_to && form.date_to < form.date_from) {
+      setOverlapWarning('Date To cannot be earlier than Date From.');
+      return;
+    }
+    // Overlap check
+    const existing = (exceptions ?? []).map(e => ({ id: e.id, date_from: e.date_from, date_to: e.date_to }));
+    const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined);
+    if (overlap.overlaps) {
+      const rec = overlap.overlappingRecord!;
+      const from = formatDisplayDate(rec.date_from);
+      const to = rec.date_to ? formatDisplayDate(rec.date_to) : 'Open-ended';
+      setOverlapWarning(`The selected period overlaps with an existing exception (${from} – ${to}). Please adjust Date From / Date To.`);
+      return;
+    }
+
     const saveForm = { ...form };
     if (!cappingEnabled) {
       saveForm.min_bonus_amount = null;
@@ -90,13 +116,13 @@ export function BonusPolicyExceptionsTab() {
 
   const setField = <K extends keyof typeof EMPTY_EXCEPTION>(key: K, value: (typeof EMPTY_EXCEPTION)[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
+    if (key === 'date_from' || key === 'date_to') setOverlapWarning(null);
   };
 
   const setDist = (cycle: keyof BonusDistribution, key: string, value: boolean) => {
     const currentDist: BonusDistribution = (form.distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
     const newDist = JSON.parse(JSON.stringify(currentDist)) as BonusDistribution;
     const cycleObj = newDist[cycle] as Record<string, boolean>;
-
     if (key === 'divide' && value) {
       Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
     } else if (key !== 'divide' && value) {
@@ -105,7 +131,6 @@ export function BonusPolicyExceptionsTab() {
     } else {
       cycleObj[key] = value;
     }
-
     setField('distribution', newDist);
   };
 
@@ -136,6 +161,8 @@ export function BonusPolicyExceptionsTab() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Date From</TableHead>
+                  <TableHead>Date To</TableHead>
                   <TableHead>Month</TableHead>
                   <TableHead>Year From</TableHead>
                   <TableHead>Year To</TableHead>
@@ -148,20 +175,17 @@ export function BonusPolicyExceptionsTab() {
               <TableBody>
                 {exceptions.map(exc => (
                   <TableRow key={exc.id}>
-                    <TableCell className="font-medium">{MONTH_NAMES[exc.exception_month - 1]}</TableCell>
+                    <TableCell className="font-medium">{formatDisplayDate(exc.date_from)}</TableCell>
+                    <TableCell>{exc.date_to ? formatDisplayDate(exc.date_to) : <span className="text-muted-foreground italic">Open-ended</span>}</TableCell>
+                    <TableCell>{MONTH_NAMES[exc.exception_month - 1]}</TableCell>
                     <TableCell>{exc.year_from}</TableCell>
                     <TableCell>{exc.year_to ?? '—'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={exc.exception_type === 'recurring'
-                        ? 'bg-primary/10 text-primary border-primary/30'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }>
+                      <Badge variant="outline" className={exc.exception_type === 'recurring' ? 'bg-primary/10 text-primary border-primary/30' : 'bg-amber-50 text-amber-700 border-amber-200'}>
                         {exc.exception_type === 'recurring' ? 'Recurring' : 'One-time'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {exc.override_default ? 'Full Override' : 'Period Only'}
-                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{exc.override_default ? 'Full Override' : 'Period Only'}</TableCell>
                     <TableCell>
                       {exc.is_active
                         ? <span className="text-emerald-600 font-semibold text-sm">● Active</span>
@@ -195,6 +219,36 @@ export function BonusPolicyExceptionsTab() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Overlap warning */}
+            {overlapWarning && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <span className="text-sm text-destructive">{overlapWarning}</span>
+              </div>
+            )}
+
+            {/* Validity Period */}
+            <SectionLabel>Validity Period</SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Date From <span className="text-destructive">*</span></Label>
+                <DatePickerWithDropdowns
+                  date={form.date_from ? parseDateSafe(form.date_from) : undefined}
+                  onSelect={d => setField('date_from', d ? formatDateForStorage(d) : '')}
+                  placeholder="Select start date"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Date To <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                <DatePickerWithDropdowns
+                  date={form.date_to ? parseDateSafe(form.date_to) : undefined}
+                  onSelect={d => setField('date_to', d ? formatDateForStorage(d) : null)}
+                  placeholder="Open-ended"
+                  minDate={form.date_from ? parseDateSafe(form.date_from) : undefined}
+                />
+              </div>
+            </div>
+
             {/* Exception Period */}
             <SectionLabel>Exception Period</SectionLabel>
             <div className="space-y-4">
@@ -202,19 +256,9 @@ export function BonusPolicyExceptionsTab() {
                 <Label className="text-xs text-muted-foreground mb-2 block">Exception Type</Label>
                 <div className="flex gap-3">
                   {(['onetime', 'recurring'] as ExceptionType[]).map(t => (
-                    <div
-                      key={t}
-                      className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                        form.exception_type === t ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
-                      }`}
-                      onClick={() => {
-                        setField('exception_type', t);
-                        if (t === 'onetime') setField('year_to', null);
-                      }}
-                    >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        form.exception_type === t ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'
-                      }`}>
+                    <div key={t} className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${form.exception_type === t ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'}`}
+                      onClick={() => { setField('exception_type', t); if (t === 'onetime') setField('year_to', null); }}>
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${form.exception_type === t ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'}`}>
                         {form.exception_type === t && <Check className="h-3 w-3 text-white" />}
                       </div>
                       <span className="text-sm font-medium capitalize">{t === 'onetime' ? 'One-time' : 'Recurring'}</span>
@@ -227,9 +271,7 @@ export function BonusPolicyExceptionsTab() {
                   <Label>Month</Label>
                   <Select value={String(form.exception_month)} onValueChange={v => setField('exception_month', Number(v))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MONTH_NAMES.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
-                    </SelectContent>
+                    <SelectContent>{MONTH_NAMES.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
@@ -238,13 +280,7 @@ export function BonusPolicyExceptionsTab() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Year To <span className="text-xs text-muted-foreground">(optional)</span></Label>
-                  <Input
-                    type="number"
-                    value={form.year_to ?? ''}
-                    onChange={e => setField('year_to', e.target.value ? Number(e.target.value) : null)}
-                    disabled={form.exception_type === 'onetime'}
-                    placeholder={form.exception_type === 'onetime' ? 'N/A' : 'e.g. 2027'}
-                  />
+                  <Input type="number" value={form.year_to ?? ''} onChange={e => setField('year_to', e.target.value ? Number(e.target.value) : null)} disabled={form.exception_type === 'onetime'} placeholder={form.exception_type === 'onetime' ? 'N/A' : 'e.g. 2027'} />
                 </div>
               </div>
             </div>
@@ -264,133 +300,59 @@ export function BonusPolicyExceptionsTab() {
               <div className="space-y-6">
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
                   <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    Configure the complete bonus policy for this exception period. All settings below will override the default policy.
-                  </span>
+                  <span className="text-sm text-muted-foreground">Configure the complete bonus policy for this exception period. All settings below will override the default policy.</span>
                 </div>
 
-                {/* Applicability Override */}
                 <OverrideSectionLabel>Bonus Applicability in C3</OverrideSectionLabel>
                 <div className="space-y-3">
                   <ToggleRow label="Include Bonus in Levy" hint="Bonus amount added to levy base calculation" checked={!!form.include_in_levy} onChange={v => setField('include_in_levy', v)} />
                   <ToggleRow label="Include Bonus in Severance" hint="Bonus amount added to severance base calculation" checked={!!form.include_in_severance} onChange={v => setField('include_in_severance', v)} />
                 </div>
 
-                {/* Calc Method Override */}
                 <OverrideSectionLabel>Bonus Calculation Method</OverrideSectionLabel>
                 <div className="space-y-3">
                   {(['merge', 'separate'] as CalculationMethod[]).map(m => (
-                    <RadioOption
-                      key={m}
-                      selected={form.calculation_method === m}
-                      onClick={() => setField('calculation_method', m)}
-                      label={m === 'merge' ? 'Merge bonus with regular earnings' : 'Calculate bonus separately'}
-                      hint={m === 'merge' ? 'Bonus is combined into the standard pay run' : 'Bonus is processed in an isolated calculation'}
-                    />
+                    <RadioOption key={m} selected={form.calculation_method === m} onClick={() => setField('calculation_method', m)} label={m === 'merge' ? 'Merge bonus with regular earnings' : 'Calculate bonus separately'} hint={m === 'merge' ? 'Bonus is combined into the standard pay run' : 'Bonus is processed in an isolated calculation'} />
                   ))}
                   {form.calculation_method === 'separate' && (
                     <div className="ml-4 p-4 bg-muted/50 border rounded-lg space-y-3">
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Select Calculation Method(s)</p>
-                      <RadioOption
-                        selected={!!form.calc_flat_enabled}
-                        onClick={() => { setField('calc_flat_enabled', true); setField('calc_slab_enabled', false); }}
-                        label="Flat Percentage"
-                        hint="A fixed percentage applied on the bonus base amount"
-                      />
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Select Calculation Method</p>
+                      <RadioOption selected={!!form.calc_flat_enabled} onClick={() => { setField('calc_flat_enabled', true); setField('calc_slab_enabled', false); }} label="Flat Percentage" hint="A fixed percentage applied on the bonus base amount" />
                       {form.calc_flat_enabled && (
                         <div className="flex items-center gap-2 ml-7" onClick={e => e.stopPropagation()}>
-                          <Input
-                            type="number"
-                            className="w-24"
-                            placeholder="e.g. 15"
-                            value={form.calc_flat_percentage ?? ''}
-                            onChange={e => setField('calc_flat_percentage', e.target.value ? Number(e.target.value) : null)}
-                            min={0} max={100}
-                          />
+                          <Input type="number" className="w-24" placeholder="e.g. 15" value={form.calc_flat_percentage ?? ''} onChange={e => setField('calc_flat_percentage', e.target.value ? Number(e.target.value) : null)} min={0} max={100} />
                           <span className="text-sm font-semibold text-muted-foreground">%</span>
                         </div>
                       )}
-                      <RadioOption
-                        selected={!!form.calc_slab_enabled}
-                        onClick={() => { setField('calc_slab_enabled', true); setField('calc_flat_enabled', false); setField('calc_flat_percentage', null); }}
-                        label="Levy Slab Based"
-                        hint="Bonus calculated using predefined levy slabs"
-                      />
+                      <RadioOption selected={!!form.calc_slab_enabled} onClick={() => { setField('calc_slab_enabled', true); setField('calc_flat_enabled', false); setField('calc_flat_percentage', null); }} label="Levy Slab Based" hint="Bonus calculated using predefined levy slabs" />
                     </div>
                   )}
                 </div>
 
-                {/* Distribution Override (only for merge) */}
                 {form.calculation_method === 'merge' && (
                   <>
                     <OverrideSectionLabel>Bonus Distribution by Payroll Cycle</OverrideSectionLabel>
-                    <p className="text-xs text-muted-foreground -mt-4">
-                      Select when the bonus should be included for each payroll frequency.
-                    </p>
+                    <p className="text-xs text-muted-foreground -mt-4">Select when the bonus should be included for each payroll frequency.</p>
                     <div className="space-y-4">
-                      <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist}
-                        items={[
-                          { key: 'w1', label: 'Include in 1st week' },
-                          { key: 'w2', label: 'Include in 2nd week' },
-                          { key: 'w3', label: 'Include in 3rd week' },
-                          { key: 'w4', label: 'Include in 4th / last week' },
-                          { key: 'divide', label: 'Divide equally across all weeks', isDivide: true },
-                        ]}
-                      />
-                      <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist}
-                        items={[
-                          { key: 'b1', label: 'Include in 1st payment' },
-                          { key: 'b2', label: 'Include in last payment' },
-                          { key: 'divide', label: 'Divide equally across both payments', isDivide: true },
-                        ]}
-                      />
-                      <CycleBlock title="Semi-monthly" cycle="semimonthly" dist={dist} setDist={setDist}
-                        items={[
-                          { key: 's1', label: 'Include in 1st payment' },
-                          { key: 's2', label: 'Include in last payment' },
-                          { key: 'divide', label: 'Divide equally across both payments', isDivide: true },
-                        ]}
-                      />
-                      <CycleBlock title="Monthly" cycle="monthly" dist={dist} setDist={setDist}
-                        items={[
-                          { key: 'm1', label: 'Include in monthly payment' },
-                        ]}
-                      />
+                      <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist} items={[{ key: 'w1', label: 'Include in 1st week' }, { key: 'w2', label: 'Include in 2nd week' }, { key: 'w3', label: 'Include in 3rd week' }, { key: 'w4', label: 'Include in 4th / last week' }, { key: 'divide', label: 'Divide equally across all weeks', isDivide: true }]} />
+                      <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist} items={[{ key: 'b1', label: 'Include in 1st payment' }, { key: 'b2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
+                      <CycleBlock title="Semi-monthly" cycle="semimonthly" dist={dist} setDist={setDist} items={[{ key: 's1', label: 'Include in 1st payment' }, { key: 's2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
+                      <CycleBlock title="Monthly" cycle="monthly" dist={dist} setDist={setDist} items={[{ key: 'm1', label: 'Include in monthly payment' }]} />
                     </div>
                   </>
                 )}
 
-                {/* Capping Override */}
                 <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="exc-capping-enabled"
-                    checked={cappingEnabled}
-                    onCheckedChange={(v) => {
-                      const val = !!v;
-                      setCappingEnabled(val);
-                      if (!val) {
-                        setField('min_bonus_amount', null);
-                        setField('max_bonus_amount', null);
-                      }
-                    }}
-                    className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                  />
+                  <Checkbox id="exc-capping-enabled" checked={cappingEnabled} onCheckedChange={(v) => { const val = !!v; setCappingEnabled(val); if (!val) { setField('min_bonus_amount', null); setField('max_bonus_amount', null); } }} className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600" />
                   <OverrideSectionLabel>Capping on Eligible Bonus Amount</OverrideSectionLabel>
                 </div>
                 {cappingEnabled && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label>Minimum Bonus Amount</Label>
-                      <Input type="number" placeholder="Override min…" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Maximum Bonus Amount</Label>
-                      <Input type="number" placeholder="Override max…" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
-                    </div>
+                    <div className="space-y-1.5"><Label>Minimum Bonus Amount</Label><Input type="number" placeholder="Override min…" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} /></div>
+                    <div className="space-y-1.5"><Label>Maximum Bonus Amount</Label><Input type="number" placeholder="Override max…" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} /></div>
                   </div>
                 )}
 
-                {/* Contribution Override */}
                 <OverrideSectionLabel>Contribution Base Calculation</OverrideSectionLabel>
                 <div className="border rounded-lg divide-y">
                   <ContribRow label="Employee Contribution" checked={!!form.contrib_employee} onChange={v => setField('contrib_employee', v)} />
@@ -458,44 +420,13 @@ function OverrideSectionLabel({ children }: { children: React.ReactNode }) {
 
 function RadioOption({ selected, onClick, label, hint }: { selected: boolean; onClick: () => void; label: string; hint: string }) {
   return (
-    <div
-      className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-        selected ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
-      }`}
-      onClick={onClick}
-    >
-      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-        selected ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'
-      }`}>
+    <div className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${selected ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'}`} onClick={onClick}>
+      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'}`}>
         {selected && <Check className="h-3 w-3 text-white" />}
       </div>
       <div>
         <div className="text-sm font-medium">{label}</div>
         <div className="text-xs text-muted-foreground">{hint}</div>
-      </div>
-    </div>
-  );
-}
-
-function CheckOption({ checked, onChange, label, hint, children }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string; children?: React.ReactNode }) {
-  return (
-    <div
-      className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-        checked ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
-      }`}
-      onClick={() => onChange(!checked)}
-    >
-      <div className="flex items-start gap-3">
-        <div className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 ${
-          checked ? 'bg-emerald-600 border-emerald-600' : 'border-2 border-muted-foreground/40'
-        }`}>
-          {checked && <Check className="h-3 w-3 text-white" />}
-        </div>
-        <div className="flex-1">
-          <div className="text-sm font-medium">{label}</div>
-          <div className="text-xs text-muted-foreground">{hint}</div>
-          {children}
-        </div>
       </div>
     </div>
   );
@@ -527,37 +458,17 @@ function ContribRow({ label, checked, onChange }: { label: string; checked: bool
 
 interface CycleItem { key: string; label: string; isDivide?: boolean }
 
-function CycleBlock({ title, cycle, dist, setDist, items }: {
-  title: string;
-  cycle: keyof BonusDistribution;
-  dist: BonusDistribution;
-  setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void;
-  items: CycleItem[];
-}) {
+function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void; items: CycleItem[] }) {
   const cycleObj = dist[cycle] as Record<string, boolean>;
   return (
     <div className="border rounded-lg overflow-hidden">
-      <div className="px-4 py-2 bg-muted/50 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </div>
+      <div className="px-4 py-2 bg-muted/50 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</div>
       <div className="p-3 space-y-2">
         {items.map(item => {
           const isChecked = !!cycleObj[item.key];
           return (
-            <div
-              key={item.key}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${
-                isChecked
-                  ? 'border-emerald-300 bg-emerald-50'
-                  : 'border-border bg-muted/20 hover:bg-muted/40'
-              }`}
-              onClick={() => setDist(cycle, item.key, !isChecked)}
-            >
-              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
-                isChecked
-                  ? 'bg-emerald-600 border-emerald-600'
-                  : 'border-2 border-muted-foreground/40'
-              }`}>
+            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? 'border-emerald-300 bg-emerald-50' : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key, !isChecked)}>
+              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-2 border-muted-foreground/40'}`}>
                 {isChecked && <Check className="h-3 w-3 text-white" />}
               </div>
               <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
