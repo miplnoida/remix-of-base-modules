@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Info, Save } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Info, Save, Check } from 'lucide-react';
 import { useBonusPolicyDefault, useUpdateBonusPolicyDefault } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
 import type { BonusPolicyDefault, BonusDistribution, CalculationMethod } from '@/types/bonusPolicy';
@@ -17,9 +18,13 @@ export function BonusPolicyDefaultTab() {
   const { userCode } = useUserCode();
 
   const [form, setForm] = useState<Partial<BonusPolicyDefault>>({});
+  const [cappingEnabled, setCappingEnabled] = useState(false);
 
   useEffect(() => {
-    if (policy) setForm({ ...policy });
+    if (policy) {
+      setForm({ ...policy });
+      setCappingEnabled(policy.min_bonus_amount != null || policy.max_bonus_amount != null);
+    }
   }, [policy]);
 
   if (isLoading) {
@@ -40,7 +45,6 @@ export function BonusPolicyDefaultTab() {
     const newDist = JSON.parse(JSON.stringify(dist)) as BonusDistribution;
     const cycleObj = newDist[cycle] as Record<string, boolean>;
 
-    // If selecting "divide", uncheck specifics. If selecting a specific, uncheck "divide".
     if (key === 'divide' && value) {
       Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
     } else if (key !== 'divide' && value) {
@@ -57,7 +61,12 @@ export function BonusPolicyDefaultTab() {
     if (!form.include_in_levy && !form.include_in_severance) {
       return;
     }
-    updateMutation.mutate({ id: policy.id, updates: form, userCode: userCode || undefined });
+    const updates = { ...form };
+    if (!cappingEnabled) {
+      updates.min_bonus_amount = null;
+      updates.max_bonus_amount = null;
+    }
+    updateMutation.mutate({ id: policy.id, updates, userCode: userCode || undefined });
   };
 
   const bothOff = !form.include_in_levy && !form.include_in_severance;
@@ -188,17 +197,34 @@ export function BonusPolicyDefaultTab() {
         )}
 
         {/* 4. Capping */}
-        <SectionLabel>Bonus Eligibility Limits for C3</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Minimum Bonus Amount</Label>
-            <Input type="number" placeholder="e.g. 500" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Maximum Bonus Amount</Label>
-            <Input type="number" placeholder="e.g. 50000" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
-          </div>
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="capping-enabled"
+            checked={cappingEnabled}
+            onCheckedChange={(v) => {
+              const val = !!v;
+              setCappingEnabled(val);
+              if (!val) {
+                setField('min_bonus_amount', null);
+                setField('max_bonus_amount', null);
+              }
+            }}
+            className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+          />
+          <SectionLabel>Capping on Eligible Bonus Amount</SectionLabel>
         </div>
+        {cappingEnabled && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Minimum Bonus Amount</Label>
+              <Input type="number" placeholder="e.g. 500" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Maximum Bonus Amount</Label>
+              <Input type="number" placeholder="e.g. 50000" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
+            </div>
+          </div>
+        )}
 
         {/* 5. Contribution Base */}
         <SectionLabel>Contribution Base Calculation</SectionLabel>
@@ -226,7 +252,7 @@ export function BonusPolicyDefaultTab() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-xs font-medium text-primary uppercase tracking-widest">
+    <div className="flex items-center gap-2 text-xs font-medium text-foreground uppercase tracking-widest">
       {children}
       <div className="flex-1 h-px bg-border" />
     </div>
@@ -252,14 +278,14 @@ function RadioOption({ selected, onClick, label, hint }: { selected: boolean; on
   return (
     <div
       className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-        selected ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30 hover:bg-muted/50'
+        selected ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
       }`}
       onClick={onClick}
     >
       <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-        selected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+        selected ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'
       }`}>
-        {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+        {selected && <Check className="h-3 w-3 text-white" />}
       </div>
       <div>
         <div className="text-sm font-medium">{label}</div>
@@ -273,15 +299,15 @@ function CheckOption({ checked, onChange, label, hint, children }: { checked: bo
   return (
     <div
       className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-        checked ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30 hover:bg-muted/50'
+        checked ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
       }`}
       onClick={() => onChange(!checked)}
     >
       <div className="flex items-start gap-3">
-        <div className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 text-[10px] font-bold ${
-          checked ? 'bg-primary border-primary text-primary-foreground' : 'border-2 border-muted-foreground/40'
+        <div className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+          checked ? 'bg-emerald-600 border-emerald-600' : 'border-2 border-muted-foreground/40'
         }`}>
-          {checked && '✓'}
+          {checked && <Check className="h-3 w-3 text-white" />}
         </div>
         <div className="flex-1">
           <div className="text-sm font-medium">{label}</div>
@@ -325,21 +351,17 @@ function CycleBlock({ title, cycle, dist, setDist, items }: {
               key={item.key}
               className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${
                 isChecked
-                  ? item.isDivide
-                    ? 'border-emerald-300 bg-emerald-50'
-                    : 'border-primary/40 bg-primary/5'
+                  ? 'border-emerald-300 bg-emerald-50'
                   : 'border-border bg-muted/20 hover:bg-muted/40'
               }`}
               onClick={() => setDist(cycle, item.key, !isChecked)}
             >
-              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 text-[10px] font-bold ${
+              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
                 isChecked
-                  ? item.isDivide
-                    ? 'bg-emerald-600 border-emerald-600 text-white'
-                    : 'bg-primary border-primary text-primary-foreground'
+                  ? 'bg-emerald-600 border-emerald-600'
                   : 'border-2 border-muted-foreground/40'
               }`}>
-                {isChecked && '✓'}
+                {isChecked && <Check className="h-3 w-3 text-white" />}
               </div>
               <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
             </div>
