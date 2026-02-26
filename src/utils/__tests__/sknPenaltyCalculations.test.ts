@@ -22,12 +22,12 @@ describe('SKN Penalty Calculations - Corrected Base Amounts', () => {
     today
   };
 
-  it('levy penalty base includes employee levy + employer levy + severance', () => {
+  it('levy penalty base uses employee levy + employer levy ONLY (no severance)', () => {
     const result = calculatePenalties(baseInputs);
-    // Base = 200 + 300 + 100 = 600
+    // Base = 200 + 300 = 500 (severance excluded)
     // 46 days late → additional30DayPeriods = ceil((46-30)/30) = 1
-    // Penalty = 600 * 0.10 + 600 * 0.01 * 1 = 60 + 6 = 66
-    expect(result.levyPenalty).toBe(66);
+    // Penalty = 500 * 0.10 + 500 * 0.01 * 1 = 50 + 5 = 55
+    expect(result.levyPenalty).toBe(55);
   });
 
   it('severance penalty base uses severance amount only', () => {
@@ -47,7 +47,8 @@ describe('SKN Penalty Calculations - Corrected Base Amounts', () => {
 
   it('total late charges sums all three penalties', () => {
     const result = calculatePenalties(baseInputs);
-    expect(result.totalLateCharges).toBe(66 + 11 + 64);
+    // 55 + 11 + 64 = 130
+    expect(result.totalLateCharges).toBe(55 + 11 + 64);
   });
 
   it('returns zero penalties when not late', () => {
@@ -89,7 +90,7 @@ describe('SKN Penalty Calculations - Corrected Base Amounts', () => {
       paymentDate: null,
       today
     });
-    // Levy base = 100 + 200 + 0 = 300
+    // Levy base = 100 + 200 = 300 (no severance)
     // Penalty = 300 * 0.10 + 300 * 0.01 * 1 = 30 + 3 = 33
     expect(result.levyPenalty).toBe(33);
     expect(result.severancePenalty).toBe(0);
@@ -107,9 +108,8 @@ describe('SKN Penalty Calculations - Corrected Base Amounts', () => {
       paymentDate: null,
       today
     });
-    // Levy base = 0 + 0 + 500 = 500
-    // Levy penalty = 500 * 0.10 + 500 * 0.01 * 1 = 50 + 5 = 55
-    expect(result.levyPenalty).toBe(55);
+    // Levy base = 0 + 0 = 0 (severance NOT included in levy penalty)
+    expect(result.levyPenalty).toBe(0);
     // Severance penalty base = 500
     // Severance penalty = 500 * 0.10 + 500 * 0.01 * 1 = 50 + 5 = 55
     expect(result.severancePenalty).toBe(55);
@@ -122,19 +122,51 @@ describe('SKN Penalty Calculations - Corrected Base Amounts', () => {
       paymentDate: lateDate
     });
     // 30 days late → additional30DayPeriods = 0
-    // Levy base = 600, penalty = 600 * 0.10 = 60
-    expect(result.levyPenalty).toBe(60);
+    // Levy base = 200 + 300 = 500, penalty = 500 * 0.10 = 50
+    expect(result.levyPenalty).toBe(50);
     expect(result.additional30DayPeriods).toBe(0);
+  });
+
+  it('screenshot scenario: levy=143.5+123, sev=41, ss=205+246', () => {
+    // Matches the user's screenshot data
+    const screenshotResult = calculatePenalties({
+      employeeLevyDue: 143.5,
+      employerLevyDue: 123,
+      severanceAmountDue: 41,
+      employeeSSDue: 205,
+      employerSSDue: 246, // employer_ss(205) + eib(41)
+      dueDate: new Date('2025-10-31'),
+      paymentDate: new Date('2026-03-13'), // 133 days late
+      today: new Date('2026-03-13')
+    });
+    // Verify bases are correct (no severance in levy base)
+    expect(screenshotResult.daysLate).toBe(133);
+    // additional30DayPeriods = ceil((133-30)/30) = ceil(3.43) = 4
+    expect(screenshotResult.additional30DayPeriods).toBe(4);
+    // monthsLate = ceil(133/30) = 5
+    expect(screenshotResult.monthsLateForSS).toBe(5);
+    
+    // Levy penalty base = 143.5 + 123 = 266.5
+    // Levy penalty = 266.5 * 0.10 + 266.5 * 0.01 * 4 = 26.65 + 10.66 = 37.31
+    expect(screenshotResult.levyPenalty).toBe(37.31);
+    
+    // Severance penalty base = 41
+    // Severance penalty = 41 * 0.10 + 41 * 0.01 * 4 = 4.1 + 1.64 = 5.74
+    expect(screenshotResult.severancePenalty).toBe(5.74);
+    
+    // SS fine base = 205 + 246 = 451
+    // SS fine = 451 * 0.05 * 5 = 112.75
+    expect(screenshotResult.socialSecurityFine).toBe(112.75);
   });
 });
 
 describe('calculateLevyPenaltyBase', () => {
-  it('sums employee levy + employer levy + severance', () => {
-    expect(calculateLevyPenaltyBase(100, 200, 50)).toBe(350);
+  it('sums employee levy + employer levy only (no severance)', () => {
+    expect(calculateLevyPenaltyBase(100, 200)).toBe(300);
   });
 
   it('handles zero values', () => {
-    expect(calculateLevyPenaltyBase(0, 0, 0)).toBe(0);
+    expect(calculateLevyPenaltyBase(0, 0)).toBe(0);
   });
 });
 
