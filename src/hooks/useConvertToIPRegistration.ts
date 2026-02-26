@@ -259,6 +259,7 @@ export function useConvertToIPRegistration() {
           p_work_permit_expiration: safeDate(app.workPermitExpiry ?? undefined),
           p_npf:                   npf,
           p_citizenship_flag:      citizenshipFlag,
+          p_ip_signature:          toYN((app as any).ipSignature ?? (app as any).ip_signature, 'N'),
           p_application_date:      new Date().toISOString().split('T')[0],
           p_date_of_residency:     safeDate(app.residencyDate ?? undefined),
           p_place_of_residence:    trim(app.placeOfResidency, 30),
