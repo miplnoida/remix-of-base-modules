@@ -989,14 +989,7 @@ export default function EmployeeModal({
                   <div>
                     <p className="text-[10px] text-muted-foreground">
                       Levy ({payrollCalc.usedMonthlyLevyLogic ? 'mth' : 'wk'}
-                      {(() => {
-                        const bonusAmount = localEmployee.weeklyWages[5] || 0;
-                        if (bonusAmount > 0 && config) {
-                          if (config.bonusExemptFromLevy) return ' | ex';
-                          else if (config.bonusLevyRate > 0) return ' | +b';
-                        }
-                        return '';
-                      })()})
+                      )
                     </p>
                     <p className="text-sm font-bold text-foreground leading-tight">{formatCurrency(payrollCalc.employeeLevy)}</p>
                   </div>

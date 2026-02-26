@@ -27,8 +27,6 @@ export interface C3ConfigDetails {
   max_age_ss: number;
   min_age_levy: number;
   max_age_levy: number;
-  bonus_exempt_from_levy: boolean;
-  bonus_levy_rate: number;
   employee_ss_rate: number;
   employee_ss_max_wage: number;
   employer_ss_rate: number;
@@ -43,11 +41,6 @@ export interface C3ConfigDetails {
   severance_penalty_subsequent_rate: number;
   ss_fine_initial_rate: number;
   ss_fine_subsequent_rate: number;
-  interest_rate_ss_principal: number;
-  interest_rate_levy_principal: number;
-  interest_rate_severance_principal: number;
-  interest_rate_penalties: number;
-  interest_rate_fines: number;
   levy_slab_id: string | null;
   // Monthly levy switching parameters
   levy_monthly_threshold: number;

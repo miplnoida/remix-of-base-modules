@@ -8,7 +8,7 @@
  * - Employee Levy = Slab-based calculation for each weekly amount (Week1-5, Holiday)
  *   - For each week: Find matching slab where amount > over_amt
  *   - Calculate: base_amt + ((amount - over_amt + 0.01) * tax_rate)
- *   - Plus: Bonus × bonusLevyRate (if bonus not exempt)
+ *   - Plus: Bonus levy (handled by bonus policy engine)
  * - Employee SS = 5% of Taxable Wages
  * - Employer Levy = 3% of Taxable Wages
  * - Employer SS = 5% of Taxable Wages + 1% EIB of Taxable Wages = 6% total
@@ -26,8 +26,6 @@ export interface C3ConfigData {
   maxAgeSS: number;
   minAgeLevy: number;
   maxAgeLevy: number;
-  bonusExemptFromLevy: boolean;
-  bonusLevyRate: number;
   employeeSSRate: number;
   employeeSSMaxWage: number;
   employerSSRate: number;
@@ -173,7 +171,6 @@ export interface EmployeeCalculationResult {
  * - If total of Week1-6 (excluding bonus) > threshold AND flag enabled:
  *   Calculate monthly levy on sum of Week1-6 using monthly slabs
  * - Otherwise: For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
- * - If bonus is not exempt, add bonus × bonusLevyRate
  * 
  * Week indices: 0=Week1, 1=Week2, 2=Week3, 3=Week4, 4=Week5, 5=Bonus, 6=Holiday(Week6)
  */
@@ -181,8 +178,6 @@ function calculateEmployeeLevy(
   weeklyWages: number[],
   payPeriod: string,
   slabDetails: LevySlabDetail[],
-  bonusExemptFromLevy: boolean,
-  bonusLevyRate: number,
   levyMonthlyThreshold: number,
   levyUseMonthlyWhenExceeded: boolean
 ): { totalLevy: number; usedMonthlyLogic: boolean } {
@@ -236,11 +231,6 @@ function calculateEmployeeLevy(
     }
   }
   
-  // Add bonus levy if not exempt (applies in both cases)
-  if (!bonusExemptFromLevy && bonus > 0 && bonusLevyRate > 0) {
-    const bonusLevy = round2(bonus * bonusLevyRate);
-    totalLevy += bonusLevy;
-  }
   
   return { totalLevy: round2(totalLevy), usedMonthlyLogic };
 }
@@ -296,8 +286,6 @@ function calculateEmployeeLevy(
       weeklyWages,
       payPeriod,
       slabDetails,
-      config.bonusExemptFromLevy,
-      config.bonusLevyRate,
       config.levyMonthlyThreshold,
       config.levyUseMonthlyWhenExceeded
     );
@@ -412,8 +400,6 @@ function calculateEmployeeLevy(
             maxAgeSS: cfg.max_age_ss,
             minAgeLevy: cfg.min_age_levy,
             maxAgeLevy: cfg.max_age_levy,
-            bonusExemptFromLevy: cfg.bonus_exempt_from_levy,
-           bonusLevyRate: Number(cfg.bonus_levy_rate) || 0,
            employeeSSRate: Number(cfg.employee_ss_rate) || 0.05,
            employeeSSMaxWage: Number(cfg.employee_ss_max_wage) || 6500,
            employerSSRate: Number(cfg.employer_ss_rate) || 0.05,
