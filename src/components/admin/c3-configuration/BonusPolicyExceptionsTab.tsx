@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Edit, Trash2, Info, Save, X } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useBonusPolicyExceptions, useCreateBonusPolicyException, useUpdateBonusPolicyException, useDeleteBonusPolicyException } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -49,10 +50,12 @@ export function BonusPolicyExceptionsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<typeof EMPTY_EXCEPTION>({ ...EMPTY_EXCEPTION });
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cappingEnabled, setCappingEnabled] = useState(false);
 
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...EMPTY_EXCEPTION });
+    setCappingEnabled(false);
     setShowForm(true);
   };
 
@@ -60,14 +63,20 @@ export function BonusPolicyExceptionsTab() {
     setEditingId(exc.id);
     const { id, created_on, modified_on, ...rest } = exc;
     setForm(rest as typeof EMPTY_EXCEPTION);
+    setCappingEnabled(exc.min_bonus_amount != null || exc.max_bonus_amount != null);
     setShowForm(true);
   };
 
   const handleSave = async () => {
+    const saveForm = { ...form };
+    if (!cappingEnabled) {
+      saveForm.min_bonus_amount = null;
+      saveForm.max_bonus_amount = null;
+    }
     if (editingId) {
-      await updateMutation.mutateAsync({ id: editingId, updates: form, userCode: userCode || undefined });
+      await updateMutation.mutateAsync({ id: editingId, updates: saveForm, userCode: userCode || undefined });
     } else {
-      await createMutation.mutateAsync({ exception: form, userCode: userCode || undefined });
+      await createMutation.mutateAsync({ exception: saveForm, userCode: userCode || undefined });
     }
     setShowForm(false);
   };
@@ -83,7 +92,25 @@ export function BonusPolicyExceptionsTab() {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
+  const setDist = (cycle: keyof BonusDistribution, key: string, value: boolean) => {
+    const currentDist: BonusDistribution = (form.distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
+    const newDist = JSON.parse(JSON.stringify(currentDist)) as BonusDistribution;
+    const cycleObj = newDist[cycle] as Record<string, boolean>;
+
+    if (key === 'divide' && value) {
+      Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
+    } else if (key !== 'divide' && value) {
+      cycleObj['divide'] = false;
+      cycleObj[key] = true;
+    } else {
+      cycleObj[key] = value;
+    }
+
+    setField('distribution', newDist);
+  };
+
   const overrideSections = form.override_default;
+  const dist: BonusDistribution = (form.distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -178,7 +205,7 @@ export function BonusPolicyExceptionsTab() {
                     <div
                       key={t}
                       className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                        form.exception_type === t ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30 hover:bg-muted/50'
+                        form.exception_type === t ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
                       }`}
                       onClick={() => {
                         setField('exception_type', t);
@@ -186,9 +213,9 @@ export function BonusPolicyExceptionsTab() {
                       }}
                     >
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        form.exception_type === t ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+                        form.exception_type === t ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'
                       }`}>
-                        {form.exception_type === t && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        {form.exception_type === t && <Check className="h-3 w-3 text-white" />}
                       </div>
                       <span className="text-sm font-medium capitalize">{t === 'onetime' ? 'One-time' : 'Recurring'}</span>
                     </div>
@@ -253,38 +280,116 @@ export function BonusPolicyExceptionsTab() {
                 <OverrideSectionLabel>Bonus Calculation Method</OverrideSectionLabel>
                 <div className="space-y-3">
                   {(['merge', 'separate'] as CalculationMethod[]).map(m => (
-                    <div
+                    <RadioOption
                       key={m}
-                      className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                        form.calculation_method === m ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/30'
-                      }`}
+                      selected={form.calculation_method === m}
                       onClick={() => setField('calculation_method', m)}
-                    >
-                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        form.calculation_method === m ? 'border-primary bg-primary' : 'border-muted-foreground/40'
-                      }`}>
-                        {form.calculation_method === m && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">{m === 'merge' ? 'Merge bonus with regular earnings' : 'Calculate bonus separately'}</div>
-                        <div className="text-xs text-muted-foreground">{m === 'merge' ? 'Bonus is combined into the standard pay run' : 'Bonus is processed in an isolated calculation'}</div>
-                      </div>
-                    </div>
+                      label={m === 'merge' ? 'Merge bonus with regular earnings' : 'Calculate bonus separately'}
+                      hint={m === 'merge' ? 'Bonus is combined into the standard pay run' : 'Bonus is processed in an isolated calculation'}
+                    />
                   ))}
+                  {form.calculation_method === 'separate' && (
+                    <div className="ml-4 p-4 bg-muted/50 border rounded-lg space-y-3">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Select Calculation Method(s)</p>
+                      <CheckOption
+                        checked={!!form.calc_flat_enabled}
+                        onChange={v => setField('calc_flat_enabled', v)}
+                        label="Flat Percentage"
+                        hint="A fixed percentage applied on the bonus base amount"
+                      >
+                        {form.calc_flat_enabled && (
+                          <div className="flex items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
+                            <Input
+                              type="number"
+                              className="w-24"
+                              placeholder="e.g. 15"
+                              value={form.calc_flat_percentage ?? ''}
+                              onChange={e => setField('calc_flat_percentage', e.target.value ? Number(e.target.value) : null)}
+                              min={0} max={100}
+                            />
+                            <span className="text-sm font-semibold text-muted-foreground">%</span>
+                          </div>
+                        )}
+                      </CheckOption>
+                      <CheckOption
+                        checked={!!form.calc_slab_enabled}
+                        onChange={v => setField('calc_slab_enabled', v)}
+                        label="Levy Slab Based"
+                        hint="Bonus calculated using predefined levy slabs"
+                      />
+                    </div>
+                  )}
                 </div>
 
+                {/* Distribution Override (only for merge) */}
+                {form.calculation_method === 'merge' && (
+                  <>
+                    <OverrideSectionLabel>Bonus Distribution by Payroll Cycle</OverrideSectionLabel>
+                    <p className="text-xs text-muted-foreground -mt-4">
+                      Select when the bonus should be included for each payroll frequency.
+                    </p>
+                    <div className="space-y-4">
+                      <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist}
+                        items={[
+                          { key: 'w1', label: 'Include in 1st week' },
+                          { key: 'w2', label: 'Include in 2nd week' },
+                          { key: 'w3', label: 'Include in 3rd week' },
+                          { key: 'w4', label: 'Include in 4th / last week' },
+                          { key: 'divide', label: 'Divide equally across all weeks', isDivide: true },
+                        ]}
+                      />
+                      <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist}
+                        items={[
+                          { key: 'b1', label: 'Include in 1st payment' },
+                          { key: 'b2', label: 'Include in last payment' },
+                          { key: 'divide', label: 'Divide equally across both payments', isDivide: true },
+                        ]}
+                      />
+                      <CycleBlock title="Semi-monthly" cycle="semimonthly" dist={dist} setDist={setDist}
+                        items={[
+                          { key: 's1', label: 'Include in 1st payment' },
+                          { key: 's2', label: 'Include in last payment' },
+                          { key: 'divide', label: 'Divide equally across both payments', isDivide: true },
+                        ]}
+                      />
+                      <CycleBlock title="Monthly" cycle="monthly" dist={dist} setDist={setDist}
+                        items={[
+                          { key: 'm1', label: 'Include in monthly payment' },
+                        ]}
+                      />
+                    </div>
+                  </>
+                )}
+
                 {/* Capping Override */}
-                <OverrideSectionLabel>Bonus Eligibility Limits</OverrideSectionLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>Minimum Bonus Amount</Label>
-                    <Input type="number" placeholder="Override min…" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Maximum Bonus Amount</Label>
-                    <Input type="number" placeholder="Override max…" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
-                  </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="exc-capping-enabled"
+                    checked={cappingEnabled}
+                    onCheckedChange={(v) => {
+                      const val = !!v;
+                      setCappingEnabled(val);
+                      if (!val) {
+                        setField('min_bonus_amount', null);
+                        setField('max_bonus_amount', null);
+                      }
+                    }}
+                    className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                  />
+                  <OverrideSectionLabel>Capping on Eligible Bonus Amount</OverrideSectionLabel>
                 </div>
+                {cappingEnabled && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Minimum Bonus Amount</Label>
+                      <Input type="number" placeholder="Override min…" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Maximum Bonus Amount</Label>
+                      <Input type="number" placeholder="Override max…" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} />
+                    </div>
+                  </div>
+                )}
 
                 {/* Contribution Override */}
                 <OverrideSectionLabel>Contribution Base Calculation</OverrideSectionLabel>
@@ -335,7 +440,7 @@ export function BonusPolicyExceptionsTab() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-xs font-medium text-primary uppercase tracking-widest">
+    <div className="flex items-center gap-2 text-xs font-medium text-foreground uppercase tracking-widest">
       {children}
       <div className="flex-1 h-px bg-border" />
     </div>
@@ -348,6 +453,51 @@ function OverrideSectionLabel({ children }: { children: React.ReactNode }) {
       {children}
       <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/30 ml-1">OVERRIDE</Badge>
       <div className="flex-1 h-px bg-amber-200" />
+    </div>
+  );
+}
+
+function RadioOption({ selected, onClick, label, hint }: { selected: boolean; onClick: () => void; label: string; hint: string }) {
+  return (
+    <div
+      className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+        selected ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
+      }`}
+      onClick={onClick}
+    >
+      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+        selected ? 'border-emerald-600 bg-emerald-600' : 'border-muted-foreground/40'
+      }`}>
+        {selected && <Check className="h-3 w-3 text-white" />}
+      </div>
+      <div>
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-xs text-muted-foreground">{hint}</div>
+      </div>
+    </div>
+  );
+}
+
+function CheckOption({ checked, onChange, label, hint, children }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string; children?: React.ReactNode }) {
+  return (
+    <div
+      className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+        checked ? 'border-emerald-400 bg-emerald-50' : 'border-border bg-muted/30 hover:bg-muted/50'
+      }`}
+      onClick={() => onChange(!checked)}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+          checked ? 'bg-emerald-600 border-emerald-600' : 'border-2 border-muted-foreground/40'
+        }`}>
+          {checked && <Check className="h-3 w-3 text-white" />}
+        </div>
+        <div className="flex-1">
+          <div className="text-sm font-medium">{label}</div>
+          <div className="text-xs text-muted-foreground">{hint}</div>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
@@ -372,6 +522,50 @@ function ContribRow({ label, checked, onChange }: { label: string; checked: bool
     <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
       <span className="text-sm font-medium">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+interface CycleItem { key: string; label: string; isDivide?: boolean }
+
+function CycleBlock({ title, cycle, dist, setDist, items }: {
+  title: string;
+  cycle: keyof BonusDistribution;
+  dist: BonusDistribution;
+  setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void;
+  items: CycleItem[];
+}) {
+  const cycleObj = dist[cycle] as Record<string, boolean>;
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <div className="px-4 py-2 bg-muted/50 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {title}
+      </div>
+      <div className="p-3 space-y-2">
+        {items.map(item => {
+          const isChecked = !!cycleObj[item.key];
+          return (
+            <div
+              key={item.key}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                isChecked
+                  ? 'border-emerald-300 bg-emerald-50'
+                  : 'border-border bg-muted/20 hover:bg-muted/40'
+              }`}
+              onClick={() => setDist(cycle, item.key, !isChecked)}
+            >
+              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+                isChecked
+                  ? 'bg-emerald-600 border-emerald-600'
+                  : 'border-2 border-muted-foreground/40'
+              }`}>
+                {isChecked && <Check className="h-3 w-3 text-white" />}
+              </div>
+              <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
