@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { BonusPolicyDefault } from '@/types/bonusPolicy';
+import type { BonusPolicyDefault, BonusPolicyException } from '@/types/bonusPolicy';
 
 // ---- Default Policies (now multiple) ----
 export function useBonusPolicyDefaults() {
@@ -90,6 +90,74 @@ export function useDeleteBonusPolicyDefault() {
   });
 }
 
+// ---- Exceptions ----
+export function useBonusPolicyExceptions() {
+  return useQuery({
+    queryKey: ['bonus-policy-exceptions'],
+    queryFn: async (): Promise<BonusPolicyException[]> => {
+      const { data, error } = await supabase
+        .from('c3_bonus_policy_exceptions')
+        .select('*')
+        .order('date_from', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as BonusPolicyException[];
+    },
+  });
+}
+
+export function useCreateBonusPolicyException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ exception, userCode }: { exception: Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
+      const { error } = await supabase
+        .from('c3_bonus_policy_exceptions')
+        .insert({ ...exception, created_by: userCode || null, modified_by: userCode || null } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bonus-policy-exceptions'] });
+      toast.success('Exception created');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateBonusPolicyException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<BonusPolicyException>; userCode?: string }) => {
+      const { error } = await supabase
+        .from('c3_bonus_policy_exceptions')
+        .update({ ...updates, modified_by: userCode || null, modified_on: new Date().toISOString() } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bonus-policy-exceptions'] });
+      toast.success('Exception updated');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteBonusPolicyException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('c3_bonus_policy_exceptions')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bonus-policy-exceptions'] });
+      toast.success('Exception deleted');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 // ---- Overlap detection utility ----
 export function checkDateOverlap(
   dateFrom: string,
@@ -105,7 +173,6 @@ export function checkDateOverlap(
     const exFrom = new Date(rec.date_from).getTime();
     const exTo = rec.date_to ? new Date(rec.date_to).getTime() : Infinity;
 
-    // Overlap: newFrom <= exTo AND newTo >= exFrom
     if (newFrom <= exTo && newTo >= exFrom) {
       return { overlaps: true, overlappingRecord: rec };
     }

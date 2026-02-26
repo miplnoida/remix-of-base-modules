@@ -1797,48 +1797,6 @@ export type Database = {
         }
         Relationships: []
       }
-      c3_bonus_levy_exemptions: {
-        Row: {
-          created_by: string | null
-          created_on: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          is_exempt: boolean
-          last_published_at: string | null
-          modified_by: string | null
-          modified_on: string | null
-          period_month: number
-          period_year: number
-        }
-        Insert: {
-          created_by?: string | null
-          created_on?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_exempt?: boolean
-          last_published_at?: string | null
-          modified_by?: string | null
-          modified_on?: string | null
-          period_month: number
-          period_year: number
-        }
-        Update: {
-          created_by?: string | null
-          created_on?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_exempt?: boolean
-          last_published_at?: string | null
-          modified_by?: string | null
-          modified_on?: string | null
-          period_month?: number
-          period_year?: number
-        }
-        Relationships: []
-      }
       c3_bonus_policy_default: {
         Row: {
           calc_flat_enabled: boolean
@@ -1908,6 +1866,96 @@ export type Database = {
           min_bonus_amount?: number | null
           modified_by?: string | null
           modified_on?: string
+        }
+        Relationships: []
+      }
+      c3_bonus_policy_exceptions: {
+        Row: {
+          calc_flat_enabled: boolean | null
+          calc_flat_percentage: number | null
+          calc_slab_enabled: boolean | null
+          calculation_method: string | null
+          contrib_eir: boolean | null
+          contrib_employee: boolean | null
+          contrib_employer: boolean | null
+          contrib_severance: boolean | null
+          created_by: string | null
+          created_on: string
+          date_from: string
+          date_to: string | null
+          description: string | null
+          distribution: Json | null
+          exception_month: number
+          exception_type: string
+          id: string
+          include_in_levy: boolean | null
+          include_in_severance: boolean | null
+          is_active: boolean
+          max_bonus_amount: number | null
+          min_bonus_amount: number | null
+          modified_by: string | null
+          modified_on: string
+          override_default: boolean
+          year_from: number
+          year_to: number | null
+        }
+        Insert: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          date_from: string
+          date_to?: string | null
+          description?: string | null
+          distribution?: Json | null
+          exception_month?: number
+          exception_type?: string
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          is_active?: boolean
+          max_bonus_amount?: number | null
+          min_bonus_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean
+          year_from?: number
+          year_to?: number | null
+        }
+        Update: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          date_from?: string
+          date_to?: string | null
+          description?: string | null
+          distribution?: Json | null
+          exception_month?: number
+          exception_type?: string
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          is_active?: boolean
+          max_bonus_amount?: number | null
+          min_bonus_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean
+          year_from?: number
+          year_to?: number | null
         }
         Relationships: []
       }
@@ -13131,10 +13179,6 @@ export type Database = {
         Returns: Json
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
-      is_bonus_levy_exempt: {
-        Args: { p_month: number; p_year: number }
-        Returns: boolean
-      }
       log_audit_event: {
         Args: {
           _action_type: string

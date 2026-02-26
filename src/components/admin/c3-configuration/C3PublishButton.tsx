@@ -63,7 +63,7 @@ export function C3PublishButton() {
                   <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                     <li>{syncStatus.pendingCounts.periods} period configuration(s) pending</li>
                     <li>{syncStatus.pendingCounts.slabs} levy slab(s) pending</li>
-                    <li>{syncStatus.pendingCounts.exemptions} bonus exemption(s) pending</li>
+                    
                   </ul>
                 </div>
               )}
