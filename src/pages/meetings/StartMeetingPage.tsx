@@ -48,7 +48,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
-import { MeetingDocumentVerificationTab } from '@/components/meetings/MeetingDocumentVerificationTab';
+import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHandle } from '@/components/meetings/MeetingDocumentVerificationTab';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
@@ -97,6 +97,8 @@ export default function StartMeetingPage() {
 
   // Track which verification categories have been replaced by platform uploads
   const [replacedDocCategories, setReplacedDocCategories] = useState<Set<string>>(new Set());
+  // Ref to document verification tab for mismatch validation
+  const docVerificationRef = React.useRef<MeetingDocumentVerificationTabHandle>(null);
   
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
@@ -421,6 +423,17 @@ export default function StartMeetingPage() {
                       );
                       return;
                     }
+                    // Validate document-type dropdown matches uploaded document
+                    if (docVerificationRef.current) {
+                      const mismatches = docVerificationRef.current.validateDocTypeMismatch();
+                      if (mismatches.length > 0) {
+                        toast.error(
+                          `Cannot accept: ${mismatches.length} document type mismatch(es) found. Please check the Documents tab.`,
+                          { duration: 6000 }
+                        );
+                        return;
+                      }
+                    }
                     setApprovalDialogOpen(true);
                   }}
                   className="gap-2"
@@ -527,6 +540,7 @@ export default function StartMeetingPage() {
               applicationReference={applicationReference}
               replacedDocCategories={replacedDocCategories}
               onReplacedDocCategoriesChange={setReplacedDocCategories}
+              docVerificationRef={docVerificationRef}
             />
           ) : (
             <Alert>
@@ -692,11 +706,12 @@ interface ApplicationEditFormProps {
   applicationReference?: string;
   replacedDocCategories?: Set<string>;
   onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
+  docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
-    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} />;
+    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} />;
   }
   
   if (meetingType === 'Employer-Registration') {
@@ -716,7 +731,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void; docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null> }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
@@ -1463,6 +1478,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
         {/* Full Document Verification (same as IP Registration) */}
         {meetingId && applicationReference ? (
           <MeetingDocumentVerificationTab
+            ref={docVerificationRef}
             applicationData={data}
             meetingId={meetingId}
             applicationReference={applicationReference}
