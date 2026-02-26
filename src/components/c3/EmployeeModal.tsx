@@ -309,10 +309,21 @@ export default function EmployeeModal({
     fetchDefaultPayPeriod();
   }, [ssnValidated, localEmployee.ssn, defaultPayPeriodFetched, employee]);
 
-  // Reset auto-fill flag when pay period changes (presence is NOT affected)
+  // When pay period changes: reset auto-fill flag AND auto-mark all generated weeks as Present
   useEffect(() => {
     if (isViewMode) return;
     autoFillAppliedRef.current = false;
+
+    // Auto-mark all generated weeks as present when pay period is selected/changed
+    if (localEmployee.payPeriod) {
+      setLocalEmployee(prev => {
+        const newDays = [...prev.days];
+        for (const idx of generatedWeekIndices) {
+          newDays[idx] = true;
+        }
+        return { ...prev, days: newDays };
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localEmployee.payPeriod]);
 
@@ -616,75 +627,73 @@ export default function EmployeeModal({
             {/* Left: Wages Entry - Guided Sections */}
             <div className="flex flex-col gap-3">
               {/* SECTION 1: Weekly Presence — always shows ALL Mondays, independent of pay-period */}
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+              <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
+                  <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
                     Weekly Presence
                   </h3>
-                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 ml-auto">
+                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 ml-auto border-blue-300 text-blue-700">
                     {mondayCount} {mondayCount === 1 ? 'Monday' : 'Mondays'}
                   </Badge>
                 </div>
-                <p className="text-[10px] text-muted-foreground mb-1">Mark which weeks the employee was present</p>
-                <div className="rounded-md border border-border/60 bg-muted/10 p-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    {generatedWeekIndices.map((weekIdx) => {
-                      const isChecked = localEmployee.days?.[weekIdx] || false;
-                      const mondayDate = mondays[weekIdx];
+                <p className="text-[10px] text-blue-600/80 mb-2">Mark which weeks the employee was present</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {generatedWeekIndices.map((weekIdx) => {
+                    const isChecked = localEmployee.days?.[weekIdx] || false;
+                    const mondayDate = mondays[weekIdx];
 
-                      return (
+                    return (
+                      <div
+                        key={weekIdx}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 cursor-pointer transition-all select-none ${
+                          isChecked
+                            ? 'bg-primary/10 border-primary/40 shadow-sm'
+                            : 'bg-background border-blue-200 hover:bg-blue-100/50'
+                        }`}
+                        onClick={() => !isViewMode && handleWeekToggle(weekIdx)}
+                      >
                         <div
-                          key={weekIdx}
-                          className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 cursor-pointer transition-all select-none ${
-                            isChecked
-                              ? 'bg-primary/10 border-primary/40 shadow-sm'
-                              : 'bg-background border-input hover:bg-muted/40'
+                          className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors ${
+                            isChecked ? 'bg-primary border-primary' : 'bg-background border-input'
                           }`}
-                          onClick={() => !isViewMode && handleWeekToggle(weekIdx)}
                         >
-                          <div
-                            className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors ${
-                              isChecked ? 'bg-primary border-primary' : 'bg-background border-input'
-                            }`}
-                          >
-                            {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
-                          </div>
-                          <div className="flex flex-col leading-tight">
-                            <span className="text-xs font-medium text-foreground">Wk {weekIdx + 1}</span>
-                            {mondayDate && (
-                              <span className="text-[9px] text-muted-foreground">
-                                {formatMondayDate(mondayDate)}
-                              </span>
-                            )}
-                          </div>
+                          {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div className="flex flex-col leading-tight">
+                          <span className="text-xs font-medium text-foreground">Wk {weekIdx + 1}</span>
+                          {mondayDate && (
+                            <span className="text-[9px] text-muted-foreground">
+                              {formatMondayDate(mondayDate)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* SECTION 2: Weekly Payment — depends on Pay-Period */}
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <DollarSign className="h-3.5 w-3.5 text-primary" />
-                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                  <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
                     Weekly Payment
                   </h3>
                   {localEmployee.payPeriod && (
-                    <Badge variant="secondary" className="text-[10px] font-normal h-5 px-1.5 ml-auto">
+                    <Badge variant="secondary" className="text-[10px] font-normal h-5 px-1.5 ml-auto bg-emerald-100 text-emerald-700 border-emerald-300">
                       {localEmployee.payPeriod}
                     </Badge>
                   )}
                 </div>
 
                 {!hasPayPeriodSelected ? (
-                  <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-center">
+                  <div className="rounded-md border border-dashed border-emerald-300 bg-background p-4 text-center">
                     <p className="text-xs text-muted-foreground">Select a Pay Period above to configure weekly wages</p>
                   </div>
                 ) : (
-                  <div className="rounded-md border border-border/60 bg-muted/10 p-2 space-y-0.5">
+                  <div className="space-y-1">
                     {generatedWeekIndices.map((weekIdx) => {
                       const isPayEditable = enabledTextboxes[weekIdx];
                       const isPresent = localEmployee.days?.[weekIdx] || false;
@@ -692,9 +701,9 @@ export default function EmployeeModal({
                       const mondayDate = mondays[weekIdx];
 
                       return (
-                        <div key={weekIdx} className={`flex items-center gap-2 rounded px-2 py-1 ${weekIdx % 2 === 0 ? 'bg-muted/30' : ''}`}>
+                        <div key={weekIdx} className={`flex items-center gap-2 rounded-md border border-emerald-200/80 px-2.5 py-1.5 ${fieldEnabled ? 'bg-background' : 'bg-muted/30'}`}>
                           <div className="flex items-center gap-1.5 min-w-[6rem]">
-                            <div className={`h-2 w-2 rounded-full ${isPresent ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isPresent ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
                             <div className="flex flex-col">
                               <span className={`text-xs font-medium ${isPayEditable ? 'text-foreground' : 'text-muted-foreground'}`}>
                                 Week {weekIdx + 1}
@@ -729,22 +738,22 @@ export default function EmployeeModal({
 
               {/* SECTION 2: Bonus */}
               {hasPayPeriodSelected && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Gift className="h-3.5 w-3.5 text-amber-500" />
-                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Bonus</h3>
+                <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Gift className="h-3.5 w-3.5 text-amber-600" />
+                    <h3 className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Bonus</h3>
                   </div>
-                  <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-2">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-muted/30 ${
-                          localEmployee.days?.[5] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'
+                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-amber-100/50 ${
+                          localEmployee.days?.[5] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-amber-300'
                         }`}
                         onClick={() => handleWeekToggle(5)}
                       >
                         {localEmployee.days?.[5] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                       </div>
-                      <span className="text-xs font-medium text-accent-foreground w-20">Amount</span>
+                      <span className="text-xs font-medium text-amber-800 w-20">Amount</span>
                       <Input
                         type="text"
                         inputMode="decimal"
@@ -793,22 +802,22 @@ export default function EmployeeModal({
 
               {/* SECTION 3: Holiday Pay */}
               {hasPayPeriodSelected && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Palmtree className="h-3.5 w-3.5 text-green-500" />
-                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Holiday Pay</h3>
+                <div className="rounded-lg border border-teal-200 bg-teal-50/40 p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Palmtree className="h-3.5 w-3.5 text-teal-600" />
+                    <h3 className="text-xs font-semibold text-teal-800 uppercase tracking-wide">Holiday Pay</h3>
                   </div>
-                  <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-2">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-muted/30 ${
-                          localEmployee.days?.[6] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'
+                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-teal-100/50 ${
+                          localEmployee.days?.[6] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-teal-300'
                         }`}
                         onClick={() => handleWeekToggle(6)}
                       >
                         {localEmployee.days?.[6] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                       </div>
-                      <span className="text-xs font-medium text-accent-foreground w-20">Amount</span>
+                      <span className="text-xs font-medium text-teal-800 w-20">Amount</span>
                       <Input
                         type="text"
                         inputMode="decimal"
@@ -857,31 +866,32 @@ export default function EmployeeModal({
 
             {/* Right: Calculation Summary */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <DollarSign className="h-3.5 w-3.5 text-primary" />
-                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Calculations</h3>
-                {isLoadingConfig && (
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 flex-1 flex flex-col">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <DollarSign className="h-3.5 w-3.5 text-slate-600" />
+                  <h3 className="text-xs font-semibold text-slate-800 uppercase tracking-wide">Calculations</h3>
+                  {isLoadingConfig && (
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    </div>
+                  )}
+                  {config && (
+                    <div className="flex items-center gap-1 ml-auto">
+                      <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 border-slate-300">SS:{(config.employeeSSRate * 100).toFixed(0)}%</Badge>
+                      <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 border-slate-300">Levy:{(config.employerLevyRate * 100).toFixed(0)}%</Badge>
+                      <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 border-slate-300">Sev:{(config.employerSeveranceRate * 100).toFixed(0)}%</Badge>
+                    </div>
+                  )}
+                </div>
+                
+                {configError && (
+                  <Alert variant="destructive" className="mb-1.5 py-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertDescription className="text-xs">{configError}</AlertDescription>
+                  </Alert>
                 )}
-                {config && (
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">SS:{(config.employeeSSRate * 100).toFixed(0)}%</Badge>
-                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Levy:{(config.employerLevyRate * 100).toFixed(0)}%</Badge>
-                    <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5">Sev:{(config.employerSeveranceRate * 100).toFixed(0)}%</Badge>
-                  </div>
-                )}
-              </div>
-              
-              {configError && (
-                <Alert variant="destructive" className="mb-1.5 py-1.5">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <AlertDescription className="text-xs">{configError}</AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="rounded-md border border-border/60 p-3 flex-1 flex flex-col justify-between">
+                
+                <div className="flex-1 flex flex-col justify-between">
                 {/* Wages summary row */}
                 <div className="grid grid-cols-1 gap-2 pb-2 border-b border-border/40">
                   <div>
@@ -993,6 +1003,7 @@ export default function EmployeeModal({
                     <p className="text-xs text-muted-foreground">No penalties or fines applicable</p>
                   )}
                 </div>
+              </div>
               </div>
             </div>
           </div>
