@@ -247,7 +247,7 @@ export function BonusPolicyDefaultTab() {
             {/* 1. Applicability */}
             <SectionLabel>Bonus Applicability in C3</SectionLabel>
             <div className="space-y-3">
-              <ToggleRow label="Include Bonus in Levy" hint="Bonus amount added to levy base calculation" checked={!!form.include_in_levy} onChange={v => setField('include_in_levy', v)} />
+              <ToggleRow label="Include Bonus in Levy" hint="Bonus amount is always included in levy base calculation" checked={true} onChange={() => {}} disabled />
             </div>
 
             {/* 2. Calculation Method */}
@@ -349,15 +349,15 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ToggleRow({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) {
+function ToggleRow({ label, hint, checked, onChange, disabled }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-b-0">
+    <div className={`flex items-center justify-between py-2 border-b last:border-b-0 ${disabled ? 'opacity-70' : ''}`}>
       <div>
         <div className="text-sm font-medium">{label}</div>
         <div className="text-xs text-muted-foreground">{hint}</div>
       </div>
       <div className="flex items-center gap-2">
-        <Switch checked={checked} onCheckedChange={onChange} />
+        <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
         <span className="text-xs text-muted-foreground w-6">{checked ? 'Yes' : 'No'}</span>
       </div>
     </div>
