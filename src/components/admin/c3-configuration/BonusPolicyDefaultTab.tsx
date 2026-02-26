@@ -120,36 +120,35 @@ export function BonusPolicyDefaultTab() {
           />
           {form.calculation_method === 'separate' && (
             <div className="ml-4 p-4 bg-muted/50 border rounded-lg space-y-3">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Select Calculation Method(s)</p>
-              <CheckOption
-                checked={!!form.calc_flat_enabled}
-                onChange={v => setField('calc_flat_enabled', v)}
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Select Calculation Method</p>
+              <RadioOption
+                selected={!!form.calc_flat_enabled}
+                onClick={() => { setField('calc_flat_enabled', true); setField('calc_slab_enabled', false); }}
                 label="Flat Percentage"
                 hint="A fixed percentage applied on the bonus base amount"
-              >
-                {form.calc_flat_enabled && (
-                  <div className="flex items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
-                    <Input
-                      type="number"
-                      className="w-24"
-                      placeholder="e.g. 15"
-                      value={form.calc_flat_percentage ?? ''}
-                      onChange={e => setField('calc_flat_percentage', e.target.value ? Number(e.target.value) : null)}
-                      min={0} max={100}
-                    />
-                    <span className="text-sm font-semibold text-muted-foreground">%</span>
-                  </div>
-                )}
-              </CheckOption>
-              <CheckOption
-                checked={!!form.calc_slab_enabled}
-                onChange={v => setField('calc_slab_enabled', v)}
+              />
+              {form.calc_flat_enabled && (
+                <div className="flex items-center gap-2 ml-7" onClick={e => e.stopPropagation()}>
+                  <Input
+                    type="number"
+                    className="w-24"
+                    placeholder="e.g. 15"
+                    value={form.calc_flat_percentage ?? ''}
+                    onChange={e => setField('calc_flat_percentage', e.target.value ? Number(e.target.value) : null)}
+                    min={0} max={100}
+                  />
+                  <span className="text-sm font-semibold text-muted-foreground">%</span>
+                </div>
+              )}
+              <RadioOption
+                selected={!!form.calc_slab_enabled}
+                onClick={() => { setField('calc_slab_enabled', true); setField('calc_flat_enabled', false); setField('calc_flat_percentage', null); }}
                 label="Levy Slab Based"
                 hint="Bonus calculated using predefined levy slabs"
               />
               {!form.calc_flat_enabled && !form.calc_slab_enabled && (
                 <div className="text-sm text-destructive p-2 bg-destructive/10 rounded-md border border-destructive/20">
-                  ⚠ At least one calculation method must be selected.
+                  ⚠ A calculation method must be selected.
                 </div>
               )}
             </div>
