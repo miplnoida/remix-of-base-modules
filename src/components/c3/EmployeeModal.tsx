@@ -135,12 +135,14 @@ export default function EmployeeModal({
   const mondays = getMondaysInMonth(safePeriodYear, safePeriodMonth);
   const enabledWeekCheckboxes = [true, true, true, true, mondayCount >= 5];
 
-  const enabledTextboxes = getEnabledWeekTextboxes(
-    localEmployee.payPeriod || 'Monthly',
-    safePeriodYear,
-    safePeriodMonth,
-    localEmployee.termStartDate
-  ) || [false, false, false, false, false];
+  const enabledTextboxes = useMemo(() => {
+    return getEnabledWeekTextboxes(
+      localEmployee.payPeriod || 'Monthly',
+      safePeriodYear,
+      safePeriodMonth,
+      localEmployee.termStartDate
+    ) || [false, false, false, false, false];
+  }, [localEmployee.payPeriod, safePeriodYear, safePeriodMonth, localEmployee.termStartDate]);
 
   // Which week indices are "generated" (exist in this month)
   const generatedWeekIndices = useMemo(() => {
@@ -160,6 +162,9 @@ export default function EmployeeModal({
       return w;
     });
   }, [localEmployee.weeklyWages, localEmployee.days, enabledTextboxes]);
+
+  // Stable string key for effectiveWages to prevent useEffect re-triggers on same values
+  const effectiveWagesKey = effectiveWages.join(',');
 
   // Calculate payroll contributions using database-driven C3 configuration (client-side fallback)
   const clientPayrollCalc = useMemo(() => {
@@ -187,7 +192,8 @@ export default function EmployeeModal({
     } else {
       resetBonusPolicy();
     }
-  }, [effectiveWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, periodYear, periodMonth, isOpen, calcBonusPolicy, resetBonusPolicy, periodTermStartDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveWagesKey, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, periodYear, periodMonth, isOpen]);
 
   // Use server-authoritative result when bonus is present, otherwise client calc
   const payrollCalc = useMemo(() => {
@@ -269,7 +275,8 @@ export default function EmployeeModal({
     return () => {
       if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
     };
-  }, [isViewMode, isOpen, effectiveWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isViewMode, isOpen, effectiveWagesKey, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate]);
 
   // Reset form when employee changes
   useEffect(() => {
