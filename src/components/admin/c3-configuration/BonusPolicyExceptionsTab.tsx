@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check, AlertTriangle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -16,7 +17,9 @@ import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/da
 import type { BonusPolicyException, BonusDistribution, ExceptionType, CalculationMethod } from '@/types/bonusPolicy';
 import { MONTH_NAMES, DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
 
-const EMPTY_EXCEPTION: Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'> = {
+type ExceptionForm = Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'>;
+
+const EMPTY_EXCEPTION: ExceptionForm = {
   date_from: formatDateForStorage(new Date()),
   date_to: null,
   exception_type: 'onetime',
@@ -50,36 +53,96 @@ export function BonusPolicyExceptionsTab() {
   const deleteMutation = useDeleteBonusPolicyException();
   const { userCode } = useUserCode();
 
-  const [isAdding, setIsAdding] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'>>(EMPTY_EXCEPTION);
+  const [form, setForm] = useState<ExceptionForm>({ ...EMPTY_EXCEPTION });
+  const [cappingEnabled, setCappingEnabled] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
 
-  const startAdd = () => {
-    setForm({ ...EMPTY_EXCEPTION });
-    setIsAdding(true);
+  const openCreate = () => {
     setEditingId(null);
+    setForm({ ...EMPTY_EXCEPTION });
+    setCappingEnabled(false);
+    setOverlapWarning(null);
+    setShowForm(true);
   };
 
   const openEdit = (exc: BonusPolicyException) => {
     setEditingId(exc.id);
     const { id, created_on, modified_on, ...rest } = exc;
-    setForm(rest);
-    setIsAdding(false);
+    setForm(rest as ExceptionForm);
+    setCappingEnabled(exc.min_bonus_amount != null || exc.max_bonus_amount != null);
+    setOverlapWarning(null);
+    setShowForm(true);
   };
 
-  const cancel = () => {
-    setIsAdding(false);
-    setEditingId(null);
+  const setField = <K extends keyof ExceptionForm>(key: K, value: ExceptionForm[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+    if (key === 'date_from' || key === 'date_to') setOverlapWarning(null);
   };
 
-  const handleSave = async () => {
-    if (isAdding) {
-      await createMutation.mutateAsync({ exception: form, userCode });
-    } else if (editingId) {
-      await updateMutation.mutateAsync({ id: editingId, updates: form, userCode });
+  const dist: BonusDistribution = (form.distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
+
+  const setDist = (cycle: keyof BonusDistribution, key: string, value: boolean) => {
+    const newDist = JSON.parse(JSON.stringify(dist)) as BonusDistribution;
+    const cycleObj = newDist[cycle] as Record<string, boolean>;
+    if (key === 'divide' && value) {
+      Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
+    } else if (key !== 'divide' && value) {
+      cycleObj['divide'] = false;
+      cycleObj[key] = true;
+    } else {
+      cycleObj[key] = value;
     }
-    cancel();
+    setField('distribution', newDist);
+  };
+
+  const handleSave = () => {
+    if (!form.date_from) {
+      setOverlapWarning('Date From is required.');
+      return;
+    }
+    if (form.date_to && form.date_to < form.date_from) {
+      setOverlapWarning('Date To cannot be earlier than Date From.');
+      return;
+    }
+    // Overlap check
+    const existing = (exceptions ?? []).map(e => ({ id: e.id, date_from: e.date_from, date_to: e.date_to }));
+    const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined);
+    if (overlap.overlaps) {
+      const rec = overlap.overlappingRecord!;
+      const from = formatDisplayDate(rec.date_from);
+      const to = rec.date_to ? formatDisplayDate(rec.date_to) : 'Open-ended';
+      setOverlapWarning(`The selected period overlaps with an existing exception (${from} – ${to}). Please adjust Date From / Date To.`);
+      return;
+    }
+
+    const updates = { ...form };
+    if (!cappingEnabled) {
+      updates.min_bonus_amount = null;
+      updates.max_bonus_amount = null;
+    }
+    // If override_default is off, clear override fields
+    if (!updates.override_default) {
+      updates.calculation_method = null;
+      updates.calc_flat_enabled = null;
+      updates.calc_flat_percentage = null;
+      updates.calc_slab_enabled = null;
+      updates.distribution = null;
+      updates.min_bonus_amount = null;
+      updates.max_bonus_amount = null;
+      updates.contrib_employee = null;
+      updates.contrib_employer = null;
+      updates.contrib_eir = null;
+      updates.contrib_severance = null;
+    }
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+    } else {
+      createMutation.mutate({ exception: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+    }
   };
 
   const handleDelete = async () => {
@@ -89,24 +152,13 @@ export function BonusPolicyExceptionsTab() {
     }
   };
 
-  const updateField = (field: string, value: any) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const isEditing = isAdding || !!editingId;
-
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return <div className="flex items-center justify-center min-h-[40vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Exception List */}
       <Card className="border-amber-200 dark:border-amber-800">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -116,112 +168,17 @@ export function BonusPolicyExceptionsTab() {
                 Bonus Policy Exceptions
               </CardTitle>
               <CardDescription>
-                Define month-specific overrides for bonus policy calculations
+                Define month-specific overrides for bonus policy calculations. Each exception can optionally override the default policy settings.
               </CardDescription>
             </div>
-            {!isEditing && (
-              <Button onClick={startAdd} variant="outline" className="border-amber-300">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Exception
-              </Button>
-            )}
+            <Button size="sm" onClick={openCreate} variant="outline" className="border-amber-300">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Exception
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {isEditing && (
-            <div className="border rounded-lg p-4 mb-6 bg-amber-50/50 dark:bg-amber-950/20 space-y-4">
-              <h4 className="font-medium">{isAdding ? 'New Exception' : 'Edit Exception'}</h4>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Exception Type</Label>
-                  <Select value={form.exception_type} onValueChange={(v) => updateField('exception_type', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="onetime">One-Time</SelectItem>
-                      <SelectItem value="recurring">Recurring</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Exception Month</Label>
-                  <Select value={String(form.exception_month)} onValueChange={(v) => updateField('exception_month', parseInt(v))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MONTH_NAMES.map((m, i) => (
-                        <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Year From</Label>
-                  <Input type="number" value={form.year_from} onChange={(e) => updateField('year_from', parseInt(e.target.value))} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Year To {form.exception_type === 'onetime' && '(optional)'}</Label>
-                  <Input type="number" value={form.year_to ?? ''} onChange={(e) => updateField('year_to', e.target.value ? parseInt(e.target.value) : null)} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Date From</Label>
-                  <MonthYearPicker
-                    value={(() => { const d = parseDateSafe(form.date_from); return d ? { year: d.getFullYear(), month: d.getMonth() + 1 } : undefined; })()}
-                    onChange={(v) => updateField('date_from', formatDateForStorage(new Date(v.year, v.month - 1, 1)))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Date To (optional)</Label>
-                  <MonthYearPicker
-                    value={(() => { const d = form.date_to ? parseDateSafe(form.date_to) : null; return d ? { year: d.getFullYear(), month: d.getMonth() + 1 } : undefined; })()}
-                    onChange={(v) => updateField('date_to', formatDateForStorage(new Date(v.year, v.month - 1, 1)))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Input value={form.description ?? ''} onChange={(e) => updateField('description', e.target.value || null)} placeholder="Optional description" />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 pt-2">
-                <div className="flex items-center gap-2">
-                  <Switch checked={form.override_default} onCheckedChange={(v) => updateField('override_default', v)} />
-                  <Label className="text-sm">Override Default Policy</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={true} disabled />
-                  <Label className="text-sm opacity-70">Include in Levy</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={true} disabled />
-                  <Label className="text-sm opacity-70">Severance Payment</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={form.is_active} onCheckedChange={(v) => updateField('is_active', v)} />
-                  <Label className="text-sm">Active</Label>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} size="sm">
-                  {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  <Save className="h-4 w-4 mr-1" />
-                  Save
-                </Button>
-                <Button onClick={cancel} variant="outline" size="sm">
-                  <X className="h-4 w-4 mr-1" />
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!exceptions?.length && !isEditing ? (
+          {!exceptions?.length ? (
             <div className="text-center py-8 text-muted-foreground">
               No bonus policy exceptions configured.
             </div>
@@ -241,14 +198,14 @@ export function BonusPolicyExceptionsTab() {
               </TableHeader>
               <TableBody>
                 {(exceptions || []).map((exc) => (
-                  <TableRow key={exc.id} className={editingId === exc.id ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}>
+                  <TableRow key={exc.id}>
                     <TableCell>
                       <Badge variant={exc.exception_type === 'recurring' ? 'default' : 'outline'}>
                         {exc.exception_type === 'recurring' ? 'Recurring' : 'One-Time'}
                       </Badge>
                     </TableCell>
                     <TableCell>{MONTH_NAMES[exc.exception_month - 1]}</TableCell>
-                    <TableCell>{exc.year_from}{exc.year_to ? ` - ${exc.year_to}` : ''}</TableCell>
+                    <TableCell>{exc.year_from}{exc.year_to ? ` – ${exc.year_to}` : ''}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDisplayDate(exc.date_from)} — {exc.date_to ? formatDisplayDate(exc.date_to) : 'Open'}
                     </TableCell>
@@ -263,11 +220,11 @@ export function BonusPolicyExceptionsTab() {
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">{exc.description || '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(exc)} disabled={isEditing}>
+                        <Button variant="outline" size="sm" onClick={() => openEdit(exc)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleteId(exc.id)} disabled={isEditing}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                        <Button variant="outline" size="sm" onClick={() => setDeleteId(exc.id)}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -279,7 +236,211 @@ export function BonusPolicyExceptionsTab() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      {/* Add/Edit Form */}
+      {showForm && (
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-amber-700 dark:text-amber-400">
+                  {editingId ? 'Edit' : 'Add'} Bonus Policy Exception
+                </CardTitle>
+                <CardDescription>
+                  Define the exception details and optionally override the default policy configuration.
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="h-4 w-4" /></Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Info banner */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+              <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                Each exception targets a specific month. If "Override Default Policy" is enabled, you can customise calculation method, distribution, capping, and contribution base for that period.
+              </span>
+            </div>
+
+            {/* Overlap warning */}
+            {overlapWarning && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <span className="text-sm text-destructive">{overlapWarning}</span>
+              </div>
+            )}
+
+            {/* Exception Identity */}
+            <SectionLabel>Exception Identity</SectionLabel>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label>Exception Type</Label>
+                <Select value={form.exception_type} onValueChange={(v) => setField('exception_type', v as ExceptionType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="onetime">One-Time</SelectItem>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Exception Month</Label>
+                <Select value={String(form.exception_month)} onValueChange={(v) => setField('exception_month', parseInt(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((m, i) => (
+                      <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Year From</Label>
+                <Input type="number" value={form.year_from} onChange={(e) => setField('year_from', parseInt(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Year To {form.exception_type === 'onetime' && <span className="text-xs text-muted-foreground">(optional)</span>}</Label>
+                <Input type="number" value={form.year_to ?? ''} onChange={(e) => setField('year_to', e.target.value ? parseInt(e.target.value) : null)} />
+              </div>
+            </div>
+
+            {/* Validity Period */}
+            <SectionLabel>Validity Period (Month-Year)</SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label>From <span className="text-destructive">*</span></Label>
+                <MonthYearPicker
+                  value={form.date_from ? (() => { const d = parseDateSafe(form.date_from); return d ? { year: d.getFullYear(), month: d.getMonth() } : undefined; })() : undefined}
+                  onChange={({ year, month }) => setField('date_from', `${year}-${String(month + 1).padStart(2, '0')}-01`)}
+                  placeholder="Select start month"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>To <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                <MonthYearPicker
+                  value={form.date_to ? (() => { const d = parseDateSafe(form.date_to); return d ? { year: d.getFullYear(), month: d.getMonth() } : undefined; })() : undefined}
+                  onChange={({ year, month }) => setField('date_to', `${year}-${String(month + 1).padStart(2, '0')}-01`)}
+                  placeholder="Open-ended"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Description</Label>
+                <Input value={form.description ?? ''} onChange={(e) => setField('description', e.target.value || null)} placeholder="Optional description" />
+              </div>
+            </div>
+
+            {/* Applicability toggles */}
+            <SectionLabel>Applicability</SectionLabel>
+            <div className="space-y-3">
+              <ToggleRow label="Include Bonus in Levy" hint="Bonus amount is always included in levy base calculation" checked={true} onChange={() => {}} disabled />
+              <ToggleRow label="Severance Payment" hint="Bonus is always included in severance payment base calculation" checked={true} onChange={() => {}} disabled />
+              <ToggleRow label="Active" hint="Enable or disable this exception" checked={form.is_active} onChange={(v) => setField('is_active', v)} />
+            </div>
+
+            {/* Override toggle */}
+            <div className="flex items-center gap-3 p-4 rounded-lg border-2 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20">
+              <Checkbox
+                id="override-default"
+                checked={form.override_default}
+                onCheckedChange={(v) => {
+                  const val = !!v;
+                  setField('override_default', val);
+                  if (val && !form.calculation_method) {
+                    setField('calculation_method', 'merge');
+                    setField('distribution', DEFAULT_DISTRIBUTION);
+                    setField('contrib_employee', true);
+                    setField('contrib_employer', true);
+                    setField('contrib_eir', false);
+                    setField('contrib_severance', false);
+                    setField('calc_flat_enabled', false);
+                    setField('calc_slab_enabled', false);
+                  }
+                }}
+                className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+              />
+              <div>
+                <Label htmlFor="override-default" className="text-sm font-medium cursor-pointer">Override Default Policy</Label>
+                <p className="text-xs text-muted-foreground">When enabled, this exception will use its own calculation, distribution, capping, and contribution settings instead of the default policy.</p>
+              </div>
+            </div>
+
+            {/* Override sections (only visible when override_default is on) */}
+            {form.override_default && (
+              <div className="space-y-6 border-l-4 border-amber-300 dark:border-amber-700 pl-4">
+                {/* Calculation Method */}
+                <SectionLabel>Bonus Calculation Method</SectionLabel>
+                <div className="space-y-3">
+                  <RadioOption selected={form.calculation_method === 'merge'} onClick={() => setField('calculation_method', 'merge')} label="Merge bonus with regular earnings" hint="Bonus is combined into the standard pay run" />
+                  <RadioOption selected={form.calculation_method === 'separate'} onClick={() => setField('calculation_method', 'separate')} label="Calculate bonus separately" hint="Bonus is processed in an isolated calculation" />
+                  {form.calculation_method === 'separate' && (
+                    <div className="ml-4 p-4 bg-muted/50 border rounded-lg space-y-3">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Select Calculation Method</p>
+                      <RadioOption selected={!!form.calc_flat_enabled} onClick={() => { setField('calc_flat_enabled', true); setField('calc_slab_enabled', false); }} label="Flat Percentage" hint="A fixed percentage applied on the bonus base amount" />
+                      {form.calc_flat_enabled && (
+                        <div className="flex items-center gap-2 ml-7" onClick={e => e.stopPropagation()}>
+                          <Input type="number" className="w-24" placeholder="e.g. 15" value={form.calc_flat_percentage ?? ''} onChange={e => setField('calc_flat_percentage', e.target.value ? Number(e.target.value) : null)} min={0} max={100} />
+                          <span className="text-sm font-semibold text-muted-foreground">%</span>
+                        </div>
+                      )}
+                      <RadioOption selected={!!form.calc_slab_enabled} onClick={() => { setField('calc_slab_enabled', true); setField('calc_flat_enabled', false); setField('calc_flat_percentage', null); }} label="Levy Slab Based" hint="Bonus calculated using predefined levy slabs" />
+                      {!form.calc_flat_enabled && !form.calc_slab_enabled && (
+                        <div className="text-sm text-destructive p-2 bg-destructive/10 rounded-md border border-destructive/20">⚠ A calculation method must be selected.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Distribution (only for merge) */}
+                {form.calculation_method === 'merge' && (
+                  <>
+                    <SectionLabel>Bonus Distribution by Payroll Cycle</SectionLabel>
+                    <p className="text-xs text-muted-foreground -mt-4">Select when the bonus should be included for each payroll frequency.</p>
+                    <div className="space-y-4">
+                      <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist} items={[{ key: 'w1', label: 'Include in 1st week' }, { key: 'w2', label: 'Include in 2nd week' }, { key: 'w3', label: 'Include in 3rd week' }, { key: 'w4', label: 'Include in 4th / last week' }, { key: 'divide', label: 'Divide equally across all weeks', isDivide: true }]} />
+                      <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist} items={[{ key: 'b1', label: 'Include in 1st payment' }, { key: 'b2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
+                      <CycleBlock title="Semi-monthly" cycle="semimonthly" dist={dist} setDist={setDist} items={[{ key: 's1', label: 'Include in 1st payment' }, { key: 's2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
+                      <CycleBlock title="Monthly" cycle="monthly" dist={dist} setDist={setDist} items={[{ key: 'm1', label: 'Include in monthly payment' }]} />
+                    </div>
+                  </>
+                )}
+
+                {/* Capping */}
+                <div className="flex items-center gap-3">
+                  <Checkbox id="exc-capping-enabled" checked={cappingEnabled} onCheckedChange={(v) => { const val = !!v; setCappingEnabled(val); if (!val) { setField('min_bonus_amount', null); setField('max_bonus_amount', null); } }} className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600" />
+                  <SectionLabel>Capping on Eligible Bonus Amount</SectionLabel>
+                </div>
+                {cappingEnabled && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><Label>Minimum Bonus Amount</Label><Input type="number" placeholder="e.g. 500" value={form.min_bonus_amount ?? ''} onChange={e => setField('min_bonus_amount', e.target.value ? Number(e.target.value) : null)} /></div>
+                    <div className="space-y-1.5"><Label>Maximum Bonus Amount</Label><Input type="number" placeholder="e.g. 50000" value={form.max_bonus_amount ?? ''} onChange={e => setField('max_bonus_amount', e.target.value ? Number(e.target.value) : null)} /></div>
+                  </div>
+                )}
+
+                {/* Contribution Base */}
+                <SectionLabel>Contribution Base Calculation</SectionLabel>
+                <p className="text-xs text-muted-foreground -mt-4">Selected contributions will include bonus amount in their base calculation.</p>
+                <div className="border rounded-lg divide-y">
+                  <ContribRow label="Employee Contribution" checked={!!form.contrib_employee} onChange={v => setField('contrib_employee', v)} />
+                  <ContribRow label="Employer Contribution" checked={!!form.contrib_employer} onChange={v => setField('contrib_employer', v)} />
+                  <ContribRow label="EIB (Employee Injury Benefit)" checked={!!form.contrib_eir} onChange={v => setField('contrib_eir', v)} />
+                  <ContribRow label="Severance Payment" checked={!!form.contrib_severance} onChange={v => setField('contrib_severance', v)} />
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="flex items-center gap-3 pt-4 border-t">
+              <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} className="bg-amber-600 hover:bg-amber-700 text-white">
+                {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                {editingId ? 'Update' : 'Save'} Exception
+              </Button>
+              <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Exception</AlertDialogTitle>
@@ -289,12 +450,83 @@ export function BonusPolicyExceptionsTab() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
+  );
+}
+
+// ---- Sub-components (amber-themed variants) ----
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-xs font-medium text-foreground uppercase tracking-widest">
+      {children}
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
+function ToggleRow({ label, hint, checked, onChange, disabled }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between py-2 border-b last:border-b-0 ${disabled ? 'opacity-70' : ''}`}>
+      <div>
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-xs text-muted-foreground">{hint}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
+        <span className="text-xs text-muted-foreground w-6">{checked ? 'Yes' : 'No'}</span>
+      </div>
+    </div>
+  );
+}
+
+function RadioOption({ selected, onClick, label, hint }: { selected: boolean; onClick: () => void; label: string; hint: string }) {
+  return (
+    <div className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${selected ? 'border-amber-400 bg-amber-50 dark:border-amber-600 dark:bg-amber-950/30' : 'border-border bg-muted/30 hover:bg-muted/50'}`} onClick={onClick}>
+      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-amber-600 bg-amber-600' : 'border-muted-foreground/40'}`}>
+        {selected && <Check className="h-3 w-3 text-white" />}
+      </div>
+      <div>
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-xs text-muted-foreground">{hint}</div>
+      </div>
+    </div>
+  );
+}
+
+function ContribRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+      <span className="text-sm font-medium">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+interface CycleItem { key: string; label: string; isDivide?: boolean }
+
+function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void; items: CycleItem[] }) {
+  const cycleObj = dist[cycle] as Record<string, boolean>;
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <div className="px-4 py-2 bg-muted/50 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="p-3 space-y-2">
+        {items.map(item => {
+          const isChecked = !!cycleObj[item.key];
+          return (
+            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30' : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key, !isChecked)}>
+              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${isChecked ? 'bg-amber-600 border-amber-600' : 'border-2 border-muted-foreground/40'}`}>
+                {isChecked && <Check className="h-3 w-3 text-white" />}
+              </div>
+              <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
