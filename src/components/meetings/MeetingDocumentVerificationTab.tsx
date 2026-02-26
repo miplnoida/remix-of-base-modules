@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useImperativeHandle, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +24,16 @@ import { format, parseISO } from 'date-fns';
 import { useUserCode } from '@/hooks/useUserCode';
 
 // --- Interfaces ---
+
+export interface DocTypeMismatch {
+  categoryLabel: string;
+  selectedType: string;
+  documentType: string;
+}
+
+export interface MeetingDocumentVerificationTabHandle {
+  validateDocTypeMismatch: () => DocTypeMismatch[];
+}
 
 interface MeetingDocumentVerificationTabProps {
   applicationData: Record<string, any>;
@@ -172,13 +182,13 @@ function mergeDocuments(externalDocs: UnifiedDocument[], platformDocs: UnifiedDo
   return result;
 }
 
-export function MeetingDocumentVerificationTab({
+export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerificationTabHandle, MeetingDocumentVerificationTabProps>(function MeetingDocumentVerificationTab({
   applicationData,
   meetingId,
   applicationReference,
   isEditable,
   onReplacedCategoriesChange,
-}: MeetingDocumentVerificationTabProps) {
+}, ref) {
   const { user } = useAuth();
   const { userCode } = useUserCode();
   const { resolveDocType } = useDocumentTypeResolver();
@@ -364,8 +374,9 @@ export function MeetingDocumentVerificationTab({
   const handleVerificationChange = useCallback(async (cat: VerificationCategory, newCode: string) => {
     const oldCode = verifySelections[cat.fieldKey];
 
-    // Update selection
+    // Update selection and clear mismatch errors
     setVerifySelections(prev => ({ ...prev, [cat.fieldKey]: newCode }));
+    setDocTypeMismatchErrors([]);
 
     // Clear supportive selection if new code doesn't need it
     if (!CODES_REQUIRING_SUPPORTIVE.includes(newCode)) {
@@ -541,6 +552,40 @@ export function MeetingDocumentVerificationTab({
     });
     return errs;
   }, [verifySelections, verificationCategories, supportiveSelections, verifyTypes, activeDocuments]);
+
+  // --- Doc-type mismatch validation (exposed to parent via ref) ---
+  const [docTypeMismatchErrors, setDocTypeMismatchErrors] = useState<DocTypeMismatch[]>([]);
+
+  const validateDocTypeMismatch = useCallback((): DocTypeMismatch[] => {
+    const mismatches: DocTypeMismatch[] = [];
+    verificationCategories.forEach(cat => {
+      const selectedCode = verifySelections[cat.fieldKey];
+      if (!selectedCode) return;
+
+      // Find the active primary document for this verification category
+      const activeDoc = activeDocuments.find(
+        d => d.verification_category === cat.id && !d.is_supportive && d.is_active !== false
+      );
+      if (!activeDoc) return; // No document uploaded — other validations cover this
+
+      const docCode = activeDoc.doc_code || activeDoc.document_type;
+      if (docCode && docCode !== selectedCode) {
+        const selectedDesc = verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode;
+        const docDesc = verifyTypes.find(v => v.code === docCode)?.description || docCode;
+        mismatches.push({
+          categoryLabel: cat.label,
+          selectedType: selectedDesc,
+          documentType: docDesc,
+        });
+      }
+    });
+    setDocTypeMismatchErrors(mismatches);
+    return mismatches;
+  }, [verificationCategories, verifySelections, activeDocuments, verifyTypes]);
+
+  useImperativeHandle(ref, () => ({
+    validateDocTypeMismatch,
+  }), [validateDocTypeMismatch]);
 
   const canProceedToUpload = Object.keys(selectionErrors).length === 0 &&
     verificationCategories.filter(c => c.isMandatory).every(c => !!verifySelections[c.fieldKey]);
@@ -817,6 +862,23 @@ export function MeetingDocumentVerificationTab({
   return (
     <TooltipProvider>
       <div className="space-y-6">
+        {/* Doc-type mismatch validation banner */}
+        {docTypeMismatchErrors.length > 0 && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-2">
+            <div className="flex items-center gap-2 text-destructive font-medium">
+              <AlertTriangle className="h-5 w-5" />
+              Document Type Mismatch — Cannot Accept
+            </div>
+            <ul className="list-disc list-inside text-sm text-destructive space-y-1">
+              {docTypeMismatchErrors.map((m, i) => (
+                <li key={i}>
+                  <strong>{m.categoryLabel}:</strong> Dropdown is set to <em>{m.selectedType}</em> but the uploaded document is <em>{m.documentType}</em>. Please update the dropdown or re-upload the correct document.
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Step indicator */}
         <div className="flex items-center gap-3 mb-2">
           <div
@@ -1360,4 +1422,4 @@ export function MeetingDocumentVerificationTab({
       </div>
     </TooltipProvider>
   );
-}
+});
