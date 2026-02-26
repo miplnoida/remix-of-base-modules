@@ -64,6 +64,9 @@ export interface C3CalculationTotals {
   daysLate: number;
   additional30DayPeriods: number;
   monthsLate: number;
+  levyPenaltyBase: number;
+  severancePenaltyBase: number;
+  ssFinBase: number;
   levyPenalty: number;
   severancePenalty: number;
   ssFine: number;
