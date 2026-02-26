@@ -290,7 +290,12 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
   // Track platform-derived overrides (set after fetching documents)
   const [platformOverrides, setPlatformOverrides] = useState<Record<string, string>>({});
 
-  // Auto-select from external API documents first, but platform overrides win
+  // Track user-initiated dropdown changes that haven't been persisted as platform docs yet.
+  // These take the HIGHEST priority and must never be overwritten by async fetches.
+  const userSelectionsRef = useRef<Record<string, string>>({});
+
+  // Auto-select from external API documents first, but platform overrides win,
+  // and user-initiated selections have the highest priority.
   useEffect(() => {
     if (Object.keys(apiDocFieldKeys).length === 0 && Object.keys(platformOverrides).length === 0) return;
     setVerifySelections(prev => {
@@ -301,6 +306,10 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
       }
       // Then override with platform replacement doc_codes (platform wins)
       for (const [fieldKey, code] of Object.entries(platformOverrides)) {
+        next[fieldKey] = code;
+      }
+      // Finally, user-initiated selections always win over everything
+      for (const [fieldKey, code] of Object.entries(userSelectionsRef.current)) {
         next[fieldKey] = code;
       }
       return next;
@@ -373,6 +382,9 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
   // Handle dropdown change — deactivate old docs and mark re-upload needed
   const handleVerificationChange = useCallback(async (cat: VerificationCategory, newCode: string) => {
     const oldCode = verifySelections[cat.fieldKey];
+
+    // Track this as a user-initiated selection so async fetches don't overwrite it
+    userSelectionsRef.current[cat.fieldKey] = newCode;
 
     // Update selection and clear mismatch errors
     setVerifySelections(prev => ({ ...prev, [cat.fieldKey]: newCode }));
@@ -627,6 +639,13 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
         }
       }
       setPlatformOverrides(overrides);
+
+      // Clear user-initiated selections that are now persisted as platform docs
+      for (const [fieldKey, code] of Object.entries(userSelectionsRef.current)) {
+        if (overrides[fieldKey] === code) {
+          delete userSelectionsRef.current[fieldKey];
+        }
+      }
 
       // Clear pending re-upload flags if active docs now exist
       setPendingReupload(prev => {
