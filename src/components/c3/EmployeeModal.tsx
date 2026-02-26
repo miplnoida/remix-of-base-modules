@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck, Gift, Palmtree } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
-import { getEnabledWeekTextboxes, getMondayCount } from '@/utils/weekCalculations';
+import { getEnabledWeekTextboxes, getMondayCount, getMondaysInMonth } from '@/utils/weekCalculations';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +36,11 @@ export interface EmployeeData {
   employerLevy?: number;
   employerSeverance?: number;
   periodGross?: number;
+  // New bonus/holiday metadata fields
+  bonusDate?: string;
+  bonusExemptLevy?: boolean;
+  holidayStartDate?: string;
+  holidayEndDate?: string;
 }
 
 export interface PenaltyFinesData {
@@ -56,8 +62,6 @@ interface EmployeeModalProps {
   receivedDate?: string;
   penaltyData?: PenaltyFinesData;
 }
-
-const weekLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Bonus Pay', 'Holiday Pay'];
 
 export default function EmployeeModal({
   isOpen,
@@ -87,7 +91,11 @@ export default function EmployeeModal({
     weeklyWages: [0, 0, 0, 0, 0, 0, 0],
     termStartDate: '',
     payPeriod: 'Monthly',
-    dateOfBirth: ''
+    dateOfBirth: '',
+    bonusDate: '',
+    bonusExemptLevy: false,
+    holidayStartDate: '',
+    holidayEndDate: ''
   });
 
   const [ssnError, setSsnError] = useState<string>('');
@@ -95,6 +103,11 @@ export default function EmployeeModal({
   const [pendingPayPeriod, setPendingPayPeriod] = useState<string | null>(null);
   const [showPayPeriodConfirm, setShowPayPeriodConfirm] = useState(false);
   const [defaultPayPeriodFetched, setDefaultPayPeriodFetched] = useState(false);
+  const [holidayDateError, setHolidayDateError] = useState('');
+  const [bonusDateError, setBonusDateError] = useState('');
+
+  // Track if auto-fill has been applied
+  const autoFillAppliedRef = useRef(false);
 
   // Server-side recalculated penalty data for Edit mode
   const [livePenalty, setLivePenalty] = useState<PenaltyFinesData | null>(null);
@@ -117,6 +130,7 @@ export default function EmployeeModal({
   const safePeriodYear = isNaN(periodYear) ? new Date().getFullYear() : periodYear;
   const safePeriodMonth = isNaN(periodMonth) ? new Date().getMonth() : periodMonth;
   const mondayCount = getMondayCount(safePeriodYear, safePeriodMonth);
+  const mondays = getMondaysInMonth(safePeriodYear, safePeriodMonth);
   const enabledWeekCheckboxes = [true, true, true, true, mondayCount >= 5];
 
   const enabledTextboxes = getEnabledWeekTextboxes(
@@ -125,6 +139,15 @@ export default function EmployeeModal({
     safePeriodMonth,
     localEmployee.termStartDate
   ) || [false, false, false, false, false];
+
+  // Which week indices are "generated" (exist in this month)
+  const generatedWeekIndices = useMemo(() => {
+    const indices: number[] = [];
+    for (let i = 0; i < mondayCount && i < 5; i++) {
+      indices.push(i);
+    }
+    return indices;
+  }, [mondayCount]);
 
   // Calculate payroll contributions using database-driven C3 configuration
   const payrollCalc = useMemo(() => {
@@ -139,7 +162,6 @@ export default function EmployeeModal({
   // Debounced server-side penalty recalculation when wages change in Edit mode
   useEffect(() => {
     if (isViewMode || !isOpen) return;
-    // Only recalculate if we have wages and a received date
     const hasWages = localEmployee.weeklyWages.some(w => w > 0);
     if (!hasWages || !receivedDate) {
       setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, totalLateCharges: 0 });
@@ -210,12 +232,17 @@ export default function EmployeeModal({
         ...employee,
         days: safeDays,
         weeklyWages: safeWages,
-        termStartDate: periodTermStartDate
+        termStartDate: periodTermStartDate,
+        bonusDate: employee.bonusDate || '',
+        bonusExemptLevy: employee.bonusExemptLevy || false,
+        holidayStartDate: employee.holidayStartDate || '',
+        holidayEndDate: employee.holidayEndDate || ''
       });
       setSsnValidated(true);
       setSsnError('');
       setWageInputValues(safeWages.map(w => w === 0 ? '' : String(w)));
       setLivePenalty(null);
+      autoFillAppliedRef.current = true; // Existing data = don't auto-fill
     } else {
       setLocalEmployee({
         ssn: '',
@@ -231,14 +258,21 @@ export default function EmployeeModal({
         weeklyWages: [0, 0, 0, 0, 0, 0, 0],
         termStartDate: periodTermStartDate,
         payPeriod: 'Monthly',
-        dateOfBirth: ''
+        dateOfBirth: '',
+        bonusDate: '',
+        bonusExemptLevy: false,
+        holidayStartDate: '',
+        holidayEndDate: ''
       });
       setSsnValidated(false);
       setSsnError('');
       setDefaultPayPeriodFetched(false);
       setWageInputValues(['', '', '', '', '', '', '']);
       setLivePenalty(null);
+      autoFillAppliedRef.current = false;
     }
+    setHolidayDateError('');
+    setBonusDateError('');
   }, [employee, isOpen, periodTermStartDate]);
 
   // Fetch default Pay-Period from latest ip_wages record for SSN
@@ -293,6 +327,7 @@ export default function EmployeeModal({
       days: newDays,
       weeklyWages: newWages
     }));
+    autoFillAppliedRef.current = false; // Reset auto-fill on pay period change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localEmployee.payPeriod]);
 
@@ -345,6 +380,7 @@ export default function EmployeeModal({
         days: [false, false, false, false, false, false, false],
         weeklyWages: [0, 0, 0, 0, 0, 0, 0]
       }));
+      setWageInputValues(['', '', '', '', '', '', '']);
     }
     setPendingPayPeriod(null);
     setShowPayPeriodConfirm(false);
@@ -393,19 +429,63 @@ export default function EmployeeModal({
     if (integerPart.length > 8) return;
     if (decimalPart.length > 2) return;
     
-    const newInputValues = [...wageInputValues];
-    newInputValues[index] = cleanValue;
-    setWageInputValues(newInputValues);
-    
     const numValue = parseFloat(cleanValue) || 0;
     if (numValue < 0) return;
-    
+
+    const newInputValues = [...wageInputValues];
     const newWages = [...localEmployee.weeklyWages];
+    const newDays = [...localEmployee.days];
+
+    newInputValues[index] = cleanValue;
     newWages[index] = numValue;
+
+    // Auto-fill logic: if all week amounts (0-4 within generated weeks) are blank and user enters a value
+    if (index < 5 && !autoFillAppliedRef.current && numValue > 0) {
+      const allWeeksBlanks = generatedWeekIndices.every(i => {
+        if (i === index) return true; // Skip current
+        return (localEmployee.weeklyWages[i] || 0) === 0;
+      });
+
+      if (allWeeksBlanks) {
+        // Auto-fill all generated weeks with the same amount
+        for (const i of generatedWeekIndices) {
+          newWages[i] = numValue;
+          newInputValues[i] = cleanValue;
+          newDays[i] = true;
+        }
+        autoFillAppliedRef.current = true;
+      }
+    }
+
+    setWageInputValues(newInputValues);
     setLocalEmployee(prev => ({
       ...prev,
-      weeklyWages: newWages
+      weeklyWages: newWages,
+      days: newDays
     }));
+  };
+
+  // Validate bonus date within selected month
+  const validateBonusDate = (dateStr: string): boolean => {
+    if (!dateStr) { setBonusDateError(''); return true; }
+    const d = new Date(dateStr);
+    if (d.getFullYear() !== safePeriodYear || d.getMonth() !== safePeriodMonth) {
+      setBonusDateError('Bonus date must be within the selected month');
+      return false;
+    }
+    setBonusDateError('');
+    return true;
+  };
+
+  // Validate holiday dates
+  const validateHolidayDates = (start: string, end: string): boolean => {
+    if (!start || !end) { setHolidayDateError(''); return true; }
+    if (new Date(end) < new Date(start)) {
+      setHolidayDateError('End date cannot be before start date');
+      return false;
+    }
+    setHolidayDateError('');
+    return true;
   };
 
   const handleSave = () => {
@@ -413,6 +493,9 @@ export default function EmployeeModal({
       setSsnError('Please enter a valid SSN');
       return;
     }
+
+    if (localEmployee.bonusDate && !validateBonusDate(localEmployee.bonusDate)) return;
+    if (localEmployee.holidayStartDate && localEmployee.holidayEndDate && !validateHolidayDates(localEmployee.holidayStartDate, localEmployee.holidayEndDate)) return;
     
     const savedEmployee: EmployeeData = {
       ...localEmployee,
@@ -447,6 +530,20 @@ export default function EmployeeModal({
   const netPay = employeeTotal + employerTotal + penaltiesTotal;
 
   const modalTitle = isViewMode ? 'View Employee' : (employee ? 'Edit Employee' : 'Add New Employee');
+
+  // Format monday date for display
+  const formatMondayDate = (date: Date) => {
+    return `${date.getDate()}/${date.getMonth() + 1}`;
+  };
+
+  // Period min/max dates for bonus date validation
+  const periodMonthStart = `${safePeriodYear}-${String(safePeriodMonth + 1).padStart(2, '0')}-01`;
+  const periodMonthEnd = useMemo(() => {
+    const lastDay = new Date(safePeriodYear, safePeriodMonth + 1, 0).getDate();
+    return `${safePeriodYear}-${String(safePeriodMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  }, [safePeriodYear, safePeriodMonth]);
+
+  const hasPayPeriodSelected = !!localEmployee.payPeriod;
 
   return (
     <>
@@ -519,7 +616,7 @@ export default function EmployeeModal({
               <Input id="termStartDate" type="date" value={periodTermStartDate} readOnly disabled className="h-9 text-sm bg-muted/50" />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="payPeriod" className="text-xs font-medium text-muted-foreground">Pay Period</Label>
+              <Label htmlFor="payPeriod" className="text-xs font-medium text-muted-foreground">Pay Period <span className="text-destructive">*</span></Label>
               <Select value={localEmployee.payPeriod || 'Monthly'} onValueChange={(value) => handleChange('payPeriod', value)} disabled={isViewMode}>
                 <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
@@ -532,51 +629,207 @@ export default function EmployeeModal({
             </div>
           </div>
 
-          {/* Wages + Calculations */}
+          {/* Main content: Wages + Calculations */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Left: Wages Entry */}
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <DollarSign className="h-3.5 w-3.5 text-primary" />
-                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Wages & Salary</h3>
+            {/* Left: Wages Entry - Guided Sections */}
+            <div className="flex flex-col gap-3">
+              {/* SECTION 1: Weekly Presence */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    Weekly Presence
+                  </h3>
+                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 ml-auto">
+                    {mondayCount} {mondayCount === 1 ? 'Monday' : 'Mondays'}
+                  </Badge>
+                </div>
+
+                {!hasPayPeriodSelected ? (
+                  <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Select a Pay Period above to configure weekly wages</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-border/60 bg-muted/10 p-2 space-y-0.5">
+                    {generatedWeekIndices.map((weekIdx) => {
+                      const isEditable = enabledTextboxes[weekIdx];
+                      const isChecked = localEmployee.days?.[weekIdx] || false;
+                      const mondayDate = mondays[weekIdx];
+                      const fieldEnabled = isChecked && isEditable;
+
+                      return (
+                        <div key={weekIdx} className={`flex items-center gap-2 rounded px-2 py-1 ${weekIdx % 2 === 0 ? 'bg-muted/30' : ''}`}>
+                          <div
+                            className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors ${
+                              !isEditable ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted/30'
+                            } ${isChecked ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'}`}
+                            onClick={() => isEditable && handleWeekToggle(weekIdx)}
+                          >
+                            {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                          </div>
+                          <div className="flex flex-col min-w-[5.5rem]">
+                            <span className={`text-xs font-medium ${isEditable ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              Week {weekIdx + 1}
+                            </span>
+                            {mondayDate && (
+                              <span className="text-[10px] text-muted-foreground leading-tight">
+                                Mon {formatMondayDate(mondayDate)}
+                              </span>
+                            )}
+                          </div>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={wageInputValues[weekIdx] ?? (localEmployee.weeklyWages[weekIdx] === 0 ? '' : String(localEmployee.weeklyWages[weekIdx]))}
+                            onChange={(e) => handleWageChange(weekIdx, e.target.value)}
+                            className="h-7 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
+                            placeholder="0.00"
+                            disabled={!fieldEnabled || isViewMode}
+                          />
+                          {!isEditable && (
+                            <Badge variant="secondary" className="text-[9px] h-4 px-1 ml-1 flex-shrink-0">
+                              {localEmployee.payPeriod === 'Monthly' ? 'auto' : 'N/A'}
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              <div className="rounded-md border border-border/60 bg-muted/10 p-2 flex-1 flex flex-col justify-between">
-                {weekLabels.map((label, index) => {
-                  const isCheckboxEnabled = index < 5 ? enabledWeekCheckboxes[index] : true;
-                  const isFieldEnabled = isWeekFieldEnabled(index);
-                  const isSpecialRow = index >= 5;
-                  return (
-                    <div key={index} className={`flex items-center gap-2 rounded px-2 py-1 ${
-                      isSpecialRow ? 'bg-accent/30' : index % 2 === 0 ? 'bg-muted/30' : ''
-                    }`}>
+
+              {/* SECTION 2: Bonus */}
+              {hasPayPeriodSelected && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Gift className="h-3.5 w-3.5 text-amber-500" />
+                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Bonus</h3>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-2">
+                    <div className="flex items-center gap-2">
                       <div
-                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors ${
-                          !isCheckboxEnabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted/30'
-                        } ${localEmployee.days?.[index] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'}`}
-                        onClick={() => isCheckboxEnabled && handleWeekToggle(index)}
+                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-muted/30 ${
+                          localEmployee.days?.[5] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'
+                        }`}
+                        onClick={() => handleWeekToggle(5)}
                       >
-                        {localEmployee.days?.[index] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                        {localEmployee.days?.[5] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                       </div>
-                      <span className={`text-xs font-medium w-24 ${isSpecialRow ? 'text-accent-foreground' : 'text-muted-foreground'}`}>{label}</span>
+                      <span className="text-xs font-medium text-accent-foreground w-20">Amount</span>
                       <Input
                         type="text"
                         inputMode="decimal"
-                        value={wageInputValues[index] ?? (localEmployee.weeklyWages[index] === 0 ? '' : String(localEmployee.weeklyWages[index]))}
-                        onChange={(e) => handleWageChange(index, e.target.value)}
+                        value={wageInputValues[5] ?? (localEmployee.weeklyWages[5] === 0 ? '' : String(localEmployee.weeklyWages[5]))}
+                        onChange={(e) => handleWageChange(5, e.target.value)}
                         className="h-7 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
                         placeholder="0.00"
-                        disabled={!isFieldEnabled || isViewMode}
+                        disabled={!isWeekFieldEnabled(5) || isViewMode}
                       />
                     </div>
-                  );
-                })}
-              </div>
+                    {localEmployee.days?.[5] && (
+                      <div className="flex items-center gap-3 pl-7">
+                        <div className="flex-1 space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">Bonus Date</Label>
+                          <Input
+                            type="date"
+                            value={localEmployee.bonusDate || ''}
+                            min={periodMonthStart}
+                            max={periodMonthEnd}
+                            onChange={(e) => {
+                              handleChange('bonusDate', e.target.value);
+                              validateBonusDate(e.target.value);
+                            }}
+                            className="h-7 text-xs"
+                            disabled={isViewMode}
+                          />
+                          {bonusDateError && <p className="text-[10px] text-destructive">{bonusDateError}</p>}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-3">
+                          <Checkbox
+                            id="bonusExemptLevy"
+                            checked={localEmployee.bonusExemptLevy || false}
+                            onCheckedChange={(checked) => handleChange('bonusExemptLevy', !!checked)}
+                            disabled={isViewMode}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="bonusExemptLevy" className="text-[10px] text-muted-foreground cursor-pointer">
+                            Exempt from levy & SS
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 3: Holiday Pay */}
+              {hasPayPeriodSelected && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Palmtree className="h-3.5 w-3.5 text-green-500" />
+                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Holiday Pay</h3>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-muted/30 ${
+                          localEmployee.days?.[6] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'
+                        }`}
+                        onClick={() => handleWeekToggle(6)}
+                      >
+                        {localEmployee.days?.[6] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                      </div>
+                      <span className="text-xs font-medium text-accent-foreground w-20">Amount</span>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={wageInputValues[6] ?? (localEmployee.weeklyWages[6] === 0 ? '' : String(localEmployee.weeklyWages[6]))}
+                        onChange={(e) => handleWageChange(6, e.target.value)}
+                        className="h-7 text-right min-w-0 flex-1 border border-input shadow-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 font-mono text-xs"
+                        placeholder="0.00"
+                        disabled={!isWeekFieldEnabled(6) || isViewMode}
+                      />
+                    </div>
+                    {localEmployee.days?.[6] && (
+                      <div className="flex items-center gap-3 pl-7">
+                        <div className="flex-1 space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">Start Date</Label>
+                          <Input
+                            type="date"
+                            value={localEmployee.holidayStartDate || ''}
+                            onChange={(e) => {
+                              handleChange('holidayStartDate', e.target.value);
+                              validateHolidayDates(e.target.value, localEmployee.holidayEndDate || '');
+                            }}
+                            className="h-7 text-xs"
+                            disabled={isViewMode}
+                          />
+                        </div>
+                        <div className="flex-1 space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">End Date</Label>
+                          <Input
+                            type="date"
+                            value={localEmployee.holidayEndDate || ''}
+                            onChange={(e) => {
+                              handleChange('holidayEndDate', e.target.value);
+                              validateHolidayDates(localEmployee.holidayStartDate || '', e.target.value);
+                            }}
+                            className="h-7 text-xs"
+                            disabled={isViewMode}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {holidayDateError && <p className="text-[10px] text-destructive pl-7">{holidayDateError}</p>}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right: Calculation Summary */}
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
                 <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Calculations</h3>
                 {isLoadingConfig && (
                   <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
@@ -608,7 +861,7 @@ export default function EmployeeModal({
                   </div>
                 </div>
 
-                {/* Employee Contributions - no section total on right */}
+                {/* Employee Contributions */}
                 <div className="py-2 border-b border-border/40">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <div className="h-2 w-2 rounded-full bg-blue-500" />
@@ -624,7 +877,7 @@ export default function EmployeeModal({
                         Levy ({payrollCalc.usedMonthlyLevyLogic ? 'monthly' : 'weekly'}
                         {(() => {
                           const bonusAmount = localEmployee.weeklyWages[5] || 0;
-                          if (bonusAmount > 0) {
+                          if (bonusAmount > 0 && config) {
                             if (config.bonusExemptFromLevy) return ' | exempt';
                             else if (config.bonusLevyRate > 0) return ' | +bonus';
                           }
@@ -636,7 +889,7 @@ export default function EmployeeModal({
                   </div>
                 </div>
 
-                {/* Employer Contributions - no section total on right */}
+                {/* Employer Contributions */}
                 <div className="py-2 border-b border-border/40">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <div className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -676,7 +929,7 @@ export default function EmployeeModal({
                   )}
                 </div>
 
-                {/* Penalties & Fines - no section total on right */}
+                {/* Penalties & Fines */}
                 <div className="pt-2">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     {penaltiesTotal > 0 ? (

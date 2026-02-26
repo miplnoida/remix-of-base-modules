@@ -5836,6 +5836,8 @@ export type Database = {
       }
       ip_wages: {
         Row: {
+          bonus_date: string | null
+          bonus_exempt_levy: boolean | null
           c3_id: string | null
           created_at: string
           date_entered: string | null
@@ -5846,6 +5848,8 @@ export type Database = {
           er_ei_amt: number | null
           er_levy_amt: number | null
           er_ss_amt: number | null
+          holiday_end_date: string | null
+          holiday_start_date: string | null
           id: string
           input_seq_no: number | null
           ip_levy_amt: number | null
@@ -5878,6 +5882,8 @@ export type Database = {
           wages_paid7: number | null
         }
         Insert: {
+          bonus_date?: string | null
+          bonus_exempt_levy?: boolean | null
           c3_id?: string | null
           created_at?: string
           date_entered?: string | null
@@ -5888,6 +5894,8 @@ export type Database = {
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
+          holiday_end_date?: string | null
+          holiday_start_date?: string | null
           id?: string
           input_seq_no?: number | null
           ip_levy_amt?: number | null
@@ -5920,6 +5928,8 @@ export type Database = {
           wages_paid7?: number | null
         }
         Update: {
+          bonus_date?: string | null
+          bonus_exempt_levy?: boolean | null
           c3_id?: string | null
           created_at?: string
           date_entered?: string | null
@@ -5930,6 +5940,8 @@ export type Database = {
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
+          holiday_end_date?: string | null
+          holiday_start_date?: string | null
           id?: string
           input_seq_no?: number | null
           ip_levy_amt?: number | null

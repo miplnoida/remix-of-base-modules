@@ -155,6 +155,11 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
     employerSS: wage.er_ss_amt || 0,
     employerLevy: wage.er_levy_amt || 0,
     employerSeverance: wage.er_ei_amt || 0,
+    // Bonus/Holiday metadata
+    bonusDate: (wage as any).bonus_date || '',
+    bonusExemptLevy: (wage as any).bonus_exempt_levy || false,
+    holidayStartDate: (wage as any).holiday_start_date || '',
+    holidayEndDate: (wage as any).holiday_end_date || '',
   };
 };
 

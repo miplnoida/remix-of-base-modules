@@ -477,7 +477,13 @@ export async function saveC3Draft(
           input_seq_no: 0,
           verified_by: null,
           date_verified: null,
-          posting_status: parentPostingStatus === 'DEL' ? 'DEL' : normalizeStatus(record.posting_status)
+          posting_status: parentPostingStatus === 'DEL' ? 'DEL' : normalizeStatus(record.posting_status),
+          
+          // Bonus/Holiday metadata
+          bonus_date: isRawEmployee ? (emp.bonusDate || null) : (emp.bonus_date || null),
+          bonus_exempt_levy: isRawEmployee ? (emp.bonusExemptLevy || false) : (emp.bonus_exempt_levy || false),
+          holiday_start_date: isRawEmployee ? (emp.holidayStartDate || null) : (emp.holiday_start_date || null),
+          holiday_end_date: isRawEmployee ? (emp.holidayEndDate || null) : (emp.holiday_end_date || null)
         };
       });
 
