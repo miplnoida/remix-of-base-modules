@@ -1839,6 +1839,150 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_bonus_policy_default: {
+        Row: {
+          calc_flat_enabled: boolean
+          calc_flat_percentage: number | null
+          calc_slab_enabled: boolean
+          calculation_method: string
+          contrib_eir: boolean
+          contrib_employee: boolean
+          contrib_employer: boolean
+          created_by: string | null
+          created_on: string
+          distribution: Json
+          id: string
+          include_in_levy: boolean
+          include_in_severance: boolean
+          is_active: boolean
+          max_bonus_amount: number | null
+          min_bonus_amount: number | null
+          modified_by: string | null
+          modified_on: string
+        }
+        Insert: {
+          calc_flat_enabled?: boolean
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean
+          calculation_method?: string
+          contrib_eir?: boolean
+          contrib_employee?: boolean
+          contrib_employer?: boolean
+          created_by?: string | null
+          created_on?: string
+          distribution?: Json
+          id?: string
+          include_in_levy?: boolean
+          include_in_severance?: boolean
+          is_active?: boolean
+          max_bonus_amount?: number | null
+          min_bonus_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+        }
+        Update: {
+          calc_flat_enabled?: boolean
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean
+          calculation_method?: string
+          contrib_eir?: boolean
+          contrib_employee?: boolean
+          contrib_employer?: boolean
+          created_by?: string | null
+          created_on?: string
+          distribution?: Json
+          id?: string
+          include_in_levy?: boolean
+          include_in_severance?: boolean
+          is_active?: boolean
+          max_bonus_amount?: number | null
+          min_bonus_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+        }
+        Relationships: []
+      }
+      c3_bonus_policy_exceptions: {
+        Row: {
+          calc_flat_enabled: boolean | null
+          calc_flat_percentage: number | null
+          calc_slab_enabled: boolean | null
+          calculation_method: string | null
+          contrib_eir: boolean | null
+          contrib_employee: boolean | null
+          contrib_employer: boolean | null
+          created_by: string | null
+          created_on: string
+          description: string | null
+          distribution: Json | null
+          exception_month: number
+          exception_type: string
+          id: string
+          include_in_levy: boolean | null
+          include_in_severance: boolean | null
+          is_active: boolean
+          max_bonus_amount: number | null
+          min_bonus_amount: number | null
+          modified_by: string | null
+          modified_on: string
+          override_default: boolean
+          year_from: number
+          year_to: number | null
+        }
+        Insert: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          description?: string | null
+          distribution?: Json | null
+          exception_month: number
+          exception_type?: string
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          is_active?: boolean
+          max_bonus_amount?: number | null
+          min_bonus_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean
+          year_from: number
+          year_to?: number | null
+        }
+        Update: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          description?: string | null
+          distribution?: Json | null
+          exception_month?: number
+          exception_type?: string
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          is_active?: boolean
+          max_bonus_amount?: number | null
+          min_bonus_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean
+          year_from?: number
+          year_to?: number | null
+        }
+        Relationships: []
+      }
       c3_calculation_config: {
         Row: {
           category: string

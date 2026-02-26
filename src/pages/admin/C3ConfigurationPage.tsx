@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Layers, Gift, History, RefreshCw } from 'lucide-react';
+import { Calendar, Layers, Gift, History, RefreshCw, FileText, AlertCircle } from 'lucide-react';
 
 // Tab content components
 import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
@@ -10,6 +10,8 @@ import { BonusLevyExemptionsTab } from '@/components/admin/c3-configuration/Bonu
 import { C3AuditLogsTab } from '@/components/admin/c3-configuration/C3AuditLogsTab';
 import { C3PublishButton } from '@/components/admin/c3-configuration/C3PublishButton';
 import { C3SyncHistoryTab } from '@/components/admin/c3-configuration/C3SyncHistoryTab';
+import { BonusPolicyDefaultTab } from '@/components/admin/c3-configuration/BonusPolicyDefaultTab';
+import { BonusPolicyExceptionsTab } from '@/components/admin/c3-configuration/BonusPolicyExceptionsTab';
 
 const C3ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('period-config');
@@ -29,7 +31,7 @@ const C3ConfigurationPage: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 lg:w-auto lg:inline-flex">
           <TabsTrigger value="period-config" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Period Configuration</span>
@@ -44,6 +46,16 @@ const C3ConfigurationPage: React.FC = () => {
             <Gift className="h-4 w-4" />
             <span className="hidden sm:inline">Bonus Exemptions</span>
             <span className="sm:hidden">Exemptions</span>
+          </TabsTrigger>
+          <TabsTrigger value="bonus-policy-default" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Bonus Policy</span>
+            <span className="sm:hidden">Policy</span>
+          </TabsTrigger>
+          <TabsTrigger value="bonus-policy-exceptions" className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Bonus Exceptions</span>
+            <span className="sm:hidden">Exceptions</span>
           </TabsTrigger>
           <TabsTrigger value="audit-logs" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -67,6 +79,14 @@ const C3ConfigurationPage: React.FC = () => {
 
         <TabsContent value="bonus-exemptions" className="mt-6">
           <BonusLevyExemptionsTab />
+        </TabsContent>
+
+        <TabsContent value="bonus-policy-default" className="mt-6">
+          <BonusPolicyDefaultTab />
+        </TabsContent>
+
+        <TabsContent value="bonus-policy-exceptions" className="mt-6">
+          <BonusPolicyExceptionsTab />
         </TabsContent>
 
         <TabsContent value="audit-logs" className="mt-6">
