@@ -208,8 +208,8 @@ export const DataTable: React.FC<DataTableProps> = ({
 
   return (
     <>
-    <div className="flex flex-col sm:flex-row sm:items-center sm:space-between gap-4 mb-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between gap-20 w-full">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:space-between gap-2 mb-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-4 w-full">
             {/* Search Input */}
             <div className="relative w-full ">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-full w-4 text-gray-400" />
@@ -217,15 +217,15 @@ export const DataTable: React.FC<DataTableProps> = ({
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full"
+                className="pl-10 w-full h-8 text-sm"
               />
             </div>
 
             {/* Show Records Dropdown */}
             <div className="flex items-center gap-2">
-               <span className="text-sm text-gray-600">show</span>
+               <span className="text-xs text-gray-600 whitespace-nowrap">show</span>
               <Select value={recordsPerPage.toString()} onValueChange={handleRecordsPerPageChange}>
-                <SelectTrigger className="w-20">
+                <SelectTrigger className="w-16 h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -236,18 +236,18 @@ export const DataTable: React.FC<DataTableProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              <span className="text-sm text-gray-600">records</span>
+              <span className="text-xs text-gray-600">records</span>
             </div>
           </div>
         </div>
-    <Card>
-      <CardContent className="p-6">
+    <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      <CardContent className="p-3 flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Search and Show Records Row */}
         
 
         {/* Table Title, Export, and Filter Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <CardTitle className="text-base lg:text-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+          <CardTitle className="text-sm lg:text-base">
             {title} ({filteredData.length})
           </CardTitle>
           
@@ -335,9 +335,9 @@ export const DataTable: React.FC<DataTableProps> = ({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="flex-1 min-h-0 overflow-auto border rounded-md">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
               <TableRow>
                 {displayColumns.map((column) => (
                   <TableHead 
@@ -421,9 +421,9 @@ export const DataTable: React.FC<DataTableProps> = ({
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
-          <div className="text-sm text-gray-600">
-            Showing {startEntry} to {endEntry} of {filteredData.length} entries
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-2 pt-2 border-t shrink-0">
+          <div className="text-xs text-gray-600">
+            Showing {startEntry} to {endEntry} of {filteredData.length}
           </div>
           
           <div className="flex items-center gap-2">
