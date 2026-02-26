@@ -151,25 +151,35 @@ export default function EmployeeModal({
     return indices;
   }, [mondayCount]);
 
+  // Compute effective wages: zero out amounts for unchecked slots
+  const effectiveWages = useMemo(() => {
+    return localEmployee.weeklyWages.map((w, i) => {
+      if (i < 5) return (localEmployee.days?.[i] && enabledTextboxes?.[i]) ? w : 0;
+      if (i === 5) return localEmployee.days?.[5] ? w : 0;
+      if (i === 6) return localEmployee.days?.[6] ? w : 0;
+      return w;
+    });
+  }, [localEmployee.weeklyWages, localEmployee.days, enabledTextboxes]);
+
   // Calculate payroll contributions using database-driven C3 configuration (client-side fallback)
   const clientPayrollCalc = useMemo(() => {
     return calculate({
-      weeklyWages: localEmployee.weeklyWages,
+      weeklyWages: effectiveWages,
       payPeriod: localEmployee.payPeriod || 'Monthly',
       dateOfBirth: localEmployee.dateOfBirth || '',
       termStartDate: localEmployee.termStartDate || ''
     });
-  }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth, calculate]);
+  }, [effectiveWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth, calculate]);
 
   // Trigger server-side bonus policy calculation when bonus amount changes
   useEffect(() => {
-    const bonusAmount = localEmployee.weeklyWages[5] || 0;
+    const bonusAmount = effectiveWages[5] || 0;
     if (bonusAmount > 0 && isOpen) {
       calcBonusPolicy({
         periodYear,
         periodMonth,
         bonusAmount,
-        weeklyWages: localEmployee.weeklyWages,
+        weeklyWages: effectiveWages,
         payPeriod: localEmployee.payPeriod || 'Monthly',
         dateOfBirth: localEmployee.dateOfBirth || '',
         termStartDate: localEmployee.termStartDate || periodTermStartDate,
@@ -177,11 +187,11 @@ export default function EmployeeModal({
     } else {
       resetBonusPolicy();
     }
-  }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, periodYear, periodMonth, isOpen, calcBonusPolicy, resetBonusPolicy, periodTermStartDate]);
+  }, [effectiveWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, periodYear, periodMonth, isOpen, calcBonusPolicy, resetBonusPolicy, periodTermStartDate]);
 
   // Use server-authoritative result when bonus is present, otherwise client calc
   const payrollCalc = useMemo(() => {
-    if (bonusPolicyResult && (localEmployee.weeklyWages[5] || 0) > 0) {
+    if (bonusPolicyResult && (effectiveWages[5] || 0) > 0) {
       return {
         ...clientPayrollCalc,
         totalWages: bonusPolicyResult.totalWages,
@@ -199,12 +209,12 @@ export default function EmployeeModal({
       };
     }
     return clientPayrollCalc;
-  }, [clientPayrollCalc, bonusPolicyResult, localEmployee.weeklyWages]);
+  }, [clientPayrollCalc, bonusPolicyResult, effectiveWages]);
 
   // Debounced server-side penalty recalculation when wages change in Edit mode
   useEffect(() => {
     if (isViewMode || !isOpen) return;
-    const hasWages = localEmployee.weeklyWages.some(w => w > 0);
+    const hasWages = effectiveWages.some(w => w > 0);
     if (!hasWages || !receivedDate) {
       setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, totalLateCharges: 0 });
       return;
@@ -218,13 +228,13 @@ export default function EmployeeModal({
         const employeeData = [{
           ssn: localEmployee.ssn || '000000',
           name: localEmployee.name || 'Employee',
-          week1: localEmployee.weeklyWages[0] || 0,
-          week2: localEmployee.weeklyWages[1] || 0,
-          week3: localEmployee.weeklyWages[2] || 0,
-          week4: localEmployee.weeklyWages[3] || 0,
-          week5: localEmployee.weeklyWages[4] || 0,
-          bonus: localEmployee.weeklyWages[5] || 0,
-          holiday: localEmployee.weeklyWages[6] || 0,
+          week1: effectiveWages[0] || 0,
+          week2: effectiveWages[1] || 0,
+          week3: effectiveWages[2] || 0,
+          week4: effectiveWages[3] || 0,
+          week5: effectiveWages[4] || 0,
+          bonus: effectiveWages[5] || 0,
+          holiday: effectiveWages[6] || 0,
           payPeriod: localEmployee.payPeriod || 'Monthly',
           termStartDate: localEmployee.termStartDate || periodTermStartDate,
           dateOfBirth: localEmployee.dateOfBirth || null
@@ -259,7 +269,7 @@ export default function EmployeeModal({
     return () => {
       if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
     };
-  }, [isViewMode, isOpen, localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate]);
+  }, [isViewMode, isOpen, effectiveWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate]);
 
   // Reset form when employee changes
   useEffect(() => {
@@ -439,12 +449,27 @@ export default function EmployeeModal({
     if (index < 5 && !enabledWeekCheckboxes[index]) return;
 
     const newDays = [...localEmployee.days];
-    newDays[index] = !newDays[index];
-    
-    setLocalEmployee(prev => ({
-      ...prev,
-      days: newDays
-    }));
+    const wasChecked = newDays[index];
+    newDays[index] = !wasChecked;
+
+    // When unchecking, clear the amount for that slot
+    if (wasChecked) {
+      const newWages = [...localEmployee.weeklyWages];
+      newWages[index] = 0;
+      const newInputValues = [...wageInputValues];
+      newInputValues[index] = '';
+      setWageInputValues(newInputValues);
+      setLocalEmployee(prev => ({
+        ...prev,
+        days: newDays,
+        weeklyWages: newWages
+      }));
+    } else {
+      setLocalEmployee(prev => ({
+        ...prev,
+        days: newDays
+      }));
+    }
   };
 
   const [wageInputValues, setWageInputValues] = React.useState<string[]>(
@@ -533,6 +558,7 @@ export default function EmployeeModal({
     
     const savedEmployee: EmployeeData = {
       ...localEmployee,
+      weeklyWages: effectiveWages,
       totalWages: payrollCalc.totalWages,
       hssdLevy: payrollCalc.employeeLevy, 
       socialSecurity: payrollCalc.employeeSS,
@@ -541,7 +567,12 @@ export default function EmployeeModal({
       employerSS: payrollCalc.employerSSTotal,
       employerLevy: payrollCalc.employerLevy,
       employerSeverance: payrollCalc.employerSeverance,
-      periodGross: payrollCalc.totalWages
+      periodGross: payrollCalc.totalWages,
+      // Clear bonus/holiday metadata if their checkboxes are unchecked
+      bonusDate: localEmployee.days?.[5] ? localEmployee.bonusDate : '',
+      bonusExemptLevy: localEmployee.days?.[5] ? localEmployee.bonusExemptLevy : false,
+      holidayStartDate: localEmployee.days?.[6] ? localEmployee.holidayStartDate : '',
+      holidayEndDate: localEmployee.days?.[6] ? localEmployee.holidayEndDate : '',
     };
     
     onSave(savedEmployee);
@@ -825,7 +856,7 @@ export default function EmployeeModal({
                                 <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-amber-400 bg-amber-200/50 text-amber-800 ml-auto">Outside cap range</Badge>
                               )}
                             </div>
-                          ) : (localEmployee.weeklyWages[5] || 0) > 0 ? (
+                          ) : (effectiveWages[5] || 0) > 0 ? (
                             <span className="text-xs text-muted-foreground">No bonus policy configured for this period</span>
                           ) : null}
                           {bonusPolicyError && (
