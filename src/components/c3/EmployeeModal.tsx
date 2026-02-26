@@ -309,25 +309,10 @@ export default function EmployeeModal({
     fetchDefaultPayPeriod();
   }, [ssnValidated, localEmployee.ssn, defaultPayPeriodFetched, employee]);
 
-  // Auto-check week checkboxes when pay period changes
+  // Reset auto-fill flag when pay period changes (presence is NOT affected)
   useEffect(() => {
     if (isViewMode) return;
-    const newDays = [...(localEmployee.days || [false, false, false, false, false, false, false])];
-    const newWages = [...(localEmployee.weeklyWages || [0, 0, 0, 0, 0, 0, 0])];
-    for (let i = 0; i < 5; i++) {
-      if (enabledTextboxes[i] && enabledWeekCheckboxes[i]) {
-        newDays[i] = true;
-      } else if (!enabledTextboxes[i]) {
-        newDays[i] = false;
-        newWages[i] = 0;
-      }
-    }
-    setLocalEmployee(prev => ({
-      ...prev,
-      days: newDays,
-      weeklyWages: newWages
-    }));
-    autoFillAppliedRef.current = false; // Reset auto-fill on pay period change
+    autoFillAppliedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localEmployee.payPeriod]);
 
@@ -374,13 +359,17 @@ export default function EmployeeModal({
 
   const handlePayPeriodConfirm = () => {
     if (pendingPayPeriod) {
+      // Preserve presence (days) — only reset wage amounts
+      const newWages = [...localEmployee.weeklyWages];
+      for (let i = 0; i < 5; i++) newWages[i] = 0;
       setLocalEmployee(prev => ({
         ...prev,
         payPeriod: pendingPayPeriod,
-        days: [false, false, false, false, false, false, false],
-        weeklyWages: [0, 0, 0, 0, 0, 0, 0]
+        weeklyWages: newWages
       }));
-      setWageInputValues(['', '', '', '', '', '', '']);
+      const newInputValues = [...wageInputValues];
+      for (let i = 0; i < 5; i++) newInputValues[i] = '';
+      setWageInputValues(newInputValues);
     }
     setPendingPayPeriod(null);
     setShowPayPeriodConfirm(false);
@@ -393,23 +382,15 @@ export default function EmployeeModal({
 
   const handleWeekToggle = (index: number) => {
     if (isViewMode) return;
+    // For weeks 0-4: only check if the Monday exists in this month
     if (index < 5 && !enabledWeekCheckboxes[index]) return;
 
     const newDays = [...localEmployee.days];
-    const newWages = [...localEmployee.weeklyWages];
-    
     newDays[index] = !newDays[index];
-    if (!newDays[index]) {
-      newWages[index] = 0;
-      const newInputValues = [...wageInputValues];
-      newInputValues[index] = '';
-      setWageInputValues(newInputValues);
-    }
     
     setLocalEmployee(prev => ({
       ...prev,
-      days: newDays,
-      weeklyWages: newWages
+      days: newDays
     }));
   };
 
@@ -516,6 +497,7 @@ export default function EmployeeModal({
 
   const isWeekFieldEnabled = (index: number) => {
     if (index < 5) {
+      // Payment input: editable only if pay-period allows it AND presence is marked
       return localEmployee.days?.[index] && enabledTextboxes?.[index];
     }
     if (index === 5) return localEmployee.days?.[5] ?? false;
@@ -552,7 +534,7 @@ export default function EmployeeModal({
         <AlertDialogHeader>
           <AlertDialogTitle>Change Pay Period?</AlertDialogTitle>
           <AlertDialogDescription>
-            Changing the pay period will reset all entered wage data. This action cannot be undone.
+            Changing the pay period will reset all entered wage amounts. Presence selections will be preserved.
             Do you want to continue?
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -633,7 +615,7 @@ export default function EmployeeModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left: Wages Entry - Guided Sections */}
             <div className="flex flex-col gap-3">
-              {/* SECTION 1: Weekly Presence */}
+              {/* SECTION 1: Weekly Presence — always shows ALL Mondays, independent of pay-period */}
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <CalendarDays className="h-3.5 w-3.5 text-primary" />
@@ -644,6 +626,58 @@ export default function EmployeeModal({
                     {mondayCount} {mondayCount === 1 ? 'Monday' : 'Mondays'}
                   </Badge>
                 </div>
+                <p className="text-[10px] text-muted-foreground mb-1">Mark which weeks the employee was present</p>
+                <div className="rounded-md border border-border/60 bg-muted/10 p-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {generatedWeekIndices.map((weekIdx) => {
+                      const isChecked = localEmployee.days?.[weekIdx] || false;
+                      const mondayDate = mondays[weekIdx];
+
+                      return (
+                        <div
+                          key={weekIdx}
+                          className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 cursor-pointer transition-all select-none ${
+                            isChecked
+                              ? 'bg-primary/10 border-primary/40 shadow-sm'
+                              : 'bg-background border-input hover:bg-muted/40'
+                          }`}
+                          onClick={() => !isViewMode && handleWeekToggle(weekIdx)}
+                        >
+                          <div
+                            className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-primary border-primary' : 'bg-background border-input'
+                            }`}
+                          >
+                            {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                          </div>
+                          <div className="flex flex-col leading-tight">
+                            <span className="text-xs font-medium text-foreground">Wk {weekIdx + 1}</span>
+                            {mondayDate && (
+                              <span className="text-[9px] text-muted-foreground">
+                                {formatMondayDate(mondayDate)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: Weekly Payment — depends on Pay-Period */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <DollarSign className="h-3.5 w-3.5 text-primary" />
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    Weekly Payment
+                  </h3>
+                  {localEmployee.payPeriod && (
+                    <Badge variant="secondary" className="text-[10px] font-normal h-5 px-1.5 ml-auto">
+                      {localEmployee.payPeriod}
+                    </Badge>
+                  )}
+                </div>
 
                 {!hasPayPeriodSelected ? (
                   <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-center">
@@ -652,30 +686,25 @@ export default function EmployeeModal({
                 ) : (
                   <div className="rounded-md border border-border/60 bg-muted/10 p-2 space-y-0.5">
                     {generatedWeekIndices.map((weekIdx) => {
-                      const isEditable = enabledTextboxes[weekIdx];
-                      const isChecked = localEmployee.days?.[weekIdx] || false;
+                      const isPayEditable = enabledTextboxes[weekIdx];
+                      const isPresent = localEmployee.days?.[weekIdx] || false;
+                      const fieldEnabled = isPresent && isPayEditable;
                       const mondayDate = mondays[weekIdx];
-                      const fieldEnabled = isChecked && isEditable;
 
                       return (
                         <div key={weekIdx} className={`flex items-center gap-2 rounded px-2 py-1 ${weekIdx % 2 === 0 ? 'bg-muted/30' : ''}`}>
-                          <div
-                            className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors ${
-                              !isEditable ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted/30'
-                            } ${isChecked ? 'bg-primary border-primary shadow-sm' : 'bg-background border-input'}`}
-                            onClick={() => isEditable && handleWeekToggle(weekIdx)}
-                          >
-                            {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
-                          </div>
-                          <div className="flex flex-col min-w-[5.5rem]">
-                            <span className={`text-xs font-medium ${isEditable ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              Week {weekIdx + 1}
-                            </span>
-                            {mondayDate && (
-                              <span className="text-[10px] text-muted-foreground leading-tight">
-                                Mon {formatMondayDate(mondayDate)}
+                          <div className="flex items-center gap-1.5 min-w-[6rem]">
+                            <div className={`h-2 w-2 rounded-full ${isPresent ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                            <div className="flex flex-col">
+                              <span className={`text-xs font-medium ${isPayEditable ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                Week {weekIdx + 1}
                               </span>
-                            )}
+                              {mondayDate && (
+                                <span className="text-[10px] text-muted-foreground leading-tight">
+                                  Mon {formatMondayDate(mondayDate)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <Input
                             type="text"
@@ -686,7 +715,7 @@ export default function EmployeeModal({
                             placeholder="0.00"
                             disabled={!fieldEnabled || isViewMode}
                           />
-                          {!isEditable && (
+                          {!isPayEditable && (
                             <Badge variant="secondary" className="text-[9px] h-4 px-1 ml-1 flex-shrink-0">
                               {localEmployee.payPeriod === 'Monthly' ? 'auto' : 'N/A'}
                             </Badge>
