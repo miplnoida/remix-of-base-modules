@@ -12,6 +12,8 @@ export interface BonusDistribution {
 
 export interface BonusPolicyDefault {
   id: string;
+  date_from: string;
+  date_to: string | null;
   include_in_levy: boolean;
   include_in_severance: boolean;
   calculation_method: CalculationMethod;
@@ -33,6 +35,8 @@ export interface BonusPolicyDefault {
 
 export interface BonusPolicyException {
   id: string;
+  date_from: string;
+  date_to: string | null;
   exception_type: ExceptionType;
   exception_month: number;
   year_from: number;
