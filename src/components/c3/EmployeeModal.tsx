@@ -11,6 +11,7 @@ import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, S
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount, getMondaysInMonth } from '@/utils/weekCalculations';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
+import { useBonusPolicyCalculation } from '@/hooks/useBonusPolicyCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -76,6 +77,7 @@ export default function EmployeeModal({
 }: EmployeeModalProps) {
   const { validateEmployee, isValidating } = useEmployerValidation();
   const { config, isLoading: isLoadingConfig, error: configError, calculate } = useC3EmployeeCalculation(periodYear, periodMonth);
+  const { result: bonusPolicyResult, isCalculating: isBonusCalcRunning, error: bonusPolicyError, calculate: calcBonusPolicy, reset: resetBonusPolicy } = useBonusPolicyCalculation();
   
   const [localEmployee, setLocalEmployee] = useState<EmployeeData>({
     ssn: '',
@@ -149,8 +151,8 @@ export default function EmployeeModal({
     return indices;
   }, [mondayCount]);
 
-  // Calculate payroll contributions using database-driven C3 configuration
-  const payrollCalc = useMemo(() => {
+  // Calculate payroll contributions using database-driven C3 configuration (client-side fallback)
+  const clientPayrollCalc = useMemo(() => {
     return calculate({
       weeklyWages: localEmployee.weeklyWages,
       payPeriod: localEmployee.payPeriod || 'Monthly',
@@ -158,6 +160,46 @@ export default function EmployeeModal({
       termStartDate: localEmployee.termStartDate || ''
     });
   }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.termStartDate, localEmployee.dateOfBirth, calculate]);
+
+  // Trigger server-side bonus policy calculation when bonus amount changes
+  useEffect(() => {
+    const bonusAmount = localEmployee.weeklyWages[5] || 0;
+    if (bonusAmount > 0 && isOpen) {
+      calcBonusPolicy({
+        periodYear,
+        periodMonth,
+        bonusAmount,
+        weeklyWages: localEmployee.weeklyWages,
+        payPeriod: localEmployee.payPeriod || 'Monthly',
+        dateOfBirth: localEmployee.dateOfBirth || '',
+        termStartDate: localEmployee.termStartDate || periodTermStartDate,
+      });
+    } else {
+      resetBonusPolicy();
+    }
+  }, [localEmployee.weeklyWages, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, periodYear, periodMonth, isOpen, calcBonusPolicy, resetBonusPolicy, periodTermStartDate]);
+
+  // Use server-authoritative result when bonus is present, otherwise client calc
+  const payrollCalc = useMemo(() => {
+    if (bonusPolicyResult && (localEmployee.weeklyWages[5] || 0) > 0) {
+      return {
+        ...clientPayrollCalc,
+        totalWages: bonusPolicyResult.totalWages,
+        taxableWages: bonusPolicyResult.taxableWages,
+        employeeSS: bonusPolicyResult.employeeSS,
+        employeeLevy: bonusPolicyResult.employeeLevy,
+        employerSS: bonusPolicyResult.employerSS,
+        employerEIB: bonusPolicyResult.employerEIB,
+        employerSSTotal: bonusPolicyResult.employerSSTotal,
+        employerLevy: bonusPolicyResult.employerLevy,
+        employerSeverance: bonusPolicyResult.employerSeverance,
+        isAgeExemptSS: bonusPolicyResult.isAgeExemptSS,
+        isAgeExemptLevy: bonusPolicyResult.isAgeExemptLevy,
+        periodGross: bonusPolicyResult.periodGross,
+      };
+    }
+    return clientPayrollCalc;
+  }, [clientPayrollCalc, bonusPolicyResult, localEmployee.weeklyWages]);
 
   // Debounced server-side penalty recalculation when wages change in Edit mode
   useEffect(() => {
@@ -767,20 +809,27 @@ export default function EmployeeModal({
                           </div>
                         </div>
                         <div className={`ml-7 flex items-center gap-2 rounded-md border px-2.5 py-2 transition-colors ${
-                          localEmployee.bonusExemptLevy ? 'border-amber-400 bg-amber-100/60' : 'border-amber-200 bg-background'
+                          bonusPolicyResult?.policyApplied ? 'border-emerald-300 bg-emerald-50/60' : 'border-amber-200 bg-background'
                         }`}>
-                          <Checkbox
-                            id="bonusExemptLevy"
-                            checked={localEmployee.bonusExemptLevy || false}
-                            onCheckedChange={(checked) => handleChange('bonusExemptLevy', !!checked)}
-                            disabled={isViewMode}
-                            className="h-4 w-4"
-                          />
-                          <Label htmlFor="bonusExemptLevy" className="text-xs font-medium text-amber-900 cursor-pointer flex-1">
-                            Exempt bonus from Levy & Social Security
-                          </Label>
-                          {localEmployee.bonusExemptLevy && (
-                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-amber-400 bg-amber-200/50 text-amber-800">Exempt</Badge>
+                          {isBonusCalcRunning ? (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" /> Applying bonus policy…
+                            </div>
+                          ) : bonusPolicyResult?.policyApplied ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <Check className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                              <span className="text-xs font-medium text-emerald-800">
+                                Bonus policy applied ({bonusPolicyResult.policyApplied.method})
+                              </span>
+                              {!bonusPolicyResult.bonusEligible && (
+                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-amber-400 bg-amber-200/50 text-amber-800 ml-auto">Outside cap range</Badge>
+                              )}
+                            </div>
+                          ) : (localEmployee.weeklyWages[5] || 0) > 0 ? (
+                            <span className="text-xs text-muted-foreground">No bonus policy configured for this period</span>
+                          ) : null}
+                          {bonusPolicyError && (
+                            <span className="text-[10px] text-destructive">{bonusPolicyError}</span>
                           )}
                         </div>
                       </>
