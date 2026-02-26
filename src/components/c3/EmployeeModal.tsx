@@ -765,24 +765,31 @@ export default function EmployeeModal({
                       />
                     </div>
                     {localEmployee.days?.[5] && (
-                      <div className="flex items-center gap-3 pl-7">
-                        <div className="flex-1 space-y-0.5">
-                          <Label className="text-[10px] text-muted-foreground">Bonus Date</Label>
-                          <Input
-                            type="date"
-                            value={localEmployee.bonusDate || ''}
-                            min={periodMonthStart}
-                            max={periodMonthEnd}
-                            onChange={(e) => {
-                              handleChange('bonusDate', e.target.value);
-                              validateBonusDate(e.target.value);
-                            }}
-                            className="h-7 text-xs"
-                            disabled={isViewMode}
-                          />
-                          {bonusDateError && <p className="text-[10px] text-destructive">{bonusDateError}</p>}
+                      <>
+                        <div className="flex items-center gap-3 pl-7">
+                          <div className="flex-1 space-y-0.5">
+                            <Label className="text-[10px] text-muted-foreground">Bonus Date</Label>
+                            <Input
+                              type="date"
+                              value={localEmployee.bonusDate || ''}
+                              min={periodMonthStart}
+                              max={periodMonthEnd}
+                              onChange={(e) => {
+                                handleChange('bonusDate', e.target.value);
+                                validateBonusDate(e.target.value);
+                              }}
+                              className="h-7 text-xs"
+                              disabled={isViewMode}
+                            />
+                            {bonusDateError && <p className="text-[10px] text-destructive">{bonusDateError}</p>}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 pt-3">
+                        {/* Levy & SS Exemption Toggle — prominent placement */}
+                        <div className={`ml-7 flex items-center gap-2 rounded-md border px-2.5 py-2 transition-colors ${
+                          localEmployee.bonusExemptLevy 
+                            ? 'border-amber-400 bg-amber-100/60' 
+                            : 'border-amber-200 bg-background'
+                        }`}>
                           <Checkbox
                             id="bonusExemptLevy"
                             checked={localEmployee.bonusExemptLevy || false}
@@ -790,11 +797,16 @@ export default function EmployeeModal({
                             disabled={isViewMode}
                             className="h-4 w-4"
                           />
-                          <Label htmlFor="bonusExemptLevy" className="text-[10px] text-muted-foreground cursor-pointer">
-                            Exempt from levy & SS
+                          <Label htmlFor="bonusExemptLevy" className="text-xs font-medium text-amber-900 cursor-pointer flex-1">
+                            Exempt bonus from Levy & Social Security
                           </Label>
+                          {localEmployee.bonusExemptLevy && (
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-amber-400 bg-amber-200/50 text-amber-800">
+                              Exempt
+                            </Badge>
+                          )}
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
