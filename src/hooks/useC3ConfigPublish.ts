@@ -26,8 +26,7 @@ export interface C3SyncLogEntry {
 export function useC3SyncStatus() {
   return useQuery({
     queryKey: ['c3-sync-status'],
-    queryFn: async (): Promise<{ hasPendingChanges: boolean; lastPublishedAt: string | null; pendingCounts: { periods: number; slabs: number; exemptions: number } }> => {
-      // Get the last successful sync
+    queryFn: async (): Promise<{ hasPendingChanges: boolean; lastPublishedAt: string | null; pendingCounts: { periods: number; slabs: number } }> => {
       const { data: lastSync } = await supabase
         .from('c3_config_sync_log')
         .select('published_at')
@@ -39,45 +38,38 @@ export function useC3SyncStatus() {
       const lastPublishedAt = lastSync?.published_at || null;
 
       if (!lastPublishedAt) {
-        // Never published - check if any data exists
-        const [{ count: pCount }, { count: sCount }, { count: eCount }] = await Promise.all([
+        const [{ count: pCount }, { count: sCount }] = await Promise.all([
           supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }),
           supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }),
-          supabase.from('c3_bonus_levy_exemptions').select('*', { count: 'exact', head: true }),
         ]);
-        const total = (pCount || 0) + (sCount || 0) + (eCount || 0);
+        const total = (pCount || 0) + (sCount || 0);
         return {
           hasPendingChanges: total > 0,
           lastPublishedAt: null,
-          pendingCounts: { periods: pCount || 0, slabs: sCount || 0, exemptions: eCount || 0 }
+          pendingCounts: { periods: pCount || 0, slabs: sCount || 0 }
         };
       }
 
-      // Check for records modified after last publish
-      const [{ count: pCount }, { count: sCount }, { count: eCount }] = await Promise.all([
+      const [{ count: pCount }, { count: sCount }] = await Promise.all([
         supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_bonus_levy_exemptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
-      // Also check records that were never published
-      const [{ count: pNew }, { count: sNew }, { count: eNew }] = await Promise.all([
+      const [{ count: pNew }, { count: sNew }] = await Promise.all([
         supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).is('last_published_at', null),
         supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-        supabase.from('c3_bonus_levy_exemptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
       ]);
 
       const periods = (pCount || 0) + (pNew || 0);
       const slabs = (sCount || 0) + (sNew || 0);
-      const exemptions = (eCount || 0) + (eNew || 0);
 
       return {
-        hasPendingChanges: periods + slabs + exemptions > 0,
+        hasPendingChanges: periods + slabs > 0,
         lastPublishedAt,
-        pendingCounts: { periods, slabs, exemptions }
+        pendingCounts: { periods, slabs }
       };
     },
-    refetchInterval: 30000, // Refresh every 30s
+    refetchInterval: 30000,
   });
 }
 
@@ -100,7 +92,6 @@ export function useC3SyncLog() {
 
 // Build the full payload from all config tables
 async function buildSyncPayload() {
-  // Fetch all active config periods with their details
   const { data: periods, error: pErr } = await supabase
     .from('c3_config_periods')
     .select('*')
@@ -113,13 +104,11 @@ async function buildSyncPayload() {
     .select('*');
   if (dErr) throw dErr;
 
-  // Map details to periods
   const configPeriods = (periods || []).map(p => ({
     ...p,
     details: details?.find(d => d.config_period_id === p.id) || null
   }));
 
-  // Fetch all active levy slabs with their slab details
   const { data: slabs, error: sErr } = await supabase
     .from('tb_levy_slabs')
     .select('*')
@@ -145,28 +134,17 @@ async function buildSyncPayload() {
     details: slabDetails.filter(d => d.slab_id === s.id)
   }));
 
-  // Fetch all active bonus exemptions
-  const { data: exemptions, error: eErr } = await supabase
-    .from('c3_bonus_levy_exemptions')
-    .select('*')
-    .eq('is_active', true)
-    .order('period_year', { ascending: false });
-  if (eErr) throw eErr;
-
   const payload = {
     sync_version: new Date().toISOString(),
     config_periods: configPeriods,
     levy_slabs: levySlabs,
-    bonus_exemptions: exemptions || []
   };
 
-  // Simple hash for deduplication
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
 
   return { payload, payloadHash, counts: {
     periods: configPeriods.length,
     slabs: levySlabs.length,
-    exemptions: (exemptions || []).length
   }};
 }
 
@@ -179,7 +157,6 @@ export function usePublishToC3Wizard() {
     mutationFn: async () => {
       const { payload, payloadHash, counts } = await buildSyncPayload();
 
-      // Insert sync log entry as pending
       const { data: logEntry, error: logErr } = await supabase
         .from('c3_config_sync_log')
         .insert({
@@ -188,7 +165,7 @@ export function usePublishToC3Wizard() {
           payload_hash: payloadHash,
           config_periods_count: counts.periods,
           levy_slabs_count: counts.slabs,
-          bonus_exemptions_count: counts.exemptions,
+          bonus_exemptions_count: 0,
           published_by: userCode || null,
         })
         .select('id')
@@ -197,33 +174,21 @@ export function usePublishToC3Wizard() {
       if (logErr) throw logErr;
 
       try {
-        // TODO: Replace with actual C3-Wizard API call
-        // const response = await fetch(`${C3_WIZARD_API_URL}/api/c3-config/sync`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
-        //   body: JSON.stringify(payload),
-        // });
-
-        // Simulate successful API call for now
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Update sync log to success
         await supabase
           .from('c3_config_sync_log')
           .update({ status: 'success', response_data: { message: 'Sync completed successfully' } as any })
           .eq('id', logEntry.id);
 
-        // Update last_published_at on all config tables
         const now = new Date().toISOString();
         await Promise.all([
           supabase.from('c3_config_periods').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('tb_levy_slabs').update({ last_published_at: now }).eq('is_active', true),
-          supabase.from('c3_bonus_levy_exemptions').update({ last_published_at: now }).eq('is_active', true),
         ]);
 
         return { success: true, counts };
       } catch (apiError: any) {
-        // Update sync log to failed
         await supabase
           .from('c3_config_sync_log')
           .update({ status: 'failed', error_message: apiError.message || 'Unknown error' })
@@ -236,7 +201,7 @@ export function usePublishToC3Wizard() {
       queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
-      toast.success(`Published to C3-Wizard: ${result.counts.periods} periods, ${result.counts.slabs} levy slabs, ${result.counts.exemptions} exemptions`);
+      toast.success(`Published to C3-Wizard: ${result.counts.periods} periods, ${result.counts.slabs} levy slabs`);
     },
     onError: (error: any) => {
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
