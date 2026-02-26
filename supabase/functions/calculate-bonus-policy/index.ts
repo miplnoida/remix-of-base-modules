@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
 
     // Determine bonus inclusion flags based on policy
     const includeBonusInLevy = bonusEligible && (policy?.include_in_levy ?? false);
-    const includeBonusInSeverance = bonusEligible && (policy?.include_in_severance ?? false);
+    const includeBonusInSeverance = false; // Severance inclusion removed from policy; handled by contrib_severance only
     const contribEmployee = bonusEligible && (policy?.contrib_employee ?? false);
     const contribEmployer = bonusEligible && (policy?.contrib_employer ?? false);
     const contribEIB = bonusEligible && (policy?.contrib_eir ?? false);

@@ -133,7 +133,7 @@ export function BonusPolicyDefaultTab() {
     }
   };
 
-  const bothOff = !form.include_in_levy && !form.include_in_severance;
+  const formInvalid = !form.include_in_levy;
 
   return (
     <div className="space-y-6">
@@ -248,12 +248,6 @@ export function BonusPolicyDefaultTab() {
             <SectionLabel>Bonus Applicability in C3</SectionLabel>
             <div className="space-y-3">
               <ToggleRow label="Include Bonus in Levy" hint="Bonus amount added to levy base calculation" checked={!!form.include_in_levy} onChange={v => setField('include_in_levy', v)} />
-              <ToggleRow label="Include Bonus in Severance" hint="Bonus amount added to severance base calculation" checked={!!form.include_in_severance} onChange={v => setField('include_in_severance', v)} />
-              {bothOff && (
-                <div className="flex items-center gap-2 text-sm text-destructive p-2 bg-destructive/10 rounded-md border border-destructive/20">
-                  ⚠ At least one applicability option must be enabled.
-                </div>
-              )}
             </div>
 
             {/* 2. Calculation Method */}
@@ -317,7 +311,7 @@ export function BonusPolicyDefaultTab() {
 
             {/* Footer */}
             <div className="flex items-center gap-3 pt-4 border-t">
-              <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending || bothOff}>
+              <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending || formInvalid}>
                 {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 {editingId ? 'Update' : 'Save'} Policy
               </Button>
