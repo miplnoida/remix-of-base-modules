@@ -72,8 +72,8 @@ export function calculatePenalties(inputs: PenaltyInputs): PenaltyResult {
   } = inputs;
 
   // Corrected base amounts:
-  // Levy penalty base = employee_levy + employer_levy + severance
-  const levyPenaltyBase = (employeeLevyDue || 0) + (employerLevyDue || 0) + (severanceAmountDue || 0);
+  // Levy penalty base = employee_levy + employer_levy ONLY (severance excluded - it has its own penalty)
+  const levyPenaltyBase = (employeeLevyDue || 0) + (employerLevyDue || 0);
   // Severance penalty base = severance only
   const severancePenaltyBase = severanceAmountDue || 0;
   // SS fine base = employee_ss + employer_ss (employer_ss includes EIB)
@@ -144,14 +144,13 @@ export function calculatePenalties(inputs: PenaltyInputs): PenaltyResult {
 
 /**
  * Calculate levy penalty base amount
- * Levy penalty base = Employee Levy + Employer Levy + Severance
+ * Levy penalty base = Employee Levy + Employer Levy ONLY (severance excluded)
  */
 export function calculateLevyPenaltyBase(
   employeeLevy: number, 
-  employerLevy: number,
-  severance: number
+  employerLevy: number
 ): number {
-  return round2((employeeLevy || 0) + (employerLevy || 0) + (severance || 0));
+  return round2((employeeLevy || 0) + (employerLevy || 0));
 }
 
 /**
