@@ -8,16 +8,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarDays, Clock, MapPin, User, Plus, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { auditActivities, calendarEvents, departments, departmentAuditPlans } from '@/data/auditData';
+import { useIAActivities, useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
 import { ActivityRescheduleDialog } from '@/components/audit/ActivityRescheduleDialog';
 import { Link } from 'react-router-dom';
-import { AuditActivity } from '@/types/audit';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function ActivityCalendar() {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -26,63 +25,32 @@ export default function ActivityCalendar() {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [calendarView, setCalendarView] = useState<'calendar' | 'list'>('list');
-  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<AuditActivity | null>(null);
 
-  const filteredActivities = auditActivities.filter(activity => {
-    const matchesAuditor = selectedAuditor === 'all' || activity.auditor === selectedAuditor;
-    const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
-    const matchesDepartment = selectedDepartment === 'all' || activity.departmentId === selectedDepartment;
-    return matchesAuditor && matchesStatus && matchesDepartment;
+  const { data: activities = [], isLoading } = useIAActivities();
+  const { data: departments = [] } = useIADepartments();
+  const { data: auditors = [] } = useIAAuditors();
+
+  const filteredActivities = activities.filter((a: any) => {
+    const matchesAuditor = selectedAuditor === 'all' || a.auditor_id === selectedAuditor;
+    const matchesStatus = selectedStatus === 'all' || a.status === selectedStatus;
+    return matchesAuditor && matchesStatus;
   });
 
   const getStatusBadge = (status: string) => {
-    const colors = {
-      'Planned': 'bg-blue-500',
-      'In Progress': 'bg-orange-600',
-      'Completed': 'bg-green-500',
-      'Cancelled': 'bg-red-500',
-      'Rescheduled': 'bg-purple-500'
-    };
-    return <Badge className={colors[status as keyof typeof colors] || 'bg-gray-500'}>{status}</Badge>;
+    const colors: Record<string, string> = { 'Planned': 'bg-blue-500', 'In Progress': 'bg-orange-600', 'Completed': 'bg-green-500', 'Cancelled': 'bg-red-500', 'Rescheduled': 'bg-purple-500' };
+    return <Badge className={colors[status] || 'bg-gray-500'}>{status}</Badge>;
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const colors = {
-      'Low': 'bg-green-500',
-      'Medium': 'bg-orange-600',
-      'High': 'bg-red-500'
-    };
-    return <Badge variant="outline" className={colors[priority as keyof typeof colors]}>{priority}</Badge>;
-  };
-
-  const handleReschedule = (activity: AuditActivity) => {
-    setSelectedActivity(activity);
-    setIsRescheduleDialogOpen(true);
-  };
-
-  const getActivityTypeIcon = (type: string) => {
-    switch (type) {
-      case 'Site Visit': return <MapPin className="w-4 h-4" />;
-      case 'Records Review': return <CalendarDays className="w-4 h-4" />;
-      case 'Contribution Verification': return <Clock className="w-4 h-4" />;
-      default: return <CalendarDays className="w-4 h-4" />;
-    }
-  };
-
-  const todaysActivities = filteredActivities.filter(activity => {
-    const activityDate = new Date(activity.startDate).toDateString();
-    const today = new Date().toDateString();
-    return activityDate === today;
-  });
-
-  const upcomingActivities = filteredActivities.filter(activity => {
-    const activityDate = new Date(activity.startDate);
+  const todaysActivities = filteredActivities.filter((a: any) => a.scheduled_date && new Date(a.scheduled_date).toDateString() === new Date().toDateString());
+  const upcomingActivities = filteredActivities.filter((a: any) => {
+    if (!a.scheduled_date) return false;
+    const d = new Date(a.scheduled_date);
     const today = new Date();
-    const nextWeek = new Date();
-    nextWeek.setDate(today.getDate() + 7);
-    return activityDate > today && activityDate <= nextWeek;
+    const nextWeek = new Date(); nextWeek.setDate(today.getDate() + 7);
+    return d > today && d <= nextWeek;
   });
+
+  if (isLoading) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -90,82 +58,24 @@ export default function ActivityCalendar() {
         <div>
           <h1 className="text-3xl font-bold">Activity Calendar</h1>
           <p className="text-muted-foreground">
-            Schedule and manage department audit activities | 
-            <Link to="/audit/plans" className="text-blue-600 hover:underline ml-1">View Plans</Link> | 
+            Schedule and manage audit activities |
+            <Link to="/audit/plans" className="text-blue-600 hover:underline ml-1">View Plans</Link> |
             <Link to="/audit/workbench" className="text-blue-600 hover:underline ml-1">Activity Workbench</Link>
           </p>
         </div>
         {hasPermission('execute_audit_activities') && (
-          isMobile ? (
-            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Schedule Activity
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Schedule New Activity</DialogTitle>
-                </DialogHeader>
-                <ActivityScheduleForm onClose={() => setIsScheduleDialogOpen(false)} />
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <Button onClick={() => setIsScheduleDialogOpen(!isScheduleDialogOpen)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Schedule Activity
-            </Button>
-          )
+          <Button onClick={() => setIsScheduleDialogOpen(!isScheduleDialogOpen)}>
+            <Plus className="w-4 h-4 mr-2" />Schedule Activity
+          </Button>
         )}
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">Today's Activities</p>
-                <p className="text-2xl font-bold">{todaysActivities.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">This Week</p>
-                <p className="text-2xl font-bold">{upcomingActivities.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">In Progress</p>
-                <p className="text-2xl font-bold">{filteredActivities.filter(a => a.status === 'In Progress').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">Completed</p>
-                <p className="text-2xl font-bold">{filteredActivities.filter(a => a.status === 'Completed').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><CalendarDays className="h-4 w-4 text-muted-foreground" /><div className="ml-2"><p className="text-sm font-medium">Today's Activities</p><p className="text-2xl font-bold">{todaysActivities.length}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><Clock className="h-4 w-4 text-muted-foreground" /><div className="ml-2"><p className="text-sm font-medium">This Week</p><p className="text-2xl font-bold">{upcomingActivities.length}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><User className="h-4 w-4 text-muted-foreground" /><div className="ml-2"><p className="text-sm font-medium">In Progress</p><p className="text-2xl font-bold">{filteredActivities.filter((a: any) => a.status === 'In Progress').length}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><MapPin className="h-4 w-4 text-muted-foreground" /><div className="ml-2"><p className="text-sm font-medium">Completed</p><p className="text-2xl font-bold">{filteredActivities.filter((a: any) => a.status === 'Completed').length}</p></div></div></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -173,52 +83,25 @@ export default function ActivityCalendar() {
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <div className="flex gap-2">
-              <Button 
-                variant={calendarView === 'calendar' ? 'default' : 'outline'}
-                onClick={() => setCalendarView('calendar')}
-              >
-                Calendar View
-              </Button>
-              <Button 
-                variant={calendarView === 'list' ? 'default' : 'outline'}
-                onClick={() => setCalendarView('list')}
-              >
-                List View
-              </Button>
+              <Button variant={calendarView === 'calendar' ? 'default' : 'outline'} onClick={() => setCalendarView('calendar')}>Calendar View</Button>
+              <Button variant={calendarView === 'list' ? 'default' : 'outline'} onClick={() => setCalendarView('list')}>List View</Button>
             </div>
             <div className="flex gap-4 flex-1">
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={selectedAuditor} onValueChange={setSelectedAuditor}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select auditor" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select auditor" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Auditors</SelectItem>
-                  <SelectItem value="auditor.jdoe@secureserve.gov">John Doe</SelectItem>
-                  <SelectItem value="auditor.asmith@secureserve.gov">Alice Smith</SelectItem>
+                  {auditors.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="Planned">Planned</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
                   <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  <SelectItem value="Rescheduled">Rescheduled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -226,186 +109,50 @@ export default function ActivityCalendar() {
         </CardContent>
       </Card>
 
-      {calendarView === 'calendar' ? (
-        /* Calendar View */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Calendar</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border"
-              />
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>
-                Activities for {selectedDate?.toLocaleDateString() || 'Selected Date'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedDate && (
-                <div className="space-y-4">
-                  {filteredActivities
-                    .filter(activity => 
-                      new Date(activity.startDate).toDateString() === selectedDate.toDateString()
-                    )
-                    .map(activity => (
-                      <Card key={activity.id} className="border-l-4 border-l-blue-500">
-                        <CardContent className="pt-4">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                {getActivityTypeIcon(activity.type)}
-                                <h4 className="font-medium">{activity.title}</h4>
-                                {getStatusBadge(activity.status)}
-                                {getPriorityBadge(activity.priority)}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{activity.description}</p>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                                  {new Date(activity.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {activity.location}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  {activity.auditorName}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              {activity.status !== 'Completed' && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleReschedule(activity)}
-                                >
-                                  Reschedule
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  {filteredActivities.filter(activity => 
-                    new Date(activity.startDate).toDateString() === selectedDate.toDateString()
-                  ).length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">No activities scheduled for this date</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        /* List View */
-        <Card>
-          <CardHeader>
-            <CardTitle>All Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Function</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Auditor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredActivities.map((activity) => (
+      {/* List View */}
+      <Card>
+        <CardHeader><CardTitle>All Activities</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Activity</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Auditor</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredActivities.map((activity: any) => {
+                const auditor = auditors.find((a: any) => a.id === activity.auditor_id);
+                return (
                   <TableRow key={activity.id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{activity.title}</div>
-                        <div className="text-sm text-muted-foreground">{activity.description}</div>
-                      </div>
+                      <div><div className="font-medium">{activity.title}</div><div className="text-sm text-muted-foreground">{activity.description}</div></div>
                     </TableCell>
-                    <TableCell>
-                      {departments.find(d => d.id === activity.departmentId)?.name || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{activity.functionArea || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getActivityTypeIcon(activity.type)}
-                        {activity.type}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div>{new Date(activity.startDate).toLocaleDateString()}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                          {new Date(activity.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{activity.auditorName}</TableCell>
+                    <TableCell>{activity.activity_type || '-'}</TableCell>
+                    <TableCell>{activity.scheduled_date ? new Date(activity.scheduled_date).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell>{auditor?.name || '-'}</TableCell>
                     <TableCell>{getStatusBadge(activity.status)}</TableCell>
-                    <TableCell>{getPriorityBadge(activity.priority)}</TableCell>
-                    <TableCell>{activity.location}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        {activity.status !== 'Completed' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleReschedule(activity)}
-                          >
-                            Reschedule
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      {/* Schedule Form - Inline on Desktop */}
+      {/* Schedule Form */}
       {!isMobile && isScheduleDialogOpen && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Schedule New Activity</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setIsScheduleDialogOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsScheduleDialogOpen(false)}><X className="h-4 w-4" /></Button>
           </CardHeader>
-          <CardContent>
-            <ActivityScheduleForm onClose={() => setIsScheduleDialogOpen(false)} />
-          </CardContent>
+          <CardContent><ActivityScheduleForm onClose={() => setIsScheduleDialogOpen(false)} /></CardContent>
         </Card>
       )}
-
-      {/* Reschedule Dialog */}
-      <ActivityRescheduleDialog
-        activity={selectedActivity}
-        open={isRescheduleDialogOpen}
-        onOpenChange={setIsRescheduleDialogOpen}
-      />
     </div>
   );
 }
