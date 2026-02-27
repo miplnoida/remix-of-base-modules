@@ -4677,6 +4677,45 @@ export type Database = {
           },
         ]
       }
+      ia_activity_types: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          default_duration: number | null
+          description: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          default_duration?: number | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          default_duration?: number | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_annual_plans: {
         Row: {
           approval_comments: string | null
@@ -4805,6 +4844,45 @@ export type Database = {
           id?: string
           is_editable?: boolean | null
           updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_audit_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          setting_category: string
+          setting_key: string
+          setting_type: string
+          setting_value: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          setting_category: string
+          setting_key: string
+          setting_type?: string
+          setting_value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          setting_category?: string
+          setting_key?: string
+          setting_type?: string
+          setting_value?: string | null
+          updated_at?: string
           updated_by?: string | null
         }
         Relationships: []
@@ -5814,6 +5892,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_risk_criteria: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          criteria: string
+          id: string
+          is_enabled: boolean
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+          weight: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          criteria: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          weight?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          criteria?: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          weight?: string
+        }
+        Relationships: []
       }
       ia_working_papers: {
         Row: {
