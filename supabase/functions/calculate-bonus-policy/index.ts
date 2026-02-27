@@ -372,10 +372,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Add bonus levy from C3 config (legacy behavior)
-        if (bonus > 0 && !cfg.bonus_exempt_from_levy && cfg.bonus_levy_rate > 0) {
-          employeeLevy += round2(bonus * Number(cfg.bonus_levy_rate));
-        }
+        // Legacy bonus levy config removed — bonus levy is now handled via policy only
       }
       employeeLevy = round2(employeeLevy);
     }
