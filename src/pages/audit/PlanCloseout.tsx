@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, BarChart3 } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIAActivities, useIAFindings, useIAManagementResponses } from '@/hooks/useAuditData';
-import { useToast } from '@/hooks/use-toast';
+import { PageShell, DataTable, StatusBadge, ConfirmDialog, EntityModal } from '@/components/common';
+import type { DataTableColumn } from '@/components/common';
 
 export default function PlanCloseout() {
   const { hasPermission } = useAuth();
-  const { toast } = useToast();
   const [closeoutComments, setCloseoutComments] = useState('');
   const [isCloseoutDialogOpen, setIsCloseoutDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -37,55 +35,67 @@ export default function PlanCloseout() {
     if (!selectedPlan) return;
     update.mutate({ id: selectedPlan.id, status: 'Completed', closeout_comments: closeoutComments, closeout_date: new Date().toISOString() });
     setIsCloseoutDialogOpen(false);
+    setCloseoutComments('');
   };
 
-  if (!hasPermission('approve_audit_closeouts')) return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground">No permission.</p></div>;
-  if (isLoading) return <div className="p-6">Loading...</div>;
+  const columns: DataTableColumn<any>[] = [
+    { key: 'title', header: 'Plan Title', render: (plan) => <span className="font-medium">{plan.title}</span> },
+    { key: 'fiscal_year', header: 'Fiscal Year' },
+    { key: 'status', header: 'Status', render: (plan) => <StatusBadge status={plan.status} /> },
+    { key: 'summary', header: 'Progress', render: (plan) => {
+      const s = getPlanSummary(plan.id);
+      return (
+        <div className="flex gap-4 text-sm">
+          <span>Activities: {s.completedActivities}/{s.totalActivities}</span>
+          <span>Findings: {s.totalFindings}</span>
+          <span>Responses: {s.respondedFindings}/{s.totalFindings}</span>
+        </div>
+      );
+    }},
+  ];
 
   return (
-    <div className="space-y-6">
-      <div><h1 className="text-3xl font-bold">Department Audit Closeout</h1><p className="text-muted-foreground">Review and close completed audits</p></div>
-
+    <PageShell
+      title="Department Audit Closeout"
+      subtitle="Review and close completed audits"
+      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Plan Closeout' }]}
+      isLoading={isLoading}
+      noPermission={!hasPermission('approve_audit_closeouts')}
+    >
       <Card>
-        <CardHeader><CardTitle>Plans Ready for Closeout ({completedPlans.length})</CardTitle></CardHeader>
-        <CardContent>
-          {completedPlans.length === 0 ? <p className="text-center text-muted-foreground py-8">No plans ready for closeout</p> : (
-            <div className="space-y-4">
-              {completedPlans.map((plan: any) => {
-                const summary = getPlanSummary(plan.id);
-                return (
-                  <Card key={plan.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-4 flex-1">
-                          <h3 className="text-lg font-semibold">{plan.title}</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="text-center p-3 bg-muted rounded-lg"><div className="text-2xl font-bold">{summary.completedActivities}/{summary.totalActivities}</div><div className="text-sm text-muted-foreground">Activities</div></div>
-                            <div className="text-center p-3 bg-muted rounded-lg"><div className="text-2xl font-bold">{summary.totalFindings}</div><div className="text-sm text-muted-foreground">Findings</div></div>
-                            <div className="text-center p-3 bg-muted rounded-lg"><div className="text-2xl font-bold">{summary.respondedFindings}/{summary.totalFindings}</div><div className="text-sm text-muted-foreground">Responses</div></div>
-                          </div>
-                        </div>
-                        <Button onClick={() => { setSelectedPlan(plan); setIsCloseoutDialogOpen(true); }} className="bg-green-600 hover:bg-green-700"><CheckCircle className="w-4 h-4 mr-2" />Close Out</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={completedPlans}
+            emptyMessage="No plans ready for closeout"
+            renderActions={(plan) => (
+              <Button
+                size="sm"
+                onClick={() => { setSelectedPlan(plan); setIsCloseoutDialogOpen(true); }}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />Close Out
+              </Button>
+            )}
+          />
         </CardContent>
       </Card>
 
-      <Dialog open={isCloseoutDialogOpen} onOpenChange={setIsCloseoutDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Close Out Audit Plan</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            {selectedPlan && <p><strong>Plan:</strong> {selectedPlan.title}</p>}
-            <div className="space-y-2"><Label>Closeout Comments</Label><Textarea value={closeoutComments} onChange={(e) => setCloseoutComments(e.target.value)} placeholder="Enter comments..." /></div>
-            <div className="flex justify-end space-x-2"><Button variant="outline" onClick={() => setIsCloseoutDialogOpen(false)}>Cancel</Button><Button onClick={confirmCloseout} className="bg-green-600 hover:bg-green-700">Complete Closeout</Button></div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+      <EntityModal
+        open={isCloseoutDialogOpen}
+        onOpenChange={setIsCloseoutDialogOpen}
+        title="Close Out Audit Plan"
+        mode="edit"
+        onSave={confirmCloseout}
+        saveLabel="Complete Closeout"
+        isSaving={update.isPending}
+      >
+        {selectedPlan && <p className="mb-4"><strong>Plan:</strong> {selectedPlan.title}</p>}
+        <div className="space-y-2">
+          <Label>Closeout Comments</Label>
+          <Textarea value={closeoutComments} onChange={(e) => setCloseoutComments(e.target.value)} placeholder="Enter closeout comments..." />
+        </div>
+      </EntityModal>
+    </PageShell>
   );
 }
