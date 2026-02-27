@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Eye, Edit, Send } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations, useIADepartments } from '@/hooks/useAuditData';
@@ -14,7 +14,7 @@ import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, C
 import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function AuditPlansNew() {
-  const { hasPermission } = useAuth();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', fiscalYear: 'all', departmentId: 'all' });
 
@@ -134,7 +134,7 @@ export default function AuditPlansNew() {
       subtitle="Create and manage annual plans and department audit plans"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Plans' }]}
       isLoading={plansLoading || auditsLoading}
-      noPermission={!hasPermission('create_audit_plans')}
+      
       actions={<Button onClick={() => setShowCreatePicker(true)}><Plus className="w-4 h-4 mr-2" />Add New</Button>}
     >
       <Card>

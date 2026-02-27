@@ -5,14 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Eye, Edit3, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { useToast } from '@/hooks/use-toast';
 import { useIAFollowUps, useIAFollowUpMutations, useIADepartments } from '@/hooks/useAuditData';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function FollowUpTracker() {
-  const { hasPermission } = useAuth();
+  
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,7 +137,7 @@ export default function FollowUpTracker() {
       subtitle="Track follow-up actions from findings and activities"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Follow-up Tracker' }]}
       isLoading={isLoading}
-      noPermission={!hasPermission('manage_audit_followups')}
+      
     >
       <Card>
         <CardContent className="pt-6">

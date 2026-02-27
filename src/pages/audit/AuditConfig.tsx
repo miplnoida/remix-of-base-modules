@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Bell, Shield, Flag, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { PageShell } from '@/components/common';
@@ -21,7 +21,7 @@ import {
 } from '@/hooks/useAuditConfigData';
 
 export default function AuditConfig() {
-  const { hasPermission } = useAuth();
+  
   const { toast } = useToast();
   const { profile } = useSupabaseAuth();
   const userCode = (profile as any)?.user_code || 'system';
@@ -89,7 +89,7 @@ export default function AuditConfig() {
       subtitle="Configure Internal Audit system settings"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
       isLoading={isLoading}
-      noPermission={!hasPermission('configure_audit_system')}
+      
     >
       <Tabs defaultValue="sla" className="space-y-4">
         <TabsList>

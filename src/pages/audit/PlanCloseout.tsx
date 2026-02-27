@@ -188,7 +188,7 @@ export default function PlanCloseout() {
       subtitle="Close completed audit plans"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Closeout' }]}
       isLoading={annualLoading || deptLoading}
-      noPermission={!hasPermission('approve_audit_closeouts')}
+      
     >
       <Card>
         <CardContent className="pt-6">
