@@ -28,6 +28,26 @@ const STATUS_COLORS: Record<string, string> = {
   'Medium': 'bg-orange-500/10 text-orange-700 border-orange-200',
   'Low': 'bg-green-500/10 text-green-700 border-green-200',
   'Critical': 'bg-destructive/10 text-destructive border-destructive/20',
+  // Roles
+  'Audit Director': 'bg-purple-500/10 text-purple-700 border-purple-200',
+  'Audit Manager': 'bg-blue-500/10 text-blue-700 border-blue-200',
+  'Auditor': 'bg-green-500/10 text-green-700 border-green-200',
+  'Admin': 'bg-muted text-muted-foreground',
+  // Employment status
+  'Active': 'bg-green-500/10 text-green-700 border-green-200',
+  'Inactive': 'bg-muted text-muted-foreground',
+  // Leave types
+  'Annual': 'bg-green-500/10 text-green-700 border-green-200',
+  'Sick': 'bg-orange-500/10 text-orange-700 border-orange-200',
+  'Training': 'bg-blue-500/10 text-blue-700 border-blue-200',
+  'Other': 'bg-muted text-muted-foreground',
+  // Control effectiveness
+  'Effective': 'bg-green-500/10 text-green-700 border-green-200',
+  'Partially Effective': 'bg-orange-500/10 text-orange-700 border-orange-200',
+  'Ineffective': 'bg-destructive/10 text-destructive border-destructive/20',
+  // Holidays
+  'Public Holiday': 'bg-green-500/10 text-green-700 border-green-200',
+  'Rescheduled': 'bg-purple-500/10 text-purple-700 border-purple-200',
 };
 
 interface StatusBadgeProps {
