@@ -4,108 +4,135 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Eye, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, FilterBar } from '@/components/common';
-import type { FilterField } from '@/components/common';
+import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, FilterField } from '@/components/common';
+
+const REPORT_TYPES = [
+  { id: 'plan-summary', title: 'Audit Plan Summary Report', description: 'Summary of audit plans by status, period, and department' },
+  { id: 'activity-schedule', title: 'Activity Schedule Report', description: 'Scheduled and completed activities with auditor assignments' },
+  { id: 'auditor-workload', title: 'Auditor Workload Report', description: 'Activities distribution across auditors' },
+  { id: 'findings-compliance', title: 'Findings & Compliance Report', description: 'Audit findings analysis with risk and compliance data' },
+  { id: 'followup-register', title: 'Follow-Up Action Register', description: 'Pending and overdue corrective actions' },
+];
 
 export default function AuditReports() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAAuditors();
-  const [reportFilters, setReportFilters] = useState<Record<string, string>>({ department: 'all', period: '', status: 'all', auditor: 'all', dateFrom: '', dateTo: '' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', reportType: 'all' });
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [viewReport, setViewReport] = useState<any>(null);
 
-  const generateReport = (reportType: string) => {
-    toast({ title: "Report Generated", description: `${reportType} report has been generated.` });
+  // Mock generated reports list
+  const [generatedReports] = useState<any[]>([]);
+
+  const filteredReportTypes = REPORT_TYPES.filter(rt =>
+    rt.title.toLowerCase().includes(searchTerm.toLowerCase()) || rt.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const generateReport = async (reportType: typeof REPORT_TYPES[0]) => {
+    setGeneratingId(reportType.id);
+    // Simulate generation delay
+    await new Promise(r => setTimeout(r, 1500));
+    setGeneratingId(null);
+    toast({ title: "Report Generated", description: `${reportType.title} has been generated successfully.` });
   };
 
-  const reportTypes = [
-    { id: 'plan-summary', title: 'Audit Plan Summary Report', description: 'Summary of audit plans by status, period, and department', icon: FileText, filters: ['department', 'status'] },
-    { id: 'activity-schedule', title: 'Activity Schedule Report', description: 'Scheduled and completed activities with auditor assignments', icon: FileText, filters: ['department', 'auditor', 'dateFrom', 'dateTo'] },
-    { id: 'auditor-workload', title: 'Auditor Workload Report', description: 'Activities distribution across auditors', icon: FileText, filters: ['auditor', 'dateFrom', 'dateTo'] },
-    { id: 'findings-compliance', title: 'Findings & Compliance Report', description: 'Audit findings analysis with risk and compliance data', icon: FileText, filters: ['department', 'dateFrom', 'dateTo'] },
-    { id: 'followup-register', title: 'Follow-Up Action Register', description: 'Pending and overdue corrective actions', icon: FileText, filters: ['status', 'dateFrom', 'dateTo'] },
+  const filterFields: FilterField[] = [
+    { key: 'status', label: 'Status', type: 'select', options: [
+      { value: 'all', label: 'All' }, { value: 'Draft', label: 'Draft' }, { value: 'Final', label: 'Final' },
+    ]},
+  ];
+
+  const reportColumns: DataTableColumn<any>[] = [
+    { key: 'title', header: 'Report', render: (r) => (
+      <div><div className="font-medium">{r.title}</div><div className="text-xs text-muted-foreground">{r.generated_at}</div></div>
+    )},
+    { key: 'type', header: 'Type' },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   ];
 
   return (
     <PageShell
       title="Audit Reports"
-      subtitle="Generate audit reports and analytics"
-      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Reports' }]}
+      subtitle="Generate and manage audit reports"
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Reports' }]}
       noPermission={!hasPermission('generate_reports')}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {reportTypes.map((rt) => (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search report types..." />
+            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ status: 'all', reportType: 'all' })} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredReportTypes.map((rt) => (
           <Card key={rt.id}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <rt.icon className="w-5 h-5 text-primary" />{rt.title}
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="w-5 h-5 text-primary" />{rt.title}
               </CardTitle>
               <p className="text-sm text-muted-foreground">{rt.description}</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {rt.filters.includes('department') && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Department</Label>
-                    <Select value={reportFilters.department} onValueChange={v => setReportFilters({...reportFilters, department: v})}>
-                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Departments</SelectItem>
-                        {departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {rt.filters.includes('auditor') && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Auditor</Label>
-                    <Select value={reportFilters.auditor} onValueChange={v => setReportFilters({...reportFilters, auditor: v})}>
-                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Auditors</SelectItem>
-                        {auditors.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {rt.filters.includes('status') && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Status</Label>
-                    <Select value={reportFilters.status} onValueChange={v => setReportFilters({...reportFilters, status: v})}>
-                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="Draft">Draft</SelectItem>
-                        <SelectItem value="In Progress">In Progress</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {rt.filters.includes('dateFrom') && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">From</Label>
-                    <Input type="date" value={reportFilters.dateFrom} onChange={e => setReportFilters({...reportFilters, dateFrom: e.target.value})} className="h-10" />
-                  </div>
-                )}
-                {rt.filters.includes('dateTo') && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">To</Label>
-                    <Input type="date" value={reportFilters.dateTo} onChange={e => setReportFilters({...reportFilters, dateTo: e.target.value})} className="h-10" />
-                  </div>
-                )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Department</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">From</Label>
+                  <Input type="date" className="h-9" />
+                </div>
               </div>
-              <Button onClick={() => generateReport(rt.title)} className="w-full">
-                <Download className="w-4 h-4 mr-2" />Generate Report
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => generateReport(rt)} disabled={generatingId === rt.id} className="flex-1">
+                  {generatingId === rt.id ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</> : <><Download className="w-4 h-4 mr-2" />Generate</>}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Generated Reports Table */}
+      {generatedReports.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Generated Reports</CardTitle></CardHeader>
+          <CardContent>
+            <DataTable
+              columns={reportColumns}
+              data={generatedReports}
+              emptyMessage="No reports generated yet"
+              renderActions={(r) => (
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewReport(r)}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8"><Download className="h-4 w-4" /></Button>
+                </div>
+              )}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      <EntityModal open={!!viewReport} onOpenChange={() => setViewReport(null)} title="Report Preview" mode="view">
+        {viewReport && <div className="text-center text-muted-foreground py-8">Report preview will be displayed here.</div>}
+      </EntityModal>
     </PageShell>
   );
 }

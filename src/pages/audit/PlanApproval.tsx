@@ -3,78 +3,116 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIAAnnualPlans, useIAAnnualPlanMutations } from '@/hooks/useAuditData';
-import { PageShell, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations } from '@/hooks/useAuditData';
+import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function PlanApproval() {
   const { hasPermission } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ planType: 'all', fiscalYear: 'all' });
   const [approvalComments, setApprovalComments] = useState('');
-  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
-  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
-  const [viewPlan, setViewPlan] = useState<any>(null);
+  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | 'changes'>('approve');
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItemType, setSelectedItemType] = useState<'annual' | 'department'>('annual');
+  const [isActionOpen, setIsActionOpen] = useState(false);
+  const [viewItem, setViewItem] = useState<any>(null);
 
-  const { data: plans = [], isLoading } = useIAAnnualPlans();
-  const { update } = useIAAnnualPlanMutations();
+  const { data: plans = [], isLoading: plansLoading } = useIAAnnualPlans();
+  const { data: deptAudits = [], isLoading: auditsLoading } = useIADepartmentAudits();
+  const { update: updatePlan } = useIAAnnualPlanMutations();
+  const { update: updateDept } = useIADepartmentAuditMutations();
 
-  const pendingPlans = plans.filter((p: any) => p.status === 'Submitted');
-  const allPlans = plans.filter((p: any) => ['Submitted', 'Approved', 'Rejected'].includes(p.status));
+  // Combine submitted items into a single queue
+  const submittedPlans = plans.filter((p: any) => p.status === 'Submitted').map((p: any) => ({ ...p, _type: 'annual' as const, _label: 'Annual Plan' }));
+  const submittedDepts = deptAudits.filter((d: any) => d.status === 'Submitted').map((d: any) => ({ ...d, _type: 'department' as const, _label: 'Department Audit', title: d.department_name }));
 
-  const handleApprovalAction = (plan: any, action: 'approve' | 'reject') => {
-    setSelectedPlan(plan);
+  const allSubmitted = [...submittedPlans, ...submittedDepts].filter((item: any) => {
+    const matchesSearch = (item.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filters.planType === 'all' || item._type === filters.planType;
+    return matchesSearch && matchesType;
+  });
+
+  const recentlyReviewed = [
+    ...plans.filter((p: any) => ['Approved', 'Rejected'].includes(p.status)).map((p: any) => ({ ...p, _type: 'annual' as const, _label: 'Annual Plan' })),
+    ...deptAudits.filter((d: any) => ['Approved', 'Rejected'].includes(d.status)).map((d: any) => ({ ...d, _type: 'department' as const, _label: 'Department Audit', title: d.department_name })),
+  ];
+
+  const handleAction = (item: any, action: 'approve' | 'reject' | 'changes') => {
+    setSelectedItem(item);
+    setSelectedItemType(item._type);
     setApprovalAction(action);
     setApprovalComments('');
-    setIsApprovalDialogOpen(true);
+    setIsActionOpen(true);
   };
 
-  const confirmApproval = () => {
-    if (!selectedPlan) return;
-    const newStatus = approvalAction === 'approve' ? 'Approved' : 'Rejected';
-    update.mutate({
-      id: selectedPlan.id,
-      status: newStatus,
-      approval_comments: approvalComments,
-      approved_date: new Date().toISOString(),
-    });
-    setIsApprovalDialogOpen(false);
+  const confirmAction = () => {
+    if (!selectedItem) return;
+    const newStatus = approvalAction === 'approve' ? 'Approved' : approvalAction === 'reject' ? 'Rejected' : 'Draft';
+    const payload = { id: selectedItem.id, status: newStatus, approval_comments: approvalComments, approved_date: new Date().toISOString() };
+    if (selectedItemType === 'annual') updatePlan.mutate(payload);
+    else updateDept.mutate(payload);
+    setIsActionOpen(false);
   };
+
+  const filterFields: FilterField[] = [
+    { key: 'planType', label: 'Plan Type', type: 'select', options: [
+      { value: 'all', label: 'All Types' }, { value: 'annual', label: 'Annual Plan' }, { value: 'department', label: 'Department Audit' },
+    ]},
+  ];
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'fiscal_year', header: 'Fiscal Year', render: (p) => <span className="font-medium">{p.fiscal_year}</span> },
-    { key: 'title', header: 'Title' },
-    { key: 'objective', header: 'Objective', className: 'max-w-xs', render: (p) => <span className="truncate block max-w-xs">{p.objective}</span> },
-    { key: 'submitted_date', header: 'Submitted', render: (p) => p.submitted_date ? new Date(p.submitted_date).toLocaleDateString() : '-' },
-    { key: 'status', header: 'Status', render: (p) => <StatusBadge status={p.status} /> },
+    { key: '_label', header: 'Type', render: (r) => <StatusBadge status={r._label} /> },
+    { key: 'title', header: 'Title / Department', render: (r) => <span className="font-medium">{r.title || r.fiscal_year}</span> },
+    { key: 'fiscal_year', header: 'Fiscal Year' },
+    { key: 'submitted_date', header: 'Submitted', render: (r) => r.submitted_date ? new Date(r.submitted_date).toLocaleDateString() : '-' },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   ];
+
+  const reviewedColumns: DataTableColumn<any>[] = [
+    ...columns,
+    { key: 'approved_date', header: 'Reviewed', render: (r) => r.approved_date ? new Date(r.approved_date).toLocaleDateString() : '-' },
+  ];
+
+  const actionLabels = { approve: 'Approve', reject: 'Reject', changes: 'Request Changes' };
 
   return (
     <PageShell
       title="Plan Approval"
       subtitle="Review and approve submitted audit plans"
-      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Plan Approval' }]}
-      isLoading={isLoading}
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Approval' }]}
+      isLoading={plansLoading || auditsLoading}
       noPermission={!hasPermission('approve_audit_plans')}
     >
-      {/* Pending Approval Queue */}
       <Card>
-        <CardHeader><CardTitle>Plans Awaiting Approval ({pendingPlans.length})</CardTitle></CardHeader>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search submitted plans..." />
+            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ planType: 'all', fiscalYear: 'all' })} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Approval Queue */}
+      <Card>
+        <CardHeader><CardTitle>Awaiting Approval ({allSubmitted.length})</CardTitle></CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={pendingPlans}
+            data={allSubmitted}
             emptyMessage="No plans awaiting approval"
-            renderActions={(plan) => (
+            renderActions={(item) => (
               <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewPlan(plan)}>
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button size="sm" onClick={() => handleApprovalAction(plan, 'approve')} className="bg-green-600 hover:bg-green-700 h-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewItem(item)}><Eye className="h-4 w-4" /></Button>
+                <Button size="sm" onClick={() => handleAction(item, 'approve')} className="bg-green-600 hover:bg-green-700 h-8">
                   <CheckCircle className="w-4 h-4 mr-1" />Approve
                 </Button>
-                <Button size="sm" variant="destructive" onClick={() => handleApprovalAction(plan, 'reject')} className="h-8">
+                <Button size="sm" variant="outline" onClick={() => handleAction(item, 'changes')} className="h-8">
+                  <MessageSquare className="w-4 h-4 mr-1" />Changes
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => handleAction(item, 'reject')} className="h-8">
                   <XCircle className="w-4 h-4 mr-1" />Reject
                 </Button>
               </div>
@@ -84,63 +122,47 @@ export default function PlanApproval() {
       </Card>
 
       {/* Recently Reviewed */}
-      {allPlans.filter(p => p.status !== 'Submitted').length > 0 && (
+      {recentlyReviewed.length > 0 && (
         <Card>
           <CardHeader><CardTitle>Recently Reviewed</CardTitle></CardHeader>
           <CardContent>
-            <DataTable
-              columns={columns}
-              data={allPlans.filter((p: any) => p.status !== 'Submitted')}
-              emptyMessage="No recently reviewed plans"
-              onView={(plan) => setViewPlan(plan)}
-            />
+            <DataTable columns={reviewedColumns} data={recentlyReviewed} emptyMessage="No recently reviewed plans" onView={(item) => setViewItem(item)} />
           </CardContent>
         </Card>
       )}
 
-      {/* View Plan Modal */}
-      <EntityModal
-        open={!!viewPlan}
-        onOpenChange={() => setViewPlan(null)}
-        title="Audit Plan Details"
-        mode="view"
-      >
-        {viewPlan && (
+      {/* View Modal */}
+      <EntityModal open={!!viewItem} onOpenChange={() => setViewItem(null)} title="Plan Details" mode="view">
+        {viewItem && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Fiscal Year</Label><p className="font-medium">{viewPlan.fiscal_year}</p></div>
-              <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewPlan.status} /></div></div>
+              <div><Label className="text-muted-foreground">Type</Label><p className="font-medium">{viewItem._label || 'Annual Plan'}</p></div>
+              <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status} /></div></div>
+              <div><Label className="text-muted-foreground">Fiscal Year</Label><p>{viewItem.fiscal_year || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Title</Label><p>{viewItem.title || '-'}</p></div>
             </div>
-            <div><Label className="text-muted-foreground">Title</Label><p className="font-medium">{viewPlan.title}</p></div>
-            <div><Label className="text-muted-foreground">Objective</Label><p>{viewPlan.objective || 'N/A'}</p></div>
-            {viewPlan.approval_comments && <div><Label className="text-muted-foreground">Approval Comments</Label><p>{viewPlan.approval_comments}</p></div>}
+            <div><Label className="text-muted-foreground">Objective</Label><p>{viewItem.objective || 'N/A'}</p></div>
+            {viewItem.approval_comments && <div><Label className="text-muted-foreground">Comments</Label><p>{viewItem.approval_comments}</p></div>}
           </div>
         )}
       </EntityModal>
 
-      {/* Approve/Reject Dialog */}
+      {/* Approve/Reject/Changes Modal */}
       <EntityModal
-        open={isApprovalDialogOpen}
-        onOpenChange={setIsApprovalDialogOpen}
-        title={`${approvalAction === 'approve' ? 'Approve' : 'Reject'} Audit Plan`}
+        open={isActionOpen}
+        onOpenChange={setIsActionOpen}
+        title={`${actionLabels[approvalAction]} Plan`}
         mode="edit"
-        onSave={confirmApproval}
-        saveLabel={approvalAction === 'approve' ? 'Approve Plan' : 'Reject Plan'}
-        isSaving={update.isPending}
+        onSave={confirmAction}
+        saveLabel={actionLabels[approvalAction]}
+        isSaving={updatePlan.isPending || updateDept.isPending}
       >
-        {selectedPlan && (
+        {selectedItem && (
           <div className="space-y-4">
-            <div>
-              <p><strong>Plan:</strong> {selectedPlan.title}</p>
-              <p><strong>Fiscal Year:</strong> {selectedPlan.fiscal_year}</p>
-            </div>
+            <p><strong>Plan:</strong> {selectedItem.title || selectedItem.fiscal_year}</p>
             <div className="space-y-2">
-              <Label>{approvalAction === 'approve' ? 'Approval Comments' : 'Rejection Reason'}</Label>
-              <Textarea
-                value={approvalComments}
-                onChange={(e) => setApprovalComments(e.target.value)}
-                placeholder={approvalAction === 'approve' ? "Enter approval comments (optional)..." : "Please provide reason for rejection..."}
-              />
+              <Label>{approvalAction === 'approve' ? 'Approval Comments (optional)' : approvalAction === 'reject' ? 'Rejection Reason' : 'What changes are needed?'}</Label>
+              <Textarea value={approvalComments} onChange={(e) => setApprovalComments(e.target.value)} placeholder="Enter comments..." />
             </div>
           </div>
         )}
