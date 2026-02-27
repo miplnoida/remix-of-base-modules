@@ -4501,6 +4501,1438 @@ export type Database = {
           },
         ]
       }
+      ia_action_tracking: {
+        Row: {
+          action_status: string | null
+          created_at: string | null
+          created_by: string | null
+          evidence_of_implementation: string[] | null
+          finding_id: string
+          id: string
+          notes: string | null
+          response_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          verification_date: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          action_status?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          evidence_of_implementation?: string[] | null
+          finding_id: string
+          id?: string
+          notes?: string | null
+          response_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          verification_date?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          action_status?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          evidence_of_implementation?: string[] | null
+          finding_id?: string
+          id?: string
+          notes?: string | null
+          response_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          verification_date?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_action_tracking_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "ia_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_action_tracking_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "ia_management_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_activities: {
+        Row: {
+          activity_type: string | null
+          actual_date_from: string | null
+          actual_date_to: string | null
+          annual_plan_id: string | null
+          assigned_auditor_ids: string[] | null
+          auditor_id: string | null
+          auditor_name: string | null
+          control_area: string | null
+          created_at: string | null
+          created_by: string | null
+          department_audit_id: string | null
+          department_id: string | null
+          description: string | null
+          end_date: string | null
+          function_area: string | null
+          id: string
+          location: string | null
+          name: string
+          planned_date_from: string | null
+          planned_date_to: string | null
+          priority: string | null
+          start_date: string | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          actual_date_from?: string | null
+          actual_date_to?: string | null
+          annual_plan_id?: string | null
+          assigned_auditor_ids?: string[] | null
+          auditor_id?: string | null
+          auditor_name?: string | null
+          control_area?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          department_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          function_area?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          planned_date_from?: string | null
+          planned_date_to?: string | null
+          priority?: string | null
+          start_date?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          actual_date_from?: string | null
+          actual_date_to?: string | null
+          annual_plan_id?: string | null
+          assigned_auditor_ids?: string[] | null
+          auditor_id?: string | null
+          auditor_name?: string | null
+          control_area?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          department_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          function_area?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          planned_date_from?: string | null
+          planned_date_to?: string | null
+          priority?: string | null
+          start_date?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_activities_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_activities_auditor_id_fkey"
+            columns: ["auditor_id"]
+            isOneToOne: false
+            referencedRelation: "ia_auditors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_activities_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_activities_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_annual_plans: {
+        Row: {
+          approval_comments: string | null
+          approved_by: string | null
+          approved_date: string | null
+          auto_notify_on_approval: boolean | null
+          committee_email_proof_url: string | null
+          committee_minutes_url: string | null
+          committee_noted: boolean | null
+          created_at: string | null
+          created_by: string | null
+          created_date: string | null
+          fiscal_year: string
+          id: string
+          internally_approved: boolean | null
+          internally_approved_by: string | null
+          internally_approved_date: string | null
+          methodology: string | null
+          objective: string | null
+          reviewed_by: string | null
+          reviewed_date: string | null
+          scope: string | null
+          status: string | null
+          submitted_date: string | null
+          title: string
+          total_department_audits: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approval_comments?: string | null
+          approved_by?: string | null
+          approved_date?: string | null
+          auto_notify_on_approval?: boolean | null
+          committee_email_proof_url?: string | null
+          committee_minutes_url?: string | null
+          committee_noted?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          created_date?: string | null
+          fiscal_year: string
+          id?: string
+          internally_approved?: boolean | null
+          internally_approved_by?: string | null
+          internally_approved_date?: string | null
+          methodology?: string | null
+          objective?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          scope?: string | null
+          status?: string | null
+          submitted_date?: string | null
+          title: string
+          total_department_audits?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approval_comments?: string | null
+          approved_by?: string | null
+          approved_date?: string | null
+          auto_notify_on_approval?: boolean | null
+          committee_email_proof_url?: string | null
+          committee_minutes_url?: string | null
+          committee_noted?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          created_date?: string | null
+          fiscal_year?: string
+          id?: string
+          internally_approved?: boolean | null
+          internally_approved_by?: string | null
+          internally_approved_date?: string | null
+          methodology?: string | null
+          objective?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          scope?: string | null
+          status?: string | null
+          submitted_date?: string | null
+          title?: string
+          total_department_audits?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_audit_config: {
+        Row: {
+          category: string | null
+          config_key: string
+          config_type: string | null
+          config_value: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_name: string | null
+          id: string
+          is_editable: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          config_key: string
+          config_type?: string | null
+          config_value?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string
+          is_editable?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          config_key?: string
+          config_type?: string | null
+          config_value?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string
+          is_editable?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_auditor_workload: {
+        Row: {
+          assigned_hours: number | null
+          auditor_id: string
+          booked_hours: number | null
+          created_at: string | null
+          fiscal_year: string
+          id: string
+          remaining_hours: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_hours?: number | null
+          auditor_id: string
+          booked_hours?: number | null
+          created_at?: string | null
+          fiscal_year: string
+          id?: string
+          remaining_hours?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_hours?: number | null
+          auditor_id?: string
+          booked_hours?: number | null
+          created_at?: string | null
+          fiscal_year?: string
+          id?: string
+          remaining_hours?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_auditor_workload_auditor_id_fkey"
+            columns: ["auditor_id"]
+            isOneToOne: false
+            referencedRelation: "ia_auditors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_auditors: {
+        Row: {
+          certifications: string[] | null
+          created_at: string | null
+          created_by: string | null
+          email: string
+          employee_no: string
+          employment_status: string | null
+          id: string
+          name: string
+          phone: string | null
+          role: string
+          seniority_level: string | null
+          signature_image: string | null
+          skills: string[] | null
+          supervisor_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+          work_location: string | null
+        }
+        Insert: {
+          certifications?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          employee_no: string
+          employment_status?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          role?: string
+          seniority_level?: string | null
+          signature_image?: string | null
+          skills?: string[] | null
+          supervisor_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_location?: string | null
+        }
+        Update: {
+          certifications?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          employee_no?: string
+          employment_status?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string
+          seniority_level?: string | null
+          signature_image?: string | null
+          skills?: string[] | null
+          supervisor_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_location?: string | null
+        }
+        Relationships: []
+      }
+      ia_communications: {
+        Row: {
+          acknowledged_date: string | null
+          annual_plan_id: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          department_audit_id: string | null
+          id: string
+          recipient_email: string | null
+          recipient_name: string | null
+          sent_date: string | null
+          status: string | null
+          subject: string | null
+          template_id: string | null
+          template_type: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          acknowledged_date?: string | null
+          annual_plan_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          sent_date?: string | null
+          status?: string | null
+          subject?: string | null
+          template_id?: string | null
+          template_type?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          acknowledged_date?: string | null
+          annual_plan_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          sent_date?: string | null
+          status?: string | null
+          subject?: string | null
+          template_id?: string | null
+          template_type?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_communications_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_communications_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_communications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_department_audits: {
+        Row: {
+          actual_end: string | null
+          actual_start: string | null
+          admin_override_close: boolean | null
+          annual_plan_id: string
+          closed_by: string | null
+          closed_date: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string
+          department_name: string | null
+          functions: string[] | null
+          id: string
+          is_closed: boolean | null
+          lead_auditor_id: string | null
+          lead_auditor_name: string | null
+          month_year: string | null
+          objective: string | null
+          period: string | null
+          planned_end: string | null
+          planned_start: string | null
+          risk_rating: string | null
+          scope: string | null
+          status: string | null
+          team_member_ids: string[] | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          actual_end?: string | null
+          actual_start?: string | null
+          admin_override_close?: boolean | null
+          annual_plan_id: string
+          closed_by?: string | null
+          closed_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id: string
+          department_name?: string | null
+          functions?: string[] | null
+          id?: string
+          is_closed?: boolean | null
+          lead_auditor_id?: string | null
+          lead_auditor_name?: string | null
+          month_year?: string | null
+          objective?: string | null
+          period?: string | null
+          planned_end?: string | null
+          planned_start?: string | null
+          risk_rating?: string | null
+          scope?: string | null
+          status?: string | null
+          team_member_ids?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          actual_end?: string | null
+          actual_start?: string | null
+          admin_override_close?: boolean | null
+          annual_plan_id?: string
+          closed_by?: string | null
+          closed_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string
+          department_name?: string | null
+          functions?: string[] | null
+          id?: string
+          is_closed?: boolean | null
+          lead_auditor_id?: string | null
+          lead_auditor_name?: string | null
+          month_year?: string | null
+          objective?: string | null
+          period?: string | null
+          planned_end?: string | null
+          planned_start?: string | null
+          risk_rating?: string | null
+          scope?: string | null
+          status?: string | null
+          team_member_ids?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_department_audits_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_department_audits_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_department_audits_lead_auditor_id_fkey"
+            columns: ["lead_auditor_id"]
+            isOneToOne: false
+            referencedRelation: "ia_auditors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_department_functions: {
+        Row: {
+          control_effectiveness: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string
+          description: string | null
+          function_name: string
+          id: string
+          impact: string | null
+          is_active: boolean | null
+          last_audit_date: string | null
+          likelihood: string | null
+          next_audit_date: string | null
+          notes: string | null
+          responsible_person: string | null
+          risk_rating: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          control_effectiveness?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id: string
+          description?: string | null
+          function_name: string
+          id?: string
+          impact?: string | null
+          is_active?: boolean | null
+          last_audit_date?: string | null
+          likelihood?: string | null
+          next_audit_date?: string | null
+          notes?: string | null
+          responsible_person?: string | null
+          risk_rating?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          control_effectiveness?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string
+          description?: string | null
+          function_name?: string
+          id?: string
+          impact?: string | null
+          is_active?: boolean | null
+          last_audit_date?: string | null
+          likelihood?: string | null
+          next_audit_date?: string | null
+          notes?: string | null
+          responsible_person?: string | null
+          risk_rating?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_department_functions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_departments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          head: string
+          id: string
+          is_active: boolean | null
+          location: string | null
+          name: string
+          phone: string | null
+          risk_rating: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          head: string
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name: string
+          phone?: string | null
+          risk_rating?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          head?: string
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name?: string
+          phone?: string | null
+          risk_rating?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_document_templates: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          merge_fields: string[] | null
+          name: string
+          type: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          merge_fields?: string[] | null
+          name: string
+          type: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          merge_fields?: string[] | null
+          name?: string
+          type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_evidence: {
+        Row: {
+          activity_id: string | null
+          annual_plan_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_audit_id: string | null
+          description: string | null
+          evidence_id: string
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
+          finding_id: string | null
+          hash: string | null
+          id: string
+          reference_no: string | null
+          tags: string[] | null
+          updated_at: string | null
+          updated_by: string | null
+          upload_date: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          description?: string | null
+          evidence_id: string
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          finding_id?: string | null
+          hash?: string | null
+          id?: string
+          reference_no?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          description?: string | null
+          evidence_id?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          finding_id?: string | null
+          hash?: string | null
+          id?: string
+          reference_no?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_evidence_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "ia_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_evidence_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_evidence_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_findings: {
+        Row: {
+          activity_id: string | null
+          annual_plan_id: string | null
+          cause: string | null
+          condition: string | null
+          created_at: string | null
+          created_by: string | null
+          created_date: string | null
+          criteria: string | null
+          department_audit_id: string | null
+          department_head_name: string | null
+          department_id: string | null
+          department_name: string | null
+          effect: string | null
+          finding_id: string
+          function_area: string | null
+          id: string
+          impact_area: string | null
+          owner_role: string | null
+          risk_rating: string | null
+          status: string | null
+          submitted_for_response_date: string | null
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          cause?: string | null
+          condition?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_date?: string | null
+          criteria?: string | null
+          department_audit_id?: string | null
+          department_head_name?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          effect?: string | null
+          finding_id: string
+          function_area?: string | null
+          id?: string
+          impact_area?: string | null
+          owner_role?: string | null
+          risk_rating?: string | null
+          status?: string | null
+          submitted_for_response_date?: string | null
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          cause?: string | null
+          condition?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_date?: string | null
+          criteria?: string | null
+          department_audit_id?: string | null
+          department_head_name?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          effect?: string | null
+          finding_id?: string
+          function_area?: string | null
+          id?: string
+          impact_area?: string | null
+          owner_role?: string | null
+          risk_rating?: string | null
+          status?: string | null
+          submitted_for_response_date?: string | null
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_findings_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "ia_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_findings_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_findings_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_findings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_follow_ups: {
+        Row: {
+          action_required: string
+          activity_id: string | null
+          annual_plan_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_audit_id: string | null
+          department_id: string | null
+          department_name: string | null
+          description: string | null
+          due_date: string
+          finding_id: string | null
+          follow_up_type: string | null
+          id: string
+          priority: string | null
+          resolution: string | null
+          resolved_date: string | null
+          responsible_name: string | null
+          responsible_party: string | null
+          scheduled_follow_up_date: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          action_required: string
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          description?: string | null
+          due_date: string
+          finding_id?: string | null
+          follow_up_type?: string | null
+          id?: string
+          priority?: string | null
+          resolution?: string | null
+          resolved_date?: string | null
+          responsible_name?: string | null
+          responsible_party?: string | null
+          scheduled_follow_up_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          action_required?: string
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          description?: string | null
+          due_date?: string
+          finding_id?: string | null
+          follow_up_type?: string | null
+          id?: string
+          priority?: string | null
+          resolution?: string | null
+          resolved_date?: string | null
+          responsible_name?: string | null
+          responsible_party?: string | null
+          scheduled_follow_up_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_follow_ups_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "ia_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_follow_ups_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_follow_ups_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_follow_ups_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_follow_ups_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "ia_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_holidays: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          created_by: string | null
+          date: string
+          id: string
+          is_active: boolean | null
+          is_ssb_specific: boolean | null
+          name: string
+          updated_at: string | null
+          updated_by: string | null
+          year: number | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          id?: string
+          is_active?: boolean | null
+          is_ssb_specific?: boolean | null
+          name: string
+          updated_at?: string | null
+          updated_by?: string | null
+          year?: number | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          id?: string
+          is_active?: boolean | null
+          is_ssb_specific?: boolean | null
+          name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
+      ia_leave_requests: {
+        Row: {
+          approver_id: string | null
+          attachment_url: string | null
+          auditor_id: string
+          created_at: string | null
+          created_by: string | null
+          decided_date: string | null
+          decision_note: string | null
+          end_date: string
+          id: string
+          leave_type: string
+          reason: string | null
+          request_id: string
+          start_date: string
+          status: string | null
+          submitted_date: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approver_id?: string | null
+          attachment_url?: string | null
+          auditor_id: string
+          created_at?: string | null
+          created_by?: string | null
+          decided_date?: string | null
+          decision_note?: string | null
+          end_date: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          request_id: string
+          start_date: string
+          status?: string | null
+          submitted_date?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approver_id?: string | null
+          attachment_url?: string | null
+          auditor_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          decided_date?: string | null
+          decision_note?: string | null
+          end_date?: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          request_id?: string
+          start_date?: string
+          status?: string | null
+          submitted_date?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_leave_requests_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "ia_auditors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_leave_requests_auditor_id_fkey"
+            columns: ["auditor_id"]
+            isOneToOne: false
+            referencedRelation: "ia_auditors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_management_responses: {
+        Row: {
+          action_plan: string | null
+          created_at: string | null
+          created_by: string | null
+          due_date: string | null
+          finding_id: string
+          id: string
+          is_overdue: boolean | null
+          last_reminder_date: string | null
+          official_target_date: string | null
+          reminder_sent: boolean | null
+          response_text: string | null
+          responsible_person: string | null
+          status: string | null
+          submitted_by: string | null
+          submitted_date: string | null
+          supporting_docs: string[] | null
+          target_date: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          action_plan?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          finding_id: string
+          id?: string
+          is_overdue?: boolean | null
+          last_reminder_date?: string | null
+          official_target_date?: string | null
+          reminder_sent?: boolean | null
+          response_text?: string | null
+          responsible_person?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          submitted_date?: string | null
+          supporting_docs?: string[] | null
+          target_date?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          action_plan?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          finding_id?: string
+          id?: string
+          is_overdue?: boolean | null
+          last_reminder_date?: string | null
+          official_target_date?: string | null
+          reminder_sent?: boolean | null
+          response_text?: string | null
+          responsible_person?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          submitted_date?: string | null
+          supporting_docs?: string[] | null
+          target_date?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_management_responses_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "ia_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_recommendations: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          finding_id: string
+          id: string
+          official_target_date: string | null
+          priority: string | null
+          recommendation_text: string
+          responsible_party: string | null
+          status: string | null
+          suggested_target_date: string | null
+          target_date_set_by: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          finding_id: string
+          id?: string
+          official_target_date?: string | null
+          priority?: string | null
+          recommendation_text: string
+          responsible_party?: string | null
+          status?: string | null
+          suggested_target_date?: string | null
+          target_date_set_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          finding_id?: string
+          id?: string
+          official_target_date?: string | null
+          priority?: string | null
+          recommendation_text?: string
+          responsible_party?: string | null
+          status?: string | null
+          suggested_target_date?: string | null
+          target_date_set_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_recommendations_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "ia_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_working_papers: {
+        Row: {
+          activity_id: string | null
+          annual_plan_id: string | null
+          approved_by: string | null
+          approved_date: string | null
+          audit_area: string | null
+          conclusion: string | null
+          created_at: string | null
+          created_by: string | null
+          department_audit_id: string | null
+          description: string | null
+          evidence_ids: string[] | null
+          id: string
+          linked_finding_ids: string[] | null
+          objective: string | null
+          observations: string | null
+          prepared_by: string | null
+          prepared_date: string | null
+          procedure: string | null
+          results: string | null
+          reviewed_by: string | null
+          reviewed_date: string | null
+          status: string | null
+          tags: string[] | null
+          test_performed: string | null
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          version: number | null
+          working_paper_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          approved_by?: string | null
+          approved_date?: string | null
+          audit_area?: string | null
+          conclusion?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          description?: string | null
+          evidence_ids?: string[] | null
+          id?: string
+          linked_finding_ids?: string[] | null
+          objective?: string | null
+          observations?: string | null
+          prepared_by?: string | null
+          prepared_date?: string | null
+          procedure?: string | null
+          results?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          status?: string | null
+          tags?: string[] | null
+          test_performed?: string | null
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+          working_paper_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          annual_plan_id?: string | null
+          approved_by?: string | null
+          approved_date?: string | null
+          audit_area?: string | null
+          conclusion?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_audit_id?: string | null
+          description?: string | null
+          evidence_ids?: string[] | null
+          id?: string
+          linked_finding_ids?: string[] | null
+          objective?: string | null
+          observations?: string | null
+          prepared_by?: string | null
+          prepared_date?: string | null
+          procedure?: string | null
+          results?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          status?: string | null
+          tags?: string[] | null
+          test_performed?: string | null
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+          working_paper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_working_papers_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "ia_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_working_papers_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_working_papers_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       in_app_notifications: {
         Row: {
           body: string
