@@ -116,7 +116,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   {
     moduleKey: 'plans',
     label: 'Audit Plans',
-    path: '/audit/plans',
+    path: '/audit/audit-plans',
     permission: 'create_audit_plans',
     enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLANS,
     category: 'planning',
@@ -125,7 +125,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   {
     moduleKey: 'plan-approval',
     label: 'Plan Approval',
-    path: '/audit/approvals',
+    path: '/audit/plan-approval',
     permission: 'approve_audit_plans',
     enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLAN_APPROVAL,
     category: 'planning',
@@ -144,7 +144,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   {
     moduleKey: 'activity-workbench',
     label: 'Activity Workbench',
-    path: '/audit/workbench',
+    path: '/audit/activity-workbench',
     permission: 'execute_audit_activities',
     enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ACTIVITY_WORKBENCH,
     category: 'execution',
@@ -199,7 +199,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   {
     moduleKey: 'followup-tracker',
     label: 'Follow-Up Tracker',
-    path: '/audit/followups',
+    path: '/audit/follow-up-tracker',
     permission: 'manage_audit_followups',
     enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_FOLLOWUP_TRACKER,
     category: 'followup',
@@ -208,7 +208,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   {
     moduleKey: 'plan-closeout',
     label: 'Plan Closeout',
-    path: '/audit/closeout',
+    path: '/audit/plan-closeout',
     permission: 'approve_audit_closeouts',
     enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLAN_CLOSEOUT,
     category: 'followup',
@@ -218,7 +218,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   {
     moduleKey: 'reports',
     label: 'Audit Reports',
-    path: '/audit/reports',
+    path: '/audit/audit-reports',
     permission: 'generate_reports',
     enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_REPORTS,
     category: 'reports',

@@ -1,129 +1,169 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Eye, Edit, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
-import { Label } from '@/components/ui/label';
-import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartments } from '@/hooks/useAuditData';
+import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations, useIADepartments } from '@/hooks/useAuditData';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function AuditPlansNew() {
   const { hasPermission } = useAuth();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', fiscalYear: 'all' });
-  const [isCreatePlanOpen, setIsCreatePlanOpen] = useState(false);
-  const [isDeptAuditOpen, setIsDeptAuditOpen] = useState(false);
-  const [selectedAnnualPlan, setSelectedAnnualPlan] = useState<any>(null);
-  const [viewPlan, setViewPlan] = useState<any>(null);
-  const [editPlan, setEditPlan] = useState<any>(null);
-  const [viewDeptAudit, setViewDeptAudit] = useState<any>(null);
-  const [editDeptAudit, setEditDeptAudit] = useState<any>(null);
-  const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', fiscalYear: 'all', departmentId: 'all' });
+
+  const [viewAnnual, setViewAnnual] = useState<any>(null);
+  const [editAnnual, setEditAnnual] = useState<any>(null);
+  const [viewDept, setViewDept] = useState<any>(null);
+  const [editDept, setEditDept] = useState<any>(null);
+
+  const [showCreatePicker, setShowCreatePicker] = useState(false);
+  const [isCreateAnnualOpen, setIsCreateAnnualOpen] = useState(false);
+  const [isCreateDeptPickerOpen, setIsCreateDeptPickerOpen] = useState(false);
+  const [isCreateDeptOpen, setIsCreateDeptOpen] = useState(false);
+  const [selectedAnnualPlanId, setSelectedAnnualPlanId] = useState<string>('');
+
+  const [submitAnnualId, setSubmitAnnualId] = useState<string | null>(null);
+  const [submitDeptId, setSubmitDeptId] = useState<string | null>(null);
 
   const { data: annualPlans = [], isLoading: plansLoading } = useIAAnnualPlans();
   const { data: departmentAudits = [], isLoading: auditsLoading } = useIADepartmentAudits();
   const { data: departments = [] } = useIADepartments();
-  const { update } = useIAAnnualPlanMutations();
+  const { update: updateAnnual } = useIAAnnualPlanMutations();
+  const { update: updateDept } = useIADepartmentAuditMutations();
 
-  const fiscalYears = [...new Set(annualPlans.map((p: any) => p.fiscal_year).filter(Boolean))];
+  const planById = useMemo(
+    () => new Map((annualPlans || []).map((plan: any) => [plan.id, plan])),
+    [annualPlans]
+  );
 
-  const filteredPlans = annualPlans.filter((p: any) => {
-    const matchesSearch = (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filters.status === 'all' || p.status === filters.status;
-    const matchesFY = filters.fiscalYear === 'all' || p.fiscal_year === filters.fiscalYear;
-    return matchesSearch && matchesStatus && matchesFY;
+  const fiscalYears = useMemo(() => {
+    const values = (annualPlans || []).map((p: any) => p.fiscal_year).filter(Boolean);
+    return [...new Set(values)];
+  }, [annualPlans]);
+
+  const normalizedSearch = searchTerm.toLowerCase();
+
+  const filteredAnnualPlans = (annualPlans || []).filter((plan: any) => {
+    const matchesSearch =
+      (plan.title || '').toLowerCase().includes(normalizedSearch) ||
+      (plan.fiscal_year || '').toLowerCase().includes(normalizedSearch) ||
+      (plan.id || '').toLowerCase().includes(normalizedSearch);
+
+    const matchesStatus = filters.status === 'all' || (plan.status || '') === filters.status;
+    const matchesFiscalYear = filters.fiscalYear === 'all' || (plan.fiscal_year || '') === filters.fiscalYear;
+
+    const matchesDepartment =
+      filters.departmentId === 'all' ||
+      (departmentAudits || []).some((audit: any) => audit.plan_id === plan.id && `${audit.department_id || ''}` === filters.departmentId);
+
+    return matchesSearch && matchesStatus && matchesFiscalYear && matchesDepartment;
   });
 
-  const filteredDeptAudits = departmentAudits.filter((a: any) => {
-    const matchesSearch = (a.department_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filters.status === 'all' || a.status === filters.status;
-    return matchesSearch && matchesStatus;
+  const filteredDepartmentAudits = (departmentAudits || []).filter((audit: any) => {
+    const linkedPlan = planById.get(audit.plan_id);
+    const fiscalYear = linkedPlan?.fiscal_year || '';
+
+    const matchesSearch =
+      (audit.department_name || '').toLowerCase().includes(normalizedSearch) ||
+      (audit.period || '').toLowerCase().includes(normalizedSearch) ||
+      (audit.id || '').toLowerCase().includes(normalizedSearch);
+
+    const matchesStatus = filters.status === 'all' || (audit.status || '') === filters.status;
+    const matchesFiscalYear = filters.fiscalYear === 'all' || fiscalYear === filters.fiscalYear;
+    const matchesDepartment = filters.departmentId === 'all' || `${audit.department_id || ''}` === filters.departmentId;
+
+    return matchesSearch && matchesStatus && matchesFiscalYear && matchesDepartment;
   });
 
-  const planColumns: DataTableColumn<any>[] = [
-    { key: 'fiscal_year', header: 'Fiscal Year', render: (r) => <span className="font-medium">{r.fiscal_year}</span> },
-    { key: 'title', header: 'Title' },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
-    { key: 'objective', header: 'Objective', className: 'max-w-xs', render: (r) => <span className="truncate block max-w-xs">{r.objective || '-'}</span> },
-    { key: 'created_at', header: 'Created', render: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
+  const annualColumns: DataTableColumn<any>[] = [
+    { key: 'id', header: 'Plan ID', render: (row) => <span className="font-medium">{(row.id || '').slice(0, 8)}</span> },
+    { key: 'fiscal_year', header: 'Fiscal Year' },
+    { key: 'title', header: 'Plan Name' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Draft'} /> },
+    { key: 'created_at', header: 'Created On', render: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : '-') },
   ];
 
   const deptColumns: DataTableColumn<any>[] = [
-    { key: 'department_name', header: 'Department', render: (r) => <span className="font-medium">{r.department_name || 'N/A'}</span> },
-    { key: 'period', header: 'Period' },
-    { key: 'risk_rating', header: 'Risk', render: (r) => <StatusBadge status={r.risk_rating || 'Medium'} /> },
-    { key: 'lead_auditor_name', header: 'Lead Auditor', render: (r) => r.lead_auditor_name || 'Unassigned' },
-    { key: 'planned_start', header: 'Start', render: (r) => r.planned_start ? new Date(r.planned_start).toLocaleDateString() : 'TBD' },
-    { key: 'planned_end', header: 'End', render: (r) => r.planned_end ? new Date(r.planned_end).toLocaleDateString() : 'TBD' },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Draft'} /> },
+    { key: 'id', header: 'Plan ID', render: (row) => <span className="font-medium">{(row.id || '').slice(0, 8)}</span> },
+    { key: 'department_name', header: 'Department', render: (row) => row.department_name || '-' },
+    { key: 'period', header: 'Period', render: (row) => row.period || '-' },
+    { key: 'fiscal_year', header: 'Fiscal Year', render: (row) => planById.get(row.plan_id)?.fiscal_year || '-' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Draft'} /> },
   ];
 
   const filterFields: FilterField[] = [
-    { key: 'status', label: 'Status', type: 'select', options: [
-      { value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Submitted', label: 'Submitted' },
-      { value: 'Approved', label: 'Approved' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Completed', label: 'Completed' },
-    ]},
-    { key: 'fiscalYear', label: 'Fiscal Year', type: 'select', options: [
-      { value: 'all', label: 'All Years' }, ...fiscalYears.map(y => ({ value: y, label: y })),
-    ]},
+    {
+      key: 'fiscalYear',
+      label: 'Fiscal Year',
+      type: 'select',
+      options: [{ value: 'all', label: 'All Years' }, ...fiscalYears.map((year) => ({ value: year, label: year }))],
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Statuses' },
+        { value: 'Draft', label: 'Draft' },
+        { value: 'Submitted', label: 'Submitted' },
+        { value: 'Approved', label: 'Approved' },
+        { value: 'In Progress', label: 'In Progress' },
+        { value: 'Completed', label: 'Completed' },
+      ],
+    },
+    {
+      key: 'departmentId',
+      label: 'Department',
+      type: 'select',
+      options: [{ value: 'all', label: 'All Departments' }, ...(departments || []).map((d: any) => ({ value: d.id, label: d.name }))],
+    },
   ];
+
+  const resetFilters = () => setFilters({ status: 'all', fiscalYear: 'all', departmentId: 'all' });
 
   return (
     <PageShell
       title="Audit Plans"
-      subtitle="Create and manage annual plans & department audit plans"
+      subtitle="Create and manage annual plans and department audit plans"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Plans' }]}
       isLoading={plansLoading || auditsLoading}
       noPermission={!hasPermission('create_audit_plans')}
-      actions={
-        <div className="flex gap-2">
-          <Button onClick={() => setIsCreatePlanOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Annual Plan</Button>
-        </div>
-      }
+      actions={<Button onClick={() => setShowCreatePicker(true)}><Plus className="w-4 h-4 mr-2" />Add New</Button>}
     >
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search plans..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ status: 'all', fiscalYear: 'all' })} />
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search plan name, id, or department..." />
+            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters((prev) => ({ ...prev, [k]: v }))} onReset={resetFilters} />
           </div>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="annual" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="annual">Annual Plans ({filteredPlans.length})</TabsTrigger>
-          <TabsTrigger value="department">Department Audit Plans ({filteredDeptAudits.length})</TabsTrigger>
+          <TabsTrigger value="annual">Annual Plans ({filteredAnnualPlans.length})</TabsTrigger>
+          <TabsTrigger value="department">Department Audit Plans ({filteredDepartmentAudits.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="annual">
           <Card>
             <CardContent className="pt-6">
               <DataTable
-                columns={planColumns}
-                data={filteredPlans}
+                columns={annualColumns}
+                data={filteredAnnualPlans}
                 emptyMessage="No annual plans found"
                 renderActions={(row) => (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewPlan(row)}><Eye className="h-4 w-4" /></Button>
-                    {row.status === 'Draft' && (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditPlan(row)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSubmitPlanId(row.id)}><Send className="h-4 w-4" /></Button>
-                      </>
-                    )}
-                    {row.status === 'Approved' && (
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedAnnualPlan(row); setIsDeptAuditOpen(true); }}>
-                        <Plus className="w-4 h-4 mr-1" />Dept Audit
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewAnnual(row)}><Eye className="h-4 w-4" /></Button>
+                    {row.status === 'Draft' && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditAnnual(row)}><Edit className="h-4 w-4" /></Button>}
+                    {row.status === 'Draft' && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSubmitAnnualId(row.id)}><Send className="h-4 w-4" /></Button>}
                   </div>
                 )}
               />
@@ -136,14 +176,13 @@ export default function AuditPlansNew() {
             <CardContent className="pt-6">
               <DataTable
                 columns={deptColumns}
-                data={filteredDeptAudits}
+                data={filteredDepartmentAudits}
                 emptyMessage="No department audit plans found"
                 renderActions={(row) => (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewDeptAudit(row)}><Eye className="h-4 w-4" /></Button>
-                    {row.status !== 'Completed' && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditDeptAudit(row)}><Edit className="h-4 w-4" /></Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewDept(row)}><Eye className="h-4 w-4" /></Button>
+                    {(row.status === 'Draft' || row.status === 'Planned') && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditDept(row)}><Edit className="h-4 w-4" /></Button>}
+                    {(row.status === 'Draft' || row.status === 'Planned') && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSubmitDeptId(row.id)}><Send className="h-4 w-4" /></Button>}
                   </div>
                 )}
               />
@@ -152,82 +191,122 @@ export default function AuditPlansNew() {
         </TabsContent>
       </Tabs>
 
-      {/* View Annual Plan */}
-      <EntityModal open={!!viewPlan} onOpenChange={() => setViewPlan(null)} title="Annual Plan Details" mode="view">
-        {viewPlan && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Fiscal Year</Label><p className="font-medium">{viewPlan.fiscal_year}</p></div>
-              <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewPlan.status} /></div></div>
-            </div>
-            <div><Label className="text-muted-foreground">Title</Label><p className="font-medium">{viewPlan.title}</p></div>
-            <div><Label className="text-muted-foreground">Objective</Label><p>{viewPlan.objective || 'N/A'}</p></div>
-            {viewPlan.approval_comments && <div><Label className="text-muted-foreground">Comments</Label><p>{viewPlan.approval_comments}</p></div>}
-          </div>
-        )}
+      <EntityModal open={showCreatePicker} onOpenChange={setShowCreatePicker} title="Create New Plan" mode="view">
+        <div className="space-y-3">
+          <Button className="w-full" onClick={() => { setShowCreatePicker(false); setIsCreateAnnualOpen(true); }}>
+            Create Annual Plan
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => { setShowCreatePicker(false); setIsCreateDeptPickerOpen(true); }}>
+            Create Department Audit Plan
+          </Button>
+        </div>
       </EntityModal>
 
-      {/* View Dept Audit */}
-      <EntityModal open={!!viewDeptAudit} onOpenChange={() => setViewDeptAudit(null)} title="Department Audit Details" mode="view">
-        {viewDeptAudit && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Department</Label><p className="font-medium">{viewDeptAudit.department_name}</p></div>
-              <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewDeptAudit.status || 'Draft'} /></div></div>
-              <div><Label className="text-muted-foreground">Period</Label><p>{viewDeptAudit.period || 'N/A'}</p></div>
-              <div><Label className="text-muted-foreground">Risk</Label><div className="mt-1"><StatusBadge status={viewDeptAudit.risk_rating || 'Medium'} /></div></div>
-              <div><Label className="text-muted-foreground">Lead Auditor</Label><p>{viewDeptAudit.lead_auditor_name || 'Unassigned'}</p></div>
-            </div>
-          </div>
-        )}
-      </EntityModal>
-
-      {/* Create Annual Plan */}
-      <Dialog open={isCreatePlanOpen} onOpenChange={setIsCreatePlanOpen}>
+      <Dialog open={isCreateAnnualOpen} onOpenChange={setIsCreateAnnualOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Create Annual Audit Plan</DialogTitle></DialogHeader>
-          <AnnualPlanForm onClose={() => setIsCreatePlanOpen(false)} />
+          <DialogHeader><DialogTitle>Create Annual Plan</DialogTitle></DialogHeader>
+          <AnnualPlanForm onClose={() => setIsCreateAnnualOpen(false)} />
         </DialogContent>
       </Dialog>
 
-      {/* Edit Annual Plan */}
-      {editPlan && (
-        <Dialog open={!!editPlan} onOpenChange={() => setEditPlan(null)}>
+      <EntityModal
+        open={isCreateDeptPickerOpen}
+        onOpenChange={setIsCreateDeptPickerOpen}
+        title="Select Annual Plan"
+        mode="edit"
+        saveLabel="Continue"
+        onSave={() => {
+          if (!selectedAnnualPlanId) return;
+          setIsCreateDeptPickerOpen(false);
+          setIsCreateDeptOpen(true);
+        }}
+      >
+        <div className="space-y-2">
+          <Label>Annual Plan</Label>
+          <Select value={selectedAnnualPlanId} onValueChange={setSelectedAnnualPlanId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select annual plan" />
+            </SelectTrigger>
+            <SelectContent>
+              {(annualPlans || []).map((plan: any) => (
+                <SelectItem key={plan.id} value={plan.id}>{plan.fiscal_year} - {plan.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </EntityModal>
+
+      <Dialog open={isCreateDeptOpen} onOpenChange={setIsCreateDeptOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Create Department Audit Plan</DialogTitle></DialogHeader>
+          {selectedAnnualPlanId && <DepartmentAuditForm annualPlanId={selectedAnnualPlanId} onClose={() => setIsCreateDeptOpen(false)} />}
+        </DialogContent>
+      </Dialog>
+
+      {editAnnual && (
+        <Dialog open={!!editAnnual} onOpenChange={() => setEditAnnual(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit Annual Audit Plan</DialogTitle></DialogHeader>
-            <AnnualPlanForm plan={editPlan} onClose={() => setEditPlan(null)} />
+            <DialogHeader><DialogTitle>Edit Annual Plan</DialogTitle></DialogHeader>
+            <AnnualPlanForm plan={editAnnual} onClose={() => setEditAnnual(null)} />
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Add Dept Audit */}
-      {isDeptAuditOpen && selectedAnnualPlan && (
-        <Dialog open={isDeptAuditOpen} onOpenChange={setIsDeptAuditOpen}>
+      {editDept && (
+        <Dialog open={!!editDept} onOpenChange={() => setEditDept(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Add Department Audit to {selectedAnnualPlan.fiscal_year}</DialogTitle></DialogHeader>
-            <DepartmentAuditForm annualPlanId={selectedAnnualPlan.id} onClose={() => setIsDeptAuditOpen(false)} />
+            <DialogHeader><DialogTitle>Edit Department Audit Plan</DialogTitle></DialogHeader>
+            <DepartmentAuditForm annualPlanId={editDept.plan_id} departmentAudit={editDept} onClose={() => setEditDept(null)} />
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Edit Dept Audit */}
-      {editDeptAudit && (
-        <Dialog open={!!editDeptAudit} onOpenChange={() => setEditDeptAudit(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit Department Audit</DialogTitle></DialogHeader>
-            <DepartmentAuditForm annualPlanId={editDeptAudit.plan_id} onClose={() => setEditDeptAudit(null)} />
-          </DialogContent>
-        </Dialog>
-      )}
+      <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view">
+        {viewAnnual && (
+          <div className="space-y-3">
+            <p><strong>Fiscal Year:</strong> {viewAnnual.fiscal_year || '-'}</p>
+            <p><strong>Plan Name:</strong> {viewAnnual.title || '-'}</p>
+            <p><strong>Status:</strong> <StatusBadge status={viewAnnual.status || 'Draft'} /></p>
+            <p><strong>Objective:</strong> {viewAnnual.objective || '-'}</p>
+          </div>
+        )}
+      </EntityModal>
 
-      {/* Submit Confirm */}
+      <EntityModal open={!!viewDept} onOpenChange={() => setViewDept(null)} title="Department Audit Plan Details" mode="view">
+        {viewDept && (
+          <div className="space-y-3">
+            <p><strong>Department:</strong> {viewDept.department_name || '-'}</p>
+            <p><strong>Period:</strong> {viewDept.period || '-'}</p>
+            <p><strong>Fiscal Year:</strong> {planById.get(viewDept.plan_id)?.fiscal_year || '-'}</p>
+            <p><strong>Status:</strong> <StatusBadge status={viewDept.status || 'Draft'} /></p>
+          </div>
+        )}
+      </EntityModal>
+
       <ConfirmDialog
-        open={submitPlanId !== null}
-        onOpenChange={() => setSubmitPlanId(null)}
-        title="Submit Plan for Approval"
-        description="This plan will be sent to the approval queue. Continue?"
+        open={submitAnnualId !== null}
+        onOpenChange={() => setSubmitAnnualId(null)}
+        title="Submit Annual Plan"
+        description="This annual plan will be moved to the approval queue. Continue?"
         confirmLabel="Submit"
-        onConfirm={() => { if (submitPlanId) { update.mutate({ id: submitPlanId, status: 'Submitted', submitted_date: new Date().toISOString() }); setSubmitPlanId(null); } }}
+        onConfirm={() => {
+          if (!submitAnnualId) return;
+          updateAnnual.mutate({ id: submitAnnualId, status: 'Submitted', submitted_date: new Date().toISOString() });
+          setSubmitAnnualId(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={submitDeptId !== null}
+        onOpenChange={() => setSubmitDeptId(null)}
+        title="Submit Department Audit Plan"
+        description="This department audit plan will be moved to the approval queue. Continue?"
+        confirmLabel="Submit"
+        onConfirm={() => {
+          if (!submitDeptId) return;
+          updateDept.mutate({ id: submitDeptId, status: 'Submitted', submitted_date: new Date().toISOString() });
+          setSubmitDeptId(null);
+        }}
       />
     </PageShell>
   );

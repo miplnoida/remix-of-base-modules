@@ -54,14 +54,14 @@ export const auditMenuItems = [
       // Audit Planning
       {
         title: "Audit Plans",
-        url: "/audit/plans",
+        url: "/audit/audit-plans",
         icon: FileText,
         requiresPermission: "create_audit_plans",
         description: "Create and manage audit plans"
       },
       {
         title: "Plan Approval",
-        url: "/audit/approvals",
+        url: "/audit/plan-approval",
         icon: CheckSquare,
         requiresPermission: "approve_audit_plans",
         description: "Approve or reject audit plans"
@@ -76,7 +76,7 @@ export const auditMenuItems = [
       },
       {
         title: "Activity Workbench",
-        url: "/audit/workbench",
+        url: "/audit/activity-workbench",
         icon: Clipboard,
         requiresPermission: "execute_audit_activities",
         description: "Execute audit activities and enter findings"
@@ -119,14 +119,14 @@ export const auditMenuItems = [
       },
       {
         title: "Follow-Up Tracker",
-        url: "/audit/followups",
+        url: "/audit/follow-up-tracker",
         icon: AlertCircle,
         requiresPermission: "manage_audit_followups",
         description: "Track corrective actions and follow-ups"
       },
       {
         title: "Plan Closeout",
-        url: "/audit/closeout",
+        url: "/audit/plan-closeout",
         icon: CheckSquare,
         requiresPermission: "approve_audit_closeouts",
         description: "Review and approve plan closeouts"
@@ -134,7 +134,7 @@ export const auditMenuItems = [
       // Reports & Communications
       {
         title: "Audit Reports",
-        url: "/audit/reports",
+        url: "/audit/audit-reports",
         icon: BarChart3,
         requiresPermission: "generate_reports",
         description: "Generate audit reports and analytics"

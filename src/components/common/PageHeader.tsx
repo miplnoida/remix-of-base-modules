@@ -25,7 +25,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center text-sm text-muted-foreground">
           {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={index}>
+            <span key={index} className="inline-flex items-center">
               {index > 0 && <ChevronRight className="h-4 w-4 mx-1" />}
               {crumb.href ? (
                 <Link to={crumb.href} className="hover:text-foreground transition-colors">
@@ -34,7 +34,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               ) : (
                 <span className="text-foreground">{crumb.label}</span>
               )}
-            </React.Fragment>
+            </span>
           ))}
         </nav>
       )}
