@@ -427,9 +427,10 @@ export default function StartMeetingPage() {
                     if (docVerificationRef.current) {
                       const mismatches = docVerificationRef.current.validateDocTypeMismatch();
                       if (mismatches.length > 0) {
+                        const details = mismatches.map(m => `${m.categoryLabel}: "${m.selectedType}" ≠ "${m.documentType}"`).join('; ');
                         toast.error(
-                          `Cannot accept: ${mismatches.length} document type mismatch(es) found. Please check the Documents tab.`,
-                          { duration: 6000 }
+                          `Cannot accept: ${mismatches.length} document type mismatch(es) found.`,
+                          { description: details, duration: 8000 }
                         );
                         return;
                       }
