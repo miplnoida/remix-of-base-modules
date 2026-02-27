@@ -1,30 +1,34 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, FileText, Upload, Save } from 'lucide-react';
+import { Upload, Save, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIAActivities, useIAActivityMutations, useIADepartments } from '@/hooks/useAuditData';
+import { useIAActivities, useIAActivityMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
+import { PageShell, SearchBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn } from '@/components/common';
 import { Link } from 'react-router-dom';
 
 export default function ActivityWorkbench() {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [findings, setFindings] = useState({ observations: '', findings: '', complianceStatus: '', monetaryVariance: 0, recommendation: '', followUpRequired: false });
 
   const { data: activities = [], isLoading } = useIAActivities();
-  const { data: departments = [] } = useIADepartments();
   const { update } = useIAActivityMutations();
 
   const myActivities = activities.filter((a: any) => hasPermission('view_audit_assignments'));
+  const filteredActivities = myActivities.filter((a: any) =>
+    (a.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (a.activity_type || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleStartActivity = (activity: any) => {
     setSelectedActivity(activity);
@@ -44,46 +48,51 @@ export default function ActivityWorkbench() {
     update.mutate({ id: selectedActivity.id, status: 'Completed', observations: findings.observations, findings_text: findings.findings, compliance_status: findings.complianceStatus, monetary_variance: findings.monetaryVariance, recommendation: findings.recommendation }, { onSuccess: () => setSelectedActivity(null) });
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = { 'Planned': 'bg-blue-500', 'In Progress': 'bg-orange-600', 'Completed': 'bg-green-500' };
-    return <Badge className={colors[status] || 'bg-gray-500'}>{status}</Badge>;
-  };
-
-  if (!hasPermission('execute_audit_activities')) return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground">You don't have permission to execute audit activities.</p></div>;
-  if (isLoading) return <div className="p-6">Loading...</div>;
+  const columns: DataTableColumn<any>[] = [
+    { key: 'title', header: 'Activity', render: (a) => (
+      <div><div className="font-medium">{a.title}</div><div className="text-sm text-muted-foreground">{a.activity_type}</div></div>
+    )},
+    { key: 'activity_type', header: 'Type' },
+    { key: 'scheduled_date', header: 'Date', render: (a) => a.scheduled_date ? new Date(a.scheduled_date).toLocaleDateString() : '-' },
+    { key: 'status', header: 'Status', render: (a) => <StatusBadge status={a.status} /> },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Activity Workbench</h1>
-        <p className="text-muted-foreground">Execute audit activities and enter findings | <Link to="/audit/calendar" className="text-blue-600 hover:underline ml-1">View Calendar</Link></p>
-      </div>
-
+    <PageShell
+      title="Activity Workbench"
+      subtitle="Execute audit activities and enter findings"
+      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Activity Workbench' }]}
+      isLoading={isLoading}
+      noPermission={!hasPermission('execute_audit_activities')}
+    >
       {!selectedActivity ? (
-        <Card>
-          <CardHeader><CardTitle>My Activities</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Activity</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {myActivities.map((activity: any) => (
-                  <TableRow key={activity.id}>
-                    <TableCell><div><div className="font-medium">{activity.title}</div><div className="text-sm text-muted-foreground">{activity.activity_type}</div></div></TableCell>
-                    <TableCell>{activity.activity_type || '-'}</TableCell>
-                    <TableCell>{activity.scheduled_date ? new Date(activity.scheduled_date).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>{getStatusBadge(activity.status)}</TableCell>
-                    <TableCell><Button variant="outline" size="sm" onClick={() => handleStartActivity(activity)}>{activity.status === 'Completed' ? 'View' : 'Start'}</Button></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardContent className="pt-6">
+              <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search activities..." />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>My Activities ({filteredActivities.length})</CardTitle></CardHeader>
+            <CardContent>
+              <DataTable
+                columns={columns}
+                data={filteredActivities}
+                emptyMessage="No activities assigned"
+                renderActions={(activity) => (
+                  <Button variant="outline" size="sm" onClick={() => handleStartActivity(activity)}>
+                    {activity.status === 'Completed' ? 'View' : 'Start'}
+                  </Button>
+                )}
+              />
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <Card>
           <CardHeader>
             <CardTitle>{selectedActivity.title}</CardTitle>
-            <Button variant="outline" onClick={() => setSelectedActivity(null)} className="w-fit">Back to Activities</Button>
+            <Button variant="outline" onClick={() => setSelectedActivity(null)} className="w-fit">← Back to Activities</Button>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="findings">
@@ -94,10 +103,17 @@ export default function ActivityWorkbench() {
                     <Label>Compliance Status</Label>
                     <Select value={findings.complianceStatus} onValueChange={(v) => setFindings({...findings, complianceStatus: v})}>
                       <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                      <SelectContent><SelectItem value="Compliant">Compliant</SelectItem><SelectItem value="Partially Compliant">Partially Compliant</SelectItem><SelectItem value="Non-Compliant">Non-Compliant</SelectItem></SelectContent>
+                      <SelectContent>
+                        <SelectItem value="Compliant">Compliant</SelectItem>
+                        <SelectItem value="Partially Compliant">Partially Compliant</SelectItem>
+                        <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Monetary Variance ($)</Label><Input type="number" value={findings.monetaryVariance} onChange={(e) => setFindings({...findings, monetaryVariance: Number(e.target.value)})} /></div>
+                  <div className="space-y-2">
+                    <Label>Monetary Variance ($)</Label>
+                    <Input type="number" value={findings.monetaryVariance} onChange={(e) => setFindings({...findings, monetaryVariance: Number(e.target.value)})} />
+                  </div>
                 </div>
                 <div className="space-y-2"><Label>Observations</Label><Textarea value={findings.observations} onChange={(e) => setFindings({...findings, observations: e.target.value})} placeholder="Enter observations..." className="min-h-[100px]" /></div>
                 <div className="space-y-2"><Label>Findings</Label><Textarea value={findings.findings} onChange={(e) => setFindings({...findings, findings: e.target.value})} placeholder="Enter findings..." className="min-h-[100px]" /></div>
@@ -118,6 +134,6 @@ export default function ActivityWorkbench() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }
