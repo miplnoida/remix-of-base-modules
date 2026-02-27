@@ -251,7 +251,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         severancePenalty: 0,
         fines: 0,
         totalLateCharges: 0,
-        daysLate: 0
+        daysLate: 0,
+        monthsLate: 0
       };
     }
     
@@ -272,7 +273,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       severancePenalty: totals.severancePenalty,
       fines: totals.ssFine,
       totalLateCharges: totals.totalLateCharges,
-      daysLate: totals.daysLate
+      daysLate: totals.daysLate,
+      monthsLate: totals.monthsLate || 0
     };
   }, [calculationResult]);
 
@@ -881,8 +883,10 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
           severancePenalty: overall.severancePenalty,
           ssFines: overall.fines,
           daysLate: overall.daysLate,
+          monthsLate: overall.monthsLate,
           totalLateCharges: overall.totalLateCharges
         }}
+        allEmployees={employees}
       />
     </div>
   );
