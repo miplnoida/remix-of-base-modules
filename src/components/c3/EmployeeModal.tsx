@@ -119,6 +119,9 @@ export default function EmployeeModal({
   const [isPenaltyCalculating, setIsPenaltyCalculating] = useState(false);
   const penaltyDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Server-authoritative per-employee calculation from RPC (includes bonus policy)
+  const [serverEmployeeCalc, setServerEmployeeCalc] = useState<any>(null);
+
   // The effective penalty data: use live recalculated in Edit mode, otherwise prop
   const effectivePenalty = useMemo(() => {
     if (!isViewMode && livePenalty) return livePenalty;
@@ -198,8 +201,26 @@ export default function EmployeeModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveWagesKey, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, periodYear, periodMonth, isOpen]);
 
-  // Use server-authoritative result when bonus is present, otherwise client calc
+  // Use server-authoritative result: prefer RPC per-employee calc (includes bonus policy + penalties consistency),
+  // then edge function result for quick preview, then client calc as fallback
   const payrollCalc = useMemo(() => {
+    if (serverEmployeeCalc) {
+      return {
+        ...clientPayrollCalc,
+        totalWages: serverEmployeeCalc.totalWages,
+        taxableWages: serverEmployeeCalc.taxableWages,
+        employeeSS: serverEmployeeCalc.employeeSS,
+        employeeLevy: serverEmployeeCalc.employeeLevy,
+        employerSS: serverEmployeeCalc.employerSS ?? serverEmployeeCalc.employerSSTotal,
+        employerEIB: serverEmployeeCalc.employerEIB,
+        employerSSTotal: serverEmployeeCalc.employerSSTotal,
+        employerLevy: serverEmployeeCalc.employerLevy,
+        employerSeverance: serverEmployeeCalc.employerSeverance,
+        isAgeExemptSS: serverEmployeeCalc.isAgeExemptSS,
+        isAgeExemptLevy: serverEmployeeCalc.isAgeExemptLevy,
+        periodGross: serverEmployeeCalc.periodGross,
+      };
+    }
     if (bonusPolicyResult && (effectiveWages[5] || 0) > 0) {
       return {
         ...clientPayrollCalc,
@@ -218,7 +239,7 @@ export default function EmployeeModal({
       };
     }
     return clientPayrollCalc;
-  }, [clientPayrollCalc, bonusPolicyResult, effectiveWages]);
+  }, [serverEmployeeCalc, clientPayrollCalc, bonusPolicyResult, effectiveWages]);
 
   // Debounced server-side penalty recalculation when wages change in Edit mode
   // Uses ALL employees (substituting the current one's wages) for correct C3-level penalties
@@ -234,6 +255,7 @@ export default function EmployeeModal({
 
     penaltyDebounceRef.current = setTimeout(async () => {
       setIsPenaltyCalculating(true);
+      setServerEmployeeCalc(null); // Clear stale values while recalculating
       try {
         // Build the current employee's data with live wages
         const currentEmpData = {
@@ -300,6 +322,14 @@ export default function EmployeeModal({
               monthsLate: result.totals.monthsLate || 0,
               totalLateCharges: result.totals.totalLateCharges || 0
             });
+            // Extract current employee's per-employee calc from RPC for consistent display
+            if (result.employees && Array.isArray(result.employees)) {
+              const matchSsn = localEmployee.ssn || '000000';
+              const empCalc = result.employees.find((e: any) => e.ssn === matchSsn);
+              if (empCalc) {
+                setServerEmployeeCalc(empCalc);
+              }
+            }
           }
         }
       } catch (err) {
@@ -338,6 +368,7 @@ export default function EmployeeModal({
       setSsnError('');
       setWageInputValues(safeWages.map(w => w === 0 ? '' : String(w)));
       setLivePenalty(null);
+      setServerEmployeeCalc(null);
       autoFillAppliedRef.current = true; // Existing data = don't auto-fill
     } else {
       setLocalEmployee({
@@ -365,6 +396,7 @@ export default function EmployeeModal({
       setDefaultPayPeriodFetched(false);
       setWageInputValues(['', '', '', '', '', '', '']);
       setLivePenalty(null);
+      setServerEmployeeCalc(null);
       autoFillAppliedRef.current = false;
     }
     setHolidayDateError('');
