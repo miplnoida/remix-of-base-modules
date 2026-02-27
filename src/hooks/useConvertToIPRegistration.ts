@@ -205,6 +205,18 @@ export function useConvertToIPRegistration() {
       const dependantsJson = buildDependantsJson(app.dependants, validRelationCodes, userCode);
 
       // ── Step 5: Call the single atomic RPC — everything runs in ONE transaction ──
+      const resolvedAppRefNumber = app.referenceNumber || app.id || (app as any).applicationId || null;
+      console.log('[useConvertToIPRegistration] Resolved application_ref_number:', {
+        referenceNumber: app.referenceNumber,
+        id: app.id,
+        applicationId: (app as any).applicationId,
+        resolved: resolvedAppRefNumber,
+      });
+
+      if (!resolvedAppRefNumber) {
+        throw new Error('VALIDATION_FAILED: Cannot determine application reference number from referenceNumber, id, or applicationId');
+      }
+
       const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)(
         'convert_application_atomic',
         {
@@ -272,7 +284,7 @@ export function useConvertToIPRegistration() {
           p_created_by:            userId || null,
           p_photo_location:        trim(app.photoUrl, 255),
           p_remarks:               app.remarks || null,
-          p_application_ref_number: app.referenceNumber || null,
+          p_application_ref_number: resolvedAppRefNumber,
           p_dependants:            dependantsJson,
           p_documents:             (app.documents || []).map(doc => ({
             id:           doc.id || null,
