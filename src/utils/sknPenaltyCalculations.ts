@@ -16,14 +16,22 @@ export interface PenaltyInputs {
   dueDate: Date;                 // Last-due-date is last-date of next month of selected Period
   paymentDate: Date | null;      // Date-received - actual remittance date
   today: Date;                   // System date (used if paymentDate is null)
+  // Penalty rates (from config, defaults match SKN policy)
+  levyPenaltyInitialRate?: number;      // default 0.10
+  levyPenaltySubsequentRate?: number;   // default 0.01
+  severancePenaltyInitialRate?: number; // default 0.10
+  severancePenaltySubsequentRate?: number; // default 0.01
+  ssFineInitialRate?: number;           // default 0.05
+  ssFineSubsequentRate?: number;        // default 0.05
 }
 
 export interface PenaltyResult {
   // Derived values
   effectivePaymentDate: Date;
   daysLate: number;
-  additional30DayPeriods: number;
-  monthsLateForSS: number;
+  monthsLateCalendar: number;      // Calendar months between submission month and due month
+  additional30DayPeriods: number;   // Legacy, kept for display
+  monthsLateForSS: number;         // Legacy, kept for display
   
   // Calculated penalties
   levyPenalty: number;
@@ -68,71 +76,75 @@ export function calculatePenalties(inputs: PenaltyInputs): PenaltyResult {
     employerSSDue,
     dueDate,
     paymentDate,
-    today
+    today,
+    levyPenaltyInitialRate = 0.10,
+    levyPenaltySubsequentRate = 0.01,
+    severancePenaltyInitialRate = 0.10,
+    severancePenaltySubsequentRate = 0.01,
+    ssFineInitialRate = 0.05,
+    ssFineSubsequentRate = 0.05
   } = inputs;
 
-  // Corrected base amounts:
-  // Levy penalty base = employee_levy + employer_levy ONLY (severance excluded - it has its own penalty)
+  // Base amounts
   const levyPenaltyBase = (employeeLevyDue || 0) + (employerLevyDue || 0);
-  // Severance penalty base = severance only
   const severancePenaltyBase = severanceAmountDue || 0;
-  // SS fine base = employee_ss + employer_ss (employer_ss includes EIB)
   const ssFineBase = (employeeSSDue || 0) + (employerSSDue || 0);
 
   // 1. Effective Payment Date
   const effectivePaymentDate = paymentDate || today;
 
-  // 2. Days Late
+  // 2. Days Late (kept for display)
   const timeDiff = effectivePaymentDate.getTime() - dueDate.getTime();
   const daysLate = Math.max(0, Math.floor(timeDiff / (1000 * 60 * 60 * 24)));
 
-  // 3. Additional 30-day periods after first 30 days
-  // If DaysLate <= 30 => 0
-  // Else ceil((DaysLate - 30) / 30)
+  // 3. Legacy 30-day periods (kept for display compatibility)
   let additional30DayPeriods = 0;
   if (daysLate > 30) {
     additional30DayPeriods = Math.ceil((daysLate - 30) / 30);
   }
-
-  // 4. Months late for SS (each 30-day period or part thereof)
-  // MonthsLateForSS = ceil(DaysLate / 30)
   const monthsLateForSS = daysLate > 0 ? Math.ceil(daysLate / 30) : 0;
 
-  // A) Levy Penalty: base = employee_levy + employer_levy ONLY (severance excluded)
-  // 10% + 1% for each additional 30-day period after first 30 days
+  // 4. Calendar-month-based lateness (used for penalty calculation)
+  // Compare submission month to due month
+  const dueYear = dueDate.getFullYear();
+  const dueMonth = dueDate.getMonth(); // 0-indexed
+  const recYear = effectivePaymentDate.getFullYear();
+  const recMonth = effectivePaymentDate.getMonth();
+  const monthsLateCalendar = Math.max(0, (recYear * 12 + recMonth) - (dueYear * 12 + dueMonth));
+
+  // A) Levy Penalty: initial rate for first late month, subsequent rate per additional month
   let levyPenalty = 0;
-  if (levyPenaltyBase > 0 && daysLate > 0) {
+  if (levyPenaltyBase > 0 && monthsLateCalendar > 0) {
     levyPenalty = round2(
-      levyPenaltyBase * 0.10 + 
-      levyPenaltyBase * 0.01 * additional30DayPeriods
+      levyPenaltyBase * levyPenaltyInitialRate +
+      levyPenaltyBase * levyPenaltySubsequentRate * Math.max(monthsLateCalendar - 1, 0)
     );
   }
 
-  // B) Severance Penalty: base = severance only
-  // Same structure as Levy: 10% + 1% for each additional 30-day period
+  // B) Severance Penalty: same timeline, severance-specific rates
   let severancePenalty = 0;
-  if (severancePenaltyBase > 0 && daysLate > 0) {
+  if (severancePenaltyBase > 0 && monthsLateCalendar > 0) {
     severancePenalty = round2(
-      severancePenaltyBase * 0.10 + 
-      severancePenaltyBase * 0.01 * additional30DayPeriods
+      severancePenaltyBase * severancePenaltyInitialRate +
+      severancePenaltyBase * severancePenaltySubsequentRate * Math.max(monthsLateCalendar - 1, 0)
     );
   }
 
-  // C) Social Security Fine: base = employee_ss + employer_ss (includes EIB)
-  // 5% of unpaid amount for each month or part of a month
+  // C) Social Security Fine: same timeline, SS-specific rates
   let socialSecurityFine = 0;
-  if (ssFineBase > 0 && daysLate > 0) {
+  if (ssFineBase > 0 && monthsLateCalendar > 0) {
     socialSecurityFine = round2(
-      ssFineBase * 0.05 * monthsLateForSS
+      ssFineBase * ssFineInitialRate +
+      ssFineBase * ssFineSubsequentRate * Math.max(monthsLateCalendar - 1, 0)
     );
   }
 
-  // Total Late Charges
   const totalLateCharges = round2(levyPenalty + severancePenalty + socialSecurityFine);
 
   return {
     effectivePaymentDate,
     daysLate,
+    monthsLateCalendar,
     additional30DayPeriods,
     monthsLateForSS,
     levyPenalty,
