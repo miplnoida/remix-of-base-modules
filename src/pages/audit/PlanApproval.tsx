@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations } from '@/hooks/useAuditData';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function PlanApproval() {
-  const { hasPermission } = useAuth();
+  
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ planType: 'all', fiscalYear: 'all' });
@@ -124,7 +124,7 @@ export default function PlanApproval() {
       subtitle="Review submitted plans and execute approval workflow"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Approval' }]}
       isLoading={annualLoading || deptLoading}
-      noPermission={!hasPermission('approve_audit_plans')}
+      
     >
       <Card>
         <CardContent className="pt-6">

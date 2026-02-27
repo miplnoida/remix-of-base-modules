@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Eye, Download, FileText, RefreshCw, Share2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
@@ -17,7 +17,7 @@ const REPORT_TYPES = [
 ];
 
 export default function AuditReports() {
-  const { hasPermission } = useAuth();
+  
   const { toast } = useToast();
 
   const { data: departments = [] } = useIADepartments();
@@ -139,7 +139,7 @@ export default function AuditReports() {
       title="Audit Reports"
       subtitle="Generate, preview, and download reports"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Reports' }]}
-      noPermission={!hasPermission('generate_reports')}
+      
       actions={
         <Button
           variant="outline"

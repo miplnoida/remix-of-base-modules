@@ -109,7 +109,7 @@ export default function ActivityWorkbench() {
       subtitle="Execute audit activities"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Activity Workbench' }]}
       isLoading={isLoading}
-      noPermission={!hasPermission('execute_audit_activities')}
+      
     >
       <Card>
         <CardContent className="pt-6">
@@ -171,7 +171,7 @@ export default function ActivityWorkbench() {
                   </Button>
                 )}
 
-                {(activity.status === 'Draft' || activity.status === 'Planned') && hasPermission('execute_audit_activities') && (
+                {(activity.status === 'Draft' || activity.status === 'Planned') && (
                   <Button size="sm" variant="outline" onClick={() => setEditActivity(activity)}>
                     <Edit className="w-4 h-4 mr-1" />Edit
                   </Button>

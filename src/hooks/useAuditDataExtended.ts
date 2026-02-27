@@ -44,7 +44,7 @@ export function useIAActivities(filters?: { department_audit_id?: string; audito
   return useQuery({
     queryKey: ['ia_activities', filters],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_activities').select('*').order('scheduled_date', { ascending: true });
+      const { data, error } = await supabase.from('ia_activities').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       let result = data ?? [];
       if (filters?.department_audit_id) result = result.filter((r: any) => r.department_audit_id === filters.department_audit_id);
