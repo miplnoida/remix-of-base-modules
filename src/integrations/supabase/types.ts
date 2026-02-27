@@ -12964,8 +12964,6 @@ export type Database = {
       get_c3_config_for_period: {
         Args: { p_period_date: string }
         Returns: {
-          bonus_exempt_from_levy: boolean
-          bonus_levy_rate: number
           config_period_id: string
           employee_ss_max_wage: number
           employee_ss_rate: number
@@ -12975,11 +12973,6 @@ export type Database = {
           employer_ss_max_wage: number
           employer_ss_rate: number
           end_date: string
-          interest_rate_fines: number
-          interest_rate_levy_principal: number
-          interest_rate_penalties: number
-          interest_rate_severance_principal: number
-          interest_rate_ss_principal: number
           levy_monthly_threshold: number
           levy_penalty_initial_rate: number
           levy_penalty_subsequent_rate: number
