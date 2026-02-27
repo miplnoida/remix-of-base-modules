@@ -89,6 +89,64 @@ const CATEGORY_TO_VERIFY_TYPE: Record<string, string> = {
   death: 'death_status',
 };
 
+/**
+ * Map external API documentType values to tb_verify codes.
+ * The external API sends descriptive strings (e.g., "photo", "passport", "birth_certificate")
+ * while the dropdown uses single-character tb_verify codes (e.g., "P", "B", "I").
+ */
+const EXTERNAL_DOC_TYPE_TO_VERIFY_CODE: Record<string, string> = {
+  // Birth-related
+  birth_certificate: 'B',
+  'Birth Certificate': 'B',
+  baptism_certificate: 'V',
+  'Baptism Certificate': 'V',
+  adoption_certificate: 'E',
+  'Adoption Certificate': 'E',
+  // Name-related
+  passport: 'P',
+  Passport: 'P',
+  identification_card: 'I',
+  'Identification Card': 'I',
+  id_card: 'I',
+  identification_letter: 'L',
+  'Identification Letter': 'L',
+  deed_poll: 'D',
+  'Deed Poll': 'D',
+  // Marital-related
+  marriage_certificate: 'M',
+  'Marriage Certificate': 'M',
+  affidavit: 'A',
+  Affidavit: 'A',
+  divorce_certificate: 'X',
+  'Divorce Certificate': 'X',
+  // Death-related
+  death_certificate: 'C',
+  certificate_of_death: 'C',
+  'Certificate of Death': 'C',
+  // Generic/fallback
+  photo: 'I',
+  national_id: 'I',
+  document_not_available: 'N',
+};
+
+/**
+ * Attempt to map an external API documentType to a tb_verify code.
+ * Returns the code if found, or null if no mapping exists.
+ */
+function resolveExternalDocTypeToCode(rawType: string | null | undefined): string | null {
+  if (!rawType) return null;
+  // Direct match first
+  if (EXTERNAL_DOC_TYPE_TO_VERIFY_CODE[rawType]) return EXTERNAL_DOC_TYPE_TO_VERIFY_CODE[rawType];
+  // Case-insensitive match
+  const lower = rawType.toLowerCase().replace(/[\s-]+/g, '_');
+  for (const [key, code] of Object.entries(EXTERNAL_DOC_TYPE_TO_VERIFY_CODE)) {
+    if (key.toLowerCase().replace(/[\s-]+/g, '_') === lower) return code;
+  }
+  // If it's already a single char that matches a known code, return as-is
+  if (rawType.length === 1 && 'ABCDEILMNPVX'.includes(rawType.toUpperCase())) return rawType.toUpperCase();
+  return null;
+}
+
 // --- Helpers ---
 function formatSize(size?: number | null): string {
   if (size === undefined || size === null) return '—';
@@ -110,21 +168,27 @@ const VERIFY_TYPE_TO_CATEGORY: Record<string, string> = {
 
 function mapExternalDocs(apiDocs: any[]): UnifiedDocument[] {
   if (!apiDocs || !Array.isArray(apiDocs)) return [];
-  return apiDocs.map((d, idx) => ({
-    id: d.id || `ext-${idx}`,
-    document_type: d.documentType || d.type || d.verificationType || d.document_type || '',
-    document_name: d.fileName || d.name || d.file_name || d.document_name || 'Unknown',
-    file_path: d.filePath || d.file_path || '',
-    file_size: typeof d.fileSize === 'number' ? d.fileSize : (parseInt(d.fileSize, 10) || 0),
-    uploaded_at: d.uploadedAt || d.uploaded_at || '',
-    verification_category: VERIFY_TYPE_TO_CATEGORY[d.verificationType as string] || null,
-    supportive_doc_type: null,
-    is_supportive: false,
-    source: 'external' as const,
-    url: d.signedUrl || d.url || d.filePath || '',
-    doc_code: d.documentType || null,
-    is_active: true,
-  }));
+  return apiDocs.map((d, idx) => {
+    const rawDocType = d.documentType || d.type || d.document_type || '';
+    // Resolve the raw API documentType to a proper tb_verify code
+    const resolvedCode = resolveExternalDocTypeToCode(rawDocType);
+    return {
+      id: d.id || `ext-${idx}`,
+      document_type: rawDocType || d.verificationType || '',
+      document_name: d.fileName || d.name || d.file_name || d.document_name || 'Unknown',
+      file_path: d.filePath || d.file_path || '',
+      file_size: typeof d.fileSize === 'number' ? d.fileSize : (parseInt(d.fileSize, 10) || 0),
+      uploaded_at: d.uploadedAt || d.uploaded_at || '',
+      verification_category: VERIFY_TYPE_TO_CATEGORY[d.verificationType as string] || null,
+      supportive_doc_type: null,
+      is_supportive: false,
+      source: 'external' as const,
+      url: d.signedUrl || d.url || d.filePath || '',
+      // Use resolved tb_verify code, NOT the raw API documentType
+      doc_code: resolvedCode,
+      is_active: true,
+    };
+  });
 }
 
 function mapPlatformDocs(rows: any[]): UnifiedDocument[] {
@@ -280,7 +344,15 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
         const vt = doc.verificationType as string | undefined;
         const dt = doc.documentType as string | undefined;
         if (vt && dt && verTypeToFieldKey[vt]) {
-          map[verTypeToFieldKey[vt]] = dt;
+          // Map the raw API documentType to a proper tb_verify code
+          const resolvedCode = resolveExternalDocTypeToCode(dt);
+          if (resolvedCode) {
+            map[verTypeToFieldKey[vt]] = resolvedCode;
+          } else {
+            // If we can't resolve, still set it (dropdown won't match but won't crash)
+            console.warn(`[DocVerification] Unknown external documentType "${dt}" for ${vt}, cannot map to verify code`);
+            map[verTypeToFieldKey[vt]] = dt;
+          }
         }
       }
     }
@@ -575,20 +647,45 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
       if (!selectedCode) return;
 
       // Find the active primary document for this verification category
-      const activeDoc = activeDocuments.find(
-        d => d.verification_category === cat.id && !d.is_supportive && d.is_active !== false
+      // Only check PLATFORM docs for mismatch — external API docs use raw types
+      // that may not match tb_verify codes and are not user-controlled.
+      const activePlatformDoc = activeDocuments.find(
+        d => d.verification_category === cat.id && !d.is_supportive && d.is_active !== false && d.source === 'platform'
       );
-      if (!activeDoc) return; // No document uploaded — other validations cover this
 
-      const docCode = activeDoc.doc_code || activeDoc.document_type;
-      if (docCode && docCode !== selectedCode) {
-        const selectedDesc = verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode;
-        const docDesc = verifyTypes.find(v => v.code === docCode)?.description || docCode;
-        mismatches.push({
-          categoryLabel: cat.label,
-          selectedType: selectedDesc,
-          documentType: docDesc,
-        });
+      if (activePlatformDoc) {
+        // Platform doc has a reliable doc_code set from the dropdown at upload time
+        const docCode = activePlatformDoc.doc_code;
+        if (docCode && docCode !== selectedCode) {
+          const selectedDesc = verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode;
+          const docDesc = verifyTypes.find(v => v.code === docCode)?.description || docCode;
+          mismatches.push({
+            categoryLabel: cat.label,
+            selectedType: selectedDesc,
+            documentType: docDesc,
+          });
+        }
+        return; // Platform doc takes precedence, skip external check
+      }
+
+      // For external-only docs: only flag mismatch if their resolved doc_code
+      // is a valid tb_verify code AND differs from the selection
+      const activeExternalDoc = activeDocuments.find(
+        d => d.verification_category === cat.id && !d.is_supportive && d.is_active !== false && d.source === 'external'
+      );
+      if (activeExternalDoc && activeExternalDoc.doc_code) {
+        // Only flag if the resolved code is a known single-char verify code
+        const resolvedCode = activeExternalDoc.doc_code;
+        const isValidVerifyCode = resolvedCode.length === 1 && 'ABCDEILMNPVX'.includes(resolvedCode);
+        if (isValidVerifyCode && resolvedCode !== selectedCode) {
+          const selectedDesc = verifyTypes.find(v => v.code === selectedCode)?.description || selectedCode;
+          const docDesc = verifyTypes.find(v => v.code === resolvedCode)?.description || resolvedCode;
+          mismatches.push({
+            categoryLabel: cat.label,
+            selectedType: selectedDesc,
+            documentType: docDesc,
+          });
+        }
       }
     });
     setDocTypeMismatchErrors(mismatches);
@@ -1213,7 +1310,25 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
                         </div>
                       )}
 
-                      {/* Upload progress */}
+                      {/* Inline doc-type mismatch warning for this slot */}
+                      {!slot.isSupportive && docTypeMismatchErrors.some(m => {
+                        const cat = verificationCategories.find(c => c.label === m.categoryLabel);
+                        return cat && cat.id === slot.categoryId;
+                      }) && (() => {
+                        const mismatch = docTypeMismatchErrors.find(m => {
+                          const cat = verificationCategories.find(c => c.label === m.categoryLabel);
+                          return cat && cat.id === slot.categoryId;
+                        });
+                        return mismatch ? (
+                          <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/30 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                            <div className="text-xs text-destructive">
+                              <strong>Type mismatch:</strong> Dropdown is set to <em>"{mismatch.selectedType}"</em> but uploaded document is <em>"{mismatch.documentType}"</em>. Update the dropdown or re-upload.
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+
                       {Object.entries(uploadProgress)
                         .filter(([key]) => key.startsWith(slot.key))
                         .map(([key, progress]) => (
