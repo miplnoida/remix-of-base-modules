@@ -12,15 +12,13 @@ import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check, AlertTriangle } from
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useBonusPolicyExceptions, useCreateBonusPolicyException, useUpdateBonusPolicyException, useDeleteBonusPolicyException, checkDateOverlap } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
-import MonthYearPicker from '@/components/c3/MonthYearPicker';
-import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { BonusPolicyException, BonusDistribution, ExceptionType, CalculationMethod } from '@/types/bonusPolicy';
 import { MONTH_NAMES, DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
 
 type ExceptionForm = Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'>;
 
 const EMPTY_EXCEPTION: ExceptionForm = {
-  date_from: formatDateForStorage(new Date()),
+  date_from: '',
   date_to: null,
   exception_type: 'onetime',
   exception_month: new Date().getMonth() + 1,
@@ -28,7 +26,7 @@ const EMPTY_EXCEPTION: ExceptionForm = {
   year_to: null,
   override_default: false,
   include_in_levy: true,
-  include_in_severance: true,
+  include_in_severance: null,
   calculation_method: null,
   calc_flat_enabled: null,
   calc_flat_percentage: null,
@@ -45,6 +43,19 @@ const EMPTY_EXCEPTION: ExceptionForm = {
   created_by: null,
   modified_by: null,
 };
+
+/** Compute date_from and date_to from exception identity fields */
+function computeDatesFromIdentity(form: ExceptionForm): { date_from: string; date_to: string | null } {
+  const month = String(form.exception_month).padStart(2, '0');
+  if (form.exception_type === 'onetime') {
+    const dateStr = `${form.year_from}-${month}-01`;
+    return { date_from: dateStr, date_to: dateStr };
+  }
+  // recurring
+  const date_from = `${form.year_from}-${month}-01`;
+  const date_to = form.year_to ? `${form.year_to}-${month}-01` : null;
+  return { date_from, date_to };
+}
 
 export function BonusPolicyExceptionsTab() {
   const { data: exceptions, isLoading } = useBonusPolicyExceptions();
@@ -79,7 +90,7 @@ export function BonusPolicyExceptionsTab() {
 
   const setField = <K extends keyof ExceptionForm>(key: K, value: ExceptionForm[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
-    if (key === 'date_from' || key === 'date_to') setOverlapWarning(null);
+    setOverlapWarning(null);
   };
 
   const dist: BonusDistribution = (form.distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
@@ -99,26 +110,32 @@ export function BonusPolicyExceptionsTab() {
   };
 
   const handleSave = () => {
-    if (!form.date_from) {
-      setOverlapWarning('Date From is required.');
+    // Validate exception identity
+    if (!form.exception_month || !form.year_from) {
+      setOverlapWarning('Exception Month and Year are required.');
       return;
     }
-    if (form.date_to && form.date_to < form.date_from) {
-      setOverlapWarning('Date To cannot be earlier than Date From.');
-      return;
-    }
-    // Overlap check
-    const existing = (exceptions ?? []).map(e => ({ id: e.id, date_from: e.date_from, date_to: e.date_to }));
-    const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined);
-    if (overlap.overlaps) {
-      const rec = overlap.overlappingRecord!;
-      const from = formatDisplayDate(rec.date_from);
-      const to = rec.date_to ? formatDisplayDate(rec.date_to) : 'Open-ended';
-      setOverlapWarning(`The selected period overlaps with an existing exception (${from} – ${to}). Please adjust Date From / Date To.`);
+    if (form.exception_type === 'recurring' && form.year_to && form.year_to < form.year_from) {
+      setOverlapWarning('Year To cannot be earlier than Year From.');
       return;
     }
 
-    const updates = { ...form };
+    // Compute dates from identity fields
+    const { date_from, date_to } = computeDatesFromIdentity(form);
+
+    // Overlap check
+    const existing = (exceptions ?? []).map(e => ({ id: e.id, date_from: e.date_from, date_to: e.date_to }));
+    const overlap = checkDateOverlap(date_from, date_to, existing, editingId || undefined);
+    if (overlap.overlaps) {
+      setOverlapWarning('The selected month/year range overlaps with an existing exception. Please adjust.');
+      return;
+    }
+
+    const updates = { ...form, date_from, date_to };
+
+    // Clear severance-related fields — this policy is Levy only
+    updates.include_in_severance = null;
+
     if (!cappingEnabled) {
       updates.min_bonus_amount = null;
       updates.max_bonus_amount = null;
@@ -189,9 +206,7 @@ export function BonusPolicyExceptionsTab() {
                   <TableHead>Type</TableHead>
                   <TableHead>Month</TableHead>
                   <TableHead>Year(s)</TableHead>
-                  <TableHead>Period</TableHead>
                   <TableHead>Override</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -206,16 +221,8 @@ export function BonusPolicyExceptionsTab() {
                     </TableCell>
                     <TableCell>{MONTH_NAMES[exc.exception_month - 1]}</TableCell>
                     <TableCell>{exc.year_from}{exc.year_to ? ` – ${exc.year_to}` : ''}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDisplayDate(exc.date_from)} — {exc.date_to ? formatDisplayDate(exc.date_to) : 'Open'}
-                    </TableCell>
                     <TableCell>
                       {exc.override_default ? <Check className="h-4 w-4 text-amber-600" /> : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={exc.is_active ? 'default' : 'secondary'}>
-                        {exc.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">{exc.description || '—'}</TableCell>
                     <TableCell className="text-right">
@@ -257,7 +264,7 @@ export function BonusPolicyExceptionsTab() {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
               <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <span className="text-sm text-muted-foreground">
-                Each exception targets a specific month. If "Override Default Policy" is enabled, you can customise calculation method, distribution, capping, and contribution base for that period.
+                Each exception targets a specific month. For one-time exceptions, select a month and year. For recurring exceptions, select a month and a year range. If "Override Default Policy" is enabled, you can customise calculation method, distribution, capping, and contribution base for that period.
               </span>
             </div>
 
@@ -274,7 +281,12 @@ export function BonusPolicyExceptionsTab() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1.5">
                 <Label>Exception Type</Label>
-                <Select value={form.exception_type} onValueChange={(v) => setField('exception_type', v as ExceptionType)}>
+                <Select value={form.exception_type} onValueChange={(v) => {
+                  setField('exception_type', v as ExceptionType);
+                  if (v === 'onetime') {
+                    setField('year_to', null);
+                  }
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="onetime">One-Time</SelectItem>
@@ -293,47 +305,36 @@ export function BonusPolicyExceptionsTab() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>Year From</Label>
-                <Input type="number" value={form.year_from} onChange={(e) => setField('year_from', parseInt(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Year To {form.exception_type === 'onetime' && <span className="text-xs text-muted-foreground">(optional)</span>}</Label>
-                <Input type="number" value={form.year_to ?? ''} onChange={(e) => setField('year_to', e.target.value ? parseInt(e.target.value) : null)} />
-              </div>
+
+              {form.exception_type === 'onetime' ? (
+                <div className="space-y-1.5">
+                  <Label>Exception Year <span className="text-destructive">*</span></Label>
+                  <Input type="number" value={form.year_from} onChange={(e) => setField('year_from', parseInt(e.target.value))} />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>Year From <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={form.year_from} onChange={(e) => setField('year_from', parseInt(e.target.value))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Year To <span className="text-xs text-muted-foreground">(optional, open-ended if empty)</span></Label>
+                    <Input type="number" value={form.year_to ?? ''} onChange={(e) => setField('year_to', e.target.value ? parseInt(e.target.value) : null)} />
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Validity Period */}
-            <SectionLabel>Validity Period (Month-Year)</SectionLabel>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>From <span className="text-destructive">*</span></Label>
-                <MonthYearPicker
-                  value={form.date_from ? (() => { const d = parseDateSafe(form.date_from); return d ? { year: d.getFullYear(), month: d.getMonth() } : undefined; })() : undefined}
-                  onChange={({ year, month }) => setField('date_from', `${year}-${String(month + 1).padStart(2, '0')}-01`)}
-                  placeholder="Select start month"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>To <span className="text-xs text-muted-foreground">(optional)</span></Label>
-                <MonthYearPicker
-                  value={form.date_to ? (() => { const d = parseDateSafe(form.date_to); return d ? { year: d.getFullYear(), month: d.getMonth() } : undefined; })() : undefined}
-                  onChange={({ year, month }) => setField('date_to', `${year}-${String(month + 1).padStart(2, '0')}-01`)}
-                  placeholder="Open-ended"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Description</Label>
-                <Input value={form.description ?? ''} onChange={(e) => setField('description', e.target.value || null)} placeholder="Optional description" />
-              </div>
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={form.description ?? ''} onChange={(e) => setField('description', e.target.value || null)} placeholder="Optional description" />
             </div>
 
-            {/* Applicability toggles */}
+            {/* Applicability toggles — Levy only */}
             <SectionLabel>Applicability</SectionLabel>
             <div className="space-y-3">
               <ToggleRow label="Include Bonus in Levy" hint="Bonus amount is always included in levy base calculation" checked={true} onChange={() => {}} disabled />
-              <ToggleRow label="Severance Payment" hint="Bonus is always included in severance payment base calculation" checked={true} onChange={() => {}} disabled />
-              <ToggleRow label="Active" hint="Enable or disable this exception" checked={form.is_active} onChange={(v) => setField('is_active', v)} />
             </div>
 
             {/* Override toggle */}
