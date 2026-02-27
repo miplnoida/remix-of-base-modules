@@ -9,97 +9,20 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Edit, Eye, Shield, Target } from 'lucide-react';
-import { departments } from '@/data/auditData';
+import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { DepartmentFunction } from '@/types/audit';
-
-// Mock function data
-const mockFunctions: DepartmentFunction[] = [
-  {
-    id: 'func-001',
-    departmentId: 'dept-benefits',
-    functionName: 'Claims Processing',
-    description: 'Processing and adjudication of benefit claims',
-    riskRating: 'High',
-    likelihood: 'High',
-    impact: 'High',
-    controlEffectiveness: 'Effective',
-    lastAuditDate: '2024-06-15',
-    nextAuditDate: '2025-10-01',
-    responsiblePerson: 'Sarah Williams',
-    notes: 'High volume processing with significant financial impact'
-  },
-  {
-    id: 'func-002',
-    departmentId: 'dept-benefits',
-    functionName: 'Eligibility Verification',
-    description: 'Verification of claimant eligibility for benefits',
-    riskRating: 'High',
-    likelihood: 'Medium',
-    impact: 'High',
-    controlEffectiveness: 'Partially Effective',
-    lastAuditDate: '2024-06-15',
-    nextAuditDate: '2025-10-01',
-    responsiblePerson: 'Sarah Williams'
-  },
-  {
-    id: 'func-003',
-    departmentId: 'dept-contributions',
-    functionName: 'Contribution Collection',
-    description: 'Collection and recording of employer contributions',
-    riskRating: 'High',
-    likelihood: 'Medium',
-    impact: 'High',
-    controlEffectiveness: 'Effective',
-    lastAuditDate: '2024-08-20',
-    nextAuditDate: '2025-11-15',
-    responsiblePerson: 'Michael Brown'
-  },
-  {
-    id: 'func-004',
-    departmentId: 'dept-contributions',
-    functionName: 'C3 Form Processing',
-    description: 'Processing and validation of monthly C3 contribution forms',
-    riskRating: 'High',
-    likelihood: 'High',
-    impact: 'Medium',
-    controlEffectiveness: 'Effective',
-    responsiblePerson: 'Michael Brown'
-  },
-  {
-    id: 'func-005',
-    departmentId: 'dept-finance',
-    functionName: 'Accounts Payable',
-    description: 'Processing vendor payments and expense reimbursements',
-    riskRating: 'Medium',
-    likelihood: 'Medium',
-    impact: 'Medium',
-    controlEffectiveness: 'Effective',
-    lastAuditDate: '2024-09-01',
-    nextAuditDate: '2025-12-01',
-    responsiblePerson: 'Jennifer Davis'
-  },
-  {
-    id: 'func-006',
-    departmentId: 'dept-it',
-    functionName: 'System Access Management',
-    description: 'User access provisioning and deprovisioning',
-    riskRating: 'High',
-    likelihood: 'Low',
-    impact: 'High',
-    controlEffectiveness: 'Effective',
-    responsiblePerson: 'Robert Johnson'
-  }
-];
 
 export default function FunctionMaster() {
   const { toast } = useToast();
+  const { data: departments = [], isLoading: deptsLoading } = useIADepartments();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const { data: allFunctions = [], isLoading: funcsLoading } = useIADepartmentFunctions(selectedDepartment === 'all' ? undefined : selectedDepartment);
+  const { create: createFn, update: updateFn } = useIADepartmentFunctionMutations();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
-  const [selectedFunction, setSelectedFunction] = useState<DepartmentFunction | null>(null);
+  const [selectedFunction, setSelectedFunction] = useState<any | null>(null);
   const [formData, setFormData] = useState({
     departmentId: '',
     functionName: '',
@@ -112,11 +35,10 @@ export default function FunctionMaster() {
     notes: ''
   });
 
-  const filteredFunctions = mockFunctions.filter(func => {
-    const matchesSearch = func.functionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          func.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = selectedDepartment === 'all' || func.departmentId === selectedDepartment;
-    return matchesSearch && matchesDept;
+  const filteredFunctions = allFunctions.filter((func: any) => {
+    const matchesSearch = (func.function_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (func.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   const getRiskBadge = (risk: string) => {
@@ -147,69 +69,62 @@ export default function FunctionMaster() {
 
   const handleSubmit = () => {
     if (!formData.departmentId || !formData.functionName) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill all required fields.",
-        variant: "destructive"
-      });
+      toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
-
-    toast({
-      title: "Function Added",
-      description: `${formData.functionName} has been added to the function master.`
+    createFn.mutate({
+      department_id: formData.departmentId,
+      function_name: formData.functionName,
+      description: formData.description,
+      risk_rating: calculateInherentRisk(formData.likelihood, formData.impact),
+      likelihood: formData.likelihood,
+      impact: formData.impact,
+      control_effectiveness: formData.controlEffectiveness,
+      responsible_person: formData.responsiblePerson,
+      notes: formData.notes,
     });
-    
     setIsAddDialogOpen(false);
-    setFormData({
-      departmentId: '',
-      functionName: '',
-      description: '',
-      riskRating: 'Medium',
-      likelihood: 'Medium',
-      impact: 'Medium',
-      controlEffectiveness: 'Effective',
-      responsiblePerson: '',
-      notes: ''
-    });
+    setFormData({ departmentId: '', functionName: '', description: '', riskRating: 'Medium', likelihood: 'Medium', impact: 'Medium', controlEffectiveness: 'Effective', responsiblePerson: '', notes: '' });
   };
 
-  const handleEdit = (func: DepartmentFunction) => {
+  const handleEdit = (func: any) => {
     setSelectedFunction(func);
     setFormData({
-      departmentId: func.departmentId,
-      functionName: func.functionName,
+      departmentId: func.department_id,
+      functionName: func.function_name,
       description: func.description || '',
-      riskRating: func.riskRating,
-      likelihood: func.likelihood,
-      impact: func.impact,
-      controlEffectiveness: func.controlEffectiveness,
-      responsiblePerson: func.responsiblePerson || '',
+      riskRating: func.risk_rating || 'Medium',
+      likelihood: func.likelihood || 'Medium',
+      impact: func.impact || 'Medium',
+      controlEffectiveness: func.control_effectiveness || 'Effective',
+      responsiblePerson: func.responsible_person || '',
       notes: func.notes || ''
     });
     setIsEditDialogOpen(true);
   };
 
-  const handlePreview = (func: DepartmentFunction) => {
+  const handlePreview = (func: any) => {
     setSelectedFunction(func);
     setIsPreviewDialogOpen(true);
   };
 
   const handleUpdate = () => {
-    if (!formData.departmentId || !formData.functionName) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill all required fields.",
-        variant: "destructive"
-      });
+    if (!formData.departmentId || !formData.functionName || !selectedFunction) {
+      toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
-
-    toast({
-      title: "Function Updated",
-      description: `${formData.functionName} has been updated successfully.`
+    updateFn.mutate({
+      id: selectedFunction.id,
+      department_id: formData.departmentId,
+      function_name: formData.functionName,
+      description: formData.description,
+      risk_rating: calculateInherentRisk(formData.likelihood, formData.impact),
+      likelihood: formData.likelihood,
+      impact: formData.impact,
+      control_effectiveness: formData.controlEffectiveness,
+      responsible_person: formData.responsiblePerson,
+      notes: formData.notes,
     });
-    
     setIsEditDialogOpen(false);
     setSelectedFunction(null);
   };
@@ -361,7 +276,7 @@ export default function FunctionMaster() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockFunctions.length}</div>
+            <div className="text-2xl font-bold">{allFunctions.length}</div>
           </CardContent>
         </Card>
 
@@ -372,7 +287,7 @@ export default function FunctionMaster() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {mockFunctions.filter(f => f.riskRating === 'High').length}
+              {allFunctions.filter((f: any) => f.risk_rating === 'High').length}
             </div>
           </CardContent>
         </Card>
@@ -384,7 +299,7 @@ export default function FunctionMaster() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-700">
-              {mockFunctions.filter(f => f.riskRating === 'Medium').length}
+              {allFunctions.filter((f: any) => f.risk_rating === 'Medium').length}
             </div>
           </CardContent>
         </Card>
@@ -396,7 +311,7 @@ export default function FunctionMaster() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {mockFunctions.filter(f => f.riskRating === 'Low').length}
+              {allFunctions.filter((f: any) => f.risk_rating === 'Low').length}
             </div>
           </CardContent>
         </Card>
@@ -451,18 +366,18 @@ export default function FunctionMaster() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFunctions.map((func) => {
-                const dept = departments.find(d => d.id === func.departmentId);
+              {filteredFunctions.map((func: any) => {
+                const dept = departments.find((d: any) => d.id === func.department_id);
                 return (
                   <TableRow key={func.id}>
-                    <TableCell className="font-medium">{func.functionName}</TableCell>
+                    <TableCell className="font-medium">{func.function_name}</TableCell>
                     <TableCell>{dept?.name}</TableCell>
                     <TableCell className="max-w-xs truncate">{func.description}</TableCell>
-                    <TableCell>{getRiskBadge(func.riskRating)}</TableCell>
+                    <TableCell>{getRiskBadge(func.risk_rating)}</TableCell>
                     <TableCell>{getRiskBadge(func.likelihood)}</TableCell>
                     <TableCell>{getRiskBadge(func.impact)}</TableCell>
-                    <TableCell>{getControlBadge(func.controlEffectiveness)}</TableCell>
-                    <TableCell className="text-sm">{func.responsiblePerson}</TableCell>
+                    <TableCell>{getControlBadge(func.control_effectiveness)}</TableCell>
+                    <TableCell className="text-sm">{func.responsible_person}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handlePreview(func)}>
@@ -651,12 +566,12 @@ export default function FunctionMaster() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Function Name</Label>
-                  <p className="text-lg font-semibold mt-1">{selectedFunction.functionName}</p>
+                  <p className="text-lg font-semibold mt-1">{selectedFunction.function_name}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Department</Label>
                   <p className="text-lg font-semibold mt-1">
-                    {departments.find(d => d.id === selectedFunction.departmentId)?.name}
+                    {departments.find((d: any) => d.id === selectedFunction.department_id)?.name}
                   </p>
                 </div>
               </div>
@@ -669,7 +584,7 @@ export default function FunctionMaster() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Risk Rating</Label>
-                  <div className="mt-2">{getRiskBadge(selectedFunction.riskRating)}</div>
+                  <div className="mt-2">{getRiskBadge(selectedFunction.risk_rating)}</div>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Likelihood</Label>
@@ -683,24 +598,24 @@ export default function FunctionMaster() {
 
               <div>
                 <Label className="text-muted-foreground">Control Effectiveness</Label>
-                <div className="mt-2">{getControlBadge(selectedFunction.controlEffectiveness)}</div>
+                <div className="mt-2">{getControlBadge(selectedFunction.control_effectiveness)}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Responsible Person</Label>
-                  <p className="mt-1">{selectedFunction.responsiblePerson || 'Not assigned'}</p>
+                  <p className="mt-1">{selectedFunction.responsible_person || 'Not assigned'}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Last Audit Date</Label>
-                  <p className="mt-1">{selectedFunction.lastAuditDate || 'N/A'}</p>
+                  <p className="mt-1">{selectedFunction.last_audit_date || 'N/A'}</p>
                 </div>
               </div>
 
-              {selectedFunction.nextAuditDate && (
+              {selectedFunction.next_audit_date && (
                 <div>
                   <Label className="text-muted-foreground">Next Audit Date</Label>
-                  <p className="mt-1">{selectedFunction.nextAuditDate}</p>
+                  <p className="mt-1">{selectedFunction.next_audit_date}</p>
                 </div>
               )}
 

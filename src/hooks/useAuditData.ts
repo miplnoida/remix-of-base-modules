@@ -69,7 +69,7 @@ export function useIADepartmentFunctions(departmentId?: string) {
     queryKey: ['ia_department_functions', departmentId],
     queryFn: async () => {
       let query = supabase.from('ia_department_functions').select('*').eq('is_active', true).order('function_name');
-      if (departmentId) query = query.eq('department_id', departmentId);
+      if (departmentId && departmentId !== 'all') query = query.eq('department_id', departmentId);
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -141,7 +141,7 @@ export function useIAHolidayMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
-    mutationFn: async (holiday: { name: string; date: string; country?: string; is_ssb_specific?: boolean; created_by?: string }) => {
+    mutationFn: async (holiday: any) => {
       const { data, error } = await supabase.from('ia_holidays').insert(holiday).select().single();
       if (error) throw error;
       return data;
@@ -233,7 +233,7 @@ export function useIALeaveRequests() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ia_leave_requests')
-        .select('*, auditor:ia_auditors!auditor_id(name, email)')
+        .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
@@ -279,34 +279,69 @@ export function useIALeaveRequestMutations() {
   return { create, updateStatus };
 }
 
-// ============= AUDIT CONFIG =============
-export function useIAAuditConfig() {
+// ============= ANNUAL PLANS =============
+export function useIAAnnualPlans() {
   return useQuery({
-    queryKey: ['ia_audit_config'],
+    queryKey: ['ia_annual_plans'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_audit_config').select('*').order('category');
+      const { data, error } = await supabase
+        .from('ia_annual_plans')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 }
 
-export function useIAAuditConfigMutations() {
+export function useIAAnnualPlanMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const update = useMutation({
-    mutationFn: async ({ id, config_value, updated_by }: { id: string; config_value: string; updated_by?: string }) => {
-      const { data, error } = await supabase.from('ia_audit_config').update({ config_value, updated_by }).eq('id', id).select().single();
+  const create = useMutation({
+    mutationFn: async (plan: any) => {
+      const { data, error } = await supabase.from('ia_annual_plans').insert(plan).select().single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ia_audit_config'] });
-      toast({ title: 'Configuration Updated' });
+      queryClient.invalidateQueries({ queryKey: ['ia_annual_plans'] });
+      toast({ title: 'Plan Created', description: 'Audit plan has been created' });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
-  return { update };
+  const update = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
+      const { data, error } = await supabase.from('ia_annual_plans').update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ia_annual_plans'] });
+      toast({ title: 'Plan Updated' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  return { create, update };
 }
+
+// Re-export from split files to avoid TS2589 deep instantiation errors
+export {
+  useIADepartmentAudits, useIADepartmentAuditMutations,
+  useIAActivities, useIAActivityMutations,
+  useIAEvidence, useIAEvidenceMutations,
+  useIAWorkingPapers, useIAWorkingPaperMutations,
+} from './useAuditDataExtended';
+
+export {
+  useIAFindings, useIAFindingMutations,
+  useIARecommendations, useIARecommendationMutations,
+  useIAManagementResponses, useIAManagementResponseMutations,
+  useIAActionTracking, useIAActionTrackingMutations,
+  useIAFollowUps, useIAFollowUpMutations,
+  useIADocumentTemplates, useIADocumentTemplateMutations,
+  useIACommunications, useIACommunicationMutations,
+  useIAAuditorWorkload,
+} from './useAuditDataExtended2';

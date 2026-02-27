@@ -1,0 +1,215 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+// ============= FINDINGS =============
+export function useIAFindings(activityId?: string) {
+  return useQuery({
+    queryKey: ['ia_findings', activityId],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_findings').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      const result = data ?? [];
+      return activityId ? result.filter((r: any) => r.activity_id === activityId) : result;
+    },
+  });
+}
+
+export function useIAFindingMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (f: any) => { const { data, error } = await supabase.from('ia_findings').insert(f).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_findings'] }); toast({ title: 'Finding Created' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_findings').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_findings'] }); toast({ title: 'Finding Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= RECOMMENDATIONS =============
+export function useIARecommendations(findingId?: string) {
+  return useQuery({
+    queryKey: ['ia_recommendations', findingId],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_recommendations').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      const result = data ?? [];
+      return findingId ? result.filter((r: any) => r.finding_id === findingId) : result;
+    },
+  });
+}
+
+export function useIARecommendationMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (rec: any) => { const { data, error } = await supabase.from('ia_recommendations').insert(rec).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_recommendations'] }); toast({ title: 'Recommendation Created' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_recommendations').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_recommendations'] }); toast({ title: 'Recommendation Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= MANAGEMENT RESPONSES =============
+export function useIAManagementResponses(findingId?: string) {
+  return useQuery({
+    queryKey: ['ia_management_responses', findingId],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_management_responses').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      const result = data ?? [];
+      return findingId ? result.filter((r: any) => r.finding_id === findingId) : result;
+    },
+  });
+}
+
+export function useIAManagementResponseMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (r: any) => { const { data, error } = await supabase.from('ia_management_responses').insert(r).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_management_responses'] }); toast({ title: 'Response Submitted' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_management_responses').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_management_responses'] }); toast({ title: 'Response Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= ACTION TRACKING =============
+export function useIAActionTracking() {
+  return useQuery({
+    queryKey: ['ia_action_tracking'],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_action_tracking').select('*').order('target_date', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useIAActionTrackingMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (a: any) => { const { data, error } = await supabase.from('ia_action_tracking').insert(a).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_action_tracking'] }); toast({ title: 'Action Created' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_action_tracking').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_action_tracking'] }); toast({ title: 'Action Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= FOLLOW-UPS =============
+export function useIAFollowUps() {
+  return useQuery({
+    queryKey: ['ia_follow_ups'],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_follow_ups').select('*').order('due_date', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useIAFollowUpMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (f: any) => { const { data, error } = await supabase.from('ia_follow_ups').insert(f).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_follow_ups'] }); toast({ title: 'Follow-Up Created' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_follow_ups').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_follow_ups'] }); toast({ title: 'Follow-Up Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= DOCUMENT TEMPLATES =============
+export function useIADocumentTemplates(category?: string) {
+  return useQuery({
+    queryKey: ['ia_document_templates', category],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_document_templates').select('*').eq('is_active', true).order('name');
+      if (error) throw error;
+      const result = data ?? [];
+      return category ? result.filter((r: any) => r.category === category) : result;
+    },
+  });
+}
+
+export function useIADocumentTemplateMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (t: any) => { const { data, error } = await supabase.from('ia_document_templates').insert(t).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_document_templates'] }); toast({ title: 'Template Created' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_document_templates').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_document_templates'] }); toast({ title: 'Template Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= COMMUNICATIONS =============
+export function useIACommunications() {
+  return useQuery({
+    queryKey: ['ia_communications'],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_communications').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useIACommunicationMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (c: any) => { const { data, error } = await supabase.from('ia_communications').insert(c).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_communications'] }); toast({ title: 'Communication Sent' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_communications').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_communications'] }); toast({ title: 'Communication Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update };
+}
+
+// ============= AUDITOR WORKLOAD (view) =============
+export function useIAAuditorWorkload() {
+  return useQuery({
+    queryKey: ['ia_auditor_workload'],
+    queryFn: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('ia_auditor_workload').select('*').order('period_start', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
