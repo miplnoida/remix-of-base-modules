@@ -8,410 +8,104 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Download, Send, Eye, Lock, Unlock } from 'lucide-react';
-import { auditPlans, findings, managementResponses } from '@/data/auditData';
+import { useIAAnnualPlans, useIAFindings, useIAManagementResponses } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { ReportPreviewDialog } from '@/components/audit/ReportPreviewDialog';
 
 export default function ReportBuilder() {
   const { toast } = useToast();
-  const [selectedPlan, setSelectedPlan] = useState('plan-002');
   const [isLocked, setIsLocked] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [reportData, setReportData] = useState({
-    background: '',
-    keyHighlights: '',
-    overallAssessment: '',
-    limitations: '',
-    conclusion: '',
-    followUpActions: '',
-    distributionList: ''
-  });
-  
-  const plan = auditPlans.find(p => p.id === selectedPlan);
-  const planFindings = findings.filter(f => f.planId === selectedPlan);
+  const [reportData, setReportData] = useState({ background: '', keyHighlights: '', overallAssessment: '', limitations: '', conclusion: '', followUpActions: '', distributionList: '' });
 
-  const handlePreview = () => {
-    setShowPreview(true);
-  };
+  const { data: plans = [] } = useIAAnnualPlans();
+  const { data: findings = [] } = useIAFindings();
+  const { data: responses = [] } = useIAManagementResponses();
+
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+  const plan = plans.find((p: any) => p.id === selectedPlanId) || plans[0];
+  const planFindings = findings.filter((f: any) => f.plan_id === (plan?.id || ''));
 
   const handleSubmit = () => {
-    toast({
-      title: "Report Submitted Successfully",
-      description: "The audit report has been submitted to the Director of Social Security for approval. A copy has been sent to the audited department.",
-    });
+    toast({ title: "Report Submitted", description: "The audit report has been submitted for approval." });
     setShowPreview(false);
     setIsLocked(true);
   };
 
-  const getReportDataForPreview = () => {
-    const planResponses = managementResponses
-      .filter(mr => planFindings.some(f => f.id === mr.findingId))
-      .map(response => {
-        const finding = findings.find(f => f.id === response.findingId);
-        return {
-          findingTitle: finding ? `${finding.findingId} - ${finding.title}` : '',
-          responseText: response.responseText,
-          actionPlan: response.actionPlan,
-          responsiblePerson: response.responsiblePerson,
-          targetDate: new Date(response.targetDate).toLocaleDateString()
-        };
-      });
-
-    return {
-      title: plan?.title || '',
-      fiscalYear: plan?.fiscalYear || '',
-      reportDate: new Date().toLocaleDateString(),
-      auditPeriod: `${plan?.plannedStart} to ${plan?.plannedEnd}`,
-      preparedBy: 'John Doe, Senior Auditor',
-      background: reportData.background,
-      keyHighlights: reportData.keyHighlights,
-      overallAssessment: reportData.overallAssessment,
-      objective: plan?.objective || '',
-      scope: plan?.scope || '',
-      methodology: plan?.methodology || '',
-      limitations: reportData.limitations,
-      findings: planFindings,
-      responses: planResponses,
-      conclusion: reportData.conclusion,
-      followUpActions: reportData.followUpActions,
-      reviewedBy: 'Manager Internal Audit',
-      distributionList: reportData.distributionList
-    };
+  const getRiskBadge = (risk: string) => {
+    const colors: Record<string, string> = { High: 'bg-red-500', Medium: 'bg-yellow-500', Low: 'bg-green-500' };
+    return <Badge className={colors[risk] || 'bg-gray-500'}>{risk}</Badge>;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Audit Report Builder</h1>
-          <p className="text-muted-foreground">
-            Build and finalize comprehensive audit reports |
-            <Link to="/" className="text-blue-600 hover:underline ml-1">← Back to Dashboard</Link>
-          </p>
-        </div>
+        <div><h1 className="text-3xl font-bold">Audit Report Builder</h1><p className="text-muted-foreground">Build and finalize audit reports | <Link to="/" className="text-blue-600 hover:underline ml-1">← Dashboard</Link></p></div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsLocked(!isLocked)}>
-            {isLocked ? <Lock className="w-4 h-4 mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
-            {isLocked ? 'Locked' : 'Unlock'}
-          </Button>
-          <Button variant="outline" onClick={handlePreview}>
-            <Eye className="w-4 h-4 mr-2" />
-            Preview Report
-          </Button>
+          <Button variant="outline" onClick={() => setIsLocked(!isLocked)}>{isLocked ? <Lock className="w-4 h-4 mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}{isLocked ? 'Locked' : 'Unlock'}</Button>
+          <Button variant="outline" onClick={() => setShowPreview(true)}><Eye className="w-4 h-4 mr-2" />Preview</Button>
         </div>
       </div>
 
-      {/* Report Sections */}
-      <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="header">Header</TabsTrigger>
+      <Tabs defaultValue="executive" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="executive">Executive Summary</TabsTrigger>
           <TabsTrigger value="scope">Scope & Methodology</TabsTrigger>
           <TabsTrigger value="findings">Findings</TabsTrigger>
-          <TabsTrigger value="responses">Responses</TabsTrigger>
           <TabsTrigger value="conclusion">Conclusion</TabsTrigger>
         </TabsList>
 
-        {/* Report Header */}
-        <TabsContent value="header">
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Header Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Report Title</Label>
-                <Input 
-                  defaultValue={plan?.title} 
-                  disabled={isLocked}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Fiscal Year</Label>
-                  <Input defaultValue={plan?.fiscalYear} disabled={isLocked} />
+        <TabsContent value="executive"><Card><CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader><CardContent className="space-y-4">
+          <div><Label>Background</Label><Textarea rows={4} disabled={isLocked} value={reportData.background} onChange={(e) => setReportData({...reportData, background: e.target.value})} /></div>
+          <div><Label>Key Highlights</Label><Textarea rows={4} disabled={isLocked} value={reportData.keyHighlights} onChange={(e) => setReportData({...reportData, keyHighlights: e.target.value})} /></div>
+          <div><Label>Overall Assessment</Label><Textarea rows={3} disabled={isLocked} value={reportData.overallAssessment} onChange={(e) => setReportData({...reportData, overallAssessment: e.target.value})} /></div>
+        </CardContent></Card></TabsContent>
+
+        <TabsContent value="scope"><Card><CardHeader><CardTitle>Scope & Methodology</CardTitle></CardHeader><CardContent className="space-y-4">
+          <div><Label>Objective</Label><Textarea rows={3} defaultValue={plan?.objective} disabled={isLocked} /></div>
+          <div><Label>Scope</Label><Textarea rows={4} defaultValue={plan?.scope} disabled={isLocked} /></div>
+          <div><Label>Methodology</Label><Textarea rows={4} defaultValue={plan?.methodology} disabled={isLocked} /></div>
+        </CardContent></Card></TabsContent>
+
+        <TabsContent value="findings"><Card><CardHeader><CardTitle>Findings ({planFindings.length})</CardTitle></CardHeader><CardContent>
+          {planFindings.length > 0 ? planFindings.map((finding: any, i: number) => (
+            <Card key={finding.id} className="border-l-4 border-l-red-500 mb-4">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="font-semibold">Finding {i+1}: {finding.title}</div>
+                  {getRiskBadge(finding.risk_rating)}
                 </div>
-                <div>
-                  <Label>Report Date</Label>
-                  <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} disabled={isLocked} />
+                <div className="space-y-2 text-sm">
+                  <div><strong>Condition:</strong> {finding.condition}</div>
+                  <div><strong>Criteria:</strong> {finding.criteria}</div>
+                  <div><strong>Cause:</strong> {finding.cause}</div>
+                  <div><strong>Effect:</strong> {finding.effect}</div>
                 </div>
-              </div>
-              <div>
-                <Label>Audit Period</Label>
-                <Input 
-                  defaultValue={`${plan?.plannedStart} to ${plan?.plannedEnd}`} 
-                  disabled={isLocked}
-                />
-              </div>
-              <div>
-                <Label>Prepared By</Label>
-                <Input defaultValue="Internal Audit Department" disabled={isLocked} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          )) : <p className="text-center py-8 text-muted-foreground">No findings for this plan</p>}
+        </CardContent></Card></TabsContent>
 
-        {/* Executive Summary */}
-        <TabsContent value="executive">
-          <Card>
-            <CardHeader>
-              <CardTitle>Executive Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Background</Label>
-                <Textarea 
-                  rows={4}
-                  placeholder="Provide background information about the audit..."
-                  disabled={isLocked}
-                  value={reportData.background}
-                  onChange={(e) => setReportData({...reportData, background: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Key Highlights</Label>
-                <Textarea 
-                  rows={4}
-                  placeholder="Summarize key findings and observations..."
-                  disabled={isLocked}
-                  value={reportData.keyHighlights}
-                  onChange={(e) => setReportData({...reportData, keyHighlights: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Overall Assessment</Label>
-                <Textarea 
-                  rows={3}
-                  placeholder="Provide an overall assessment of the audited area..."
-                  disabled={isLocked}
-                  value={reportData.overallAssessment}
-                  onChange={(e) => setReportData({...reportData, overallAssessment: e.target.value})}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Scope & Methodology */}
-        <TabsContent value="scope">
-          <Card>
-            <CardHeader>
-              <CardTitle>Scope & Methodology</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Audit Objective</Label>
-                <Textarea 
-                  rows={3}
-                  defaultValue={plan?.objective}
-                  disabled={isLocked}
-                />
-              </div>
-              <div>
-                <Label>Scope</Label>
-                <Textarea 
-                  rows={4}
-                  defaultValue={plan?.scope}
-                  disabled={isLocked}
-                />
-              </div>
-              <div>
-                <Label>Methodology</Label>
-                <Textarea 
-                  rows={4}
-                  defaultValue={plan?.methodology}
-                  disabled={isLocked}
-                />
-              </div>
-              <div>
-                <Label>Limitations (if any)</Label>
-                <Textarea 
-                  rows={2}
-                  placeholder="Describe any limitations encountered during the audit..."
-                  disabled={isLocked}
-                  value={reportData.limitations}
-                  onChange={(e) => setReportData({...reportData, limitations: e.target.value})}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Findings */}
-        <TabsContent value="findings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Detailed Findings ({planFindings.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {planFindings.length > 0 ? (
-                  planFindings.map((finding, index) => (
-                    <Card key={finding.id} className="border-l-4 border-l-red-500">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <Checkbox defaultChecked disabled={isLocked} />
-                            <div>
-                              <div className="font-semibold">Finding {index + 1}: {finding.title}</div>
-                              <div className="text-sm text-muted-foreground">{finding.findingId}</div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Badge className={
-                              finding.riskRating === 'High' ? 'bg-red-500' :
-                              finding.riskRating === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
-                            }>
-                              {finding.riskRating}
-                            </Badge>
-                            <Badge variant="outline">{finding.impactArea}</Badge>
-                          </div>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div><strong>Condition:</strong> {finding.condition}</div>
-                          <div><strong>Criteria:</strong> {finding.criteria}</div>
-                          <div><strong>Cause:</strong> {finding.cause}</div>
-                          <div><strong>Effect:</strong> {finding.effect}</div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No findings documented for this audit plan
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Management Responses */}
-        <TabsContent value="responses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Management Responses & Action Plans</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {managementResponses.map((response) => {
-                  const finding = findings.find(f => f.id === response.findingId);
-                  return (
-                    <Card key={response.id}>
-                      <CardContent className="pt-6">
-                        <div className="space-y-3">
-                          <div>
-                            <strong>Finding:</strong> {finding?.findingId} - {finding?.title}
-                          </div>
-                          <div>
-                            <strong>Management Response:</strong>
-                            <p className="text-sm mt-1">{response.responseText}</p>
-                          </div>
-                          <div>
-                            <strong>Action Plan:</strong>
-                            <p className="text-sm mt-1 whitespace-pre-line">{response.actionPlan}</p>
-                          </div>
-                          <div className="flex gap-4 text-sm">
-                            <div><strong>Responsible:</strong> {response.responsiblePerson}</div>
-                            <div><strong>Target Date:</strong> {new Date(response.targetDate).toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Conclusion */}
-        <TabsContent value="conclusion">
-          <Card>
-            <CardHeader>
-              <CardTitle>Conclusion & Next Steps</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Overall Conclusion</Label>
-                <Textarea 
-                  rows={4}
-                  placeholder="Provide concluding remarks..."
-                  disabled={isLocked}
-                  value={reportData.conclusion}
-                  onChange={(e) => setReportData({...reportData, conclusion: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Follow-up Actions</Label>
-                <Textarea 
-                  rows={3}
-                  placeholder="Outline next steps and follow-up schedule..."
-                  disabled={isLocked}
-                  value={reportData.followUpActions}
-                  onChange={(e) => setReportData({...reportData, followUpActions: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Prepared By</Label>
-                  <Input defaultValue="John Doe, Senior Auditor" disabled={isLocked} />
-                </div>
-                <div>
-                  <Label>Reviewed By</Label>
-                  <Input defaultValue="Manager Internal Audit" disabled={isLocked} />
-                </div>
-              </div>
-              <div>
-                <Label>Distribution List</Label>
-                <Textarea 
-                  rows={2}
-                  placeholder="List recipients who will receive this report..."
-                  disabled={isLocked}
-                  value={reportData.distributionList}
-                  onChange={(e) => setReportData({...reportData, distributionList: e.target.value})}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <TabsContent value="conclusion"><Card><CardHeader><CardTitle>Conclusion</CardTitle></CardHeader><CardContent className="space-y-4">
+          <div><Label>Conclusion</Label><Textarea rows={4} disabled={isLocked} value={reportData.conclusion} onChange={(e) => setReportData({...reportData, conclusion: e.target.value})} /></div>
+          <div><Label>Follow-up Actions</Label><Textarea rows={3} disabled={isLocked} value={reportData.followUpActions} onChange={(e) => setReportData({...reportData, followUpActions: e.target.value})} /></div>
+          <div><Label>Distribution List</Label><Textarea rows={2} disabled={isLocked} value={reportData.distributionList} onChange={(e) => setReportData({...reportData, distributionList: e.target.value})} /></div>
+        </CardContent></Card></TabsContent>
       </Tabs>
 
-      {/* Report Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Report Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span>Draft Version</span>
-              <Badge>v1.0</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Last Modified</span>
-              <span className="text-sm text-muted-foreground">
-                {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Status</span>
-              <Badge className={isLocked ? 'bg-green-500' : 'bg-yellow-500'}>
-                {isLocked ? 'Finalized' : 'Draft'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Card><CardHeader><CardTitle>Report Status</CardTitle></CardHeader><CardContent>
+        <div className="flex items-center justify-between"><span>Status</span><Badge className={isLocked ? 'bg-green-500' : 'bg-yellow-500'}>{isLocked ? 'Finalized' : 'Draft'}</Badge></div>
+      </CardContent></Card>
 
-      {/* Report Preview Dialog */}
-      <ReportPreviewDialog 
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        reportData={getReportDataForPreview()}
-        onSubmit={handleSubmit}
-      />
+      <ReportPreviewDialog open={showPreview} onOpenChange={setShowPreview} reportData={{
+        title: plan?.title || '', fiscalYear: plan?.fiscal_year || '', reportDate: new Date().toLocaleDateString(),
+        auditPeriod: '', preparedBy: 'Internal Audit', background: reportData.background, keyHighlights: reportData.keyHighlights,
+        overallAssessment: reportData.overallAssessment, objective: plan?.objective || '', scope: plan?.scope || '',
+        methodology: plan?.methodology || '', limitations: reportData.limitations, findings: planFindings, responses: [],
+        conclusion: reportData.conclusion, followUpActions: reportData.followUpActions, reviewedBy: 'Manager Internal Audit',
+        distributionList: reportData.distributionList
+      }} onSubmit={handleSubmit} />
     </div>
   );
 }
