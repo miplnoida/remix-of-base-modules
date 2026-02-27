@@ -49,6 +49,7 @@ export interface PenaltyFinesData {
   severancePenalty: number;
   ssFines: number;
   daysLate: number;
+  monthsLate: number;
   totalLateCharges: number;
 }
 
@@ -62,6 +63,7 @@ interface EmployeeModalProps {
   periodMonth: number;
   receivedDate?: string;
   penaltyData?: PenaltyFinesData;
+  allEmployees?: EmployeeData[];
 }
 
 export default function EmployeeModal({
@@ -73,7 +75,8 @@ export default function EmployeeModal({
   periodYear,
   periodMonth,
   receivedDate,
-  penaltyData
+  penaltyData,
+  allEmployees
 }: EmployeeModalProps) {
   const { validateEmployee, isValidating } = useEmployerValidation();
   const { config, isLoading: isLoadingConfig, error: configError, calculate } = useC3EmployeeCalculation(periodYear, periodMonth);
@@ -119,7 +122,7 @@ export default function EmployeeModal({
   // The effective penalty data: use live recalculated in Edit mode, otherwise prop
   const effectivePenalty = useMemo(() => {
     if (!isViewMode && livePenalty) return livePenalty;
-    return penaltyData || { levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, totalLateCharges: 0 };
+    return penaltyData || { levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, monthsLate: 0, totalLateCharges: 0 };
   }, [isViewMode, livePenalty, penaltyData]);
 
   // Auto-calculate Term Start Date as the first date of the selected Period month
@@ -218,11 +221,12 @@ export default function EmployeeModal({
   }, [clientPayrollCalc, bonusPolicyResult, effectiveWages]);
 
   // Debounced server-side penalty recalculation when wages change in Edit mode
+  // Uses ALL employees (substituting the current one's wages) for correct C3-level penalties
   useEffect(() => {
     if (isViewMode || !isOpen) return;
     const hasWages = effectiveWages.some(w => w > 0);
     if (!hasWages || !receivedDate) {
-      setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, totalLateCharges: 0 });
+      setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, monthsLate: 0, totalLateCharges: 0 });
       return;
     }
 
@@ -231,7 +235,8 @@ export default function EmployeeModal({
     penaltyDebounceRef.current = setTimeout(async () => {
       setIsPenaltyCalculating(true);
       try {
-        const employeeData = [{
+        // Build the current employee's data with live wages
+        const currentEmpData = {
           ssn: localEmployee.ssn || '000000',
           name: localEmployee.name || 'Employee',
           week1: effectiveWages[0] || 0,
@@ -244,13 +249,44 @@ export default function EmployeeModal({
           payPeriod: localEmployee.payPeriod || 'Monthly',
           termStartDate: localEmployee.termStartDate || periodTermStartDate,
           dateOfBirth: localEmployee.dateOfBirth || null
-        }];
+        };
+
+        // Build full employee list: replace edited employee, keep others as-is
+        let fullEmployeeData: any[];
+        if (allEmployees && allEmployees.length > 0) {
+          fullEmployeeData = allEmployees.map(emp => {
+            // Match by SSN to substitute the currently edited employee
+            if (emp.ssn === localEmployee.ssn) {
+              return currentEmpData;
+            }
+            return {
+              ssn: emp.ssn || '000000',
+              name: emp.name || 'Employee',
+              week1: emp.weeklyWages?.[0] || 0,
+              week2: emp.weeklyWages?.[1] || 0,
+              week3: emp.weeklyWages?.[2] || 0,
+              week4: emp.weeklyWages?.[3] || 0,
+              week5: emp.weeklyWages?.[4] || 0,
+              bonus: emp.weeklyWages?.[5] || 0,
+              holiday: emp.weeklyWages?.[6] || 0,
+              payPeriod: emp.payPeriod || 'Monthly',
+              termStartDate: emp.termStartDate || null,
+              dateOfBirth: emp.dateOfBirth || null
+            };
+          });
+          // If this is a new employee (not found by SSN), add them
+          if (!allEmployees.some(emp => emp.ssn === localEmployee.ssn)) {
+            fullEmployeeData.push(currentEmpData);
+          }
+        } else {
+          fullEmployeeData = [currentEmpData];
+        }
 
         const { data, error } = await supabase.rpc('calculate_c3_contributions', {
           p_period_year: periodYear,
           p_period_month: periodMonth,
           p_received_date: receivedDate,
-          p_employee_data: employeeData
+          p_employee_data: fullEmployeeData
         });
 
         if (!error && data) {
@@ -261,6 +297,7 @@ export default function EmployeeModal({
               severancePenalty: result.totals.severancePenalty || 0,
               ssFines: result.totals.ssFine || 0,
               daysLate: result.totals.daysLate || 0,
+              monthsLate: result.totals.monthsLate || 0,
               totalLateCharges: result.totals.totalLateCharges || 0
             });
           }
@@ -276,7 +313,7 @@ export default function EmployeeModal({
       if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isViewMode, isOpen, effectiveWagesKey, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate]);
+  }, [isViewMode, isOpen, effectiveWagesKey, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate, allEmployees]);
 
   // Reset form when employee changes
   useEffect(() => {
@@ -1044,7 +1081,10 @@ export default function EmployeeModal({
                   {isPenaltyCalculating && (
                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />
                   )}
-                  {effectivePenalty.daysLate > 0 && (
+                  {effectivePenalty.monthsLate > 0 && (
+                    <Badge variant="destructive" className="text-[9px] h-4 px-1.5 ml-auto">{effectivePenalty.monthsLate}m late</Badge>
+                  )}
+                  {effectivePenalty.daysLate > 0 && effectivePenalty.monthsLate === 0 && (
                     <Badge variant="destructive" className="text-[9px] h-4 px-1.5 ml-auto">{effectivePenalty.daysLate}d late</Badge>
                   )}
                 </div>
