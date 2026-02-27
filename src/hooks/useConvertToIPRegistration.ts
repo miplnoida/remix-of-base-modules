@@ -97,7 +97,8 @@ export function validateApplicationForConversion(
     errors.push({ field: 'dateMarried', message: 'Date married is required for married/common-law applicants' });
   }
 
-  if (app.hasWorkPermit && !app.workPermitExpiry) {
+  const wpVal = (app as any).hasWorkPermit;
+  if ((wpVal === true || wpVal === 'Y' || wpVal === 'true') && !app.workPermitExpiry) {
     errors.push({ field: 'workPermitExpiry', message: 'Work permit expiry date is required when work permit is set' });
   }
 
@@ -255,13 +256,13 @@ export function useConvertToIPRegistration() {
           p_ben_addr1:             trim(app.beneficiaryAddress, 50),
           p_ben_addr2:             trim(app.beneficiaryAddress1, 50),
           p_primary_occup:         trim((app.occupationCode || app.occupation || ''), 4),
-          p_work_permit:           app.hasWorkPermit ? 'Y' : 'N',
+          p_work_permit:           ((app as any).hasWorkPermit === true || (app as any).hasWorkPermit === 'Y' || (app as any).hasWorkPermit === 'true') ? 'Y' : 'N',
           p_work_permit_expiration: safeDate(app.workPermitExpiry ?? undefined),
           p_npf:                   npf,
           p_citizenship_flag:      citizenshipFlag,
           p_ip_signature:          toYN((app as any).ipSignature ?? (app as any).ip_signature, 'N'),
           p_application_date:      new Date().toISOString().split('T')[0],
-          p_date_of_residency:     safeDate(app.residencyDate ?? undefined),
+          p_date_of_residency:     (app.placeOfBirth && app.placeOfResidency && app.placeOfBirth === app.placeOfResidency) ? null : safeDate(app.residencyDate ?? undefined),
           p_place_of_residence:    trim(app.placeOfResidency, 30),
           p_employer_name:         trim(app.employerName, 50),
           p_employer_address:      trim(app.employerAddress, 200),

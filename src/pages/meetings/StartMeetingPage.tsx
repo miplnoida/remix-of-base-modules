@@ -834,6 +834,15 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
     return occupation?.short_description || code;
   };
 
+  /** Generic Y/N resolver that handles boolean, string-boolean, and Y/N values from multiple source fields */
+  const resolveYesNo = (...values: any[]): string => {
+    for (const raw of values) {
+      if (raw === true || raw === 'true' || raw === 'Y' || raw === 'y' || raw === 'Yes' || raw === 'yes') return 'Y';
+      if (raw === false || raw === 'false' || raw === 'N' || raw === 'n' || raw === 'No' || raw === 'no') return 'N';
+    }
+    return 'N';
+  };
+
   const resolveNpf = (): string => {
     const raw = data.npfMember;
     if (raw === true || raw === 'true' || raw === 'Y' || raw === 'Yes') return 'Y';
@@ -1051,7 +1060,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           </div>
           <div className="space-y-2">
             <Label className="text-sm">Place of Residency</Label>
-            <Select value={data.placeOfResidency || ''} onValueChange={(v) => onChange('placeOfResidency', v)}>
+            <Select value={data.placeOfResidency || ''} onValueChange={(v) => { onChange('placeOfResidency', v); if (v && data.placeOfBirth && v === data.placeOfBirth) { onChange('residencyDate', ''); } }}>
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="Select country">{getCountryName(data.placeOfResidency) || 'Select country'}</SelectValue>
               </SelectTrigger>
@@ -1063,10 +1072,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             </Select>
           </div>
           {/* Only show Residency Date when Place of Birth differs from Place of Residency */}
-          {data.placeOfBirth && data.placeOfResidency && data.placeOfBirth !== data.placeOfResidency && (
-            <EditableField label="Residency Date" value={data.residencyDate} onChange={(v) => onChange('residencyDate', v)} type="date" />
-          )}
-          {(!data.placeOfBirth || !data.placeOfResidency) && (
+          {!(data.placeOfBirth && data.placeOfResidency && data.placeOfBirth === data.placeOfResidency) && (
             <EditableField label="Residency Date" value={data.residencyDate} onChange={(v) => onChange('residencyDate', v)} type="date" />
           )}
         </div>
@@ -1140,7 +1146,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label className="text-sm">Has Work Permit</Label>
-            <Select value={data.hasWorkPermit === true || data.hasWorkPermit === 'true' ? 'Y' : 'N'} onValueChange={(v) => onChange('hasWorkPermit', v === 'Y')}>
+            <Select value={resolveYesNo(data.hasWorkPermit, data.workPermit)} onValueChange={(v) => { onChange('hasWorkPermit', v); onChange('workPermit', v); }}>
               <SelectTrigger className="h-9">
                 <SelectValue />
               </SelectTrigger>
@@ -1150,7 +1156,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
               </SelectContent>
             </Select>
           </div>
-          {(data.hasWorkPermit === true || data.hasWorkPermit === 'true') && (
+          {resolveYesNo(data.hasWorkPermit, data.workPermit) === 'Y' && (
             <EditableField label="Work Permit Expiry" value={data.workPermitExpiry} onChange={(v) => onChange('workPermitExpiry', v)} type="date" />
           )}
           <div className="space-y-2">
