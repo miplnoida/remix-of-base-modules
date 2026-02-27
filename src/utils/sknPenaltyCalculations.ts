@@ -98,7 +98,7 @@ export function calculatePenalties(inputs: PenaltyInputs): PenaltyResult {
   // MonthsLateForSS = ceil(DaysLate / 30)
   const monthsLateForSS = daysLate > 0 ? Math.ceil(daysLate / 30) : 0;
 
-  // A) Levy Penalty: base = employee_levy + employer_levy + severance
+  // A) Levy Penalty: base = employee_levy + employer_levy ONLY (severance excluded)
   // 10% + 1% for each additional 30-day period after first 30 days
   let levyPenalty = 0;
   if (levyPenaltyBase > 0 && daysLate > 0) {
