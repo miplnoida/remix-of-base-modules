@@ -457,6 +457,15 @@ export default function EmployeeModal({
 
   const handleSSNBlur = useCallback(async () => {
     if (localEmployee.ssn && localEmployee.ssn.length === 6) {
+      // Check for duplicate SSN when adding a new employee (not editing)
+      if (!employee && allEmployees) {
+        const isDuplicate = allEmployees.some(emp => emp.ssn === localEmployee.ssn);
+        if (isDuplicate) {
+          setSsnError('This SSN already exists in this C3. Duplicate employees are not allowed.');
+          setSsnValidated(false);
+          return;
+        }
+      }
       const result = await validateEmployee(localEmployee.ssn);
       if (result.isValid) {
         setLocalEmployee(prev => ({
@@ -472,7 +481,7 @@ export default function EmployeeModal({
         setSsnValidated(false);
       }
     }
-  }, [localEmployee.ssn, validateEmployee]);
+  }, [localEmployee.ssn, validateEmployee, employee, allEmployees]);
 
   const handleChange = (field: keyof EmployeeData, value: any) => {
     if (isViewMode) return;
@@ -627,6 +636,14 @@ export default function EmployeeModal({
     if (!ssnValidated) {
       setSsnError('Please enter a valid SSN');
       return;
+    }
+    // Final duplicate check on save (guards against race conditions)
+    if (!employee && allEmployees) {
+      const isDuplicate = allEmployees.some(emp => emp.ssn === localEmployee.ssn);
+      if (isDuplicate) {
+        setSsnError('This SSN already exists in this C3. Duplicate employees are not allowed.');
+        return;
+      }
     }
 
     if (localEmployee.bonusDate && !validateBonusDate(localEmployee.bonusDate)) return;
