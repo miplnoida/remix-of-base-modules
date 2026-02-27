@@ -1034,13 +1034,13 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           Residential Address
         </h4>
         <div className="grid grid-cols-3 gap-4">
-          <EditableField label="Address Line 1" value={data.addressLine1} onChange={(v) => onChange('addressLine1', v)} />
-          <EditableField label="Address Line 2" value={data.addressLine2} onChange={(v) => onChange('addressLine2', v)} />
+          <EditableField label="Address Line 1" value={data.resAddr1 ?? data.addressLine1} onChange={(v) => { onChange('resAddr1', v); onChange('addressLine1', v); }} />
+          <EditableField label="Address Line 2" value={data.resAddr2 ?? data.addressLine2} onChange={(v) => { onChange('resAddr2', v); onChange('addressLine2', v); }} />
           <div className="space-y-2">
             <Label className="text-sm">Postal District</Label>
-            <Select value={data.postalDistrict || ''} onValueChange={(v) => onChange('postalDistrict', v)}>
+            <Select value={data.resDistrict ?? data.postalDistrict ?? ''} onValueChange={(v) => { onChange('resDistrict', v); onChange('postalDistrict', v); }}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select district">{getDistrictName(data.postalDistrict) || 'Select district'}</SelectValue>
+                <SelectValue placeholder="Select district">{getDistrictName(data.resDistrict ?? data.postalDistrict) || 'Select district'}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {districts?.map(d => (
