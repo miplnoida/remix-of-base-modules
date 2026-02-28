@@ -275,7 +275,7 @@ export function useConvertToIPRegistration() {
           p_ip_signature:          toYN((app as any).ipSignature ?? (app as any).ip_signature, 'N'),
           p_application_date:      new Date().toISOString().split('T')[0],
           p_date_of_residency:     (app.placeOfBirth && app.placeOfResidency && app.placeOfBirth === app.placeOfResidency) ? null : safeDate(app.residencyDate ?? undefined),
-          p_place_of_residence:    trim(app.placeOfResidency, 30),
+          p_place_of_residence:    countryCode3(app.placeOfResidency),
           p_employer_name:         trim(app.employerName, 50),
           p_employer_address:      trim(app.employerAddress, 200),
           p_employer_phone:        digits(app.employerPhone, 10),

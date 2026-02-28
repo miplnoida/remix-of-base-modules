@@ -18,6 +18,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { cn } from '@/lib/utils';
+import { useDistricts } from '@/hooks/useIPMasterLookups';
 import { NameDialog } from './NameDialog';
 import { RelationDialog } from './RelationDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -75,13 +76,7 @@ const addressSchema = z.object({
 
 type Address = z.infer<typeof addressSchema>;
 
-const postalDistricts = [
-  'Basseterre Zone 01', 'Basseterre Zone 02', 'Basseterre Zone 03', 'Basseterre Zone 04',
-  'Basseterre Zone 05', 'Basseterre Zone 06', 'Basseterre Zone 07', 'Basseterre Zone 08',
-  'Basseterre Zone 09', 'Basseterre Zone 10', 'Basseterre Zone 11', 'Cayon Zone 06',
-  'Charlestown', 'Dieppe Bay Zone 04', 'Gingerland', 'Old Road Zone 02', 'Overseas',
-  'Sandy Point Zone 03', 'Tabernacle Zone 05', 'Unknown'
-];
+// Districts loaded from database via useDistricts hook
 
 const occupations = [
   'A.C Equipment Tec', 'Ablebodied Seaman', 'Accountant', 'Accounts Clerk', 'Administer Legal Secretary',
@@ -195,6 +190,7 @@ const AddressFormModal = ({
   mode: 'add' | 'edit' | 'view'; 
   initialValues?: Address; 
 }) => {
+  const { data: postalDistricts = [], isLoading: loadingDistricts } = useDistricts();
   const [formData, setFormData] = useState<Address>(initialValues || {
     id: '',
     addressType: 'resident',
@@ -329,14 +325,14 @@ const AddressFormModal = ({
                 <Select 
                   value={formData.residentPostalDistrict} 
                   onValueChange={handleResidentPostalDistrictChange}
-                  disabled={mode === 'view'}
+                  disabled={mode === 'view' || loadingDistricts}
                 >
                   <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select postal district" />
                   </SelectTrigger>
                   <SelectContent className="bg-background border max-h-48 overflow-y-auto">
                     {postalDistricts.map((district) => (
-                      <SelectItem key={district} value={district}>{district}</SelectItem>
+                      <SelectItem key={district.code} value={district.code}>{district.description}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
