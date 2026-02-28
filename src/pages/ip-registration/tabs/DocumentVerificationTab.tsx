@@ -323,6 +323,9 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
           });
       }
     },
+    onUploadComplete: () => {
+      queryClient.invalidateQueries({ queryKey: ['ip-application-documents', ssn] });
+    },
     userId: user?.id,
     userCode: userCode || undefined,
   });
@@ -688,11 +691,21 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
-                                  {statusVal ? (verifyTypes.find(v => v.code === statusVal)?.description || statusVal) : '—'}
-                                </Badge>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-xs font-medium text-muted-foreground">{statusLabel}</span>
+                                  <Badge variant="outline" className="text-xs w-fit">
+                                    {statusVal ? (verifyTypes.find(v => v.code === statusVal)?.description || statusVal) : 'Not Set'}
+                                  </Badge>
+                                </div>
                               )
-                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                            ) : (
+                              doc.verification_type ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-xs font-medium text-muted-foreground">{getStatusLabel(doc.verification_type)}</span>
+                                  <Badge variant="outline" className="text-xs w-fit">Not Set</Badge>
+                                </div>
+                              ) : <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatSize(doc.file_size)}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatDocDate(doc.uploaded_at)}</TableCell>

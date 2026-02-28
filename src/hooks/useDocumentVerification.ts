@@ -20,12 +20,14 @@ export interface UseDocumentVerificationConfig {
   externalDocFieldKeys?: Record<string, string>;
   /** Callback when a verify selection changes */
   onSelectionChange?: (fieldKey: string, code: string) => void;
+  /** Callback after a document upload completes successfully */
+  onUploadComplete?: () => void;
   userId?: string;
   userCode?: string;
 }
 
 export function useDocumentVerification(config: UseDocumentVerificationConfig) {
-  const { adapter, verificationCategories, externalDocFieldKeys = {}, onSelectionChange, userId, userCode } = config;
+  const { adapter, verificationCategories, externalDocFieldKeys = {}, onSelectionChange, onUploadComplete, userId, userCode } = config;
   const { data: verifyTypes = [], isLoading: verifyLoading } = useVerifyTypes();
 
   // --- State ---
@@ -309,6 +311,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
         setPendingReupload(prev => { const next = { ...prev }; delete next[slot.categoryId]; return next; });
         fetchDocuments();
+        onUploadComplete?.();
       } catch (error) {
         console.error('Upload error:', error);
         toast.error(`Failed to upload "${file.name}"`);
@@ -332,6 +335,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
       await adapter.deleteDocument(doc);
       toast.success('Document deleted');
       fetchDocuments();
+      onUploadComplete?.();
     } catch (error) {
       console.error('Delete error:', error);
       toast.error('Failed to delete document');
