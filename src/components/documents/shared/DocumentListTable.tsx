@@ -5,24 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileText, Download, Eye, Image as ImageIcon, File, Loader2, Trash2, Info } from 'lucide-react';
+import { FileText, Download, Eye, Image as ImageIcon, File, Loader2, Trash2, Info, Send } from 'lucide-react';
 import { ExternalDocument } from '@/types/externalApplication';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import { useDocumentStatusDropdown } from '@/hooks/useDocumentStatusDropdown';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
-import { useQuery } from '@tanstack/react-query';
-import { DocumentPreviewDialog } from '@/components/documents/shared/DocumentPreviewDialog';
-import { formatDocDate, getFileCategory } from '@/components/documents/shared/types';
+import { formatSize, formatDocDate, getFileCategory } from './types';
 
-interface ApplicationDocumentsTabProps {
-  documents?: ExternalDocument[];
-  photoUrl?: string | null;
-  onDelete?: (index: number) => void;
-  showDelete?: boolean;
-  ssn?: string | null;
-}
+// --- Helpers for ExternalDocument ---
 
 function getDocUrl(doc: ExternalDocument): string | undefined {
   return doc.signedUrl || doc.url;
@@ -51,10 +43,10 @@ function formatFileSize(size?: string | number): string {
   if (size === undefined || size === null) return '—';
   const bytes = typeof size === 'string' ? parseInt(size, 10) : size;
   if (isNaN(bytes)) return String(size);
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return formatSize(bytes);
 }
+
+// --- Props ---
 
 interface AppDocRow {
   id: string;
@@ -70,31 +62,36 @@ interface AppDocRow {
   death_status: string | null;
 }
 
-const EMPTY_APP_DOCS: AppDocRow[] = [];
+interface DocumentListTableProps {
+  documents?: ExternalDocument[];
+  photoUrl?: string | null;
+  onDelete?: (index: number) => void;
+  showDelete?: boolean;
+  ssn?: string | null;
+  appDocs?: AppDocRow[];
+  /** Fetch blob through secure proxy */
+  fetchDocBlob: (docUrl: string, fileName: string, action: 'stream' | 'download') => Promise<Blob>;
+  /** Additional columns/actions */
+  title?: string;
+  description?: string;
+}
 
-export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDelete, ssn }: ApplicationDocumentsTabProps) {
+export function DocumentListTable({
+  documents,
+  photoUrl,
+  onDelete,
+  showDelete,
+  ssn,
+  appDocs = [],
+  fetchDocBlob,
+  title = 'Attached Documents',
+  description = 'Documents submitted with this application',
+}: DocumentListTableProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; category: 'pdf' | 'image' | 'other' } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
   const { resolveDocType } = useDocumentTypeResolver();
   const { data: verifyTypes = [] } = useVerifyTypes();
-
-  const { data: appDocs = EMPTY_APP_DOCS } = useQuery({
-    queryKey: ['ip-application-documents', ssn],
-    queryFn: async () => {
-      if (!ssn) return [];
-      const { data, error } = await supabase
-        .from('ip_application_documents')
-        .select('id, document_name, document_type, file_name, file_size, uploaded_at, verification_type, birth_status, name_status, marital_status, death_status')
-        .eq('ssn', ssn)
-        .order('uploaded_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as AppDocRow[];
-    },
-    enabled: !!ssn,
-    staleTime: 60000,
-  });
-
   const { getStatusValue, hasStatusDropdown, handleStatusChange, getStatusLabel, isSaving } = useDocumentStatusDropdown(appDocs);
 
   const getMatchingAppDoc = useCallback((doc: ExternalDocument): AppDocRow | undefined => {
@@ -109,32 +106,19 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
   const allDocs: ExternalDocument[] = [];
   if (photoUrl) {
     allDocs.push({
-      id: '__photo__', fileName: 'Passport Photo', documentType: 'Photo',
-      mimeType: 'image/png', signedUrl: photoUrl, uploadedAt: undefined,
+      id: '__photo__',
+      fileName: 'Passport Photo',
+      documentType: 'Photo',
+      mimeType: 'image/png',
+      signedUrl: photoUrl,
+      uploadedAt: undefined,
     });
   }
-  if (documents && documents.length > 0) allDocs.push(...documents);
-  const totalCount = allDocs.length;
+  if (documents && documents.length > 0) {
+    allDocs.push(...documents);
+  }
 
-  const fetchDocBlob = useCallback(async (docUrl: string, fileName: string, action: 'stream' | 'download') => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    const proxyResponse = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ action, documentUrl: docUrl, fileName }),
-      }
-    );
-    if (!proxyResponse.ok) {
-      const errBody = await proxyResponse.json().catch(() => ({}));
-      throw new Error((errBody as any)?.error || `HTTP ${proxyResponse.status}`);
-    }
-    const contentType = proxyResponse.headers.get('content-type') || 'application/octet-stream';
-    const arrayBuffer = await proxyResponse.arrayBuffer();
-    return new Blob([arrayBuffer], { type: contentType });
-  }, []);
+  const totalCount = allDocs.length;
 
   const handleView = useCallback(async (doc: ExternalDocument, index: number) => {
     const docUrl = getDocUrl(doc);
@@ -150,6 +134,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
       setPreviewDoc({ url: blobUrl, name, category });
       setPreviewOpen(true);
     } catch (err: any) {
+      console.error('Document view error:', err);
       toast.error('Failed to load document', { description: err.message });
     } finally {
       setLoadingDocId(null);
@@ -166,11 +151,15 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
       const blob = await fetchDocBlob(docUrl, name, 'download');
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = blobUrl; link.download = name;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      link.href = blobUrl;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
       toast.success('Download started', { description: name });
     } catch (err: any) {
+      console.error('Document download error:', err);
       toast.error('Failed to download document', { description: err.message });
     } finally {
       setLoadingDocId(null);
@@ -183,16 +172,19 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     setPreviewDoc(null);
   }, [previewDoc]);
 
+  // Re-use the DocumentPreviewDialog inline for simplicity since this is already self-contained
+  const { DocumentPreviewDialog } = require('./DocumentPreviewDialog');
+
   return (
     <TooltipProvider>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Attached Documents
+            {title}
             <Badge variant="secondary">{totalCount}</Badge>
           </CardTitle>
-          <CardDescription>Documents submitted with this application</CardDescription>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
           {totalCount > 0 ? (
@@ -233,28 +225,48 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                                   <Info className="h-3 w-3" />
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">{docTypeLabel}</TooltipContent>
+                              <TooltipContent side="top" className="text-xs">
+                                {docTypeLabel}
+                              </TooltipContent>
                             </Tooltip>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">{resolveDocType(getRawDocType(doc))}</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {resolveDocType(getRawDocType(doc))}
+                        </Badge>
                       </TableCell>
                       {ssn && (
                         <TableCell>
                           {showDropdown && matchedAppDoc ? (
-                            <Select value={statusVal || undefined} onValueChange={(v) => handleStatusChange(matchedAppDoc.id, matchedAppDoc.verification_type!, v)} disabled={isSaving[matchedAppDoc.id]}>
-                              <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder={`Select ${statusLabel}`} /></SelectTrigger>
+                            <Select
+                              value={statusVal || undefined}
+                              onValueChange={(v) => handleStatusChange(matchedAppDoc.id, matchedAppDoc.verification_type!, v)}
+                              disabled={isSaving[matchedAppDoc.id]}
+                            >
+                              <SelectTrigger className="h-8 w-[180px] text-xs">
+                                <SelectValue placeholder={`Select ${statusLabel}`} />
+                              </SelectTrigger>
                               <SelectContent>
-                                {verifyTypes.map(v => (<SelectItem key={v.code} value={v.code}>{v.description || v.code}</SelectItem>))}
+                                {verifyTypes.map(v => (
+                                  <SelectItem key={v.code} value={v.code}>
+                                    {v.description || v.code}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       )}
-                      <TableCell className="text-muted-foreground text-sm">{formatFileSize(doc.fileSize)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{formatDocDate(doc.uploadedAt)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatFileSize(doc.fileSize)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatDocDate(doc.uploadedAt)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           {hasUrl ? (
@@ -266,13 +278,25 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                                 </Button>
                               )}
                               <Button variant="outline" size="sm" onClick={() => handleDownload(doc, index)} disabled={isLoading} className="gap-1.5">
-                                <Download className="h-4 w-4" /> Download
+                                <Download className="h-4 w-4" />
+                                Download
                               </Button>
                             </>
-                          ) : <span className="text-xs text-muted-foreground italic">No file available</span>}
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">No file available</span>
+                          )}
                           {showDelete && onDelete && (
-                            <Button variant="ghost" size="sm" onClick={() => { const i = photoUrl ? index - 1 : index; if (i >= 0) onDelete(i); }} className="gap-1.5 text-destructive hover:text-destructive" disabled={doc.id === '__photo__'}>
-                              <Trash2 className="h-4 w-4" /> Delete
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => {
+                                const docOnlyIndex = photoUrl ? index - 1 : index;
+                                if (docOnlyIndex >= 0) onDelete(docOnlyIndex);
+                              }}
+                              className="gap-1.5 text-destructive hover:text-destructive"
+                              disabled={doc.id === '__photo__'}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
                             </Button>
                           )}
                         </div>
