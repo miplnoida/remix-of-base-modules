@@ -13,6 +13,7 @@ import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import { useDocumentStatusDropdown } from '@/hooks/useDocumentStatusDropdown';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
 import { formatSize, formatDocDate, getFileCategory } from './types';
+import { DocumentPreviewDialog } from './DocumentPreviewDialog';
 
 // --- Helpers for ExternalDocument ---
 
@@ -172,8 +173,7 @@ export function DocumentListTable({
     setPreviewDoc(null);
   }, [previewDoc]);
 
-  // Re-use the DocumentPreviewDialog inline for simplicity since this is already self-contained
-  const { DocumentPreviewDialog } = require('./DocumentPreviewDialog');
+  // DocumentPreviewDialog is imported at top of file
 
   return (
     <TooltipProvider>
