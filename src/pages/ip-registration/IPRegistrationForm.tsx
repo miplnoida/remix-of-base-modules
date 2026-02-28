@@ -459,8 +459,7 @@ export default function IPRegistrationForm() {
   const saveToDatabase = useCallback(async (data: Partial<IPFormData>, showSuccessMessage = true): Promise<boolean> => {
     if (isViewMode || !formData) return false;
     
-    // Only save drafts (status Z or D)
-    if (formData.status !== 'Z' && formData.status !== 'D') return false;
+    // Allow saving for any status in edit mode
     
     setSaving(true);
     try {
@@ -709,7 +708,7 @@ export default function IPRegistrationForm() {
     );
   }
 
-  const isEditable = !isViewMode && (formData.status === 'Z' || formData.status === 'D');
+  const isEditable = !isViewMode;
   const canApprove = formData.status === 'P' && formData.created_by !== user?.id;
 
   // workflowInit is now called above early returns (hooks must be unconditional)
@@ -753,7 +752,7 @@ export default function IPRegistrationForm() {
             </span>
           )}
           {/* Edit button in View mode to switch to Edit mode */}
-          {isViewMode && (formData.status === 'Z' || formData.status === 'D') && (
+          {isViewMode && (
             <Button 
               variant="outline"
               onClick={() => navigate(`/ip-registration/edit/${formData.unique_uuid}`)}

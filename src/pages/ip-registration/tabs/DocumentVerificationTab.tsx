@@ -34,7 +34,7 @@ interface DocumentVerificationTabProps {
 }
 
 // --- IP Registration Adapter ---
-function createIpRegistrationAdapter(ssn: string | undefined, uniqueUuid: string | undefined): DocumentPersistenceAdapter {
+function createIpRegistrationAdapter(ssn: string | undefined, uniqueUuid: string | undefined, ipStatus?: string): DocumentPersistenceAdapter {
   return {
     async fetchDocuments(): Promise<UnifiedDocument[]> {
       let query = supabase
@@ -71,39 +71,124 @@ function createIpRegistrationAdapter(ssn: string | undefined, uniqueUuid: string
     },
 
     async uploadFile(file: File, storagePath: string): Promise<string> {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${uniqueUuid}/${storagePath.split('_')[1]}_${Date.now()}.${fileExt}`;
-      const { error } = await supabase.storage.from('ip-documents').upload(fileName, file);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('ip-documents').getPublicUrl(fileName);
-      // Store the actual path used for later retrieval
-      (this as any)._lastUploadPath = fileName;
-      return urlData?.publicUrl || '';
+      const isDraftOrPending = ipStatus === 'Z' || ipStatus === 'D' || ipStatus === 'P';
+      
+      if (isDraftOrPending) {
+        // Upload to storage bucket
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${uniqueUuid}/${storagePath.split('_')[1]}_${Date.now()}.${fileExt}`;
+        const { error } = await supabase.storage.from('ip-documents').upload(fileName, file);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from('ip-documents').getPublicUrl(fileName);
+        (this as any)._lastUploadPath = fileName;
+        (this as any)._uploadedToDms = false;
+        return urlData?.publicUrl || '';
+      } else {
+        // Upload to DMS via edge function
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        const formDataPayload = new FormData();
+        formDataPayload.append('file', file);
+        formDataPayload.append('ssn', ssn || '');
+        formDataPayload.append('documentType', storagePath);
+        
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dms-transfer-single`,
+          {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            body: formDataPayload,
+          }
+        );
+        
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error((errBody as any)?.error || `DMS upload failed: HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        (this as any)._lastUploadPath = '';
+        (this as any)._uploadedToDms = true;
+        (this as any)._dmsDocId = result.dms_document_id || null;
+        return '';
+      }
     },
 
     async insertRecord(params: any): Promise<void> {
       const { slot, file, publicUrl, userId } = params;
       const filePath = (this as any)._lastUploadPath || '';
-      const { error } = await supabase.from('ip_application_documents').insert({
+      const uploadedToDms = (this as any)._uploadedToDms || false;
+      const dmsDocId = (this as any)._dmsDocId || null;
+      const verType = CATEGORY_TO_VERIFY_TYPE[slot.categoryId] || null;
+
+      // Check for existing record with same ssn + verification_type to upsert
+      let existingId: string | null = null;
+      if (ssn && verType) {
+        const { data: existing } = await supabase
+          .from('ip_application_documents')
+          .select('id')
+          .eq('ssn', ssn)
+          .eq('verification_type', verType)
+          .eq('is_supportive', slot.isSupportive || false)
+          .limit(1)
+          .single();
+        if (existing) existingId = existing.id;
+      }
+
+      const recordData = {
         ssn: ssn || null,
         application_reference_number: null,
         document_name: slot.docDescription,
-        document_type: slot.isSupportive ? 'supportive' : 'mandatory',
+        document_type: slot.docCode, // Store the actual doc code (e.g., 'B', 'I', 'M')
         file_name: file.name,
         file_path: filePath,
-        url: publicUrl,
+        url: publicUrl || null,
+        signed_url: publicUrl || null,
         mime_type: file.type,
         file_size: file.size,
         created_by: userId,
         uploaded_by: userId,
-        transfer_status: 'Pending',
-        verification_type: CATEGORY_TO_VERIFY_TYPE[slot.categoryId] || null,
+        transfer_status: uploadedToDms ? 'Transferred' : 'Pending',
+        dms_document_id: dmsDocId,
+        verification_type: verType,
         verification_category: slot.categoryId,
         is_supportive: slot.isSupportive,
         supportive_doc_type: slot.isSupportive ? slot.docCode : null,
         metadata: { unique_uuid: uniqueUuid },
-      });
-      if (error) throw error;
+      };
+
+      if (existingId) {
+        // Update existing record
+        const { error } = await supabase
+          .from('ip_application_documents')
+          .update(recordData)
+          .eq('id', existingId);
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('ip_application_documents')
+          .insert(recordData);
+        if (error) throw error;
+      }
+
+      // Update verify_*_code in ip_master
+      if (ssn && verType && !slot.isSupportive) {
+        const verTypeToVerifyCode: Record<string, string> = {
+          birth_status: 'verify_birth_code',
+          name_status: 'verify_name_code',
+          marital_status: 'verify_marital_code',
+          death_status: 'verify_death_code',
+        };
+        const verifyField = verTypeToVerifyCode[verType];
+        if (verifyField) {
+          await supabase
+            .from('ip_master')
+            .update({ [verifyField]: slot.docCode })
+            .eq('ssn', ssn);
+        }
+      }
     },
 
     async deleteDocument(doc: UnifiedDocument): Promise<void> {
@@ -179,9 +264,10 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
   const { resolveDocType } = useDocumentTypeResolver();
   const queryClient = useQueryClient();
   const ssn = formData.ssn;
+  const [prefillApplied, setPrefillApplied] = useState(false);
 
   // Create adapter
-  const adapter = useMemo(() => createIpRegistrationAdapter(ssn, formData.unique_uuid), [ssn, formData.unique_uuid]);
+  const adapter = useMemo(() => createIpRegistrationAdapter(ssn, formData.unique_uuid, formData.status), [ssn, formData.unique_uuid, formData.status]);
 
   // Verification categories
   const verificationCategories = useMemo((): VerificationCategory[] => {
@@ -219,6 +305,23 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     onSelectionChange: (fieldKey, code) => {
       onChange(fieldKey, code);
       clearError?.(fieldKey);
+      // Also update verify_*_code in ip_master
+      const fieldToVerifyCode: Record<string, string> = {
+        birth_doc_type: 'verify_birth_code',
+        name_doc_type: 'verify_name_code',
+        marital_doc_type: 'verify_marital_code',
+        death_doc_type: 'verify_death_code',
+      };
+      const verifyField = fieldToVerifyCode[fieldKey];
+      if (verifyField && ssn) {
+        supabase
+          .from('ip_master')
+          .update({ [verifyField]: code })
+          .eq('ssn', ssn)
+          .then(({ error }) => {
+            if (error) console.error(`Failed to update ${verifyField}:`, error);
+          });
+      }
     },
     userId: user?.id,
     userCode: userCode || undefined,
@@ -258,6 +361,57 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
     enabled: !!ssn,
     staleTime: 60000,
   });
+
+  // --- Prefill verification dropdowns from ip_application_documents ---
+  useEffect(() => {
+    if (prefillApplied || !appDocs.length || !ssn) return;
+
+    const verTypeToFormField: Record<string, { docField: string; verifyField: string; fieldKey: string }> = {
+      birth_status: { docField: 'birth_doc_type', verifyField: 'verify_birth_code', fieldKey: 'birth_doc_type' },
+      name_status: { docField: 'name_doc_type', verifyField: 'verify_name_code', fieldKey: 'name_doc_type' },
+      marital_status: { docField: 'marital_doc_type', verifyField: 'verify_marital_code', fieldKey: 'marital_doc_type' },
+      death_status: { docField: 'death_doc_type', verifyField: 'verify_death_code', fieldKey: 'death_doc_type' },
+    };
+
+    let hasChanges = false;
+    const updates: Record<string, string> = {};
+    const selectionsToSet: Record<string, string> = {};
+
+    for (const doc of appDocs) {
+      const vt = doc.verification_type;
+      if (!vt || !verTypeToFormField[vt]) continue;
+      const { docField, verifyField, fieldKey } = verTypeToFormField[vt];
+      const docType = doc.document_type;
+      if (!docType) continue;
+
+      // Only prefill if formData doesn't already have a value for this field
+      const currentVal = (formData as any)[docField];
+      if (!currentVal) {
+        onChange(docField, docType);
+        updates[verifyField] = docType;
+        selectionsToSet[fieldKey] = docType;
+        hasChanges = true;
+      }
+    }
+
+    // Directly set verifySelections in the hook for immediate UI update
+    if (Object.keys(selectionsToSet).length > 0) {
+      hook.setVerifySelections(prev => ({ ...prev, ...selectionsToSet }));
+    }
+
+    // Also update verify codes in ip_master
+    if (hasChanges && Object.keys(updates).length > 0) {
+      supabase
+        .from('ip_master')
+        .update(updates)
+        .eq('ssn', ssn)
+        .then(({ error }) => {
+          if (error) console.error('Failed to update verify codes:', error);
+        });
+    }
+
+    setPrefillApplied(true);
+  }, [appDocs, ssn, prefillApplied, formData, onChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { getStatusValue, hasStatusDropdown, handleStatusChange, getStatusLabel, isSaving } = useDocumentStatusDropdown(appDocs);
   const { data: verifyTypes = [] } = useVerifyTypes();
@@ -526,12 +680,18 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                           <TableCell><Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type)}</Badge></TableCell>
                           <TableCell>
                             {showDropdown ? (
-                              <Select value={statusVal || undefined} onValueChange={(v) => handleStatusChange(doc.id, doc.verification_type!, v)} disabled={isSaving[doc.id]}>
-                                <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder={`Select ${statusLabel}`} /></SelectTrigger>
-                                <SelectContent>
-                                  {verifyTypes.map(v => (<SelectItem key={v.code} value={v.code}>{v.description || v.code}</SelectItem>))}
-                                </SelectContent>
-                              </Select>
+                              isEditable ? (
+                                <Select value={statusVal || undefined} onValueChange={(v) => handleStatusChange(doc.id, doc.verification_type!, v)} disabled={isSaving[doc.id]}>
+                                  <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder={`Select ${statusLabel}`} /></SelectTrigger>
+                                  <SelectContent>
+                                    {verifyTypes.map(v => (<SelectItem key={v.code} value={v.code}>{v.description || v.code}</SelectItem>))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  {statusVal ? (verifyTypes.find(v => v.code === statusVal)?.description || statusVal) : '—'}
+                                </Badge>
+                              )
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{formatSize(doc.file_size)}</TableCell>
