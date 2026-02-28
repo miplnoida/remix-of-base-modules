@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileText, Download, Eye, Send, Loader2, Info, CheckCircle2 } from 'lucide-react';
+import { FileText, Download, Eye, Send, Loader2, Info, CheckCircle2, FileCheck, Upload, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
@@ -414,8 +414,6 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
   const platformLegacyDocs = hook.activeDocuments.filter(d => !d.verification_category && d.source === 'platform');
 
   // Step indicator
-  const { FileCheck } = require('lucide-react');
-  const { Upload, ChevronRight } = require('lucide-react');
 
   return (
     <TooltipProvider>
