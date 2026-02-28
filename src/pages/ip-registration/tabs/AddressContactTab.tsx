@@ -76,7 +76,7 @@ export default function AddressContactTab({
   const getDistrictDisplay = (code: string | undefined) => {
     if (!code) return '';
     const district = districts.find(d => d.code === code);
-    return district ? `${district.code} - ${district.description}` : code;
+    return district?.description || code;
   };
 
   const addresses: AddressData[] = [
