@@ -19,8 +19,8 @@ Backend logic has been implemented to persist wage-detail rows into the `ip_wage
   - `sequence_no` = Schedule from parent
   - `period` = Period from parent (YYYY-MM-DD)
   - `pay_period` = 1 (Monthly), 2 (Bi-Weekly), 3 (Quarterly), 4 (2-Monthly)
-  - `wages_paid1..7` = Week 1–5, Bonus Pay, Holiday Pay (NULL if no value)
-  - `paid_code1..7` = 1 if amount exists and > 0, else 0
+  - `wages_paid1..7` = Week 1–5, Holiday Pay, Bonus Pay (wages_paid6=Holiday, wages_paid7=Bonus)
+  - `paid_code1..7` = 1 if amount exists and > 0, else 0 (paid_code6=Holiday, paid_code7=Bonus)
   - `ip_ss_amt`, `ip_levy_amt`, `ip_pe_amt` = Employee contributions
   - `er_ss_amt`, `er_levy_amt`, `er_ei_amt` = Employer contributions
   - Audit fields: `entered_by`, `date_entered`, `modified_by`, `date_modified`, `verified_by`, `date_verified`

@@ -122,8 +122,8 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
     wage.wages_paid3 || 0,
     wage.wages_paid4 || 0,
     wage.wages_paid5 || 0,
-    wage.wages_paid6 || 0, // Bonus
-    wage.wages_paid7 || 0, // Holiday
+    wage.wages_paid7 || 0, // Bonus (wages_paid7 = Bonus)
+    wage.wages_paid6 || 0, // Holiday (wages_paid6 = Holiday)
   ];
 
   // Build days (checkboxes) from paid_code1..7: '1' = checked, '0' = unchecked
@@ -133,8 +133,8 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
     wage.paid_code3 === '1',
     wage.paid_code4 === '1',
     wage.paid_code5 === '1',
-    wage.paid_code6 === '1', // Bonus
-    wage.paid_code7 === '1', // Holiday
+    wage.paid_code7 === '1', // Bonus (paid_code7 = Bonus)
+    wage.paid_code6 === '1', // Holiday (paid_code6 = Holiday)
   ];
 
   return {
@@ -181,7 +181,7 @@ export const transformToUIRecordWithEmployees = (record: C3RecordWithWages) => {
 // Transform employee data from form to wage record format for ip_wages table
 // Uses the specification provided:
 // - pay_period: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
-// - wages_paid1-5: Weekly wages, wages_paid6: Bonus, wages_paid7: Holiday
+// - wages_paid1-5: Weekly wages, wages_paid6: Holiday, wages_paid7: Bonus
 // - paid_code1-7: '1' if amount entered, '0' otherwise
 const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRecord => {
   // Map pay_period string to numeric code
@@ -222,8 +222,8 @@ const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRe
     wages_paid3: wages3 || null,
     wages_paid4: wages4 || null,
     wages_paid5: wages5 || null,
-    wages_paid6: bonusPay || null, // Bonus pay
-    wages_paid7: holidayPay || null, // Holiday pay
+    wages_paid6: holidayPay || null, // Holiday pay
+    wages_paid7: bonusPay || null, // Bonus pay
     
     // Paid codes
     paid_code1: wages1 > 0 ? '1' : '0',
@@ -231,8 +231,8 @@ const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRe
     paid_code3: wages3 > 0 ? '1' : '0',
     paid_code4: wages4 > 0 ? '1' : '0',
     paid_code5: wages5 > 0 ? '1' : '0',
-    paid_code6: bonusPay > 0 ? '1' : '0',
-    paid_code7: holidayPay > 0 ? '1' : '0',
+    paid_code6: holidayPay > 0 ? '1' : '0',
+    paid_code7: bonusPay > 0 ? '1' : '0',
     
     employee_name: employee.name,
     
