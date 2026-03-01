@@ -81,6 +81,54 @@ export interface WageRecord {
   is_verified?: boolean;
 }
 
+// Update is_verified for a single ip_wages record
+export async function updateWageVerification(
+  wageId: string, 
+  isVerified: boolean,
+  userCode?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const updateData: any = { is_verified: isVerified };
+    if (isVerified && userCode) {
+      updateData.verified_by = userCode;
+      updateData.date_verified = new Date().toISOString();
+    }
+    const { error } = await supabase
+      .from('ip_wages')
+      .update(updateData)
+      .eq('id', wageId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating wage verification:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Bulk verify all ip_wages rows for a given C3
+export async function verifyAllWagesForC3(
+  c3Id: string,
+  userCode?: string
+): Promise<{ success: boolean; error?: string; count?: number }> {
+  try {
+    const updateData: any = { 
+      is_verified: true,
+      verified_by: userCode || null,
+      date_verified: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from('ip_wages')
+      .update(updateData)
+      .eq('c3_id', c3Id)
+      .select('id');
+    if (error) throw error;
+    return { success: true, count: data?.length || 0 };
+  } catch (error: any) {
+    console.error('Error bulk verifying wages:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export interface C3RecordWithWages extends C3Record {
   wages?: WageRecord[];
 }

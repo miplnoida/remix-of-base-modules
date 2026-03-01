@@ -65,11 +65,21 @@ export const displayStatusToPostingStatus = (status: string): string => {
 
 // Transform database record to UI format
 export const transformToUIRecord = (record: C3Record) => {
+  // Parse period as date-only (no timezone shift) using split to get YYYY-MM-DD parts
+  const periodDisplay = (() => {
+    if (!record.period) return '';
+    const dateStr = typeof record.period === 'string' ? record.period.split('T')[0] : String(record.period);
+    const [year, month] = dateStr.split('-').map(Number);
+    if (!year || !month) return '';
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[month - 1]} ${year}`;
+  })();
+
   return {
     id: record.id,
     payerId: record.payer_id,
     scheduleNo: `SCH-${record.sequence_no}`,
-    period: record.period ? new Date(record.period).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : '',
+    period: periodDisplay,
     periodRaw: record.period,
     dateReceived: record.date_received ? new Date(record.date_received).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
     dateReceivedRaw: record.date_received || '', // Raw ISO value for date inputs

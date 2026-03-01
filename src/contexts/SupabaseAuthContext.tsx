@@ -205,21 +205,35 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Load timeout settings from active policy
+  // Load timeout settings from active policy AND system_settings override
   const loadSessionPolicy = useCallback(async () => {
     try {
+      // First check system_settings for session_timeout_minutes (admin-configurable)
+      const { data: sysData } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'session_timeout_minutes')
+        .single();
+
+      const systemTimeout = sysData?.setting_value ? parseInt(sysData.setting_value) : null;
+
       const { data, error } = await supabase
         .from('password_policies')
         .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
         .eq('is_active', true)
         .single();
 
-      if (error) return;
+      if (error && !systemTimeout) return;
+
+      // system_settings takes priority over password_policies
+      const effectiveTimeout = (systemTimeout && systemTimeout >= 15) 
+        ? systemTimeout 
+        : (typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : DEFAULT_SESSION_TIMEOUT_MINUTES);
 
       policyRef.current = {
-        sessionTimeoutMinutes: typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : DEFAULT_SESSION_TIMEOUT_MINUTES,
+        sessionTimeoutMinutes: effectiveTimeout,
         idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : DEFAULT_IDLE_TIMEOUT_MINUTES,
-        autoRefreshEnabled: data?.auto_refresh_enabled !== false, // default true
+        autoRefreshEnabled: data?.auto_refresh_enabled !== false,
       };
     } catch {
       // Fall back to defaults

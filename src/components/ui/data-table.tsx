@@ -35,6 +35,7 @@ export interface DataTableProps {
   title?: string;
   searchPlaceholder?: string;
   showRecordsOptions?: number[];
+  defaultHiddenColumns?: string[];
   onView?: (row: any) => void;
   onEdit?: (row: any) => void;
   onApprove?: (id: number | string) => void;
@@ -56,6 +57,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   title = "Data Table",
   searchPlaceholder = "Search...",
   showRecordsOptions = [10, 25, 50, 100],
+  defaultHiddenColumns = [],
   onView,
   onEdit,
   onApprove,
@@ -69,9 +71,13 @@ export const DataTable: React.FC<DataTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(showRecordsOptions[0]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(
+    columns.map(col => col.key).filter(key => !defaultHiddenColumns.includes(key))
+  );
   const [filterSearchTerm, setFilterSearchTerm] = useState('');
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(columns.map(col => col.key));
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(
+    columns.map(col => col.key).filter(key => !defaultHiddenColumns.includes(key))
+  );
 
   // Filter data based on search term
   const filteredData = useMemo(() => {
@@ -95,9 +101,8 @@ export const DataTable: React.FC<DataTableProps> = ({
 
   // Get visible columns based on selected filters
   const displayColumns = useMemo(() => {
-    if (selectedFilters.length === 0) return columns;
-    return columns.filter(column => selectedFilters.includes(column.key));
-  }, [columns, selectedFilters]);
+    return columns.filter(column => visibleColumns.includes(column.key));
+  }, [columns, visibleColumns]);
 
   // Paginate data
   const paginatedData = useMemo(() => {
@@ -149,7 +154,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   };
 
   // Handle export
-  const handleExport = (format: 'csv' | 'pdf') => {
+  const handleExport = async (format: 'csv' | 'pdf') => {
     if (format === 'csv') {
       try {
         const cols = displayColumns;
@@ -186,7 +191,31 @@ export const DataTable: React.FC<DataTableProps> = ({
       }
       return;
     }
-    console.log(`Exporting as ${format}...`);
+    if (format === 'pdf') {
+      try {
+        const { exportToPDF } = await import('@/utils/exportUtils');
+        const cols = displayColumns.filter(c => c.key !== 'actions');
+        const exportCols = cols.map(c => ({ header: c.label, key: c.key }));
+        const exportData = filteredData.map(row => {
+          const obj: Record<string, any> = {};
+          cols.forEach(c => {
+            let val = row[c.key];
+            if (val === null || val === undefined) val = '';
+            if (typeof val === 'object') val = String(row[c.key] ?? '');
+            obj[c.key] = val;
+          });
+          return obj;
+        });
+        const fileName = title.replace(/\s+/g, '_').toLowerCase();
+        exportToPDF(title, exportCols, exportData, fileName, [
+          { label: 'Generated', value: new Date().toLocaleDateString() },
+          { label: 'Records', value: String(exportData.length) },
+        ]);
+      } catch (e) {
+        console.error('PDF export failed', e);
+      }
+      return;
+    }
   };
 
   // Handle action buttons
