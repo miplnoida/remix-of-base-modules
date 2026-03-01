@@ -52,10 +52,11 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");
   const [period, setPeriod] = useState<{ year: number; month: number } | undefined>(
-    data?.periodRaw ? { 
-      year: new Date(data.periodRaw).getFullYear(), 
-      month: new Date(data.periodRaw).getMonth() 
-    } : undefined
+    data?.periodRaw ? (() => {
+      const dateStr = typeof data.periodRaw === 'string' ? data.periodRaw.split('T')[0] : String(data.periodRaw);
+      const [year, month] = dateStr.split('-').map(Number);
+      return year && month ? { year, month: month - 1 } : undefined;
+    })() : undefined
   );
   const [dateReceived, setDateReceived] = useState<Date | undefined>(
     data?.dateReceived ? new Date(data.dateReceived) : new Date()
