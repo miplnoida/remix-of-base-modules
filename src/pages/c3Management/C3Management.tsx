@@ -874,17 +874,30 @@ export default function C3Management() {
               setIsSaving(true);
               try {
                 const payerType = contributionTypeToPayerType(contributionType);
-                const result = await saveDraft(data, payerType, editingRecord?.id);
+                const existingId = editingRecord?.id;
+                const result = await saveDraft(data, payerType, existingId);
                 
                 if (result.success) {
                   toast({
                     title: `C3 Record ${formMode === 'add' ? 'Created' : 'Updated'}`,
                     description: `Employer C3 record has been saved as draft.`,
                   });
-                  setShowForm(false);
-                  setEditingRecord(null);
-                  setViewingRecord(null);
-                  setFormMode('add');
+                  
+                  // Stay on the edit screen and reload updated data
+                  const savedId = result.id || existingId;
+                  if (savedId) {
+                    setFormMode('edit');
+                    const reloaded = await getRecordWithWages(savedId);
+                    if (reloaded.success && reloaded.data) {
+                      setEditingRecord(reloaded.data);
+                    }
+                  } else {
+                    // New record with no ID returned — go back to list
+                    setShowForm(false);
+                    setEditingRecord(null);
+                    setViewingRecord(null);
+                    setFormMode('add');
+                  }
                 }
               } finally {
                 setIsSaving(false);

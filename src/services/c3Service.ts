@@ -78,6 +78,7 @@ export interface WageRecord {
   posting_status?: string | null; // 'DFT' | 'PEN' | 'VAC' | 'REJ' | 'DEL'
   input_seq_no?: number | null;
   c3_id?: string | null;
+  is_verified?: boolean;
 }
 
 export interface C3RecordWithWages extends C3Record {
@@ -478,6 +479,7 @@ export async function saveC3Draft(
           verified_by: null,
           date_verified: null,
           posting_status: parentPostingStatus === 'DEL' ? 'DEL' : normalizeStatus(record.posting_status),
+          is_verified: isRawEmployee ? (emp.isVerified || false) : (emp.is_verified || false),
           
           // Bonus/Holiday metadata
           bonus_date: isRawEmployee ? (emp.bonusDate || null) : (emp.bonus_date || null),
@@ -487,11 +489,11 @@ export async function saveC3Draft(
         };
       });
 
-      // Upsert: if exists for (ssn, payer_id, sequence_no, period) → UPDATE else INSERT
+      // Upsert: if exists for (c3_id, ssn) → UPDATE else INSERT
       const { error: wageError, data: upsertedWages } = await supabase
         .from('ip_wages')
         .upsert(wageRecords, {
-          onConflict: 'ssn,payer_id,payer_type,sequence_no,period',
+          onConflict: 'c3_id,ssn',
           ignoreDuplicates: false
         })
         .select();
@@ -1094,7 +1096,7 @@ export async function saveSelfContributorC3(
       const { error: wageError } = await supabase
         .from('ip_wages')
         .upsert([wageRecord], {
-          onConflict: 'ssn,payer_id,payer_type,sequence_no,period',
+          onConflict: 'c3_id,ssn',
           ignoreDuplicates: false
         });
 
@@ -1335,7 +1337,7 @@ export async function saveVoluntaryContributorC3(
       const { error: wageError } = await supabase
         .from('ip_wages')
         .upsert([wageRecord], {
-          onConflict: 'ssn,payer_id,payer_type,sequence_no,period',
+          onConflict: 'c3_id,ssn',
           ignoreDuplicates: false
         });
 

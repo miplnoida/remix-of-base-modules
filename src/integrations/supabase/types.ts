@@ -7501,6 +7501,7 @@ export type Database = {
           ip_levy_amt: number | null
           ip_pe_amt: number | null
           ip_ss_amt: number | null
+          is_verified: boolean
           modified_by: string | null
           paid_code1: string | null
           paid_code2: string | null
@@ -7548,6 +7549,7 @@ export type Database = {
           ip_levy_amt?: number | null
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
+          is_verified?: boolean
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -7595,6 +7597,7 @@ export type Database = {
           ip_levy_amt?: number | null
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
+          is_verified?: boolean
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
