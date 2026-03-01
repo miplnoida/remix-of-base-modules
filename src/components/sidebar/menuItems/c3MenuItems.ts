@@ -7,7 +7,8 @@ import {
   DollarSign,
   AlertTriangle,
   TrendingUp,
-  Calculator
+  Calculator,
+  UserCheck
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -43,6 +44,12 @@ export const c3MenuItems = [
         title: "C3 Simulation",
         url: "/c3-management/simulation",
         icon: Calculator,
+        requiresPermission: "view_dashboard"
+      },
+      {
+        title: "Employer Details",
+        url: "/c3-management/employer-details",
+        icon: UserCheck,
         requiresPermission: "view_dashboard"
       },
       {

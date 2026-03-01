@@ -441,6 +441,12 @@ import C3Verification from '@/pages/c3Management/C3Verification';
 import ElectronicC3Config from '@/pages/c3Management/ElectronicC3Config';
 import ViewC3Record from '@/pages/c3Management/ViewC3Record';
 import EditC3Record from '@/pages/c3Management/EditC3Record';
+
+// C3 Wizard Admin - Employer Management
+import WizEmployerList from '@/pages/c3Management/employers/WizEmployerList';
+import WizEmployerDetailsEdit from '@/pages/c3Management/employers/WizEmployerDetailsEdit';
+import WizCompanyUsers from '@/pages/c3Management/employers/WizCompanyUsers';
+import WizEmployeeList from '@/pages/c3Management/employers/WizEmployeeList';
 import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
 import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
@@ -706,6 +712,12 @@ export const AppRoutes = () => {
       <Route path="/c3-management/view/:id" element={<ProtectedLayout><ViewC3Record /></ProtectedLayout>} />
       <Route path="/c3-management/edit/:id" element={<ProtectedLayout><EditC3Record /></ProtectedLayout>} />
       <Route path="/c3-management/simulation" element={<ProtectedLayout><C3Simulation /></ProtectedLayout>} />
+      
+      {/* C3 Wizard Admin - Employer Management Routes */}
+      <Route path="/c3-management/employer-details" element={<ProtectedLayout><WizEmployerList /></ProtectedLayout>} />
+      <Route path="/c3-management/employer-details/:companyId" element={<ProtectedLayout><WizEmployerDetailsEdit /></ProtectedLayout>} />
+      <Route path="/c3-management/employer-users/:companyId" element={<ProtectedLayout><WizCompanyUsers /></ProtectedLayout>} />
+      <Route path="/c3-management/employer-employees/:companyId" element={<ProtectedLayout><WizEmployeeList /></ProtectedLayout>} />
       
       {/* C3 Settings Routes */}
       <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />
