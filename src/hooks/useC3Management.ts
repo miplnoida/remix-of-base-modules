@@ -72,6 +72,7 @@ export const transformToUIRecord = (record: C3Record) => {
     period: record.period ? new Date(record.period).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : '',
     periodRaw: record.period,
     dateReceived: record.date_received ? new Date(record.date_received).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+    dateReceivedRaw: record.date_received || '', // Raw ISO value for date inputs
     enteredBy: record.entered_by || '',
     verifiedBy: record.verified_by || '',
     dateEntered: record.date_entered ? new Date(record.date_entered).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
@@ -146,6 +147,7 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
     days,
     totalWages: wage.total_wages || 0,
     periodGross: wage.total_wages || 0,
+    isVerified: wage.is_verified || false,
     // Employee contributions
     employeeSS: wage.ip_ss_amt || 0,
     socialSecurity: wage.ip_ss_amt || 0,

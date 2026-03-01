@@ -103,10 +103,23 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         return { year: date.getFullYear(), month: date.getMonth() };
       })() : null;
 
+      // Parse dateReceived: prefer raw ISO, fallback to parsing display string
+      let dateReceivedValue = new Date().toISOString().split('T')[0];
+      if (initialData.dateReceivedRaw) {
+        // Raw ISO timestamp from DB
+        dateReceivedValue = new Date(initialData.dateReceivedRaw).toISOString().split('T')[0];
+      } else if (initialData.dateReceived) {
+        // Try parsing display format "01 Mar 2026" or ISO
+        const parsed = new Date(initialData.dateReceived);
+        if (!isNaN(parsed.getTime())) {
+          dateReceivedValue = parsed.toISOString().split('T')[0];
+        }
+      }
+
       setFormData({
         employerId: initialData.payerId || initialData.employerId || "",
         period: periodParsed,
-        dateReceived: initialData.dateReceived || new Date().toISOString().split('T')[0],
+        dateReceived: dateReceivedValue,
         receivedBy: initialData.received_by || "",
         schedule: initialData.scheduleNo || "",
         employerName: initialData.payerName || initialData.employerName || "",
@@ -116,8 +129,24 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         nilReturn: initialData.nilReturn || false
       });
       
-      if (initialData.payerId || initialData.employerId) {
+      // If we have employer data already loaded (name/address), mark as validated without error
+      if ((initialData.payerId || initialData.employerId) && (initialData.payerName || initialData.employerName)) {
         setEmployerValidated(true);
+        setEmployerError('');
+      } else if (initialData.payerId || initialData.employerId) {
+        // Have ID but no name — run validation silently
+        const empId = initialData.payerId || initialData.employerId;
+        validateEmployer(empId).then(result => {
+          if (result.isValid) {
+            setFormData(prev => ({
+              ...prev,
+              employerName: result.name,
+              address: result.address
+            }));
+            setEmployerValidated(true);
+            setEmployerError('');
+          }
+        });
       }
 
       if (initialData.employees) {
@@ -678,13 +707,24 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                       key: 'isVerified',
                       label: 'Verified',
                       minWidth: '100px',
-                      render: (isVerified) => (
-                        <Badge
-                          variant={isVerified ? 'secondary' : 'destructive'}
-                          className={`text-xs ${isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                        >
-                          {isVerified ? 'Yes' : 'No'}
-                        </Badge>
+                      render: (isVerified: boolean, row: any) => (
+                        isViewMode ? (
+                          <Badge
+                            variant={isVerified ? 'secondary' : 'destructive'}
+                            className={`text-xs ${isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                          >
+                            {isVerified ? 'Yes' : 'No'}
+                          </Badge>
+                        ) : (
+                          <Checkbox
+                            checked={!!isVerified}
+                            onCheckedChange={(checked) => {
+                              setEmployees(prev => prev.map(emp =>
+                                emp.ssn === row.ssn ? { ...emp, isVerified: !!checked } : emp
+                              ));
+                            }}
+                          />
+                        )
                       )
                     }
                   ]}
