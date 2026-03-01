@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2, Send, Save } from "lucide-react";
+import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2, Send, Save, CheckCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
@@ -23,8 +23,9 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
 import { useC3Submit } from "@/hooks/useC3Submit";
 import { WorkflowActionButtonsCompact } from "@/components/workflow/WorkflowActionButtons";
-import { getC3Statuses, getActiveProfiles } from "@/services/c3Service";
+import { getC3Statuses, getActiveProfiles, updateWageVerification, verifyAllWagesForC3 } from "@/services/c3Service";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -436,6 +437,41 @@ export default function C3Management() {
       title: "Workflow Action Completed",
       description: `Action "${action}" completed successfully.${endState ? ` Status: ${endState}` : ''}`,
     });
+  }, [contributionType, fetchRecords, toast]);
+
+  // Handle individual wage row verification toggle
+  const handleToggleWageVerification = useCallback(async (wageId: string, currentValue: boolean) => {
+    const result = await updateWageVerification(wageId, !currentValue);
+    if (result.success) {
+      // Refresh to get latest state
+      const payerType = contributionTypeToPayerType(contributionType);
+      fetchRecords({ payer_type: payerType });
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Failed to update verification status",
+        variant: "destructive",
+      });
+    }
+  }, [contributionType, fetchRecords, toast]);
+
+  // Handle verify-all wages for a specific C3
+  const handleVerifyAllWages = useCallback(async (c3Id: string, scheduleNo: string) => {
+    const result = await verifyAllWagesForC3(c3Id);
+    if (result.success) {
+      toast({
+        title: "All Rows Verified",
+        description: `${result.count || 0} wage row(s) verified for ${scheduleNo}.`,
+      });
+      const payerType = contributionTypeToPayerType(contributionType);
+      fetchRecords({ payer_type: payerType });
+    } else {
+      toast({
+        title: "Verification Failed",
+        description: result.error || "Failed to verify all wage rows.",
+        variant: "destructive",
+      });
+    }
   }, [contributionType, fetchRecords, toast]);
 
   // Reset Form Handlers
@@ -1244,6 +1280,7 @@ export default function C3Management() {
         ) : (
           <DataTable
             data={currentRecords}
+            defaultHiddenColumns={['amount', 'enteredBy', 'dateEntered', 'type', 'cnc3ReportedModifiedDate', 'cnc3ReportedModifiedBy']}
             columns={[
               { key: 'payerId', label: 'Payer ID', minWidth: '100px' },
               { key: 'payerName', label: 'Payer Name', minWidth: '150px' },
@@ -1277,7 +1314,7 @@ export default function C3Management() {
               {
                 key: 'actions',
                 label: 'Actions',
-                minWidth: '280px',
+                minWidth: '320px',
                 render: (_, record) => {
                   const isDraft = record.postingStatus === 'DFT' || record.postingStatus === 'Z';
                   const sourceModule = `c3_${(record.payerType || 'er').toLowerCase()}_submission`;
@@ -1323,6 +1360,21 @@ export default function C3Management() {
                             <Send className="h-3 w-3" />
                           )}
                           Submit
+                        </Button>
+                      )}
+                      {record.postingStatus === 'PEN' && record.id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          title="Verify All Wage Rows"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVerifyAllWages(record.id, record.scheduleNo);
+                          }}
+                          className="gap-1"
+                        >
+                          <CheckCheck className="h-3 w-3" />
+                          Verify All
                         </Button>
                       )}
                       {!isDraft && record.id && (
