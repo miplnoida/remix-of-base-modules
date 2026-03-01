@@ -199,28 +199,54 @@ export default function C3Management() {
     setShowForm(true);
   };
 
+  // Helper to check if a C3 record is editable based on posting_status
+  const isC3Editable = (record: any): boolean => {
+    const status = record?.postingStatus || record?.posting_status;
+    return !status || status === 'DFT' || status === 'PEN';
+  };
+
+  const getC3EditBlockedMessage = (record: any): string => {
+    const status = record?.postingStatus || record?.posting_status;
+    return `This C3 cannot be edited because posting status is "${status}".`;
+  };
+
   const handleEdit = async (record: any) => {
     setContributionType(record.type === 'Employer' ? 'employer' : 
                        record.type === 'Self-Employed' ? 'self-employed' : 'voluntary');
-    setFormMode('edit');
     
     // Fetch full record with wages for all contributor types
     if (record.id) {
       setIsLoadingRecord(true);
       try {
         const result = await getRecordWithWages(record.id);
-        if (result.success && result.data) {
-          setEditingRecord(result.data);
-        } else {
-          setEditingRecord(record);
+        const fullRecord = (result.success && result.data) ? result.data : record;
+        
+        // Check editability after fetching latest data
+        if (!isC3Editable(fullRecord)) {
+          toast({
+            title: "Cannot Edit C3",
+            description: getC3EditBlockedMessage(fullRecord),
+            variant: "destructive",
+          });
+          // Switch to view mode instead
+          setFormMode('view');
+          setViewingRecord(fullRecord);
+          setShowForm(true);
+          setIsLoadingRecord(false);
+          return;
         }
+        
+        setFormMode('edit');
+        setEditingRecord(fullRecord);
       } catch (err) {
         console.error('Error loading record:', err);
+        setFormMode('edit');
         setEditingRecord(record);
       } finally {
         setIsLoadingRecord(false);
       }
     } else {
+      setFormMode('edit');
       setEditingRecord(record);
     }
     
@@ -799,10 +825,19 @@ export default function C3Management() {
                 <Button 
                   type="button" 
                   onClick={() => {
+                    if (!isC3Editable(viewingRecord)) {
+                      toast({
+                        title: "Cannot Edit C3",
+                        description: getC3EditBlockedMessage(viewingRecord),
+                        variant: "destructive",
+                      });
+                      return;
+                    }
                     setFormMode('edit');
                     setEditingRecord(viewingRecord);
                   }}
                   className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                  disabled={!isC3Editable(viewingRecord)}
                 >
                   <Edit className="h-4 w-4" />
                   Edit
@@ -854,7 +889,7 @@ export default function C3Management() {
                   type="button" 
                   variant="outline"
                   className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
-                  disabled={isSaving}
+                  disabled={isSaving || !isC3Editable(editingRecord)}
                   onClick={() => setSaveFormTrigger(prev => prev + 1)}
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

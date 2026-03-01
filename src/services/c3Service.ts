@@ -6,6 +6,24 @@ import { getCurrentUserCode } from "@/hooks/useUserCode";
 export type PayerType = 'ER' | 'SE' | 'VC';
 export type PostingStatus = 'DFT' | 'PEN' | 'VAC' | 'REJ' | 'DEL';
 
+const EDITABLE_STATUSES: PostingStatus[] = ['DFT', 'PEN'];
+
+/**
+ * Pre-check: verify the existing record's posting_status allows editing.
+ * Throws an error if the record is not editable.
+ */
+async function assertC3Editable(recordId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('cn_c3_reported')
+    .select('posting_status')
+    .eq('id', recordId)
+    .single();
+  if (error) throw error;
+  if (data && !EDITABLE_STATUSES.includes(data.posting_status as PostingStatus)) {
+    throw new Error(`C3 cannot be edited when posting_status is ${data.posting_status}`);
+  }
+}
+
 export interface C3Record {
   id?: string;
   payer_id: string;
@@ -384,6 +402,8 @@ export async function saveC3Draft(
     let c3Record: C3Record;
 
     if (record.id) {
+      // Pre-check editability
+      await assertC3Editable(record.id);
       // Update existing record
       c3Data.modified_date = currentDate;
       c3Data.modified_by = effectiveUserCode;
@@ -1048,6 +1068,8 @@ export async function saveSelfContributorC3(
     let c3Record: C3Record;
 
     if (record.id) {
+      // Pre-check editability
+      await assertC3Editable(record.id);
       // Update existing record
       c3Data.modified_date = currentDate;
       c3Data.modified_by = effectiveUserCode;
@@ -1290,6 +1312,8 @@ export async function saveVoluntaryContributorC3(
     let c3Record: C3Record;
 
     if (record.id) {
+      // Pre-check editability
+      await assertC3Editable(record.id);
       // Update existing record
       c3Data.modified_date = currentDate;
       c3Data.modified_by = effectiveUserCode;
