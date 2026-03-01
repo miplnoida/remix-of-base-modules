@@ -1428,6 +1428,60 @@ async function updateSourceRecordStatus(
         }
       }
     }
+  } else if (
+    sourceModule === 'c3_er_submission' ||
+    sourceModule === 'c3_vol_submission' ||
+    sourceModule === 'c3_self_submission'
+  ) {
+    // C3 submission workflow: update posting_status on cn_c3_reported and ip_wages
+    const updateData: Record<string, any> = {
+      modified_date: new Date().toISOString(),
+      modified_by: userId,
+    };
+
+    let newPostingStatus: string | null = null;
+
+    if (configuredResultStatus) {
+      newPostingStatus = configuredResultStatus;
+    } else if (endState === 'Approved') {
+      newPostingStatus = 'VAC';
+    } else if (endState === 'Rejected') {
+      newPostingStatus = 'REJ';
+    } else if (endState === 'Query') {
+      newPostingStatus = 'PEN'; // Back to pending on query
+    }
+
+    if (newPostingStatus) {
+      updateData.posting_status = newPostingStatus;
+
+      // Update cn_c3_reported
+      const { error: c3Error } = await supabase
+        .from('cn_c3_reported')
+        .update(updateData)
+        .eq('id', sourceRecordId);
+
+      if (c3Error) {
+        console.error('Error updating C3 record posting_status:', c3Error);
+        throw c3Error;
+      }
+
+      // Also update all related ip_wages rows to the same posting_status
+      const { error: wagesError } = await supabase
+        .from('ip_wages')
+        .update({
+          posting_status: newPostingStatus,
+          date_modified: new Date().toISOString(),
+          modified_by: userId,
+        })
+        .eq('c3_id', sourceRecordId);
+
+      if (wagesError) {
+        console.error('Error updating ip_wages posting_status:', wagesError);
+        // Non-blocking for wages - log but don't throw
+      }
+
+      console.log(`C3 record ${sourceRecordId} posting_status updated to ${newPostingStatus}`);
+    }
   }
   // Add other module handlers as needed
 }
