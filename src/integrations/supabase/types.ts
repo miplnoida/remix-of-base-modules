@@ -7483,6 +7483,7 @@ export type Database = {
         Row: {
           bonus_date: string | null
           bonus_exempt_levy: boolean | null
+          bonus_holiday_swapped: boolean | null
           c3_id: string | null
           created_at: string
           date_entered: string | null
@@ -7529,6 +7530,7 @@ export type Database = {
         Insert: {
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
+          bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
           created_at?: string
           date_entered?: string | null
@@ -7575,6 +7577,7 @@ export type Database = {
         Update: {
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
+          bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
           created_at?: string
           date_entered?: string | null

@@ -52,8 +52,8 @@ export interface WageRecord {
   wages_paid3?: number | null;
   wages_paid4?: number | null;
   wages_paid5?: number | null;
-  wages_paid6?: number | null; // Bonus Pay
-  wages_paid7?: number | null; // Holiday Pay
+  wages_paid6?: number | null; // Holiday Pay
+  wages_paid7?: number | null; // Bonus Pay
   paid_code1?: string | null; // '1' if amount entered, '0' otherwise
   paid_code2?: string | null;
   paid_code3?: string | null;
@@ -405,8 +405,8 @@ export async function saveC3Draft(
           wages3 = toNumericOrNull(emp.wages_paid3);
           wages4 = toNumericOrNull(emp.wages_paid4);
           wages5 = toNumericOrNull(emp.wages_paid5);
-          bonusPay = toNumericOrNull(emp.wages_paid6);
-          holidayPay = toNumericOrNull(emp.wages_paid7);
+          bonusPay = toNumericOrNull(emp.wages_paid7);
+          holidayPay = toNumericOrNull(emp.wages_paid6);
         }
         
         // Calculate total wages
@@ -450,8 +450,8 @@ export async function saveC3Draft(
           wages_paid3: wages3,
           wages_paid4: wages4,
           wages_paid5: wages5,
-          wages_paid6: bonusPay,  // Bonus Pay
-          wages_paid7: holidayPay, // Holiday Pay
+          wages_paid6: holidayPay, // Holiday Pay
+          wages_paid7: bonusPay,  // Bonus Pay
           
           // paid_code: 1 = amount exists and > 0, 0 = amount missing or zero
           paid_code1: toPaidCode(wages1),
@@ -459,8 +459,8 @@ export async function saveC3Draft(
           paid_code3: toPaidCode(wages3),
           paid_code4: toPaidCode(wages4),
           paid_code5: toPaidCode(wages5),
-          paid_code6: toPaidCode(bonusPay),
-          paid_code7: toPaidCode(holidayPay),
+          paid_code6: toPaidCode(holidayPay),
+          paid_code7: toPaidCode(bonusPay),
           
           employee_name: emp.name || emp.employee_name || '',
           ip_ss_amt: ipSsAmt,
