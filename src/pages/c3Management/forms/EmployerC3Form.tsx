@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { updateWageVerification, verifyAllWagesForC3 } from "@/services/c3Service";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
-import { Plus, Save, X, Printer, Loader2, Send, Server, Calculator } from "lucide-react";
+import { Plus, Save, X, Printer, Loader2, Send, Server, Calculator, CheckCheck } from "lucide-react";
 import { useEmployerValidation } from "@/hooks/useEmployerValidation";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useC3Submit } from "@/hooks/useC3Submit";
@@ -99,8 +100,9 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   useEffect(() => {
     if (initialData) {
       const periodParsed = initialData.periodRaw ? (() => {
-        const date = new Date(initialData.periodRaw);
-        return { year: date.getFullYear(), month: date.getMonth() };
+        const dateStr = typeof initialData.periodRaw === 'string' ? initialData.periodRaw.split('T')[0] : String(initialData.periodRaw);
+        const [year, month] = dateStr.split('-').map(Number);
+        return year && month ? { year, month: month - 1 } : null;
       })() : null;
 
       // Parse dateReceived: prefer raw ISO, fallback to parsing display string
@@ -639,12 +641,33 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     Record employee wages and salaries for this period.
                   </CardDescription>
                 </div>
-                {!isViewMode && (
-                  <Button onClick={handleAddEmployee} disabled={!employerValidated}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Employee
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {!isViewMode && initialData?.id && employees.some(e => !e.isVerified) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const result = await verifyAllWagesForC3(initialData.id, userCode);
+                        if (result.success) {
+                          setEmployees(prev => prev.map(emp => ({ ...emp, isVerified: true })));
+                          toast({ title: "All Rows Verified", description: `${result.count || 0} wage row(s) verified.` });
+                        } else {
+                          toast({ title: "Error", description: result.error || "Failed to verify all rows.", variant: "destructive" });
+                        }
+                      }}
+                      className="gap-1"
+                    >
+                      <CheckCheck className="h-4 w-4" />
+                      Verify All
+                    </Button>
+                  )}
+                  {!isViewMode && (
+                    <Button onClick={handleAddEmployee} disabled={!employerValidated}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Employee
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -718,10 +741,23 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                         ) : (
                           <Checkbox
                             checked={!!isVerified}
-                            onCheckedChange={(checked) => {
+                            onCheckedChange={async (checked) => {
+                              const newVal = !!checked;
+                              // Optimistic UI update
                               setEmployees(prev => prev.map(emp =>
-                                emp.ssn === row.ssn ? { ...emp, isVerified: !!checked } : emp
+                                emp.ssn === row.ssn ? { ...emp, isVerified: newVal } : emp
                               ));
+                              // Persist to database
+                              if (row.id) {
+                                const result = await updateWageVerification(row.id, newVal, userCode);
+                                if (!result.success) {
+                                  // Revert on failure
+                                  setEmployees(prev => prev.map(emp =>
+                                    emp.ssn === row.ssn ? { ...emp, isVerified: !newVal } : emp
+                                  ));
+                                  toast({ title: "Error", description: result.error || "Failed to update verification.", variant: "destructive" });
+                                }
+                              }
                             }}
                           />
                         )
