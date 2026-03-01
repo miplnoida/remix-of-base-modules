@@ -680,6 +680,72 @@ export default function IPRegistrationForm() {
     }
   };
 
+  // Pure data save for Pending status — no workflow changes
+  const handlePendingSave = async () => {
+    if (!formData) return;
+
+    // Run validation on all required fields (same as submit validation)
+    const validationErrors: ValidationErrors = {};
+    if (!formData.firstname?.trim()) validationErrors.firstname = 'First name is required';
+    if (!formData.surname?.trim()) validationErrors.surname = 'Last name is required';
+    if (!formData.sex) validationErrors.sex = 'Gender is required';
+    if (!formData.dob) validationErrors.dob = 'Date of birth is required';
+    if (!formData.marital_status) validationErrors.marital_status = 'Marital status is required';
+    if (!formData.nationality) validationErrors.nationality = 'Nationality is required';
+    if (!formData.birth_place) validationErrors.birth_place = 'Birth place is required';
+    if (!formData.name_prefix) validationErrors.name_prefix = 'Title is required';
+
+    if ((formData.marital_status === 'Married' || formData.marital_status === 'Common Law') && !formData.date_married) {
+      validationErrors.date_married = 'Date married is required';
+    }
+
+    const contactErrors = validateContactFields([
+      { value: formData.telephone, fieldName: 'telephone', label: 'Telephone', type: 'phone' },
+      { value: formData.mobile, fieldName: 'mobile', label: 'Mobile', type: 'phone' },
+      { value: formData.email_addr, fieldName: 'email_addr', label: 'Email', type: 'email' },
+    ]);
+    Object.assign(validationErrors, contactErrors);
+
+    if (formData.work_permit === 'Y' && !formData.work_permit_expiration) {
+      validationErrors.work_permit_expiration = 'Work permit expiry date is required when work permit is enabled';
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      const firstError = Object.values(validationErrors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { unique_uuid, id, created_at, created_by, status, ...updatableFields } = formData;
+
+      const { error } = await supabase
+        .from('ip_master')
+        .update({
+          ...updatableFields,
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id,
+        })
+        .eq('unique_uuid', formData.unique_uuid);
+
+      if (error) throw error;
+
+      setFormData(prev => prev ? { ...prev, updated_at: new Date().toISOString(), updated_by: user?.id } : null);
+      toast.success('Changes saved successfully');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Approve/Reject actions are now handled by WorkflowActionButtons component
   const handleWorkflowActionComplete = (action: string, endState: string | null) => {
     navigate('/ip-registration');
@@ -803,7 +869,12 @@ export default function IPRegistrationForm() {
               Register as Self Employed
             </Button>
           )}
-          {isEditable && (
+          {isEditable && formData.status === 'P' && (
+            <Button onClick={handlePendingSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          )}
+          {isEditable && formData.status !== 'P' && (
             <Button onClick={() => setShowSubmitConfirm(true)}>
               Submit
             </Button>
