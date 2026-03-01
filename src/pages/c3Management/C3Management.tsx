@@ -22,7 +22,7 @@ import VoluntaryC3Form from "./forms/VoluntaryC3Form";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useC3Management, contributionTypeToPayerType, payerTypeToContributionType } from "@/hooks/useC3Management";
 import { useC3Submit } from "@/hooks/useC3Submit";
-import { WorkflowActionButtonsCompact } from "@/components/workflow/WorkflowActionButtons";
+import { WorkflowActionButtons, WorkflowActionButtonsCompact } from "@/components/workflow/WorkflowActionButtons";
 import { getC3Statuses, getActiveProfiles, updateWageVerification, verifyAllWagesForC3 } from "@/services/c3Service";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -755,9 +755,27 @@ export default function C3Management() {
             </div>
           </div>
           
-          <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
+          <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0 flex-wrap">
             {formMode === 'view' ? (
               <>
+                {/* Workflow Action Buttons for submitted records in view mode */}
+                {viewingRecord && viewingRecord.id && viewingRecord.postingStatus !== 'DFT' && viewingRecord.postingStatus !== 'Z' && (
+                  <WorkflowActionButtons
+                    sourceModule={`c3_${(viewingRecord.payerType || 'er').toLowerCase()}_submission`}
+                    sourceRecordId={viewingRecord.id}
+                    onActionComplete={(action, endState) => {
+                      handleWorkflowActionComplete(action, endState);
+                      // Refresh the viewing record
+                      if (viewingRecord.id) {
+                        getRecordWithWages(viewingRecord.id).then((result) => {
+                          if (result.success && result.data) {
+                            setViewingRecord(result.data);
+                          }
+                        });
+                      }
+                    }}
+                  />
+                )}
                 <Button
                   type="button" 
                   variant="outline"
@@ -792,6 +810,24 @@ export default function C3Management() {
               </>
             ) : formMode === 'edit' ? (
               <>
+                {/* Workflow Action Buttons for submitted records in edit mode */}
+                {editingRecord && editingRecord.id && editingRecord.postingStatus !== 'DFT' && editingRecord.postingStatus !== 'Z' && (
+                  <WorkflowActionButtons
+                    sourceModule={`c3_${(editingRecord.payerType || 'er').toLowerCase()}_submission`}
+                    sourceRecordId={editingRecord.id}
+                    onActionComplete={(action, endState) => {
+                      handleWorkflowActionComplete(action, endState);
+                      // Refresh the editing record
+                      if (editingRecord.id) {
+                        getRecordWithWages(editingRecord.id).then((result) => {
+                          if (result.success && result.data) {
+                            setEditingRecord(result.data);
+                          }
+                        });
+                      }
+                    }}
+                  />
+                )}
                 <Button 
                   type="button" 
                   variant="outline"
