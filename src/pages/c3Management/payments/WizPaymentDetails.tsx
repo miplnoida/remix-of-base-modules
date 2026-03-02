@@ -38,11 +38,14 @@ function fmtDate(iso: string | null | undefined): string {
 // ─── Main Component ───────────────────────────────────
 export default function WizPaymentDetails() {
   // Filters
-  const [paymentStatus, setPaymentStatus] = useState('');
+  const ALL = '__all__';
+  // removed unused val helper
+
+  const [paymentStatus, setPaymentStatus] = useState(ALL);
   const [selectedType, setSelectedType] = useState('SSB');
-  const [companyId, setCompanyId] = useState<string>('');
-  const [userId, setUserId] = useState<string>('');
-  const [selfEmployedId, setSelfEmployedId] = useState<string>('');
+  const [companyId, setCompanyId] = useState<string>(ALL);
+  const [userId, setUserId] = useState<string>(ALL);
+  const [selfEmployedId, setSelfEmployedId] = useState<string>(ALL);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
@@ -85,13 +88,13 @@ export default function WizPaymentDetails() {
   }, [selectedType]);
 
   useEffect(() => {
-    if (companyId) {
+    if (companyId && companyId !== ALL) {
       getCompanyUsers(Number(companyId)).then(res => {
         if (res.data?.users) setCompanyUsers(res.data.users);
       }).catch(() => {});
     } else {
       setCompanyUsers([]);
-      setUserId('');
+      setUserId(ALL);
     }
   }, [companyId]);
 
@@ -106,7 +109,7 @@ export default function WizPaymentDetails() {
     setLoading(true);
     try {
       const params: Record<string, any> = {
-        payment_status: paymentStatus,
+        payment_status: paymentStatus === ALL ? '' : paymentStatus,
         from_date: fromDate || null,
         to_date: toDate || null,
         types: selectedType,
@@ -116,10 +119,10 @@ export default function WizPaymentDetails() {
       };
 
       if (selectedType === 'Company') {
-        params.company_id = companyId ? Number(companyId) : null;
-        params.user_id = userId ? Number(userId) : null;
+        params.company_id = companyId && companyId !== ALL ? Number(companyId) : null;
+        params.user_id = userId && userId !== ALL ? Number(userId) : null;
       } else if (selectedType === 'SelfEmployee') {
-        params.user_id = selfEmployedId ? Number(selfEmployedId) : null;
+        params.user_id = selfEmployedId && selfEmployedId !== ALL ? Number(selfEmployedId) : null;
       }
 
       const res = await getPaymentDetailsList(params);
@@ -172,17 +175,17 @@ export default function WizPaymentDetails() {
     setExporting(true);
     try {
       const params: Record<string, any> = {
-        payment_status: paymentStatus,
+        payment_status: paymentStatus === ALL ? '' : paymentStatus,
         from_date: fromDate || null,
         to_date: toDate || null,
         types: selectedType,
         export_all: true,
       };
       if (selectedType === 'Company') {
-        params.company_id = companyId ? Number(companyId) : null;
-        params.user_id = userId ? Number(userId) : null;
+        params.company_id = companyId && companyId !== ALL ? Number(companyId) : null;
+        params.user_id = userId && userId !== ALL ? Number(userId) : null;
       } else if (selectedType === 'SelfEmployee') {
-        params.user_id = selfEmployedId ? Number(selfEmployedId) : null;
+        params.user_id = selfEmployedId && selfEmployedId !== ALL ? Number(selfEmployedId) : null;
       }
 
       const res = await getPaymentDetailsList(params);
@@ -356,7 +359,7 @@ export default function WizPaymentDetails() {
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value={ALL}>All Status</SelectItem>
                   <SelectItem value="AUTHORIZED">AUTHORIZED</SelectItem>
                   <SelectItem value="DECLINED">DECLINED</SelectItem>
                   <SelectItem value="INVALID_REQUEST">INVALID_REQUEST</SelectItem>
@@ -369,9 +372,9 @@ export default function WizPaymentDetails() {
               <Label className="text-xs text-muted-foreground">Select Type</Label>
               <Select value={selectedType} onValueChange={(v) => {
                 setSelectedType(v);
-                setCompanyId('');
-                setUserId('');
-                setSelfEmployedId('');
+                setCompanyId(ALL);
+                setUserId(ALL);
+                setSelfEmployedId(ALL);
               }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select Type" />
@@ -388,12 +391,12 @@ export default function WizPaymentDetails() {
             {selectedType === 'Company' && (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Select Employer</Label>
-                <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setUserId(''); }}>
+                <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setUserId(ALL); }}>
                   <SelectTrigger className="w-[240px]">
                     <SelectValue placeholder="Select Employer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Employers</SelectItem>
+                    <SelectItem value={ALL}>All Employers</SelectItem>
                     {companies.map(c => (
                       <SelectItem key={c.id} value={String(c.id)}>
                         {c.company_name} ({c.registration_number})
@@ -405,7 +408,7 @@ export default function WizPaymentDetails() {
             )}
 
             {/* Conditional: User dropdown */}
-            {selectedType === 'Company' && companyId && (
+            {selectedType === 'Company' && companyId && companyId !== ALL && (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Select User</Label>
                 <Select value={userId} onValueChange={setUserId}>
@@ -413,7 +416,7 @@ export default function WizPaymentDetails() {
                     <SelectValue placeholder="Select User" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Users</SelectItem>
+                    <SelectItem value={ALL}>All Users</SelectItem>
                     {companyUsers.map(u => (
                       <SelectItem key={u.id} value={String(u.id)}>
                         {u.first_name} {u.last_name}
@@ -433,7 +436,7 @@ export default function WizPaymentDetails() {
                     <SelectValue placeholder="Select Self Employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Self Employed</SelectItem>
+                    <SelectItem value={ALL}>All Self Employed</SelectItem>
                     {selfEmployedList.map((se: any) => (
                       <SelectItem key={se.employeeID || se.id} value={String(se.userId || se.id)}>
                         {se.fullName || se.full_name} ({se.socSecNum || se.ssn})
