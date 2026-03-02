@@ -13,6 +13,7 @@ import { getEnabledWeekTextboxes, getMondayCount, getMondaysInMonth } from '@/ut
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { useBonusPolicyCalculation } from '@/hooks/useBonusPolicyCalculation';
 import { usePendingHolidayPay } from '@/hooks/useHolidayPayCalculation';
+import { useHolidayPolicyLookup } from '@/hooks/useHolidayPolicyLookup';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -109,6 +110,17 @@ export default function EmployeeModal({
   // Pending holiday pay hook
   const { pendingPay, totalPending, isLoading: isPendingLoading } = usePendingHolidayPay(
     localEmployee.ssn, periodYear, periodMonth
+  );
+
+  // Holiday policy lookup based on checkbox state (with_dates vs without_dates)
+  const holidayPolicyLookup = useHolidayPolicyLookup(
+    periodYear,
+    periodMonth,
+    localEmployee.days?.[6] ?? false,
+    localEmployee.holidayNoDates ?? false,
+    localEmployee.holidayStartDate || '',
+    localEmployee.holidayEndDate || '',
+    localEmployee.weeklyWages?.[6] ?? 0
   );
 
   const [ssnError, setSsnError] = useState<string>('');
@@ -661,6 +673,14 @@ export default function EmployeeModal({
 
     if (localEmployee.bonusDate && !validateBonusDate(localEmployee.bonusDate)) return;
     if (localEmployee.holidayStartDate && localEmployee.holidayEndDate && !validateHolidayDates(localEmployee.holidayStartDate, localEmployee.holidayEndDate)) return;
+
+    // Holiday policy validation: block save if holiday is enabled but policy lookup fails
+    if (localEmployee.days?.[6] && (localEmployee.weeklyWages?.[6] ?? 0) > 0) {
+      if (!holidayPolicyLookup.canSaveHoliday) {
+        setHolidayDateError(holidayPolicyLookup.holidayValidationError || 'Holiday pay configuration issue. Cannot save.');
+        return;
+      }
+    }
     
     const savedEmployee: EmployeeData = {
       ...localEmployee,
@@ -1038,7 +1058,7 @@ export default function EmployeeModal({
                                   holidayStartDate: newVal ? '' : prev.holidayStartDate,
                                   holidayEndDate: newVal ? '' : prev.holidayEndDate
                                 }));
-                                if (newVal) setHolidayDateError('');
+                                setHolidayDateError('');
                               }
                             }}
                           >
@@ -1079,18 +1099,46 @@ export default function EmployeeModal({
                           </div>
                         )}
 
-                        {/* Holiday policy status */}
-                        {serverEmployeeCalc?.holidayPolicyApplied && (
-                          <div className="ml-7 flex items-center gap-2 rounded-md border border-teal-300 bg-teal-50/60 px-2.5 py-1.5">
-                            <Check className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
-                            <span className="text-xs font-medium text-teal-800">
-                              Holiday policy applied ({serverEmployeeCalc.holidayPolicyType || 'default'})
-                            </span>
-                            {serverEmployeeCalc.holidayLevy > 0 && (
-                              <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-teal-400 text-teal-700 ml-auto">
-                                Levy: {formatCurrency(serverEmployeeCalc.holidayLevy)}
-                              </Badge>
+                        {/* Holiday policy status - driven by real-time DB lookup */}
+                        {(localEmployee.weeklyWages?.[6] ?? 0) > 0 && (
+                          <div className={`ml-7 flex items-center gap-2 rounded-md border px-2.5 py-1.5 ${
+                            holidayPolicyLookup.defaultPolicyLoading
+                              ? 'border-muted bg-muted/30'
+                              : holidayPolicyLookup.defaultPolicyFound
+                                ? 'border-teal-300 bg-teal-50/60'
+                                : 'border-destructive/40 bg-destructive/5'
+                          }`}>
+                            {holidayPolicyLookup.defaultPolicyLoading ? (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Looking up holiday policy…
+                              </div>
+                            ) : holidayPolicyLookup.defaultPolicyFound ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <Check className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                                <span className="text-xs font-medium text-teal-800">
+                                  Holiday policy applied ({holidayPolicyLookup.defaultPolicyType === 'with_dates' ? 'with_dates' : 'without_dates'})
+                                </span>
+                                {holidayPolicyLookup.exceptionPolicyFound && (
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-teal-400 text-teal-700 ml-auto">
+                                    Exception active
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 flex-1">
+                                <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                                <span className="text-xs font-medium text-destructive">
+                                  {holidayPolicyLookup.holidayValidationError || `No active holiday pay policy configured for "${localEmployee.holidayNoDates ? 'Without Dates' : 'With Dates'}" for this period.`}
+                                </span>
+                              </div>
                             )}
+                          </div>
+                        )}
+
+                        {/* Exception policy status */}
+                        {(localEmployee.weeklyWages?.[6] ?? 0) > 0 && !holidayPolicyLookup.exceptionPolicyLoading && !holidayPolicyLookup.exceptionPolicyFound && holidayPolicyLookup.defaultPolicyFound && (
+                          <div className="ml-7 flex items-center gap-2 rounded-md border border-muted bg-muted/20 px-2.5 py-1.5">
+                            <span className="text-[10px] text-muted-foreground">No holiday pay exception policy configured for this period.</span>
                           </div>
                         )}
                       </>
