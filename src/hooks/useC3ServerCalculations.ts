@@ -19,6 +19,7 @@ export interface C3CalculationConfig {
   employeeSSMaxWage: number;
   employerSSRate: number;
   employerEIBRate: number;
+  employerEIBMaxWage: number;
   employerLevyRate: number;
   employerSeveranceRate: number;
 }
@@ -201,7 +202,8 @@ export function useC3Config() {
           employeeSSRate: configData.employee_ss_rate,
           employeeSSMaxWage: configData.employee_ss_max_wage,
           employerSSRate: configData.employer_ss_rate,
-          employerEIBRate: configData.employer_eib_rate,
+           employerEIBRate: configData.employer_eib_rate,
+           employerEIBMaxWage: configData.employer_eib_max_wage,
           employerLevyRate: configData.employer_levy_rate,
           employerSeveranceRate: configData.employer_severance_rate
         };

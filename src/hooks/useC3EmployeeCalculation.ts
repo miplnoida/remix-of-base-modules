@@ -30,6 +30,7 @@ export interface C3ConfigData {
   employeeSSMaxWage: number;
   employerSSRate: number;
   employerEIBRate: number;
+  employerEIBMaxWage: number;
   employerSSMaxWage: number;
   employerLevyRate: number;
   employerSeveranceRate: number;
@@ -403,8 +404,9 @@ function calculateEmployeeLevy(
            employeeSSRate: Number(cfg.employee_ss_rate) || 0.05,
            employeeSSMaxWage: Number(cfg.employee_ss_max_wage) || 6500,
            employerSSRate: Number(cfg.employer_ss_rate) || 0.05,
-           employerEIBRate: Number(cfg.employer_eib_rate) || 0.01,
-           employerSSMaxWage: Number(cfg.employer_ss_max_wage) || 6500,
+            employerEIBRate: Number(cfg.employer_eib_rate) || 0.01,
+            employerEIBMaxWage: Number(cfg.employer_eib_max_wage) || 6500,
+            employerSSMaxWage: Number(cfg.employer_ss_max_wage) || 6500,
            employerLevyRate: Number(cfg.employer_levy_rate) || 0.03,
            employerSeveranceRate: Number(cfg.employer_severance_rate) || 0.01,
            levySlabId: cfg.levy_slab_id,

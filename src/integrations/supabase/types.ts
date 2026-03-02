@@ -2108,6 +2108,7 @@ export type Database = {
           created_on: string | null
           employee_ss_max_wage: number | null
           employee_ss_rate: number | null
+          employer_eib_max_wage: number
           employer_eib_rate: number | null
           employer_levy_rate: number | null
           employer_severance_rate: number | null
@@ -2137,6 +2138,7 @@ export type Database = {
           created_on?: string | null
           employee_ss_max_wage?: number | null
           employee_ss_rate?: number | null
+          employer_eib_max_wage?: number
           employer_eib_rate?: number | null
           employer_levy_rate?: number | null
           employer_severance_rate?: number | null
@@ -2166,6 +2168,7 @@ export type Database = {
           created_on?: string | null
           employee_ss_max_wage?: number | null
           employee_ss_rate?: number | null
+          employer_eib_max_wage?: number
           employer_eib_rate?: number | null
           employer_levy_rate?: number | null
           employer_severance_rate?: number | null
@@ -14519,6 +14522,7 @@ export type Database = {
           config_period_id: string
           employee_ss_max_wage: number
           employee_ss_rate: number
+          employer_eib_max_wage: number
           employer_eib_rate: number
           employer_levy_rate: number
           employer_severance_rate: number

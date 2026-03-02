@@ -31,6 +31,7 @@ export interface C3ConfigDetails {
   employee_ss_max_wage: number;
   employer_ss_rate: number;
   employer_eib_rate: number;
+  employer_eib_max_wage: number;
   employer_ss_max_wage: number;
   employer_levy_rate: number;
   employer_severance_rate: number;

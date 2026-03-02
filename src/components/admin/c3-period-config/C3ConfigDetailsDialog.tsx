@@ -177,24 +177,35 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
               <div className="space-y-2">
                 <Label>Employer EIB Rate (%)</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.employer_eib_rate)}
-                  onChange={(e) => handleRateChange('employer_eib_rate', e.target.value)}
-                  min={0}
-                  max={100}
-                />
+                   type="number"
+                   step="0.01"
+                   value={formatRateForDisplay(formData.employer_eib_rate)}
+                   onChange={(e) => handleRateChange('employer_eib_rate', e.target.value)}
+                   min={0}
+                   max={100}
+                 />
                 <p className="text-xs text-muted-foreground">Employment Injury Benefit rate</p>
               </div>
               <div className="space-y-2">
                 <Label>Employer SS Max Wage ($)</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.employer_ss_max_wage || ''}
-                  onChange={(e) => handleChange('employer_ss_max_wage', parseFloat(e.target.value))}
-                  min={0}
-                />
+                   type="number"
+                   step="0.01"
+                   value={formData.employer_ss_max_wage || ''}
+                   onChange={(e) => handleChange('employer_ss_max_wage', parseFloat(e.target.value))}
+                   min={0}
+                 />
+              </div>
+              <div className="space-y-2">
+                <Label>EIB Max Wage ($)</Label>
+                <Input
+                   type="number"
+                   step="0.01"
+                   value={formData.employer_eib_max_wage || ''}
+                   onChange={(e) => handleChange('employer_eib_max_wage', parseFloat(e.target.value))}
+                   min={0}
+                 />
+                <p className="text-xs text-muted-foreground">Maximum wage for EIB calculation</p>
               </div>
             </div>
           </TabsContent>
