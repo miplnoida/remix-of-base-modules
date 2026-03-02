@@ -116,6 +116,7 @@ export default function WizPaymentDetails() {
         page_number: page,
         page_size: pageSize,
         export_all: false,
+        c3_header_id: 0,
       };
 
       if (selectedType === 'Company') {
@@ -180,6 +181,7 @@ export default function WizPaymentDetails() {
         to_date: toDate || null,
         types: selectedType,
         export_all: true,
+        c3_header_id: 0,
       };
       if (selectedType === 'Company') {
         params.company_id = companyId && companyId !== ALL ? Number(companyId) : null;
