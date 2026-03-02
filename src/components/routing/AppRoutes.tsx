@@ -447,6 +447,11 @@ import WizEmployerList from '@/pages/c3Management/employers/WizEmployerList';
 import WizEmployerDetailsEdit from '@/pages/c3Management/employers/WizEmployerDetailsEdit';
 import WizCompanyUsers from '@/pages/c3Management/employers/WizCompanyUsers';
 import WizEmployeeList from '@/pages/c3Management/employers/WizEmployeeList';
+
+// C3 Wizard Admin - Self-Employed Management
+import WizSelfEmployedList from '@/pages/c3Management/selfEmployed/WizSelfEmployedList';
+import WizSelfEmployedDetailsEdit from '@/pages/c3Management/selfEmployed/WizSelfEmployedDetailsEdit';
+import WizSelfEmployedUserEdit from '@/pages/c3Management/selfEmployed/WizSelfEmployedUserEdit';
 import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
 import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
@@ -718,6 +723,11 @@ export const AppRoutes = () => {
       <Route path="/c3-management/employer-details/:companyId" element={<ProtectedLayout><WizEmployerDetailsEdit /></ProtectedLayout>} />
       <Route path="/c3-management/employer-users/:companyId" element={<ProtectedLayout><WizCompanyUsers /></ProtectedLayout>} />
       <Route path="/c3-management/employer-employees/:companyId" element={<ProtectedLayout><WizEmployeeList /></ProtectedLayout>} />
+      
+      {/* C3 Wizard Admin - Self-Employed Management Routes */}
+      <Route path="/c3-management/self-employed-details" element={<ProtectedLayout><WizSelfEmployedList /></ProtectedLayout>} />
+      <Route path="/c3-management/self-employed-details/:selfEmployedId" element={<ProtectedLayout><WizSelfEmployedDetailsEdit /></ProtectedLayout>} />
+      <Route path="/c3-management/self-employed-user/:userId" element={<ProtectedLayout><WizSelfEmployedUserEdit /></ProtectedLayout>} />
       
       {/* C3 Settings Routes */}
       <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />

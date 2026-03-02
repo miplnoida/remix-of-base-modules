@@ -53,6 +53,12 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard"
       },
       {
+        title: "Self Employee Details",
+        url: "/c3-management/self-employed-details",
+        icon: Users,
+        requiresPermission: "view_dashboard"
+      },
+      {
         title: "Settings",
         icon: Settings,
         requiresPermission: "view_dashboard",
