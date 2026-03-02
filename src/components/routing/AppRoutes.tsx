@@ -734,6 +734,7 @@ export const AppRoutes = () => {
 
       {/* C3 Wizard Admin - Payment Details Route */}
       <Route path="/c3-management/payment-details" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
+      <Route path="/c3-management/payments" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
       
       {/* C3 Settings Routes */}
       <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />
