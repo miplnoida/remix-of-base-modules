@@ -452,6 +452,9 @@ import WizEmployeeList from '@/pages/c3Management/employers/WizEmployeeList';
 import WizSelfEmployedList from '@/pages/c3Management/selfEmployed/WizSelfEmployedList';
 import WizSelfEmployedDetailsEdit from '@/pages/c3Management/selfEmployed/WizSelfEmployedDetailsEdit';
 import WizSelfEmployedUserEdit from '@/pages/c3Management/selfEmployed/WizSelfEmployedUserEdit';
+
+// C3 Wizard Admin - Payment Details
+import WizPaymentDetails from '@/pages/c3Management/payments/WizPaymentDetails';
 import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
 import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
@@ -728,6 +731,9 @@ export const AppRoutes = () => {
       <Route path="/c3-management/self-employed-details" element={<ProtectedLayout><WizSelfEmployedList /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-details/:selfEmployedId" element={<ProtectedLayout><WizSelfEmployedDetailsEdit /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-user/:userId" element={<ProtectedLayout><WizSelfEmployedUserEdit /></ProtectedLayout>} />
+
+      {/* C3 Wizard Admin - Payment Details Route */}
+      <Route path="/c3-management/payment-details" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
       
       {/* C3 Settings Routes */}
       <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />

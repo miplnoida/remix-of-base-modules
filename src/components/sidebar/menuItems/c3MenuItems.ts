@@ -59,6 +59,12 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard"
       },
       {
+        title: "Payment Details",
+        url: "/c3-management/payment-details",
+        icon: DollarSign,
+        requiresPermission: "view_dashboard"
+      },
+      {
         title: "Settings",
         icon: Settings,
         requiresPermission: "view_dashboard",
