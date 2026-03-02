@@ -27,6 +27,29 @@ async function callWizApi<T = any>(action: string, params: Record<string, any> =
   return json;
 }
 
+// ─── Phone E.164 Helpers ──────────────────────────────
+// The C3-Wizard stores phone numbers as a single E.164 string (e.g. "+18691234567").
+// These helpers parse/compose for UI display with a country code prefix.
+
+export function parseE164Phone(e164: string | null): { dialCode: string; localNumber: string } {
+  if (!e164) return { dialCode: '+1869', localNumber: '' };
+  const cleaned = e164.replace(/[^\d+]/g, '');
+  // Check common dial codes longest-first
+  const dialCodes = ['+1869', '+1868', '+1767', '+1758', '+1784', '+1473', '+1246', '+1268', '+44', '+91', '+86', '+61', '+49', '+33', '+1'];
+  for (const dc of dialCodes) {
+    if (cleaned.startsWith(dc)) {
+      return { dialCode: dc, localNumber: cleaned.slice(dc.length) };
+    }
+  }
+  return { dialCode: '+1869', localNumber: cleaned.replace(/^\+/, '') };
+}
+
+export function composeE164(dialCode: string, localNumber: string): string {
+  const digits = localNumber.replace(/\D/g, '');
+  if (!digits) return '';
+  return `${dialCode}${digits}`;
+}
+
 // ─── Employer ──────────────────────────────────────────
 export interface WizEmployer {
   id: number;
@@ -76,6 +99,10 @@ export async function updateEmployer(params: {
 
 export async function updateCompanyMapping(parentId: number, childIds: number[]) {
   return callWizApi("update_company_mapping", { parent_id: parentId, child_ids: childIds });
+}
+
+export async function uploadCompanyLogo(companyId: number, imageBase64: string) {
+  return callWizApi<{ logo_url: string }>("upload_company_logo", { company_id: companyId, image_base64: imageBase64 });
 }
 
 // ─── Users ─────────────────────────────────────────────
@@ -156,7 +183,9 @@ export async function getEmployeeDetails(companyId: number, employeeId: number) 
 }
 
 export async function updateEmployee(companyId: number, employeeId: number, employeeData: Record<string, any>) {
-  return callWizApi("update_employee", { company_id: companyId, employee_id: employeeId, employee_data: employeeData });
+  // Server-side enforced: strip read-only fields before sending
+  const { social_security_number: _ssn, first_name: _fn, last_name: _ln, date_of_birth: _dob, ...editableData } = employeeData;
+  return callWizApi("update_employee", { company_id: companyId, employee_id: employeeId, employee_data: editableData });
 }
 
 export async function deleteEmployee(companyId: number, employeeId: number) {
