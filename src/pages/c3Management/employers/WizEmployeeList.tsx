@@ -27,6 +27,10 @@ const PAY_PERIODS: Record<string, string> = {
   '2W': 'Bi-Weekly',
 };
 
+// Legacy stores "S" and "M" for marital status
+const MARITAL_STATUS_MAP: Record<string, string> = { 'S': 'Single', 'M': 'Married' };
+const MARITAL_STATUS_REVERSE: Record<string, string> = { 'Single': 'S', 'Married': 'M' };
+
 const WizEmployeeList: React.FC = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
@@ -81,8 +85,14 @@ const WizEmployeeList: React.FC = () => {
     const s = searchTerm.toLowerCase();
     return list.filter(e =>
       `${e.first_name} ${e.last_name}`.toLowerCase().includes(s) ||
-      e.social_security_number?.toLowerCase().includes(s)
+      e.social_security_number?.toLowerCase().includes(s) ||
+      (e.department || '').toLowerCase().includes(s)
     );
+  };
+
+  const getMaritalDisplay = (val: string | null) => {
+    if (!val) return '';
+    return MARITAL_STATUS_MAP[val] || val;
   };
 
   const openEdit = async (emp: WizEmployee) => {
@@ -94,7 +104,7 @@ const WizEmployeeList: React.FC = () => {
       middle_name: emp.middle_name || '',
       date_of_birth: emp.date_of_birth || '',
       gender: emp.gender || 'M',
-      marital_status: emp.marital_status || 'Single',
+      marital_status: getMaritalDisplay(emp.marital_status) || 'Single',
       is_director: emp.is_director,
       address_line1: emp.address_line1 || '',
       address_line2: emp.address_line2 || '',
@@ -119,7 +129,13 @@ const WizEmployeeList: React.FC = () => {
     if (!editEmployeeId) return;
     setEditSaving(true);
     try {
-      await updateEmployee(Number(selectedCompanyId), editEmployeeId, editData);
+      // Convert marital status display value back to storage code
+      const saveData = {
+        ...editData,
+        marital_status: MARITAL_STATUS_REVERSE[editData.marital_status] || editData.marital_status,
+      };
+      // updateEmployee in service layer strips read-only fields (SSN, first_name, last_name, DOB)
+      await updateEmployee(Number(selectedCompanyId), editEmployeeId, saveData);
       toast.success('Employee updated');
       setEditOpen(false);
       loadData();
@@ -177,8 +193,8 @@ const WizEmployeeList: React.FC = () => {
           ) : data.map((emp, idx) => (
             <TableRow key={emp.id}>
               <TableCell>{idx + 1}</TableCell>
-              <TableCell>{emp.social_security_number}</TableCell>
-              <TableCell className="text-primary font-medium">{emp.first_name} {emp.last_name}</TableCell>
+              <TableCell>{emp.social_security_number || '—'}</TableCell>
+              <TableCell className="text-primary font-medium">{[emp.first_name, emp.last_name].filter(Boolean).join(' ') || '—'}</TableCell>
               <TableCell>{emp.department || '—'}</TableCell>
               <TableCell className="text-sm">{[emp.address_line1, emp.city].filter(Boolean).join(', ') || '—'}</TableCell>
               <TableCell>{formatCurrency(emp.salary)}</TableCell>
@@ -234,7 +250,7 @@ const WizEmployeeList: React.FC = () => {
                 ))}</SelectContent>
             </Select>
             <div className="flex items-center gap-1">
-              <Input placeholder="Search by employee name" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-60" />
+              <Input placeholder="Search by name, SSN, department" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-60" />
             </div>
           </div>
         </CardHeader>
@@ -254,7 +270,7 @@ const WizEmployeeList: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Employee</DialogTitle></DialogHeader>
           <div className="space-y-6">
-            {/* Search Profile Details */}
+            {/* Read-only identity fields */}
             <div>
               <h3 className="font-semibold mb-3">🔍 Search Profile Details</h3>
               <div className="grid grid-cols-3 gap-4">

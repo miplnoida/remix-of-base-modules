@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
-import { Save, X, Building2, MapPin, User, Eye, EyeOff } from 'lucide-react';
+import { Save, X, Building2, MapPin, User, Eye, EyeOff, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { getEmployerDetails, updateEmployer, type WizEmployerDetails } from '@/services/wizAdminApiService';
+import {
+  getEmployerDetails, updateEmployer, uploadCompanyLogo,
+  parseE164Phone, composeE164,
+  type WizEmployerDetails
+} from '@/services/wizAdminApiService';
 
 const COUNTRIES = ["Saint Kitts", "Nevis", "Other"];
 const SECURITY_QUESTIONS = [
@@ -19,6 +23,20 @@ const SECURITY_QUESTIONS = [
   "What Is Your Favorite Dish",
   "What Is Your Mother's Maiden Name",
   "What Is Your First Pet's Name",
+];
+
+const DIAL_CODES = [
+  { value: '+1869', label: '(+1869) St. Kitts & Nevis' },
+  { value: '+1868', label: '(+1868) Trinidad & Tobago' },
+  { value: '+1767', label: '(+1767) Dominica' },
+  { value: '+1758', label: '(+1758) St. Lucia' },
+  { value: '+1784', label: '(+1784) St. Vincent' },
+  { value: '+1473', label: '(+1473) Grenada' },
+  { value: '+1246', label: '(+1246) Barbados' },
+  { value: '+1268', label: '(+1268) Antigua & Barbuda' },
+  { value: '+1', label: '(+1) US/Canada' },
+  { value: '+44', label: '(+44) UK' },
+  { value: '+91', label: '(+91) India' },
 ];
 
 const WizEmployerDetails: React.FC = () => {
@@ -30,13 +48,21 @@ const WizEmployerDetails: React.FC = () => {
 
   // Company form
   const [companyData, setCompanyData] = useState<Record<string, any>>({});
+  // Phone split state
+  const [mobileDialCode, setMobileDialCode] = useState('+1869');
+  const [mobileLocal, setMobileLocal] = useState('');
+  const [phoneDialCode, setPhoneDialCode] = useState('+1869');
+  const [phoneLocal, setPhoneLocal] = useState('');
   // User form
   const [userData, setUserData] = useState<Record<string, any>>({});
   // Security questions
   const [sq, setSq] = useState({ question1: '', answer1: '', question2: '', answer2: '' });
-  // Show/hide answer fields
   const [showAnswer1, setShowAnswer1] = useState(false);
   const [showAnswer2, setShowAnswer2] = useState(false);
+  // Logo
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!companyId) return;
@@ -49,14 +75,22 @@ const WizEmployerDetails: React.FC = () => {
       const res = await getEmployerDetails(Number(companyId));
       const d = res.data!;
       setDetails(d);
+      setLogoUrl(d.company.logo_url || null);
+
+      // Parse E.164 phone numbers
+      const mobileParsed = parseE164Phone(d.company.mobile);
+      setMobileDialCode(mobileParsed.dialCode);
+      setMobileLocal(mobileParsed.localNumber);
+      const phoneParsed = parseE164Phone(d.company.phone);
+      setPhoneDialCode(phoneParsed.dialCode);
+      setPhoneLocal(phoneParsed.localNumber);
+
       setCompanyData({
         registration_number: d.company.registration_number || '',
         company_name: d.company.company_name || '',
         trade_name: d.company.trade_name || '',
         contact_person: d.company.contact_person || '',
         email: d.company.email || '',
-        mobile: d.company.mobile || '',
-        phone: d.company.phone || '',
         address_line1: d.company.address_line1 || '',
         address_line2: d.company.address_line2 || '',
         city: d.company.city || '',
@@ -90,9 +124,15 @@ const WizEmployerDetails: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Compose E.164 back
+      const saveData = {
+        ...companyData,
+        mobile: composeE164(mobileDialCode, mobileLocal),
+        phone: composeE164(phoneDialCode, phoneLocal),
+      };
       await updateEmployer({
         company_id: Number(companyId),
-        company_data: companyData,
+        company_data: saveData,
         user_data: userData,
         security_questions: (sq.answer1 || sq.answer2) ? sq : undefined,
       });
@@ -101,6 +141,30 @@ const WizEmployerDetails: React.FC = () => {
       toast.error(err.message || 'Failed to update employer');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Logo must be under 2MB');
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const res = await uploadCompanyLogo(Number(companyId), base64);
+        setLogoUrl(res.data?.logo_url || null);
+        toast.success('Logo uploaded successfully');
+        setLogoUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      toast.error(err.message || 'Logo upload failed');
+      setLogoUploading(false);
     }
   };
 
@@ -126,14 +190,33 @@ const WizEmployerDetails: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Company Logo placeholder + top fields */}
+          {/* Company Logo + top fields */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col items-center justify-center gap-2 border rounded-lg p-6 bg-muted/30">
-              <div className="w-24 h-24 bg-muted rounded flex items-center justify-center">
-                <Building2 className="h-12 w-12 text-muted-foreground" />
+              <div className="w-24 h-24 bg-muted rounded flex items-center justify-center overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Company Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Building2 className="h-12 w-12 text-muted-foreground" />
+                )}
               </div>
-              <span className="text-sm text-primary cursor-pointer">Update Company Logo</span>
-              <p className="text-xs text-muted-foreground text-center">(Logo upload requires API support from C3-Wizard)</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <Button
+                variant="link"
+                size="sm"
+                className="text-primary"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={logoUploading}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                {logoUploading ? 'Uploading...' : 'Update Company Logo'}
+              </Button>
             </div>
             <div className="col-span-2 grid grid-cols-2 gap-4">
               <div>
@@ -153,15 +236,46 @@ const WizEmployerDetails: React.FC = () => {
                 <Input value={companyData.contact_person} onChange={e => updateField('contact_person', e.target.value)} />
               </div>
               <div>
-                <Label>Mobile Number *</Label>
+                <Label>Mobile Number</Label>
                 <div className="flex gap-2">
-                  <Input value="+1869" disabled className="w-20 bg-muted text-center" />
-                  <Input value={companyData.mobile} onChange={e => updateField('mobile', e.target.value)} className="flex-1" placeholder="Enter mobile number" />
+                  <Select value={mobileDialCode} onValueChange={setMobileDialCode}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIAL_CODES.map(dc => (
+                        <SelectItem key={dc.value} value={dc.value}>{dc.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={mobileLocal}
+                    onChange={e => setMobileLocal(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="flex-1"
+                    placeholder="Enter mobile number"
+                  />
                 </div>
               </div>
               <div>
-                <Label>Phone Number *</Label>
-                <Input value={companyData.phone} onChange={e => updateField('phone', e.target.value)} />
+                <Label>Phone Number</Label>
+                <div className="flex gap-2">
+                  <Select value={phoneDialCode} onValueChange={setPhoneDialCode}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIAL_CODES.map(dc => (
+                        <SelectItem key={dc.value} value={dc.value}>{dc.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={phoneLocal}
+                    onChange={e => setPhoneLocal(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="flex-1"
+                    placeholder="Enter phone number"
+                  />
+                </div>
               </div>
               <div>
                 <Label>Name of Company *</Label>
@@ -215,14 +329,17 @@ const WizEmployerDetails: React.FC = () => {
 
           <Separator />
 
-          {/* Security Questions */}
+          {/* Security Questions – write-only, answers are hashed server-side */}
           <div>
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
               🔐 Security Questions
             </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Answers are stored securely (hashed). Enter new values only if you want to change them.
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-destructive">Question1 *</Label>
+                <Label className="text-destructive">Question 1 *</Label>
                 <Select value={sq.question1} onValueChange={v => setSq(p => ({ ...p, question1: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select a question" /></SelectTrigger>
                   <SelectContent>
@@ -231,13 +348,13 @@ const WizEmployerDetails: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label className="text-destructive">Answer1 *</Label>
+                <Label className="text-destructive">Answer 1 *</Label>
                 <div className="relative">
                   <Input
                     type={showAnswer1 ? 'text' : 'password'}
                     value={sq.answer1}
                     onChange={e => setSq(p => ({ ...p, answer1: e.target.value }))}
-                    placeholder={details?.security_questions?.[0] ? '••••••••' : 'Enter answer'}
+                    placeholder={details?.security_questions?.[0] ? '••••••••  (leave blank to keep)' : 'Enter answer'}
                     className="pr-10"
                   />
                   <Button
@@ -252,7 +369,7 @@ const WizEmployerDetails: React.FC = () => {
                 </div>
               </div>
               <div>
-                <Label className="text-destructive">Question2 *</Label>
+                <Label className="text-destructive">Question 2 *</Label>
                 <Select value={sq.question2} onValueChange={v => setSq(p => ({ ...p, question2: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select a question" /></SelectTrigger>
                   <SelectContent>
@@ -261,13 +378,13 @@ const WizEmployerDetails: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label className="text-destructive">Answer2 *</Label>
+                <Label className="text-destructive">Answer 2 *</Label>
                 <div className="relative">
                   <Input
                     type={showAnswer2 ? 'text' : 'password'}
                     value={sq.answer2}
                     onChange={e => setSq(p => ({ ...p, answer2: e.target.value }))}
-                    placeholder={details?.security_questions?.[1] ? '••••••••' : 'Enter answer'}
+                    placeholder={details?.security_questions?.[1] ? '••••••••  (leave blank to keep)' : 'Enter answer'}
                     className="pr-10"
                   />
                   <Button

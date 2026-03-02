@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Search, Edit, Users, UserCheck, ChevronLeft, ChevronRight, ArrowUpDown, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getEmployerList, getCompaniesDropdown, updateCompanyMapping, WizEmployer, WizCompanyDropdown } from '@/services/wizAdminApiService';
+import { getEmployerList, getCompaniesDropdown, updateCompanyMapping, parseE164Phone, WizEmployer, WizCompanyDropdown } from '@/services/wizAdminApiService';
 import { format, parseISO } from 'date-fns';
 
 const WizEmployerList: React.FC = () => {
@@ -116,6 +116,12 @@ const WizEmployerList: React.FC = () => {
     try { return format(parseISO(d), 'dd-MMM-yyyy'); } catch { return d; }
   };
 
+  const formatMobile = (m: string | null) => {
+    if (!m) return '—';
+    const { dialCode, localNumber } = parseE164Phone(m);
+    return localNumber ? `(${dialCode}) ${localNumber}` : '—';
+  };
+
   return (
     <div className="space-y-4">
       <Breadcrumb>
@@ -135,7 +141,7 @@ const WizEmployerList: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Search by employer name or reg number"
+                placeholder="Search by name, reg no, contact, email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -176,13 +182,13 @@ const WizEmployerList: React.FC = () => {
                   employers.map((emp) => (
                     <TableRow key={emp.id}>
                       <TableCell className="text-primary font-medium cursor-pointer" onClick={() => navigate(`/c3-management/employer-details/${emp.id}`)}>
-                        {emp.registration_number}
+                        {emp.registration_number || '—'}
                       </TableCell>
                       <TableCell>{formatDate(emp.registration_date)}</TableCell>
-                      <TableCell>{emp.contact_person}</TableCell>
-                      <TableCell>{emp.company_name}</TableCell>
-                      <TableCell>{emp.mobile || '—'}</TableCell>
-                      <TableCell className="text-primary">{emp.email}</TableCell>
+                      <TableCell>{emp.contact_person || '—'}</TableCell>
+                      <TableCell>{emp.company_name || '—'}</TableCell>
+                      <TableCell>{formatMobile(emp.mobile)}</TableCell>
+                      <TableCell className="text-primary">{emp.email || '—'}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => navigate(`/c3-management/employer-details/${emp.id}`)}>
                           <Edit className="h-4 w-4 text-green-600" />
@@ -210,7 +216,7 @@ const WizEmployerList: React.FC = () => {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-muted-foreground">
-              {pageOffset + 1}-{Math.min(pageOffset + pageLimit, totalRecords)} of {totalRecords}
+              {totalRecords > 0 ? `${pageOffset + 1}-${Math.min(pageOffset + pageLimit, totalRecords)} of ${totalRecords}` : '0 records'}
             </span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPageOffset(Math.max(0, pageOffset - pageLimit))}>
