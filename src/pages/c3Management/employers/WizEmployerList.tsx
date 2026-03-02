@@ -181,14 +181,14 @@ const WizEmployerList: React.FC = () => {
                 ) : (
                   employers.map((emp) => (
                     <TableRow key={emp.id}>
-                      <TableCell className="text-primary font-medium cursor-pointer" onClick={() => navigate(`/c3-management/employer-details/${emp.id}`)}>
-                        {emp.registration_number || '—'}
+                      <TableCell className="font-medium cursor-pointer min-w-[120px]" onClick={() => navigate(`/c3-management/employer-details/${emp.id}`)}>
+                        <span className="text-foreground">{emp.registration_number || '—'}</span>
                       </TableCell>
                       <TableCell>{formatDate(emp.registration_date)}</TableCell>
                       <TableCell>{emp.contact_person || '—'}</TableCell>
                       <TableCell>{emp.company_name || '—'}</TableCell>
                       <TableCell>{formatMobile(emp.mobile)}</TableCell>
-                      <TableCell className="text-primary">{emp.email || '—'}</TableCell>
+                      <TableCell className="min-w-[180px]"><span className="text-foreground">{emp.email || '—'}</span></TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => navigate(`/c3-management/employer-details/${emp.id}`)}>
                           <Edit className="h-4 w-4 text-green-600" />
