@@ -161,8 +161,11 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-24">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      <div className="flex justify-center items-center min-h-[40vh]">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="h-5 w-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+          <span>Loading...</span>
+        </div>
       </div>
     );
   }
