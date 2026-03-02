@@ -109,9 +109,9 @@ const WizEmployerDetails: React.FC = () => {
       if (d.security_questions?.length > 0) {
         setSq({
           question1: d.security_questions[0]?.question || '',
-          answer1: '',
+          answer1: d.security_questions[0]?.answer_hash || '',
           question2: d.security_questions[1]?.question || '',
-          answer2: '',
+          answer2: d.security_questions[1]?.answer_hash || '',
         });
       }
     } catch (err: any) {
@@ -335,7 +335,7 @@ const WizEmployerDetails: React.FC = () => {
               🔐 Security Questions
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Answers are stored securely (hashed). Enter new values only if you want to change them.
+              Answers are loaded from the server. Modify only if you want to change them.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
