@@ -2296,6 +2296,180 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_holiday_pay_policy_default: {
+        Row: {
+          created_by: string | null
+          created_on: string
+          date_from: string
+          date_to: string | null
+          distribution_enabled: boolean
+          id: string
+          include_in_severance: boolean
+          is_active: boolean
+          levy_calc_flat_enabled: boolean
+          levy_calc_flat_percentage: number | null
+          levy_calc_slab_enabled: boolean
+          levy_calculation_method: string
+          levy_distribution: Json
+          levy_include: boolean
+          max_holiday_amount: number | null
+          min_holiday_amount: number | null
+          modified_by: string | null
+          modified_on: string
+          policy_type: string
+          ssc_contrib_eib: boolean
+          ssc_contrib_employee: boolean
+          ssc_contrib_employer: boolean
+          ssc_include: boolean
+        }
+        Insert: {
+          created_by?: string | null
+          created_on?: string
+          date_from?: string
+          date_to?: string | null
+          distribution_enabled?: boolean
+          id?: string
+          include_in_severance?: boolean
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean
+          levy_calculation_method?: string
+          levy_distribution?: Json
+          levy_include?: boolean
+          max_holiday_amount?: number | null
+          min_holiday_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          policy_type?: string
+          ssc_contrib_eib?: boolean
+          ssc_contrib_employee?: boolean
+          ssc_contrib_employer?: boolean
+          ssc_include?: boolean
+        }
+        Update: {
+          created_by?: string | null
+          created_on?: string
+          date_from?: string
+          date_to?: string | null
+          distribution_enabled?: boolean
+          id?: string
+          include_in_severance?: boolean
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean
+          levy_calculation_method?: string
+          levy_distribution?: Json
+          levy_include?: boolean
+          max_holiday_amount?: number | null
+          min_holiday_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          policy_type?: string
+          ssc_contrib_eib?: boolean
+          ssc_contrib_employee?: boolean
+          ssc_contrib_employer?: boolean
+          ssc_include?: boolean
+        }
+        Relationships: []
+      }
+      c3_holiday_pay_policy_exceptions: {
+        Row: {
+          created_by: string | null
+          created_on: string
+          date_from: string
+          date_to: string | null
+          description: string | null
+          distribution_enabled: boolean | null
+          exception_month: number
+          exception_type: string
+          id: string
+          include_in_severance: boolean | null
+          is_active: boolean
+          levy_calc_flat_enabled: boolean | null
+          levy_calc_flat_percentage: number | null
+          levy_calc_slab_enabled: boolean | null
+          levy_calculation_method: string | null
+          levy_distribution: Json | null
+          levy_include: boolean | null
+          max_holiday_amount: number | null
+          min_holiday_amount: number | null
+          modified_by: string | null
+          modified_on: string
+          override_default: boolean
+          policy_type: string
+          ssc_contrib_eib: boolean | null
+          ssc_contrib_employee: boolean | null
+          ssc_contrib_employer: boolean | null
+          ssc_include: boolean | null
+          year_from: number
+          year_to: number | null
+        }
+        Insert: {
+          created_by?: string | null
+          created_on?: string
+          date_from: string
+          date_to?: string | null
+          description?: string | null
+          distribution_enabled?: boolean | null
+          exception_month: number
+          exception_type?: string
+          id?: string
+          include_in_severance?: boolean | null
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean | null
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean | null
+          levy_calculation_method?: string | null
+          levy_distribution?: Json | null
+          levy_include?: boolean | null
+          max_holiday_amount?: number | null
+          min_holiday_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean
+          policy_type?: string
+          ssc_contrib_eib?: boolean | null
+          ssc_contrib_employee?: boolean | null
+          ssc_contrib_employer?: boolean | null
+          ssc_include?: boolean | null
+          year_from: number
+          year_to?: number | null
+        }
+        Update: {
+          created_by?: string | null
+          created_on?: string
+          date_from?: string
+          date_to?: string | null
+          description?: string | null
+          distribution_enabled?: boolean | null
+          exception_month?: number
+          exception_type?: string
+          id?: string
+          include_in_severance?: boolean | null
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean | null
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean | null
+          levy_calculation_method?: string | null
+          levy_distribution?: Json | null
+          levy_include?: boolean | null
+          max_holiday_amount?: number | null
+          min_holiday_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean
+          policy_type?: string
+          ssc_contrib_eib?: boolean | null
+          ssc_contrib_employee?: boolean | null
+          ssc_contrib_employer?: boolean | null
+          ssc_include?: boolean | null
+          year_from?: number
+          year_to?: number | null
+        }
+        Relationships: []
+      }
       c3_line_items: {
         Row: {
           c3_id: string | null
@@ -2360,6 +2534,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      c3_pending_holiday_pay: {
+        Row: {
+          amount: number
+          applied_at: string | null
+          applied_c3_id: string | null
+          created_by: string | null
+          created_on: string
+          holiday_date_from: string | null
+          holiday_date_to: string | null
+          id: string
+          modified_by: string | null
+          modified_on: string
+          source_c3_id: string | null
+          ssn: string
+          status: string
+          target_period: string
+        }
+        Insert: {
+          amount?: number
+          applied_at?: string | null
+          applied_c3_id?: string | null
+          created_by?: string | null
+          created_on?: string
+          holiday_date_from?: string | null
+          holiday_date_to?: string | null
+          id?: string
+          modified_by?: string | null
+          modified_on?: string
+          source_c3_id?: string | null
+          ssn: string
+          status?: string
+          target_period: string
+        }
+        Update: {
+          amount?: number
+          applied_at?: string | null
+          applied_c3_id?: string | null
+          created_by?: string | null
+          created_on?: string
+          holiday_date_from?: string | null
+          holiday_date_to?: string | null
+          id?: string
+          modified_by?: string | null
+          modified_on?: string
+          source_c3_id?: string | null
+          ssn?: string
+          status?: string
+          target_period?: string
+        }
+        Relationships: []
       }
       c3_submissions: {
         Row: {
