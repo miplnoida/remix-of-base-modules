@@ -44,14 +44,12 @@ const EMPTY_EXCEPTION: ExceptionForm = {
   modified_by: null,
 };
 
-/** Compute date_from and date_to from exception identity fields */
 function computeDatesFromIdentity(form: ExceptionForm): { date_from: string; date_to: string | null } {
   const month = String(form.exception_month).padStart(2, '0');
   if (form.exception_type === 'onetime') {
     const dateStr = `${form.year_from}-${month}-01`;
     return { date_from: dateStr, date_to: dateStr };
   }
-  // recurring
   const date_from = `${form.year_from}-${month}-01`;
   const date_to = form.year_to ? `${form.year_to}-${month}-01` : null;
   return { date_from, date_to };
@@ -95,22 +93,16 @@ export function BonusPolicyExceptionsTab() {
 
   const dist: BonusDistribution = (form.distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
 
-  const setDist = (cycle: keyof BonusDistribution, key: string, value: boolean) => {
+  // Radio-style: select exactly one option per cycle
+  const setDist = (cycle: keyof BonusDistribution, key: string) => {
     const newDist = JSON.parse(JSON.stringify(dist)) as BonusDistribution;
     const cycleObj = newDist[cycle] as Record<string, boolean>;
-    if (key === 'divide' && value) {
-      Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
-    } else if (key !== 'divide' && value) {
-      cycleObj['divide'] = false;
-      cycleObj[key] = true;
-    } else {
-      cycleObj[key] = value;
-    }
+    Object.keys(cycleObj).forEach(k => { cycleObj[k] = false; });
+    cycleObj[key] = true;
     setField('distribution', newDist);
   };
 
   const handleSave = () => {
-    // Validate exception identity
     if (!form.exception_month || !form.year_from) {
       setOverlapWarning('Exception Month and Year are required.');
       return;
@@ -120,10 +112,7 @@ export function BonusPolicyExceptionsTab() {
       return;
     }
 
-    // Compute dates from identity fields
     const { date_from, date_to } = computeDatesFromIdentity(form);
-
-    // Overlap check
     const existing = (exceptions ?? []).map(e => ({ id: e.id, date_from: e.date_from, date_to: e.date_to }));
     const overlap = checkDateOverlap(date_from, date_to, existing, editingId || undefined);
     if (overlap.overlaps) {
@@ -132,15 +121,12 @@ export function BonusPolicyExceptionsTab() {
     }
 
     const updates = { ...form, date_from, date_to };
-
-    // Clear severance-related fields — this policy is Levy only
     updates.include_in_severance = null;
 
     if (!cappingEnabled) {
       updates.min_bonus_amount = null;
       updates.max_bonus_amount = null;
     }
-    // If override_default is off, clear override fields
     if (!updates.override_default) {
       updates.calculation_method = null;
       updates.calc_flat_enabled = null;
@@ -184,21 +170,16 @@ export function BonusPolicyExceptionsTab() {
                 <AlertTriangle className="h-5 w-5" />
                 Bonus Policy Exceptions
               </CardTitle>
-              <CardDescription>
-                Define month-specific overrides for bonus policy calculations. Each exception can optionally override the default policy settings.
-              </CardDescription>
+              <CardDescription>Define month-specific overrides for bonus policy calculations. Each exception can optionally override the default policy settings.</CardDescription>
             </div>
             <Button size="sm" onClick={openCreate} variant="outline" className="border-amber-300">
-              <Plus className="h-4 w-4 mr-1" />
-              Add Exception
+              <Plus className="h-4 w-4 mr-1" />Add Exception
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {!exceptions?.length ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No bonus policy exceptions configured.
-            </div>
+            <div className="text-center py-8 text-muted-foreground">No bonus policy exceptions configured.</div>
           ) : (
             <Table>
               <TableHeader>
@@ -227,12 +208,8 @@ export function BonusPolicyExceptionsTab() {
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">{exc.description || '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="outline" size="sm" onClick={() => openEdit(exc)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setDeleteId(exc.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => openEdit(exc)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="outline" size="sm" onClick={() => setDeleteId(exc.id)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -249,12 +226,8 @@ export function BonusPolicyExceptionsTab() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-amber-700 dark:text-amber-400">
-                  {editingId ? 'Edit' : 'Add'} Bonus Policy Exception
-                </CardTitle>
-                <CardDescription>
-                  Define the exception details and optionally override the default policy configuration.
-                </CardDescription>
+                <CardTitle className="text-amber-700 dark:text-amber-400">{editingId ? 'Edit' : 'Add'} Bonus Policy Exception</CardTitle>
+                <CardDescription>Define the exception details and optionally override the default policy configuration.</CardDescription>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="h-4 w-4" /></Button>
             </div>
@@ -268,7 +241,6 @@ export function BonusPolicyExceptionsTab() {
               </span>
             </div>
 
-            {/* Overlap warning */}
             {overlapWarning && (
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
@@ -283,9 +255,7 @@ export function BonusPolicyExceptionsTab() {
                 <Label>Exception Type</Label>
                 <Select value={form.exception_type} onValueChange={(v) => {
                   setField('exception_type', v as ExceptionType);
-                  if (v === 'onetime') {
-                    setField('year_to', null);
-                  }
+                  if (v === 'onetime') setField('year_to', null);
                 }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -364,7 +334,7 @@ export function BonusPolicyExceptionsTab() {
               </div>
             </div>
 
-            {/* Override sections (only visible when override_default is on) */}
+            {/* Override sections */}
             {form.override_default && (
               <div className="space-y-6 border-l-4 border-amber-300 dark:border-amber-700 pl-4">
                 {/* Calculation Method */}
@@ -390,11 +360,11 @@ export function BonusPolicyExceptionsTab() {
                   )}
                 </div>
 
-                {/* Distribution (only for merge) */}
+                {/* Distribution (only for merge) — single-select radio */}
                 {form.calculation_method === 'merge' && (
                   <>
                     <SectionLabel>Bonus Distribution by Payroll Cycle</SectionLabel>
-                    <p className="text-xs text-muted-foreground -mt-4">Select when the bonus should be included for each payroll frequency.</p>
+                    <p className="text-xs text-muted-foreground -mt-4">Select which payroll week/payment the bonus should be included in for each frequency (single selection).</p>
                     <div className="space-y-4">
                       <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist} items={[{ key: 'w1', label: 'Include in 1st week' }, { key: 'w2', label: 'Include in 2nd week' }, { key: 'w3', label: 'Include in 3rd week' }, { key: 'w4', label: 'Include in 4th / last week' }, { key: 'divide', label: 'Divide equally across all weeks', isDivide: true }]} />
                       <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist} items={[{ key: 'b1', label: 'Include in 1st payment' }, { key: 'b2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
@@ -445,9 +415,7 @@ export function BonusPolicyExceptionsTab() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Exception</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this bonus policy exception. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This will permanently delete this bonus policy exception. This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -510,7 +478,7 @@ function ContribRow({ label, checked, onChange }: { label: string; checked: bool
 
 interface CycleItem { key: string; label: string; isDivide?: boolean }
 
-function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void; items: CycleItem[] }) {
+function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string) => void; items: CycleItem[] }) {
   const cycleObj = dist[cycle] as Record<string, boolean>;
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -519,9 +487,9 @@ function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cyc
         {items.map(item => {
           const isChecked = !!cycleObj[item.key];
           return (
-            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30' : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key, !isChecked)}>
-              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${isChecked ? 'bg-amber-600 border-amber-600' : 'border-2 border-muted-foreground/40'}`}>
-                {isChecked && <Check className="h-3 w-3 text-white" />}
+            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30' : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key)}>
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isChecked ? 'bg-amber-600 border-amber-600' : 'border-muted-foreground/40'}`}>
+                {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
               </div>
               <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
             </div>

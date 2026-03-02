@@ -79,17 +79,12 @@ export function BonusPolicyDefaultTab() {
     if (key === 'date_from' || key === 'date_to') setOverlapWarning(null);
   };
 
-  const setDist = (cycle: keyof BonusDistribution, key: string, value: boolean) => {
+  // Radio-style: select exactly one option per cycle
+  const setDist = (cycle: keyof BonusDistribution, key: string) => {
     const newDist = JSON.parse(JSON.stringify(dist)) as BonusDistribution;
     const cycleObj = newDist[cycle] as Record<string, boolean>;
-    if (key === 'divide' && value) {
-      Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
-    } else if (key !== 'divide' && value) {
-      cycleObj['divide'] = false;
-      cycleObj[key] = true;
-    } else {
-      cycleObj[key] = value;
-    }
+    Object.keys(cycleObj).forEach(k => { cycleObj[k] = false; });
+    cycleObj[key] = true;
     setField('distribution', newDist);
   };
 
@@ -102,7 +97,6 @@ export function BonusPolicyDefaultTab() {
       setOverlapWarning('Date To cannot be earlier than Date From.');
       return;
     }
-    // Overlap check
     const existing = (policies ?? []).map(p => ({ id: p.id, date_from: p.date_from, date_to: p.date_to }));
     const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined);
     if (overlap.overlaps) {
@@ -215,7 +209,6 @@ export function BonusPolicyDefaultTab() {
               </span>
             </div>
 
-            {/* Overlap warning */}
             {overlapWarning && (
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
@@ -273,11 +266,11 @@ export function BonusPolicyDefaultTab() {
               )}
             </div>
 
-            {/* 3. Distribution (only for merge) */}
+            {/* 3. Distribution (only for merge) — single-select radio */}
             {form.calculation_method === 'merge' && (
               <>
                 <SectionLabel>Bonus Distribution by Payroll Cycle</SectionLabel>
-                <p className="text-xs text-muted-foreground -mt-4">Select when the bonus should be included for each payroll frequency.</p>
+                <p className="text-xs text-muted-foreground -mt-4">Select which payroll week/payment the bonus should be included in for each frequency (single selection).</p>
                 <div className="space-y-4">
                   <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist} items={[{ key: 'w1', label: 'Include in 1st week' }, { key: 'w2', label: 'Include in 2nd week' }, { key: 'w3', label: 'Include in 3rd week' }, { key: 'w4', label: 'Include in 4th / last week' }, { key: 'divide', label: 'Divide equally across all weeks', isDivide: true }]} />
                   <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist} items={[{ key: 'b1', label: 'Include in 1st payment' }, { key: 'b2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
@@ -389,7 +382,7 @@ function ContribRow({ label, checked, onChange }: { label: string; checked: bool
 
 interface CycleItem { key: string; label: string; isDivide?: boolean }
 
-function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void; items: CycleItem[] }) {
+function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string) => void; items: CycleItem[] }) {
   const cycleObj = dist[cycle] as Record<string, boolean>;
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -398,9 +391,9 @@ function CycleBlock({ title, cycle, dist, setDist, items }: { title: string; cyc
         {items.map(item => {
           const isChecked = !!cycleObj[item.key];
           return (
-            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? 'border-emerald-300 bg-emerald-50' : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key, !isChecked)}>
-              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-2 border-muted-foreground/40'}`}>
-                {isChecked && <Check className="h-3 w-3 text-white" />}
+            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? 'border-emerald-300 bg-emerald-50' : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key)}>
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-muted-foreground/40'}`}>
+                {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
               </div>
               <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
             </div>
