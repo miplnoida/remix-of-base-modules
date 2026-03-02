@@ -7,11 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Users, Edit, RefreshCw, Lock, Eye, EyeOff } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, X, User } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getCompanyUsers, getCompaniesDropdown, getUserDetails, updateUser,
@@ -27,6 +27,12 @@ const ROLE_MAP: Record<number, string> = {
   23: 'Company User',
 };
 
+const ROLE_OPTIONS = [
+  { id: 15, label: 'Company User' },
+  { id: 14, label: 'Admin' },
+  { id: 13, label: 'Super Admin' },
+];
+
 const WizCompanyUsers: React.FC = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
@@ -35,8 +41,8 @@ const WizCompanyUsers: React.FC = () => {
   const [companies, setCompanies] = useState<WizCompanyDropdown[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState(companyId || '');
 
-  // Edit user dialog
-  const [editOpen, setEditOpen] = useState(false);
+  // Edit user - full page style within card
+  const [editMode, setEditMode] = useState(false);
   const [editUser, setEditUser] = useState<Record<string, any>>({});
   const [editSaving, setEditSaving] = useState(false);
 
@@ -76,6 +82,7 @@ const WizCompanyUsers: React.FC = () => {
 
   const handleCompanyChange = (v: string) => {
     setSelectedCompanyId(v);
+    setEditMode(false);
     navigate(`/c3-management/employer-users/${v}`, { replace: true });
   };
 
@@ -88,11 +95,12 @@ const WizCompanyUsers: React.FC = () => {
           user_id: u.id,
           first_name: u.first_name,
           last_name: u.last_name,
+          username: u.username,
           email: u.email,
           role_id: u.role_id,
           company_id: u.company_id,
         });
-        setEditOpen(true);
+        setEditMode(true);
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -102,9 +110,15 @@ const WizCompanyUsers: React.FC = () => {
   const saveEdit = async () => {
     setEditSaving(true);
     try {
-      await updateUser(editUser.user_id, editUser);
+      await updateUser(editUser.user_id, {
+        first_name: editUser.first_name,
+        last_name: editUser.last_name,
+        email: editUser.email,
+        role_id: editUser.role_id,
+        company_id: editUser.company_id,
+      });
       toast.success('User updated');
-      setEditOpen(false);
+      setEditMode(false);
       loadData();
     } catch (err: any) {
       toast.error(err.message);
@@ -127,6 +141,11 @@ const WizCompanyUsers: React.FC = () => {
 
   const handleReset = async () => {
     if (!resetConfirm) return;
+    if (!resetConfirm.email) {
+      toast.error('This user does not have an email address configured. Password reset requires a valid email.');
+      setResetConfirm(null);
+      return;
+    }
     try {
       await resetPassword(resetConfirm.id);
       toast.success('Password reset email sent');
@@ -138,6 +157,10 @@ const WizCompanyUsers: React.FC = () => {
 
   const handleChangePwd = async () => {
     if (!pwdUserId) return;
+    if (newPwd !== confirmPwd) {
+      toast.error('Passwords do not match');
+      return;
+    }
     setPwdSaving(true);
     try {
       await changePassword(pwdUserId, newPwd, confirmPwd);
@@ -154,13 +177,108 @@ const WizCompanyUsers: React.FC = () => {
 
   const selectedCompany = companies.find(c => String(c.id) === selectedCompanyId);
 
+  // Edit User full-page view
+  if (editMode) {
+    const editCompany = companies.find(c => c.id === editUser.company_id);
+    return (
+      <div className="space-y-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbPage className="cursor-pointer" onClick={() => navigate('/c3-management/employer-details')}>Admin Dashboard</BreadcrumbPage></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage className="cursor-pointer" onClick={() => setEditMode(false)}>Employer Users</BreadcrumbPage></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>Update User</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" /> Update User
+            </CardTitle>
+            <div className="w-72">
+              <Select value={String(editUser.company_id)} onValueChange={v => setEditUser(p => ({ ...p, company_id: Number(v) }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {companies.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.company_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Profile photo placeholder */}
+            <div className="flex flex-col items-start gap-2">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
+                <User className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <span className="text-sm text-primary cursor-pointer">Change Profile Photo</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-destructive">First Name *</Label>
+                <Input value={editUser.first_name || ''} onChange={e => setEditUser(p => ({ ...p, first_name: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-destructive">Last Name *</Label>
+                <Input value={editUser.last_name || ''} onChange={e => setEditUser(p => ({ ...p, last_name: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-destructive">Email *</Label>
+                <Input value={editUser.email || ''} onChange={e => setEditUser(p => ({ ...p, email: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-destructive">User Name *</Label>
+                <Input value={editUser.username || ''} disabled className="bg-muted" />
+              </div>
+              <div>
+                <Label className="text-destructive">User Role *</Label>
+                <Select value={String(editUser.role_id)} onValueChange={v => setEditUser(p => ({ ...p, role_id: Number(v) }))}>
+                  <SelectTrigger><SelectValue placeholder="Select a Role" /></SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.map(r => (
+                      <SelectItem key={r.id} value={String(r.id)}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-destructive">Select Company *</Label>
+                <Select value={String(editUser.company_id)} onValueChange={v => setEditUser(p => ({ ...p, company_id: Number(v) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {companies.map(c => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.company_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button onClick={saveEdit} disabled={editSaving} className="bg-green-600 hover:bg-green-700 text-white border-green-600">
+                <Save className="h-4 w-4 mr-2" /> Save
+              </Button>
+              <Button variant="outline" onClick={() => setEditMode(false)} className="text-destructive border-destructive">
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbPage className="cursor-pointer" onClick={() => navigate('/c3-management/employer-details')}>Admin Dashboard</BreadcrumbPage></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Employers</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbPage>Employer Users</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
@@ -248,22 +366,6 @@ const WizCompanyUsers: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Edit User Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>First Name</Label><Input value={editUser.first_name || ''} onChange={e => setEditUser(p => ({ ...p, first_name: e.target.value }))} /></div>
-            <div><Label>Last Name</Label><Input value={editUser.last_name || ''} onChange={e => setEditUser(p => ({ ...p, last_name: e.target.value }))} /></div>
-            <div className="col-span-2"><Label>Email</Label><Input value={editUser.email || ''} onChange={e => setEditUser(p => ({ ...p, email: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={saveEdit} disabled={editSaving}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Toggle Status Confirm */}
       <AlertDialog open={!!toggleConfirm} onOpenChange={() => setToggleConfirm(null)}>
         <AlertDialogContent>
@@ -286,12 +388,16 @@ const WizCompanyUsers: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Reset Password</AlertDialogTitle>
             <AlertDialogDescription>
-              A password reset email will be sent to {resetConfirm?.email}. Continue?
+              {resetConfirm?.email
+                ? `A password reset email will be sent to the user's registered email address (${resetConfirm.email}). Continue?`
+                : 'This user does not have a registered email address. Password reset cannot be sent.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReset}>Send Reset Email</AlertDialogAction>
+            {resetConfirm?.email && (
+              <AlertDialogAction onClick={handleReset}>Send Reset Email</AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -303,7 +409,7 @@ const WizCompanyUsers: React.FC = () => {
           <div className="space-y-4">
             <div className="relative">
               <Label>New Password</Label>
-              <Input type={showPwd ? 'text' : 'password'} value={newPwd} onChange={e => setNewPwd(e.target.value)} />
+              <Input type={showPwd ? 'text' : 'password'} value={newPwd} onChange={e => setNewPwd(e.target.value)} className="pr-10" />
               <Button variant="ghost" size="icon" className="absolute right-0 top-6" onClick={() => setShowPwd(!showPwd)}>
                 {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
