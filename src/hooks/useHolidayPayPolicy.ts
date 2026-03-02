@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logC3ConfigChange } from '@/lib/c3AuditLogger';
 import type { HolidayPayPolicyDefault, HolidayPayPolicyException } from '@/types/holidayPayPolicy';
 
 // ---- Default Policies ----
@@ -27,9 +28,14 @@ export function useCreateHolidayPayPolicyDefault() {
         .insert({ ...policy, created_by: userCode || null, modified_by: userCode || null } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-defaults'] });
       toast.success('Holiday pay policy created');
+      logC3ConfigChange({
+        configType: 'holiday_pay_policy', recordId: 'new', action: 'CREATE',
+        entityName: `Holiday Pay Policy (${variables.policy.policy_type})`,
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -45,9 +51,14 @@ export function useUpdateHolidayPayPolicyDefault() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-defaults'] });
       toast.success('Holiday pay policy saved');
+      logC3ConfigChange({
+        configType: 'holiday_pay_policy', recordId: variables.id, action: 'UPDATE',
+        entityName: 'Holiday Pay Policy',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -63,9 +74,13 @@ export function useDeleteHolidayPayPolicyDefault() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-defaults'] });
       toast.success('Holiday pay policy deleted');
+      logC3ConfigChange({
+        configType: 'holiday_pay_policy', recordId: id, action: 'DELETE',
+        entityName: 'Holiday Pay Policy'
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -95,9 +110,14 @@ export function useCreateHolidayPayPolicyException() {
         .insert({ ...exception, created_by: userCode || null, modified_by: userCode || null } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-exceptions'] });
       toast.success('Holiday pay exception created');
+      logC3ConfigChange({
+        configType: 'holiday_pay_exception', recordId: 'new', action: 'CREATE',
+        entityName: 'Holiday Pay Exception',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -113,9 +133,14 @@ export function useUpdateHolidayPayPolicyException() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-exceptions'] });
       toast.success('Holiday pay exception updated');
+      logC3ConfigChange({
+        configType: 'holiday_pay_exception', recordId: variables.id, action: 'UPDATE',
+        entityName: 'Holiday Pay Exception',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -131,9 +156,13 @@ export function useDeleteHolidayPayPolicyException() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-exceptions'] });
       toast.success('Holiday pay exception deleted');
+      logC3ConfigChange({
+        configType: 'holiday_pay_exception', recordId: id, action: 'DELETE',
+        entityName: 'Holiday Pay Exception'
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });

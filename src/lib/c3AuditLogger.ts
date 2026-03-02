@@ -5,7 +5,7 @@
  
  import { supabase } from '@/integrations/supabase/client';
  
- export type C3ConfigType = 'period_config' | 'levy_slab' | 'levy_slab_detail' | 'bonus_exemption';
+ export type C3ConfigType = 'period_config' | 'levy_slab' | 'levy_slab_detail' | 'bonus_exemption' | 'holiday_pay_policy' | 'holiday_pay_exception' | 'pending_holiday_pay';
  export type C3AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'CLONE';
  
  interface LogC3ChangeParams {

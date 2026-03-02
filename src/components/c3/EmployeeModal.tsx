@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck, Gift, Palmtree } from 'lucide-react';
+import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck, Gift, Palmtree, Clock } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount, getMondaysInMonth } from '@/utils/weekCalculations';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { useBonusPolicyCalculation } from '@/hooks/useBonusPolicyCalculation';
+import { usePendingHolidayPay } from '@/hooks/useHolidayPayCalculation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,7 @@ export interface EmployeeData {
   bonusExemptLevy?: boolean;
   holidayStartDate?: string;
   holidayEndDate?: string;
+  holidayNoDates?: boolean;
 }
 
 export interface PenaltyFinesData {
@@ -100,8 +102,14 @@ export default function EmployeeModal({
     bonusDate: '',
     bonusExemptLevy: false,
     holidayStartDate: '',
-    holidayEndDate: ''
+    holidayEndDate: '',
+    holidayNoDates: false
   });
+
+  // Pending holiday pay hook
+  const { pendingPay, totalPending, isLoading: isPendingLoading } = usePendingHolidayPay(
+    localEmployee.ssn, periodYear, periodMonth
+  );
 
   const [ssnError, setSsnError] = useState<string>('');
   const [ssnValidated, setSsnValidated] = useState(false);
@@ -270,7 +278,10 @@ export default function EmployeeModal({
           holiday: effectiveWages[6] || 0,
           payPeriod: localEmployee.payPeriod || 'Monthly',
           termStartDate: localEmployee.termStartDate || periodTermStartDate,
-          dateOfBirth: localEmployee.dateOfBirth || null
+          dateOfBirth: localEmployee.dateOfBirth || null,
+          holidayStartDate: localEmployee.holidayNoDates ? null : (localEmployee.holidayStartDate || null),
+          holidayEndDate: localEmployee.holidayNoDates ? null : (localEmployee.holidayEndDate || null),
+          holidayNoDates: localEmployee.holidayNoDates ? 'true' : 'false'
         };
 
         // Build full employee list: replace edited employee, keep others as-is
@@ -362,7 +373,8 @@ export default function EmployeeModal({
         bonusDate: employee.bonusDate || '',
         bonusExemptLevy: employee.bonusExemptLevy || false,
         holidayStartDate: employee.holidayStartDate || '',
-        holidayEndDate: employee.holidayEndDate || ''
+        holidayEndDate: employee.holidayEndDate || '',
+        holidayNoDates: employee.holidayNoDates || false
       });
       setSsnValidated(true);
       setSsnError('');
@@ -389,7 +401,8 @@ export default function EmployeeModal({
         bonusDate: '',
         bonusExemptLevy: false,
         holidayStartDate: '',
-        holidayEndDate: ''
+        holidayEndDate: '',
+        holidayNoDates: false
       });
       setSsnValidated(false);
       setSsnError('');
@@ -666,6 +679,7 @@ export default function EmployeeModal({
       bonusExemptLevy: localEmployee.days?.[5] ? localEmployee.bonusExemptLevy : false,
       holidayStartDate: localEmployee.days?.[6] ? localEmployee.holidayStartDate : '',
       holidayEndDate: localEmployee.days?.[6] ? localEmployee.holidayEndDate : '',
+      holidayNoDates: localEmployee.days?.[6] ? localEmployee.holidayNoDates : false,
     };
     
     onSave(savedEmployee);
@@ -968,7 +982,24 @@ export default function EmployeeModal({
                   <div className="flex items-center gap-1.5 mb-2">
                     <Palmtree className="h-3.5 w-3.5 text-teal-600" />
                     <h3 className="text-xs font-semibold text-teal-800 uppercase tracking-wide">Holiday Pay</h3>
+                    {totalPending > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5 ml-auto border-teal-400 bg-teal-100 text-teal-800">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Pending: {formatCurrency(totalPending)}
+                      </Badge>
+                    )}
                   </div>
+
+                  {/* Pending holiday pay alert */}
+                  {totalPending > 0 && localEmployee.days?.[6] && (
+                    <Alert className="mb-2 py-1.5 border-teal-300 bg-teal-50">
+                      <Clock className="h-3.5 w-3.5 text-teal-600" />
+                      <AlertDescription className="text-[10px] text-teal-800">
+                        {pendingPay.length} pending holiday pay record(s) totaling <strong>{formatCurrency(totalPending)}</strong> from prior C3 period(s) will be auto-applied by the backend.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div
@@ -991,34 +1022,78 @@ export default function EmployeeModal({
                       />
                     </div>
                     {localEmployee.days?.[6] && (
-                      <div className="flex items-center gap-3 pl-7">
-                        <div className="flex-1 space-y-0.5">
-                          <Label className="text-[10px] text-muted-foreground">Start Date</Label>
-                          <Input
-                            type="date"
-                            value={localEmployee.holidayStartDate || ''}
-                            onChange={(e) => {
-                              handleChange('holidayStartDate', e.target.value);
-                              validateHolidayDates(e.target.value, localEmployee.holidayEndDate || '');
+                      <>
+                        {/* No-dates toggle */}
+                        <div className="flex items-center gap-2 pl-7">
+                          <div
+                            className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors cursor-pointer ${
+                              localEmployee.holidayNoDates ? 'bg-primary border-primary' : 'bg-background border-input'
+                            }`}
+                            onClick={() => {
+                              if (!isViewMode) {
+                                const newVal = !localEmployee.holidayNoDates;
+                                setLocalEmployee(prev => ({
+                                  ...prev,
+                                  holidayNoDates: newVal,
+                                  holidayStartDate: newVal ? '' : prev.holidayStartDate,
+                                  holidayEndDate: newVal ? '' : prev.holidayEndDate
+                                }));
+                                if (newVal) setHolidayDateError('');
+                              }
                             }}
-                            className="h-7 text-xs"
-                            disabled={isViewMode}
-                          />
+                          >
+                            {localEmployee.holidayNoDates && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">Holiday pay does not belong to any dates</span>
                         </div>
-                        <div className="flex-1 space-y-0.5">
-                          <Label className="text-[10px] text-muted-foreground">End Date</Label>
-                          <Input
-                            type="date"
-                            value={localEmployee.holidayEndDate || ''}
-                            onChange={(e) => {
-                              handleChange('holidayEndDate', e.target.value);
-                              validateHolidayDates(localEmployee.holidayStartDate || '', e.target.value);
-                            }}
-                            className="h-7 text-xs"
-                            disabled={isViewMode}
-                          />
-                        </div>
-                      </div>
+
+                        {/* Date inputs (hidden when no-dates is checked) */}
+                        {!localEmployee.holidayNoDates && (
+                          <div className="flex items-center gap-3 pl-7">
+                            <div className="flex-1 space-y-0.5">
+                              <Label className="text-[10px] text-muted-foreground">Start Date</Label>
+                              <Input
+                                type="date"
+                                value={localEmployee.holidayStartDate || ''}
+                                onChange={(e) => {
+                                  handleChange('holidayStartDate', e.target.value);
+                                  validateHolidayDates(e.target.value, localEmployee.holidayEndDate || '');
+                                }}
+                                className="h-7 text-xs"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                            <div className="flex-1 space-y-0.5">
+                              <Label className="text-[10px] text-muted-foreground">End Date</Label>
+                              <Input
+                                type="date"
+                                value={localEmployee.holidayEndDate || ''}
+                                onChange={(e) => {
+                                  handleChange('holidayEndDate', e.target.value);
+                                  validateHolidayDates(localEmployee.holidayStartDate || '', e.target.value);
+                                }}
+                                className="h-7 text-xs"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Holiday policy status */}
+                        {serverEmployeeCalc?.holidayPolicyApplied && (
+                          <div className="ml-7 flex items-center gap-2 rounded-md border border-teal-300 bg-teal-50/60 px-2.5 py-1.5">
+                            <Check className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                            <span className="text-xs font-medium text-teal-800">
+                              Holiday policy applied ({serverEmployeeCalc.holidayPolicyType || 'default'})
+                            </span>
+                            {serverEmployeeCalc.holidayLevy > 0 && (
+                              <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-teal-400 text-teal-700 ml-auto">
+                                Levy: {formatCurrency(serverEmployeeCalc.holidayLevy)}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
                     {holidayDateError && <p className="text-[10px] text-destructive pl-7">{holidayDateError}</p>}
                   </div>
