@@ -14416,6 +14416,10 @@ export type Database = {
         }
         Returns: string
       }
+      apply_pending_holiday_pay: {
+        Args: { p_applied_by?: string; p_pending_ids: string[] }
+        Returns: undefined
+      }
       apply_qa_change_request: {
         Args: {
           p_notes?: string
@@ -14698,6 +14702,19 @@ export type Database = {
         }
         Returns: Json
       }
+      create_pending_holiday_pay: {
+        Args: {
+          p_amount: number
+          p_created_by?: string
+          p_holiday_date_from?: string
+          p_holiday_date_to?: string
+          p_source_c3_period: string
+          p_ssn: string
+          p_target_month: number
+          p_target_year: number
+        }
+        Returns: string
+      }
       find_eligible_approver: {
         Args: {
           _exclude_users?: string[]
@@ -14803,6 +14820,10 @@ export type Database = {
       get_next_c3_schedule_no: {
         Args: { p_payer_id: string; p_payer_type: string; p_period: string }
         Returns: number
+      }
+      get_pending_holiday_pay: {
+        Args: { p_ssn: string; p_target_month: number; p_target_year: number }
+        Returns: Json
       }
       get_sep_audit_history: {
         Args: { p_self_ref_no: string; p_ssn: string }
@@ -15035,6 +15056,15 @@ export type Database = {
       render_email_template: {
         Args: { p_template_id: string; p_variables?: Json }
         Returns: string
+      }
+      resolve_holiday_pay_policy: {
+        Args: {
+          p_period_date: string
+          p_period_month: number
+          p_period_year: number
+          p_policy_type?: string
+        }
+        Returns: Json
       }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
