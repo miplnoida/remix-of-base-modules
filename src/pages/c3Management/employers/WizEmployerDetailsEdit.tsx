@@ -214,9 +214,9 @@ const WizEmployerDetails: React.FC = () => {
                 onChange={handleLogoUpload}
               />
               <Button
-                variant="link"
+                variant="outline"
                 size="sm"
-                className="text-primary"
+                className="text-foreground border-primary hover:bg-primary/10"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={logoUploading}
               >
