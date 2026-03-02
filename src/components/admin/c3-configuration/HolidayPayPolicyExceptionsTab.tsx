@@ -95,17 +95,15 @@ export function HolidayPayPolicyExceptionsTab() {
 
   const dist: BonusDistribution = (form.levy_distribution as BonusDistribution) ?? DEFAULT_DISTRIBUTION;
 
-  const setDist = (cycle: keyof BonusDistribution, key: string, value: boolean) => {
+  // Whether distribution is active for this exception
+  const isDistributionActive = form.policy_type === 'with_dates' && !!form.distribution_enabled;
+
+  // Radio-style: select exactly one option per cycle
+  const setDist = (cycle: keyof BonusDistribution, key: string) => {
     const newDist = JSON.parse(JSON.stringify(dist)) as BonusDistribution;
     const cycleObj = newDist[cycle] as Record<string, boolean>;
-    if (key === 'divide' && value) {
-      Object.keys(cycleObj).forEach(k => { cycleObj[k] = k === 'divide'; });
-    } else if (key !== 'divide' && value) {
-      cycleObj['divide'] = false;
-      cycleObj[key] = true;
-    } else {
-      cycleObj[key] = value;
-    }
+    Object.keys(cycleObj).forEach(k => { cycleObj[k] = false; });
+    cycleObj[key] = true;
     setField('levy_distribution', newDist);
   };
 
@@ -350,28 +348,37 @@ export function HolidayPayPolicyExceptionsTab() {
                     <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                       <div>
                         <div className="text-sm font-medium">Enable distribution by holiday dates</div>
-                        <div className="text-xs text-muted-foreground">Split holiday pay across months/weeks based on actual dates</div>
+                        <div className="text-xs text-muted-foreground">When enabled, Levy/SSC/Severance rules below are ignored — normal payroll rules apply on distributed amounts.</div>
                       </div>
                       <Switch checked={!!form.distribution_enabled} onCheckedChange={(v) => setField('distribution_enabled', v)} />
                     </div>
+                    {isDistributionActive && (
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
+                        <Info className="h-4 w-4 text-sky-600 mt-0.5 shrink-0" />
+                        <span className="text-sm text-sky-800 dark:text-sky-300">
+                          Distribution is enabled. Levy, SSC, and Severance rules below are disabled.
+                        </span>
+                      </div>
+                    )}
                   </>
                 )}
 
                 {/* Levy Rules */}
-                <div className="border-2 border-sky-200 dark:border-sky-800 rounded-lg overflow-hidden">
+                <div className={`border-2 border-sky-200 dark:border-sky-800 rounded-lg overflow-hidden ${isDistributionActive ? 'opacity-50 pointer-events-none' : ''}`}>
                   <div className="bg-sky-50 dark:bg-sky-950/30 px-4 py-3 border-b border-sky-200 dark:border-sky-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-sky-500" />
                         <span className="text-sm font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wider">Levy Rules</span>
+                        {isDistributionActive && <Badge variant="outline" className="text-xs ml-2">Disabled</Badge>}
                       </div>
                       <div className="flex items-center gap-2">
                         <Label className="text-xs text-muted-foreground">Include in Levy</Label>
-                        <Switch checked={!!form.levy_include} onCheckedChange={(v) => setField('levy_include', v)} />
+                        <Switch checked={!!form.levy_include} onCheckedChange={(v) => setField('levy_include', v)} disabled={isDistributionActive} />
                       </div>
                     </div>
                   </div>
-                  {form.levy_include && (
+                  {form.levy_include && !isDistributionActive && (
                     <div className="p-4 space-y-4">
                       <div className="space-y-3">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Calculation Method</p>
@@ -392,7 +399,7 @@ export function HolidayPayPolicyExceptionsTab() {
                       </div>
                       {form.levy_calculation_method === 'merge' && (
                         <div className="space-y-3">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Levy Distribution</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Levy Distribution by Payroll Cycle</p>
                           <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist} color="sky" items={[{ key: 'w1', label: '1st week' }, { key: 'w2', label: '2nd week' }, { key: 'w3', label: '3rd week' }, { key: 'w4', label: '4th week' }, { key: 'divide', label: 'Divide equally', isDivide: true }]} />
                           <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist} color="sky" items={[{ key: 'b1', label: '1st payment' }, { key: 'b2', label: 'Last payment' }, { key: 'divide', label: 'Divide equally', isDivide: true }]} />
                           <CycleBlock title="Semi-monthly" cycle="semimonthly" dist={dist} setDist={setDist} color="sky" items={[{ key: 's1', label: '1st payment' }, { key: 's2', label: 'Last payment' }, { key: 'divide', label: 'Divide equally', isDivide: true }]} />
@@ -404,20 +411,21 @@ export function HolidayPayPolicyExceptionsTab() {
                 </div>
 
                 {/* SSC Rules */}
-                <div className="border-2 border-teal-200 dark:border-teal-800 rounded-lg overflow-hidden">
+                <div className={`border-2 border-teal-200 dark:border-teal-800 rounded-lg overflow-hidden ${isDistributionActive ? 'opacity-50 pointer-events-none' : ''}`}>
                   <div className="bg-teal-50 dark:bg-teal-950/30 px-4 py-3 border-b border-teal-200 dark:border-teal-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-teal-500" />
                         <span className="text-sm font-semibold text-teal-800 dark:text-teal-300 uppercase tracking-wider">SSC Rules</span>
+                        {isDistributionActive && <Badge variant="outline" className="text-xs ml-2">Disabled</Badge>}
                       </div>
                       <div className="flex items-center gap-2">
                         <Label className="text-xs text-muted-foreground">Include in SSC</Label>
-                        <Switch checked={!!form.ssc_include} onCheckedChange={(v) => setField('ssc_include', v)} />
+                        <Switch checked={!!form.ssc_include} onCheckedChange={(v) => setField('ssc_include', v)} disabled={isDistributionActive} />
                       </div>
                     </div>
                   </div>
-                  {form.ssc_include && (
+                  {form.ssc_include && !isDistributionActive && (
                     <div className="p-4">
                       <div className="border rounded-lg divide-y">
                         <ContribRow label="Employee Contribution" checked={!!form.ssc_contrib_employee} onChange={v => setField('ssc_contrib_employee', v)} />
@@ -429,12 +437,14 @@ export function HolidayPayPolicyExceptionsTab() {
                 </div>
 
                 {/* Severance */}
-                <div className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <div className="text-sm font-medium">Include in Severance</div>
-                    <div className="text-xs text-muted-foreground">Add holiday pay to severance calculation base</div>
+                <div className={isDistributionActive ? 'opacity-50 pointer-events-none' : ''}>
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <div className="text-sm font-medium">Include in Severance {isDistributionActive && <Badge variant="outline" className="text-xs ml-2">Disabled</Badge>}</div>
+                      <div className="text-xs text-muted-foreground">Add holiday pay to severance calculation base</div>
+                    </div>
+                    <Switch checked={!!form.include_in_severance} onCheckedChange={(v) => setField('include_in_severance', v)} disabled={isDistributionActive} />
                   </div>
-                  <Switch checked={!!form.include_in_severance} onCheckedChange={(v) => setField('include_in_severance', v)} />
                 </div>
 
                 {/* Capping */}
@@ -539,7 +549,7 @@ function ContribRow({ label, checked, onChange }: { label: string; checked: bool
 
 interface CycleItem { key: string; label: string; isDivide?: boolean }
 
-function CycleBlock({ title, cycle, dist, setDist, items, color = 'orange' }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string, value: boolean) => void; items: CycleItem[]; color?: string }) {
+function CycleBlock({ title, cycle, dist, setDist, items, color = 'orange' }: { title: string; cycle: keyof BonusDistribution; dist: BonusDistribution; setDist: (cycle: keyof BonusDistribution, key: string) => void; items: CycleItem[]; color?: string }) {
   const cycleObj = dist[cycle] as Record<string, boolean>;
   const checkedBorder = color === 'sky' ? 'border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30' : 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-950/30';
   const checkedDot = color === 'sky' ? 'bg-sky-600 border-sky-600' : 'bg-orange-600 border-orange-600';
@@ -550,9 +560,9 @@ function CycleBlock({ title, cycle, dist, setDist, items, color = 'orange' }: { 
         {items.map(item => {
           const isChecked = !!cycleObj[item.key];
           return (
-            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? checkedBorder : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key, !isChecked)}>
-              <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${isChecked ? checkedDot : 'border-2 border-muted-foreground/40'}`}>
-                {isChecked && <Check className="h-3 w-3 text-white" />}
+            <div key={item.key} className={`flex items-center gap-3 px-3 py-2 rounded-md border cursor-pointer transition-colors ${isChecked ? checkedBorder : 'border-border bg-muted/20 hover:bg-muted/40'}`} onClick={() => setDist(cycle, item.key)}>
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isChecked ? checkedDot : 'border-muted-foreground/40'}`}>
+                {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
               </div>
               <span className={`text-sm ${item.isDivide ? 'italic text-muted-foreground' : ''}`}>{item.label}</span>
             </div>

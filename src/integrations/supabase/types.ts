@@ -15059,10 +15059,10 @@ export type Database = {
       }
       resolve_holiday_pay_policy: {
         Args: {
+          p_month: number
           p_period_date: string
-          p_period_month: number
-          p_period_year: number
           p_policy_type?: string
+          p_year: number
         }
         Returns: Json
       }
