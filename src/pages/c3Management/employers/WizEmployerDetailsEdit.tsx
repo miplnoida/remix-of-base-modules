@@ -130,11 +130,17 @@ const WizEmployerDetails: React.FC = () => {
         mobile: composeE164(mobileDialCode, mobileLocal),
         phone: composeE164(phoneDialCode, phoneLocal),
       };
+      // Only send user_data if we have a valid user with names
+      const hasValidUser = userData.user_id && userData.first_name && userData.last_name;
+      
+      // Only send security_questions if both Q&A pairs are fully populated
+      const hasValidSq = sq.question1 && sq.answer1 && sq.question2 && sq.answer2;
+
       await updateEmployer({
         company_id: Number(companyId),
         company_data: saveData,
-        user_data: userData,
-        security_questions: (sq.answer1 || sq.answer2) ? sq : undefined,
+        user_data: hasValidUser ? userData : undefined,
+        security_questions: hasValidSq ? sq : undefined,
       });
       toast.success('Employer updated successfully');
     } catch (err: any) {
