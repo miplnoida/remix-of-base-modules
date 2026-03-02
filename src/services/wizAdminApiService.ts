@@ -1,6 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
-
-const WIZ_ADMIN_API_KEY = "uiop906754drd35fvg";
+const WIZ_API_URL = 'https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api';
+const WIZ_ADMIN_API_KEY = import.meta.env.VITE_WIZ_ADMIN_API_KEY || "uiop906754drd35fvg";
 
 interface WizApiResponse<T = any> {
   status: "success" | "error";
@@ -12,19 +11,10 @@ interface WizApiResponse<T = any> {
 }
 
 async function callWizApi<T = any>(action: string, params: Record<string, any> = {}): Promise<WizApiResponse<T>> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
-
-  if (!token) throw new Error("Not authenticated");
-
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const url = `https://${projectId}.supabase.co/functions/v1/wiz-admin-api`;
-
-  const res = await fetch(url, {
+  const res = await fetch(WIZ_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
       "x-admin-api-key": WIZ_ADMIN_API_KEY,
     },
     body: JSON.stringify({ action, params }),
