@@ -259,8 +259,8 @@ const WizEmployeeList: React.FC = () => {
               <h3 className="font-semibold mb-3">🔍 Search Profile Details</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div><Label>Social Security *</Label><Input value={editData.social_security_number} disabled className="bg-muted" /></div>
-                <div><Label>Date of Birth *</Label><Input type="date" value={editData.date_of_birth} onChange={e => setEditData(p => ({ ...p, date_of_birth: e.target.value }))} /></div>
-                <div><Label>First Name *</Label><Input value={editData.first_name} onChange={e => setEditData(p => ({ ...p, first_name: e.target.value }))} /></div>
+                <div><Label>Date of Birth *</Label><Input type="date" value={editData.date_of_birth} disabled className="bg-muted" /></div>
+                <div><Label>First Name *</Label><Input value={editData.first_name} disabled className="bg-muted" /></div>
                 <div><Label>Last Name *</Label><Input value={editData.last_name} disabled className="bg-muted" /></div>
                 <div><Label>Middle Name</Label><Input value={editData.middle_name} onChange={e => setEditData(p => ({ ...p, middle_name: e.target.value }))} /></div>
               </div>
@@ -288,8 +288,6 @@ const WizEmployeeList: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="Single">Single</SelectItem>
                       <SelectItem value="Married">Married</SelectItem>
-                      <SelectItem value="Divorced">Divorced</SelectItem>
-                      <SelectItem value="Widowed">Widowed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

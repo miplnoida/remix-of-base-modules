@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
-import { Save, X, Building2, MapPin, User } from 'lucide-react';
+import { Save, X, Building2, MapPin, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { getEmployerDetails, updateEmployer, type WizEmployerDetails } from '@/services/wizAdminApiService';
 
@@ -34,6 +34,9 @@ const WizEmployerDetails: React.FC = () => {
   const [userData, setUserData] = useState<Record<string, any>>({});
   // Security questions
   const [sq, setSq] = useState({ question1: '', answer1: '', question2: '', answer2: '' });
+  // Show/hide answer fields
+  const [showAnswer1, setShowAnswer1] = useState(false);
+  const [showAnswer2, setShowAnswer2] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
@@ -130,6 +133,7 @@ const WizEmployerDetails: React.FC = () => {
                 <Building2 className="h-12 w-12 text-muted-foreground" />
               </div>
               <span className="text-sm text-primary cursor-pointer">Update Company Logo</span>
+              <p className="text-xs text-muted-foreground text-center">(Logo upload requires API support from C3-Wizard)</p>
             </div>
             <div className="col-span-2 grid grid-cols-2 gap-4">
               <div>
@@ -141,7 +145,7 @@ const WizEmployerDetails: React.FC = () => {
                 <Input value={companyData.email} onChange={e => updateField('email', e.target.value)} />
               </div>
               <div>
-                <Label>Trade Name(T and)</Label>
+                <Label>Trade Name (if any)</Label>
                 <Input value={companyData.trade_name} onChange={e => updateField('trade_name', e.target.value)} />
               </div>
               <div>
@@ -150,7 +154,10 @@ const WizEmployerDetails: React.FC = () => {
               </div>
               <div>
                 <Label>Mobile Number *</Label>
-                <Input value={companyData.mobile} onChange={e => updateField('mobile', e.target.value)} />
+                <div className="flex gap-2">
+                  <Input value="+1869" disabled className="w-20 bg-muted text-center" />
+                  <Input value={companyData.mobile} onChange={e => updateField('mobile', e.target.value)} className="flex-1" placeholder="Enter mobile number" />
+                </div>
               </div>
               <div>
                 <Label>Phone Number *</Label>
@@ -208,6 +215,77 @@ const WizEmployerDetails: React.FC = () => {
 
           <Separator />
 
+          {/* Security Questions */}
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              🔐 Security Questions
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-destructive">Question1 *</Label>
+                <Select value={sq.question1} onValueChange={v => setSq(p => ({ ...p, question1: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select a question" /></SelectTrigger>
+                  <SelectContent>
+                    {SECURITY_QUESTIONS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-destructive">Answer1 *</Label>
+                <div className="relative">
+                  <Input
+                    type={showAnswer1 ? 'text' : 'password'}
+                    value={sq.answer1}
+                    onChange={e => setSq(p => ({ ...p, answer1: e.target.value }))}
+                    placeholder={details?.security_questions?.[0] ? '••••••••' : 'Enter answer'}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowAnswer1(!showAnswer1)}
+                  >
+                    {showAnswer1 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-destructive">Question2 *</Label>
+                <Select value={sq.question2} onValueChange={v => setSq(p => ({ ...p, question2: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select a question" /></SelectTrigger>
+                  <SelectContent>
+                    {SECURITY_QUESTIONS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-destructive">Answer2 *</Label>
+                <div className="relative">
+                  <Input
+                    type={showAnswer2 ? 'text' : 'password'}
+                    value={sq.answer2}
+                    onChange={e => setSq(p => ({ ...p, answer2: e.target.value }))}
+                    placeholder={details?.security_questions?.[1] ? '••••••••' : 'Enter answer'}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowAnswer2(!showAnswer2)}
+                  >
+                    {showAnswer2 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* User Profile Details */}
           {details?.primary_user && (
             <div>
@@ -227,32 +305,6 @@ const WizEmployerDetails: React.FC = () => {
                 <div>
                   <Label>Last Name *</Label>
                   <Input value={userData.last_name} onChange={e => updateUserField('last_name', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Question1 *</Label>
-                  <Select value={sq.question1} onValueChange={v => setSq(p => ({ ...p, question1: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {SECURITY_QUESTIONS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Answer1 *</Label>
-                  <Input type="password" value={sq.answer1} onChange={e => setSq(p => ({ ...p, answer1: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Question2 *</Label>
-                  <Select value={sq.question2} onValueChange={v => setSq(p => ({ ...p, question2: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {SECURITY_QUESTIONS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Answer2 *</Label>
-                  <Input type="password" value={sq.answer2} onChange={e => setSq(p => ({ ...p, answer2: e.target.value }))} />
                 </div>
               </div>
             </div>
