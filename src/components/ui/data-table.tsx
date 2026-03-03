@@ -423,6 +423,17 @@ export const DataTable: React.FC<DataTableProps> = ({
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
+                        {actions.delete && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            title="Remove"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(row)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                         {actions.approve && (
                           <Button 
                             variant="default" 
