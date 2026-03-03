@@ -129,13 +129,13 @@ const WebUsers = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-government-700">Web Users Management</h1>
-          <p className="text-gray-600 mt-1">Manage web portal users and their access permissions</p>
+          <h1 className="text-3xl font-bold text-foreground">Web Users Management</h1>
+          <p className="text-muted-foreground mt-1">Manage web portal users and their access permissions</p>
         </div>
         
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-government-600 hover:bg-government-700">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Add Web User
             </Button>

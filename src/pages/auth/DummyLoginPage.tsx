@@ -182,7 +182,7 @@ const DummyLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[hsl(153_73%_21%/0.08)] via-background to-[hsl(144_65%_34%/0.06)] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 flex items-center justify-center p-6">
       <div className="w-full max-w-6xl">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
