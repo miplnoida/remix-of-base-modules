@@ -79,15 +79,9 @@ export function WorkflowActionButtons({
   const executeAction = useExecuteWorkflowAction();
   const { profile } = useSupabaseAuth();
 
-  // Don't render anything if there's no workflow or no active task
+  // Don't show loading state - render nothing until ready (avoids visual delay)
   if (isLoading) {
-    if (variant === 'compact') return null;
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-sm">Loading workflow...</span>
-      </div>
-    );
+    return null;
   }
 
   // Error loading workflow - fail safely by hiding buttons
