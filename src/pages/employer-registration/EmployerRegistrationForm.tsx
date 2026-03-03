@@ -181,7 +181,7 @@ export default function EmployerRegistrationForm() {
             <Button 
               onClick={() => setShowSubmitConfirm(true)} 
               disabled={isSaving || isSubmitting}
-              className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+              className="flex items-center gap-2 border-r-4 border-r-primary"
             >
               <Send className="h-4 w-4" />
               Submit

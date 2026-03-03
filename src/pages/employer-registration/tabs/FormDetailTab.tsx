@@ -169,14 +169,14 @@ export default function FormDetailTab({ formData, onChange, onSave, isViewMode, 
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 0}
-              className="border-0 border-l-2 border-l-[#0284C7] shadow-md"
+              className="border-0 border-l-2 border-l-primary shadow-md"
             >
               Previous
             </Button>
             <Button
               onClick={handleSaveAndContinue}
               disabled={isSaving}
-              className="border-r-4 border-r-[#33529C]"
+              className="border-r-4 border-r-primary"
             >
               {isSaving 
                 ? 'Saving...' 

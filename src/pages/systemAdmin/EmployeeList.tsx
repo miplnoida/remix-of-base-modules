@@ -26,11 +26,11 @@ export default function EmployeeList() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      Active: "bg-green-100 text-green-800",
-      "On Leave": "bg-yellow-100 text-yellow-800",
-      Suspended: "bg-red-100 text-red-800",
-      Terminated: "bg-gray-100 text-gray-800",
-      Retired: "bg-blue-100 text-blue-800",
+      Active: "bg-primary/10 text-primary",
+      "On Leave": "bg-accent/30 text-accent-foreground",
+      Suspended: "bg-destructive/10 text-destructive",
+      Terminated: "bg-muted text-muted-foreground",
+      Retired: "bg-secondary/10 text-secondary",
     };
     return <Badge className={variants[status] || ""}>{status}</Badge>;
   };

@@ -42,18 +42,18 @@ export const IPRegistration = () => {
            
             <span className="sm:hidden">Back</span>
           </Button>
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
          
           <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Register Person</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Register Person</h1>
           
           </div>
         </div>
         <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-          <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" onClick={() => setShowSuccess(true)}>
+          <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md" onClick={() => setShowSuccess(true)}>
             Draft
           </Button>
-          <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]" onClick={() => setShowSuccess(true)}>
+          <Button type="button" className="flex items-center gap-2 border-r-4 border-r-primary" onClick={() => setShowSuccess(true)}>
             Submit
           </Button>
         </div>

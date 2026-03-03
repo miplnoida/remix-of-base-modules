@@ -531,7 +531,7 @@ export const ViewEmployer = () => {
           <Button 
             variant="outline" 
             onClick={() => navigate('/employers-management/dashboard')}
-            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+            className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="sm:hidden">Back</span>
@@ -619,7 +619,7 @@ export const ViewEmployer = () => {
                     variant="outline"
                     onClick={prevStep}
                     disabled={currentStep === 0}
-                    className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100"
+                    className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md bg-primary/10"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Previous
@@ -630,7 +630,7 @@ export const ViewEmployer = () => {
                       <Button
                         type="button"
                         onClick={nextStep}
-                        className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                        className="flex items-center gap-2 border-r-4 border-r-primary"
                       >
                         Next
                         <ArrowLeft className="h-4 w-4 rotate-180" />

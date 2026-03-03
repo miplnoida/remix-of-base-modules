@@ -1,7 +1,7 @@
 .stepper {
   display: flex;
   width: 100%;
-  border: 1px solid #e0e0e0;
+  border: 1px solid hsl(var(--border));
   border-radius: 4px;
   overflow: hidden;
 }
@@ -13,8 +13,8 @@
   padding: 12px 20px;
   position: relative;
   flex: 1;
-  background: white;
-  border-right: 1px solid #e0e0e0;
+  background: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
   clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
 }
 
@@ -26,37 +26,37 @@
 .circle {
   width: 20px;
   height: 20px;
-  border: 2px dotted #bbb;
+  border: 2px dotted hsl(var(--muted-foreground) / 0.5);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  color: #888;
+  color: hsl(var(--muted-foreground));
   margin-right: 10px;
   flex-shrink: 0;
 }
 
 .label {
   font-size: 14px;
-  color: #333;
+  color: hsl(var(--foreground));
   white-space: nowrap;
 }
 
-/* Active Step - First step gets full blue */
+/* Active Step */
 .step.active {
-  background: #1c78a7;
-  color: white;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .step.active.step-1 .circle {
-  background: #fff;
+  background: hsl(var(--primary-foreground));
   color: hsl(var(--primary));
   border: none;
   font-weight: 600;
 }
 
-/* Inactive steps remain with default styling */
+/* Inactive steps */
 .step:not(.active) .circle {
   border: 2px dotted hsl(var(--primary) / 0.4);
   color: hsl(var(--primary) / 0.7);
@@ -66,16 +66,16 @@
   color: hsl(var(--muted-foreground));
 }
 
-/* Step-specific active backgrounds - gradient effect */
-.step.active.step-2 { background-color: #2099d7; }
-.step.active.step-3 { background-color: #8dc5e1; }
-.step.active.step-4 { background-color: #bbdaeb; }
-.step.active.step-5 { background-color: #cff0fb; }
+/* Step-specific active backgrounds - gradient from primary to lighter */
+.step.active.step-2 { background-color: hsl(var(--primary) / 0.85); }
+.step.active.step-3 { background-color: hsl(var(--primary) / 0.6); }
+.step.active.step-4 { background-color: hsl(var(--primary) / 0.4); }
+.step.active.step-5 { background-color: hsl(var(--primary) / 0.25); }
 
 /* Active step 2 styling */
 .step.active.step-2 .circle {
-  background: #fff;
-  color: hsl(200 85% 53%);
+  background: hsl(var(--primary-foreground));
+  color: hsl(var(--primary));
   border: none;
   font-weight: 600;
 }
@@ -84,8 +84,8 @@
 .step.active.step-3 .circle,
 .step.active.step-4 .circle,
 .step.active.step-5 .circle {
-  background: white;
-  color: #2a4da3;
+  background: hsl(var(--card));
+  color: hsl(var(--primary));
   border: none;
   font-weight: bold;
 }
@@ -114,7 +114,7 @@
 .circle-dot {
   height: 12px;
   width: 12px;
-  background-color: #33529C;
+  background-color: hsl(var(--primary));
   border-radius: 50%;
   display: block;
 }
@@ -134,12 +134,12 @@
 /* Active Label Colors */
 .step-1.active .label,
 .step-2.active .label {
-  color: #fff;
+  color: hsl(var(--primary-foreground));
 }
 
 .step-3.active .label,
 .step-4.active .label,
 .step-5.active .label {
-  color: #000;
+  color: hsl(var(--foreground));
 }
 

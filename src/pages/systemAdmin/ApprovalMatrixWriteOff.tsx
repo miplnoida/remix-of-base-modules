@@ -78,7 +78,7 @@ export default function ApprovalMatrixWriteOff() {
                     <TableCell>{getApproverName(matrix)}</TableCell>
                     <TableCell>{matrix.sequenceOrder}</TableCell>
                     <TableCell>
-                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <Badge className="bg-primary/10 text-primary">Active</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {matrix.lastModifiedBy && matrix.lastModifiedOn
