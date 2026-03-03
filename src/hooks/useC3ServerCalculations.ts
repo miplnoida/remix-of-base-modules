@@ -94,7 +94,10 @@ function transformEmployeeData(employees: EmployeeData[]) {
     holiday: emp.weeklyWages?.[6] || 0,
     payPeriod: emp.payPeriod || 'Monthly',
     termStartDate: emp.termStartDate || null,
-    dateOfBirth: emp.dateOfBirth || null
+    dateOfBirth: emp.dateOfBirth || null,
+    holidayStartDate: emp.holidayNoDates ? null : (emp.holidayStartDate || null),
+    holidayEndDate: emp.holidayNoDates ? null : (emp.holidayEndDate || null),
+    holidayNoDates: emp.holidayNoDates ? 'true' : 'false'
   }));
 }
 
