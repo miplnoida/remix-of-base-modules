@@ -596,6 +596,7 @@ import BootstrapAdmin from '@/pages/setup/BootstrapAdmin';
 // Foundation Components Demo
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
 import FeeConfiguration from '@/pages/admin/FeeConfiguration';
+import IPCardConfiguration from '@/pages/admin/IPCardConfiguration';
 
 // Report Pages
 import InsuredPersonsSummaryReport from '@/pages/reports/insured-persons/InsuredPersonsSummaryReport';
@@ -999,6 +1000,7 @@ export const AppRoutes = () => {
       <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
+      <Route path="/admin/ip-card-configuration" element={<ProtectedLayout><IPCardConfiguration /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
       <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />

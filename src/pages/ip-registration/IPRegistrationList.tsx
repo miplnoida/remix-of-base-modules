@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Eye, Edit, Send, CheckCircle, Trash2, Search, 
   Filter, Download, ChevronUp, ChevronDown,
-  UserPlus, Key, Users, FileText, FileSpreadsheet
+  UserPlus, Key, Users, FileText, FileSpreadsheet, CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -96,6 +96,8 @@ export default function IPRegistrationList() {
   const [deleteRecord, setDeleteRecord] = useState<IPRecord | null>(null);
   const [submitRecord, setSubmitRecord] = useState<IPRecord | null>(null);
   const { submitIPRegistration, isSubmitting } = useIPRegistrationSubmit();
+  const [printingCardId, setPrintingCardId] = useState<string | null>(null);
+  const [readyToPrintRecord, setReadyToPrintRecord] = useState<IPRecord | null>(null);
   
   
   // Filter states
@@ -354,6 +356,35 @@ export default function IPRegistrationList() {
 
   const handleApprove = async (record: IPRecord) => {
     navigate(`/ip-registration/view/${record.unique_uuid}?action=approve`);
+  };
+
+  const handleReadyToPrint = (record: IPRecord) => {
+    setReadyToPrintRecord(record);
+  };
+
+  const confirmReadyToPrint = async () => {
+    if (!readyToPrintRecord) return;
+    setPrintingCardId(readyToPrintRecord.unique_uuid);
+    try {
+      const { data, error } = await supabase.rpc('process_ready_to_print_card', {
+        p_unique_uuid: readyToPrintRecord.unique_uuid,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (result?.success) {
+        toast.success(result.message || 'Card ready. Status updated to Active.');
+        await fetchRecords(false);
+        await fetchCounts();
+      } else {
+        toast.error(result?.error || 'Failed to process card print');
+      }
+    } catch (error: any) {
+      console.error('Ready to print error:', error);
+      toast.error(error?.message || 'Failed to process card print');
+    } finally {
+      setPrintingCardId(null);
+      setReadyToPrintRecord(null);
+    }
   };
 
   const handleDeleteClick = (record: IPRecord) => {
@@ -854,6 +885,23 @@ export default function IPRegistrationList() {
                                 }}
                               />
                             )}
+                            {record.status === 'V' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleReadyToPrint(record)}
+                                title="Ready to Print Card"
+                                disabled={printingCardId === record.unique_uuid}
+                                className="flex items-center gap-1 text-xs"
+                              >
+                                {printingCardId === record.unique_uuid ? (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
+                                ) : (
+                                  <CreditCard className="h-3.5 w-3.5" />
+                                )}
+                                <span className="hidden lg:inline">Ready to Print Card</span>
+                              </Button>
+                            )}
                             {canDelete(record) && (
                               <Button
                                 variant="destructive"
@@ -908,6 +956,35 @@ export default function IPRegistrationList() {
                 </>
               ) : (
                 'Submit'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Ready to Print Card Confirmation Dialog */}
+      <AlertDialog open={!!readyToPrintRecord} onOpenChange={(open) => { if (!open && !printingCardId) setReadyToPrintRecord(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ready to Print Card?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will update the insured person's status to Active, set the permanent card date and card expiration based on IP Configuration settings. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!printingCardId}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={confirmReadyToPrint}
+              disabled={!!printingCardId}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {printingCardId ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm'
               )}
             </Button>
           </AlertDialogFooter>
