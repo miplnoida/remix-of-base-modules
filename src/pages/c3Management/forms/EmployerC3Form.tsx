@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
-import { Plus, Save, X, Printer, Loader2, Send, Server, Calculator, CheckCheck } from "lucide-react";
+import { Plus, Save, X, Printer, Loader2, Send, Server, Calculator, CheckCheck, Keyboard, List } from "lucide-react";
+import DataEntryGrid from "@/components/c3/DataEntryGrid";
 import { useEmployerValidation } from "@/hooks/useEmployerValidation";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useC3Submit } from "@/hooks/useC3Submit";
@@ -94,6 +95,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeData | null>(null);
+  const [dataEntryMode, setDataEntryMode] = useState(false);
   const [isModalViewMode, setIsModalViewMode] = useState(false);
 
   // Load initial data if provided
@@ -662,22 +664,53 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     </Button>
                   )}
                   {!isViewMode && (
-                    <Button onClick={handleAddEmployee} disabled={!employerValidated}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Employee
-                    </Button>
+                    <>
+                      <Button
+                        variant={dataEntryMode ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setDataEntryMode(!dataEntryMode)}
+                        disabled={!employerValidated}
+                        className="gap-1"
+                      >
+                        <Keyboard className="h-4 w-4" />
+                        {dataEntryMode ? 'Exit Data Entry' : 'Data Entry Mode'}
+                      </Button>
+                      {!dataEntryMode && (
+                        <Button onClick={handleAddEmployee} disabled={!employerValidated}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Employee
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {employees.length === 0 ? (
+              {/* Data Entry Grid Mode */}
+              {dataEntryMode && !isViewMode && employerValidated && (
+                <div className="mb-6">
+                  <DataEntryGrid
+                    periodYear={periodYear}
+                    periodMonth={periodMonth}
+                    receivedDate={formData.dateReceived}
+                    employees={employees}
+                    onSaveEmployee={handleSaveEmployee}
+                    onDeleteEmployee={handleDeleteEmployee}
+                    allEmployees={employees}
+                    isViewMode={isViewMode}
+                  />
+                </div>
+              )}
+
+              {/* Existing employee list */}
+              {employees.length === 0 && !dataEntryMode ? (
                 <div className="text-center py-8 text-muted-foreground">
                   {!employerValidated 
                     ? "Enter a valid Employer ID to add employees"
-                    : "No employees added yet. Click 'Add Employee' to begin."}
+                    : "No employees added yet. Click 'Add Employee' or enable 'Data Entry Mode' to begin."}
                 </div>
-              ) : (
+              ) : employees.length > 0 ? (
                 <DataTable
                   data={employees}
                   columns={[
@@ -743,15 +776,12 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                             checked={!!isVerified}
                             onCheckedChange={async (checked) => {
                               const newVal = !!checked;
-                              // Optimistic UI update
                               setEmployees(prev => prev.map(emp =>
                                 emp.ssn === row.ssn ? { ...emp, isVerified: newVal } : emp
                               ));
-                              // Persist to database
                               if (row.id) {
                                 const result = await updateWageVerification(row.id, newVal, userCode);
                                 if (!result.success) {
-                                  // Revert on failure
                                   setEmployees(prev => prev.map(emp =>
                                     emp.ssn === row.ssn ? { ...emp, isVerified: !newVal } : emp
                                   ));
@@ -770,7 +800,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                   onView={handleViewEmployee}
                   onEdit={handleEditEmployee}
                 />
-              )}
+              ) : null}
             </CardContent>
           </Card>
 
