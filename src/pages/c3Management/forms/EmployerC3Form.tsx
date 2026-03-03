@@ -58,13 +58,29 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   // Ref to track calculation debounce
   const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Ref for auto-focusing Employer-ID input
+  const employerIdInputRef = useRef<HTMLInputElement>(null);
+  
   // Check if record can be submitted (only DFT/Draft status)
   const canSubmit = initialData?.id && (initialData?.postingStatus === 'DFT' || initialData?.postingStatus === 'Z');
+
+  // Compute default period (one month before current) for Add mode
+  const defaultPeriod = useMemo(() => {
+    if (mode !== 'add') return null;
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth() - 1; // 0-indexed, so subtract 1
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+    return { year, month };
+  }, [mode]);
 
   // Form state
   const [formData, setFormData] = useState({
     employerId: "",
-    period: null as { year: number; month: number } | null,
+    period: defaultPeriod as { year: number; month: number } | null,
     dateReceived: new Date().toISOString().split('T')[0], // Auto-set to current date
     receivedBy: "",
     schedule: "",
@@ -74,6 +90,15 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     status: "Draft",
     nilReturn: false
   });
+
+  // Auto-focus Employer-ID when blank on form load
+  useEffect(() => {
+    if (!formData.employerId && !isViewMode) {
+      setTimeout(() => {
+        employerIdInputRef.current?.focus();
+      }, 100);
+    }
+  }, []);
 
   // Fetch payments from database - uses formData so must be after formData state declaration
   const { 
@@ -393,7 +418,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   const resetFormToDefaults = () => {
     setFormData({
       employerId: "",
-      period: null,
+      period: defaultPeriod,
       dateReceived: new Date().toISOString().split('T')[0],
       receivedBy: userCode || "",
       schedule: "",
@@ -406,6 +431,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     setEmployees([]);
     setEmployerValidated(false);
     setEmployerError('');
+    // Re-focus employer ID after reset
+    setTimeout(() => employerIdInputRef.current?.focus(), 100);
   };
 
   // Handle reset trigger from parent component
@@ -517,6 +544,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                   <Label htmlFor="employerId">Employer ID <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Input
+                      ref={employerIdInputRef}
                       id="employerId"
                       value={formData.employerId}
                       onChange={(e) => handleFormChange("employerId", e.target.value)}

@@ -3,7 +3,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Save, Trash2, Check, Loader2, AlertCircle, X, Keyboard } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Plus, Save, Trash2, Check, Loader2, AlertCircle, X, Keyboard, Palmtree } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getMondayCount, getEnabledWeekTextboxes } from '@/utils/weekCalculations';
 import { EmployeeData } from '@/components/c3/EmployeeModal';
@@ -11,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface GridRow {
-  id: string; // temp id for keying
+  id: string;
   ssn: string;
   name: string;
   payPeriod: string;
@@ -24,8 +26,12 @@ interface GridRow {
   isValidating: boolean;
   isSaving: boolean;
   isSaved: boolean;
-  isExisting: boolean; // true if editing an existing employee
+  isExisting: boolean;
   hasChanges: boolean;
+  // Holiday metadata
+  holidayStartDate: string;
+  holidayEndDate: string;
+  holidayNoDates: boolean;
 }
 
 interface DataEntryGridProps {
@@ -73,19 +79,59 @@ export default function DataEntryGrid({
     return `${periodYear}-${monthStr}-01`;
   }, [periodYear, periodMonth]);
 
+  // Holiday pay modal state
+  const [holidayModalRowIdx, setHolidayModalRowIdx] = useState<number | null>(null);
+  const [holidayModalStartDate, setHolidayModalStartDate] = useState('');
+  const [holidayModalEndDate, setHolidayModalEndDate] = useState('');
+  const [holidayModalNoDates, setHolidayModalNoDates] = useState(false);
+
   // Grid rows state
   const [rows, setRows] = useState<GridRow[]>([]);
+  const [initialized, setInitialized] = useState(false);
 
-  // Initialize with one empty row
+  // Convert existing employees to grid rows + one empty row on mount
   useEffect(() => {
-    if (rows.length === 0) {
-      addNewRow();
-    }
-  }, []);
+    if (initialized) return;
+    const existingRows: GridRow[] = employees.map(emp => {
+      const days = Array.isArray(emp.days) && emp.days.length === 7
+        ? [...emp.days]
+        : [...EMPTY_DAYS];
+      const wages = Array.isArray(emp.weeklyWages) && emp.weeklyWages.length === 7
+        ? [...emp.weeklyWages]
+        : [...EMPTY_WAGES];
+      const inputs = wages.map(w => w === 0 ? '' : String(w));
+      return {
+        id: nextRowId(),
+        ssn: emp.ssn,
+        name: emp.name,
+        payPeriod: emp.payPeriod || 'Monthly',
+        dateOfBirth: emp.dateOfBirth || '',
+        weeklyWages: wages,
+        wageInputs: inputs,
+        days,
+        ssnValidated: true,
+        ssnError: '',
+        isValidating: false,
+        isSaving: false,
+        isSaved: true,
+        isExisting: true,
+        hasChanges: false,
+        holidayStartDate: emp.holidayStartDate || '',
+        holidayEndDate: emp.holidayEndDate || '',
+        holidayNoDates: emp.holidayNoDates || false,
+      };
+    });
+    const newRow = createEmptyRow();
+    setRows([...existingRows, newRow]);
+    setInitialized(true);
+    // Focus the new row's first enabled input after render
+    setTimeout(() => {
+      focusCell(existingRows.length, 'ssn');
+    }, 100);
+  }, [employees]);
 
   function createEmptyRow(): GridRow {
     const days = [...EMPTY_DAYS];
-    // Auto-mark generated weeks as present
     for (const idx of generatedWeekIndices) days[idx] = true;
     return {
       id: nextRowId(),
@@ -103,15 +149,17 @@ export default function DataEntryGrid({
       isSaved: false,
       isExisting: false,
       hasChanges: false,
+      holidayStartDate: '',
+      holidayEndDate: '',
+      holidayNoDates: false,
     };
   }
 
   function addNewRow() {
-    setRows(prev => [...prev, createEmptyRow()]);
-    // Focus SSN of new row after render
+    const newRow = createEmptyRow();
+    setRows(prev => [...prev, newRow]);
     setTimeout(() => {
-      const newRow = rows.length; // will be the index of the new row
-      focusCell(newRow, 'ssn');
+      focusCell(rows.length, 'ssn');
     }, 50);
   }
 
@@ -141,6 +189,54 @@ export default function DataEntryGrid({
     return cols;
   }, [generatedWeekIndices]);
 
+  // Find the next enabled column for tabbing, skipping disabled fields
+  const findNextEnabledCol = useCallback((rowIdx: number, currentColIdx: number, forward: boolean): { rowIdx: number; field: string } | null => {
+    const row = rows[rowIdx];
+    if (!row) return null;
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    
+    const step = forward ? 1 : -1;
+    let nextCol = currentColIdx + step;
+    let nextRowIdx = rowIdx;
+
+    while (true) {
+      if (nextCol >= 0 && nextCol < columnOrder.length) {
+        const field = columnOrder[nextCol];
+        // Check if this field is enabled
+        if (field.startsWith('w')) {
+          const weekIdx = parseInt(field.substring(1));
+          const currentRow = rows[nextRowIdx];
+          if (currentRow && currentRow.days[weekIdx] && enabledTextboxes[weekIdx]) {
+            return { rowIdx: nextRowIdx, field };
+          }
+        } else {
+          return { rowIdx: nextRowIdx, field };
+        }
+        nextCol += step;
+      } else if (forward && nextCol >= columnOrder.length) {
+        // Move to next row
+        if (nextRowIdx < rows.length - 1) {
+          nextRowIdx++;
+          nextCol = 0;
+          // Re-get enabled textboxes for the new row
+          const newRow = rows[nextRowIdx];
+          if (!newRow) return null;
+        } else {
+          return null;
+        }
+      } else if (!forward && nextCol < 0) {
+        if (nextRowIdx > 0) {
+          nextRowIdx--;
+          nextCol = columnOrder.length - 1;
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+  }, [rows, columnOrder, periodYear, periodMonth, periodTermStartDate]);
+
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent, rowIdx: number, field: string) => {
     const colIdx = columnOrder.indexOf(field);
@@ -148,14 +244,11 @@ export default function DataEntryGrid({
     if (e.key === 'Enter') {
       e.preventDefault();
       if (field === 'save') {
-        // Save is handled by button click, but also trigger it
         handleSaveRow(rowIdx);
       } else {
-        // Move to next row same column, or save current if last row
         if (rowIdx < rows.length - 1) {
           focusCell(rowIdx + 1, field);
         } else {
-          // If this is the last row, try to save and add new row
           focusCell(rowIdx, 'save');
         }
       }
@@ -163,23 +256,20 @@ export default function DataEntryGrid({
     }
 
     if (e.key === 'Tab') {
-      // Default tab behavior is fine, but ensure it flows within the grid
-      const nextCol = e.shiftKey ? colIdx - 1 : colIdx + 1;
-      if (nextCol >= 0 && nextCol < columnOrder.length) {
-        e.preventDefault();
-        focusCell(rowIdx, columnOrder[nextCol]);
-      } else if (!e.shiftKey && nextCol >= columnOrder.length) {
-        // Move to next row's first column
-        if (rowIdx < rows.length - 1) {
-          e.preventDefault();
-          focusCell(rowIdx + 1, columnOrder[0]);
+      e.preventDefault();
+      const next = findNextEnabledCol(rowIdx, colIdx, !e.shiftKey);
+      if (next) {
+        focusCell(next.rowIdx, next.field);
+      }
+      // If tabbing out of a week field, trigger blur-like behavior
+      if (field.startsWith('w')) {
+        const weekIdx = parseInt(field.substring(1));
+        if (weekIdx < 5) {
+          handleWeekWageBlur(rowIdx, weekIdx);
         }
-      } else if (e.shiftKey && nextCol < 0) {
-        // Move to previous row's last column
-        if (rowIdx > 0) {
-          e.preventDefault();
-          focusCell(rowIdx - 1, columnOrder[columnOrder.length - 1]);
-        }
+      }
+      if (field === 'holiday') {
+        handleHolidayBlur(rowIdx);
       }
       return;
     }
@@ -203,13 +293,12 @@ export default function DataEntryGrid({
       }
     }
 
-    // Escape to remove unsaved empty row
     if (e.key === 'Escape' && !rows[rowIdx]?.isExisting && !rows[rowIdx]?.ssnValidated) {
       if (rows.length > 1) {
         setRows(prev => prev.filter((_, i) => i !== rowIdx));
       }
     }
-  }, [rows, columnOrder, focusCell]);
+  }, [rows, columnOrder, focusCell, findNextEnabledCol]);
 
   // SSN validation
   const handleSSNBlur = useCallback(async (rowIdx: number) => {
@@ -221,7 +310,6 @@ export default function DataEntryGrid({
       return;
     }
 
-    // Check duplicate
     const isDuplicate = allEmployees.some(emp => emp.ssn === row.ssn) ||
       rows.some((r, i) => i !== rowIdx && r.ssn === row.ssn && r.ssnValidated);
     if (isDuplicate) {
@@ -240,7 +328,6 @@ export default function DataEntryGrid({
         isValidating: false,
       });
 
-      // Fetch default pay period
       try {
         const { data } = await supabase
           .from('ip_wages')
@@ -265,7 +352,7 @@ export default function DataEntryGrid({
     setRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, ...updates, hasChanges: true } : r));
   }, []);
 
-  // Wage change with auto-fill
+  // Wage change - NO auto-fill while typing, just update the single cell
   const handleWageChange = useCallback((rowIdx: number, weekIdx: number, value: string) => {
     const clean = value.replace(/[^0-9.]/g, '');
     const parts = clean.split('.');
@@ -279,26 +366,91 @@ export default function DataEntryGrid({
       if (i !== rowIdx) return r;
       const newInputs = [...r.wageInputs];
       const newWages = [...r.weeklyWages];
-      const newDays = [...r.days];
 
       newInputs[weekIdx] = clean;
       newWages[weekIdx] = numValue;
 
-      // Auto-fill: if entering a weekly wage (0-4) and all others are blank
-      if (weekIdx < 5 && numValue > 0) {
-        const allBlank = generatedWeekIndices.every(j => j === weekIdx || (r.weeklyWages[j] || 0) === 0);
-        if (allBlank) {
-          for (const j of generatedWeekIndices) {
-            newWages[j] = numValue;
-            newInputs[j] = clean;
-            newDays[j] = true;
-          }
+      return { ...r, weeklyWages: newWages, wageInputs: newInputs, hasChanges: true, isSaved: false };
+    }));
+  }, []);
+
+  // Auto-fill on W1 blur: copy full amount to other enabled week inputs
+  const handleWeekWageBlur = useCallback((rowIdx: number, weekIdx: number) => {
+    if (weekIdx !== 0) return; // Only auto-fill from W1
+    const row = rows[rowIdx];
+    if (!row) return;
+    
+    const w1Value = row.weeklyWages[0];
+    const w1Input = row.wageInputs[0];
+    if (w1Value <= 0 || !w1Input) return;
+
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    
+    // Only auto-fill if all other enabled weeks are blank/zero
+    const allOthersBlank = generatedWeekIndices.every(j => j === 0 || (row.weeklyWages[j] || 0) === 0);
+    if (!allOthersBlank) return;
+
+    setRows(prev => prev.map((r, i) => {
+      if (i !== rowIdx) return r;
+      const newInputs = [...r.wageInputs];
+      const newWages = [...r.weeklyWages];
+      const newDays = [...r.days];
+
+      for (const j of generatedWeekIndices) {
+        if (j === 0) continue; // W1 already has value
+        if (newDays[j] && enabledTextboxes[j]) {
+          newWages[j] = w1Value;
+          newInputs[j] = w1Input;
         }
       }
 
       return { ...r, weeklyWages: newWages, wageInputs: newInputs, days: newDays, hasChanges: true, isSaved: false };
     }));
-  }, [generatedWeekIndices]);
+  }, [rows, generatedWeekIndices, periodYear, periodMonth, periodTermStartDate]);
+
+  // Holiday blur handler - show modal if value is not empty
+  const handleHolidayBlur = useCallback((rowIdx: number) => {
+    const row = rows[rowIdx];
+    if (!row) return;
+    const holidayVal = row.weeklyWages[6] || 0;
+    if (holidayVal > 0 && !row.holidayNoDates && !row.holidayStartDate) {
+      // Show holiday modal
+      setHolidayModalStartDate(row.holidayStartDate || '');
+      setHolidayModalEndDate(row.holidayEndDate || '');
+      setHolidayModalNoDates(row.holidayNoDates || false);
+      setHolidayModalRowIdx(rowIdx);
+    }
+  }, [rows]);
+
+  // Holiday modal OK
+  const handleHolidayModalOk = useCallback(() => {
+    if (holidayModalRowIdx === null) return;
+    updateRow(holidayModalRowIdx, {
+      holidayStartDate: holidayModalNoDates ? '' : holidayModalStartDate,
+      holidayEndDate: holidayModalNoDates ? '' : holidayModalEndDate,
+      holidayNoDates: holidayModalNoDates,
+    });
+    setHolidayModalRowIdx(null);
+    // Focus the save button for this row
+    setTimeout(() => focusCell(holidayModalRowIdx, 'save'), 50);
+  }, [holidayModalRowIdx, holidayModalStartDate, holidayModalEndDate, holidayModalNoDates, updateRow, focusCell]);
+
+  // Toggle week presence checkbox
+  const handleWeekToggle = useCallback((rowIdx: number, weekIdx: number) => {
+    setRows(prev => prev.map((r, i) => {
+      if (i !== rowIdx) return r;
+      const newDays = [...r.days];
+      const newWages = [...r.weeklyWages];
+      const newInputs = [...r.wageInputs];
+      newDays[weekIdx] = !newDays[weekIdx];
+      // If unchecking, clear the wage
+      if (!newDays[weekIdx]) {
+        newWages[weekIdx] = 0;
+        newInputs[weekIdx] = '';
+      }
+      return { ...r, days: newDays, weeklyWages: newWages, wageInputs: newInputs, hasChanges: true, isSaved: false };
+    }));
+  }, []);
 
   // Save row
   const handleSaveRow = useCallback(async (rowIdx: number) => {
@@ -335,6 +487,9 @@ export default function DataEntryGrid({
       termStartDate: periodTermStartDate,
       payPeriod: row.payPeriod || 'Monthly',
       dateOfBirth: row.dateOfBirth,
+      holidayStartDate: row.holidayStartDate,
+      holidayEndDate: row.holidayEndDate,
+      holidayNoDates: row.holidayNoDates,
     };
 
     try {
@@ -348,7 +503,6 @@ export default function DataEntryGrid({
         duration: 2000,
       });
 
-      // Focus next row's SSN or add new row
       if (rowIdx === rows.length - 1) {
         addNewRow();
         setTimeout(() => focusCell(rowIdx + 1, 'ssn'), 100);
@@ -425,7 +579,7 @@ export default function DataEntryGrid({
               <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground min-w-[140px]">Name</th>
               <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground min-w-[110px]">Pay Period</th>
               {generatedWeekIndices.map(idx => (
-                <th key={idx} className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground min-w-[80px]">W{idx + 1}</th>
+                <th key={idx} className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground min-w-[110px]">W{idx + 1}</th>
               ))}
               <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground min-w-[80px]">Bonus</th>
               <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground min-w-[80px]">Holiday</th>
@@ -513,22 +667,35 @@ export default function DataEntryGrid({
                     </Select>
                   </td>
 
-                  {/* Weekly wages */}
+                  {/* Weekly wages with checkbox prefix */}
                   {generatedWeekIndices.map(weekIdx => {
-                    const enabled = row.days[weekIdx] && enabledTextboxes[weekIdx];
+                    const isPresent = row.days[weekIdx];
+                    const canEdit = enabledTextboxes[weekIdx];
+                    const fieldEnabled = isPresent && canEdit;
                     return (
                       <td key={weekIdx} className="px-1 py-1">
-                        <Input
-                          ref={(el) => setCellRef(rowIdx, `w${weekIdx}`, el)}
-                          type="text"
-                          inputMode="decimal"
-                          value={row.wageInputs[weekIdx]}
-                          onChange={(e) => handleWageChange(rowIdx, weekIdx, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, rowIdx, `w${weekIdx}`)}
-                          placeholder="0.00"
-                          disabled={!enabled}
-                          className="h-8 text-xs text-right font-mono px-2"
-                        />
+                        <div className="flex items-center gap-1">
+                          <div
+                            className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
+                              isPresent ? 'bg-green-500 border-green-600' : 'bg-background border-input'
+                            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => canEdit && handleWeekToggle(rowIdx, weekIdx)}
+                          >
+                            {isPresent && <Check className="h-2.5 w-2.5 text-white" />}
+                          </div>
+                          <Input
+                            ref={(el) => setCellRef(rowIdx, `w${weekIdx}`, el)}
+                            type="text"
+                            inputMode="decimal"
+                            value={row.wageInputs[weekIdx]}
+                            onChange={(e) => handleWageChange(rowIdx, weekIdx, e.target.value)}
+                            onBlur={() => handleWeekWageBlur(rowIdx, weekIdx)}
+                            onKeyDown={(e) => handleKeyDown(e, rowIdx, `w${weekIdx}`)}
+                            placeholder="0.00"
+                            disabled={!fieldEnabled}
+                            className="h-8 text-xs text-right font-mono px-2"
+                          />
+                        </div>
                       </td>
                     );
                   })}
@@ -542,7 +709,6 @@ export default function DataEntryGrid({
                       value={row.wageInputs[5]}
                       onChange={(e) => {
                         handleWageChange(rowIdx, 5, e.target.value);
-                        // Auto-mark bonus presence
                         const numVal = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
                         if (numVal > 0) {
                           setRows(prev => prev.map((r, i) => {
@@ -561,27 +727,36 @@ export default function DataEntryGrid({
 
                   {/* Holiday */}
                   <td className="px-1 py-1">
-                    <Input
-                      ref={(el) => setCellRef(rowIdx, 'holiday', el)}
-                      type="text"
-                      inputMode="decimal"
-                      value={row.wageInputs[6]}
-                      onChange={(e) => {
-                        handleWageChange(rowIdx, 6, e.target.value);
-                        const numVal = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
-                        if (numVal > 0) {
-                          setRows(prev => prev.map((r, i) => {
-                            if (i !== rowIdx) return r;
-                            const newDays = [...r.days];
-                            newDays[6] = true;
-                            return { ...r, days: newDays };
-                          }));
-                        }
-                      }}
-                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 'holiday')}
-                      placeholder="0.00"
-                      className="h-8 text-xs text-right font-mono px-2"
-                    />
+                    <div className="flex flex-col gap-0.5">
+                      <Input
+                        ref={(el) => setCellRef(rowIdx, 'holiday', el)}
+                        type="text"
+                        inputMode="decimal"
+                        value={row.wageInputs[6]}
+                        onChange={(e) => {
+                          handleWageChange(rowIdx, 6, e.target.value);
+                          const numVal = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
+                          if (numVal > 0) {
+                            setRows(prev => prev.map((r, i) => {
+                              if (i !== rowIdx) return r;
+                              const newDays = [...r.days];
+                              newDays[6] = true;
+                              return { ...r, days: newDays };
+                            }));
+                          }
+                        }}
+                        onBlur={() => handleHolidayBlur(rowIdx)}
+                        onKeyDown={(e) => handleKeyDown(e, rowIdx, 'holiday')}
+                        placeholder="0.00"
+                        className="h-8 text-xs text-right font-mono px-2"
+                      />
+                      {/* Holiday info badge */}
+                      {(row.holidayNoDates || row.holidayStartDate) && (row.weeklyWages[6] || 0) > 0 && (
+                        <Badge variant="outline" className="text-[8px] h-4 px-1 w-fit">
+                          {row.holidayNoDates ? 'No dates' : `${row.holidayStartDate?.slice(5) || ''}`}
+                        </Badge>
+                      )}
+                    </div>
                   </td>
 
                   {/* Total */}
@@ -638,6 +813,73 @@ export default function DataEntryGrid({
         <span className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-amber-500" /> Unsaved changes</span>
         <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-destructive" /> Validation error</span>
       </div>
+
+      {/* Holiday Pay Modal */}
+      <Dialog open={holidayModalRowIdx !== null} onOpenChange={(open) => { if (!open) setHolidayModalRowIdx(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <Palmtree className="h-4 w-4 text-teal-600" />
+              <DialogTitle className="text-sm">Holiday Payment Details</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs">
+              Select holiday dates or indicate the payment doesn't belong to specific dates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {/* No-dates toggle */}
+            <div className="flex items-center gap-2">
+              <div
+                className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors cursor-pointer ${
+                  holidayModalNoDates ? 'bg-primary border-primary' : 'bg-background border-input'
+                }`}
+                onClick={() => {
+                  setHolidayModalNoDates(!holidayModalNoDates);
+                  if (!holidayModalNoDates) {
+                    setHolidayModalStartDate('');
+                    setHolidayModalEndDate('');
+                  }
+                }}
+              >
+                {holidayModalNoDates && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+              </div>
+              <span className="text-xs text-muted-foreground">Holiday payment doesn't belong to dates</span>
+            </div>
+
+            {/* Date inputs (hidden when no-dates is checked) */}
+            {!holidayModalNoDates && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Start Date</Label>
+                  <Input
+                    type="date"
+                    value={holidayModalStartDate}
+                    onChange={(e) => setHolidayModalStartDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">End Date</Label>
+                  <Input
+                    type="date"
+                    value={holidayModalEndDate}
+                    onChange={(e) => setHolidayModalEndDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setHolidayModalRowIdx(null)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleHolidayModalOk}>
+              Ok
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
