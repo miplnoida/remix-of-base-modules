@@ -308,9 +308,9 @@ export const PhotoTab = () => {
             </div>
 
             {/* Signature Requirements */}
-            <div className="bg-green-50 p-4 rounded">
-              <h4 className="font-semibold text-green-900 mb-2">Signature Requirements:</h4>
-              <ul className="text-sm text-green-800 space-y-1">
+            <div className="bg-primary/5 p-4 rounded border border-primary/20">
+              <h4 className="font-semibold text-foreground mb-2">Signature Requirements:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Clear, legible signature</li>
                 <li>• Black or blue ink (if scanned)</li>
                 <li>• Consistent with official documents</li>
@@ -335,10 +335,10 @@ export const PhotoTab = () => {
                 <Camera className="h-5 w-5 text-blue-500" />
                 <span>Photo</span>
               </div>
-              <span className={`px-2 py-1 rounded text-sm ${
+                <span className={`px-2 py-1 rounded text-sm ${
                 photo 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-destructive/10 text-destructive'
               }`}>
                 {photo ? 'Uploaded' : 'Required'}
               </span>
@@ -346,13 +346,13 @@ export const PhotoTab = () => {
 
             <div className="flex items-center justify-between p-4 border rounded">
               <div className="flex items-center gap-3">
-                <Edit className="h-5 w-5 text-purple-500" />
+                <Edit className="h-5 w-5 text-muted-foreground" />
                 <span>Signature</span>
               </div>
               <span className={`px-2 py-1 rounded text-sm ${
                 signature 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-destructive/10 text-destructive'
               }`}>
                 {signature ? 'Uploaded' : 'Required'}
               </span>
@@ -360,9 +360,9 @@ export const PhotoTab = () => {
           </div>
 
           {photo && signature && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded">
-              <p className="text-green-800 font-medium">✓ All required documents have been uploaded</p>
-              <p className="text-sm text-green-600">Ready for ID card generation</p>
+            <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded">
+              <p className="text-primary font-medium">✓ All required documents have been uploaded</p>
+              <p className="text-sm text-primary/80">Ready for ID card generation</p>
             </div>
           )}
         </CardContent>

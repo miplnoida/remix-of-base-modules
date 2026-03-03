@@ -64,15 +64,15 @@ const AuditTrail: React.FC = () => {
 
   const getActionBadge = (action: string | null) => {
     switch (action?.toLowerCase()) {
-      case 'create': return <Badge className="bg-emerald-600 text-white">Create</Badge>;
-      case 'update': return <Badge className="bg-sky-600 text-white">Update</Badge>;
+      case 'create': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
+      case 'update': return <Badge className="bg-secondary text-secondary-foreground">Update</Badge>;
       case 'delete': return <Badge variant="destructive">Delete</Badge>;
-      case 'enable': return <Badge className="bg-emerald-600 text-white">Enable</Badge>;
-      case 'disable': return <Badge className="bg-amber-600 text-white">Disable</Badge>;
-      case 'approve': return <Badge className="bg-emerald-600 text-white">Approve</Badge>;
+      case 'enable': return <Badge className="bg-primary text-primary-foreground">Enable</Badge>;
+      case 'disable': return <Badge className="bg-accent/30 text-accent-foreground">Disable</Badge>;
+      case 'approve': return <Badge className="bg-primary text-primary-foreground">Approve</Badge>;
       case 'reject': return <Badge variant="destructive">Reject</Badge>;
-      case 'verify': return <Badge className="bg-sky-600 text-white">Verify</Badge>;
-      case 'cancel': return <Badge className="bg-amber-600 text-white">Cancel</Badge>;
+      case 'verify': return <Badge className="bg-secondary text-secondary-foreground">Verify</Badge>;
+      case 'cancel': return <Badge className="bg-accent/30 text-accent-foreground">Cancel</Badge>;
       default: return <Badge variant="secondary">{action || 'Unknown'}</Badge>;
     }
   };

@@ -200,11 +200,11 @@ export const IPListing = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge variant="default" className="bg-primary/10 text-primary">Active</Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-900">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-accent/30 text-accent-foreground">Pending</Badge>;
       case 'Inactive':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>;
+        return <Badge variant="secondary" className="bg-destructive/10 text-destructive">Inactive</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -279,7 +279,7 @@ export const IPListing = () => {
       {/* <Collapsible open={isSearchOpen} onOpenChange={setIsSearchOpen}>
             <Card>
               <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-base lg:text-lg">Query by</CardTitle>

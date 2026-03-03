@@ -541,16 +541,16 @@ export default function C3Management() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Verified":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Verified</Badge>;
+        return <Badge className="bg-primary/10 text-primary hover:bg-primary/20">Verified</Badge>;
       case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
+        return <Badge className="bg-accent/30 text-accent-foreground hover:bg-accent/40">Pending</Badge>;
       case "Draft":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Draft</Badge>;
+        return <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20">Draft</Badge>;
       case "Rejected":
       case "Deleted":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">{status}</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">{status}</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{status}</Badge>;
+        return <Badge className="bg-muted text-muted-foreground hover:bg-muted/80">{status}</Badge>;
     }
   };
 
@@ -736,7 +736,7 @@ export default function C3Management() {
             setViewingRecord(null);
             setFormMode('add');
           }}
-            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+            className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="sm:hidden">Back</span>
@@ -806,7 +806,7 @@ export default function C3Management() {
                   type="button" 
                   variant="outline"
                   onClick={() => viewingRecord && handleC3Notes(viewingRecord)}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                   disabled={!viewingRecord}
                 >
                   <StickyNote className="h-4 w-4" />
@@ -816,7 +816,7 @@ export default function C3Management() {
                   type="button" 
                   variant="outline"
                   onClick={() => viewingRecord && handlePrint(viewingRecord)}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                   disabled={!viewingRecord}
                 >
                   <Printer className="h-4 w-4" />
@@ -836,7 +836,7 @@ export default function C3Management() {
                     setFormMode('edit');
                     setEditingRecord(viewingRecord);
                   }}
-                  className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                  className="flex items-center gap-2 border-r-4 border-r-primary"
                   disabled={!isC3Editable(viewingRecord)}
                 >
                   <Edit className="h-4 w-4" />
@@ -867,7 +867,7 @@ export default function C3Management() {
                   type="button" 
                   variant="outline"
                   onClick={() => editingRecord && handleC3Notes(editingRecord)}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                   disabled={!editingRecord}
                 >
                   <StickyNote className="h-4 w-4" />
@@ -877,7 +877,7 @@ export default function C3Management() {
                   type="button" 
                   variant="outline"
                   onClick={() => editingRecord && handlePrint(editingRecord)}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                   disabled={!editingRecord}
                 >
                   <Printer className="h-4 w-4" />
@@ -888,7 +888,7 @@ export default function C3Management() {
                 <Button 
                   type="button" 
                   variant="outline"
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                   disabled={isSaving || !isC3Editable(editingRecord)}
                   onClick={() => setSaveFormTrigger(prev => prev + 1)}
                 >
@@ -914,7 +914,7 @@ export default function C3Management() {
                     };
                     handleC3Notes(mockRecord);
                   }}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                 >
                   <StickyNote className="h-4 w-4" />
                   C3 Notes
@@ -934,7 +934,7 @@ export default function C3Management() {
                     };
                     handlePrint(mockRecord);
                   }}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                 >
                   <Printer className="h-4 w-4" />
                   Print
@@ -942,7 +942,7 @@ export default function C3Management() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50" 
+                  className="flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/5" 
                   onClick={handleResetForm}
                   title="Reset all form fields"
                 >
@@ -952,7 +952,7 @@ export default function C3Management() {
                 <Button 
                   type="button" 
                   id="c3-save-button"
-                  className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                  className="flex items-center gap-2 border-r-4 border-r-primary"
                   disabled={isSaving}
                   onClick={() => setSaveFormTrigger(prev => prev + 1)}
                 >

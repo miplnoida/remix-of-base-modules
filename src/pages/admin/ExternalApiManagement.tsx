@@ -194,7 +194,7 @@ const ExternalApiManagement: React.FC = () => {
                         <TableCell><Badge variant="outline">{api.api_group}</Badge></TableCell>
                         <TableCell><Badge variant="secondary">{api.http_method}</Badge></TableCell>
                         <TableCell>v{api.version}</TableCell>
-                        <TableCell>{api.is_active ? <Badge className="bg-emerald-100 text-emerald-800">Active</Badge> : <Badge variant="destructive">Inactive</Badge>}</TableCell>
+                        <TableCell>{api.is_active ? <Badge className="bg-primary/10 text-primary">Active</Badge> : <Badge variant="destructive">Inactive</Badge>}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="icon" variant="ghost" onClick={() => { setSelectedApiId(api.id); setActiveTab('fields'); }}>

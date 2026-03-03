@@ -1031,7 +1031,7 @@ export const EditEmployer = () => {
                 <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" onClick={() => setShowSuccess(true)}>
                   Draft
                 </Button>
-                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-[#33529C]" onClick={() => setShowSuccess(true)}>
+                <Button type="button" className="flex items-center gap-2 border-r-4 border-r-primary" onClick={() => setShowSuccess(true)}>
                   Submit
                 </Button>
               </div>
@@ -1109,7 +1109,7 @@ export const EditEmployer = () => {
                       <Button
                         type="button"
                         onClick={nextStep}
-                        className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                        className="flex items-center gap-2 border-r-4 border-r-primary"
                       >
                         Continue
                         <ArrowRight className="h-4 w-4" />

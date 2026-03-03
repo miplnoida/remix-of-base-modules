@@ -142,26 +142,26 @@ const AccountStatusModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white shadow-xl border-0 rounded-lg">
+      <DialogContent className="max-w-md shadow-xl border rounded-lg">
         <DialogHeader className="pb-4 border-b">
-          <DialogTitle className="text-xl font-semibold text-gray-900">Change Account Status</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Change Account Status</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Current Status</Label>
+            <Label className="text-sm font-medium text-muted-foreground">Current Status</Label>
             <div className="flex items-center">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800`}>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-muted text-foreground">
                 {currentStatus}
               </span>
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Change Status</Label>
+            <Label className="text-sm font-medium text-muted-foreground">Change Status</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger className="w-full bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select new status" />
               </SelectTrigger>
-              <SelectContent className="bg-white border border-gray-200 rounded-md shadow-lg">
+              <SelectContent>
                 <SelectItem value="Suspend">Suspend</SelectItem>
                 <SelectItem value="Verify">Verify</SelectItem>
                 <SelectItem value="Ceased">Ceased</SelectItem>
@@ -169,29 +169,20 @@ const AccountStatusModal = ({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Reason</Label>
+            <Label className="text-sm font-medium text-muted-foreground">Reason</Label>
             <Textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="Enter reason for status change"
               rows={3}
-              className="w-full bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              className="resize-none"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-blue-500"
-            >
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              variant="destructive"
-              className="px-4 py-2"
-            >
+            <Button type="submit" variant="destructive">
               Change Status
             </Button>
           </div>
@@ -218,13 +209,13 @@ const AccountStatusModal = ({
           <Button 
                       variant="outline" 
                       onClick={() => navigate('/person/management')}
-                      className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                      className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                     >
                       <ArrowLeft className="h-4 w-4" />
                      
                       <span className="sm:hidden">Back</span>
                     </Button>
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
           {/* <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
           <div>
             <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
@@ -289,14 +280,14 @@ const AccountStatusModal = ({
         <CardContent className="py-4 px-6">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
             </div>
             <div className="flex flex-col gap-1 justify-center">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground leading-tight">
                 {personData.firstname} {personData.surname}
               </h1>
               <div className="flex items-center gap-3">
-                <span className="text-gray-600 text-sm font-medium">SSN: {personData.ssn}</span>
+                <span className="text-muted-foreground text-sm font-medium">SSN: {personData.ssn}</span>
                 {getStatusBadge(personData.status)}
               </div>
             </div>
@@ -307,7 +298,7 @@ const AccountStatusModal = ({
       <Collapsible open={isRegisterSectionOpen} onOpenChange={setIsRegisterSectionOpen}>
         <Card>
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -382,7 +373,7 @@ const AccountStatusModal = ({
       <Collapsible open={isHistorySectionOpen} onOpenChange={setIsHistorySectionOpen}>
         <Card>
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -609,7 +600,7 @@ const AccountStatusModal = ({
                               <TableCell>2 weeks</TableCell>
                               <TableCell>$750.00</TableCell>
                               <TableCell>$375.00</TableCell>
-                              <TableCell><Badge className="bg-blue-100 text-blue-800">Processing</Badge></TableCell>
+                              <TableCell><Badge className="bg-secondary/10 text-secondary">Processing</Badge></TableCell>
                               <TableCell>$400.00</TableCell>
                               <TableCell>-</TableCell>
                               <TableCell>Medical documentation submitted</TableCell>
@@ -804,7 +795,7 @@ const AccountStatusModal = ({
                         <CardTitle>Self-Employed Records</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-gray-500 mb-4">Self-employment history and earnings.</p>
+                        <p className="text-muted-foreground mb-4">Self-employment history and earnings.</p>
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -956,7 +947,7 @@ const AccountStatusModal = ({
                               <TableCell>$0.00</TableCell>
                               <TableCell>$3,733.00</TableCell>
                               <TableCell>50</TableCell>
-                              <TableCell><Badge className="bg-yellow-100 text-yellow-800">96%</Badge></TableCell>
+                              <TableCell><Badge className="bg-accent/30 text-accent-foreground">96%</Badge></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
                                   <Button variant="outline" size="sm">

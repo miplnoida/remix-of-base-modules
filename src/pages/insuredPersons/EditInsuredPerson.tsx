@@ -111,7 +111,7 @@ const EditInsuredPerson = () => {
          <Button 
                                variant="outline" 
                                onClick={() => navigate('/person/management')}
-                               className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                               className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                              >
                                <ArrowLeft className="h-4 w-4" />
                               

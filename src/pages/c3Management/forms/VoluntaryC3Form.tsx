@@ -145,15 +145,15 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     const displayStatus = postingStatusToDisplayStatus(statusCode);
     switch (displayStatus) {
       case "Verified":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">{displayStatus}</Badge>;
+        return <Badge className="bg-primary/10 text-primary hover:bg-primary/20">{displayStatus}</Badge>;
       case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">{displayStatus}</Badge>;
+        return <Badge className="bg-accent/30 text-accent-foreground hover:bg-accent/40">{displayStatus}</Badge>;
       case "Draft":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">{displayStatus}</Badge>;
+        return <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20">{displayStatus}</Badge>;
       case "Rejected":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">{displayStatus}</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">{displayStatus}</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{displayStatus}</Badge>;
+        return <Badge className="bg-muted text-muted-foreground hover:bg-muted/80">{displayStatus}</Badge>;
     }
   };
 

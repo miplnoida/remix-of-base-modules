@@ -758,7 +758,7 @@ const AccountStatusModal = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Current Status</Label>
-            <span className={`inline-block ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-800`}>
+            <span className={`inline-block ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground`}>
               {currentStatus}
             </span>
           </div>
@@ -1143,11 +1143,11 @@ export const RegisterPersonForm = () => {
     
     return (
       <div className={`space-y-1 ${className}`}>
-        <Label className="text-sm font-medium text-gray-700 flex items-center">
+        <Label className="text-sm font-medium text-muted-foreground flex items-center">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-destructive ml-1">*</span>}
         </Label>
-        <div className="mt-1 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 min-h-[2.5rem] flex items-center">
+        <div className="mt-1 text-sm text-foreground bg-muted/50 border border-border rounded-md px-3 py-2 min-h-[2.5rem] flex items-center">
           {displayValue}
         </div>
       </div>
@@ -2174,7 +2174,7 @@ export const RegisterPersonForm = () => {
               variant="outline"
               onClick={prevStep}
               disabled={currentStep === 0}
-              className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100 mr-5"
+              className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md bg-primary/10 mr-5"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -2188,7 +2188,7 @@ export const RegisterPersonForm = () => {
               <Button
                 type="button"
                 onClick={nextStep}
-                className="flex items-center gap-2 border-r-4 border-r-[#33529C]"
+                className="flex items-center gap-2 border-r-4 border-r-primary"
               >
                 Continue
                 <ArrowRight className="h-4 w-4" />

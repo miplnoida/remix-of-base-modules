@@ -152,7 +152,7 @@ export default function FeeConfigurationPage() {
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className={`text-xs px-2 py-1 rounded ${fee.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`text-xs px-2 py-1 rounded ${fee.active ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                       {fee.active ? 'Active' : 'Inactive'}
                     </span>
                     <Button variant="ghost" size="icon" onClick={() => { setEditingFee(fee); setIsAdding(false); }}>
