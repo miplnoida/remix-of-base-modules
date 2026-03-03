@@ -33,10 +33,10 @@ export function AppSidebar() {
               </div>
               {!collapsed && (
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-base text-white tracking-tight truncate">
+                  <h2 className="font-semibold text-base text-sidebar-foreground tracking-tight truncate">
                     SSB Portal
                   </h2>
-                  <p className="text-white/70 text-xs font-medium truncate">
+                  <p className="text-sidebar-foreground/70 text-xs font-medium truncate">
                     St. Christopher & Nevis
                   </p>
                 </div>
@@ -55,16 +55,16 @@ export function AppSidebar() {
       {!collapsed && (
         <SidebarFooter className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">
+            <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center">
+              <span className="text-sidebar-foreground font-semibold text-sm">
                 {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
                 {profile?.full_name || user?.email || 'User'}
               </p>
-              <p className="text-xs text-white/60 truncate">
+              <p className="text-xs text-sidebar-foreground/60 truncate">
                 Logged In
               </p>
             </div>

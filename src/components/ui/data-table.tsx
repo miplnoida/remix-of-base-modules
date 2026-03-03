@@ -245,11 +245,11 @@ export const DataTable: React.FC<DataTableProps> = ({
 
   return (
     <>
-    <div className="flex flex-col sm:flex-row sm:items-center sm:space-between gap-2 mb-2">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
           <div className="flex flex-col sm:flex-row sm:justify-between gap-4 w-full">
             {/* Search Input */}
             <div className="relative w-full ">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-full w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-full w-4 text-muted-foreground" />
               <Input
                 placeholder={searchPlaceholder}
                 value={searchTerm}
@@ -260,7 +260,7 @@ export const DataTable: React.FC<DataTableProps> = ({
 
             {/* Show Records Dropdown */}
             <div className="flex items-center gap-2">
-               <span className="text-xs text-gray-600 whitespace-nowrap">show</span>
+               <span className="text-xs text-muted-foreground whitespace-nowrap">show</span>
               <Select value={recordsPerPage.toString()} onValueChange={handleRecordsPerPageChange}>
                 <SelectTrigger className="w-16 h-8 text-sm">
                   <SelectValue />
@@ -273,7 +273,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              <span className="text-xs text-gray-600">records</span>
+              <span className="text-xs text-muted-foreground">records</span>
             </div>
           </div>
         </div>
@@ -292,8 +292,8 @@ export const DataTable: React.FC<DataTableProps> = ({
             {/* Export Button */}
             <div className="relative">
               <Select onValueChange={(value) => handleExport(value as 'csv' | 'pdf')}>
-                <SelectTrigger  className="w-auto border border-[#0284C7] text-[#0284C7]">
-                  <Download className="h-4 w-4 text-[#0284C7]" /> &nbsp;
+                <SelectTrigger className="w-auto border-border text-foreground">
+                  <Download className="h-4 w-4 text-muted-foreground" /> &nbsp;
                     Export
                     &nbsp; 
                 </SelectTrigger>
@@ -326,18 +326,18 @@ export const DataTable: React.FC<DataTableProps> = ({
                       <div className="flex items-center gap-2 text-sm">
                         <button 
                           onClick={handleSelectAllFilters}
-                          className="text-blue-600 hover:underline text-[#0284C7]"
+                          className="text-primary hover:underline"
                         >
                           Select All
                         </button>
                         <span>|</span>
                         <button 
                           onClick={handleClearAllFilters}
-                          className="text-blue-600 hover:underline text-[#0284C7]"
+                          className="text-primary hover:underline"
                         >
                           Clear All
                         </button>
-                        <span className="text-gray-500">
+                        <span className="text-muted-foreground">
                           {selectedFilters.length} selected
                         </span>
                       </div>
@@ -440,9 +440,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                         )}
                         {actions.approve && (
                           <Button 
-                            variant="default" 
+                            variant="outline" 
                             size="sm"
-                            className=""
+                            className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
                             title="Approve"
                             onClick={() => handleApprove(row)}
                           >
@@ -451,8 +451,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                         )}
                         {actions.reject && (
                           <Button 
-                            variant="destructive" 
+                            variant="outline" 
                             size="sm"
+                            className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                             title="Reject"
                             onClick={() => handleReject(row)}
                           >
@@ -489,7 +490,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <Button
                   key={page}
-                  variant={currentPage === page ? "default" : "outline"}
+                  variant={currentPage === page ? "secondary" : "outline"}
                   size="sm"
                   onClick={() => goToPage(page)}
                   className="w-8 h-8 p-0"

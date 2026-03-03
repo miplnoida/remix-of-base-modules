@@ -32,9 +32,7 @@ export const Header = () => {
   const userEmail = user?.email || '';
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6 shadow-sm"
-      style={{ borderTop: '4px solid hsl(153, 73%, 21%)' }}
-    >
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-3 sm:px-6 shadow-sm border-t-4 border-t-[hsl(var(--ssb-green-primary))]">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="text-muted-foreground hover:text-primary" />
         <div className="flex items-center gap-3">
