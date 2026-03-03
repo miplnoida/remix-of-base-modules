@@ -38,7 +38,7 @@ export default function WorkflowData() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-secondary-foreground">
               {mockFormSubmissions.filter(s => s.stepName.includes("Intake")).length}
             </div>
             <p className="text-sm text-muted-foreground">Intake Forms</p>
@@ -46,7 +46,7 @@ export default function WorkflowData() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-primary">
               {mockFormSubmissions.filter(s => s.submittedBy).length}
             </div>
             <p className="text-sm text-muted-foreground">User Submitted</p>
@@ -54,7 +54,7 @@ export default function WorkflowData() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-accent-foreground">
               <FileJson className="h-8 w-8" />
             </div>
             <p className="text-sm text-muted-foreground">Data Records</p>

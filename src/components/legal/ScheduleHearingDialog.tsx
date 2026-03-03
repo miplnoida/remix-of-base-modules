@@ -77,7 +77,7 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
                 <SelectItem value="Mediation">Mediation</SelectItem>
               </SelectContent>
             </Select>
-            {errors.type && <p className="text-xs text-red-500 mt-1">{errors.type}</p>}
+            {errors.type && <p className="text-xs text-destructive mt-1">{errors.type}</p>}
           </div>
 
           <div>
@@ -87,9 +87,9 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
               type="datetime-local"
               value={hearingDate}
               onChange={(e) => setHearingDate(e.target.value)}
-              className={errors.hearingDate ? "border-red-500" : ""}
+              className={errors.hearingDate ? "border-destructive" : ""}
             />
-            {errors.hearingDate && <p className="text-xs text-red-500 mt-1">{errors.hearingDate}</p>}
+            {errors.hearingDate && <p className="text-xs text-destructive mt-1">{errors.hearingDate}</p>}
           </div>
 
           <div>
@@ -99,9 +99,9 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
               placeholder="e.g., SSB Hearing Room A"
-              className={errors.venue ? "border-red-500" : ""}
+              className={errors.venue ? "border-destructive" : ""}
             />
-            {errors.venue && <p className="text-xs text-red-500 mt-1">{errors.venue}</p>}
+            {errors.venue && <p className="text-xs text-destructive mt-1">{errors.venue}</p>}
           </div>
 
           <div>
@@ -111,10 +111,10 @@ export function ScheduleHearingDialog({ open, onOpenChange, caseId, onSchedule }
               value={panelName}
               onChange={(e) => setPanelName(e.target.value)}
               placeholder="e.g., Judge Sarah Johnson, Member David Lee"
-              className={errors.panelName ? "border-red-500" : ""}
+              className={errors.panelName ? "border-destructive" : ""}
             />
             <p className="text-xs text-muted-foreground mt-1">Separate multiple panel members with commas</p>
-            {errors.panelName && <p className="text-xs text-red-500 mt-1">{errors.panelName}</p>}
+            {errors.panelName && <p className="text-xs text-destructive mt-1">{errors.panelName}</p>}
           </div>
 
           <div>
