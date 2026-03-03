@@ -400,7 +400,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                       }
                     </TableCell>
                   ))}
-                  {(actions && (actions.view || actions.edit || actions.approve || actions.reject)) && (
+                  {(actions && (actions.view || actions.edit || actions.delete || actions.approve || actions.reject)) && (
                     <TableCell className="sticky right-0 bg-background">
                       <div className="flex gap-1">
                         {actions.view && (
