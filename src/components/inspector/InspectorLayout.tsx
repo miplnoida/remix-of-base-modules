@@ -69,13 +69,11 @@ export const InspectorLayout = () => {
                 <div className="flex flex-col h-full">
                   <div className="p-4 border-b">
                     <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <img 
-                          src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
-                          alt="SSB Logo" 
-                          className="w-5 h-5"
-                        />
-                      </div>
+                      <img 
+                        src="/images/ssb-logo.png" 
+                        alt="SSB Logo" 
+                        className="w-9 h-9 object-contain flex-shrink-0"
+                      />
                       <div className="min-w-0 flex-1">
                         <h2 className="font-semibold text-sm truncate">SSB Inspector</h2>
                         <p className="text-xs text-muted-foreground truncate">{user?.name}</p>

@@ -186,10 +186,10 @@ const DummyLoginPage = () => {
       <div className="w-full max-w-6xl">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <img 
+             <img 
               src="/images/ssb-logo.png" 
               alt="St. Christopher & Nevis Social Security Board" 
-              className="h-20 w-20 object-contain drop-shadow-md"
+              className="h-20 w-20 object-contain"
             />
           </div>
           <h1 className="text-[26px] font-semibold text-foreground mb-1">St. Christopher & Nevis Social Security Board</h1>
