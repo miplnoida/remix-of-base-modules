@@ -3,7 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarMenu } from '@/components/ui/sidebar';
 import SidebarMenuGroup from './SidebarMenuGroup';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, FolderX, RefreshCw, User, KeyRound, Bell, MonitorSmartphone, Mail } from 'lucide-react';
+import { AlertCircle, RefreshCw, User, KeyRound, Bell, MonitorSmartphone, Mail, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -13,6 +13,13 @@ interface DynamicSidebarContentProps {
 
 // Default menu items always visible to all users regardless of permissions
 const defaultMenuItems: MenuItem[] = [
+  {
+    id: 'home-dashboard',
+    title: 'Dashboard',
+    url: '/',
+    icon: LayoutDashboard,
+    description: 'System overview and role-based widgets',
+  },
   {
     id: 'user-profile-preferences',
     title: 'User Profile & Preferences',
