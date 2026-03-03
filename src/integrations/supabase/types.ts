@@ -1816,6 +1816,7 @@ export type Database = {
           include_in_levy: boolean
           include_in_severance: boolean
           is_active: boolean
+          last_published_at: string | null
           max_bonus_amount: number | null
           min_bonus_amount: number | null
           modified_by: string | null
@@ -1839,6 +1840,7 @@ export type Database = {
           include_in_levy?: boolean
           include_in_severance?: boolean
           is_active?: boolean
+          last_published_at?: string | null
           max_bonus_amount?: number | null
           min_bonus_amount?: number | null
           modified_by?: string | null
@@ -1862,6 +1864,7 @@ export type Database = {
           include_in_levy?: boolean
           include_in_severance?: boolean
           is_active?: boolean
+          last_published_at?: string | null
           max_bonus_amount?: number | null
           min_bonus_amount?: number | null
           modified_by?: string | null
@@ -1891,6 +1894,7 @@ export type Database = {
           include_in_levy: boolean | null
           include_in_severance: boolean | null
           is_active: boolean
+          last_published_at: string | null
           max_bonus_amount: number | null
           min_bonus_amount: number | null
           modified_by: string | null
@@ -1920,6 +1924,7 @@ export type Database = {
           include_in_levy?: boolean | null
           include_in_severance?: boolean | null
           is_active?: boolean
+          last_published_at?: string | null
           max_bonus_amount?: number | null
           min_bonus_amount?: number | null
           modified_by?: string | null
@@ -1949,6 +1954,7 @@ export type Database = {
           include_in_levy?: boolean | null
           include_in_severance?: boolean | null
           is_active?: boolean
+          last_published_at?: string | null
           max_bonus_amount?: number | null
           min_bonus_amount?: number | null
           modified_by?: string | null
@@ -2250,10 +2256,14 @@ export type Database = {
       }
       c3_config_sync_log: {
         Row: {
+          bonus_exceptions_count: number
           bonus_exemptions_count: number
+          bonus_policies_count: number
           config_periods_count: number
           created_at: string
           error_message: string | null
+          holiday_exceptions_count: number
+          holiday_policies_count: number
           id: string
           levy_slabs_count: number
           payload: Json
@@ -2265,10 +2275,14 @@ export type Database = {
           sync_version: string
         }
         Insert: {
+          bonus_exceptions_count?: number
           bonus_exemptions_count?: number
+          bonus_policies_count?: number
           config_periods_count?: number
           created_at?: string
           error_message?: string | null
+          holiday_exceptions_count?: number
+          holiday_policies_count?: number
           id?: string
           levy_slabs_count?: number
           payload: Json
@@ -2280,10 +2294,14 @@ export type Database = {
           sync_version?: string
         }
         Update: {
+          bonus_exceptions_count?: number
           bonus_exemptions_count?: number
+          bonus_policies_count?: number
           config_periods_count?: number
           created_at?: string
           error_message?: string | null
+          holiday_exceptions_count?: number
+          holiday_policies_count?: number
           id?: string
           levy_slabs_count?: number
           payload?: Json
@@ -2306,6 +2324,7 @@ export type Database = {
           id: string
           include_in_severance: boolean
           is_active: boolean
+          last_published_at: string | null
           levy_calc_flat_enabled: boolean
           levy_calc_flat_percentage: number | null
           levy_calc_slab_enabled: boolean
@@ -2331,6 +2350,7 @@ export type Database = {
           id?: string
           include_in_severance?: boolean
           is_active?: boolean
+          last_published_at?: string | null
           levy_calc_flat_enabled?: boolean
           levy_calc_flat_percentage?: number | null
           levy_calc_slab_enabled?: boolean
@@ -2356,6 +2376,7 @@ export type Database = {
           id?: string
           include_in_severance?: boolean
           is_active?: boolean
+          last_published_at?: string | null
           levy_calc_flat_enabled?: boolean
           levy_calc_flat_percentage?: number | null
           levy_calc_slab_enabled?: boolean
@@ -2387,6 +2408,7 @@ export type Database = {
           id: string
           include_in_severance: boolean | null
           is_active: boolean
+          last_published_at: string | null
           levy_calc_flat_enabled: boolean | null
           levy_calc_flat_percentage: number | null
           levy_calc_slab_enabled: boolean | null
@@ -2418,6 +2440,7 @@ export type Database = {
           id?: string
           include_in_severance?: boolean | null
           is_active?: boolean
+          last_published_at?: string | null
           levy_calc_flat_enabled?: boolean | null
           levy_calc_flat_percentage?: number | null
           levy_calc_slab_enabled?: boolean | null
@@ -2449,6 +2472,7 @@ export type Database = {
           id?: string
           include_in_severance?: boolean | null
           is_active?: boolean
+          last_published_at?: string | null
           levy_calc_flat_enabled?: boolean | null
           levy_calc_flat_percentage?: number | null
           levy_calc_slab_enabled?: boolean | null

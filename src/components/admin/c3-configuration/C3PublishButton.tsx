@@ -61,9 +61,12 @@ export function C3PublishButton() {
                 <div className="bg-muted rounded-lg p-3 space-y-1 text-sm">
                   <p className="font-medium text-foreground">Payload Summary:</p>
                   <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                    <li>{syncStatus.pendingCounts.periods} period configuration(s) pending</li>
-                    <li>{syncStatus.pendingCounts.slabs} levy slab(s) pending</li>
-                    
+                    <li>{syncStatus.pendingCounts.periods} period configuration(s)</li>
+                    <li>{syncStatus.pendingCounts.slabs} levy slab(s)</li>
+                    <li>{syncStatus.pendingCounts.bonusPolicies} bonus policy default(s)</li>
+                    <li>{syncStatus.pendingCounts.bonusExceptions} bonus policy exception(s)</li>
+                    <li>{syncStatus.pendingCounts.holidayPolicies} holiday pay policy default(s)</li>
+                    <li>{syncStatus.pendingCounts.holidayExceptions} holiday pay policy exception(s)</li>
                   </ul>
                 </div>
               )}
