@@ -740,6 +740,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                 </div>
               )}
               {!dataEntryMode && employees.length > 0 && (
+                <DataTable
                   data={employees}
                   columns={[
                     { key: 'ssn', label: 'SSN', minWidth: '100px' },
