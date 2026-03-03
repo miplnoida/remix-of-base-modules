@@ -200,11 +200,11 @@ export default function EmployerRiskProfile() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={riskScoreHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" />
                     <YAxis domain={[0, 100]} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="score" stroke="#EF4444" strokeWidth={2} name="Risk Score" />
+                    <Line type="monotone" dataKey="score" stroke="hsl(var(--destructive))" strokeWidth={2} name="Risk Score" />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -217,11 +217,11 @@ export default function EmployerRiskProfile() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={arrearsHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="amount" fill="#EF4444" name="Arrears" />
+                    <Bar dataKey="amount" fill="hsl(var(--destructive))" name="Arrears" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

@@ -159,14 +159,14 @@ export default function EmployerRegistrationForm() {
           <Button 
             variant="outline" 
             onClick={() => navigate('/employer-registration')}
-            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+            className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back</span>
           </Button>
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
               {isNewMode ? 'Register New Employer' : isViewMode ? 'View Employer' : 'Edit Employer'}
             </h1>
             <div className="flex items-center gap-2 mt-1">

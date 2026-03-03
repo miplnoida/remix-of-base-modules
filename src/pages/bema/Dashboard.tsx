@@ -167,7 +167,7 @@ export default function BemaDashboard() {
       subtitle: "Field Visits MTD",
       icon: Users,
       bgGradient: "from-indigo-50 to-indigo-100",
-      iconColor: "text-indigo-600",
+      iconColor: "text-primary",
       onClick: () => toast.info("Viewing inspector performance..."),
     },
   ];
@@ -175,18 +175,18 @@ export default function BemaDashboard() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-secondary to-secondary/90 text-secondary-foreground shadow-lg">
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">BeMA Compliance Dashboard</h1>
-              <p className="text-blue-100">Real-time overview of compliance operations and performance</p>
+              <p className="text-secondary-foreground/70">Real-time overview of compliance operations and performance</p>
             </div>
             
             {/* Filter Bar */}
             <div className="flex flex-wrap gap-2">
               <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
+                <SelectTrigger className="w-40 bg-white/10 border-white/20 text-secondary-foreground">
                   <Calendar className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
@@ -243,21 +243,21 @@ export default function BemaDashboard() {
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-4">
           <Button 
-            className="h-auto py-4 flex-col items-start bg-white hover:bg-gray-50 border shadow-sm"
+            className="h-auto py-4 flex-col items-start bg-card hover:bg-muted border shadow-sm"
             variant="outline"
             onClick={() => toast.info("Opening case creation...")}
           >
-            <Plus className="h-5 w-5 mb-2 text-blue-600" />
+            <Plus className="h-5 w-5 mb-2 text-info" />
             <span className="font-semibold text-foreground">Create Case</span>
             <span className="text-xs text-muted-foreground">New audit/arrears case</span>
           </Button>
           
           <Button 
-            className="h-auto py-4 flex-col items-start bg-white hover:bg-gray-50 border shadow-sm"
+            className="h-auto py-4 flex-col items-start bg-card hover:bg-muted border shadow-sm"
             variant="outline"
             onClick={() => toast.info("Generating report...")}
           >
-            <FileText className="h-5 w-5 mb-2 text-purple-600" />
+            <FileText className="h-5 w-5 mb-2 text-primary" />
             <span className="font-semibold text-foreground">Generate Report</span>
             <span className="text-xs text-muted-foreground">Custom analytics</span>
           </Button>
@@ -352,20 +352,20 @@ export default function BemaDashboard() {
                 <AreaChart data={filingTrendData}>
                   <defs>
                     <linearGradient id="filedGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="hsl(var(--info))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--info))" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
                     dataKey="month" 
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   />
-                  <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #e5e7eb',
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px'
                     }}
                   />
@@ -373,7 +373,7 @@ export default function BemaDashboard() {
                   <Area 
                     type="monotone" 
                     dataKey="filed" 
-                    stroke="#3b82f6" 
+                    stroke="hsl(var(--info))" 
                     fill="url(#filedGradient)" 
                     strokeWidth={2}
                     name="Filed"
@@ -381,7 +381,7 @@ export default function BemaDashboard() {
                   <Line 
                     type="monotone" 
                     dataKey="expected" 
-                    stroke="#9ca3af" 
+                    stroke="hsl(var(--muted-foreground))" 
                     strokeDasharray="5 5" 
                     name="Expected"
                     dot={false}

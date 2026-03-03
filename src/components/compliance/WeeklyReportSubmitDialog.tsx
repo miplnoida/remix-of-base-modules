@@ -77,9 +77,9 @@ export function WeeklyReportSubmitDialog({
             </div>
           ) : validation.isValid ? (
             <>
-              <Alert className="bg-green-50 border-green-200">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-900">
+              <Alert className="bg-success/10 border-success/20">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <AlertDescription className="text-success">
                   Your weekly report is ready for submission. All visits have been properly documented.
                 </AlertDescription>
               </Alert>
@@ -102,25 +102,25 @@ export function WeeklyReportSubmitDialog({
                     </div>
                     <div>
                       <span className="text-muted-foreground">Visits Completed:</span>
-                      <span className="ml-2 font-medium text-green-600">{completedVisits}</span>
+                      <span className="ml-2 font-medium text-success">{completedVisits}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Visits Rescheduled:</span>
-                      <span className="ml-2 font-medium text-blue-600">{rescheduledVisits}</span>
+                      <span className="ml-2 font-medium text-info">{rescheduledVisits}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Not Done:</span>
-                      <span className="ml-2 font-medium text-orange-600">{notDoneVisits}</span>
+                      <span className="ml-2 font-medium text-warning">{notDoneVisits}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Violations Created:</span>
-                      <span className="ml-2 font-medium text-red-600">{violationsCreated}</span>
+                      <span className="ml-2 font-medium text-destructive">{violationsCreated}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <div className="bg-blue-50 p-4 rounded-md text-sm text-blue-900">
+              <div className="bg-info/10 p-4 rounded-md text-sm text-info">
                 <div className="font-medium mb-1">What happens next?</div>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Your report will be submitted to your supervisor for review</li>
@@ -143,11 +143,11 @@ export function WeeklyReportSubmitDialog({
 
               <div className="space-y-2">
                 {validation.issues.map((issue, index) => (
-                  <Card key={index} className="border-orange-200">
+                  <Card key={index} className="border-warning/20">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         {issue.employerName ? (
-                          <MapPin className="h-5 w-5 text-orange-600 mt-0.5" />
+                          <MapPin className="h-5 w-5 text-warning mt-0.5" />
                         ) : (
                           <FileText className="h-5 w-5 text-orange-600 mt-0.5" />
                         )}

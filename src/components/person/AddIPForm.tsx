@@ -1024,14 +1024,14 @@ export const AddIPForm = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <Camera className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-500">Upload Photo</p>
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                  <Camera className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Upload Photo</p>
                   <Button variant="outline" className="mt-2">Choose File</Button>
                 </div>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-500">Upload Signature</p>
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                  <FileText className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Upload Signature</p>
                   <Button variant="outline" className="mt-2">Choose File</Button>
                 </div>
               </CardContent>
@@ -1043,7 +1043,7 @@ export const AddIPForm = () => {
               <CardTitle>Caricom Section</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-500">Caricom-related information (if applicable)</p>
+              <p className="text-muted-foreground">Caricom-related information (if applicable)</p>
               <Textarea placeholder="Enter Caricom details" className="mt-2" />
             </CardContent>
           </Card>
@@ -1071,9 +1071,9 @@ export const AddIPForm = () => {
         </Button>
       </div>
 
-      <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-        <h4 className="font-medium text-amber-900 mb-2">Cross-Verification Notice</h4>
-        <p className="text-sm text-amber-800">
+      <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+        <h4 className="font-medium text-warning mb-2">Cross-Verification Notice</h4>
+        <p className="text-sm text-warning/80">
           After entering the IP details, verification must be done by another Customer Relationship Representative, 
           Supervisor, or Manager. The same person cannot verify their own entry. Upon verification, Transaction Details, 
           Status, and SSN number will be generated.

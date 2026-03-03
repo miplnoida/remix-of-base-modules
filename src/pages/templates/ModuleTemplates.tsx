@@ -54,11 +54,11 @@ export default function ModuleTemplates({ module }: ModuleTemplatesProps) {
 
   const getChannelColor = (channel: NotificationChannel) => {
     switch (channel) {
-      case 'Email': return 'bg-blue-100 text-blue-800';
-      case 'SMS': return 'bg-green-100 text-green-800';
-      case 'Push': return 'bg-purple-100 text-purple-800';
-      case 'Letter': return 'bg-amber-100 text-amber-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Email': return 'bg-info/10 text-info';
+      case 'SMS': return 'bg-success/10 text-success';
+      case 'Push': return 'bg-primary/10 text-primary';
+      case 'Letter': return 'bg-warning/15 text-warning';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -238,7 +238,7 @@ export default function ModuleTemplates({ module }: ModuleTemplatesProps) {
                     {template.subject || template.bodyText.substring(0, 50) + '...'}
                   </TableCell>
                   <TableCell>
-                    <Badge className={template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                    <Badge className={template.isActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>
                       {template.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>

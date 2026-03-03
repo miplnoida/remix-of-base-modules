@@ -39,10 +39,10 @@ export function ConversionValidationPanel({ isLoading, result, className }: Conv
 
   if (result.error_count === 0 && result.warning_count === 0) {
     return (
-      <Alert className={`border-green-200 bg-green-50 ${className}`}>
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
-        <AlertTitle className="text-green-800">Ready for Conversion</AlertTitle>
-        <AlertDescription className="text-green-700 text-xs">
+      <Alert className={`border-success/20 bg-success/10 ${className}`}>
+        <CheckCircle2 className="h-4 w-4 text-success" />
+        <AlertTitle className="text-success">Ready for Conversion</AlertTitle>
+        <AlertDescription className="text-success/80 text-xs">
           All fields validated successfully. This application can be converted to an IP record.
         </AlertDescription>
       </Alert>
@@ -73,17 +73,17 @@ export function ConversionValidationPanel({ isLoading, result, className }: Conv
       )}
 
       {result.warning_count > 0 && (
-        <Alert className="border-amber-200 bg-amber-50">
-          <Info className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 flex items-center gap-2">
+        <Alert className="border-warning/20 bg-warning/15">
+          <Info className="h-4 w-4 text-warning" />
+          <AlertTitle className="text-warning flex items-center gap-2">
             Data Truncation Warnings
-            <Badge className="bg-amber-200 text-amber-800 text-xs">{result.warning_count} warning{result.warning_count !== 1 ? 's' : ''}</Badge>
+            <Badge className="bg-warning/20 text-warning text-xs">{result.warning_count} warning{result.warning_count !== 1 ? 's' : ''}</Badge>
           </AlertTitle>
           <AlertDescription>
-            <p className="text-xs text-amber-700 mb-2">These fields will be automatically truncated to fit system limits:</p>
+            <p className="text-xs text-warning/80 mb-2">These fields will be automatically truncated to fit system limits:</p>
             <ul className="space-y-1">
               {result.warnings.map((w, i) => (
-                <li key={i} className="text-xs flex items-start gap-1 text-amber-800">
+                <li key={i} className="text-xs flex items-start gap-1 text-warning">
                   <span className="font-bold mt-0.5">•</span>
                   <span>{w.message}</span>
                 </li>

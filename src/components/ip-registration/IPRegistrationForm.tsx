@@ -179,9 +179,9 @@ export const IPRegistrationForm: React.FC = () => {
 
       {/* View Mode Warning */}
       {isViewMode && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <Lock className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-700">
+        <Alert className="bg-info/10 border-info/20">
+          <Lock className="h-4 w-4 text-info" />
+          <AlertDescription className="text-info">
             You are viewing this record in read-only mode.
             {isEditable && ' Click "Edit" to make changes.'}
           </AlertDescription>
@@ -333,9 +333,9 @@ export const IPRegistrationForm: React.FC = () => {
 
       {/* Not Editable Warning */}
       {!isEditable && !isViewMode && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <Lock className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-700">
+        <Alert className="bg-warning/10 border-warning/20">
+          <Lock className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning">
             This record has been submitted and is locked for editing. Contact a supervisor for modifications.
           </AlertDescription>
         </Alert>
@@ -343,8 +343,8 @@ export const IPRegistrationForm: React.FC = () => {
 
       {/* Info Notice - Hidden in View Mode */}
       {!isViewMode && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <AlertDescription className="text-blue-700">
+        <Alert className="bg-info/10 border-info/20">
+          <AlertDescription className="text-info">
             <strong>Workflow:</strong> New registrations start as Draft (Z). Upon submission, status changes to Pending (P) 
             and the record is locked for verification. After verification by a supervisor, status changes to Verified (V) 
             and a permanent SSN is assigned.
