@@ -173,8 +173,8 @@ export default function DurationRulesConfig() {
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
                       rule.status === 'ACTIVE'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-info/10 text-info'
+                        : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {rule.status}

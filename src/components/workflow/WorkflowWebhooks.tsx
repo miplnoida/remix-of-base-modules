@@ -75,12 +75,12 @@ export default function WorkflowWebhooks() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      Success: "bg-green-100 text-green-800",
-      Failed: "bg-red-100 text-red-800",
-      Pending: "bg-blue-100 text-blue-800",
-      Retrying: "bg-yellow-100 text-yellow-800",
+      Success: "bg-success/10 text-success",
+      Failed: "bg-destructive/10 text-destructive",
+      Pending: "bg-info/10 text-info",
+      Retrying: "bg-warning/15 text-warning",
     };
-    return colors[status] || "bg-gray-100 text-gray-800";
+    return colors[status] || "bg-muted text-muted-foreground";
   };
 
   const getStatusIcon = (status: string) => {

@@ -52,8 +52,8 @@ const InsuredPersonGuide = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -66,11 +66,11 @@ const InsuredPersonGuide = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Registration Rules & Process</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">Insured Person Registration</span>
+                <span className="text-foreground font-medium">Insured Person Registration</span>
               </nav>
             </div>
           </div>
@@ -79,22 +79,22 @@ const InsuredPersonGuide = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Insured Person Registration Guide</h1>
-          <p className="text-gray-600">Step-by-step registration guide for citizens and non-citizens</p>
+          <h1 className="text-3xl font-bold text-foreground">Insured Person Registration Guide</h1>
+          <p className="text-muted-foreground">Step-by-step registration guide for citizens and non-citizens</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-500" />
+                <Users className="h-5 w-5 text-info" />
                 Citizens
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-blue-600">7 Steps</p>
-                <p className="text-sm text-gray-600">Processing time: 14 working days</p>
+                <p className="text-2xl font-bold text-info">7 Steps</p>
+                <p className="text-sm text-muted-foreground">Processing time: 14 working days</p>
                 <Badge variant="outline">Simplified Process</Badge>
               </div>
             </CardContent>
@@ -103,14 +103,14 @@ const InsuredPersonGuide = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-green-500" />
+                <FileText className="h-5 w-5 text-success" />
                 Non-Citizens
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-green-600">8 Steps</p>
-                <p className="text-sm text-gray-600">Processing time: 21 working days</p>
+                <p className="text-2xl font-bold text-success">8 Steps</p>
+                <p className="text-sm text-muted-foreground">Processing time: 21 working days</p>
                 <Badge variant="outline">Extended Verification</Badge>
               </div>
             </CardContent>
@@ -119,14 +119,14 @@ const InsuredPersonGuide = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-orange-500" />
+                <AlertCircle className="h-5 w-5 text-warning" />
                 Important
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">All documents must be original with certified copies</p>
-                <p className="text-sm text-gray-600">Applications incomplete will be returned</p>
+                <p className="text-sm text-muted-foreground">All documents must be original with certified copies</p>
+                <p className="text-sm text-muted-foreground">Applications incomplete will be returned</p>
               </div>
             </CardContent>
           </Card>

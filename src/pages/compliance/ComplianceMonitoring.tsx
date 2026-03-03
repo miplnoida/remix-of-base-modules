@@ -67,31 +67,31 @@ const ComplianceMonitoring = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'compliant':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'non-compliant':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case 'under-review':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return <Clock className="h-4 w-4 text-warning" />;
       default:
-        return <AlertTriangle className="h-4 w-4 text-gray-600" />;
+        return <AlertTriangle className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      'compliant': 'bg-green-100 text-green-800',
-      'non-compliant': 'bg-red-100 text-red-800',
-      'under-review': 'bg-yellow-100 text-yellow-800',
-      'pending': 'bg-gray-100 text-gray-800'
+      'compliant': 'bg-success/10 text-success',
+      'non-compliant': 'bg-destructive/10 text-destructive',
+      'under-review': 'bg-warning/15 text-warning',
+      'pending': 'bg-muted text-muted-foreground'
     };
     return variants[status as keyof typeof variants] || variants.pending;
   };
 
   const getRiskBadge = (risk: string) => {
     const variants = {
-      'low': 'bg-green-100 text-green-800',
-      'medium': 'bg-yellow-100 text-yellow-800',
-      'high': 'bg-red-100 text-red-800'
+      'low': 'bg-success/10 text-success',
+      'medium': 'bg-warning/15 text-warning',
+      'high': 'bg-destructive/10 text-destructive'
     };
     return variants[risk as keyof typeof variants] || variants.low;
   };
@@ -99,8 +99,8 @@ const ComplianceMonitoring = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Compliance Monitoring</h1>
-        <p className="text-gray-600 mt-2">Monitor employer compliance status and violations</p>
+        <h1 className="text-3xl font-bold text-foreground">Compliance Monitoring</h1>
+        <p className="text-muted-foreground mt-2">Monitor employer compliance status and violations</p>
       </div>
 
       {/* Summary Cards */}
@@ -109,10 +109,10 @@ const ComplianceMonitoring = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Compliant</p>
-                <p className="text-2xl font-bold text-green-600">156</p>
+                <p className="text-sm font-medium text-muted-foreground">Compliant</p>
+                <p className="text-2xl font-bold text-success">156</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -121,10 +121,10 @@ const ComplianceMonitoring = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Non-Compliant</p>
-                <p className="text-2xl font-bold text-red-600">23</p>
+                <p className="text-sm font-medium text-muted-foreground">Non-Compliant</p>
+                <p className="text-2xl font-bold text-destructive">23</p>
               </div>
-              <XCircle className="h-8 w-8 text-red-600" />
+              <XCircle className="h-8 w-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -133,10 +133,10 @@ const ComplianceMonitoring = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Under Review</p>
-                <p className="text-2xl font-bold text-yellow-600">12</p>
+                <p className="text-sm font-medium text-muted-foreground">Under Review</p>
+                <p className="text-2xl font-bold text-warning">12</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-warning" />
             </div>
           </CardContent>
         </Card>
@@ -145,10 +145,10 @@ const ComplianceMonitoring = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">High Risk</p>
-                <p className="text-2xl font-bold text-red-600">8</p>
+                <p className="text-sm font-medium text-muted-foreground">High Risk</p>
+                <p className="text-2xl font-bold text-destructive">8</p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -166,30 +166,16 @@ const ComplianceMonitoring = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <Label htmlFor="employer-id">Employer ID</Label>
-              <Input
-                id="employer-id"
-                placeholder="Enter Employer ID"
-                value={filters.employerId}
-                onChange={(e) => setFilters(prev => ({ ...prev, employerId: e.target.value }))}
-              />
+              <Input id="employer-id" placeholder="Enter Employer ID" value={filters.employerId} onChange={(e) => setFilters(prev => ({ ...prev, employerId: e.target.value }))} />
             </div>
-
             <div>
               <Label htmlFor="employer-name">Employer Name</Label>
-              <Input
-                id="employer-name"
-                placeholder="Enter Employer Name"
-                value={filters.employerName}
-                onChange={(e) => setFilters(prev => ({ ...prev, employerName: e.target.value }))}
-              />
+              <Input id="employer-name" placeholder="Enter Employer Name" value={filters.employerName} onChange={(e) => setFilters(prev => ({ ...prev, employerName: e.target.value }))} />
             </div>
-
             <div>
               <Label htmlFor="compliance-type">Compliance Type</Label>
               <Select value={filters.complianceType} onValueChange={(value) => setFilters(prev => ({ ...prev, complianceType: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Type" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="contribution">Contribution Compliance</SelectItem>
@@ -198,13 +184,10 @@ const ComplianceMonitoring = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label htmlFor="status">Status</Label>
               <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="compliant">Compliant</SelectItem>
@@ -213,13 +196,10 @@ const ComplianceMonitoring = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label htmlFor="risk-level">Risk Level</Label>
               <Select value={filters.riskLevel} onValueChange={(value) => setFilters(prev => ({ ...prev, riskLevel: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Risk" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select Risk" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
@@ -229,15 +209,9 @@ const ComplianceMonitoring = () => {
               </Select>
             </div>
           </div>
-
           <div className="flex gap-2 mt-4">
-            <Button className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
-            <Button variant="outline" onClick={() => setFilters({ employerId: '', employerName: '', complianceType: '', status: '', riskLevel: '' })}>
-              Clear Filters
-            </Button>
+            <Button className="flex items-center gap-2"><Search className="h-4 w-4" />Search</Button>
+            <Button variant="outline" onClick={() => setFilters({ employerId: '', employerName: '', complianceType: '', status: '', riskLevel: '' })}>Clear Filters</Button>
           </div>
         </CardContent>
       </Card>
@@ -251,7 +225,7 @@ const ComplianceMonitoring = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b border-border">
                   <th className="text-left p-2">Employer ID</th>
                   <th className="text-left p-2">Employer Name</th>
                   <th className="text-left p-2">Compliance Type</th>
@@ -265,7 +239,7 @@ const ComplianceMonitoring = () => {
               </thead>
               <tbody>
                 {mockComplianceData.map((record) => (
-                  <tr key={record.id} className="border-b hover:bg-gray-50">
+                  <tr key={record.id} className="border-b border-border hover:bg-muted/50">
                     <td className="p-2 font-medium">{record.employerId}</td>
                     <td className="p-2">{record.employerName}</td>
                     <td className="p-2">{record.complianceType}</td>
@@ -284,17 +258,16 @@ const ComplianceMonitoring = () => {
                     </td>
                     <td className="p-2">
                       {record.violations > 0 ? (
-                        <span className="text-red-600 font-medium">{record.violations}</span>
+                        <span className="text-destructive font-medium">{record.violations}</span>
                       ) : (
-                        <span className="text-green-600">0</span>
+                        <span className="text-success">0</span>
                       )}
                     </td>
                     <td className="p-2">{record.lastChecked}</td>
                     <td className="p-2">{record.nextDue}</td>
                     <td className="p-2">
                       <Button variant="outline" size="sm" className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        View
+                        <Eye className="h-3 w-3" />View
                       </Button>
                     </td>
                   </tr>

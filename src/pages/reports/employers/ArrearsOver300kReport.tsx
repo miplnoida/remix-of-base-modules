@@ -102,11 +102,11 @@ export default function ArrearsOver300kReport() {
                     <TableCell className="font-bold">{index + 1}</TableCell>
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell className="font-semibold text-red-700">{row.arrears.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-destructive">{row.arrears.toLocaleString()}</TableCell>
                     <TableCell>{row.lastPayment}</TableCell>
                     <TableCell>{row.daysOverdue}</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                      <span className="px-2 py-1 rounded-full text-xs bg-destructive/10 text-destructive">
                         {row.escalated ? 'Yes' : 'No'}
                       </span>
                     </TableCell>

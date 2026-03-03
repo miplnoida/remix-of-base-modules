@@ -67,12 +67,12 @@ export default function NILReturnsOver3MonthsReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="zone" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="zone" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="employers" fill="#DC2626" name="Employers" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="avgMonths" fill="#F59E0B" name="Avg NIL Months" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill="hsl(var(--destructive))" name="Employers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="avgMonths" fill="hsl(var(--warning))" name="Avg NIL Months" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -101,12 +101,12 @@ export default function NILReturnsOver3MonthsReport() {
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell className="font-semibold text-red-600">{row.nilMonths}</TableCell>
+                    <TableCell className="font-semibold text-destructive">{row.nilMonths}</TableCell>
                     <TableCell>{row.periods}</TableCell>
                     <TableCell>{row.lastPositive}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.status === 'Cessation Review' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                        row.status === 'Cessation Review' ? 'bg-destructive/10 text-destructive' : 'bg-warning/15 text-warning'
                       }`}>
                         {row.status}
                       </span>

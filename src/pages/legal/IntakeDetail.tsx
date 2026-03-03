@@ -29,15 +29,15 @@ export default function IntakeDetail() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending Review':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-warning/15 text-warning border-warning/30';
       case 'Info Requested':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-info/10 text-info border-info/30';
       case 'Accepted':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success/10 text-success border-success/30';
       case 'Rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/30';
       default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 

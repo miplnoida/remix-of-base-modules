@@ -43,9 +43,9 @@ export function WorkflowDetailDialog({ open, onOpenChange, workflow }: WorkflowD
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
             {workflow.isActive ? (
-              <Badge className="bg-green-100 text-green-800">Active</Badge>
+              <Badge className="bg-success/10 text-success">Active</Badge>
             ) : (
-              <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
+              <Badge className="bg-muted text-muted-foreground">Inactive</Badge>
             )}
           </div>
 

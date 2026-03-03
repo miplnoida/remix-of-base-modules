@@ -20,8 +20,8 @@ const MaternityBenefits = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -34,11 +34,11 @@ const MaternityBenefits = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Benefits Management</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">Maternity Benefits</span>
+                <span className="text-foreground font-medium">Maternity Benefits</span>
               </nav>
             </div>
             <Button onClick={() => navigate("/")} variant="outline" size="sm">
@@ -51,10 +51,10 @@ const MaternityBenefits = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Baby className="h-8 w-8 text-pink-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Maternity Benefits</h1>
+            <Baby className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Maternity Benefits</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Manage maternity benefit claims and applications for insured persons
           </p>
         </div>
@@ -199,7 +199,7 @@ const MaternityBenefits = () => {
               <CardContent>
                 <div className="space-y-2 mb-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search claims..."
                       value={searchTerm}
@@ -217,14 +217,14 @@ const MaternityBenefits = () => {
                     <div key={claim.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium text-sm">{claim.name}</p>
-                        <p className="text-xs text-gray-500">{claim.id}</p>
+                        <p className="text-xs text-muted-foreground">{claim.id}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-sm">{claim.amount}</p>
                         <p className={`text-xs ${
-                          claim.status === 'Approved' ? 'text-green-600' :
-                          claim.status === 'Pending' ? 'text-yellow-600' :
-                          'text-blue-600'
+                          claim.status === 'Approved' ? 'text-success' :
+                          claim.status === 'Pending' ? 'text-warning' :
+                          'text-info'
                         }`}>
                           {claim.status}
                         </p>
@@ -245,20 +245,20 @@ const MaternityBenefits = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">This Month</span>
+                    <span className="text-sm text-muted-foreground">This Month</span>
                     <span className="font-semibold">12 Claims</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Amount</span>
+                    <span className="text-sm text-muted-foreground">Total Amount</span>
                     <span className="font-semibold">$28,500</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Approved</span>
-                    <span className="font-semibold text-green-600">8</span>
+                    <span className="text-sm text-muted-foreground">Approved</span>
+                    <span className="font-semibold text-success">8</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Pending</span>
-                    <span className="font-semibold text-yellow-600">4</span>
+                    <span className="text-sm text-muted-foreground">Pending</span>
+                    <span className="font-semibold text-warning">4</span>
                   </div>
                 </div>
               </CardContent>
