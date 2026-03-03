@@ -151,7 +151,7 @@ const EmployersDashboard = () => {
         {kpiCards.map((kpi, index) => (
           <Card key={index} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground" style={{color:"#374151"}}>{kpi.title}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
               <div className={`p-2.5 rounded bg-gradient-to-r ${kpi.color} shadow-lg`}>
                 <kpi.icon className="h-5 w-5 text-white" />
               </div>

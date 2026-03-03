@@ -21,7 +21,7 @@ const pieData = [
   { name: 'Market Exit', value: 6 }
 ];
 
-const COLORS = ['#2563EB', '#009B4C', '#F59E0B'];
+const COLORS = ['hsl(var(--secondary))', 'hsl(var(--primary))', 'hsl(var(--accent))'];
 
 const mockData = [
   { id: 'EMP-2301', name: 'Caribbean Hotels International', country: 'USA', exitDate: '2024-01-15', exitReason: 'Relocation', lastSubmission: '2023-12-31', finalStatus: 'Settled', zone: 'Zone 1' },
@@ -79,11 +79,11 @@ export default function OutOfFederationReport() {
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis type="number" stroke="#64748B" />
-                  <YAxis dataKey="country" type="category" width={100} stroke="#64748B" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis dataKey="country" type="category" width={100} stroke="hsl(var(--muted-foreground))" />
                   <Tooltip />
-                  <Bar dataKey="employers" fill="#2563EB" name="Employers" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="employers" fill="hsl(var(--primary))" name="Employers" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -102,7 +102,7 @@ export default function OutOfFederationReport() {
                     labelLine={false}
                     label={({ name, value }) => `${name}: ${value}`}
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill="hsl(var(--primary))"
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (
@@ -144,14 +144,14 @@ export default function OutOfFederationReport() {
                     <TableCell>{row.country}</TableCell>
                     <TableCell>{row.exitDate}</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                      <span className="px-2 py-1 rounded-full text-xs bg-secondary/10 text-secondary-foreground">
                         {row.exitReason}
                       </span>
                     </TableCell>
                     <TableCell>{row.lastSubmission}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.finalStatus === 'Settled' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                        row.finalStatus === 'Settled' ? 'bg-primary/10 text-primary' : 'bg-accent/30 text-accent-foreground'
                       }`}>
                         {row.finalStatus}
                       </span>

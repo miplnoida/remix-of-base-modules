@@ -274,35 +274,35 @@ const UserCreate = () => {
               <div className="p-4 bg-muted rounded-lg space-y-2">
                 <p className="text-sm font-medium mb-2">Password Requirements:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.length ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.length ? 'text-primary' : 'text-muted-foreground'}`}>
                     {passwordValidation.checks.length ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                     Min {passwordPolicy?.min_length || 8} characters
                   </div>
                   {passwordPolicy?.require_uppercase !== false && (
-                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.uppercase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.uppercase ? 'text-primary' : 'text-muted-foreground'}`}>
                       {passwordValidation.checks.uppercase ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                       Uppercase letter
                     </div>
                   )}
                   {passwordPolicy?.require_lowercase !== false && (
-                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.lowercase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.lowercase ? 'text-primary' : 'text-muted-foreground'}`}>
                       {passwordValidation.checks.lowercase ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                       Lowercase letter
                     </div>
                   )}
                   {passwordPolicy?.require_numbers !== false && (
-                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.number ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.number ? 'text-primary' : 'text-muted-foreground'}`}>
                       {passwordValidation.checks.number ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                       Number
                     </div>
                   )}
                   {passwordPolicy?.require_special_chars && (
-                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.special ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <div className={`flex items-center gap-2 text-sm ${passwordValidation.checks.special ? 'text-primary' : 'text-muted-foreground'}`}>
                       {passwordValidation.checks.special ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                       Special character
                     </div>
                   )}
-                  <div className={`flex items-center gap-2 text-sm ${passwordsMatch ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  <div className={`flex items-center gap-2 text-sm ${passwordsMatch ? 'text-primary' : 'text-muted-foreground'}`}>
                     {passwordsMatch ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                     Passwords match
                   </div>

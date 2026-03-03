@@ -71,7 +71,7 @@ const IPManagement = () => {
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Dashboard</h1>
             
           </div>
       {/* Dashboard Content */}
@@ -185,13 +185,13 @@ const IPManagement = () => {
             <CardContent>
               <div className="space-y-4">
                 {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-4 h-4" style={{color:"#16a249"}} />
+              <CheckCircle className="w-4 h-4 text-primary" />
             </div>
                     <div  className="flex-1">
                       <p className="font-medium text-sm lg:text-base">{activity.action}</p>
-                      <p className="text-sm text-gray-600">{activity.person}</p>
+                      <p className="text-sm text-muted-foreground">{activity.person}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-primary font-medium">{activity.status}</p>

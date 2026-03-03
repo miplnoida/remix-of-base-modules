@@ -174,10 +174,10 @@ export default function DeliveryManagement() {
 
   const getScheduleColor = (type: string) => {
     switch (type) {
-      case 'Immediate': return 'bg-green-100 text-green-800';
-      case 'Scheduled': return 'bg-blue-100 text-blue-800';
-      case 'Delayed': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Immediate': return 'bg-primary/10 text-primary';
+      case 'Scheduled': return 'bg-secondary/10 text-secondary-foreground';
+      case 'Delayed': return 'bg-accent/30 text-accent-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -188,7 +188,7 @@ export default function DeliveryManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Delivery Management</h1>
+        <h1 className="text-3xl font-bold text-foreground">Delivery Management</h1>
         <Button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Create Setting
@@ -240,22 +240,22 @@ export default function DeliveryManagement() {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {setting.scheduleType === 'Delayed' && setting.delay && (
                       <div>
-                        <div className="text-gray-500">Delay</div>
+                        <div className="text-muted-foreground">Delay</div>
                         <div className="font-medium">{setting.delay} min</div>
                       </div>
                     )}
                     {setting.scheduleType === 'Scheduled' && setting.scheduledTime && (
                       <div>
-                        <div className="text-gray-500">Time</div>
+                        <div className="text-muted-foreground">Time</div>
                         <div className="font-medium">{setting.scheduledTime}</div>
                       </div>
                     )}
                     <div>
-                      <div className="text-gray-500">Retry Attempts</div>
+                      <div className="text-muted-foreground">Retry Attempts</div>
                       <div className="font-medium">{setting.retryAttempts}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Batch Size</div>
+                      <div className="text-muted-foreground">Batch Size</div>
                       <div className="font-medium">{setting.batchSize}</div>
                     </div>
                   </div>
@@ -267,9 +267,9 @@ export default function DeliveryManagement() {
           {deliverySettings.length === 0 && (
             <Card className="text-center py-12">
               <CardContent>
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No delivery settings found</h3>
-                <p className="text-gray-500 mb-4">Create your first delivery setting to manage notification scheduling.</p>
+                <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No delivery settings found</h3>
+                <p className="text-muted-foreground mb-4">Create your first delivery setting to manage notification scheduling.</p>
                 <Button onClick={() => setIsCreateModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Setting
@@ -285,52 +285,52 @@ export default function DeliveryManagement() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-blue-600" />
+                   <Clock className="h-5 w-5 text-secondary" />
                   Pending
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-900">234</div>
-                <p className="text-sm text-blue-600">Notifications waiting</p>
+                <div className="text-2xl font-bold text-foreground">234</div>
+                <p className="text-sm text-secondary">Notifications waiting</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Send className="h-5 w-5 text-green-600" />
+                   <Send className="h-5 w-5 text-primary" />
                   Processing
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-900">12</div>
-                <p className="text-sm text-green-600">Currently sending</p>
+                <div className="text-2xl font-bold text-foreground">12</div>
+                <p className="text-sm text-primary">Currently sending</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 text-orange-600" />
+                   <RefreshCw className="h-5 w-5 text-accent-foreground" />
                   Retrying
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-900">8</div>
-                <p className="text-sm text-orange-600">Failed attempts</p>
+                <div className="text-2xl font-bold text-foreground">8</div>
+                <p className="text-sm text-accent-foreground">Failed attempts</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Pause className="h-5 w-5 text-gray-600" />
+                   <Pause className="h-5 w-5 text-muted-foreground" />
                   Paused
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">3</div>
-                <p className="text-sm text-gray-600">On hold</p>
+                <div className="text-2xl font-bold text-foreground">3</div>
+                <p className="text-sm text-muted-foreground">On hold</p>
               </CardContent>
             </Card>
           </div>
@@ -372,26 +372,26 @@ export default function DeliveryManagement() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Success Rate</span>
-                  <span className="font-bold text-green-600">98.5%</span>
+                  <span className="font-bold text-primary">98.5%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '98.5%' }}></div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-primary h-2 rounded-full" style={{ width: '98.5%' }}></div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Average Delivery Time</span>
                   <span className="font-bold">2.3 sec</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-secondary h-2 rounded-full" style={{ width: '75%' }}></div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Retry Rate</span>
-                  <span className="font-bold text-orange-600">3.2%</span>
+                  <span className="font-bold text-accent-foreground">3.2%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-orange-500 h-2 rounded-full" style={{ width: '15%' }}></div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-accent h-2 rounded-full" style={{ width: '15%' }}></div>
                 </div>
               </CardContent>
             </Card>
@@ -405,24 +405,24 @@ export default function DeliveryManagement() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">Batch #1247 completed</p>
-                    <p className="text-xs text-gray-500">500 emails sent successfully • 2 min ago</p>
+                    <p className="text-xs text-muted-foreground">500 emails sent successfully • 2 min ago</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-accent rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">3 notifications failed</p>
-                    <p className="text-xs text-gray-500">SMS delivery issues • 5 min ago</p>
+                    <p className="text-xs text-muted-foreground">SMS delivery issues • 5 min ago</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-secondary rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">Scheduled batch queued</p>
-                    <p className="text-xs text-gray-500">Next run in 4 hours • 10 min ago</p>
+                    <p className="text-xs text-muted-foreground">Next run in 4 hours • 10 min ago</p>
                   </div>
                 </div>
               </CardContent>

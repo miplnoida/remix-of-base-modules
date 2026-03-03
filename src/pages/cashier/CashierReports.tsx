@@ -79,13 +79,13 @@ const CashierReports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Cashier Reports</h1>
-            <p className="text-gray-600">Daily reports and reconciliation documents</p>
+            <h1 className="text-3xl font-bold text-foreground">Cashier Reports</h1>
+            <p className="text-muted-foreground">Daily reports and reconciliation documents</p>
           </div>
           <div className="flex gap-3">
             <Button variant="outline">
@@ -230,17 +230,17 @@ const CashierReports = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">Total Transactions</p>
+                    <p className="text-sm text-muted-foreground">Total Transactions</p>
                     <p className="text-2xl font-bold">{dailyReceipts.length}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">Total EC$</p>
+                    <p className="text-sm text-muted-foreground">Total EC$</p>
                     <p className="text-2xl font-bold">EC$ 2,535.00</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">Total US$</p>
+                    <p className="text-sm text-muted-foreground">Total US$</p>
                     <p className="text-2xl font-bold">US$ 275.50</p>
                   </div>
                 </div>
@@ -499,12 +499,12 @@ const CashierReports = () => {
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 p-4 bg-green-50 rounded-lg">
+                <div className="mt-6 p-4 bg-primary/10 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-green-800">Batch Status:</span>
-                    <Badge className="bg-green-600">Balanced ✓</Badge>
+                    <span className="font-semibold text-primary">Batch Status:</span>
+                    <Badge className="bg-primary text-primary-foreground">Balanced ✓</Badge>
                   </div>
-                  <p className="text-sm text-green-700 mt-2">
+                  <p className="text-sm text-primary mt-2">
                     All amounts match. No variances detected.
                   </p>
                 </div>
@@ -560,8 +560,8 @@ const CashierReports = () => {
                     </TableRow>
                   </TableBody>
                 </Table>
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">
+                <div className="mt-4 p-4 bg-secondary/10 rounded-lg">
+                  <p className="text-sm text-secondary-foreground">
                     <strong>Note:</strong> Journal entries will be automatically posted to Sage upon batch lock confirmation.
                   </p>
                 </div>
