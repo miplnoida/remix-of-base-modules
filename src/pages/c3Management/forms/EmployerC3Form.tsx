@@ -184,6 +184,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }
   }, [initialData]);
 
+  // Auto-switch to data entry mode when no employee rows exist after load
+  useEffect(() => {
+    if (initialData && employerValidated && !isViewMode) {
+      const hasEmployees = initialData.employees && initialData.employees.length > 0;
+      setDataEntryMode(!hasEmployees);
+    }
+  }, [initialData, employerValidated, isViewMode]);
+
   // Set default received by to current user on mount
   useEffect(() => {
     if (!formData.receivedBy && userCode) {
