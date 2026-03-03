@@ -34,11 +34,11 @@ export const SystemOverview = () => {
   const getBadgeColor = (type: string) => {
     switch (type) {
       case 'success':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
+        return 'bg-success/10 text-success hover:bg-success/20';
       case 'warning':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
+        return 'bg-destructive/10 text-destructive hover:bg-destructive/20';
       case 'info':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+        return 'bg-info/10 text-info hover:bg-info/20';
       default:
         return '';
     }

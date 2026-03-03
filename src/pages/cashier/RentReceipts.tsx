@@ -54,11 +54,11 @@ const RentReceipts = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'received':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Received</Badge>;
+        return <Badge variant="default" className="bg-success/10 text-success">Received</Badge>;
       case 'overdue':
         return <Badge variant="destructive">Overdue</Badge>;
       case 'partial':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Partial</Badge>;
+        return <Badge variant="secondary" className="bg-warning/15 text-warning">Partial</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -66,10 +66,10 @@ const RentReceipts = () => {
 
   const getPropertyTypeBadge = (type: string) => {
     const colors = {
-      office: 'bg-blue-100 text-blue-800',
-      commercial: 'bg-purple-100 text-purple-800',
-      warehouse: 'bg-orange-100 text-orange-800',
-      residential: 'bg-green-100 text-green-800'
+      office: 'bg-info/10 text-info',
+      commercial: 'bg-primary/10 text-primary',
+      warehouse: 'bg-warning/15 text-warning',
+      residential: 'bg-success/10 text-success'
     };
     return <Badge variant="outline" className={colors[type as keyof typeof colors]}>{type}</Badge>;
   };

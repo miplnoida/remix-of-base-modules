@@ -27,29 +27,29 @@ interface StatusBadgeProps {
 
 const statusVariantStyles: Record<StatusVariant, string> = {
   // Primary states
-  pending: 'bg-[#F59E0B] text-white border border-[#D97706]',
-  active: 'bg-[#16A34A] text-white border border-[#15803D]',
-  draft: 'bg-[#6B7280] text-white border border-[#4B5563]',
-  approved: 'bg-[#16A34A] text-white border border-[#15803D]',
-  rejected: 'bg-[#DC2626] text-white border border-[#B91C1C]',
-  completed: 'bg-[#047857] text-white border border-[#059669]',
+  pending: 'bg-warning text-warning-foreground border border-warning/80',
+  active: 'bg-success text-success-foreground border border-success/80',
+  draft: 'bg-muted text-muted-foreground border border-border',
+  approved: 'bg-success text-success-foreground border border-success/80',
+  rejected: 'bg-destructive text-destructive-foreground border border-destructive/80',
+  completed: 'bg-success text-success-foreground border border-success/80',
   
   // Risk/SLA states
-  overdue: 'bg-[#B91C1C] text-white border border-[#DC2626]',
-  at_risk: 'bg-[#DC2626] text-white border border-[#B91C1C]',
-  within_sla: 'bg-[#047857] text-white border border-[#059669]',
+  overdue: 'bg-destructive text-destructive-foreground border border-destructive/80',
+  at_risk: 'bg-destructive text-destructive-foreground border border-destructive/80',
+  within_sla: 'bg-success text-success-foreground border border-success/80',
   
   // Legal/Compliance states
-  filed: 'bg-[#B45309] text-white border border-[#C2410C]',
-  in_progress: 'bg-[#0F766E] text-white border border-[#0D9488]',
-  closed: 'bg-[#166534] text-white border border-[#15803D]',
-  suspended: 'bg-[#3F3F46] text-white border border-[#52525B]',
+  filed: 'bg-warning text-warning-foreground border border-warning/80',
+  in_progress: 'bg-info text-info-foreground border border-info/80',
+  closed: 'bg-success text-success-foreground border border-success/80',
+  suspended: 'bg-muted text-muted-foreground border border-border',
   
   // Generic states
-  success: 'bg-[#16A34A] text-white border border-[#15803D]',
-  warning: 'bg-[#F59E0B] text-white border border-[#D97706]',
-  error: 'bg-[#DC2626] text-white border border-[#B91C1C]',
-  info: 'bg-[#0EA5E9] text-white border border-[#0284C7]',
+  success: 'bg-success text-success-foreground border border-success/80',
+  warning: 'bg-warning text-warning-foreground border border-warning/80',
+  error: 'bg-destructive text-destructive-foreground border border-destructive/80',
+  info: 'bg-info text-info-foreground border border-info/80',
 };
 
 // Auto-detect variant from status text

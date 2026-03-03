@@ -49,19 +49,19 @@ const WorkflowInstanceList: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">Pending</Badge>;
       case 'InProgress':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">In Progress</Badge>;
+        return <Badge variant="outline" className="bg-info/10 text-info border-info/30">In Progress</Badge>;
       case 'Completed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>;
+        return <Badge variant="outline" className="bg-success/10 text-success border-success/30">Completed</Badge>;
       case 'Approved':
-        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Approved</Badge>;
+        return <Badge variant="outline" className="bg-success/10 text-success border-success/30">Approved</Badge>;
       case 'Rejected':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejected</Badge>;
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Rejected</Badge>;
       case 'Query':
-        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Query</Badge>;
+        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">Query</Badge>;
       case 'Cancelled':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Cancelled</Badge>;
+        return <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

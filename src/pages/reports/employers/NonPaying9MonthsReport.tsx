@@ -72,11 +72,11 @@ export default function NonPaying9MonthsReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="month" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="employers" fill="#991B1B" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill="hsl(var(--destructive))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -111,7 +111,7 @@ export default function NonPaying9MonthsReport() {
                     <TableCell>{row.zone}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.status === 'Legal Action' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                        row.status === 'Legal Action' ? 'bg-destructive/10 text-destructive' : 'bg-warning/15 text-warning'
                       }`}>
                         {row.status}
                       </span>

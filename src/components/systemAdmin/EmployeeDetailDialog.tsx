@@ -49,9 +49,9 @@ export function EmployeeDetailDialog({ open, onOpenChange, employee }: EmployeeD
             <div>
               <p className="text-sm text-muted-foreground">Employment Status</p>
               <Badge className={
-                employee.employmentStatus === "Active" ? "bg-green-100 text-green-800" :
-                employee.employmentStatus === "On Leave" ? "bg-blue-100 text-blue-800" :
-                "bg-gray-100 text-gray-800"
+                employee.employmentStatus === "Active" ? "bg-success/10 text-success" :
+                employee.employmentStatus === "On Leave" ? "bg-info/10 text-info" :
+                "bg-muted text-muted-foreground"
               }>
                 {employee.employmentStatus}
               </Badge>

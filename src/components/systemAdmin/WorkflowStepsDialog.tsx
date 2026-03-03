@@ -60,7 +60,7 @@ export function WorkflowStepsDialog({ open, onOpenChange, workflow }: WorkflowSt
                     <Badge variant="outline">{step.approverType}</Badge>
                   </TableCell>
                   <TableCell>
-                    {step.isFinalStep && <Badge className="bg-blue-100 text-blue-800">Final</Badge>}
+                    {step.isFinalStep && <Badge className="bg-info/10 text-info">Final</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

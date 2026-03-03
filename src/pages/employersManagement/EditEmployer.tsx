@@ -1017,7 +1017,7 @@ export const EditEmployer = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => navigate('/employers-management/dashboard')}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                   className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                 >
                   <ArrowLeft className="h-4 w-4" />
                  
@@ -1028,7 +1028,7 @@ export const EditEmployer = () => {
                 
               </div>
               <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-                <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" onClick={() => setShowSuccess(true)}>
+                <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md" onClick={() => setShowSuccess(true)}>
                   Draft
                 </Button>
                 <Button type="button" className="flex items-center gap-2 border-r-4 border-r-primary" onClick={() => setShowSuccess(true)}>
@@ -1041,14 +1041,14 @@ export const EditEmployer = () => {
         <CardContent className="py-4 px-6">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
             </div>
             <div className="flex flex-col gap-1 justify-center">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground leading-tight">
                 Edit: John Michael Doe
               </h1>
               <div className="flex items-center gap-3">
-                <span className="text-gray-600 text-sm font-medium">SSN: 123456</span>
+                <span className="text-muted-foreground text-sm font-medium">SSN: 123456</span>
                 
               </div>
             </div>
@@ -1072,7 +1072,7 @@ export const EditEmployer = () => {
 
             <TabsContent value="form-detail" className="space-y-6">
               {/* Stepper */}
-              <Card className='py-5 mt-5' style={{backgroundColor:"#F9FAFB"}}>
+              <Card className='py-5 mt-5 bg-muted/50'>
                 <div className='px-5 mb-6'>
                   <Card className='p-3'>
                     <Stepper 
@@ -1097,7 +1097,7 @@ export const EditEmployer = () => {
                       variant="outline"
                       onClick={prevStep}
                       disabled={currentStep === 0}
-                      className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100 mr-5"
+                      className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md bg-primary/10 mr-5"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       Back

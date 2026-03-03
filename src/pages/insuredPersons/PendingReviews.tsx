@@ -160,11 +160,11 @@ const PendingReviews = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Draft':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Draft</Badge>;
+        return <Badge variant="default" className="bg-success/10 text-success">Draft</Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-warning/15 text-warning">Pending</Badge>;
       case 'Inactive':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>;
+        return <Badge variant="secondary" className="bg-destructive/10 text-destructive">Inactive</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -230,16 +230,16 @@ const PendingReviews = () => {
             <Button 
                         variant="outline" 
                          onClick={() => navigate('/person/management')}
-                        className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                        className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                       >
                         <ArrowLeft className="h-4 w-4" />
                        
                         <span className="sm:hidden">Back</span>
                       </Button>
            
-            <div className="h-6 w-px bg-gray-300" />
+            <div className="h-6 w-px bg-border" />
             <div>
-              <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Verification</h1>
+              <h1 className="text-xl lg:text-3xl font-bold text-foreground">Pending Verification</h1>
             </div>
           </div>
           
@@ -250,13 +250,13 @@ const PendingReviews = () => {
       <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} className='mt-5'>
         <Card>
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base lg:text-lg">
                     Query by
                   </CardTitle>
-                  <p className='text-[#9D9D9D]'>Filter and search  {location.pathname === '/person/pending-reviews' ? "Pending Reviews" : "IP Management"}</p>
+                  <p className='text-muted-foreground'>Filter and search  {location.pathname === '/person/pending-reviews' ? "Pending Reviews" : "IP Management"}</p>
                 </div>
                 {isFiltersOpen ? <ChevronUp className="h-4 w-4 lg:h-5 lg:w-5" /> : <ChevronDown className="h-4 w-4 lg:h-5 lg:w-5" />}
               </div>
@@ -282,7 +282,7 @@ const PendingReviews = () => {
                       value={searchParams.dob}
                       onChange={(e) => setSearchParams(prev => ({ ...prev, dob: e.target.value }))}
                     />
-                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
                 <div>

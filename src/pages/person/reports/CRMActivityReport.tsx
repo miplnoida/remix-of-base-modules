@@ -73,7 +73,7 @@ export default function CRMActivityReport() {
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.type}</TableCell>
                     <TableCell>{row.officer}</TableCell>
-                    <TableCell><span className="text-[#009B4C] font-semibold">{row.outcome}</span></TableCell>
+                    <TableCell><span className="text-success font-semibold">{row.outcome}</span></TableCell>
                     <TableCell>{row.date}</TableCell>
                   </TableRow>
                 ))}

@@ -135,15 +135,15 @@ export default function ViewC3Record() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Verified":
-        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
+        return <Badge className="bg-success/10 text-success">Verified</Badge>;
       case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-warning/15 text-warning">Pending</Badge>;
       case "Draft":
-        return <Badge className="bg-blue-100 text-blue-800">Draft</Badge>;
+        return <Badge className="bg-info/10 text-info">Draft</Badge>;
       case "Rejected":
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive">Rejected</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return <Badge className="bg-muted text-muted-foreground">{status}</Badge>;
     }
   };
 

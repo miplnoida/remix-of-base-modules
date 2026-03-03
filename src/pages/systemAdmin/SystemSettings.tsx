@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,8 +53,8 @@ const SystemSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -68,11 +67,11 @@ const SystemSettings = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Profile
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>User Profile & Permissions</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">System Settings</span>
+                <span className="text-foreground font-medium">System Settings</span>
               </nav>
             </div>
           </div>
@@ -81,8 +80,8 @@ const SystemSettings = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
-          <p className="text-gray-600">System configuration and settings (Admin only)</p>
+          <h1 className="text-3xl font-bold text-foreground">System Settings</h1>
+          <p className="text-muted-foreground">System configuration and settings (Admin only)</p>
         </div>
 
         <Tabs defaultValue="system" className="w-full">
@@ -98,7 +97,7 @@ const SystemSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-blue-500" />
+                  <Settings className="h-5 w-5 text-info" />
                   General System Settings
                 </CardTitle>
                 <CardDescription>Basic system configuration</CardDescription>
@@ -144,7 +143,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                      <p className="text-sm text-gray-500">Enable to put the system in maintenance mode</p>
+                      <p className="text-sm text-muted-foreground">Enable to put the system in maintenance mode</p>
                     </div>
                     <Switch
                       id="maintenanceMode"
@@ -158,7 +157,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="debugMode">Debug Mode</Label>
-                      <p className="text-sm text-gray-500">Enable detailed error logging</p>
+                      <p className="text-sm text-muted-foreground">Enable detailed error logging</p>
                     </div>
                     <Switch
                       id="debugMode"
@@ -182,7 +181,7 @@ const SystemSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-green-500" />
+                  <Mail className="h-5 w-5 text-success" />
                   Email Configuration
                 </CardTitle>
                 <CardDescription>Configure SMTP settings for email notifications</CardDescription>
@@ -270,7 +269,7 @@ const SystemSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-red-500" />
+                  <Shield className="h-5 w-5 text-destructive" />
                   Security Settings
                 </CardTitle>
                 <CardDescription>Configure security and authentication settings</CardDescription>
@@ -318,7 +317,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="passwordComplexity">Password Complexity</Label>
-                      <p className="text-sm text-gray-500">Require special characters, numbers, and mixed case</p>
+                      <p className="text-sm text-muted-foreground">Require special characters, numbers, and mixed case</p>
                     </div>
                     <Switch
                       id="passwordComplexity"
@@ -332,7 +331,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="twoFactorAuth">Two-Factor Authentication</Label>
-                      <p className="text-sm text-gray-500">Require 2FA for all users</p>
+                      <p className="text-sm text-muted-foreground">Require 2FA for all users</p>
                     </div>
                     <Switch
                       id="twoFactorAuth"
@@ -356,7 +355,7 @@ const SystemSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-purple-500" />
+                  <Bell className="h-5 w-5 text-accent-foreground" />
                   Notification Settings
                 </CardTitle>
                 <CardDescription>Configure system notifications and alerts</CardDescription>
@@ -366,7 +365,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="emailNotifications">Email Notifications</Label>
-                      <p className="text-sm text-gray-500">Send notifications via email</p>
+                      <p className="text-sm text-muted-foreground">Send notifications via email</p>
                     </div>
                     <Switch
                       id="emailNotifications"
@@ -380,7 +379,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="complianceAlerts">Compliance Alerts</Label>
-                      <p className="text-sm text-gray-500">Alerts for compliance violations</p>
+                      <p className="text-sm text-muted-foreground">Alerts for compliance violations</p>
                     </div>
                     <Switch
                       id="complianceAlerts"
@@ -394,7 +393,7 @@ const SystemSettings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="deadlineReminders">Deadline Reminders</Label>
-                      <p className="text-sm text-gray-500">Reminders for upcoming deadlines</p>
+                      <p className="text-sm text-muted-foreground">Reminders for upcoming deadlines</p>
                     </div>
                     <Switch
                       id="deadlineReminders"
@@ -418,7 +417,7 @@ const SystemSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Database className="h-5 w-5 text-orange-500" />
+                  <Database className="h-5 w-5 text-warning" />
                   Backup Settings
                 </CardTitle>
                 <CardDescription>Configure automatic backup settings</CardDescription>
@@ -427,7 +426,7 @@ const SystemSettings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="autoBackup">Automatic Backup</Label>
-                    <p className="text-sm text-gray-500">Enable automatic database backups</p>
+                    <p className="text-sm text-muted-foreground">Enable automatic database backups</p>
                   </div>
                   <Switch
                     id="autoBackup"
