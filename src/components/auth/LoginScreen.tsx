@@ -238,11 +238,11 @@ export const LoginScreen = () => {
       
       <div className="w-full max-w-md space-y-6 relative z-10">
         <div className="text-center space-y-4">
-          <div className="mx-auto w-28 h-28 rounded-full flex items-center justify-center p-3">
+          <div className="mx-auto w-28 h-28 rounded-full flex items-center justify-center p-2 bg-card/95 ring-1 ring-border/60 shadow-lg overflow-hidden">
             <img 
               src="/images/ssb-logo.png" 
               alt="St. Christopher & Nevis Social Security Board" 
-              className="w-full h-full object-contain drop-shadow-lg"
+              className="w-full h-full object-cover rounded-full"
             />
           </div>
           <div>

@@ -1,16 +1,36 @@
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
 import { ComplianceDashboard } from "@/components/dashboards/ComplianceDashboard";
 import { BenefitsDashboard } from "@/components/dashboards/BenefitsDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Building2, FileText, Shield, DollarSign } from "lucide-react";
 
+const DASHBOARD_ROLES = new Set([
+  'admin',
+  'administrator',
+  'compliance_officer',
+  'benefits_manager',
+  'hr_manager',
+  'financial_analyst',
+]);
+
+const normalizeRole = (role?: string) => role?.trim().toLowerCase().replace(/[\s-]+/g, '_') ?? '';
+
+const resolveDashboardRole = (roles: string[], fallbackRole?: string) => {
+  const matchedRole = roles.map(normalizeRole).find((role) => DASHBOARD_ROLES.has(role));
+  const resolved = matchedRole || normalizeRole(fallbackRole);
+  return resolved === 'administrator' ? 'admin' : resolved;
+};
+
 export const Dashboard = () => {
-  const { user } = useAuth();
+  const { user: mockUser } = useAuth();
+  const { roles } = useSupabaseAuth();
+  const effectiveRole = resolveDashboardRole(roles, mockUser?.role);
 
   const renderDashboard = () => {
-    switch (user?.role) {
+    switch (effectiveRole) {
       case 'admin':
         return <AdminDashboard />;
       case 'compliance_officer':
@@ -26,11 +46,7 @@ export const Dashboard = () => {
     }
   };
 
-  return (
-    <div className="h-full">
-      {renderDashboard()}
-    </div>
-  );
+  return <div className="h-full">{renderDashboard()}</div>;
 };
 
 // HR Dashboard Component
