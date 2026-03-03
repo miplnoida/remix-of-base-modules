@@ -1,9 +1,9 @@
 # C3-Wizard Sync Implementation Guide
 
-> **Version:** 1.0  
-> **Last Updated:** 2026-02-25  
+> **Version:** 3.0  
+> **Last Updated:** 2026-03-03  
 > **Author:** Senior Backend Architecture Team  
-> **Status:** Implementation Ready
+> **Status:** Implementation Ready — Updated for Bonus & Holiday Pay Policies
 
 ---
 
@@ -14,7 +14,8 @@
 3. [Sync API Design (C3-Wizard Side)](#3-sync-api-design-c3-wizard-side)
 4. [Publish Flow (Admin → C3-Wizard)](#4-publish-flow-admin--c3-wizard)
 5. [Calculation Logic Strategy](#5-calculation-logic-strategy)
-6. [FAQ & Decision Guidance](#6-faq--decision-guidance)
+6. [Migration Guide (v2.0 → v3.0)](#6-migration-guide-v20--v30)
+7. [FAQ & Decision Guidance](#7-faq--decision-guidance)
 
 ---
 
@@ -23,17 +24,20 @@
 ### System Context
 
 ```
-┌─────────────────────────┐         ┌──────────────────────────┐
-│     ADMIN SYSTEM        │         │     C3-WIZARD SYSTEM     │
-│  (C3 Configuration)     │         │  (Employer Portal)       │
-│                         │         │                          │
-│  c3_config_periods      │  POST   │  wiz_c3_config_periods   │
-│  c3_config_details      │ ──────> │  wiz_c3_config_details   │
-│  tb_levy_slabs          │  /sync  │  wiz_levy_slabs          │
-│  tb_levy_slab_details   │         │  wiz_levy_slab_details   │
-│  c3_bonus_levy_exemptions│        │  wiz_bonus_levy_exemptions│
-│  c3_config_sync_log     │         │  wiz_config_sync_log     │
-└─────────────────────────┘         └──────────────────────────┘
+┌──────────────────────────────┐         ┌──────────────────────────────────┐
+│       ADMIN SYSTEM           │         │       C3-WIZARD SYSTEM           │
+│   (C3 Configuration)        │         │   (Employer Portal)              │
+│                              │         │                                  │
+│  c3_config_periods           │  POST   │  wiz_c3_config_periods           │
+│  c3_config_details           │ ──────> │  wiz_c3_config_details           │
+│  tb_levy_slabs               │  /sync  │  wiz_levy_slabs                  │
+│  tb_levy_slab_details        │         │  wiz_levy_slab_details           │
+│  c3_bonus_policy_default     │         │  wiz_bonus_policy_default    NEW │
+│  c3_bonus_policy_exceptions  │         │  wiz_bonus_policy_exceptions NEW │
+│  c3_holiday_pay_policy_default│        │  wiz_holiday_pay_policy_default NEW│
+│  c3_holiday_pay_policy_exceptions│     │  wiz_holiday_pay_policy_exceptions NEW│
+│  c3_config_sync_log          │         │  wiz_config_sync_log             │
+└──────────────────────────────┘         └──────────────────────────────────┘
 ```
 
 ### Key Principles
@@ -43,242 +47,332 @@
 - **Local Calculations**: C3-Wizard performs all contribution calculations locally using its own synced config tables — no runtime dependency on Admin APIs.
 - **Audit Trail**: Every sync is logged on both sides (Admin: `c3_config_sync_log`, Wizard: `wiz_config_sync_log`).
 
+### What Changed in v3.0
+
+| Change | Description |
+|---|---|
+| **Removed** `wiz_bonus_levy_exemptions` | Old table is deprecated. Bonus handling is now policy-based. |
+| **Removed** `bonus_exempt_from_levy`, `bonus_levy_rate` from `wiz_c3_config_details` | These legacy columns are no longer in Admin. Bonus logic is in policy tables. |
+| **Added** `employer_eib_max_wage` to `wiz_c3_config_details` | New EIB wage ceiling field. |
+| **Added** `wiz_bonus_policy_default` | Full bonus policy with levy/SSC rules, distribution, contribution flags. |
+| **Added** `wiz_bonus_policy_exceptions` | Month/year overrides for bonus policy. |
+| **Added** `wiz_holiday_pay_policy_default` | Holiday pay policy with separate levy & SSC rules, distribution, severance. |
+| **Added** `wiz_holiday_pay_policy_exceptions` | Month/year overrides for holiday pay policy. |
+| **Updated** payload format | `bonus_exemptions` array replaced by `bonus_policies`, `bonus_exceptions`, `holiday_policies`, `holiday_exceptions`. |
+
 ---
 
 ## 2. Database Design & SQL Scripts
 
-### 2.1 Admin Source Tables (Already Exist)
+### 2.1 Admin Source Tables (Current)
 
 | Admin Table | Purpose |
 |---|---|
 | `c3_config_periods` | Period definitions (date ranges, active flag) |
-| `c3_config_details` | All rates, age limits, thresholds (1:1 with period) |
+| `c3_config_details` | All rates, age limits, thresholds (1:1 with period) — includes `employer_eib_max_wage` |
 | `tb_levy_slabs` | Levy slab header (date range, active flag) |
 | `tb_levy_slab_details` | Levy bracket rows (over_amt, base_amt, tax_rate) |
-| `c3_bonus_levy_exemptions` | Month/year exemption flags for bonus levy |
+| `c3_bonus_policy_default` | Default bonus policy: levy/severance inclusion, calculation method, distribution, contribution flags |
+| `c3_bonus_policy_exceptions` | Month/year overrides for bonus policy |
+| `c3_holiday_pay_policy_default` | Default holiday pay policy: policy type, distribution, levy/SSC/severance rules |
+| `c3_holiday_pay_policy_exceptions` | Month/year overrides for holiday pay policy |
 | `c3_config_sync_log` | Publish history (payload, status, hash) |
 
 ### 2.2 C3-Wizard Mirror Tables — SQL Scripts
 
-> **IMPORTANT**: These scripts are for the **C3-Wizard database** (separate from Admin). Each table adds an `admin_sync_id` column (UNIQUE) that maps to the Admin table's `id`, plus `synced_at` and `sync_version` for tracking.
+> **IMPORTANT**: These scripts are for the **C3-Wizard database** (separate from Admin). Each table adds `admin_sync_id` (UNIQUE), `synced_at`, and `sync_version` for tracking.
 
-#### Table 1: `wiz_c3_config_periods`
+#### Table 1: `wiz_c3_config_periods` (No changes from v2.0)
 
 ```sql
--- =============================================================
--- C3-Wizard: Configuration Periods (mirrors c3_config_periods)
--- =============================================================
-CREATE TABLE public.wiz_c3_config_periods (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_sync_id   UUID NOT NULL UNIQUE,          -- Maps to Admin c3_config_periods.id
-  start_date      DATE NOT NULL,
-  end_date        DATE,
-  description     TEXT,
-  is_active       BOOLEAN DEFAULT true,
-  created_by      VARCHAR(5),
-  created_on      TIMESTAMPTZ DEFAULT now(),
-  modified_by     VARCHAR(5),
-  modified_on     TIMESTAMPTZ DEFAULT now(),
-  synced_at       TIMESTAMPTZ DEFAULT now(),     -- When this row was last synced
-  sync_version    TEXT                            -- Sync batch version identifier
-);
-
-CREATE INDEX idx_wiz_config_periods_active ON public.wiz_c3_config_periods(is_active);
-CREATE INDEX idx_wiz_config_periods_dates ON public.wiz_c3_config_periods(start_date, end_date);
-CREATE INDEX idx_wiz_config_periods_sync ON public.wiz_c3_config_periods(admin_sync_id);
+-- Already exists. No migration needed.
 ```
 
-#### Table 2: `wiz_c3_config_details`
+#### Table 2: `wiz_c3_config_details` (UPDATED — add `employer_eib_max_wage`, remove legacy bonus fields)
+
+```sql
+-- Migration: Add new column and remove deprecated columns
+ALTER TABLE public.wiz_c3_config_details 
+  ADD COLUMN IF NOT EXISTS employer_eib_max_wage NUMERIC DEFAULT 6500.00 NOT NULL;
+
+-- Remove deprecated bonus columns (no longer in Admin schema)
+ALTER TABLE public.wiz_c3_config_details 
+  DROP COLUMN IF EXISTS bonus_exempt_from_levy,
+  DROP COLUMN IF EXISTS bonus_levy_rate;
+```
+
+**Full column list after migration:**
+- `id`, `config_period_id`, `admin_sync_id`
+- Age: `min_age_ss`, `max_age_ss`, `min_age_levy`, `max_age_levy`
+- Employee SS: `employee_ss_rate`, `employee_ss_max_wage`
+- Employer: `employer_ss_rate`, `employer_eib_rate`, `employer_eib_max_wage` (NEW), `employer_ss_max_wage`, `employer_levy_rate`, `employer_severance_rate`
+- Submission: `submission_due_day`
+- Penalties: `levy_penalty_initial_rate`, `levy_penalty_subsequent_rate`, `severance_penalty_initial_rate`, `severance_penalty_subsequent_rate`, `ss_fine_initial_rate`, `ss_fine_subsequent_rate`
+- Levy Threshold: `levy_slab_id`, `levy_monthly_threshold`, `levy_use_monthly_when_exceeded`
+- Audit: `created_by`, `created_on`, `modified_by`, `modified_on`, `synced_at`, `sync_version`
+
+#### Table 3: `wiz_levy_slabs` (No changes from v2.0)
+
+```sql
+-- Already exists. No migration needed.
+```
+
+#### Table 4: `wiz_levy_slab_details` (No changes from v2.0)
+
+```sql
+-- Already exists. No migration needed.
+```
+
+#### Table 5: `wiz_bonus_policy_default` (NEW — replaces `wiz_bonus_levy_exemptions`)
 
 ```sql
 -- =============================================================
--- C3-Wizard: Configuration Details (mirrors c3_config_details)
--- Exact same columns as Admin — zero transformation required
+-- C3-Wizard: Bonus Policy Default (mirrors c3_bonus_policy_default)
 -- =============================================================
-CREATE TABLE public.wiz_c3_config_details (
-  id                              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  config_period_id                UUID NOT NULL REFERENCES public.wiz_c3_config_periods(id) ON DELETE CASCADE,
-  admin_sync_id                   UUID NOT NULL UNIQUE,  -- Maps to Admin c3_config_details.id
+CREATE TABLE public.wiz_bonus_policy_default (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_sync_id         UUID NOT NULL UNIQUE,
 
-  -- Age Limits
-  min_age_ss                      INTEGER DEFAULT 16,
-  max_age_ss                      INTEGER DEFAULT 62,
-  min_age_levy                    INTEGER DEFAULT 16,
-  max_age_levy                    INTEGER DEFAULT 62,
+  -- Levy & Severance
+  include_in_levy       BOOLEAN NOT NULL DEFAULT true,
+  include_in_severance  BOOLEAN NOT NULL DEFAULT false,
+  contrib_severance     BOOLEAN NOT NULL DEFAULT false,
 
-  -- Bonus Levy
-  bonus_exempt_from_levy          BOOLEAN DEFAULT false,
-  bonus_levy_rate                 NUMERIC DEFAULT 0.035,
+  -- Calculation Method
+  calculation_method    TEXT NOT NULL DEFAULT 'merge',   -- 'merge' or 'separate'
+  calc_flat_enabled     BOOLEAN NOT NULL DEFAULT false,
+  calc_flat_percentage  NUMERIC,
+  calc_slab_enabled     BOOLEAN NOT NULL DEFAULT true,
 
-  -- Employee Social Security
-  employee_ss_rate                NUMERIC DEFAULT 0.05,
-  employee_ss_max_wage            NUMERIC DEFAULT 6500.00,
+  -- Distribution (JSONB: weekly/biweekly/semimonthly/monthly radio selections)
+  distribution          JSONB NOT NULL DEFAULT '{"weekly":{"w1":false,"w2":false,"w3":false,"w4":false,"divide":false},"monthly":{"m1":true},"biweekly":{"b1":false,"b2":false,"divide":true},"semimonthly":{"s1":false,"s2":false,"divide":false}}',
 
-  -- Employer Contributions
-  employer_ss_rate                NUMERIC DEFAULT 0.05,
-  employer_eib_rate               NUMERIC DEFAULT 0.01,
-  employer_ss_max_wage            NUMERIC DEFAULT 6500.00,
-  employer_levy_rate              NUMERIC DEFAULT 0.03,
-  employer_severance_rate         NUMERIC DEFAULT 0.01,
+  -- Bonus Amount Range
+  min_bonus_amount      NUMERIC DEFAULT 1000,
+  max_bonus_amount      NUMERIC DEFAULT 75000,
 
-  -- Submission
-  submission_due_day              INTEGER DEFAULT 0,
+  -- SSC Contribution Flags
+  contrib_employee      BOOLEAN NOT NULL DEFAULT true,
+  contrib_employer      BOOLEAN NOT NULL DEFAULT true,
+  contrib_eir           BOOLEAN NOT NULL DEFAULT false,
 
-  -- Penalty Rates
-  levy_penalty_initial_rate       NUMERIC DEFAULT 0.10,
-  levy_penalty_subsequent_rate    NUMERIC DEFAULT 0.01,
-  severance_penalty_initial_rate  NUMERIC DEFAULT 0.10,
-  severance_penalty_subsequent_rate NUMERIC DEFAULT 0.01,
-
-  -- SS Fines
-  ss_fine_initial_rate            NUMERIC DEFAULT 0.05,
-  ss_fine_subsequent_rate         NUMERIC DEFAULT 0.05,
-
-  -- Interest Rates
-  interest_rate_ss_principal      NUMERIC DEFAULT 0.00,
-  interest_rate_levy_principal    NUMERIC DEFAULT 0.00,
-  interest_rate_severance_principal NUMERIC DEFAULT 0.00,
-  interest_rate_penalties         NUMERIC DEFAULT 0.00,
-  interest_rate_fines             NUMERIC DEFAULT 0.00,
-
-  -- Levy Slab Reference
-  levy_slab_id                    UUID,  -- Will reference wiz_levy_slabs after sync
-
-  -- Levy Threshold
-  levy_monthly_threshold          NUMERIC DEFAULT 6500,
-  levy_use_monthly_when_exceeded  BOOLEAN DEFAULT false,
+  -- Validity
+  date_from             DATE NOT NULL DEFAULT CURRENT_DATE,
+  date_to               DATE,
+  is_active             BOOLEAN NOT NULL DEFAULT true,
 
   -- Audit
-  created_by                      VARCHAR(5),
-  created_on                      TIMESTAMPTZ DEFAULT now(),
-  modified_by                     VARCHAR(5),
-  modified_on                     TIMESTAMPTZ DEFAULT now(),
-  synced_at                       TIMESTAMPTZ DEFAULT now(),
-  sync_version                    TEXT
+  created_by            TEXT,
+  created_on            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_by           TEXT,
+  modified_on           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  synced_at             TIMESTAMPTZ DEFAULT now(),
+  sync_version          TEXT
 );
 
-CREATE INDEX idx_wiz_config_details_period ON public.wiz_c3_config_details(config_period_id);
-CREATE INDEX idx_wiz_config_details_sync ON public.wiz_c3_config_details(admin_sync_id);
+CREATE INDEX idx_wiz_bonus_policy_default_active ON public.wiz_bonus_policy_default(is_active);
+CREATE INDEX idx_wiz_bonus_policy_default_dates ON public.wiz_bonus_policy_default(date_from, date_to);
+CREATE INDEX idx_wiz_bonus_policy_default_sync ON public.wiz_bonus_policy_default(admin_sync_id);
 ```
 
-#### Table 3: `wiz_levy_slabs`
+#### Table 6: `wiz_bonus_policy_exceptions` (NEW)
 
 ```sql
 -- =============================================================
--- C3-Wizard: Levy Slabs (mirrors tb_levy_slabs)
+-- C3-Wizard: Bonus Policy Exceptions (mirrors c3_bonus_policy_exceptions)
 -- =============================================================
-CREATE TABLE public.wiz_levy_slabs (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_sync_id   UUID NOT NULL UNIQUE,          -- Maps to Admin tb_levy_slabs.id
-  start_date      DATE NOT NULL,
-  end_date        DATE NOT NULL,
-  is_active       BOOLEAN DEFAULT true,
-  created_by      VARCHAR(5) DEFAULT '',
-  created_on      TIMESTAMPTZ DEFAULT now(),
-  modified_by     VARCHAR(5) DEFAULT '',
-  modified_on     TIMESTAMPTZ DEFAULT now(),
-  synced_at       TIMESTAMPTZ DEFAULT now(),
-  sync_version    TEXT
+CREATE TABLE public.wiz_bonus_policy_exceptions (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_sync_id         UUID NOT NULL UNIQUE,
+
+  -- Exception Scope
+  date_from             TEXT NOT NULL,
+  date_to               TEXT,
+  exception_type        TEXT NOT NULL DEFAULT 'onetime',  -- 'onetime' or 'recurring'
+  exception_month       INTEGER NOT NULL DEFAULT 1,
+  year_from             INTEGER NOT NULL DEFAULT 2025,
+  year_to               INTEGER,
+
+  -- Override Flags (NULL = inherit from default)
+  override_default      BOOLEAN NOT NULL DEFAULT false,
+  include_in_levy       BOOLEAN,
+  include_in_severance  BOOLEAN,
+  calculation_method    TEXT,
+  calc_flat_enabled     BOOLEAN,
+  calc_flat_percentage  NUMERIC,
+  calc_slab_enabled     BOOLEAN,
+  distribution          JSONB,
+  min_bonus_amount      NUMERIC,
+  max_bonus_amount      NUMERIC,
+  contrib_employee      BOOLEAN,
+  contrib_employer      BOOLEAN,
+  contrib_eir           BOOLEAN,
+  contrib_severance     BOOLEAN,
+
+  -- Metadata
+  is_active             BOOLEAN NOT NULL DEFAULT true,
+  description           TEXT,
+  created_by            TEXT,
+  created_on            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_by           TEXT,
+  modified_on           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  synced_at             TIMESTAMPTZ DEFAULT now(),
+  sync_version          TEXT
 );
 
-CREATE INDEX idx_wiz_levy_slabs_active ON public.wiz_levy_slabs(is_active);
-CREATE INDEX idx_wiz_levy_slabs_dates ON public.wiz_levy_slabs(start_date, end_date);
-CREATE INDEX idx_wiz_levy_slabs_sync ON public.wiz_levy_slabs(admin_sync_id);
+CREATE INDEX idx_wiz_bonus_exc_active ON public.wiz_bonus_policy_exceptions(is_active);
+CREATE INDEX idx_wiz_bonus_exc_period ON public.wiz_bonus_policy_exceptions(exception_month, year_from);
+CREATE INDEX idx_wiz_bonus_exc_sync ON public.wiz_bonus_policy_exceptions(admin_sync_id);
 ```
 
-#### Table 4: `wiz_levy_slab_details`
+#### Table 7: `wiz_holiday_pay_policy_default` (NEW)
 
 ```sql
 -- =============================================================
--- C3-Wizard: Levy Slab Details (mirrors tb_levy_slab_details)
+-- C3-Wizard: Holiday Pay Policy Default (mirrors c3_holiday_pay_policy_default)
 -- =============================================================
-CREATE TABLE public.wiz_levy_slab_details (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slab_id         UUID NOT NULL REFERENCES public.wiz_levy_slabs(id) ON DELETE CASCADE,
-  admin_sync_id   UUID NOT NULL UNIQUE,          -- Maps to Admin tb_levy_slab_details.id
-  pay_period      VARCHAR,
-  over_amt        NUMERIC,
-  base_amt        NUMERIC,
-  tax_rate        NUMERIC,
-  order_no        INTEGER,
-  is_active       BOOLEAN DEFAULT true,
-  created_by      VARCHAR(5) DEFAULT '',
-  created_on      TIMESTAMPTZ DEFAULT now(),
-  modified_by     VARCHAR(5) DEFAULT '',
-  modified_on     TIMESTAMPTZ DEFAULT now(),
-  synced_at       TIMESTAMPTZ DEFAULT now(),
-  sync_version    TEXT
+CREATE TABLE public.wiz_holiday_pay_policy_default (
+  id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_sync_id             UUID NOT NULL UNIQUE,
+
+  -- Policy Type
+  policy_type               TEXT NOT NULL DEFAULT 'without_dates',  -- 'with_dates' or 'without_dates'
+  distribution_enabled      BOOLEAN NOT NULL DEFAULT true,
+
+  -- Levy Rules
+  levy_include              BOOLEAN NOT NULL DEFAULT true,
+  levy_calculation_method   TEXT NOT NULL DEFAULT 'merge',
+  levy_calc_flat_enabled    BOOLEAN NOT NULL DEFAULT false,
+  levy_calc_flat_percentage NUMERIC,
+  levy_calc_slab_enabled    BOOLEAN NOT NULL DEFAULT false,
+  levy_distribution         JSONB NOT NULL DEFAULT '{"weekly":{"w1":false,"w2":false,"w3":false,"w4":false,"divide":false},"monthly":{"m1":true},"biweekly":{"b1":false,"b2":false,"divide":true},"semimonthly":{"s1":false,"s2":false,"divide":false}}',
+
+  -- SSC Rules
+  ssc_include               BOOLEAN NOT NULL DEFAULT true,
+  ssc_contrib_employee      BOOLEAN NOT NULL DEFAULT true,
+  ssc_contrib_employer      BOOLEAN NOT NULL DEFAULT true,
+  ssc_contrib_eib           BOOLEAN NOT NULL DEFAULT false,
+
+  -- Severance
+  include_in_severance      BOOLEAN NOT NULL DEFAULT false,
+
+  -- Amount Range
+  min_holiday_amount        NUMERIC,
+  max_holiday_amount        NUMERIC,
+
+  -- Validity
+  date_from                 DATE NOT NULL DEFAULT CURRENT_DATE,
+  date_to                   DATE,
+  is_active                 BOOLEAN NOT NULL DEFAULT true,
+
+  -- Audit
+  created_by                TEXT,
+  created_on                TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_by               TEXT,
+  modified_on               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  synced_at                 TIMESTAMPTZ DEFAULT now(),
+  sync_version              TEXT
 );
 
-CREATE INDEX idx_wiz_slab_details_slab ON public.wiz_levy_slab_details(slab_id);
-CREATE INDEX idx_wiz_slab_details_sync ON public.wiz_levy_slab_details(admin_sync_id);
-CREATE INDEX idx_wiz_slab_details_order ON public.wiz_levy_slab_details(slab_id, order_no);
+CREATE INDEX idx_wiz_holiday_policy_active ON public.wiz_holiday_pay_policy_default(is_active);
+CREATE INDEX idx_wiz_holiday_policy_dates ON public.wiz_holiday_pay_policy_default(date_from, date_to);
+CREATE INDEX idx_wiz_holiday_policy_sync ON public.wiz_holiday_pay_policy_default(admin_sync_id);
 ```
 
-#### Table 5: `wiz_bonus_levy_exemptions`
+#### Table 8: `wiz_holiday_pay_policy_exceptions` (NEW)
 
 ```sql
 -- =============================================================
--- C3-Wizard: Bonus Levy Exemptions (mirrors c3_bonus_levy_exemptions)
+-- C3-Wizard: Holiday Pay Policy Exceptions (mirrors c3_holiday_pay_policy_exceptions)
 -- =============================================================
-CREATE TABLE public.wiz_bonus_levy_exemptions (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_sync_id   UUID NOT NULL UNIQUE,          -- Maps to Admin c3_bonus_levy_exemptions.id
-  period_year     INTEGER NOT NULL,
-  period_month    INTEGER NOT NULL,
-  is_exempt       BOOLEAN NOT NULL DEFAULT true,
-  description     TEXT,
-  is_active       BOOLEAN DEFAULT true,
-  created_by      VARCHAR(5),
-  created_on      TIMESTAMPTZ DEFAULT now(),
-  modified_by     VARCHAR(5),
-  modified_on     TIMESTAMPTZ DEFAULT now(),
-  synced_at       TIMESTAMPTZ DEFAULT now(),
-  sync_version    TEXT
+CREATE TABLE public.wiz_holiday_pay_policy_exceptions (
+  id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_sync_id             UUID NOT NULL UNIQUE,
+
+  -- Exception Scope
+  date_from                 DATE NOT NULL,
+  date_to                   DATE,
+  exception_type            TEXT NOT NULL DEFAULT 'onetime',
+  exception_month           INTEGER NOT NULL,
+  year_from                 INTEGER NOT NULL,
+  year_to                   INTEGER,
+
+  -- Policy Type Override
+  policy_type               TEXT NOT NULL DEFAULT 'without_dates',
+  override_default          BOOLEAN NOT NULL DEFAULT false,
+
+  -- Levy Overrides (NULL = inherit from default)
+  levy_include              BOOLEAN,
+  levy_calculation_method   TEXT,
+  levy_calc_flat_enabled    BOOLEAN,
+  levy_calc_flat_percentage NUMERIC,
+  levy_calc_slab_enabled    BOOLEAN,
+  levy_distribution         JSONB,
+
+  -- SSC Overrides
+  ssc_include               BOOLEAN,
+  ssc_contrib_employee      BOOLEAN,
+  ssc_contrib_employer      BOOLEAN,
+  ssc_contrib_eib           BOOLEAN,
+
+  -- Other Overrides
+  distribution_enabled      BOOLEAN,
+  include_in_severance      BOOLEAN,
+  min_holiday_amount        NUMERIC,
+  max_holiday_amount        NUMERIC,
+
+  -- Metadata
+  is_active                 BOOLEAN NOT NULL DEFAULT true,
+  description               TEXT,
+  created_by                TEXT,
+  created_on                TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_by               TEXT,
+  modified_on               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  synced_at                 TIMESTAMPTZ DEFAULT now(),
+  sync_version              TEXT
 );
 
-CREATE INDEX idx_wiz_bonus_exemptions_period ON public.wiz_bonus_levy_exemptions(period_year, period_month);
-CREATE INDEX idx_wiz_bonus_exemptions_sync ON public.wiz_bonus_levy_exemptions(admin_sync_id);
+CREATE INDEX idx_wiz_holiday_exc_active ON public.wiz_holiday_pay_policy_exceptions(is_active);
+CREATE INDEX idx_wiz_holiday_exc_period ON public.wiz_holiday_pay_policy_exceptions(exception_month, year_from);
+CREATE INDEX idx_wiz_holiday_exc_sync ON public.wiz_holiday_pay_policy_exceptions(admin_sync_id);
 ```
 
-#### Table 6: `wiz_config_sync_log`
+#### Sync Log Update
 
 ```sql
--- =============================================================
--- C3-Wizard: Sync Receiving Log (tracks incoming syncs)
--- =============================================================
-CREATE TABLE public.wiz_config_sync_log (
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sync_version            TEXT NOT NULL,
-  payload_hash            TEXT NOT NULL,
-  status                  TEXT NOT NULL DEFAULT 'received',  -- received | applied | failed
-  config_periods_count    INTEGER DEFAULT 0,
-  levy_slabs_count        INTEGER DEFAULT 0,
-  bonus_exemptions_count  INTEGER DEFAULT 0,
-  error_message           TEXT,
-  received_from_admin_at  TIMESTAMPTZ,            -- Admin's published_at timestamp
-  received_at             TIMESTAMPTZ DEFAULT now(),
-  applied_at              TIMESTAMPTZ,
-  source_ip               TEXT
-);
-
-CREATE INDEX idx_wiz_sync_log_status ON public.wiz_config_sync_log(status);
-CREATE INDEX idx_wiz_sync_log_hash ON public.wiz_config_sync_log(payload_hash);
+-- Add new count columns to wiz_config_sync_log
+ALTER TABLE public.wiz_config_sync_log
+  ADD COLUMN IF NOT EXISTS bonus_policies_count INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS bonus_exceptions_count INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS holiday_policies_count INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS holiday_exceptions_count INTEGER DEFAULT 0;
 ```
 
-### 2.3 Schema Mapping Reference
+#### Deprecate Old Table
+
+```sql
+-- Rename deprecated table to prevent accidental usage
+ALTER TABLE IF EXISTS public.wiz_bonus_levy_exemptions 
+  RENAME TO nu_wiz_bonus_levy_exemptions;
+```
+
+### 2.3 Schema Mapping Reference (v3.0)
 
 | Admin Table | Admin Column | Wizard Table | Wizard Column | Notes |
 |---|---|---|---|---|
 | `c3_config_periods` | `id` | `wiz_c3_config_periods` | `admin_sync_id` | UPSERT key |
 | `c3_config_details` | `id` | `wiz_c3_config_details` | `admin_sync_id` | UPSERT key |
 | `c3_config_details` | `config_period_id` | `wiz_c3_config_details` | `config_period_id` | Re-mapped to Wizard period ID |
+| `c3_config_details` | `employer_eib_max_wage` | `wiz_c3_config_details` | `employer_eib_max_wage` | **NEW** in v3.0 |
 | `tb_levy_slabs` | `id` | `wiz_levy_slabs` | `admin_sync_id` | UPSERT key |
 | `tb_levy_slab_details` | `id` | `wiz_levy_slab_details` | `admin_sync_id` | UPSERT key |
 | `tb_levy_slab_details` | `slab_id` | `wiz_levy_slab_details` | `slab_id` | Re-mapped to Wizard slab ID |
-| `c3_bonus_levy_exemptions` | `id` | `wiz_bonus_levy_exemptions` | `admin_sync_id` | UPSERT key |
+| `c3_bonus_policy_default` | `id` | `wiz_bonus_policy_default` | `admin_sync_id` | **NEW** table in v3.0 |
+| `c3_bonus_policy_exceptions` | `id` | `wiz_bonus_policy_exceptions` | `admin_sync_id` | **NEW** table in v3.0 |
+| `c3_holiday_pay_policy_default` | `id` | `wiz_holiday_pay_policy_default` | `admin_sync_id` | **NEW** table in v3.0 |
+| `c3_holiday_pay_policy_exceptions` | `id` | `wiz_holiday_pay_policy_exceptions` | `admin_sync_id` | **NEW** table in v3.0 |
 
-> **Key Point**: All business columns (rates, ages, amounts, dates) are identical — no transformation. Only the `id` → `admin_sync_id` mapping and parent FK re-mapping are needed.
+> **Key Point**: All business columns are identical — no transformation. Only the `id` → `admin_sync_id` mapping and parent FK re-mapping are needed.
 
 ---
 
@@ -287,21 +381,19 @@ CREATE INDEX idx_wiz_sync_log_hash ON public.wiz_config_sync_log(payload_hash);
 ### 3.1 API Endpoint
 
 ```
-POST /api/c3-config/sync
+POST /functions/v1/c3-config-sync
 Content-Type: application/json
-Authorization: Bearer <API_KEY>
+x-sync-api-key: <the shared C3_CONFIG_SYNC_API_KEY value>
 ```
 
-### 3.2 Request Payload Format
-
-The payload is the exact JSON built by `buildSyncPayload()` in `useC3ConfigPublish.ts`:
+### 3.2 Request Payload Format (v3.0)
 
 ```json
 {
-  "sync_version": "2026-02-25T11:30:00.000Z",
+  "sync_version": "2026-03-03T12:00:00.000Z",
   "config_periods": [
     {
-      "id": "uuid-period-1",
+      "id": "<admin c3_config_periods.id>",
       "start_date": "2026-01-01",
       "end_date": "2026-12-31",
       "description": "2026 Active Period",
@@ -311,18 +403,17 @@ The payload is the exact JSON built by `buildSyncPayload()` in `useC3ConfigPubli
       "modified_by": "ADM01",
       "modified_on": "2026-02-20T14:30:00Z",
       "details": {
-        "id": "uuid-detail-1",
-        "config_period_id": "uuid-period-1",
+        "id": "<admin c3_config_details.id>",
+        "config_period_id": "<same as parent>",
         "min_age_ss": 16,
         "max_age_ss": 62,
         "min_age_levy": 16,
         "max_age_levy": 62,
-        "bonus_exempt_from_levy": false,
-        "bonus_levy_rate": 0.035,
         "employee_ss_rate": 0.05,
         "employee_ss_max_wage": 6500.00,
         "employer_ss_rate": 0.05,
         "employer_eib_rate": 0.01,
+        "employer_eib_max_wage": 6500.00,
         "employer_ss_max_wage": 6500.00,
         "employer_levy_rate": 0.03,
         "employer_severance_rate": 0.01,
@@ -333,55 +424,115 @@ The payload is the exact JSON built by `buildSyncPayload()` in `useC3ConfigPubli
         "severance_penalty_subsequent_rate": 0.01,
         "ss_fine_initial_rate": 0.05,
         "ss_fine_subsequent_rate": 0.05,
-        "interest_rate_ss_principal": 0.00,
-        "interest_rate_levy_principal": 0.00,
-        "interest_rate_severance_principal": 0.00,
-        "interest_rate_penalties": 0.00,
-        "interest_rate_fines": 0.00,
-        "levy_slab_id": "uuid-slab-1",
+        "levy_slab_id": "<admin tb_levy_slabs.id or null>",
         "levy_monthly_threshold": 6500,
-        "levy_use_monthly_when_exceeded": false
+        "levy_use_monthly_when_exceeded": true
       }
     }
   ],
   "levy_slabs": [
     {
-      "id": "uuid-slab-1",
+      "id": "<admin tb_levy_slabs.id>",
       "start_date": "2026-01-01",
       "end_date": "2026-12-31",
       "is_active": true,
       "details": [
         {
-          "id": "uuid-slab-detail-1",
-          "slab_id": "uuid-slab-1",
-          "pay_period": "weekly",
+          "id": "<admin tb_levy_slab_details.id>",
+          "slab_id": "<parent slab id>",
+          "pay_period": "W",
           "over_amt": 0,
           "base_amt": 0,
           "tax_rate": 0.00,
           "order_no": 1,
           "is_active": true
-        },
-        {
-          "id": "uuid-slab-detail-2",
-          "slab_id": "uuid-slab-1",
-          "pay_period": "weekly",
-          "over_amt": 1625,
-          "base_amt": 0,
-          "tax_rate": 0.08,
-          "order_no": 2,
-          "is_active": true
         }
       ]
     }
   ],
-  "bonus_exemptions": [
+  "bonus_policies": [
     {
-      "id": "uuid-exemption-1",
-      "period_year": 2026,
-      "period_month": 12,
-      "is_exempt": true,
-      "description": "December bonus exempt",
+      "id": "<admin c3_bonus_policy_default.id>",
+      "include_in_levy": true,
+      "include_in_severance": false,
+      "contrib_severance": false,
+      "calculation_method": "merge",
+      "calc_flat_enabled": false,
+      "calc_flat_percentage": null,
+      "calc_slab_enabled": true,
+      "distribution": {"weekly":{"w1":false,...},"monthly":{"m1":true},...},
+      "min_bonus_amount": 1000,
+      "max_bonus_amount": 75000,
+      "contrib_employee": true,
+      "contrib_employer": true,
+      "contrib_eir": false,
+      "date_from": "2026-01-01",
+      "date_to": null,
       "is_active": true
+    }
+  ],
+  "bonus_exceptions": [
+    {
+      "id": "<admin c3_bonus_policy_exceptions.id>",
+      "date_from": "2026-12-01",
+      "date_to": "2026-12-31",
+      "exception_type": "onetime",
+      "exception_month": 12,
+      "year_from": 2026,
+      "year_to": null,
+      "override_default": true,
+      "include_in_levy": false,
+      "include_in_severance": null,
+      "calculation_method": null,
+      "distribution": null,
+      "contrib_employee": null,
+      "contrib_employer": null,
+      "contrib_eir": null,
+      "contrib_severance": null,
+      "is_active": true,
+      "description": "December bonus exempt from levy"
+    }
+  ],
+  "holiday_policies": [
+    {
+      "id": "<admin c3_holiday_pay_policy_default.id>",
+      "policy_type": "without_dates",
+      "distribution_enabled": true,
+      "levy_include": true,
+      "levy_calculation_method": "merge",
+      "levy_calc_flat_enabled": false,
+      "levy_calc_flat_percentage": null,
+      "levy_calc_slab_enabled": false,
+      "levy_distribution": {"weekly":{...},"monthly":{...},...},
+      "ssc_include": true,
+      "ssc_contrib_employee": true,
+      "ssc_contrib_employer": true,
+      "ssc_contrib_eib": false,
+      "include_in_severance": false,
+      "min_holiday_amount": null,
+      "max_holiday_amount": null,
+      "date_from": "2026-01-01",
+      "date_to": null,
+      "is_active": true
+    }
+  ],
+  "holiday_exceptions": [
+    {
+      "id": "<admin c3_holiday_pay_policy_exceptions.id>",
+      "date_from": "2026-06-01",
+      "date_to": "2026-06-30",
+      "exception_type": "onetime",
+      "exception_month": 6,
+      "year_from": 2026,
+      "year_to": null,
+      "policy_type": "without_dates",
+      "override_default": true,
+      "levy_include": false,
+      "ssc_include": null,
+      "distribution_enabled": null,
+      "include_in_severance": null,
+      "is_active": true,
+      "description": "June holiday pay exempt from levy"
     }
   ]
 }
@@ -389,81 +540,48 @@ The payload is the exact JSON built by `buildSyncPayload()` in `useC3ConfigPubli
 
 ### 3.3 Response Format
 
-**Success (200)**:
+**Success (200):**
 ```json
 {
   "status": "success",
-  "sync_version": "2026-02-25T11:30:00.000Z",
+  "sync_version": "2026-03-03T12:00:00.000Z",
   "applied": {
-    "config_periods": 2,
-    "config_details": 2,
+    "config_periods": 1,
+    "config_details": 1,
     "levy_slabs": 1,
-    "levy_slab_details": 5,
-    "bonus_exemptions": 3
+    "levy_slab_details": 4,
+    "bonus_policies": 1,
+    "bonus_exceptions": 1,
+    "holiday_policies": 1,
+    "holiday_exceptions": 1
   },
-  "log_id": "uuid-sync-log-entry"
+  "log_id": "uuid"
 }
 ```
 
-**Duplicate (200 — idempotent skip)**:
+**Duplicate (200 — idempotent, no DB changes):**
 ```json
 {
   "status": "duplicate",
   "message": "Payload already applied (matching hash)",
-  "existing_log_id": "uuid-previous-log"
+  "existing_log_id": "uuid"
 }
 ```
 
-**Error (400/500)**:
-```json
-{
-  "status": "error",
-  "error": "Validation failed: config_periods[0].start_date is required",
-  "sync_version": "2026-02-25T11:30:00.000Z"
-}
-```
-
-### 3.4 Validation Rules
-
-| Rule | Description |
-|---|---|
-| `sync_version` required | Must be a valid ISO 8601 timestamp |
-| `config_periods` required | Array, can be empty but must exist |
-| Each period must have `id`, `start_date` | Core identity/business fields |
-| `levy_slabs` required | Array with valid date ranges |
-| Each slab detail must have `slab_id` matching a slab `id` | Referential integrity within payload |
-| Payload hash dedup | If `payload_hash` matches last successful sync, return `duplicate` |
-
-### 3.5 UPSERT / Idempotency Strategy
+### 3.4 UPSERT Processing Order
 
 ```
-For each entity type:
-1. UPSERT using admin_sync_id as the conflict key
-2. ON CONFLICT (admin_sync_id) DO UPDATE SET ... all columns
-3. Process in order: periods → details → slabs → slab_details → exemptions
-4. Parent-child re-mapping: After upserting periods, map Admin period IDs 
-   to Wizard period IDs for details FK. Same for slabs → slab_details.
+1. UPSERT wiz_c3_config_periods (using admin id → admin_sync_id)
+2. UPSERT wiz_c3_config_details (re-map config_period_id to wizard period ID)
+3. UPSERT wiz_levy_slabs
+4. UPSERT wiz_levy_slab_details (re-map slab_id to wizard slab ID)
+5. UPSERT wiz_bonus_policy_default (direct 1:1 mapping)
+6. UPSERT wiz_bonus_policy_exceptions (direct 1:1 mapping)
+7. UPSERT wiz_holiday_pay_policy_default (direct 1:1 mapping)
+8. UPSERT wiz_holiday_pay_policy_exceptions (direct 1:1 mapping)
 ```
 
-**Pseudocode**:
-```sql
--- Step 1: UPSERT config periods
-INSERT INTO wiz_c3_config_periods (admin_sync_id, start_date, end_date, ...)
-VALUES ($1, $2, $3, ...)
-ON CONFLICT (admin_sync_id) DO UPDATE SET
-  start_date = EXCLUDED.start_date,
-  end_date = EXCLUDED.end_date,
-  ...
-  synced_at = now(),
-  sync_version = $sync_version
-RETURNING id, admin_sync_id;
-
--- Step 2: Use returned id mapping for details
--- admin_period_id → wizard_period_id
-INSERT INTO wiz_c3_config_details (admin_sync_id, config_period_id, ...)
-VALUES ($1, $wizard_period_id, ...)
-ON CONFLICT (admin_sync_id) DO UPDATE SET ...;
-```
+Steps 5-8 are simple direct UPSERTs — no parent-child FK re-mapping needed since these are standalone tables.
 
 ---
 
@@ -475,20 +593,25 @@ ON CONFLICT (admin_sync_id) DO UPDATE SET ...;
 Step 1: Admin User clicks "Publish to C3-Wizard" button
           │
 Step 2: Confirmation dialog shows payload summary
-        (X periods, Y slabs, Z exemptions)
+        (X periods, Y slabs, Z bonus policies, W holiday policies, ...)
           │
 Step 3: Admin frontend calls buildSyncPayload()
         - Fetches all active c3_config_periods + c3_config_details
         - Fetches all active tb_levy_slabs + tb_levy_slab_details
-        - Fetches all active c3_bonus_levy_exemptions
+        - Fetches all active c3_bonus_policy_default
+        - Fetches all active c3_bonus_policy_exceptions
+        - Fetches all active c3_holiday_pay_policy_default
+        - Fetches all active c3_holiday_pay_policy_exceptions
         - Generates payload_hash for deduplication
           │
 Step 4: Insert c3_config_sync_log entry with status='pending'
           │
 Step 5: POST payload to C3-Wizard sync API
-        POST ${C3_WIZARD_API_URL}/api/c3-config/sync
-        Authorization: Bearer <API_KEY>
-        Body: { sync_version, config_periods, levy_slabs, bonus_exemptions }
+        POST ${C3_WIZARD_API_URL}/functions/v1/c3-config-sync
+        x-sync-api-key: <API_KEY>
+        Body: { sync_version, config_periods, levy_slabs,
+                bonus_policies, bonus_exceptions,
+                holiday_policies, holiday_exceptions }
           │
 Step 6: C3-Wizard processes the payload:
         a. Check payload_hash against last successful sync (dedup)
@@ -498,15 +621,18 @@ Step 6: C3-Wizard processes the payload:
            - UPSERT wiz_c3_config_details (with FK re-mapping)
            - UPSERT wiz_levy_slabs
            - UPSERT wiz_levy_slab_details (with FK re-mapping)
-           - UPSERT wiz_bonus_levy_exemptions
+           - UPSERT wiz_bonus_policy_default
+           - UPSERT wiz_bonus_policy_exceptions
+           - UPSERT wiz_holiday_pay_policy_default
+           - UPSERT wiz_holiday_pay_policy_exceptions
         d. Commit transaction
         e. Update wiz_config_sync_log status → 'applied'
           │
 Step 7: Admin receives success response:
         a. Update c3_config_sync_log status → 'success'
-        b. Update last_published_at on all config tables
+        b. Update last_published_at on ALL config tables
         c. UI shows "Synced" badge with timestamp
-        d. Toast notification: "Published X periods, Y slabs, Z exemptions"
+        d. Toast notification with counts
 ```
 
 ### 4.2 Error Handling
@@ -516,199 +642,140 @@ Step 7: Admin receives success response:
 | Network timeout | Set sync_log status='failed', show error toast | No action (never received) |
 | 4xx validation error | Log error_message, show specific field errors | Return validation details, log attempt |
 | 5xx server error | Set status='failed', allow retry | Log error, rollback transaction |
-| Duplicate payload | Set status='success' (idempotent), update timestamp | Return 'duplicate' status, no DB changes |
+| Duplicate payload | Set status='success' (idempotent) | Return 'duplicate' status, no DB changes |
 | Partial failure | Set status='failed' with error details | Rollback entire transaction (atomic) |
-
-### 4.3 Versioning
-
-- **sync_version**: ISO 8601 timestamp generated at publish time, serves as the batch identifier
-- **payload_hash**: Base64 hash of the full payload for deduplication
-- Both are stored in sync logs on both Admin and Wizard sides
-
-### 4.4 Logging & Audit
-
-**Admin Side** (`c3_config_sync_log`):
-- `status`: pending → success/failed
-- `payload`: Full JSON payload (for replay/debugging)
-- `payload_hash`: Deduplication key
-- `published_by`: UserCode of the admin who clicked Publish
-- `published_at`: Timestamp
-- `response_data`: C3-Wizard's response
-
-**Wizard Side** (`wiz_config_sync_log`):
-- `status`: received → applied/failed
-- `payload_hash`: Matches Admin's hash
-- `config_periods_count`, `levy_slabs_count`, `bonus_exemptions_count`: Record counts
-- `received_at`: When the API received the request
-- `applied_at`: When the transaction committed
 
 ---
 
 ## 5. Calculation Logic Strategy
 
-### 5.1 Architectural Recommendation
+### 5.1 Bonus Calculation (using wiz_bonus_policy_default + exceptions)
 
-> **✅ RECOMMENDED: Local Calculation in C3-Wizard using synced config tables**
-
-This is the industry-standard approach for contribution/payroll systems (used by ADP, SAP HCM, Oracle Payroll, etc.).
-
-### 5.2 Comparison
-
-| Factor | Local Calculation (✅ Recommended) | Centralized API (❌ Not Recommended) |
-|---|---|---|
-| **Performance** | Instant — local DB lookup | Network round-trip per calculation |
-| **Availability** | Works even if Admin is offline | Fails if Admin API is down |
-| **Batch Processing** | Can process 1000s of employees locally | API bottleneck at scale |
-| **Data Consistency** | Frozen snapshot per sync version | Could change mid-batch |
-| **Latency** | <1ms config lookup | 50-200ms per API call |
-| **Complexity** | Calculation logic in one place | Logic coupled to API contract |
-| **Audit** | Clear: "used config version X" | Hard to trace which config was used |
-| **Offline/Disaster** | C3-Wizard keeps working | Complete dependency on Admin uptime |
-
-### 5.3 How C3-Wizard Should Calculate
-
-#### Social Security (Employee)
 ```
-IF employee_age >= min_age_ss AND employee_age < max_age_ss:
-  taxable_wages = MIN(gross_wages, employee_ss_max_wage)
-  employee_ss = taxable_wages × employee_ss_rate
-ELSE:
-  employee_ss = 0  (age exempt)
+1. Resolve policy: Check wiz_bonus_policy_exceptions for the filing month/year
+   - If exception exists with override_default=true, use overridden fields
+   - Otherwise, fall back to wiz_bonus_policy_default
+2. Check capping: If bonus < min_bonus_amount or > max_bonus_amount, skip inclusion
+3. Apply calculation_method:
+   - 'merge': Distribute bonus into weekly wages using distribution config
+   - 'separate': Apply flat rate (calc_flat_percentage) and/or slab calculation
+4. Levy: If include_in_levy=true, apply levy brackets
+5. SSC: Based on contrib_employee, contrib_employer, contrib_eir flags
+6. Severance: If contrib_severance=true, apply employer_severance_rate
 ```
 
-#### Social Security (Employer)
+### 5.2 Holiday Pay Calculation (using wiz_holiday_pay_policy_default + exceptions)
+
 ```
-IF employee_age >= min_age_ss AND employee_age < max_age_ss:
-  taxable_wages = MIN(gross_wages, employer_ss_max_wage)
-  employer_ss = taxable_wages × employer_ss_rate
-  employer_eib = taxable_wages × employer_eib_rate
-ELSE:
-  employer_ss = 0
-  employer_eib = 0
+1. Resolve policy: Check wiz_holiday_pay_policy_exceptions for the filing month/year
+2. Check policy_type:
+   - 'with_dates': If distribution_enabled=true, distribute holiday pay across weeks
+     spanned by the dates. All specific rules (levy/SSC/severance) are IGNORED;
+     distributed amounts are added to regular weekly wages.
+   - 'without_dates': Treat as current-period income, apply specific rules:
+     a. Levy: Based on levy_include, levy_calculation_method, levy_distribution
+     b. SSC: Based on ssc_include, ssc_contrib_employee/employer/eib
+     c. Severance: Based on include_in_severance
+3. Amount capping: Enforce min_holiday_amount / max_holiday_amount if set
 ```
 
-#### Levy (Employee — using slabs)
-```
-IF employee_age >= min_age_levy AND employee_age < max_age_levy:
-  1. Get active slab for the period (via levy_slab_id or date range)
-  2. Get slab_details ordered by order_no
-  3. For each bracket:
-     IF wages > over_amt:
-       levy += (wages - over_amt) × tax_rate + base_amt
-       BREAK (apply highest matching bracket)
-  
-  IF bonus period AND is_bonus_exempt(year, month):
-    bonus_levy = 0
-  ELSE:
-    bonus_levy = bonus × bonus_levy_rate
-ELSE:
-  levy = 0
-```
-
-#### Levy (Employer)
-```
-employer_levy = gross_wages × employer_levy_rate
-```
-
-#### Severance (Employer only)
-```
-employer_severance = gross_wages × employer_severance_rate
-```
-
-#### Penalty Calculations (Late Filing)
-```
-IF filing_is_late:
-  -- First month
-  levy_penalty = levy_amount × levy_penalty_initial_rate
-  severance_penalty = severance_amount × severance_penalty_initial_rate
-  ss_fine = ss_amount × ss_fine_initial_rate
-  
-  -- Each subsequent month
-  levy_penalty += levy_amount × levy_penalty_subsequent_rate × additional_months
-  severance_penalty += severance_amount × severance_penalty_subsequent_rate × additional_months
-  ss_fine += ss_amount × ss_fine_subsequent_rate × additional_months
-```
-
-### 5.4 Config Lookup Pattern
+### 5.3 Config Lookup Pattern (Updated)
 
 ```typescript
-// C3-Wizard: Get active config for a given filing period
-async function getActiveConfig(filingDate: Date) {
-  const { data: period } = await supabase
-    .from('wiz_c3_config_periods')
-    .select('*, wiz_c3_config_details(*)')
-    .eq('is_active', true)
-    .lte('start_date', filingDate)
-    .or(`end_date.gte.${filingDate},end_date.is.null`)
-    .single();
-  
-  return period;
-}
-
-// Get levy slabs for employee calculation
-async function getLevySlabs(slabId: string) {
-  const { data: details } = await supabase
-    .from('wiz_levy_slab_details')
+// Get bonus policy for a given filing period
+async function getBonusPolicy(filingYear: number, filingMonth: number) {
+  // Check for exception first
+  const { data: exception } = await supabase
+    .from('wiz_bonus_policy_exceptions')
     .select('*')
-    .eq('slab_id', slabId)
     .eq('is_active', true)
-    .order('order_no', { ascending: true });
-  
-  return details;
+    .eq('exception_month', filingMonth)
+    .lte('year_from', filingYear)
+    .or(`year_to.gte.${filingYear},year_to.is.null`)
+    .single();
+
+  if (exception?.override_default) {
+    return { ...await getDefaultBonusPolicy(), ...filterNulls(exception) };
+  }
+
+  return await getDefaultBonusPolicy();
 }
 
-// Check bonus exemption
-async function isBonusExempt(year: number, month: number) {
-  const { data } = await supabase
-    .from('wiz_bonus_levy_exemptions')
-    .select('is_exempt')
-    .eq('period_year', year)
-    .eq('period_month', month)
-    .eq('is_active', true)
-    .single();
-  
-  return data?.is_exempt ?? false;
+// Same pattern for holiday pay policy
+async function getHolidayPayPolicy(filingYear: number, filingMonth: number) {
+  // Check exception → fallback to default
 }
 ```
 
 ---
 
-## 6. FAQ & Decision Guidance
+## 6. Migration Guide (v2.0 → v3.0)
 
-### Q: Do we need config tables in C3-Wizard if calculation is centralized?
+### For C3-Wizard Team: Step-by-Step
 
-**A**: If using centralized calculation (not recommended), you would NOT need config tables in C3-Wizard — but you'd need:
-- A calculation API endpoint on Admin
-- Admin to be always available
-- Network calls for every single employee line calculation
+1. **Run the migration scripts** from Section 2.2 above in this order:
+   - Update `wiz_c3_config_details` (add `employer_eib_max_wage`, remove legacy bonus columns)
+   - Create `wiz_bonus_policy_default`
+   - Create `wiz_bonus_policy_exceptions`
+   - Create `wiz_holiday_pay_policy_default`
+   - Create `wiz_holiday_pay_policy_exceptions`
+   - Update `wiz_config_sync_log` (add new count columns)
+   - Rename `wiz_bonus_levy_exemptions` to `nu_wiz_bonus_levy_exemptions`
 
-**This is fragile and not recommended.** The industry standard is to sync config and calculate locally.
+2. **Update the `c3-config-sync` edge function** to:
+   - Accept the new payload arrays: `bonus_policies`, `bonus_exceptions`, `holiday_policies`, `holiday_exceptions`
+   - UPSERT into the 4 new tables
+   - Remove handling for `bonus_exemptions` array
+   - Include `employer_eib_max_wage` in config_details UPSERT
+   - Log new counts in `wiz_config_sync_log`
 
-### Q: What is the industry-standard approach?
+3. **Update `calculate-c3-contributions` function** to:
+   - Read from `wiz_bonus_policy_default` + `wiz_bonus_policy_exceptions` instead of `wiz_bonus_levy_exemptions`
+   - Read from `wiz_holiday_pay_policy_default` + `wiz_holiday_pay_policy_exceptions` for holiday rules
+   - Use `employer_eib_max_wage` for EIB wage ceiling calculations
+   - Remove references to `bonus_exempt_from_levy` and `bonus_levy_rate`
 
-**A**: **Sync config + local calculation** is the universal standard:
-- **ADP** syncs tax tables to local payroll engines
-- **SAP HCM** distributes calculation schemas to decentralized systems
-- **Oracle Payroll** uses configuration snapshots for each pay run
+4. **Request Admin to publish** — After migration, the Admin team must publish configuration so the new `wiz_` tables get populated.
 
-The pattern is: **"Distribute configuration, calculate locally, audit everything."**
+### Validation Checklist Before Publishing
 
-### Q: What happens if Admin publishes mid-batch?
+| Check | Description |
+|---|---|
+| ✅ At least one active config period | `c3_config_periods WHERE is_active = true` |
+| ✅ Each period has details | Every active period has a linked `c3_config_details` |
+| ✅ Levy slabs have details | Each active slab has at least one `tb_levy_slab_details` row |
+| ✅ Bonus policy exists | At least one active `c3_bonus_policy_default` record |
+| ✅ Holiday pay policy exists | At least one active `c3_holiday_pay_policy_default` record |
+| ✅ Rates are in decimal form | e.g., 5% = `0.05`, not `5` |
 
-**A**: The C3-Wizard uses the config version that was synced at the start of the batch. New publishes only affect future batches. This is guaranteed by the `sync_version` field — each batch records which version it used.
+---
 
-### Q: Can we replay a failed sync?
+## 7. FAQ & Decision Guidance
 
-**A**: Yes. The Admin stores the full `payload` in `c3_config_sync_log`. A "Retry" button can re-send the exact same payload. The Wizard's idempotency check (via `payload_hash`) ensures no duplicate processing.
+### Q: What happened to `bonus_exempt_from_levy` and `bonus_levy_rate`?
 
-### Q: How do we handle schema evolution?
+**A**: These legacy fields in `c3_config_details` have been replaced by the full bonus policy system (`c3_bonus_policy_default` + exceptions). The policy system provides:
+- Month/year-specific overrides via exceptions
+- Separate calculation methods (merge vs. separate)
+- Per-component contribution flags (employee, employer, EIB, severance)
+- Distribution rules per payroll cycle
+- Amount range capping
 
-**A**: When adding new config fields:
-1. Add the column to Admin table (with migration)
-2. Add the same column to Wizard table (with migration)
-3. Update `buildSyncPayload()` to include the new field
-4. Update Wizard's UPSERT to handle the new field
-5. Both sides stay in sync — no transformation needed
+### Q: What happened to `wiz_bonus_levy_exemptions`?
+
+**A**: This table is deprecated and renamed to `nu_wiz_bonus_levy_exemptions`. Its simple `is_exempt` flag per month/year has been replaced by the comprehensive `wiz_bonus_policy_default` + `wiz_bonus_policy_exceptions` system.
+
+### Q: Do the interest rate fields still exist?
+
+**A**: The `interest_rate_*` fields (`interest_rate_ss_principal`, `interest_rate_levy_principal`, etc.) are **not present** in the current Admin `c3_config_details` schema. If they existed in the Wizard table from v2.0, they should be kept for backward compatibility but will receive `0.00` values. They may be re-added in a future version.
+
+### Q: How does holiday pay distribution work with pending pay?
+
+**A**: When `policy_type = 'with_dates'` and `distribution_enabled = true`:
+1. Holiday pay is split equally across weeks spanned by the provided dates
+2. Portions allocated to **future months** are stored in Admin's `c3_pending_holiday_pay` table
+3. These pending amounts are automatically applied during future C3 submissions for that SSN/period
+4. The C3-Wizard does NOT need a `c3_pending_holiday_pay` mirror — pending pay tracking is managed by the Admin system
 
 ---
 
@@ -723,4 +790,4 @@ The pattern is: **"Distribute configuration, calculate locally, audit everything
 
 ---
 
-*End of C3-Wizard Sync Implementation Guide*
+*End of C3-Wizard Sync Implementation Guide v3.0*

@@ -67,7 +67,10 @@ export function C3SyncHistoryTab() {
                 <TableHead>Published By</TableHead>
                 <TableHead className="text-center">Periods</TableHead>
                 <TableHead className="text-center">Levy Slabs</TableHead>
-                <TableHead className="text-center">Exemptions</TableHead>
+                <TableHead className="text-center">Bonus Pol.</TableHead>
+                <TableHead className="text-center">Bonus Exc.</TableHead>
+                <TableHead className="text-center">Holiday Pol.</TableHead>
+                <TableHead className="text-center">Holiday Exc.</TableHead>
                 <TableHead>Error</TableHead>
               </TableRow>
             </TableHeader>
@@ -81,7 +84,10 @@ export function C3SyncHistoryTab() {
                   <TableCell>{log.published_by || '-'}</TableCell>
                   <TableCell className="text-center">{log.config_periods_count}</TableCell>
                   <TableCell className="text-center">{log.levy_slabs_count}</TableCell>
-                  <TableCell className="text-center">{log.bonus_exemptions_count}</TableCell>
+                  <TableCell className="text-center">{log.bonus_policies_count || 0}</TableCell>
+                  <TableCell className="text-center">{log.bonus_exceptions_count || 0}</TableCell>
+                  <TableCell className="text-center">{log.holiday_policies_count || 0}</TableCell>
+                  <TableCell className="text-center">{log.holiday_exceptions_count || 0}</TableCell>
                   <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                     {log.error_message || '-'}
                   </TableCell>
@@ -89,7 +95,7 @@ export function C3SyncHistoryTab() {
               ))}
               {(!logs || logs.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     No publish history found
                   </TableCell>
                 </TableRow>
