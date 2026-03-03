@@ -1,51 +1,100 @@
-
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SystemOverview } from './admin/SystemOverview';
-import { ComplianceView } from './admin/ComplianceView';
-import { BenefitsView } from './admin/BenefitsView';
-import { HRView } from './admin/HRView';
-import { FinancialView } from './admin/FinancialView';
+import { useState } from 'react';
+import { Building2, Users, FileText, AlertTriangle, DollarSign, ClipboardCheck, Calendar, Briefcase } from 'lucide-react';
+import { DashboardKPICard } from './widgets/DashboardKPICard';
+import { ContributionTrendChart } from './widgets/ContributionTrendChart';
+import { ComplianceDonut } from './widgets/ComplianceDonut';
+import { RegistrationPipeline } from './widgets/RegistrationPipeline';
+import { BenefitsDistribution } from './widgets/BenefitsDistribution';
+import { RecentSystemActivity } from './widgets/RecentSystemActivity';
+import { QuickActions } from './widgets/QuickActions';
+import { AlertsWidget } from './widgets/AlertsWidget';
+import { FinancialSummaryStrip } from './widgets/FinancialSummaryStrip';
 
 export const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const today = new Date();
+  const greeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">System Administration Dashboard</h1>
-        <p className="text-gray-600">Complete overview of all system operations and detailed module insights</p>
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+        <div>
+          <h1 className="text-[26px] font-semibold text-foreground tracking-tight">
+            {greeting}, Administrator
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            System overview for {today.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5" />
+          Last updated: {today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="overview">System Overview</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
-          <TabsTrigger value="benefits">Benefits</TabsTrigger>
-          <TabsTrigger value="hr">HR Management</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-        </TabsList>
+      {/* KPI Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardKPICard
+          title="Total Employers"
+          value="15,432"
+          change="+2.3%"
+          icon={Building2}
+          iconBg="bg-primary/10 text-primary"
+        />
+        <DashboardKPICard
+          title="Insured Persons"
+          value="1,234,567"
+          change="+5.1%"
+          icon={Users}
+          iconBg="bg-secondary/15 text-secondary"
+        />
+        <DashboardKPICard
+          title="Active Claims"
+          value="8,456"
+          change="-1.2%"
+          icon={FileText}
+          iconBg="bg-[hsl(217_91%_60%/0.12)] text-[hsl(217_91%_60%)]"
+        />
+        <DashboardKPICard
+          title="Compliance Issues"
+          value="23"
+          change="-15%"
+          icon={AlertTriangle}
+          iconBg="bg-destructive/10 text-destructive"
+        />
+      </div>
 
-        <TabsContent value="overview" className="space-y-6">
-          <SystemOverview />
-        </TabsContent>
+      {/* Financial Summary Strip */}
+      <FinancialSummaryStrip />
 
-        <TabsContent value="compliance" className="space-y-6">
-          <ComplianceView />
-        </TabsContent>
+      {/* Alerts */}
+      <AlertsWidget />
 
-        <TabsContent value="benefits" className="space-y-6">
-          <BenefitsView />
-        </TabsContent>
+      {/* Charts Row 1: Contribution Trend (2/3) + Compliance Donut (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <ContributionTrendChart />
+        </div>
+        <div className="lg:col-span-1">
+          <ComplianceDonut />
+        </div>
+      </div>
 
-        <TabsContent value="hr" className="space-y-6">
-          <HRView />
-        </TabsContent>
+      {/* Charts Row 2: Registration Pipeline + Benefits Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <RegistrationPipeline />
+        <BenefitsDistribution />
+      </div>
 
-        <TabsContent value="financial" className="space-y-6">
-          <FinancialView />
-        </TabsContent>
-      </Tabs>
+      {/* Bottom Row: Activity Feed + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <RecentSystemActivity />
+        </div>
+        <div className="lg:col-span-1">
+          <QuickActions />
+        </div>
+      </div>
     </div>
   );
 };
