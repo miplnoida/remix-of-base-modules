@@ -6,40 +6,40 @@
 
 @layer base {
   :root {
-    /* ── SSB Brand Tokens ── */
-    --background: 150 14% 97%;        /* #F7F9F8 */
+    /* ── Executive Slate Theme ── */
+    --background: 220 33% 97%;        /* #F4F6F9 */
     --foreground: 220 14% 16%;        /* #1F2937 */
     --card: 0 0% 100%;                /* #FFFFFF */
     --card-foreground: 220 14% 16%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 14% 16%;
-    --primary: 153 73% 21%;           /* #0E5F3A  Government Green */
+    --primary: 144 65% 34%;           /* #1E8E3E  National Green – primary actions */
     --primary-foreground: 0 0% 100%;
-    --secondary: 144 65% 34%;         /* #1E8E3E  National Green */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 22% 17%;         /* #1F2A37  Executive Slate */
+    --secondary-foreground: 210 40% 98%;
     --muted: 210 20% 96%;             /* #F1F5F9 */
     --muted-foreground: 217 10% 50%;  /* #6B7280 */
     --accent: 44 90% 57%;             /* #F4C430  Flag Yellow */
     --accent-foreground: 220 14% 16%;
     --destructive: 2 74% 50%;         /* #D62828  National Red */
     --destructive-foreground: 0 0% 100%;
-    --border: 214 20% 91%;            /* #E2E8F0 */
-    --input: 214 20% 91%;
-    --ring: 153 73% 21%;
+    --border: 216 12% 91%;            /* #E5E7EB */
+    --input: 216 12% 84%;             /* #D1D5DB */
+    --ring: 144 65% 34%;              /* #1E8E3E */
     --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 153 73% 21%;
-    --sidebar-foreground: 0 0% 100%;
+    /* Sidebar – Executive Slate */
+    --sidebar-background: 210 22% 17%;   /* #1F2A37 */
+    --sidebar-foreground: 216 12% 91%;   /* #E5E7EB */
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 153 73% 21%;
-    --sidebar-accent: 144 65% 34%;
+    --sidebar-primary-foreground: 210 22% 17%;
+    --sidebar-accent: 207 29% 24%;       /* #2C3E50  Deep Slate active */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 153 73% 28%;
+    --sidebar-border: 210 28% 21%;       /* #263445  Slate hover */
     --sidebar-ring: 44 90% 57%;
 
     /* SSB semantic palette */
-    --ssb-green-primary: 153 73% 21%;
+    --ssb-green-primary: 153 73% 21%;    /* #0E5F3A  kept for logo/badge use */
     --ssb-green-active: 144 65% 34%;
     --ssb-yellow: 44 90% 57%;
     --ssb-red: 2 74% 50%;
