@@ -218,9 +218,9 @@ export default function FeeConfiguration() {
                     title={fee.activeStatus ? "Deactivate" : "Activate"}
                   >
                     {fee.activeStatus ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <CheckCircle className="h-4 w-4 text-success" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-gray-400" />
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                   <Button size="icon" variant="ghost" onClick={() => handleEdit(fee)}>

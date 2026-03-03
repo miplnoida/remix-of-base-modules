@@ -518,7 +518,7 @@ export default function EmailTemplateManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {comp?.is_active && <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">Active</Badge>}
+                  {comp?.is_active && <Badge variant="outline" className="text-success border-success/30 bg-success/10">Active</Badge>}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardContent>

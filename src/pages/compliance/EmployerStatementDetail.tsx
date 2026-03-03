@@ -164,7 +164,7 @@ export default function EmployerStatementDetail() {
     
     return (
       <div className="mb-8 border rounded-lg overflow-hidden">
-        <div className="bg-[hsl(var(--bema-primary))] text-white px-4 py-3">
+        <div className="bg-primary text-primary-foreground px-4 py-3">
           <h3 className="text-lg font-semibold">{componentName} ({componentCode})</h3>
         </div>
         
@@ -188,7 +188,7 @@ export default function EmployerStatementDetail() {
                 <TableCell className="text-sm">Opening Balance</TableCell>
                 <TableCell className="text-right font-mono text-sm">-</TableCell>
                 <TableCell className="text-right font-mono text-sm">-</TableCell>
-                <TableCell className="text-right font-mono text-sm font-semibold text-blue-600">
+                <TableCell className="text-right font-mono text-sm font-semibold text-info">
                   {formatCurrency(openingBalance)}
                 </TableCell>
               </TableRow>
@@ -395,8 +395,8 @@ export default function EmployerStatementDetail() {
           </div>
 
           {reportType === "summary" && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+            <div className="mt-4 p-3 bg-info/10 rounded-lg border border-info/20">
+              <p className="text-sm text-info">
                 <span className="font-semibold">Summary Report:</span> Shows one entry per year with opening balance and net transactions for the period.
               </p>
             </div>

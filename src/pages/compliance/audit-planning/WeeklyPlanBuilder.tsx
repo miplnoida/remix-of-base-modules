@@ -326,11 +326,11 @@ export default function WeeklyPlanBuilder() {
 
   const getRiskBadgeColor = (riskBand: string) => {
     switch (riskBand) {
-      case 'Critical': return 'bg-red-100 text-red-800 border-red-300';
-      case 'High': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'Low': return 'bg-green-100 text-green-800 border-green-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      case 'Critical': return 'bg-destructive/10 text-destructive border-destructive/30';
+      case 'High': return 'bg-warning/15 text-warning border-warning/30';
+      case 'Medium': return 'bg-warning/10 text-warning border-warning/20';
+      case 'Low': return 'bg-success/10 text-success border-success/30';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -820,7 +820,7 @@ export default function WeeklyPlanBuilder() {
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className={caseItem.caseType === 'C3 No Payment' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}>
+                                <Badge variant="outline" className={caseItem.caseType === 'C3 No Payment' ? 'bg-warning/10 border-warning/20' : 'bg-destructive/10 border-destructive/20'}>
                                   {caseItem.caseType}
                                 </Badge>
                                 <Badge variant="outline" className={getRiskBadgeColor(caseItem.riskBand)}>

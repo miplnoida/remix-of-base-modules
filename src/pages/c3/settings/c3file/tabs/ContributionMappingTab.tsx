@@ -42,12 +42,12 @@ export default function ContributionMappingTab({ formatId }: ContributionMapping
     const colors: Record<string, string> = {
       SocialSecurity: 'bg-blue-500',
       Levy: 'bg-green-500',
-      Severance: 'bg-purple-500',
-      Wages: 'bg-orange-500',
-      Injury: 'bg-red-500',
+      Severance: 'bg-accent text-accent-foreground',
+      Wages: 'bg-warning text-warning-foreground',
+      Injury: 'bg-destructive text-destructive-foreground',
     };
     return (
-      <Badge className={colors[module] || 'bg-gray-500'}>
+      <Badge className={colors[module] || 'bg-muted text-muted-foreground'}>
         {module}
       </Badge>
     );

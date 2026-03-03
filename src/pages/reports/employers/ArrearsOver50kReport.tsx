@@ -63,11 +63,11 @@ export default function ArrearsOver50kReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="employer" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="employer" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="arrears" fill="#E74C3C" name="Arrears (EC$)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="arrears" fill="hsl(var(--destructive))" name="Arrears (EC$)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -97,7 +97,7 @@ export default function ArrearsOver50kReport() {
                     <TableCell className="font-bold">{index + 1}</TableCell>
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell className="font-semibold text-red-600">{row.arrears.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-destructive">{row.arrears.toLocaleString()}</TableCell>
                     <TableCell>{row.lastPayment}</TableCell>
                     <TableCell>{row.daysOverdue}</TableCell>
                     <TableCell>{row.zone}</TableCell>

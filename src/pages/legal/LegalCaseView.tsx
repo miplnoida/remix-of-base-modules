@@ -32,14 +32,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const STATUS_COLORS: Record<string, string> = {
-  'Draft': 'bg-neutral-100 text-neutral-800',
-  'Filed': 'bg-blue-100 text-blue-800',
-  'Under Review': 'bg-indigo-100 text-indigo-800',
-  'Hearing Scheduled': 'bg-teal-100 text-teal-800',
-  'Decision Pending': 'bg-amber-100 text-amber-800',
-  'Order Issued': 'bg-purple-100 text-purple-800',
-  'Closed – Compliant': 'bg-green-100 text-green-800',
-  'Closed – Non-Compliant': 'bg-red-100 text-red-800',
+  'Draft': 'bg-muted text-muted-foreground',
+  'Filed': 'bg-info/10 text-info',
+  'Under Review': 'bg-info/15 text-info',
+  'Hearing Scheduled': 'bg-info/10 text-info',
+  'Decision Pending': 'bg-warning/15 text-warning',
+  'Order Issued': 'bg-accent text-accent-foreground',
+  'Closed – Compliant': 'bg-success/10 text-success',
+  'Closed – Non-Compliant': 'bg-destructive/10 text-destructive',
 };
 
 export default function LegalCaseView() {
@@ -121,7 +121,7 @@ export default function LegalCaseView() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Status</p>
-                <Badge className={STATUS_COLORS[caseData.status] || 'bg-gray-100 text-gray-800'}>
+                <Badge className={STATUS_COLORS[caseData.status] || 'bg-muted text-muted-foreground'}>
                   {caseData.status}
                 </Badge>
               </div>

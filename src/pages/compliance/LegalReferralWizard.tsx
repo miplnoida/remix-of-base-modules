@@ -124,15 +124,15 @@ const LegalReferralWizard = () => {
     switch (component) {
       case ContributionComponent.SSC:
       case ContributionComponent.SSF:
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-info/10 text-info border-info/30';
       case ContributionComponent.LVC:
       case ContributionComponent.LVF:
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-success/10 text-success border-success/30';
       case ContributionComponent.PEC:
       case ContributionComponent.PEF:
-        return 'bg-purple-100 text-purple-800 border-purple-300';
+        return 'bg-accent text-accent-foreground border-accent';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -208,7 +208,7 @@ const LegalReferralWizard = () => {
             {/* Social Security Group */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Badge className="bg-blue-100 text-blue-800">Social Security</Badge>
+                <Badge className="bg-info/10 text-info">Social Security</Badge>
                 SSC + SSF
               </h3>
               <div className="space-y-2">
@@ -259,7 +259,7 @@ const LegalReferralWizard = () => {
             {/* Levy Group */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Badge className="bg-green-100 text-green-800">Levy</Badge>
+                <Badge className="bg-success/10 text-success">Levy</Badge>
                 LVC + LVF
               </h3>
               <div className="space-y-2">
@@ -310,7 +310,7 @@ const LegalReferralWizard = () => {
             {/* Severance Group */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Badge className="bg-purple-100 text-purple-800">Severance</Badge>
+                <Badge className="bg-accent text-accent-foreground">Severance</Badge>
                 PEC + PEF
               </h3>
               <div className="space-y-2">
@@ -410,9 +410,9 @@ const LegalReferralWizard = () => {
             {/* Component Breakdown */}
             <div className="space-y-4">
               {/* Social Security */}
-              <Card className="p-4 border-blue-200 bg-blue-50/50">
+              <Card className="p-4 border-info/20 bg-info/5">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Badge className="bg-blue-100 text-blue-800">Social Security</Badge>
+                  <Badge className="bg-info/10 text-info">Social Security</Badge>
                   SSC + SSF Combined
                 </h3>
                 <div className="grid grid-cols-4 gap-4">
@@ -430,15 +430,15 @@ const LegalReferralWizard = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Subtotal</p>
-                    <p className="text-xl font-bold text-blue-600">EC${componentSummary.socialSecurity.grandTotal.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-info">EC${componentSummary.socialSecurity.grandTotal.toLocaleString()}</p>
                   </div>
                 </div>
               </Card>
 
               {/* Levy */}
-              <Card className="p-4 border-green-200 bg-green-50/50">
+              <Card className="p-4 border-success/20 bg-success/5">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800">Levy</Badge>
+                  <Badge className="bg-success/10 text-success">Levy</Badge>
                   LVC + LVF Combined
                 </h3>
                 <div className="grid grid-cols-4 gap-4">
@@ -456,15 +456,15 @@ const LegalReferralWizard = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Subtotal</p>
-                    <p className="text-xl font-bold text-green-600">EC${componentSummary.levy.grandTotal.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-success">EC${componentSummary.levy.grandTotal.toLocaleString()}</p>
                   </div>
                 </div>
               </Card>
 
               {/* Severance */}
-              <Card className="p-4 border-purple-200 bg-purple-50/50">
+              <Card className="p-4 border-accent bg-accent/50">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Badge className="bg-purple-100 text-purple-800">Severance</Badge>
+                  <Badge className="bg-accent text-accent-foreground">Severance</Badge>
                   PEC + PEF Combined
                 </h3>
                 <div className="grid grid-cols-4 gap-4">
@@ -482,7 +482,7 @@ const LegalReferralWizard = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Subtotal</p>
-                    <p className="text-xl font-bold text-purple-600">EC${componentSummary.severance.grandTotal.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-accent-foreground">EC${componentSummary.severance.grandTotal.toLocaleString()}</p>
                   </div>
                 </div>
               </Card>

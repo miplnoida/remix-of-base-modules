@@ -611,8 +611,8 @@ export default function DataEntryGrid({
                   <td className="px-2 py-1.5">
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-muted-foreground font-mono">{rowIdx + 1}</span>
-                      {row.isSaved && !row.hasChanges && <Check className="h-3 w-3 text-green-600" />}
-                      {row.hasChanges && row.isExisting && <div className="h-2 w-2 rounded-full bg-amber-500" />}
+                      {row.isSaved && !row.hasChanges && <Check className="h-3 w-3 text-success" />}
+                      {row.hasChanges && row.isExisting && <div className="h-2 w-2 rounded-full bg-warning" />}
                     </div>
                   </td>
 
@@ -633,11 +633,11 @@ export default function DataEntryGrid({
                         disabled={row.isExisting}
                         className={`h-8 text-xs font-mono px-2 ${
                           row.ssnError ? 'border-destructive focus-visible:ring-destructive' :
-                          row.ssnValidated ? 'border-green-500' : ''
+                          row.ssnValidated ? 'border-success' : ''
                         }`}
                       />
                       {row.isValidating && <Loader2 className="absolute right-1.5 top-2 h-3 w-3 animate-spin text-muted-foreground" />}
-                      {row.ssnValidated && !row.isValidating && <Check className="absolute right-1.5 top-2 h-3 w-3 text-green-600" />}
+                      {row.ssnValidated && !row.isValidating && <Check className="absolute right-1.5 top-2 h-3 w-3 text-success" />}
                     </div>
                     {row.ssnError && (
                       <p className="text-[10px] text-destructive leading-tight mt-0.5 px-1">{row.ssnError}</p>

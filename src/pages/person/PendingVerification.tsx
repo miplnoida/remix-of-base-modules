@@ -165,7 +165,7 @@ export default function PendingVerificationPage() {
                         <p className="font-semibold text-lg">{request.id}</p>
                         <StatusBadge status="Pending Verification" />
                         {!canApprove && (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
                             <User className="h-3 w-3 mr-1" />
                             Your Submission
                           </Badge>

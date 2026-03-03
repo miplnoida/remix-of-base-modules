@@ -342,7 +342,7 @@ export default function DependencyScan() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Used Tables</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{scanResult.summary.usedTables}</div>
+                <div className="text-2xl font-bold text-success">{scanResult.summary.usedTables}</div>
               </CardContent>
             </Card>
             <Card>
@@ -350,7 +350,7 @@ export default function DependencyScan() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Unused Tables</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-600">{scanResult.summary.unusedTables}</div>
+                <div className="text-2xl font-bold text-warning">{scanResult.summary.unusedTables}</div>
               </CardContent>
             </Card>
             <Card>

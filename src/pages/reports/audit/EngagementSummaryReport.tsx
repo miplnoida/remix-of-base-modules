@@ -10,8 +10,8 @@ import { ExportActions } from '@/components/reports/ExportActions';
 import { ExportColumn } from '@/utils/exportUtils';
 
 const chartData = [
-  { name: 'Completed', value: 38, color: '#009B4C' },
-  { name: 'In Progress', value: 4, color: '#F59E0B' },
+  { name: 'Completed', value: 38, color: 'hsl(var(--success))' },
+  { name: 'In Progress', value: 4, color: 'hsl(var(--warning))' },
 ];
 
 const mockData = [
@@ -127,7 +127,7 @@ export default function EngagementSummaryReport() {
                   <TableCell>{row.auditName}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      row.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      row.status === 'Completed' ? 'bg-success/10 text-success' : 'bg-warning/15 text-warning'
                     }`}>
                       {row.status}
                     </span>
