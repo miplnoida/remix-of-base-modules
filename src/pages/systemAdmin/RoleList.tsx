@@ -117,7 +117,7 @@ export default function RoleList() {
                   <TableCell className="max-w-xs truncate">{role.description || '-'}</TableCell>
                   <TableCell>
                     {role.is_system_role ? (
-                      <Badge className="bg-blue-100 text-blue-800">System</Badge>
+                      <Badge className="bg-secondary/10 text-secondary-foreground">System</Badge>
                     ) : (
                       <Badge variant="outline">Custom</Badge>
                     )}

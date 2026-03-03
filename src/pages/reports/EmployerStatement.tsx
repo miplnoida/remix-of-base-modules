@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '@/contexts/ThemeContext';
+
 import { 
   ArrowLeft, 
   Search, 
@@ -20,7 +20,7 @@ import {
 
 const EmployerStatement = () => {
   const navigate = useNavigate();
-  const { currentTheme } = useTheme();
+  
   
   const [searchData, setSearchData] = useState({
     employerNameId: '',
@@ -94,8 +94,8 @@ const EmployerStatement = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: currentTheme.colors.background }}>
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -112,7 +112,7 @@ const EmployerStatement = () => {
               <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Reports & Analytics</span>
                 <span>/</span>
-                <span className="font-medium" style={{ color: currentTheme.colors.text }}>
+                <span className="font-medium text-foreground">
                   Employer Statement
                 </span>
               </nav>
@@ -123,7 +123,7 @@ const EmployerStatement = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: currentTheme.colors.text }}>
+          <h1 className="text-3xl font-bold text-foreground">
             Employer Account Statement
           </h1>
           <p className="text-muted-foreground">Generate detailed account statements for employers</p>
@@ -190,7 +190,7 @@ const EmployerStatement = () => {
               <CardContent className="p-6">
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium" style={{ color: currentTheme.colors.primary }}>
+                    <span className="font-medium text-primary">
                       Employer Name:
                     </span> {employerData.name}
                   </div>
@@ -224,11 +224,11 @@ const EmployerStatement = () => {
                         >
                           <div className="flex items-center space-x-2">
                             {expandedMonths.includes(monthData.month) ? (
-                              <ChevronDown className="h-4 w-4" style={{ color: currentTheme.colors.primary }} />
+                              <ChevronDown className="h-4 w-4 text-primary" />
                             ) : (
-                              <ChevronRight className="h-4 w-4" style={{ color: currentTheme.colors.primary }} />
+                              <ChevronRight className="h-4 w-4 text-primary" />
                             )}
-                            <span className="font-medium" style={{ color: currentTheme.colors.primary }}>
+                            <span className="font-medium text-primary">
                               {monthData.month}
                             </span>
                           </div>

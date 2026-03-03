@@ -70,10 +70,10 @@ const ContributionTracking = () => {
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      'paid': 'bg-green-100 text-green-800',
-      'pending': 'bg-yellow-100 text-yellow-800',
-      'overdue': 'bg-red-100 text-red-800',
-      'partial': 'bg-orange-100 text-orange-800'
+      'paid': 'bg-primary/10 text-primary',
+      'pending': 'bg-accent/30 text-accent-foreground',
+      'overdue': 'bg-destructive/10 text-destructive',
+      'partial': 'bg-accent/20 text-accent-foreground'
     };
     return variants[status as keyof typeof variants] || variants.pending;
   };
@@ -101,10 +101,10 @@ const ContributionTracking = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Contributions</p>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalContributions)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Contributions</p>
+                <p className="text-2xl font-bold text-secondary-foreground">{formatCurrency(totalContributions)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-blue-600" />
+              <DollarSign className="h-8 w-8 text-secondary-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -113,10 +113,10 @@ const ContributionTracking = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Paid</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(paidContributions)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Paid</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(paidContributions)}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -125,8 +125,8 @@ const ContributionTracking = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending/Overdue</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(pendingContributions)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Pending/Overdue</p>
+                <p className="text-2xl font-bold text-destructive">{formatCurrency(pendingContributions)}</p>
               </div>
               <Calendar className="h-8 w-8 text-red-600" />
             </div>

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { CHART_COLORS, CHART_STYLES } from "@/lib/chartColors";
 
 const executionData = [
   { name: "Mon", completed: 45, failed: 5, avgDuration: 125 },
@@ -13,10 +14,10 @@ const executionData = [
 ];
 
 const successRateData = [
-  { name: "Retirement Benefits", value: 92, color: "#22c55e" },
-  { name: "Sickness Claims", value: 88, color: "#3b82f6" },
-  { name: "Employer Registration", value: 95, color: "#a855f7" },
-  { name: "Compliance Audit", value: 78, color: "#f59e0b" },
+  { name: "Retirement Benefits", value: 92, color: CHART_COLORS.primary },
+  { name: "Sickness Claims", value: 88, color: CHART_COLORS.secondary },
+  { name: "Employer Registration", value: 95, color: CHART_COLORS.accent },
+  { name: "Compliance Audit", value: 78, color: CHART_COLORS.teal },
 ];
 
 const bottleneckData = [
@@ -41,12 +42,12 @@ export default function WorkflowAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Executions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">321</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12.5%</span> from last week
+              <span className="text-primary">+12.5%</span> from last week
             </p>
           </CardContent>
         </Card>
@@ -54,12 +55,12 @@ export default function WorkflowAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-blue-600" />
+            <CheckCircle2 className="h-4 w-4 text-secondary-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">89.2%</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-blue-600">+2.1%</span> improvement
+              <span className="text-primary">+2.1%</span> improvement
             </p>
           </CardContent>
         </Card>
@@ -67,12 +68,12 @@ export default function WorkflowAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Failed Executions</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
+            <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">28</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-red-600">-8.7%</span> from last week
+              <span className="text-destructive">-8.7%</span> from last week
             </p>
           </CardContent>
         </Card>
@@ -80,12 +81,12 @@ export default function WorkflowAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-            <Clock className="h-4 w-4 text-purple-600" />
+            <Clock className="h-4 w-4 text-accent-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">2h 1m</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">-15m</span> faster
+              <span className="text-primary">-15m</span> faster
             </p>
           </CardContent>
         </Card>
@@ -99,13 +100,13 @@ export default function WorkflowAnalytics() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={executionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid {...CHART_STYLES.grid} />
+                <XAxis dataKey="name" {...CHART_STYLES.axis} />
+                <YAxis {...CHART_STYLES.axis} />
+                <Tooltip {...CHART_STYLES.tooltip} />
                 <Legend />
-                <Line type="monotone" dataKey="completed" stroke="#22c55e" strokeWidth={2} />
-                <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} />
+                <Line type="monotone" dataKey="completed" stroke={CHART_COLORS.primary} strokeWidth={2} />
+                <Line type="monotone" dataKey="failed" stroke={CHART_COLORS.error} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -125,7 +126,7 @@ export default function WorkflowAnalytics() {
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}%`}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill={CHART_COLORS.primary}
                   dataKey="value"
                 >
                   {successRateData.map((entry, index) => (
@@ -142,7 +143,7 @@ export default function WorkflowAnalytics() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-red-600" />
+            <AlertCircle className="h-5 w-5 text-destructive" />
             <CardTitle>Bottleneck Analysis</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -152,13 +153,13 @@ export default function WorkflowAnalytics() {
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={bottleneckData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="step" />
-              <YAxis label={{ value: "Minutes", angle: -90, position: "insideLeft" }} />
-              <Tooltip />
+              <CartesianGrid {...CHART_STYLES.grid} />
+              <XAxis dataKey="step" {...CHART_STYLES.axis} />
+              <YAxis label={{ value: "Minutes", angle: -90, position: "insideLeft" }} {...CHART_STYLES.axis} />
+              <Tooltip {...CHART_STYLES.tooltip} />
               <Legend />
-              <Bar dataKey="avgTime" fill="#ef4444" name="Avg Time" />
-              <Bar dataKey="sla" fill="#22c55e" name="SLA Target" />
+              <Bar dataKey="avgTime" fill={CHART_COLORS.error} name="Avg Time" />
+              <Bar dataKey="sla" fill={CHART_COLORS.primary} name="SLA Target" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -171,12 +172,12 @@ export default function WorkflowAnalytics() {
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={executionData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: "Minutes", angle: -90, position: "insideLeft" }} />
-              <Tooltip />
+              <CartesianGrid {...CHART_STYLES.grid} />
+              <XAxis dataKey="name" {...CHART_STYLES.axis} />
+              <YAxis label={{ value: "Minutes", angle: -90, position: "insideLeft" }} {...CHART_STYLES.axis} />
+              <Tooltip {...CHART_STYLES.tooltip} />
               <Legend />
-              <Bar dataKey="avgDuration" fill="#3b82f6" name="Avg Duration (min)" />
+              <Bar dataKey="avgDuration" fill={CHART_COLORS.secondary} name="Avg Duration (min)" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

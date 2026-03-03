@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "@/contexts/ThemeContext";
+
 import { usePendingApprovalCount } from "@/hooks/useWorkflowPendingApprovals";
 
 interface InAppNotification {
@@ -29,7 +29,7 @@ interface InAppNotification {
 export function InAppNotificationBell() {
   const [open, setOpen] = useState(false);
   const { user } = useSupabaseAuth();
-  const { currentTheme } = useTheme();
+  
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
@@ -102,14 +102,13 @@ export function InAppNotificationBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative"
-          style={{ color: currentTheme.colors.primary }}
+          className="relative text-muted-foreground hover:text-foreground"
         >
           <Bell className="h-5 w-5" />
           {totalBadgeCount > 0 && (
             <Badge
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              style={{ backgroundColor: overdueCount > 0 ? 'hsl(var(--destructive))' : currentTheme.colors.accent }}
+              style={{ backgroundColor: overdueCount > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--accent))' }}
             >
               {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
             </Badge>
@@ -136,18 +135,18 @@ export function InAppNotificationBell() {
         {pendingApprovalCount > 0 && (
           <>
             <div
-              className="p-4 bg-amber-50 dark:bg-amber-900/20 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+              className="p-4 bg-accent/20 cursor-pointer hover:bg-accent/30 transition-colors"
               onClick={() => {
                 setOpen(false);
                 navigate('/workflow/approvals');
               }}
             >
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-accent/30 flex items-center justify-center">
                   {overdueCount > 0 ? (
-                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <AlertCircle className="h-5 w-5 text-destructive" />
                   ) : (
-                    <Clock className="h-5 w-5 text-amber-600" />
+                    <Clock className="h-5 w-5 text-accent-foreground" />
                   )}
                 </div>
                 <div className="flex-1">

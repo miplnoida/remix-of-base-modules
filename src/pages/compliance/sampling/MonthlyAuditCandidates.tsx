@@ -98,19 +98,19 @@ export default function MonthlyAuditCandidates() {
 
   const getRiskBadgeColor = (band: string) => {
     switch (band) {
-      case 'High': return 'bg-red-100 text-red-800';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800';
-      case 'Low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'High': return 'bg-destructive/10 text-destructive';
+      case 'Medium': return 'bg-accent/30 text-accent-foreground';
+      case 'Low': return 'bg-primary/10 text-primary';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getSelectionTypeBadge = (type: string) => {
     switch (type) {
-      case 'Mandatory': return 'bg-orange-100 text-orange-800';
-      case 'Risk': return 'bg-blue-100 text-blue-800';
-      case 'Random': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Mandatory': return 'bg-accent/30 text-accent-foreground';
+      case 'Risk': return 'bg-secondary/10 text-secondary-foreground';
+      case 'Random': return 'bg-muted text-muted-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -154,7 +154,7 @@ export default function MonthlyAuditCandidates() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Mandatory</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
+            <div className="text-3xl font-bold text-accent-foreground">
               {candidates.filter(c => c.selectionType === 'Mandatory').length}
             </div>
           </CardContent>
@@ -164,7 +164,7 @@ export default function MonthlyAuditCandidates() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Risk-Based</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
+            <div className="text-3xl font-bold text-secondary-foreground">
               {candidates.filter(c => c.selectionType === 'Risk').length}
             </div>
           </CardContent>
@@ -174,7 +174,7 @@ export default function MonthlyAuditCandidates() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Random</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">
+            <div className="text-3xl font-bold text-muted-foreground">
               {candidates.filter(c => c.selectionType === 'Random').length}
             </div>
           </CardContent>
@@ -184,7 +184,7 @@ export default function MonthlyAuditCandidates() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Included</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-3xl font-bold text-primary">
               {candidates.filter(c => c.included).length}
             </div>
           </CardContent>

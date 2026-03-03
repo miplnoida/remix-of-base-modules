@@ -5,6 +5,7 @@ import { Settings, User, LogOut, CalendarDays } from "lucide-react";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { InAppNotificationBell } from "@/components/notifications/InAppNotificationBell";
 import { MeetingCalendarModal } from "@/components/meetings/MeetingCalendarModal";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { useTodayMeetingCount } from "@/hooks/useTodayMeetingCount";
 import { useNavigate } from "react-router-dom";
 import {
@@ -71,6 +72,9 @@ export const Header = () => {
           </Button>
         )}
         <MeetingCalendarModal open={calendarOpen} onOpenChange={setCalendarOpen} />
+
+        {/* Theme Switcher */}
+        <ThemeSwitcher />
 
         {/* Notifications */}
         <InAppNotificationBell />

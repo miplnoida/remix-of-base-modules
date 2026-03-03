@@ -41,7 +41,7 @@ export function FinancialDashboard({ caseId }: FinancialDashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${summary.total_paid.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-primary">${summary.total_paid.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {summary.payment_count} payment{summary.payment_count !== 1 ? 's' : ''}
             </p>
@@ -71,7 +71,7 @@ export function FinancialDashboard({ caseId }: FinancialDashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">${summary.total_penalties.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-accent-foreground">${summary.total_penalties.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {summary.overdue_count} overdue
             </p>
@@ -88,7 +88,7 @@ export function FinancialDashboard({ caseId }: FinancialDashboardProps) {
           <div className="space-y-2">
             <div className="h-4 bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full bg-green-600 transition-all duration-300"
+                className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${Math.min(paymentProgress, 100)}%` }}
               />
             </div>
@@ -111,27 +111,27 @@ export function FinancialDashboard({ caseId }: FinancialDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <div className="p-4 bg-secondary/10 rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">SS - Insured Person</p>
-              <p className="text-xl font-bold text-blue-700 dark:text-blue-400">
+              <p className="text-xl font-bold text-secondary-foreground">
                 ${summary.total_ss_insured.toFixed(2)}
               </p>
             </div>
-            <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
+            <div className="p-4 bg-accent/20 rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">SS - Employer</p>
-              <p className="text-xl font-bold text-purple-700 dark:text-purple-400">
+              <p className="text-xl font-bold text-accent-foreground">
                 ${summary.total_ss_employer.toFixed(2)}
               </p>
             </div>
-            <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg">
+            <div className="p-4 bg-accent/30 rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">Housing & Social Levy</p>
-              <p className="text-xl font-bold text-amber-700 dark:text-amber-400">
+              <p className="text-xl font-bold text-accent-foreground">
                 ${summary.total_levy.toFixed(2)}
               </p>
             </div>
-            <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+            <div className="p-4 bg-primary/10 rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">Employment Insurance</p>
-              <p className="text-xl font-bold text-green-700 dark:text-green-400">
+              <p className="text-xl font-bold text-primary">
                 ${summary.total_ei.toFixed(2)}
               </p>
             </div>

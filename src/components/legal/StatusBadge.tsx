@@ -6,37 +6,36 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, string> = {
-  'Draft': 'bg-[#111827] text-white border border-[#1f2937]',
-  'Filed': 'bg-[#B45309] text-white border border-[#C2410C]',
-  'Pending Hearing': 'bg-[#0F766E] text-white border border-[#0D9488]',
-  'In Court': 'bg-[#B91C1C] text-white border border-[#DC2626]',
-  'Judgment Delivered': 'bg-[#B45309] text-white border border-[#C2410C]',
-  'Enforcement Ongoing': 'bg-[#6D28D9] text-white border border-[#7C3AED]',
-  'Closed – Compliant': 'bg-[#166534] text-white border border-[#15803D]',
-  'Closed – Non-Compliant': 'bg-[#B91C1C] text-white border border-[#DC2626]',
-  'Settled': 'bg-[#047857] text-white border border-[#059669]',
-  'Withdrawn': 'bg-[#3F3F46] text-white border border-[#52525B]',
-  'On Appeal': 'bg-[#9D174D] text-white border border-[#BE185D]',
-  'Reopened': 'bg-[#3730A3] text-white border border-[#4338CA]',
-  // Status badges with better contrast
-  'Under Review': 'bg-[#B45309] text-white border border-[#C2410C]',
-  'Hearing Scheduled': 'bg-[#0F766E] text-white border border-[#0D9488]',
-  'Hearing Held': 'bg-[#115E59] text-white border border-[#134E4A]',
-  'Decision Pending': 'bg-[#B45309] text-white border border-[#C2410C]',
-  'Order Issued': 'bg-[#6D28D9] text-white border border-[#7C3AED]',
-  'Appealed': 'bg-[#9D174D] text-white border border-[#BE185D]',
-  'Resolved': 'bg-[#047857] text-white border border-[#059669]',
-  'Completed': 'bg-[#047857] text-white border border-[#059669]',
-  'Within SLA': 'bg-[#047857] text-white border border-[#059669]',
-  'At Risk': 'bg-[#DC2626] text-white border border-[#B91C1C]',
-  'Overdue': 'bg-[#B91C1C] text-white border border-[#DC2626]',
-  'Medium': 'bg-[#B45309] text-white border border-[#C2410C]',
-  'Low': 'bg-[#0F766E] text-white border border-[#0D9488]',
-  'High': 'bg-[#B91C1C] text-white border border-[#DC2626]',
+  'Draft': 'bg-secondary text-secondary-foreground border border-secondary/80',
+  'Filed': 'bg-accent text-accent-foreground border border-accent/80',
+  'Pending Hearing': 'bg-primary/80 text-primary-foreground border border-primary/60',
+  'In Court': 'bg-destructive text-destructive-foreground border border-destructive/80',
+  'Judgment Delivered': 'bg-accent text-accent-foreground border border-accent/80',
+  'Enforcement Ongoing': 'bg-secondary/80 text-secondary-foreground border border-secondary/60',
+  'Closed – Compliant': 'bg-primary text-primary-foreground border border-primary/80',
+  'Closed – Non-Compliant': 'bg-destructive text-destructive-foreground border border-destructive/80',
+  'Settled': 'bg-primary text-primary-foreground border border-primary/80',
+  'Withdrawn': 'bg-muted text-muted-foreground border border-border',
+  'On Appeal': 'bg-destructive/80 text-destructive-foreground border border-destructive/60',
+  'Reopened': 'bg-secondary text-secondary-foreground border border-secondary/80',
+  'Under Review': 'bg-accent text-accent-foreground border border-accent/80',
+  'Hearing Scheduled': 'bg-primary/80 text-primary-foreground border border-primary/60',
+  'Hearing Held': 'bg-primary/70 text-primary-foreground border border-primary/50',
+  'Decision Pending': 'bg-accent text-accent-foreground border border-accent/80',
+  'Order Issued': 'bg-secondary/80 text-secondary-foreground border border-secondary/60',
+  'Appealed': 'bg-destructive/80 text-destructive-foreground border border-destructive/60',
+  'Resolved': 'bg-primary text-primary-foreground border border-primary/80',
+  'Completed': 'bg-primary text-primary-foreground border border-primary/80',
+  'Within SLA': 'bg-primary text-primary-foreground border border-primary/80',
+  'At Risk': 'bg-destructive text-destructive-foreground border border-destructive/80',
+  'Overdue': 'bg-destructive text-destructive-foreground border border-destructive/80',
+  'Medium': 'bg-accent text-accent-foreground border border-accent/80',
+  'Low': 'bg-primary/80 text-primary-foreground border border-primary/60',
+  'High': 'bg-destructive text-destructive-foreground border border-destructive/80',
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const styles = statusStyles[status] || 'bg-gray-700 text-white';
+  const styles = statusStyles[status] || 'bg-muted text-muted-foreground border border-border';
   
   return (
     <span 
