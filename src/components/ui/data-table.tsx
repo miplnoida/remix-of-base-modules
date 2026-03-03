@@ -380,7 +380,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {column.label}
                   </TableHead>
                 ))}
-                {(actions && (actions.view || actions.edit || actions.approve || actions.reject)) && (
+                {(actions && (actions.view || actions.edit || actions.delete || actions.approve || actions.reject)) && (
                   <TableHead className="min-w-[150px] sticky right-0 bg-background">
                     Actions
                   </TableHead>
