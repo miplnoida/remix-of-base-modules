@@ -408,18 +408,24 @@ export default function DataEntryGrid({
     }));
   }, [rows, generatedWeekIndices, periodYear, periodMonth, periodTermStartDate]);
 
-  // Holiday blur handler - show modal if value is not empty
+  // Holiday blur handler - always re-open modal when holiday has a value
   const handleHolidayBlur = useCallback((rowIdx: number) => {
     const row = rows[rowIdx];
     if (!row) return;
     const holidayVal = row.weeklyWages[6] || 0;
-    if (holidayVal > 0 && !row.holidayNoDates && !row.holidayStartDate) {
-      // Show holiday modal
-      setHolidayModalStartDate(row.holidayStartDate || '');
-      setHolidayModalEndDate(row.holidayEndDate || '');
-      setHolidayModalNoDates(row.holidayNoDates || false);
-      setHolidayModalRowIdx(rowIdx);
+    if (holidayVal > 0) {
+      openHolidayModal(rowIdx);
     }
+  }, [rows]);
+
+  // Open holiday modal prefilled with current row data
+  const openHolidayModal = useCallback((rowIdx: number) => {
+    const row = rows[rowIdx];
+    if (!row) return;
+    setHolidayModalStartDate(row.holidayStartDate || '');
+    setHolidayModalEndDate(row.holidayEndDate || '');
+    setHolidayModalNoDates(row.holidayNoDates || false);
+    setHolidayModalRowIdx(rowIdx);
   }, [rows]);
 
   // Holiday modal OK
@@ -678,8 +684,8 @@ export default function DataEntryGrid({
                           <div
                             className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
                               isPresent ? 'bg-green-500 border-green-600' : 'bg-background border-input'
-                            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={() => canEdit && handleWeekToggle(rowIdx, weekIdx)}
+                            }`}
+                            onClick={() => handleWeekToggle(rowIdx, weekIdx)}
                           >
                             {isPresent && <Check className="h-2.5 w-2.5 text-white" />}
                           </div>
@@ -750,9 +756,13 @@ export default function DataEntryGrid({
                         placeholder="0.00"
                         className="h-8 text-xs text-right font-mono px-2"
                       />
-                      {/* Holiday info badge */}
+                      {/* Holiday info badge - clickable to re-open modal */}
                       {(row.holidayNoDates || row.holidayStartDate) && (row.weeklyWages[6] || 0) > 0 && (
-                        <Badge variant="outline" className="text-[8px] h-4 px-1 w-fit">
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] h-4 px-1 w-fit cursor-pointer hover:bg-muted"
+                          onClick={() => openHolidayModal(rowIdx)}
+                        >
                           {row.holidayNoDates ? 'No dates' : `${row.holidayStartDate?.slice(5) || ''}`}
                         </Badge>
                       )}
@@ -787,17 +797,15 @@ export default function DataEntryGrid({
                           <Save className="h-3.5 w-3.5" />
                         )}
                       </Button>
-                      {!row.isExisting && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteRow(rowIdx)}
-                          title="Remove row (Esc)"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteRow(rowIdx)}
+                        title="Remove row"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>

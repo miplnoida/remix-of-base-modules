@@ -18,6 +18,7 @@ import {
   Eye,
   Edit,
   CheckCircle,
+  Trash2,
   AlertTriangle,
   ChevronDown
 } from 'lucide-react';
@@ -38,11 +39,13 @@ export interface DataTableProps {
   defaultHiddenColumns?: string[];
   onView?: (row: any) => void;
   onEdit?: (row: any) => void;
+  onDelete?: (row: any) => void;
   onApprove?: (id: number | string) => void;
   onReject?: (id: number | string) => void;
   actions?: {
     view?: boolean;
     edit?: boolean;
+    delete?: boolean;
     approve?: boolean;
     reject?: boolean;
   } | false;
@@ -60,6 +63,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   defaultHiddenColumns = [],
   onView,
   onEdit,
+  onDelete,
   onApprove,
   onReject,
   actions = { view: true, edit: true, approve: true, reject: true },
@@ -227,6 +231,10 @@ export const DataTable: React.FC<DataTableProps> = ({
     if (onEdit) onEdit(row);
   };
 
+  const handleDelete = (row: any) => {
+    if (onDelete) onDelete(row);
+  };
+
   const handleApprove = (row: any) => {
     if (onApprove) onApprove(row[idField]);
   };
@@ -376,7 +384,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {column.label}
                   </TableHead>
                 ))}
-                {(actions && (actions.view || actions.edit || actions.approve || actions.reject)) && (
+                {(actions && (actions.view || actions.edit || actions.delete || actions.approve || actions.reject)) && (
                   <TableHead className="min-w-[150px] sticky right-0 bg-background">
                     Actions
                   </TableHead>
@@ -396,7 +404,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                       }
                     </TableCell>
                   ))}
-                  {(actions && (actions.view || actions.edit || actions.approve || actions.reject)) && (
+                  {(actions && (actions.view || actions.edit || actions.delete || actions.approve || actions.reject)) && (
                     <TableCell className="sticky right-0 bg-background">
                       <div className="flex gap-1">
                         {actions.view && (
@@ -417,6 +425,17 @@ export const DataTable: React.FC<DataTableProps> = ({
                             onClick={() => handleEdit(row)}
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {actions.delete && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            title="Remove"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(row)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                         {actions.approve && (
