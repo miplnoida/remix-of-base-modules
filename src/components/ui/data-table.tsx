@@ -38,11 +38,13 @@ export interface DataTableProps {
   defaultHiddenColumns?: string[];
   onView?: (row: any) => void;
   onEdit?: (row: any) => void;
+  onDelete?: (row: any) => void;
   onApprove?: (id: number | string) => void;
   onReject?: (id: number | string) => void;
   actions?: {
     view?: boolean;
     edit?: boolean;
+    delete?: boolean;
     approve?: boolean;
     reject?: boolean;
   } | false;

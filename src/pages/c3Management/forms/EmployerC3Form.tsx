@@ -823,9 +823,10 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                   ]}
                   title=""
                   searchPlaceholder="Search by SSN/Name"
-                  actions={{ view: true, edit: !isReadOnly }}
+                  actions={{ view: true, edit: !isReadOnly, delete: !isReadOnly && !isViewMode }}
                   onView={handleViewEmployee}
                   onEdit={handleEditEmployee}
+                  onDelete={(row: any) => handleDeleteEmployee(row as EmployeeData)}
                 />
               ) : null}
             </CardContent>

@@ -797,17 +797,15 @@ export default function DataEntryGrid({
                           <Save className="h-3.5 w-3.5" />
                         )}
                       </Button>
-                      {!row.isExisting && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteRow(rowIdx)}
-                          title="Remove row (Esc)"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteRow(rowIdx)}
+                        title="Remove row"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>

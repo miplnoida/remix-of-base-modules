@@ -946,52 +946,6 @@ export default function EmployeeModal({
                         disabled={!isWeekFieldEnabled(5) || isViewMode}
                       />
                     </div>
-                    {localEmployee.days?.[5] && (
-                      <>
-                        <div className="flex items-center gap-3 pl-7">
-                          <div className="flex-1 space-y-0.5">
-                            <Label className="text-[10px] text-muted-foreground">Bonus Date</Label>
-                            <Input
-                              type="date"
-                              value={localEmployee.bonusDate || ''}
-                              min={periodMonthStart}
-                              max={periodMonthEnd}
-                              onChange={(e) => {
-                                handleChange('bonusDate', e.target.value);
-                                validateBonusDate(e.target.value);
-                              }}
-                              className="h-7 text-xs"
-                              disabled={isViewMode}
-                            />
-                            {bonusDateError && <p className="text-[10px] text-destructive">{bonusDateError}</p>}
-                          </div>
-                        </div>
-                        <div className={`ml-7 flex items-center gap-2 rounded-md border px-2.5 py-2 transition-colors ${
-                          bonusPolicyResult?.policyApplied ? 'border-emerald-300 bg-emerald-50/60' : 'border-amber-200 bg-background'
-                        }`}>
-                          {isBonusCalcRunning ? (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" /> Applying bonus policy…
-                            </div>
-                          ) : bonusPolicyResult?.policyApplied ? (
-                            <div className="flex items-center gap-2 flex-1">
-                              <Check className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
-                              <span className="text-xs font-medium text-emerald-800">
-                                Bonus policy applied ({bonusPolicyResult.policyApplied.method})
-                              </span>
-                              {!bonusPolicyResult.bonusEligible && (
-                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-amber-400 bg-amber-200/50 text-amber-800 ml-auto">Outside cap range</Badge>
-                              )}
-                            </div>
-                          ) : (effectiveWages[5] || 0) > 0 ? (
-                            <span className="text-xs text-muted-foreground">No bonus policy configured for this period</span>
-                          ) : null}
-                          {bonusPolicyError && (
-                            <span className="text-[10px] text-destructive">{bonusPolicyError}</span>
-                          )}
-                        </div>
-                      </>
-                    )}
                   </div>
                 </div>
               )}
