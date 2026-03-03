@@ -62,7 +62,7 @@ export default function WorkflowSLAMonitor() {
   const warningCount = activeViolations.filter((v) => v.severity === "Warning").length;
 
   const getSeverityColor = (severity: string) => {
-    return severity === "Critical" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
+    return severity === "Critical" ? "bg-destructive/10 text-destructive" : "bg-warning/15 text-warning";
   };
 
   return (

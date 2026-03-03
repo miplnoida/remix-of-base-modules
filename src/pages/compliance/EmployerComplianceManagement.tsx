@@ -83,8 +83,8 @@ const EmployerComplianceManagement = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -97,11 +97,11 @@ const EmployerComplianceManagement = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Compliance
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Compliance & Audit</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">Employer Management</span>
+                <span className="text-foreground font-medium">Employer Management</span>
               </nav>
             </div>
             <Button onClick={() => {}} size="sm">
@@ -114,8 +114,8 @@ const EmployerComplianceManagement = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Employer Compliance Management</h1>
-          <p className="text-gray-600">Monitor and manage employer compliance across all registered companies</p>
+          <h1 className="text-3xl font-bold text-foreground">Employer Compliance Management</h1>
+          <p className="text-muted-foreground">Monitor and manage employer compliance across all registered companies</p>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
@@ -152,7 +152,7 @@ const EmployerComplianceManagement = () => {
                         <TableCell>
                           <div>
                             <div className="font-medium">{employer.name}</div>
-                            <div className="text-sm text-gray-500">{employer.id}</div>
+                            <div className="text-sm text-muted-foreground">{employer.id}</div>
                           </div>
                         </TableCell>
                         <TableCell>{employer.registrationNumber}</TableCell>
@@ -161,16 +161,16 @@ const EmployerComplianceManagement = () => {
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <span className={`text-sm font-medium ${
-                              employer.riskScore >= 70 ? 'text-red-600' :
-                              employer.riskScore >= 40 ? 'text-yellow-600' : 'text-green-600'
+                              employer.riskScore >= 70 ? 'text-destructive' :
+                              employer.riskScore >= 40 ? 'text-warning' : 'text-success'
                             }`}>
                               {employer.riskScore}
                             </span>
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div className="w-16 bg-muted rounded-full h-2">
                               <div 
                                 className={`h-2 rounded-full ${
-                                  employer.riskScore >= 70 ? 'bg-red-500' :
-                                  employer.riskScore >= 40 ? 'bg-yellow-500' : 'bg-green-500'
+                                  employer.riskScore >= 70 ? 'bg-destructive' :
+                                  employer.riskScore >= 40 ? 'bg-warning' : 'bg-success'
                                 }`}
                                 style={{ width: `${employer.riskScore}%` }}
                               ></div>

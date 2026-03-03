@@ -146,14 +146,14 @@ export function ScoutingViolationForm({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                <p className="text-sm font-medium text-foreground">
                   Territory: {territory}
                 </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Inspector: {inspectorId} • Plan Item: {weeklyPlanItemId}
                 </p>
               </div>

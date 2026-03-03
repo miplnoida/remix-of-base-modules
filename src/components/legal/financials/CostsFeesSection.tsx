@@ -41,9 +41,9 @@ export function CostsFeesSection({ caseId, costs, isOpen, onToggle }: CostsFeesS
         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-orange-600" />
+              <Receipt className="h-5 w-5 text-warning" />
               Costs & Fees
-              <Badge className="bg-orange-600/10 text-orange-700 hover:bg-orange-600/20 font-semibold">{costs.length} {costs.length === 1 ? 'Item' : 'Items'}</Badge>
+              <Badge className="bg-warning/10 text-warning hover:bg-warning/20 font-semibold">{costs.length} {costs.length === 1 ? 'Item' : 'Items'}</Badge>
             </CardTitle>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>

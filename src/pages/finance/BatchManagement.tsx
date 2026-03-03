@@ -80,7 +80,7 @@ export default function BatchManagement() {
     const styles = {
       open: "bema-badge-success",
       closed: "bema-badge-warning",
-      locked: "bg-gray-200 text-gray-800"
+      locked: "bg-muted text-muted-foreground"
     };
     return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
       {status.toUpperCase()}

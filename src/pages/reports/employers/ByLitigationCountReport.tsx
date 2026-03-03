@@ -141,9 +141,9 @@ export default function ByLitigationCountReport() {
                   <TableCell>{row.zone}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      row.litigationCases >= 4 ? 'bg-red-100 text-red-800' : 
-                      row.litigationCases >= 2 ? 'bg-orange-100 text-orange-800' : 
-                      'bg-yellow-100 text-yellow-800'
+                      row.litigationCases >= 4 ? 'bg-destructive/10 text-destructive' : 
+                      row.litigationCases >= 2 ? 'bg-warning/15 text-warning' : 
+                      'bg-accent/20 text-accent-foreground'
                     }`}>
                       {row.litigationCases}
                     </span>
@@ -151,7 +151,7 @@ export default function ByLitigationCountReport() {
                   <TableCell className="font-semibold">{row.totalArrears.toLocaleString()}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      row.status === 'Active' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      row.status === 'Active' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'
                     }`}>
                       {row.status}
                     </span>

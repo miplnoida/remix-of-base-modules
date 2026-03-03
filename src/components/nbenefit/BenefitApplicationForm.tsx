@@ -408,9 +408,9 @@ export const BenefitApplicationForm = ({ benefitType, onClose }: BenefitApplicat
               </Card>
 
               {/* Step 4: Payment Information */}
-              <Card className="p-6 border-2 border-green-500/20 bg-green-50 dark:bg-green-950/20">
+              <Card className="p-6 border-2 border-success/20 bg-success/5">
                 <div className="flex items-center gap-2 mb-4">
-                  <DollarSign className="h-5 w-5 text-green-600" />
+                  <DollarSign className="h-5 w-5 text-success" />
                   <h3 className="text-lg font-semibold">Step 3: Payment Processing</h3>
                 </div>
                 

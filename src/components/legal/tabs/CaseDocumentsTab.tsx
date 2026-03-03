@@ -68,8 +68,8 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
             variant="outline"
             className={`cursor-pointer transition-colors ${
               activeFolder === folder
-                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                : 'hover:bg-gray-100'
+                ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+                : 'hover:bg-muted'
             }`}
             onClick={() => setActiveFolder(folder)}
           >
@@ -105,7 +105,7 @@ export function CaseDocumentsTab({ caseData }: CaseDocumentsTabProps) {
                   </TableCell>
                   <TableCell>{doc.type}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs bg-slate-100 text-slate-800 border-slate-200">
+                    <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
                       {doc.folder}
                     </Badge>
                   </TableCell>

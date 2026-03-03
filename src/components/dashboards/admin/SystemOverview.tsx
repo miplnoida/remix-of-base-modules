@@ -81,28 +81,28 @@ export const SystemOverview = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Database Performance</span>
-                <span className="text-sm font-medium text-green-600">98.5%</span>
+                <span className="text-sm font-medium text-success">98.5%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '98.5%' }}></div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div className="bg-success h-2 rounded-full" style={{ width: '98.5%' }}></div>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">System Uptime</span>
-                <span className="text-sm font-medium text-green-600">99.9%</span>
+                <span className="text-sm font-medium text-success">99.9%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '99.9%' }}></div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div className="bg-success h-2 rounded-full" style={{ width: '99.9%' }}></div>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Security Score</span>
-                <span className="text-sm font-medium text-orange-700">85%</span>
+                <span className="text-sm font-medium text-warning">85%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-orange-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div className="bg-warning h-2 rounded-full" style={{ width: '85%' }}></div>
               </div>
             </div>
           </CardContent>
@@ -119,7 +119,7 @@ export const SystemOverview = () => {
           <CardContent>
             <div className="space-y-3">
               {recentActivities.map((activity, index) => (
-                <div key={index} className="flex gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                <div key={index} className="flex gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
                   <div className="w-16 flex-shrink-0">
                     <Badge 
                       variant={getBadgeVariant(activity.type)}

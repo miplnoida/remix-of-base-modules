@@ -112,11 +112,11 @@ export function PlanExecutionDialog({
 
   const getStatusBadge = (status: VisitExecutionStatus) => {
     const configs = {
-      [VisitExecutionStatus.PLANNED]: { color: 'bg-gray-100 text-gray-800', label: 'Planned' },
-      [VisitExecutionStatus.IN_PROGRESS]: { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
-      [VisitExecutionStatus.COMPLETED]: { color: 'bg-green-100 text-green-800', label: 'Completed' },
-      [VisitExecutionStatus.RESCHEDULED]: { color: 'bg-yellow-100 text-yellow-800', label: 'Rescheduled' },
-      [VisitExecutionStatus.CANCELLED]: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
+      [VisitExecutionStatus.PLANNED]: { color: 'bg-muted text-muted-foreground', label: 'Planned' },
+      [VisitExecutionStatus.IN_PROGRESS]: { color: 'bg-info/10 text-info', label: 'In Progress' },
+      [VisitExecutionStatus.COMPLETED]: { color: 'bg-success/10 text-success', label: 'Completed' },
+      [VisitExecutionStatus.RESCHEDULED]: { color: 'bg-warning/15 text-warning', label: 'Rescheduled' },
+      [VisitExecutionStatus.CANCELLED]: { color: 'bg-destructive/10 text-destructive', label: 'Cancelled' },
     };
     const config = configs[status];
     return <Badge className={config.color}>{config.label}</Badge>;

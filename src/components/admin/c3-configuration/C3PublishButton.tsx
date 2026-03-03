@@ -27,7 +27,7 @@ export function C3PublishButton() {
               <span>Changes Pending Sync</span>
             </Badge>
           ) : syncStatus.lastPublishedAt ? (
-            <Badge variant="outline" className="flex items-center gap-1.5 py-1 px-3 bg-emerald-50 text-emerald-700 border-emerald-200">
+            <Badge variant="outline" className="flex items-center gap-1.5 py-1 px-3 bg-success/5 text-success border-success/20">
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Synced {formatDisplayDate(syncStatus.lastPublishedAt)}</span>
             </Badge>

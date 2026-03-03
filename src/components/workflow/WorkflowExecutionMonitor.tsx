@@ -78,12 +78,12 @@ export default function WorkflowExecutionMonitor() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      Running: "bg-blue-100 text-blue-800",
-      Paused: "bg-yellow-100 text-yellow-800",
-      Completed: "bg-green-100 text-green-800",
-      Failed: "bg-red-100 text-red-800",
+      Running: "bg-info/10 text-info",
+      Paused: "bg-warning/15 text-warning",
+      Completed: "bg-success/10 text-success",
+      Failed: "bg-destructive/10 text-destructive",
     };
-    return colors[status] || "bg-gray-100 text-gray-800";
+    return colors[status] || "bg-muted text-muted-foreground";
   };
 
   const runningCount = executions.filter((e) => e.status === "Running").length;

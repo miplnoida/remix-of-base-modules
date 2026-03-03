@@ -25,7 +25,7 @@ export default function BemaInspectorMobile() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today's Activities</CardTitle>
-            <MapPin className="h-4 w-4 text-blue-600" />
+            <MapPin className="h-4 w-4 text-info" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">5</div>
@@ -36,7 +36,7 @@ export default function BemaInspectorMobile() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed (Week)</CardTitle>
-            <FileText className="h-4 w-4 text-green-600" />
+            <FileText className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">23</div>
@@ -47,7 +47,7 @@ export default function BemaInspectorMobile() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Notices Served</CardTitle>
-            <FileText className="h-4 w-4 text-amber-600" />
+            <FileText className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">8</div>
@@ -58,7 +58,7 @@ export default function BemaInspectorMobile() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Evidence Captured</CardTitle>
-            <Camera className="h-4 w-4 text-purple-600" />
+            <Camera className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">47</div>
@@ -104,7 +104,7 @@ export default function BemaInspectorMobile() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={activity.status === "in_progress" ? "default" : "outline"}
-                        className={activity.status === "pending" ? "border-blue-600 text-blue-700 bg-blue-50" : ""}
+                        className={activity.status === "pending" ? "border-info text-info bg-info/5" : ""}
                       >
                         {activity.status.replace("_", " ")}
                       </Badge>

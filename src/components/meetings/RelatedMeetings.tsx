@@ -18,12 +18,12 @@ interface RelatedMeeting {
 }
 
 const statusColors: Record<MeetingStatus, string> = {
-  'Scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'Rescheduled': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-  'InProgress': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  'Closed': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'Cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-  'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  'Scheduled': 'bg-info/10 text-info',
+  'Rescheduled': 'bg-warning/15 text-warning',
+  'InProgress': 'bg-accent/20 text-accent-foreground',
+  'Closed': 'bg-success/10 text-success',
+  'Cancelled': 'bg-muted text-muted-foreground',
+  'Rejected': 'bg-destructive/10 text-destructive'
 };
 
 interface RelatedMeetingsProps {

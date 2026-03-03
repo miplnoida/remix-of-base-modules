@@ -108,7 +108,7 @@ export function CreateTaskDialog({ open, onOpenChange, caseId, onTaskCreated, on
                   <SelectItem value="Low">Low</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.priority && <p className="text-xs text-red-500 mt-1">{errors.priority}</p>}
+              {errors.priority && <p className="text-xs text-destructive mt-1">{errors.priority}</p>}
             </div>
             <div>
               <Label htmlFor="dueOn">Due Date</Label>
