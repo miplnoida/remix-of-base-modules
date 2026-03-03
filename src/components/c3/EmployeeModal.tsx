@@ -844,17 +844,17 @@ export default function EmployeeModal({
                       <div
                         key={weekIdx}
                         className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 cursor-pointer transition-all select-none ${
-                          isChecked ? 'bg-primary/10 border-primary/40 shadow-sm' : 'bg-background border-blue-200 hover:bg-blue-100/50'
+                          isChecked ? 'bg-green-50 border-green-400 shadow-sm ring-1 ring-green-300' : 'bg-background border-blue-200 hover:bg-blue-100/50'
                         }`}
                         onClick={() => !isViewMode && handleWeekToggle(weekIdx)}
                       >
                         <div className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors ${
-                          isChecked ? 'bg-primary border-primary' : 'bg-background border-input'
+                          isChecked ? 'bg-green-500 border-green-600' : 'bg-background border-input'
                         }`}>
-                          {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                          {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
                         </div>
                         <div className="flex flex-col leading-tight">
-                          <span className="text-xs font-medium text-foreground">Wk {weekIdx + 1}</span>
+                          <span className={`text-xs font-medium ${isChecked ? 'text-green-800' : 'text-foreground'}`}>Wk {weekIdx + 1}</span>
                           {mondayDate && <span className="text-[9px] text-muted-foreground">{formatMondayDate(mondayDate)}</span>}
                         </div>
                       </div>
