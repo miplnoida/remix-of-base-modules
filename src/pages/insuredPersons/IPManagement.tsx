@@ -27,18 +27,18 @@ const IPManagement = () => {
 
   // Dashboard statistics - mock data
   const dashboardStats = [
-    { label: 'Total Insured Persons', value: '12,456', icon: Users, color: 'from-blue-500 to-blue-600', change: '+8.2%' },
-    { label: 'Active Registrations', value: '11,234', icon: CheckCircle, color: 'from-green-500 to-green-600', change: '+5.1%' },
-    { label: 'Pending Applications', value: '45', icon: Clock, color: 'from-yellow-500 to-yellow-600', change: '-12%' },
-    { label: 'New This Month', value: '156', icon: TrendingUp, color: 'from-purple-500 to-purple-600', change: '+23%' },
+    { label: 'Total Insured Persons', value: '12,456', icon: Users, color: 'from-secondary to-secondary/80', change: '+8.2%' },
+    { label: 'Active Registrations', value: '11,234', icon: CheckCircle, color: 'from-primary to-primary/80', change: '+5.1%' },
+    { label: 'Pending Applications', value: '45', icon: Clock, color: 'from-accent to-accent/80', change: '-12%' },
+    { label: 'New This Month', value: '156', icon: TrendingUp, color: 'from-secondary to-secondary/80', change: '+23%' },
   ];
 
   // ID Card Status Statistics - mock data
   const idCardStats = [
-    { label: 'Active ID Cards', value: '10,892', icon: IdCard, color: 'from-green-500 to-green-600', description: 'Valid and active cards' },
-    { label: 'Expiring Soon', value: '234', icon: AlertTriangle, color: 'from-orange-500 to-orange-600', description: 'Expiring in next 30 days' },
-    { label: 'Expired Cards', value: '67', icon: Calendar, color: 'from-red-500 to-red-600', description: 'Require renewal' },
-    { label: 'Pending Generation', value: '89', icon: CreditCard, color: 'from-blue-500 to-blue-600', description: 'Cards to be generated' },
+    { label: 'Active ID Cards', value: '10,892', icon: IdCard, color: 'from-primary to-primary/80', description: 'Valid and active cards' },
+    { label: 'Expiring Soon', value: '234', icon: AlertTriangle, color: 'from-accent to-accent/80', description: 'Expiring in next 30 days' },
+    { label: 'Expired Cards', value: '67', icon: Calendar, color: 'from-destructive to-destructive/80', description: 'Require renewal' },
+    { label: 'Pending Generation', value: '89', icon: CreditCard, color: 'from-secondary to-secondary/80', description: 'Cards to be generated' },
   ];
 
   const recentActivities = [

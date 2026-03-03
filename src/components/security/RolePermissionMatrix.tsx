@@ -151,13 +151,13 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Employer', 
           description: 'Handle employer registrations and approvals',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'add', name: 'Add', icon: Plus, color: 'text-green-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-orange-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'approval', name: 'Approval', icon: CheckCircle, color: 'text-purple-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-indigo-600' },
-            { id: 'report', name: 'Report', icon: FileText, color: 'text-orange-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'add', name: 'Add', icon: Plus, color: 'text-primary' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-accent-foreground' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'approval', name: 'Approval', icon: CheckCircle, color: 'text-foreground' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' },
+            { id: 'report', name: 'Report', icon: FileText, color: 'text-accent-foreground' }
           ]
         },
         { 
@@ -165,13 +165,13 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Contribution', 
           description: 'Manage employer contributions and bulk operations',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'add', name: 'Add', icon: Plus, color: 'text-green-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-orange-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'import', name: 'Import Bulk', icon: Upload, color: 'text-cyan-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-indigo-600' },
-            { id: 'report', name: 'Report', icon: FileText, color: 'text-orange-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'add', name: 'Add', icon: Plus, color: 'text-primary' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-accent-foreground' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'import', name: 'Import Bulk', icon: Upload, color: 'text-foreground' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' },
+            { id: 'report', name: 'Report', icon: FileText, color: 'text-accent-foreground' }
           ]
         }
       ]
@@ -187,10 +187,10 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Person Registration', 
           description: 'Register new insured persons',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-green-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-purple-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-primary' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' }
           ]
         },
         { 
@@ -198,10 +198,10 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Person Management', 
           description: 'Manage existing insured person records',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-green-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-purple-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-primary' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' }
           ]
         }
       ]
@@ -217,10 +217,10 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Claims Management', 
           description: 'Process and manage benefit claims',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-green-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-purple-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-primary' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' }
           ]
         },
         { 
@@ -228,10 +228,10 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Benefits Processing', 
           description: 'Handle benefit calculations and payments',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-green-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-purple-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-primary' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' }
           ]
         }
       ]
@@ -247,10 +247,10 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Standard Reports', 
           description: 'Generate standard system reports',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-green-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-purple-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-primary' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' }
           ]
         },
         { 
@@ -258,10 +258,10 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
           name: 'Advanced Analytics', 
           description: 'Access advanced analytics and insights',
           features: [
-            { id: 'view', name: 'View', icon: Eye, color: 'text-blue-600' },
-            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-green-600' },
-            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-red-600' },
-            { id: 'export', name: 'Export', icon: Download, color: 'text-purple-600' }
+            { id: 'view', name: 'View', icon: Eye, color: 'text-foreground' },
+            { id: 'edit', name: 'Edit', icon: Edit, color: 'text-primary' },
+            { id: 'delete', name: 'Delete', icon: Trash2, color: 'text-destructive' },
+            { id: 'export', name: 'Export', icon: Download, color: 'text-muted-foreground' }
           ]
         }
       ]
@@ -318,27 +318,27 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
                 <AccordionItem key={module.id} value={module.id} className="border rounded-lg">
                   <AccordionTrigger className="px-4 py-3 hover:no-underline">
                     <div className="flex items-center gap-3">
-                      <Icon className="h-5 w-5 text-blue-600" />
+                      <Icon className="h-5 w-5 text-primary" />
                       <div className="text-left">
-                        <h3 className="font-medium text-gray-900">{module.name}</h3>
-                        <p className="text-sm text-gray-600">{module.description}</p>
+                        <h3 className="font-medium text-foreground">{module.name}</h3>
+                        <p className="text-sm text-muted-foreground">{module.description}</p>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
                     <div className="space-y-4">
                       {module.subModules?.map((subModule) => (
-                        <div key={subModule.id} className="border rounded-lg p-4 bg-gray-50">
+                        <div key={subModule.id} className="border rounded-lg p-4 bg-muted">
                           <div className="mb-3">
-                            <h4 className="font-medium text-gray-900">{subModule.name}</h4>
-                            <p className="text-sm text-gray-600">{subModule.description}</p>
+                            <h4 className="font-medium text-foreground">{subModule.name}</h4>
+                            <p className="text-sm text-muted-foreground">{subModule.description}</p>
                           </div>
                           <div className="grid grid-cols-4 gap-3">
                             {(subModule as any).features?.map((feature: any) => {
                               const FeatureIcon = feature.icon;
                               const isEnabled = getPermissionValue(module.id, subModule.id, feature.id);
                               return (
-                                <div key={feature.id} className="flex items-center justify-between p-3 border rounded-lg bg-white">
+                                <div key={feature.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
                                   <div className="flex items-center gap-2">
                                     <FeatureIcon className={`h-4 w-4 ${feature.color}`} />
                                     <span className="text-sm font-medium">{feature.name}</span>

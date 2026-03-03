@@ -31,7 +31,7 @@ const EmployersReports = () => {
       key: 'employerStatus', 
       label: 'Status', 
       minWidth: '100px',
-      render: (value) => <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">{value}</Badge>
+      render: (value) => <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">{value}</Badge>
     },
     { 
       key: 'registrationDate', 
@@ -56,7 +56,7 @@ const EmployersReports = () => {
       key: 'employerStatus', 
       label: 'Status', 
       minWidth: '100px',
-      render: (value) => <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">{value}</Badge>
+      render: (value) => <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20">{value}</Badge>
     },
     { 
       key: 'lastAuditDate', 
@@ -81,7 +81,7 @@ const EmployersReports = () => {
       key: 'complianceStatus', 
       label: 'Status', 
       minWidth: '100px',
-      render: (value) => <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">{value}</Badge>
+      render: (value) => <Badge variant="outline" className="bg-accent/30 text-accent-foreground border-accent/40">{value}</Badge>
     },
     { 
       key: 'lastAuditDate', 
@@ -97,7 +97,7 @@ const EmployersReports = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -106,16 +106,16 @@ const EmployersReports = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => navigate('/employers-management/dashboard')}
-                  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                 >
                   <ArrowLeft className="h-4 w-4" />
                  
                   <span className="sm:hidden">Back</span>
                 </Button>
-                <div className="h-6 w-px bg-gray-300" />
+                <div className="h-6 w-px bg-border" />
                
                 <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Employers Reports</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Employers Reports</h1>
                 
                 </div>
               </div>

@@ -113,7 +113,7 @@ export default function LifeCertificatesReport() {
                     <TableCell>{row.date}</TableCell>
                     <TableCell>{row.source}</TableCell>
                     <TableCell>
-                      <span className={row.paymentStatus === 'Paid' ? 'text-[#009B4C] font-semibold' : row.paymentStatus === 'Unpaid' ? 'text-[#F59E0B] font-semibold' : 'text-[#64748B]'}>
+                      <span className={row.paymentStatus === 'Paid' ? 'text-primary font-semibold' : row.paymentStatus === 'Unpaid' ? 'text-accent font-semibold' : 'text-muted-foreground'}>
                         {row.paymentStatus}
                       </span>
                     </TableCell>

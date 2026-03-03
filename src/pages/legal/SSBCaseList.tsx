@@ -13,28 +13,28 @@ import { DataTable, DataTableColumn } from '@/components/ui/data-table';
 
 const getStatusBadgeClass = (status: string) => {
   const statusMap: Record<string, string> = {
-    'Draft': 'bg-[#6B7280] text-white',
-    'Open': 'bg-[#0284C7] text-white',
-    'Filed': 'bg-[#B45309] text-white',
-    'Under Review': 'bg-[#B45309] text-white',
-    'Pending Hearing': 'bg-[#0F766E] text-white',
-    'In Court': 'bg-[#B91C1C] text-white',
-    'Hearing Scheduled': 'bg-[#0F766E] text-white',
-    'Decision Pending': 'bg-[#B45309] text-white',
-    'Judgment Delivered': 'bg-[#B45309] text-white',
-    'Order Issued': 'bg-[#6D28D9] text-white',
-    'Enforcement Ongoing': 'bg-[#6D28D9] text-white',
-    'Closed – Compliant': 'bg-[#166534] text-white',
-    'Closed – Non-Compliant': 'bg-[#B91C1C] text-white',
-    'Resolved': 'bg-[#047857] text-white',
-    'Settled': 'bg-[#047857] text-white',
-    'Completed': 'bg-[#047857] text-white',
-    'Pending': 'bg-[#B45309] text-white',
-    'Withdrawn': 'bg-[#6B7280] text-white',
-    'On Appeal': 'bg-[#9D174D] text-white',
-    'Reopened': 'bg-[#3730A3] text-white',
+    'Draft': 'bg-muted text-muted-foreground',
+    'Open': 'bg-secondary text-secondary-foreground',
+    'Filed': 'bg-accent text-accent-foreground',
+    'Under Review': 'bg-accent text-accent-foreground',
+    'Pending Hearing': 'bg-secondary text-secondary-foreground',
+    'In Court': 'bg-destructive text-destructive-foreground',
+    'Hearing Scheduled': 'bg-secondary text-secondary-foreground',
+    'Decision Pending': 'bg-accent text-accent-foreground',
+    'Judgment Delivered': 'bg-accent text-accent-foreground',
+    'Order Issued': 'bg-secondary text-secondary-foreground',
+    'Enforcement Ongoing': 'bg-secondary text-secondary-foreground',
+    'Closed – Compliant': 'bg-primary text-primary-foreground',
+    'Closed – Non-Compliant': 'bg-destructive text-destructive-foreground',
+    'Resolved': 'bg-primary text-primary-foreground',
+    'Settled': 'bg-primary text-primary-foreground',
+    'Completed': 'bg-primary text-primary-foreground',
+    'Pending': 'bg-accent text-accent-foreground',
+    'Withdrawn': 'bg-muted text-muted-foreground',
+    'On Appeal': 'bg-destructive/80 text-destructive-foreground',
+    'Reopened': 'bg-secondary text-secondary-foreground',
   };
-  return statusMap[status] || 'bg-[#6B7280] text-white';
+  return statusMap[status] || 'bg-muted text-muted-foreground';
 };
 
 const CASE_TYPES = ['Employer Arrears', 'Overpayment Recovery', 'Insured Appeal', 'Compliance/Recovery', 'Other', 'Prosecution', 'Compliance', 'Appeal', 'Recovery'];
@@ -103,10 +103,10 @@ export default function SSBCaseList() {
       minWidth: '100px',
       render: (value) => (
         <Badge variant="outline" className={
-          value === 'Urgent' ? 'bg-[#B91C1C] text-white border-[#DC2626]' :
-          value === 'High' ? 'bg-[#DC2626] text-white border-[#B91C1C]' :
-          value === 'Medium' ? 'bg-[#B45309] text-white border-[#C2410C]' :
-          'bg-[#0F766E] text-white border-[#0D9488]'
+          value === 'Urgent' ? 'bg-destructive text-destructive-foreground border-destructive' :
+          value === 'High' ? 'bg-destructive/80 text-destructive-foreground border-destructive/60' :
+          value === 'Medium' ? 'bg-accent text-accent-foreground border-accent' :
+          'bg-primary/10 text-primary border-primary/20'
         }>
           {value}
         </Badge>
@@ -130,7 +130,7 @@ export default function SSBCaseList() {
               <Badge 
                 key={idx} 
                 variant="secondary" 
-                className="text-xs whitespace-nowrap bg-blue-100 text-blue-800 border-blue-200"
+                className="text-xs whitespace-nowrap bg-muted text-foreground border-border"
               >
                 {officer}
               </Badge>
@@ -194,7 +194,7 @@ export default function SSBCaseList() {
             <h1 className="text-3xl font-bold text-foreground">SSB Legal - Case Management</h1>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate('/legal/cases/new')} className="gap-2 bg-[#2563EB] hover:bg-[#1D4ED8]">
+            <Button onClick={() => navigate('/legal/cases/new')} className="gap-2">
               <Plus className="h-4 w-4" />
               New Case
             </Button>
@@ -280,7 +280,7 @@ export default function SSBCaseList() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleSearch} className="gap-2 bg-[#2563EB] hover:bg-[#1D4ED8]">
+                  <Button onClick={handleSearch} className="gap-2">
                     <Search className="h-4 w-4" />
                     Search
                   </Button>

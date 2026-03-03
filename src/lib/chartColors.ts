@@ -1,45 +1,47 @@
-// Social Security Application Theme Colors for Charts
-// Primary Green: #009B4C, Dark Green: #00713A, Accent Blue: #2563EB, Soft Teal: #0EA5E9, Gold: #F59E0B
+// Executive Slate Theme Colors for Charts
+// Primary Green: #1E8E3E, Accent Yellow: #F4C430, Alert Red: #D62828, Secondary Slate: #1F2A37
 
 export const CHART_COLORS = {
-  primary: '#009B4C',      // Primary Green
-  primaryDark: '#00713A',  // Dark Green
-  blue: '#2563EB',         // Accent Blue
+  primary: '#1E8E3E',      // National Green (primary accent)
+  primaryDark: '#0E5F3A',  // Government Green (logo/badge)
+  secondary: '#1F2A37',    // Executive Slate
+  accent: '#F4C430',       // Flag Yellow
+  blue: '#2563EB',         // Info Blue (sparingly)
   teal: '#0EA5E9',         // Soft Teal
-  gold: '#F59E0B',         // Gold (warnings/status)
+  gold: '#F4C430',         // Flag Yellow (warnings/status)
   gray: '#CBD5E1',         // Neutral Gray
-  grayDark: '#64748B',     // Darker Gray
-  text: '#334155',         // Text labels (NOT black)
-  gridline: '#E2E8F0',     // Subtle gridlines
-  background: '#F8FAFC',   // Soft neutral background
-  success: '#009B4C',      // Same as primary
-  warning: '#F59E0B',      // Gold
-  error: '#EF4444',        // Red for errors
+  grayDark: '#6B7280',     // Muted text
+  text: '#1F2937',         // Foreground text
+  gridline: '#E5E7EB',     // Border
+  background: '#F4F6F9',   // App background
+  success: '#1E8E3E',      // Same as primary
+  warning: '#F4C430',      // Flag Yellow
+  error: '#D62828',        // National Red
   info: '#0EA5E9',         // Teal for info
 };
 
 // Chart color palettes for different chart types
 export const CHART_PALETTES = {
-  // For bar/column charts - mix of greens, blues, golds
-  bars: [CHART_COLORS.primary, CHART_COLORS.blue, CHART_COLORS.teal, CHART_COLORS.gold, CHART_COLORS.primaryDark],
+  // For bar/column charts
+  bars: [CHART_COLORS.primary, CHART_COLORS.secondary, CHART_COLORS.accent, CHART_COLORS.teal, CHART_COLORS.primaryDark],
   
-  // For line charts - primary green for main line, blue/teal for comparisons
+  // For line charts
   lines: {
     primary: CHART_COLORS.primary,
-    secondary: CHART_COLORS.blue,
+    secondary: CHART_COLORS.secondary,
     tertiary: CHART_COLORS.teal,
   },
   
-  // For pie/donut charts - varied palette
-  pie: [CHART_COLORS.primary, CHART_COLORS.blue, CHART_COLORS.teal, CHART_COLORS.gold, CHART_COLORS.primaryDark, CHART_COLORS.grayDark],
+  // For pie/donut charts
+  pie: [CHART_COLORS.primary, CHART_COLORS.secondary, CHART_COLORS.accent, CHART_COLORS.teal, CHART_COLORS.primaryDark, CHART_COLORS.grayDark],
   
   // Status-based colors
   status: {
     approved: CHART_COLORS.success,
-    pending: CHART_COLORS.gold,
+    pending: CHART_COLORS.warning,
     rejected: CHART_COLORS.error,
     completed: CHART_COLORS.success,
-    inProgress: CHART_COLORS.blue,
+    inProgress: CHART_COLORS.secondary,
     notStarted: CHART_COLORS.gray,
   }
 };
@@ -51,15 +53,15 @@ export const CHART_STYLES = {
     strokeDasharray: '3 3',
   },
   axis: {
-    stroke: CHART_COLORS.text,
+    stroke: CHART_COLORS.grayDark,
     style: { fontSize: '12px', fill: CHART_COLORS.text },
   },
   tooltip: {
     contentStyle: {
       backgroundColor: '#ffffff',
       border: `1px solid ${CHART_COLORS.gridline}`,
-      borderRadius: '6px',
-      padding: '8px',
+      borderRadius: '8px',
+      padding: '8px 12px',
     },
     labelStyle: {
       color: CHART_COLORS.text,

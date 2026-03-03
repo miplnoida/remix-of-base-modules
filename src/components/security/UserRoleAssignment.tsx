@@ -100,7 +100,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({ roles }) => {
             </div>
             <Dialog open={isAssignRoleOpen} onOpenChange={setIsAssignRoleOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Assign Role
                 </Button>
@@ -137,7 +137,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({ roles }) => {
                   <Button variant="outline" onClick={() => setIsAssignRoleOpen(false)}>
                     Cancel
                   </Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button>
                     Assign Role
                   </Button>
                 </div>
@@ -149,7 +149,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({ roles }) => {
           {/* Filters */}
           <div className="flex gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search users by name or email..."
                 value={searchQuery}
@@ -184,28 +184,28 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({ roles }) => {
             {filteredUsers.map((user) => {
               const roleData = getRoleData(user.role);
               return (
-                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                   <div className="flex items-center gap-4">
                     <Avatar>
-                      <AvatarFallback className="bg-blue-100 text-blue-700">
+                      <AvatarFallback className="bg-primary/10 text-primary">
                         {user.initials}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900">{user.name}</h3>
+                        <h3 className="font-medium text-foreground">{user.name}</h3>
                         <Badge 
                           variant={user.status === 'active' ? 'default' : 'secondary'}
-                          className={user.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+                          className={user.status === 'active' ? 'bg-primary/10 text-primary' : ''}
                         >
                           {user.status}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="h-3 w-3" />
                         {user.email}
                       </div>
-                      <p className="text-xs text-gray-500">Last login: {user.lastLogin}</p>
+                      <p className="text-xs text-muted-foreground">Last login: {user.lastLogin}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -242,8 +242,8 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({ roles }) => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {roles.map((role) => (
               <div key={role.id} className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{role.users}</div>
-                <div className="text-sm text-gray-600">{role.name}</div>
+                <div className="text-2xl font-bold text-foreground">{role.users}</div>
+                <div className="text-sm text-muted-foreground">{role.name}</div>
                 <Badge className={`${role.color} mt-2`} variant="secondary">
                   {((role.users / users.length) * 100).toFixed(0)}%
                 </Badge>

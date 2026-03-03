@@ -765,7 +765,7 @@ export default function C3Management() {
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                      <BreadcrumbPage className="text-[#0284C7]">
+                      <BreadcrumbPage className="text-primary">
                         {formMode === 'add' ? (
                           contributionType === 'employer' ? 'Add New C3-Employer' : contributionType === 'self-employed' ? 'Add New C3-Self Employed' : 'Add New C3-Voluntary Contributor'
                         ) : formMode === 'edit' ? (

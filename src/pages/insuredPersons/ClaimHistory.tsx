@@ -103,7 +103,7 @@ const ClaimHistory = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Approved':
-        return <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1">
+        return <Badge variant="default" className="bg-primary/10 text-primary flex items-center gap-1">
           <CheckCircle className="h-3 w-3" />
           Approved
         </Badge>;
@@ -113,12 +113,12 @@ const ClaimHistory = () => {
           Rejected
         </Badge>;
       case 'Under Review':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 flex items-center gap-1">
+        return <Badge variant="secondary" className="bg-accent/30 text-accent-foreground flex items-center gap-1">
           <Clock className="h-3 w-3" />
           Under Review
         </Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex items-center gap-1">
+        return <Badge variant="secondary" className="bg-muted text-muted-foreground flex items-center gap-1">
           <Clock className="h-3 w-3" />
           Pending
         </Badge>;
@@ -238,16 +238,16 @@ const ClaimHistory = () => {
                 <Button 
                             variant="outline" 
                             onClick={() => navigate('/person/management')}
-                            className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                            className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                           >
                             <ArrowLeft className="h-4 w-4" />
                            
                             <span className="sm:hidden">Back</span>
                           </Button>
-                <div className="h-6 w-px bg-gray-300" />
+                <div className="h-6 w-px bg-border" />
                 
                 <div>
-                  <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Claim History</h1>
+                  <h1 className="text-xl lg:text-3xl font-bold text-foreground">Claim History</h1>
                    </div>
               </div>
            
@@ -259,8 +259,8 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
-            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
-                  <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+            <div className="p-2.5 rounded bg-primary shadow-lg">
+                  <IdCard className="h-4 w-4 text-primary-foreground" />
                 </div>
           </CardHeader>
           <CardContent>
@@ -272,8 +272,8 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Approved Claims</CardTitle>
-            <div className={`p-2.5 rounded bg-gradient-to-r from-orange-500 to-orange-600  shadow-lg`}>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground text-white" />
+            <div className="p-2.5 rounded bg-accent shadow-lg">
+                  <AlertTriangle className="h-4 w-4 text-accent-foreground" />
                 </div>
           </CardHeader>
           <CardContent>
@@ -287,8 +287,8 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claimed</CardTitle>
-            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
-                              <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+            <div className="p-2.5 rounded bg-primary shadow-lg">
+                              <IdCard className="h-4 w-4 text-primary-foreground" />
                             </div>
           </CardHeader>
           <CardContent>
@@ -300,8 +300,8 @@ const ClaimHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Approved</CardTitle>
-            <div className={`p-2.5 rounded bg-gradient-to-r from-yellow-500 to-yellow-600  shadow-lg`}>
-                              <Clock className="h-4 w-4 text-muted-foreground text-white" />
+            <div className="p-2.5 rounded bg-accent shadow-lg">
+                              <Clock className="h-4 w-4 text-accent-foreground" />
                             </div>
           </CardHeader>
           <CardContent>

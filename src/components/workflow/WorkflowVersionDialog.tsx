@@ -93,7 +93,7 @@ export default function WorkflowVersionDialog({ open, onOpenChange, workflowName
                 </TableCell>
                 <TableCell>
                   {version.isActive ? (
-                    <Badge className="bg-green-100 text-green-800">
+                    <Badge className="bg-primary/10 text-primary">
                       <CheckCircle className="mr-1 h-3 w-3" />
                       Active
                     </Badge>

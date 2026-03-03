@@ -57,54 +57,54 @@ export default function NotificationDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Notification Dashboard</h1>
-        <Badge variant="outline" className="text-green-600 border-green-200">
+        <Badge variant="outline" className="text-primary border-primary/20">
           System Active
         </Badge>
       </div>
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="bg-secondary/5 border-secondary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700">Total Sent</CardTitle>
-            <Mail className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium text-foreground">Total Sent</CardTitle>
+            <Mail className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900">{stats?.totalSent.toLocaleString()}</div>
-            <p className="text-xs text-blue-600">All time notifications</p>
+            <div className="text-2xl font-bold text-foreground">{stats?.totalSent.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All time notifications</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700">Sent Today</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-foreground">Sent Today</CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900">{stats?.sentToday}</div>
-            <p className="text-xs text-green-600">+12% from yesterday</p>
+            <div className="text-2xl font-bold text-foreground">{stats?.sentToday}</div>
+            <p className="text-xs text-muted-foreground">+12% from yesterday</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
+        <Card className="bg-secondary/5 border-secondary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700">Delivery Rate</CardTitle>
-            <Bell className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-foreground">Delivery Rate</CardTitle>
+            <Bell className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900">{stats?.deliveryRate}%</div>
-            <p className="text-xs text-purple-600">Successfully delivered</p>
+            <div className="text-2xl font-bold text-foreground">{stats?.deliveryRate}%</div>
+            <p className="text-xs text-muted-foreground">Successfully delivered</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
+        <Card className="bg-accent/10 border-accent/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700">Open Rate</CardTitle>
-            <MessageSquare className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-sm font-medium text-foreground">Open Rate</CardTitle>
+            <MessageSquare className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-900">{stats?.openRate}%</div>
-            <p className="text-xs text-orange-600">Engagement rate</p>
+            <div className="text-2xl font-bold text-foreground">{stats?.openRate}%</div>
+            <p className="text-xs text-muted-foreground">Engagement rate</p>
           </CardContent>
         </Card>
       </div>

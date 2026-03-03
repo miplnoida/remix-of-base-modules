@@ -38,7 +38,7 @@ const EmployersDashboard = () => {
       value: totalEmployers.toString(),
       description: `${activeEmployers} Active, ${inactiveEmployers} Inactive`,
       icon: Building2,
-      color: "from-blue-500 to-blue-600",
+      color: "from-secondary to-secondary/80",
       change: "+8.2%"
     },
     {
@@ -46,7 +46,7 @@ const EmployersDashboard = () => {
       value: totalEmployees.toLocaleString(),
       description: "Across all employers",
       icon: Users,
-      color: "from-green-500 to-green-600",
+      color: "from-primary to-primary/80",
       change: "+5.1%"
     },
     {
@@ -54,7 +54,7 @@ const EmployersDashboard = () => {
       value: `$${totalContributions.toLocaleString()}`,
       description: "Lifetime contributions",
       icon: DollarSign,
-      color: "from-purple-500 to-purple-600",
+      color: "from-secondary to-secondary/80",
       change: "+12.3%"
     },
     {
@@ -62,7 +62,7 @@ const EmployersDashboard = () => {
       value: `${Math.round((compliantEmployers / totalEmployers) * 100)}%`,
       description: `${compliantEmployers} Compliant, ${nonCompliantEmployers} Non-Compliant`,
       icon: CheckCircle,
-      color: "from-emerald-500 to-emerald-600",
+      color: "from-primary to-primary/80",
       change: "+2.1%"
     },
     {
@@ -70,7 +70,7 @@ const EmployersDashboard = () => {
       value: pendingContributions.toString(),
       description: "Require immediate attention",
       icon: AlertTriangle,
-      color: "from-orange-500 to-orange-600",
+      color: "from-accent to-accent/80",
       change: "-15%"
     },
     {
@@ -78,7 +78,7 @@ const EmployersDashboard = () => {
       value: "+12.5%",
       description: "New registrations this quarter",
       icon: TrendingUp,
-      color: "from-indigo-500 to-indigo-600",
+      color: "from-secondary to-secondary/80",
       change: "+23%"
     }
   ];

@@ -25,10 +25,10 @@ const monthlyData = [
 
 // Dashboard statistics - styled to match IPManagement.tsx exactly
 const dashboardStats = [
-  { label: 'Total C3 Records', value: '1,257', icon: FileText, color: 'from-blue-500 to-blue-600', change: '+12%' },
-  { label: 'Pending Verification', value: '56', icon: Clock, color: 'from-yellow-500 to-yellow-600', change: '-4%' },
-  { label: 'Approved C3s', value: '1,178', icon: CheckCircle, color: 'from-green-500 to-green-600', change: '+3.4%' },
-  { label: 'Rejected C3s', value: '23', icon: XCircle, color: 'from-red-500 to-red-600', change: '-1.1%' },
+  { label: 'Total C3 Records', value: '1,257', icon: FileText, color: 'from-secondary to-secondary/80', change: '+12%' },
+  { label: 'Pending Verification', value: '56', icon: Clock, color: 'from-accent to-accent/80', change: '-4%' },
+  { label: 'Approved C3s', value: '1,178', icon: CheckCircle, color: 'from-primary to-primary/80', change: '+3.4%' },
+  { label: 'Rejected C3s', value: '23', icon: XCircle, color: 'from-destructive to-destructive/80', change: '-1.1%' },
 ];
 
 // Mock recent C3 entries (aligned with list view columns)
@@ -101,13 +101,13 @@ export default function C3Dashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Verified":
-        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
+        return <Badge className="bg-primary/10 text-primary">Verified</Badge>;
       case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-accent/30 text-accent-foreground">Pending</Badge>;
       case "Not Verified":
-        return <Badge className="bg-red-100 text-red-800">Not Verified</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive">Not Verified</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return <Badge className="bg-muted text-muted-foreground">{status}</Badge>;
     }
   };
 

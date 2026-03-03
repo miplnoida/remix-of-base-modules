@@ -144,8 +144,8 @@ const EnforcementPenalty = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -158,11 +158,11 @@ const EnforcementPenalty = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Legal Module
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Legal Module</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">Enforcement & Penalty</span>
+                <span className="text-foreground font-medium">Enforcement & Penalty</span>
               </nav>
             </div>
             <div className="flex items-center space-x-2">
@@ -181,8 +181,8 @@ const EnforcementPenalty = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Enforcement & Penalty Management</h1>
-          <p className="text-gray-600">Track enforcement actions, penalties, and payment collection</p>
+          <h1 className="text-3xl font-bold text-foreground">Enforcement & Penalty Management</h1>
+          <p className="text-muted-foreground">Track enforcement actions, penalties, and payment collection</p>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
@@ -199,10 +199,10 @@ const EnforcementPenalty = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-                  <DollarSign className="h-4 w-4 text-red-500" />
+                  <DollarSign className="h-4 w-4 text-destructive" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-2xl font-bold text-destructive">
                     ${collectionStats.totalOutstanding.toLocaleString()}
                   </div>
                 </CardContent>
@@ -211,10 +211,10 @@ const EnforcementPenalty = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Collected This Month</CardTitle>
-                  <DollarSign className="h-4 w-4 text-green-500" />
+                  <DollarSign className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-primary">
                     ${collectionStats.collectedThisMonth.toLocaleString()}
                   </div>
                 </CardContent>
@@ -223,10 +223,10 @@ const EnforcementPenalty = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-blue-500" />
+                  <AlertTriangle className="h-4 w-4 text-accent" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-foreground">
                     {collectionStats.collectionRate}%
                   </div>
                 </CardContent>
@@ -289,7 +289,7 @@ const EnforcementPenalty = () => {
                       id="enforcementId"
                       value={formData.enforcementId}
                       disabled
-                      className="bg-gray-50"
+                      className="bg-muted"
                     />
                   </div>
                   <div className="space-y-2">
@@ -355,7 +355,7 @@ const EnforcementPenalty = () => {
                     placeholder="Auto-generated upon creation"
                     value={formData.financeTransactionId}
                     disabled
-                    className="bg-gray-50"
+                    className="bg-muted"
                   />
                 </div>
 
@@ -423,30 +423,30 @@ const EnforcementPenalty = () => {
               <CardContent>
                 <div className="space-y-6">
                   {/* Collection Summary */}
-                  <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">
+                      <div className="text-2xl font-bold text-destructive">
                         ${collectionStats.totalOutstanding.toLocaleString()}
                       </div>
-                      <p className="text-sm text-gray-600">Total Outstanding</p>
+                      <p className="text-sm text-muted-foreground">Total Outstanding</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
+                      <div className="text-2xl font-bold text-primary">
                         ${collectionStats.collectedThisYear.toLocaleString()}
                       </div>
-                      <p className="text-sm text-gray-600">Collected This Year</p>
+                      <p className="text-sm text-muted-foreground">Collected This Year</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-foreground">
                         {collectionStats.collectionRate}%
                       </div>
-                      <p className="text-sm text-gray-600">Collection Rate</p>
+                      <p className="text-sm text-muted-foreground">Collection Rate</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
+                      <div className="text-2xl font-bold text-foreground">
                         {collectionStats.averageCollectionTime}
                       </div>
-                      <p className="text-sm text-gray-600">Avg. Collection Days</p>
+                      <p className="text-sm text-muted-foreground">Avg. Collection Days</p>
                     </div>
                   </div>
 
@@ -473,7 +473,7 @@ const EnforcementPenalty = () => {
                             <TableCell>{enforcement.party}</TableCell>
                             <TableCell>${enforcement.amount.toLocaleString()}</TableCell>
                             <TableCell>${enforcement.paymentReceived.toLocaleString()}</TableCell>
-                            <TableCell className={outstanding > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                            <TableCell className={outstanding > 0 ? 'text-destructive font-medium' : 'text-primary'}>
                               ${outstanding.toLocaleString()}
                             </TableCell>
                             <TableCell>{enforcement.lastPaymentDate || 'No payments'}</TableCell>

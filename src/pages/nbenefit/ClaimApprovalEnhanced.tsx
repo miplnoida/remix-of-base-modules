@@ -320,18 +320,18 @@ const ClaimApprovalEnhanced = () => {
           {eligibilityResult && (
             <div className="space-y-6">
               {/* Overall Result */}
-              <Card className={eligibilityResult.eligible ? "border-green-500" : "border-red-500"}>
+              <Card className={eligibilityResult.eligible ? "border-primary" : "border-destructive"}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     {eligibilityResult.eligible ? (
                       <>
-                        <CheckCircle2 className="h-6 w-6 text-green-600" />
-                        <span className="text-green-600">ELIGIBLE</span>
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
+                        <span className="text-primary">ELIGIBLE</span>
                       </>
                     ) : (
                       <>
-                        <XCircle className="h-6 w-6 text-red-600" />
-                        <span className="text-red-600">NOT ELIGIBLE</span>
+                        <XCircle className="h-6 w-6 text-destructive" />
+                        <span className="text-destructive">NOT ELIGIBLE</span>
                       </>
                     )}
                   </CardTitle>
@@ -352,12 +352,12 @@ const ClaimApprovalEnhanced = () => {
                   {eligibilityResult.warnings.length > 0 && (
                     <div className="space-y-2 mt-4">
                       <h4 className="font-semibold flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                        <AlertCircle className="h-4 w-4 text-accent" />
                         Warnings:
                       </h4>
                       <ul className="list-disc list-inside space-y-1">
                         {eligibilityResult.warnings.map((warning, index) => (
-                          <li key={index} className="text-sm text-yellow-700">
+                          <li key={index} className="text-sm text-muted-foreground">
                             {warning}
                           </li>
                         ))}
@@ -377,15 +377,15 @@ const ClaimApprovalEnhanced = () => {
                     <div
                       key={check.id}
                       className={`p-4 rounded-lg border ${
-                        check.passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
+                        check.passed ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           {check.passed ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
                           ) : (
-                            <XCircle className="h-5 w-5 text-red-600" />
+                            <XCircle className="h-5 w-5 text-destructive" />
                           )}
                           <span className="font-semibold">{check.checkType} Check</span>
                         </div>
