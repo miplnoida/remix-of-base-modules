@@ -63,13 +63,13 @@ export default function Arrears50kByZoneReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="zone" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(216 12% 91%)" />
+                <XAxis dataKey="zone" stroke="hsl(217 10% 50%)" />
+                <YAxis stroke="hsl(217 10% 50%)" />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="employers" fill="#F59E0B" name="Employers" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="totalArrears" fill="#E74C3C" name="Total Arrears (EC$)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill="hsl(44 90% 57%)" name="Employers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="totalArrears" fill="hsl(2 74% 50%)" name="Total Arrears (EC$)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -98,7 +98,7 @@ export default function Arrears50kByZoneReport() {
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
                     <TableCell>{row.zone}</TableCell>
-                    <TableCell className="font-semibold text-red-600">{row.arrears.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-destructive">{row.arrears.toLocaleString()}</TableCell>
                     <TableCell>{row.lastPayment}</TableCell>
                     <TableCell>{row.employees}</TableCell>
                   </TableRow>

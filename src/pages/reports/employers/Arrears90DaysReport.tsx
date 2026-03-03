@@ -67,12 +67,12 @@ export default function Arrears90DaysReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="zone" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(216 12% 91%)" />
+                <XAxis dataKey="zone" stroke="hsl(217 10% 50%)" />
+                <YAxis stroke="hsl(217 10% 50%)" />
                 <Tooltip />
-                <Bar dataKey="employers" fill="#DC2626" name="Employers" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="totalArrears" fill="#991B1B" name="Arrears (EC$)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill="hsl(2 74% 50%)" name="Employers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="totalArrears" fill="hsl(210 22% 17%)" name="Arrears (EC$)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

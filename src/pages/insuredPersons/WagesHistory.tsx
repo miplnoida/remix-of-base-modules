@@ -208,16 +208,16 @@ const WagesHistory = () => {
           <Button 
                       variant="outline" 
                       onClick={() => navigate('/person/management')}
-                      className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md"
+                      className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md"
                     >
                       <ArrowLeft className="h-4 w-4" />
                      
                       <span className="sm:hidden">Back</span>
                     </Button>
-          <div className="h-6 w-px bg-gray-300" />
+           <div className="h-6 w-px bg-border" />
           
           <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Wages History</h1>
+            <h1 className="text-xl lg:text-3xl font-bold text-foreground">Wages History</h1>
              </div>
         </div>
      
@@ -228,8 +228,8 @@ const WagesHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Wages (2024)</CardTitle>
-             <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
-                  <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+             <div className="p-2.5 rounded bg-primary shadow-lg">
+                  <IdCard className="h-4 w-4 text-primary-foreground" />
                 </div>
             
           </CardHeader>
@@ -242,8 +242,8 @@ const WagesHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Contributions</CardTitle>
-             <div className={`p-2.5 rounded bg-gradient-to-r from-orange-500 to-orange-600  shadow-lg`}>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground text-white" />
+             <div className="p-2.5 rounded bg-accent shadow-lg">
+                  <AlertTriangle className="h-4 w-4 text-accent-foreground" />
                 </div>
           </CardHeader>
           <CardContent>
@@ -255,8 +255,8 @@ const WagesHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
-            <div className={`p-2.5 rounded bg-gradient-to-r from-green-500 to-green-600  shadow-lg`}>
-                  <IdCard className="h-4 w-4 text-muted-foreground text-white" />
+            <div className="p-2.5 rounded bg-primary shadow-lg">
+                  <IdCard className="h-4 w-4 text-primary-foreground" />
                 </div>
           </CardHeader>
           <CardContent>
@@ -268,8 +268,8 @@ const WagesHistory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
-            <div className={`p-2.5 rounded bg-gradient-to-r from-yellow-500 to-yellow-600  shadow-lg`}>
-                  <Clock className="h-4 w-4 text-muted-foreground text-white" />
+            <div className="p-2.5 rounded bg-accent shadow-lg">
+                  <Clock className="h-4 w-4 text-accent-foreground" />
                 </div>
           </CardHeader>
           <CardContent>

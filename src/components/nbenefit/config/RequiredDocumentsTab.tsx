@@ -83,13 +83,13 @@ export default function RequiredDocumentsTab({ benefitRule, onUpdate }: Required
 
   const getWhenRequiredBadge = (whenRequired: string) => {
     const colors: Record<string, string> = {
-      AT_CLAIM: 'bg-blue-100 text-blue-800',
-      BEFORE_FIRST_PAYMENT: 'bg-green-100 text-green-800',
-      PERIODIC: 'bg-orange-100 text-orange-800',
-      RENEWAL: 'bg-purple-100 text-purple-800',
-      CONDITIONAL: 'bg-yellow-100 text-yellow-800',
+      AT_CLAIM: 'bg-secondary/10 text-secondary-foreground',
+      BEFORE_FIRST_PAYMENT: 'bg-primary/10 text-primary',
+      PERIODIC: 'bg-accent/30 text-accent-foreground',
+      RENEWAL: 'bg-muted text-foreground',
+      CONDITIONAL: 'bg-accent/20 text-accent-foreground',
     };
-    return colors[whenRequired] || 'bg-gray-100 text-gray-800';
+    return colors[whenRequired] || 'bg-muted text-muted-foreground';
   };
 
   return (
