@@ -756,9 +756,13 @@ export default function DataEntryGrid({
                         placeholder="0.00"
                         className="h-8 text-xs text-right font-mono px-2"
                       />
-                      {/* Holiday info badge */}
+                      {/* Holiday info badge - clickable to re-open modal */}
                       {(row.holidayNoDates || row.holidayStartDate) && (row.weeklyWages[6] || 0) > 0 && (
-                        <Badge variant="outline" className="text-[8px] h-4 px-1 w-fit">
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] h-4 px-1 w-fit cursor-pointer hover:bg-muted"
+                          onClick={() => openHolidayModal(rowIdx)}
+                        >
                           {row.holidayNoDates ? 'No dates' : `${row.holidayStartDate?.slice(5) || ''}`}
                         </Badge>
                       )}
