@@ -84,20 +84,13 @@ export function useWorkflowActions(
   const query = useQuery({
     queryKey: ['workflow-actions', sourceModule, sourceRecordId, userId],
     queryFn: async (): Promise<Omit<WorkflowContext, 'isLoading' | 'error' | 'refetch'>> => {
-      if (!sourceRecordId || !userId) {
-        return {
-          hasWorkflow: false,
-          instanceId: null,
-          workflowId: null,
-          taskId: null,
-          currentStepId: null,
-          currentStepName: null,
-          workflowName: null,
-          workflowStatus: null,
-          actions: [],
-          canPerformActions: false,
-        };
-      }
+      const noWorkflow: Omit<WorkflowContext, 'isLoading' | 'error' | 'refetch'> = {
+        hasWorkflow: false, instanceId: null, workflowId: null, taskId: null,
+        currentStepId: null, currentStepName: null, workflowName: null,
+        workflowStatus: null, actions: [], canPerformActions: false,
+      };
+
+      if (!sourceRecordId || !userId) return noWorkflow;
 
       // Step 1: Find workflow instance for this record
       const { data: instances, error: instanceError } = await supabase
@@ -109,171 +102,96 @@ export function useWorkflowActions(
         .order('started_at', { ascending: false })
         .limit(1);
 
-      if (instanceError) {
-        console.error('Error fetching workflow instance:', instanceError);
-        throw instanceError;
-      }
-
-      if (!instances || instances.length === 0) {
-        // No active workflow for this record
-        return {
-          hasWorkflow: false,
-          instanceId: null,
-          workflowId: null,
-          taskId: null,
-          currentStepId: null,
-          currentStepName: null,
-          workflowName: null,
-          workflowStatus: null,
-          actions: [],
-          canPerformActions: false,
-        };
-      }
+      if (instanceError) throw instanceError;
+      if (!instances || instances.length === 0) return noWorkflow;
 
       const instance = instances[0] as WorkflowInstance;
 
-      // Step 2: Find pending/in-progress task for current step
-      const { data: tasks, error: taskError } = await supabase
-        .from('workflow_tasks')
-        .select('*')
-        .eq('instance_id', instance.id)
-        .in('status', ['Pending', 'InProgress'])
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // Step 2: Fetch tasks AND user roles in parallel
+      const [tasksResult, userRolesResult] = await Promise.all([
+        supabase
+          .from('workflow_tasks')
+          .select('*')
+          .eq('instance_id', instance.id)
+          .in('status', ['Pending', 'InProgress'])
+          .order('created_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId),
+      ]);
 
-      if (taskError) {
-        console.error('Error fetching workflow task:', taskError);
-        throw taskError;
-      }
+      if (tasksResult.error) throw tasksResult.error;
 
-      if (!tasks || tasks.length === 0) {
-        // Workflow exists but no active task
+      if (!tasksResult.data || tasksResult.data.length === 0) {
         return {
-          hasWorkflow: true,
-          instanceId: instance.id,
-          workflowId: instance.workflow_id,
-          taskId: null,
-          currentStepId: instance.current_step_id,
-          currentStepName: null,
-          workflowName: instance.workflow_name,
-          workflowStatus: instance.status,
-          actions: [],
-          canPerformActions: false,
+          hasWorkflow: true, instanceId: instance.id, workflowId: instance.workflow_id,
+          taskId: null, currentStepId: instance.current_step_id, currentStepName: null,
+          workflowName: instance.workflow_name, workflowStatus: instance.status,
+          actions: [], canPerformActions: false,
         };
       }
 
-      const task = tasks[0] as WorkflowTask;
-
-      // Step 3: Get user's roles from database for proper permission checking
-      const { data: userRolesData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      // Extract role names from database roles
-      const dbRoleNames = userRolesData?.map(r => r.role as string).filter(Boolean) || [];
-      
-      // Combine context roles + database role names
+      const task = tasksResult.data[0] as WorkflowTask;
+      const dbRoleNames = userRolesResult.data?.map(r => r.role as string).filter(Boolean) || [];
       const combinedRoleNames = Array.from(
         new Set([...(contextRoleNames || []), ...dbRoleNames].filter(Boolean))
       );
-
-      // Use DB role name if available, otherwise fall back to Supabase roles, otherwise mock role
       const userRoleName = dbRoleNames.length > 0 ? dbRoleNames[0] : (combinedRoleNames[0] ?? fallbackRole);
 
-      console.log('Workflow permission check:', {
-        userId,
-        taskAssignedRole: task.assigned_role,
-        taskAssignedTo: task.assigned_to,
-        userRoleName,
-        dbRoleNames,
-        supabaseRoles: contextRoleNames,
-        stepId: task.step_id
-      });
-
-      // Step 4: Check if current user can perform actions on this task
-      // Pass user.role for mock auth compatibility, but prefer database roles
-      const canPerformActions = await checkUserPermission(
-        userId,
-        task.assigned_to,
-        task.assigned_role,
-        task.assigned_designation,
-        task.step_id,
-        userRoleName,
-        combinedRoleNames
+      // Step 3: Check permission (optimized - passes pre-fetched roles)
+      const canPerformActions = await checkUserPermissionOptimized(
+        userId, task.assigned_to, task.assigned_role, task.assigned_designation,
+        task.step_id, userRoleName, combinedRoleNames, dbRoleNames
       );
-      
-      console.log('Permission check result:', { canPerformActions, taskAssignedRole: task.assigned_role });
 
-      // Step 4: If user can perform actions, fetch available actions for the current step
+      // Step 4: If permitted, fetch actions and check maker-checker in parallel
       let actions: WorkflowAction[] = [];
       
       if (canPerformActions) {
-        // Step 4b: Maker-checker enforcement
-        // Check if workflow has maker_checker_enabled and if the current user is the record creator
-        const makerCheckerBlocked = await checkMakerCheckerRestriction(
-          instance.workflow_id,
-          instance.started_by,
-          userId,
-          sourceModule,
-          sourceRecordId
-        );
+        const [makerCheckerBlocked, actionsResult] = await Promise.all([
+          checkMakerCheckerRestriction(
+            instance.workflow_id, instance.started_by, userId,
+            sourceModule, sourceRecordId, dbRoleNames
+          ),
+          supabase
+            .from('workflow_step_actions')
+            .select('*')
+            .eq('step_id', task.step_id)
+            .order('display_order', { ascending: true }),
+        ]);
 
         if (makerCheckerBlocked) {
-          console.log('Maker-checker restriction: user is the record creator/submitter, hiding actions');
           return {
-            hasWorkflow: true,
-            instanceId: instance.id,
-            workflowId: instance.workflow_id,
-            taskId: task.id,
-            currentStepId: task.step_id,
-            currentStepName: task.step_name,
-            workflowName: instance.workflow_name,
-            workflowStatus: instance.status,
-            actions: [],
-            canPerformActions: false,
+            hasWorkflow: true, instanceId: instance.id, workflowId: instance.workflow_id,
+            taskId: task.id, currentStepId: task.step_id, currentStepName: task.step_name,
+            workflowName: instance.workflow_name, workflowStatus: instance.status,
+            actions: [], canPerformActions: false,
           };
         }
 
-        const { data: stepActions, error: actionsError } = await supabase
-          .from('workflow_step_actions')
-          .select('*')
-          .eq('step_id', task.step_id)
-          .order('display_order', { ascending: true });
-
-        if (actionsError) {
-          console.error('Error fetching step actions:', actionsError);
-        } else {
-          actions = (stepActions || []).map(a => ({
-            id: a.id,
-            action_name: a.action_name,
-            action_type: a.action_type,
-            next_step_id: a.next_step_id,
-            next_step_type: a.next_step_type as NextStepType,
-            end_state: a.end_state as EndState,
-            is_final_action: a.is_final_action,
-            display_order: a.display_order,
-            remarks_required: (a as any).remarks_required ?? false,
+        if (!actionsResult.error && actionsResult.data) {
+          actions = actionsResult.data.map(a => ({
+            id: a.id, action_name: a.action_name, action_type: a.action_type,
+            next_step_id: a.next_step_id, next_step_type: a.next_step_type as NextStepType,
+            end_state: a.end_state as EndState, is_final_action: a.is_final_action,
+            display_order: a.display_order, remarks_required: (a as any).remarks_required ?? false,
             result_status: (a as any).result_status || null,
           }));
         }
       }
 
       return {
-        hasWorkflow: true,
-        instanceId: instance.id,
-        workflowId: instance.workflow_id,
-        taskId: task.id,
-        currentStepId: task.step_id,
-        currentStepName: task.step_name,
-        workflowName: instance.workflow_name,
-        workflowStatus: instance.status,
-        actions,
-        canPerformActions,
+        hasWorkflow: true, instanceId: instance.id, workflowId: instance.workflow_id,
+        taskId: task.id, currentStepId: task.step_id, currentStepName: task.step_name,
+        workflowName: instance.workflow_name, workflowStatus: instance.status,
+        actions, canPerformActions,
       };
     },
     enabled: !!sourceRecordId && !!userId,
-    staleTime: 30000, // 30 seconds
+    staleTime: 60000, // 60 seconds - reduce refetch frequency
+    gcTime: 300000, // 5 minutes cache
   });
 
   return {
@@ -294,9 +212,155 @@ export function useWorkflowActions(
 }
 
 /**
- * Check if the user has permission to perform actions on a workflow task.
- * This function supports both database-backed user IDs and mock authentication.
+ * Optimized permission check - accepts pre-fetched user roles to avoid redundant DB queries.
  */
+async function checkUserPermissionOptimized(
+  userId: string,
+  assignedTo: string | null,
+  assignedRole: string | null,
+  assignedDesignation: string | null,
+  stepId: string,
+  userRole?: string,
+  userRoleNames?: string[],
+  prefetchedDbRoles?: string[]
+): Promise<boolean> {
+  // If task is assigned to this specific user
+  if (assignedTo && assignedTo === userId) return true;
+
+  // Get workflow step config
+  const { data: step } = await supabase
+    .from('workflow_steps')
+    .select('approver_type, approver_role_ids, approver_designation_ids, approver_user_ids, assigned_role, assigned_designation')
+    .eq('id', stepId)
+    .single();
+
+  if (!step) {
+    return checkTaskLevelAssignmentOptimized(userId, assignedRole, assignedDesignation, userRole, userRoleNames, prefetchedDbRoles);
+  }
+
+  const approverType = step.approver_type || 'role';
+
+  if (approverType === 'user' || approverType === 'specific_users') {
+    if (step.approver_user_ids && step.approver_user_ids.length > 0) {
+      return (step.approver_user_ids as string[]).includes(userId);
+    }
+    return false;
+  }
+
+  if (approverType === 'role') {
+    if (!step.approver_role_ids || step.approver_role_ids.length === 0) return false;
+
+    const allowedRoleIds = step.approver_role_ids as string[];
+    
+    // Fetch allowed role names ONCE
+    const { data: rolesTableData } = await supabase
+      .from('roles')
+      .select('id, role_name')
+      .in('id', allowedRoleIds);
+
+    if (!rolesTableData || rolesTableData.length === 0) return false;
+    
+    const allowedRoleNames = rolesTableData.map(r => r.role_name.toLowerCase().trim());
+
+    // Check against pre-fetched DB roles (no extra query needed)
+    const dbRoles = prefetchedDbRoles || [];
+    if (dbRoles.length > 0) {
+      const hasAccess = dbRoles.some(userRoleName => 
+        allowedRoleNames.some(allowedName => 
+          allowedName === userRoleName.toLowerCase().trim() ||
+          allowedName.replace(/_/g, ' ') === userRoleName.toLowerCase().replace(/_/g, ' ').trim()
+        )
+      );
+      if (hasAccess) return true;
+    }
+
+    // Check against context role names
+    if (userRoleNames && userRoleNames.length > 0) {
+      const hasAccess = userRoleNames.some(name => {
+        if (!name) return false;
+        const normalized = name.toLowerCase().replace(/_/g, ' ').trim();
+        return allowedRoleNames.some(a => a === normalized || a.replace(/_/g, ' ') === normalized);
+      });
+      if (hasAccess) return true;
+    }
+
+    // Check context role
+    if (userRole) {
+      const normalized = userRole.toLowerCase().replace(/_/g, ' ').trim();
+      if (allowedRoleNames.some(a => a === normalized || a.replace(/_/g, ' ') === normalized || a.replace(/ /g, '_') === userRole.toLowerCase().trim())) {
+        return true;
+      }
+      if (userRole.toLowerCase() === 'admin') return true;
+    }
+
+    return false;
+  }
+
+  if (approverType === 'designation') {
+    if (!step.approver_designation_ids || step.approver_designation_ids.length === 0) return false;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('designation_id')
+      .eq('id', userId)
+      .single();
+    if (profile?.designation_id) {
+      return (step.approver_designation_ids as string[]).includes(profile.designation_id);
+    }
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * Optimized task-level assignment check using pre-fetched roles.
+ */
+async function checkTaskLevelAssignmentOptimized(
+  userId: string,
+  assignedRole: string | null,
+  assignedDesignation: string | null,
+  userRole?: string,
+  userRoleNames?: string[],
+  prefetchedDbRoles?: string[]
+): Promise<boolean> {
+  if (userRole?.toLowerCase() === 'admin') return true;
+  
+  const dbRoles = prefetchedDbRoles || [];
+  
+  if (!assignedRole && !assignedDesignation) {
+    if (dbRoles.some(r => r.toLowerCase() === 'admin')) return true;
+    return false;
+  }
+
+  if (assignedRole) {
+    const normalizedAssigned = assignedRole.toLowerCase().replace(/_/g, ' ').trim();
+    
+    // Check pre-fetched roles first
+    if (dbRoles.some(r => r.toLowerCase().replace(/_/g, ' ').trim() === normalizedAssigned || r.toLowerCase().trim() === assignedRole.toLowerCase().trim())) {
+      return true;
+    }
+    if (userRoleNames && userRoleNames.some(r => r && (r.toLowerCase().replace(/_/g, ' ').trim() === normalizedAssigned || r.toLowerCase().trim() === assignedRole.toLowerCase().trim()))) {
+      return true;
+    }
+    if (userRole) {
+      const normalizedUser = userRole.toLowerCase().replace(/_/g, ' ').trim();
+      if (normalizedUser === normalizedAssigned || userRole.toLowerCase() === assignedRole.toLowerCase()) return true;
+    }
+  }
+
+  if (assignedDesignation) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('designation_id')
+      .eq('id', userId)
+      .single();
+    if (profile?.designation_id === assignedDesignation) return true;
+  }
+
+  return false;
+}
+
+// Keep old function signature for backward compatibility
 async function checkUserPermission(
   userId: string,
   assignedTo: string | null,
@@ -306,203 +370,9 @@ async function checkUserPermission(
   userRole?: string,
   userRoleNames?: string[]
 ): Promise<boolean> {
-  console.log('checkUserPermission called:', {
-    userId,
-    assignedTo,
-    assignedRole,
-    assignedDesignation,
-    stepId,
-    userRole,
-    userRoleNames
-  });
-  
-  // If task is assigned to this specific user
-  if (assignedTo && assignedTo === userId) {
-    console.log('Permission granted: Task assigned to user');
-    return true;
-  }
-
-  // Get workflow step to check approver configuration - also get assigned_role for fallback
-  const { data: step } = await supabase
-    .from('workflow_steps')
-    .select('approver_type, approver_role_ids, approver_designation_ids, approver_user_ids, assigned_role, assigned_designation')
-    .eq('id', stepId)
-    .single();
-
-  if (!step) {
-    // Fallback to task-level assignment
-    return await checkTaskLevelAssignment(userId, assignedRole, assignedDesignation, userRole);
-  }
-
-  const approverType = step.approver_type || 'role';
-
-  console.log('Checking permission based on approver_type:', {
-    approverType,
-    approver_role_ids: step.approver_role_ids,
-    approver_designation_ids: step.approver_designation_ids,
-    approver_user_ids: step.approver_user_ids
-  });
-
-  // Check based on approver type - ONLY use approver configuration, not assigned_role
-  if (approverType === 'user' || approverType === 'specific_users') {
-    if (step.approver_user_ids && step.approver_user_ids.length > 0) {
-      const allowedUserIds = step.approver_user_ids as string[];
-      const hasAccess = allowedUserIds.includes(userId);
-      console.log('User-based permission check:', { allowedUserIds, userId, hasAccess });
-      return hasAccess;
-    }
-    console.log('approver_type is user but approver_user_ids is empty');
-    return false;
-  }
-
-  if (approverType === 'role') {
-    if (!step.approver_role_ids || step.approver_role_ids.length === 0) {
-      console.log('approver_type is role but approver_role_ids is empty');
-      return false;
-    }
-
-    const allowedRoleIds = step.approver_role_ids as string[];
-    
-    // Check the user_roles table (app_role enum based) + roles table
-    // This handles the case where approver_role_ids contains IDs from the 'roles' table
-    const { data: simpleUserRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-
-    if (simpleUserRoles && simpleUserRoles.length > 0) {
-      // Get role names for the allowed role IDs from the 'roles' table
-      const { data: rolesTableData } = await supabase
-        .from('roles')
-        .select('id, role_name')
-        .in('id', allowedRoleIds);
-
-      if (rolesTableData && rolesTableData.length > 0) {
-        const allowedRoleNames = rolesTableData.map(r => r.role_name.toLowerCase());
-        const userRoleNamesList = simpleUserRoles.map(r => (r.role as string).toLowerCase());
-        
-        const hasAccess = userRoleNamesList.some(userRoleName => 
-          allowedRoleNames.some(allowedName => 
-            allowedName === userRoleName ||
-            allowedName.replace(/_/g, ' ') === userRoleName.replace(/_/g, ' ')
-          )
-        );
-        
-        if (hasAccess) {
-          console.log('Role-based permission granted (user_roles + roles table):', { 
-            allowedRoleNames, 
-            userRoleNamesList 
-          });
-          return true;
-        }
-      }
-    }
-
-    // If database check fails, try matching by role name from roles table
-    if (userRoleNames && userRoleNames.length > 0) {
-      const { data: rolesData } = await supabase
-        .from('roles')
-        .select('id, role_name')
-        .in('id', allowedRoleIds);
-      
-      if (rolesData) {
-        const allowedRoleNames = rolesData.map(r => r.role_name.toLowerCase());
-        const hasAccess = userRoleNames.some(userRoleName => {
-          if (!userRoleName) return false;
-          const normalizedUserRole = userRoleName.toLowerCase().replace(/_/g, ' ').trim();
-          return allowedRoleNames.some(allowedRoleName => {
-            const normalizedAllowedRole = allowedRoleName.trim();
-            return normalizedAllowedRole === normalizedUserRole ||
-                   normalizedAllowedRole === userRoleName.toLowerCase().trim() ||
-                   normalizedAllowedRole.replace(/ /g, '_') === userRoleName.toLowerCase().trim();
-          });
-        });
-        
-        if (hasAccess) {
-          console.log('Role-based permission granted (role name match):', { allowedRoleNames, userRoleNames });
-          return true;
-        }
-      }
-    }
-
-    // Also check userRole from context as fallback
-    if (userRole) {
-      // Check against roles table
-      const { data: rolesTableData } = await supabase
-        .from('roles')
-        .select('id, role_name')
-        .in('id', allowedRoleIds);
-      
-      if (rolesTableData) {
-        const allowedRoleNames = rolesTableData.map(r => r.role_name.toLowerCase());
-        const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ').trim();
-        
-        if (allowedRoleNames.some(roleName => {
-          const normalizedRoleName = roleName.trim();
-          return normalizedRoleName === normalizedUserRole ||
-                 normalizedRoleName === userRole.toLowerCase().trim() ||
-                 normalizedRoleName.replace(/ /g, '_') === userRole.toLowerCase().trim();
-        })) {
-          console.log('Role-based permission granted (context role match):', { allowedRoleNames, userRole });
-          return true;
-        }
-        
-        // Special handling for admin role - admins can perform any action
-        if (userRole.toLowerCase() === 'admin') {
-          console.log('Permission granted: Admin role');
-          return true;
-        }
-      }
-    }
-    
-    console.log('Role-based permission denied:', { 
-      allowedRoleIds, 
-      simpleUserRoles: simpleUserRoles?.map(r => r.role),
-      userRoleNames, 
-      userRole 
-    });
-    return false;
-  }
-
-  if (approverType === 'designation') {
-    if (!step.approver_designation_ids || step.approver_designation_ids.length === 0) {
-      console.log('approver_type is designation but approver_designation_ids is empty');
-      return false;
-    }
-
-    // Get user's designation from profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('designation_id')
-      .eq('id', userId)
-      .single();
-
-    if (profile?.designation_id) {
-      const allowedDesignations = step.approver_designation_ids as string[];
-      const hasAccess = allowedDesignations.includes(profile.designation_id);
-      console.log('Designation-based permission check:', { allowedDesignations, userDesignation: profile.designation_id, hasAccess });
-      return hasAccess;
-    }
-    
-    console.log('Designation-based permission denied: User has no designation');
-    return false;
-  }
-
-  // Handle other approver types (department_head, designation_hierarchy) if needed
-  if (approverType === 'department_head' || approverType === 'designation_hierarchy') {
-    // These would require additional logic based on your business rules
-    console.log('approver_type not fully implemented:', approverType);
-    return false;
-  }
-
-  // If approver_type is not recognized or not set, deny access
-  console.log('Unknown or missing approver_type:', approverType);
-  return false;
+  return checkUserPermissionOptimized(userId, assignedTo, assignedRole, assignedDesignation, stepId, userRole, userRoleNames);
 }
 
-/**
- * Check task-level role/designation assignment.
- */
 async function checkTaskLevelAssignment(
   userId: string,
   assignedRole: string | null,
@@ -510,191 +380,60 @@ async function checkTaskLevelAssignment(
   userRole?: string,
   userRoleNames?: string[]
 ): Promise<boolean> {
-  // Admin users always have access
-  if (userRole?.toLowerCase() === 'admin') {
-    return true;
-  }
-  
-  // If no specific assignment, check if user is admin in database
-  if (!assignedRole && !assignedDesignation) {
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-
-    if (userRoles?.some(r => (r.role as string) === 'Admin')) {
-      return true;
-    }
-    return false;
-  }
-
-  // Check role - compare with both database roles and mock role
-  if (assignedRole) {
-    const normalizedAssignedRole = assignedRole.toLowerCase().replace(/_/g, ' ').trim();
-    
-    // First check against provided userRoleNames array (from database)
-    if (userRoleNames && userRoleNames.length > 0) {
-      const matches = userRoleNames.some(roleName => {
-        if (!roleName) return false;
-        const normalizedRoleName = roleName.toLowerCase().replace(/_/g, ' ').trim();
-        return normalizedRoleName === normalizedAssignedRole ||
-               roleName.toLowerCase().trim() === assignedRole.toLowerCase().trim();
-      });
-      if (matches) {
-        console.log('Role match found in userRoleNames:', { assignedRole, userRoleNames });
-        return true;
-      }
-    }
-    
-    // Check mock role match (from AuthContext)
-    if (userRole) {
-      const normalizedUserRole = userRole.toLowerCase().replace(/_/g, ' ').trim();
-      
-      // Direct match
-      if (normalizedUserRole === normalizedAssignedRole) {
-        console.log('Role match found (mock auth):', { assignedRole, userRole });
-        return true;
-      }
-      
-      // Case-insensitive match
-      if (userRole.toLowerCase() === assignedRole.toLowerCase()) {
-        console.log('Role match found (case-insensitive):', { assignedRole, userRole });
-        return true;
-      }
-    }
-    
-    // Fallback: Check database roles directly (if not already checked)
-    if (!userRoleNames || userRoleNames.length === 0) {
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (userRoles?.some(r => {
-        const roleName = r.role as string;
-        if (!roleName) return false;
-        // Case-insensitive match
-        const matches = roleName.toLowerCase() === assignedRole.toLowerCase() ||
-               roleName.toLowerCase().trim() === assignedRole.toLowerCase().trim();
-        if (matches) {
-          console.log('Role match found in database:', { assignedRole, roleName });
-        }
-        return matches;
-      })) {
-        return true;
-      }
-    }
-    
-    console.log('No role match found:', { assignedRole, userRole, userRoleNames });
-  }
-
-  // Check designation
-  if (assignedDesignation) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('designation_id')
-      .eq('id', userId)
-      .single();
-
-    if (profile?.designation_id === assignedDesignation) {
-      return true;
-    }
-  }
-
-  return false;
+  return checkTaskLevelAssignmentOptimized(userId, assignedRole, assignedDesignation, userRole, userRoleNames);
 }
 
 /**
- * Check if maker-checker restriction blocks the current user from performing workflow actions.
- * Returns true if the user should be BLOCKED (i.e., they are the creator and maker-checker is enabled).
+ * Check if maker-checker restriction blocks the current user.
+ * Accepts optional pre-fetched roles to avoid redundant queries.
  */
 async function checkMakerCheckerRestriction(
   workflowId: string | null,
   instanceStartedBy: string | null,
   currentUserId: string,
   sourceModule: string,
-  sourceRecordId: string
+  sourceRecordId: string,
+  prefetchedDbRoles?: string[]
 ): Promise<boolean> {
   if (!workflowId) return false;
 
-  // Check if the workflow has maker-checker enabled
   const { data: workflowDef, error } = await supabase
     .from('workflow_definitions')
     .select('maker_checker_enabled')
     .eq('id', workflowId)
     .single();
 
-  if (error || !workflowDef) return false;
-  if (!(workflowDef as any).maker_checker_enabled) return false;
+  if (error || !workflowDef || !(workflowDef as any).maker_checker_enabled) return false;
 
-  // Admin exception: Admin users are exempt from maker-checker restriction
-  const { data: userRolesData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', currentUserId);
+  // Admin exception - use pre-fetched roles if available
+  const dbRoles = prefetchedDbRoles || (await supabase.from('user_roles').select('role').eq('user_id', currentUserId)).data?.map(r => r.role as string) || [];
+  if (dbRoles.some(r => r.toLowerCase() === 'admin')) return false;
 
-  const isAdmin = userRolesData?.some(r => (r.role as string).toLowerCase() === 'admin');
-  if (isAdmin) {
-    console.log('Maker-checker: Admin user exempt from restriction');
-    return false;
-  }
+  if (instanceStartedBy && instanceStartedBy === currentUserId) return true;
 
-  // Check 1: Compare with workflow instance started_by
-  if (instanceStartedBy && instanceStartedBy === currentUserId) {
-    console.log('Maker-checker: blocked (user is workflow instance starter)');
-    return true;
-  }
-
-  // Check 2: Look up the source record's creator (entered_by / created_by)
-  // This handles cases where the workflow was auto-started but the record was created by this user
   try {
-    // Determine the table and creator column based on module
     const creatorCheckMap: Record<string, { table: string; idCol: string; creatorCols: string[] }> = {
       'insured_person_registration': { table: 'ip_master', idCol: 'unique_uuid', creatorCols: ['entered_by'] },
       'employer_registration': { table: 'er_master', idCol: 'unique_uuid', creatorCols: ['entered_by'] },
     };
-
     const config = creatorCheckMap[sourceModule];
     if (config) {
-      const { data: record } = await supabase
-        .from(config.table as any)
-        .select(config.creatorCols.join(', '))
-        .eq(config.idCol, sourceRecordId)
-        .maybeSingle();
-
-      if (record) {
-        // Get the current user's user_code for comparison
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_code')
-          .eq('id', currentUserId)
-          .maybeSingle();
-
-        if (profile?.user_code) {
-          for (const col of config.creatorCols) {
-            if ((record as any)[col] && (record as any)[col] === profile.user_code) {
-              console.log('Maker-checker: blocked (user_code matches record creator)', {
-                userCode: profile.user_code,
-                creatorField: col,
-                creatorValue: (record as any)[col],
-              });
-              return true;
-            }
-          }
+      const [recordResult, profileResult] = await Promise.all([
+        supabase.from(config.table as any).select(config.creatorCols.join(', ')).eq(config.idCol, sourceRecordId).maybeSingle(),
+        supabase.from('profiles').select('user_code').eq('id', currentUserId).maybeSingle(),
+      ]);
+      if (recordResult.data && profileResult.data?.user_code) {
+        for (const col of config.creatorCols) {
+          if ((recordResult.data as any)[col] === profileResult.data.user_code) return true;
         }
       }
     }
   } catch (err) {
-    console.error('Maker-checker: Error checking source record creator:', err);
-    // Don't block on error - fail open for non-critical check
+    // Don't block on error
   }
-
   return false;
 }
 
-/**
- * Hook to execute a workflow action.
- */
 export function useExecuteWorkflowAction() {
   const queryClient = useQueryClient();
   // Prefer real authenticated user
