@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Settings, CreditCard, Save, Loader2 } from 'lucide-react';
+import { Settings, CreditCard, Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface IPCardConfig {
   id: string;
@@ -150,36 +150,52 @@ export default function IPCardConfiguration() {
             <p className="text-xs text-muted-foreground">
               Determines which date is used as the permanent card date and start of validity period
             </p>
-            <RadioGroup
-              value={dateSource}
-              onValueChange={setDateSource}
-              className="space-y-3"
-            >
-              <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="registered_date" id="registered_date" className="mt-0.5" />
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setDateSource('registered_date')}
+                className={cn(
+                  "w-full flex items-start gap-3 p-3 border rounded-lg text-left transition-colors",
+                  dateSource === 'registered_date'
+                    ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                    : "hover:bg-muted/50"
+                )}
+              >
+                <CheckCircle2 className={cn(
+                  "h-5 w-5 mt-0.5 shrink-0 transition-colors",
+                  dateSource === 'registered_date' ? "text-green-600" : "text-muted-foreground/30"
+                )} />
                 <div>
-                  <Label htmlFor="registered_date" className="font-medium cursor-pointer">
-                    Registered Date
-                  </Label>
+                  <span className="font-medium">Registered Date</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Use the insured person's registration date as the card start date.
                     Card expiration = Registration date + validity years.
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="card_print_date" id="card_print_date" className="mt-0.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateSource('card_print_date')}
+                className={cn(
+                  "w-full flex items-start gap-3 p-3 border rounded-lg text-left transition-colors",
+                  dateSource === 'card_print_date'
+                    ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                    : "hover:bg-muted/50"
+                )}
+              >
+                <CheckCircle2 className={cn(
+                  "h-5 w-5 mt-0.5 shrink-0 transition-colors",
+                  dateSource === 'card_print_date' ? "text-green-600" : "text-muted-foreground/30"
+                )} />
                 <div>
-                  <Label htmlFor="card_print_date" className="font-medium cursor-pointer">
-                    Card Print Date
-                  </Label>
+                  <span className="font-medium">Card Print Date</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Use the current date (when "Ready to Print Card" is clicked) as the card start date.
                     Card expiration = Print date + validity years.
                   </p>
                 </div>
-              </div>
-            </RadioGroup>
+              </button>
+            </div>
           </div>
 
           {/* Save Button */}
