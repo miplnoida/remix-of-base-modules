@@ -19,19 +19,41 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', '"Segoe UI"', 'Arial', 'sans-serif'],
+			},
 			colors: {
-				// SecureServe color scheme - Better contrast colors
+				/* SSB Brand Palette */
+				ssb: {
+					green: {
+						DEFAULT: '#0E5F3A',
+						light: '#1E8E3E',
+						50: '#F0FDF4',
+						100: '#DCFCE7',
+						200: '#BBF7D0',
+						300: '#86EFAC',
+						400: '#4ADE80',
+						500: '#1E8E3E',
+						600: '#0E5F3A',
+						700: '#0A4D2E',
+						800: '#073D24',
+						900: '#052E1A',
+					},
+					yellow: '#F4C430',
+					red: '#D62828',
+				},
+				/* Backward-compatible alias — maps old government-* to SSB greens */
 				government: {
-					50: '#f0f9ff',
-					100: '#e0f2fe',
-					200: '#bae6fd',
-					300: '#7dd3fc',
-					400: '#38bdf8',
-					500: '#0ea5e9',
-					600: '#0284c7',
-					700: '#0369a1',
-					800: '#075985',
-					900: '#0c4a6e',
+					50: '#F0FDF4',
+					100: '#DCFCE7',
+					200: '#BBF7D0',
+					300: '#86EFAC',
+					400: '#4ADE80',
+					500: '#1E8E3E',
+					600: '#0E5F3A',
+					700: '#0A4D2E',
+					800: '#073D24',
+					900: '#052E1A',
 				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -82,22 +104,18 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			boxShadow: {
+				'card': '0 2px 8px rgba(0,0,0,0.05)',
+				'card-hover': '0 4px 16px rgba(0,0,0,0.08)',
+			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				},
 				'fade-in': {
 					'0%': { opacity: '0', transform: 'translateY(10px)' },

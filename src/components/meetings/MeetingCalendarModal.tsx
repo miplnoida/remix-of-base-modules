@@ -68,8 +68,8 @@ interface MeetingCalendarModalProps {
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
   Scheduled: {
     label: 'Scheduled',
-    dot: 'bg-government-600',
-    badge: 'bg-government-50 text-government-800 border-government-200',
+    dot: 'bg-primary',
+    badge: 'bg-primary/10 text-primary border-primary/20',
   },
   Rescheduled: {
     label: 'Rescheduled',
@@ -157,7 +157,7 @@ export function MeetingCalendarModal({ open, onOpenChange }: MeetingCalendarModa
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-card shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2.5 text-lg font-semibold text-foreground">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-government-600 text-white">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
                 <CalendarDays className="h-4 w-4" />
               </div>
               {isAdmin ? 'All Meetings Calendar' : 'My Meeting Calendar'}
@@ -473,7 +473,7 @@ function MeetingCard({
         {/* Details */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-            <Clock className="h-4 w-4 text-government-500 shrink-0" />
+            <Clock className="h-4 w-4 text-primary shrink-0" />
             <span className="font-medium">
               {meeting.meeting_time?.slice(0, 5)}
               {meeting.meeting_end_time && ` – ${meeting.meeting_end_time.slice(0, 5)}`}
@@ -482,14 +482,14 @@ function MeetingCard({
 
           {meeting.office_address && (
             <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-              <MapPin className="h-4 w-4 text-government-500 shrink-0" />
+              <MapPin className="h-4 w-4 text-primary shrink-0" />
               <span className="truncate">{meeting.office_address}</span>
             </div>
           )}
 
           {meeting.remarks && (
             <div className="flex items-start gap-2 text-[13px] text-muted-foreground">
-              <FileText className="h-4 w-4 text-government-500 shrink-0 mt-0.5" />
+              <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <span className="line-clamp-2">{meeting.remarks}</span>
             </div>
           )}

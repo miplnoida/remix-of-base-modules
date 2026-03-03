@@ -20,13 +20,13 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
       asChild
       className={`group relative rounded-lg transition-all duration-200 ease-in-out font-medium h-11 ${
         isActive 
-          ? "bg-government-100 text-government-800 shadow-sm border-l-4 border-government-600" 
-          : "text-gray-700 hover:bg-gray-50 hover:text-government-700"
+          ? "bg-sidebar-accent text-white shadow-sm border-l-4 border-accent" 
+          : "text-white/80 hover:bg-sidebar-accent/60 hover:text-white"
       }`}
     >
       <NavLink to={item.url} className={`flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`}>
         <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
-          isActive ? "text-government-600" : "text-gray-500 group-hover:text-government-600"
+          isActive ? "text-accent" : "text-white/60 group-hover:text-white"
         }`} />
         {!collapsed && (
           <span className="truncate text-sm font-medium tracking-wide">
@@ -44,10 +44,10 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
           <TooltipTrigger asChild>
             {content}
           </TooltipTrigger>
-          <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+          <TooltipContent side="right" className="bg-foreground text-background border-border">
             <div>
               <div className="font-medium">{item.title}</div>
-              <div className="text-xs text-gray-300 mt-1">{item.description}</div>
+              <div className="text-xs text-muted-foreground mt-1">{item.description}</div>
             </div>
           </TooltipContent>
         </Tooltip>
