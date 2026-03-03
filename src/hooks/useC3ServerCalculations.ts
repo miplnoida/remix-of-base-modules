@@ -24,6 +24,17 @@ export interface C3CalculationConfig {
   employerSeveranceRate: number;
 }
 
+export interface HolidayDistribution {
+  week1: number;
+  week2: number;
+  week3: number;
+  week4: number;
+  week5: number;
+  totalDistributed: number;
+  overlapDays: number[];
+  distributed: boolean;
+}
+
 export interface EmployeeCalculationResult {
   ssn: string;
   name: string;
@@ -46,6 +57,10 @@ export interface EmployeeCalculationResult {
   totalWagesPlusEmployeeLevyPlusSS: number;
   employersThreePercentLevyPlusSS: number;
   employersOnePercentSeverancePay: number;
+  holidayDistribution?: HolidayDistribution;
+  holidayLevy?: number;
+  holidayPolicyApplied?: string;
+  holidayPolicyType?: string;
 }
 
 export interface C3CalculationTotals {
